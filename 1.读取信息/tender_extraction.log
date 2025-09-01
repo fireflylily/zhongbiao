@@ -1,0 +1,1577 @@
+2025-08-28 16:35:31,567 - INFO - 开始处理招标文档...
+2025-08-28 16:35:31,567 - INFO - 文档内容长度: 1441 字符
+2025-08-28 16:35:31,567 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:35:34,202 - INFO - LLM API调用成功，返回内容长度: 92
+2025-08-28 16:35:34,202 - INFO - LLM原始响应: {
+    "project_name": "哈银消金2025年-2027年运营商数据采购项目",
+    "project_number": "GXTC-C-251590031"
+}
+2025-08-28 16:35:34,202 - INFO - 成功提取项目信息: {'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031'}
+2025-08-28 16:35:34,203 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 16:35:34,203 - INFO - ==================================================
+2025-08-28 16:35:34,203 - INFO - 项目信息提取完成!
+2025-08-28 16:35:34,203 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-08-28 16:35:34,203 - INFO - 项目编号: GXTC-C-251590031
+2025-08-28 16:35:34,203 - INFO - ==================================================
+2025-08-28 16:39:11,093 - INFO - 开始处理招标文档...
+2025-08-28 16:39:11,093 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信 归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:39:11,155 - ERROR - 读取文档失败: Package not found at '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信 归属运营商/采购文件-2025-IT-0032所属运营商数据.doc'
+2025-08-28 16:39:11,155 - ERROR - 文档处理失败: Package not found at '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信 归属运营商/采购文件-2025-IT-0032所属运营商数据.doc'
+2025-08-28 16:39:11,155 - ERROR - 程序执行失败: Package not found at '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信 归属运营商/采购文件-2025-IT-0032所属运营商数据.doc'
+2025-08-28 16:39:30,736 - INFO - 开始处理招标文档...
+2025-08-28 16:39:30,737 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:39:30,800 - ERROR - 读取文档失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"
+2025-08-28 16:39:30,800 - ERROR - 文档处理失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"
+2025-08-28 16:39:30,800 - ERROR - 程序执行失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"
+2025-08-28 16:40:43,789 - INFO - 开始处理招标文档...
+2025-08-28 16:40:43,790 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:40:43,858 - ERROR - 读取文档失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"
+2025-08-28 16:40:43,858 - ERROR - 文档处理失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"
+2025-08-28 16:40:43,858 - ERROR - 程序执行失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"
+2025-08-28 16:42:32,845 - INFO - 开始处理招标文档...
+2025-08-28 16:42:32,845 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:42:32,912 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 16:42:33,103 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 16:42:33,103 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 16:42:33,105 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 16:42:33,105 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 16:42:33,106 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:42:36,327 - ERROR - API调用失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:42:36,327 - ERROR - 信息提取失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:42:36,327 - ERROR - 文档处理失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:42:36,327 - ERROR - 程序执行失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:43:08,312 - INFO - 开始处理招标文档...
+2025-08-28 16:43:08,312 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:43:08,388 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 16:43:08,425 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 16:43:08,426 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 16:43:08,428 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 16:43:08,428 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 16:43:08,428 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:43:11,563 - ERROR - API调用失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:43:11,564 - ERROR - 信息提取失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:43:11,564 - ERROR - 文档处理失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:43:11,564 - ERROR - 程序执行失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:44:44,904 - INFO - 开始处理招标文档...
+2025-08-28 16:44:44,904 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:44:44,972 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 16:44:45,009 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 16:44:45,009 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 16:44:45,011 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 16:44:45,011 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 16:44:45,033 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 16:44:45,033 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:44:45,033 - INFO - 请求内容长度: 8225 字符
+2025-08-28 16:44:47,291 - INFO - LLM API调用成功，返回内容长度: 71
+2025-08-28 16:44:47,292 - INFO - LLM原始响应: {
+    "project_name": "所属运营商数据",
+    "project_number": "2025-IT-0032"
+}
+2025-08-28 16:44:47,292 - INFO - 成功提取项目信息: {'project_name': '所属运营商数据', 'project_number': '2025-IT-0032'}
+2025-08-28 16:44:47,295 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 16:44:47,295 - INFO - ==================================================
+2025-08-28 16:44:47,295 - INFO - 项目信息提取完成!
+2025-08-28 16:44:47,295 - INFO - 项目名称: 所属运营商数据
+2025-08-28 16:44:47,295 - INFO - 项目编号: 2025-IT-0032
+2025-08-28 16:44:47,295 - INFO - ==================================================
+2025-08-28 16:45:15,082 - INFO - 开始处理招标文档...
+2025-08-28 16:45:15,082 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/招标文件.docx
+2025-08-28 16:45:15,198 - INFO - 使用python-docx成功读取Word文档
+2025-08-28 16:45:15,199 - INFO - 文档读取成功，内容长度: 23647 字符
+2025-08-28 16:45:15,202 - WARNING - 文档内容过长，已截断至 6849 字符
+2025-08-28 16:45:15,202 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:45:15,202 - INFO - 请求内容长度: 7074 字符
+2025-08-28 16:45:17,718 - INFO - LLM API调用成功，返回内容长度: 92
+2025-08-28 16:45:17,719 - INFO - LLM原始响应: {
+    "project_name": "哈银消金2025年-2027年运营商数据采购项目",
+    "project_number": "GXTC-C-251590031"
+}
+2025-08-28 16:45:17,719 - INFO - 成功提取项目信息: {'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031'}
+2025-08-28 16:45:17,722 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 16:45:17,722 - INFO - ==================================================
+2025-08-28 16:45:17,722 - INFO - 项目信息提取完成!
+2025-08-28 16:45:17,723 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-08-28 16:45:17,723 - INFO - 项目编号: GXTC-C-251590031
+2025-08-28 16:45:17,723 - INFO - ==================================================
+2025-08-28 16:49:56,644 - INFO - 开始处理招标文档...
+2025-08-28 16:49:56,644 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/招标文件.docx
+2025-08-28 16:49:56,766 - INFO - 使用python-docx成功读取Word文档
+2025-08-28 16:49:56,766 - INFO - 文档读取成功，内容长度: 23647 字符
+2025-08-28 16:49:56,770 - WARNING - 文档内容过长，已截断至 6849 字符
+2025-08-28 16:49:56,770 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:49:56,770 - INFO - 请求内容长度: 7185 字符
+2025-08-28 16:49:59,511 - INFO - LLM API调用成功，返回内容长度: 157
+2025-08-28 16:49:59,512 - INFO - LLM原始响应: {
+    "project_name": "哈银消金2025年-2027年运营商数据采购项目",
+    "project_number": "GXTC-C-251590031",
+    "tenderer": "哈尔滨哈银消费金融有限责任公司",
+    "agency": "国信招标集团股份有限公司"
+}
+2025-08-28 16:49:59,512 - INFO - 成功提取项目信息: {'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司'}
+2025-08-28 16:49:59,515 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 16:49:59,515 - INFO - ==================================================
+2025-08-28 16:49:59,515 - INFO - 项目信息提取完成!
+2025-08-28 16:49:59,515 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-08-28 16:49:59,515 - INFO - 项目编号: GXTC-C-251590031
+2025-08-28 16:49:59,515 - INFO - ==================================================
+2025-08-28 16:50:09,092 - INFO - 开始处理招标文档...
+2025-08-28 16:50:09,092 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:50:09,136 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 16:50:09,172 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 16:50:09,173 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 16:50:09,175 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 16:50:09,175 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 16:50:09,196 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 16:50:09,196 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:50:09,197 - INFO - 请求内容长度: 8336 字符
+2025-08-28 16:50:11,564 - INFO - LLM API调用成功，返回内容长度: 131
+2025-08-28 16:50:11,564 - INFO - LLM原始响应: {
+    "project_name": "2025年信息技术项目",
+    "project_number": "2025-IT-0032",
+    "tenderer": "中国中信集团有限公司",
+    "agency": "中信招标有限公司"
+}
+2025-08-28 16:50:11,564 - INFO - 成功提取项目信息: {'project_name': '2025年信息技术项目', 'project_number': '2025-IT-0032', 'tenderer': '中国中信集团有限公司', 'agency': '中信招标有限公司'}
+2025-08-28 16:50:11,566 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 16:50:11,566 - INFO - ==================================================
+2025-08-28 16:50:11,566 - INFO - 项目信息提取完成!
+2025-08-28 16:50:11,566 - INFO - 项目名称: 2025年信息技术项目
+2025-08-28 16:50:11,566 - INFO - 项目编号: 2025-IT-0032
+2025-08-28 16:50:11,566 - INFO - ==================================================
+2025-08-28 16:58:27,202 - INFO - 开始处理招标文档...
+2025-08-28 16:58:27,203 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:58:27,262 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 16:58:27,298 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 16:58:27,298 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 16:58:27,300 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 16:58:27,300 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 16:58:27,322 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 16:58:27,322 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:58:27,322 - INFO - 请求内容长度: 8336 字符
+2025-08-28 16:58:28,302 - ERROR - API返回错误状态码: 503
+2025-08-28 16:58:28,303 - ERROR - 错误响应: {"error":{"message":"当前分组 default 下对于模型 gpt-5o 无可用渠道 (request id: 952c8815-6437-4e87-a504-57149369ce43)","type":"new_api_error"}}
+2025-08-28 16:58:28,303 - ERROR - API调用失败: 503 Server Error: Service Unavailable for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:58:28,303 - ERROR - 响应内容: {"error":{"message":"当前分组 default 下对于模型 gpt-5o 无可用渠道 (request id: 952c8815-6437-4e87-a504-57149369ce43)","type":"new_api_error"}}
+2025-08-28 16:58:28,303 - ERROR - 信息提取失败: 503 Server Error: Service Unavailable for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:58:28,303 - ERROR - 文档处理失败: 503 Server Error: Service Unavailable for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:58:28,303 - ERROR - 程序执行失败: 503 Server Error: Service Unavailable for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:59:49,014 - INFO - 开始处理招标文档...
+2025-08-28 16:59:49,015 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 16:59:49,080 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 16:59:49,116 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 16:59:49,117 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 16:59:49,119 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 16:59:49,119 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 16:59:49,141 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 16:59:49,141 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 16:59:49,141 - INFO - 请求内容长度: 8336 字符
+2025-08-28 16:59:49,915 - ERROR - API返回错误状态码: 400
+2025-08-28 16:59:49,915 - ERROR - 错误响应: {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: cb7038de-3355-4dde-aec7-22d97a220d9d)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-08-28 16:59:49,916 - ERROR - API调用失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:59:49,916 - ERROR - 响应内容: {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: cb7038de-3355-4dde-aec7-22d97a220d9d)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-08-28 16:59:49,916 - ERROR - 信息提取失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:59:49,916 - ERROR - 文档处理失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 16:59:49,916 - ERROR - 程序执行失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:01:39,947 - INFO - 开始处理招标文档...
+2025-08-28 17:01:39,947 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 17:01:40,022 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 17:01:40,061 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 17:01:40,061 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 17:01:40,063 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 17:01:40,063 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 17:01:40,085 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 17:01:40,085 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 17:01:40,085 - INFO - 请求内容长度: 8336 字符
+2025-08-28 17:01:40,926 - ERROR - API返回错误状态码: 400
+2025-08-28 17:01:40,927 - ERROR - 错误响应: {"error":{"message":"Unsupported value: 'temperature' does not support 0.3 with this model. Only the default (1) value is supported. (request id: 63fe56a4-d1bd-446f-b291-4574e4cf7775)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-08-28 17:01:40,927 - ERROR - API调用失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:01:40,927 - ERROR - 响应内容: {"error":{"message":"Unsupported value: 'temperature' does not support 0.3 with this model. Only the default (1) value is supported. (request id: 63fe56a4-d1bd-446f-b291-4574e4cf7775)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-08-28 17:01:40,927 - ERROR - 信息提取失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:01:40,927 - ERROR - 文档处理失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:01:40,927 - ERROR - 程序执行失败: 400 Client Error: Bad Request for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:02:44,721 - INFO - 开始处理招标文档...
+2025-08-28 17:02:44,722 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 17:02:44,787 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 17:02:44,824 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 17:02:44,825 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 17:02:44,827 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 17:02:44,827 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 17:02:44,849 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 17:02:44,849 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 17:02:44,849 - INFO - 请求内容长度: 8336 字符
+2025-08-28 17:02:57,042 - INFO - LLM API调用成功，返回内容长度: 0
+2025-08-28 17:02:57,044 - INFO - LLM原始响应: 
+2025-08-28 17:02:57,044 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-08-28 17:02:57,044 - ERROR - 原始响应: 
+2025-08-28 17:02:57,048 - WARNING - 使用备用方法提取的信息: {'project_name': '', 'project_number': '', 'tenderer': '', 'agency': ''}
+2025-08-28 17:02:57,051 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 17:02:57,051 - INFO - ==================================================
+2025-08-28 17:02:57,051 - INFO - 项目信息提取完成!
+2025-08-28 17:02:57,051 - INFO - 项目名称: 
+2025-08-28 17:02:57,051 - INFO - 项目编号: 
+2025-08-28 17:02:57,051 - INFO - ==================================================
+2025-08-28 17:08:15,595 - INFO - 开始处理招标文档...
+2025-08-28 17:08:15,596 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 17:08:15,665 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 17:08:15,701 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 17:08:15,702 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 17:08:15,704 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 17:08:15,704 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 17:08:15,726 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 17:08:15,726 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 17:08:15,726 - INFO - 请求内容长度: 8336 字符
+2025-08-28 17:08:16,684 - ERROR - API返回错误状态码: 401
+2025-08-28 17:08:16,684 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 7a529233-5ab2-4db4-ae52-7a0cbb71bf04)","type":"new_api_error"}}
+2025-08-28 17:08:16,685 - ERROR - API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:08:16,685 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 7a529233-5ab2-4db4-ae52-7a0cbb71bf04)","type":"new_api_error"}}
+2025-08-28 17:08:16,685 - ERROR - 信息提取失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:08:16,685 - ERROR - 文档处理失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:08:16,685 - ERROR - 程序执行失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-08-28 17:09:15,922 - INFO - 开始处理招标文档...
+2025-08-28 17:09:15,923 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 17:09:15,982 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 17:09:16,019 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 17:09:16,019 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 17:09:16,021 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 17:09:16,021 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 17:09:16,043 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 17:09:16,043 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 17:09:16,043 - INFO - 请求内容长度: 8336 字符
+2025-08-28 17:09:27,114 - INFO - LLM API调用成功，返回内容长度: 0
+2025-08-28 17:09:27,116 - INFO - LLM原始响应: 
+2025-08-28 17:09:27,116 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-08-28 17:09:27,116 - ERROR - 原始响应: 
+2025-08-28 17:09:27,120 - WARNING - 使用备用方法提取的信息: {'project_name': '', 'project_number': '', 'tenderer': '', 'agency': ''}
+2025-08-28 17:09:27,122 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 17:09:27,122 - INFO - ==================================================
+2025-08-28 17:09:27,122 - INFO - 项目信息提取完成!
+2025-08-28 17:09:27,122 - INFO - 项目名称: 
+2025-08-28 17:09:27,122 - INFO - 项目编号: 
+2025-08-28 17:09:27,122 - INFO - ==================================================
+2025-08-28 17:12:06,214 - INFO - 开始处理招标文档...
+2025-08-28 17:12:06,215 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 17:12:06,289 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 17:12:06,327 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 17:12:06,327 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 17:12:06,330 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 17:12:06,330 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 17:12:06,351 - WARNING - 文档内容过长，已截断至 8000 字符
+2025-08-28 17:12:06,352 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 17:12:06,352 - INFO - 请求内容长度: 8336 字符
+2025-08-28 17:12:21,697 - INFO - LLM API调用成功，返回内容长度: 0
+2025-08-28 17:12:21,699 - INFO - LLM原始响应: 
+2025-08-28 17:12:21,699 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-08-28 17:12:21,699 - ERROR - 原始响应: 
+2025-08-28 17:12:21,704 - WARNING - 使用备用方法提取的信息: {'project_name': '', 'project_number': '', 'tenderer': '', 'agency': ''}
+2025-08-28 17:12:21,706 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 17:12:21,707 - INFO - ==================================================
+2025-08-28 17:12:21,707 - INFO - 项目信息提取完成!
+2025-08-28 17:12:21,707 - INFO - 项目名称: 
+2025-08-28 17:12:21,707 - INFO - 项目编号: 
+2025-08-28 17:12:21,707 - INFO - ==================================================
+2025-08-28 17:15:58,390 - INFO - 开始处理招标文档...
+2025-08-28 17:15:58,391 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-08-28 17:15:58,461 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-08-28 17:15:58,499 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-08-28 17:15:58,499 - WARNING - 未安装pywin32库或非Windows环境
+2025-08-28 17:15:58,501 - WARNING - 使用二进制读取Word文档，可能包含乱码
+2025-08-28 17:15:58,501 - INFO - 文档读取成功，内容长度: 234427 字符
+2025-08-28 17:15:58,523 - WARNING - 文档内容过长，已截断至 2000 字符
+2025-08-28 17:15:58,523 - INFO - 正在调用LLM API进行项目信息提取...
+2025-08-28 17:15:58,523 - INFO - 请求内容长度: 2336 字符
+2025-08-28 17:16:06,878 - INFO - LLM API调用成功，返回内容长度: 0
+2025-08-28 17:16:06,880 - INFO - LLM原始响应: 
+2025-08-28 17:16:06,880 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-08-28 17:16:06,880 - ERROR - 原始响应: 
+2025-08-28 17:16:06,883 - WARNING - 使用备用方法提取的信息: {'project_name': '', 'project_number': '', 'tenderer': '', 'agency': ''}
+2025-08-28 17:16:06,886 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-08-28 17:16:06,886 - INFO - ==================================================
+2025-08-28 17:16:06,886 - INFO - 项目信息提取完成!
+2025-08-28 17:16:06,886 - INFO - 项目名称: 
+2025-08-28 17:16:06,886 - INFO - 项目编号: 
+2025-08-28 17:16:06,886 - INFO - ==================================================
+2025-08-28 17:20:20,137 - ERROR - 程序执行失败: 'TenderInfoExtractor' object has no attribute 'process_document'
+2025-09-01 10:56:28,090 - INFO - [LLM调用开始] 任务: 招标信息提取
+2025-09-01 10:56:28,091 - INFO - 请求内容长度: 779 字符
+2025-09-01 10:56:29,578 - INFO - API返回状态码: 401
+2025-09-01 10:56:29,578 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 797156a2-133d-4c69-8431-71d39df6249c)","type":"new_api_error"}}
+2025-09-01 10:56:29,578 - ERROR - API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 10:56:29,578 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 797156a2-133d-4c69-8431-71d39df6249c)","type":"new_api_error"}}
+2025-09-01 10:56:29,578 - ERROR - 信息提取失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 10:56:51,029 - WARNING - 使用备用方法提取的信息: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号现代城A座', 'bidding_time': '2025年1月15日 09:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031'}
+2025-09-01 10:56:51,031 - INFO - 项目信息已保存到配置文件: tender_config.ini
+2025-09-01 15:50:58,390 - INFO - [LLM调用开始] 任务: 招标信息提取
+2025-09-01 15:50:58,391 - INFO - 请求内容长度: 2992 字符
+2025-09-01 15:50:59,476 - INFO - API返回状态码: 401
+2025-09-01 15:50:59,476 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 37c384d9-3860-4092-a48e-db805fbb4c2d)","type":"new_api_error"}}
+2025-09-01 15:50:59,476 - ERROR - API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:50:59,476 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 37c384d9-3860-4092-a48e-db805fbb4c2d)","type":"new_api_error"}}
+2025-09-01 15:50:59,476 - ERROR - 信息提取失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:51:30,124 - WARNING - 使用备用方法提取的信息: {'tenderer': '', 'agency': '', 'bidding_method': '', 'bidding_location': '', 'bidding_time': '', 'winner_count': '', 'project_name': '**', 'project_number': '', 'qualification_requirements': {'business_license': {'required': True, 'description': '须提供营业执照'}, 'taxpayer_qualification': {'required': True, 'description': '纳税人资格'}, 'performance_requirements': {'required': True, 'description': '类似项目业绩'}, 'authorization_requirements': {'required': True, 'description': '授权委托'}, 'credit_china': {'required': True, 'description': '信用中国网站查询'}, 'commitment_letter': {'required': True, 'description': '承诺函'}, 'audit_report': {'required': True, 'description': '财务报告'}, 'social_security': {'required': True, 'description': '社会保险缴费'}, 'labor_contract': {'required': True, 'description': '劳动合同'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 15:51:30,126 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 15:52:23,861 - WARNING - 使用备用方法提取的信息: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '**第一部分 招标公告**\n国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '', 'bidding_time': '', 'winner_count': '', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '须提供营业执照'}, 'taxpayer_qualification': {'required': True, 'description': '纳税人资格'}, 'performance_requirements': {'required': True, 'description': '类似项目业绩'}, 'authorization_requirements': {'required': True, 'description': '授权委托'}, 'credit_china': {'required': True, 'description': '信用中国网站查询'}, 'commitment_letter': {'required': True, 'description': '承诺函'}, 'audit_report': {'required': True, 'description': '财务报告'}, 'social_security': {'required': True, 'description': '社会保险缴费'}, 'labor_contract': {'required': True, 'description': '劳动合同'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 15:52:23,862 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 15:53:17,280 - INFO - 开始处理招标文档...
+2025-09-01 15:53:17,280 - INFO - 正在读取文档: test_document.txt
+2025-09-01 15:53:17,281 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 15:53:17,281 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 15:53:17,283 - INFO - [LLM调用开始] 任务: 招标信息提取
+2025-09-01 15:53:17,283 - INFO - 请求内容长度: 3270 字符
+2025-09-01 15:53:18,262 - INFO - API返回状态码: 401
+2025-09-01 15:53:18,262 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: e6d285e9-c687-4167-98c5-173189f6fa19)","type":"new_api_error"}}
+2025-09-01 15:53:18,262 - ERROR - API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:53:18,262 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: e6d285e9-c687-4167-98c5-173189f6fa19)","type":"new_api_error"}}
+2025-09-01 15:53:18,262 - ERROR - 信息提取失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:53:18,262 - ERROR - 文档处理失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:53:18,262 - ERROR - 程序执行失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:53:30,988 - INFO - 开始处理招标文档...
+2025-09-01 15:53:30,988 - INFO - 正在读取文档: test_document.txt
+2025-09-01 15:53:30,989 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 15:53:30,989 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 15:53:30,991 - INFO - [LLM调用开始] 任务: 招标信息提取
+2025-09-01 15:53:30,991 - INFO - 请求内容长度: 3270 字符
+2025-09-01 15:53:31,648 - INFO - API返回状态码: 401
+2025-09-01 15:53:31,649 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: af5a06a8-2846-4c83-ab7e-dbcc96ceef60)","type":"new_api_error"}}
+2025-09-01 15:53:31,649 - ERROR - API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:53:31,649 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: af5a06a8-2846-4c83-ab7e-dbcc96ceef60)","type":"new_api_error"}}
+2025-09-01 15:53:31,649 - WARNING - API调用失败，将使用备用提取方法
+2025-09-01 15:53:31,649 - INFO - LLM原始响应: 
+2025-09-01 15:53:31,649 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-09-01 15:53:31,650 - ERROR - 原始响应: 
+2025-09-01 15:53:31,659 - WARNING - 使用备用方法提取的信息: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '**', 'bidding_time': '**', 'winner_count': '', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '须提供有效的营业执照'}, 'taxpayer_qualification': {'required': True, 'description': '纳税人资格'}, 'performance_requirements': {'required': True, 'description': '类似项目业绩'}, 'authorization_requirements': {'required': True, 'description': '授权委托'}, 'credit_china': {'required': True, 'description': '信用中国"网站查询'}, 'commitment_letter': {'required': True, 'description': '承诺函'}, 'audit_report': {'required': True, 'description': '财务报告'}, 'social_security': {'required': True, 'description': '社会保险缴费'}, 'labor_contract': {'required': True, 'description': '劳动合同'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 15:53:31,662 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 15:53:31,663 - INFO - ======================================================================
+2025-09-01 15:53:31,663 - INFO - 招标信息提取完成!
+2025-09-01 15:53:31,663 - INFO - ======================================================================
+2025-09-01 15:53:31,663 - INFO - 【基本信息】
+2025-09-01 15:53:31,663 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-01 15:53:31,663 - INFO - 项目编号: GXTC-C-251590031
+2025-09-01 15:53:31,663 - INFO - 招标人: 哈尔滨哈银消费金融有限责任公司
+2025-09-01 15:53:31,663 - INFO - 招标代理: 国信招标集团股份有限公司
+2025-09-01 15:53:31,663 - INFO - 投标方式: 公开招标
+2025-09-01 15:53:31,663 - INFO - 投标地点: **
+2025-09-01 15:53:31,663 - INFO - 投标时间: **
+2025-09-01 15:53:31,663 - INFO - 中标人数量: 
+2025-09-01 15:53:31,663 - INFO - ----------------------------------------------------------------------
+2025-09-01 15:53:31,663 - INFO - 【资质要求】
+2025-09-01 15:53:31,663 - INFO - 营业执照: 需要提供 - 须提供有效的营业执照
+2025-09-01 15:53:31,663 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 纳税人资格
+2025-09-01 15:53:31,663 - INFO - 业绩要求: 需要提供 - 类似项目业绩
+2025-09-01 15:53:31,663 - INFO - 授权要求: 需要提供 - 授权委托
+2025-09-01 15:53:31,663 - INFO - 信用中国: 需要提供 - 信用中国"网站查询
+2025-09-01 15:53:31,663 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函
+2025-09-01 15:53:31,663 - INFO - 审计报告（财务要求）: 需要提供 - 财务报告
+2025-09-01 15:53:31,663 - INFO - 社保要求: 需要提供 - 社会保险缴费
+2025-09-01 15:53:31,663 - INFO - 劳动合同要求: 需要提供 - 劳动合同
+2025-09-01 15:53:31,663 - INFO - 其他要求: 不需要提供
+2025-09-01 15:53:31,664 - INFO - ======================================================================
+2025-09-01 15:54:12,436 - INFO - 开始处理招标文档...
+2025-09-01 15:54:12,437 - INFO - 正在读取文档: test_document.txt
+2025-09-01 15:54:12,437 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 15:54:12,437 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 15:54:12,439 - INFO - [LLM调用开始] 任务: 招标信息提取
+2025-09-01 15:54:12,439 - INFO - 请求内容长度: 3270 字符
+2025-09-01 15:54:13,047 - INFO - API返回状态码: 401
+2025-09-01 15:54:13,047 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: ff7e008d-83cb-4c8a-8edb-957947588a53)","type":"new_api_error"}}
+2025-09-01 15:54:13,048 - ERROR - API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:54:13,048 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: ff7e008d-83cb-4c8a-8edb-957947588a53)","type":"new_api_error"}}
+2025-09-01 15:54:13,048 - WARNING - API调用失败，将使用备用提取方法
+2025-09-01 15:54:13,048 - INFO - LLM原始响应: 
+2025-09-01 15:54:13,049 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-09-01 15:54:13,049 - ERROR - 原始响应: 
+2025-09-01 15:54:13,056 - WARNING - 使用备用方法提取的信息: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号SOHO现代城A座10层会议室', 'bidding_time': '2025年9月15日上午9:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '须提供有效的营业执照'}, 'taxpayer_qualification': {'required': True, 'description': '纳税人资格'}, 'performance_requirements': {'required': True, 'description': '类似项目业绩'}, 'authorization_requirements': {'required': True, 'description': '授权委托'}, 'credit_china': {'required': True, 'description': '信用中国"网站查询'}, 'commitment_letter': {'required': True, 'description': '承诺函'}, 'audit_report': {'required': True, 'description': '财务报告'}, 'social_security': {'required': True, 'description': '社会保险缴费'}, 'labor_contract': {'required': True, 'description': '劳动合同'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 15:54:13,059 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 15:54:13,059 - INFO - ======================================================================
+2025-09-01 15:54:13,059 - INFO - 招标信息提取完成!
+2025-09-01 15:54:13,059 - INFO - ======================================================================
+2025-09-01 15:54:13,059 - INFO - 【基本信息】
+2025-09-01 15:54:13,059 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-01 15:54:13,059 - INFO - 项目编号: GXTC-C-251590031
+2025-09-01 15:54:13,059 - INFO - 招标人: 哈尔滨哈银消费金融有限责任公司
+2025-09-01 15:54:13,059 - INFO - 招标代理: 国信招标集团股份有限公司
+2025-09-01 15:54:13,059 - INFO - 投标方式: 公开招标
+2025-09-01 15:54:13,059 - INFO - 投标地点: 北京市朝阳区建国路88号SOHO现代城A座10层会议室
+2025-09-01 15:54:13,059 - INFO - 投标时间: 2025年9月15日上午9:30
+2025-09-01 15:54:13,059 - INFO - 中标人数量: 1家
+2025-09-01 15:54:13,059 - INFO - ----------------------------------------------------------------------
+2025-09-01 15:54:13,059 - INFO - 【资质要求】
+2025-09-01 15:54:13,059 - INFO - 营业执照: 需要提供 - 须提供有效的营业执照
+2025-09-01 15:54:13,059 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 纳税人资格
+2025-09-01 15:54:13,059 - INFO - 业绩要求: 需要提供 - 类似项目业绩
+2025-09-01 15:54:13,059 - INFO - 授权要求: 需要提供 - 授权委托
+2025-09-01 15:54:13,059 - INFO - 信用中国: 需要提供 - 信用中国"网站查询
+2025-09-01 15:54:13,059 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函
+2025-09-01 15:54:13,059 - INFO - 审计报告（财务要求）: 需要提供 - 财务报告
+2025-09-01 15:54:13,059 - INFO - 社保要求: 需要提供 - 社会保险缴费
+2025-09-01 15:54:13,059 - INFO - 劳动合同要求: 需要提供 - 劳动合同
+2025-09-01 15:54:13,059 - INFO - 其他要求: 不需要提供
+2025-09-01 15:54:13,059 - INFO - ======================================================================
+2025-09-01 15:55:55,919 - INFO - 开始处理招标文档...
+2025-09-01 15:55:55,919 - INFO - 正在读取文档: test_document.txt
+2025-09-01 15:55:55,919 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 15:55:55,919 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 15:55:55,922 - INFO - [LLM调用开始] 任务: 招标信息提取
+2025-09-01 15:55:55,922 - INFO - 请求内容长度: 3270 字符
+2025-09-01 15:55:56,528 - INFO - API返回状态码: 401
+2025-09-01 15:55:56,528 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 34ce4dc8-af53-47fc-917e-09a01fed1571)","type":"new_api_error"}}
+2025-09-01 15:55:56,528 - ERROR - API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 15:55:56,529 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 34ce4dc8-af53-47fc-917e-09a01fed1571)","type":"new_api_error"}}
+2025-09-01 15:55:56,529 - WARNING - API调用失败，将使用备用提取方法
+2025-09-01 15:55:56,529 - INFO - LLM原始响应: 
+2025-09-01 15:55:56,529 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-09-01 15:55:56,529 - ERROR - 原始响应: 
+2025-09-01 15:55:56,537 - WARNING - 使用备用方法提取的信息: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号SOHO现代城A座10层会议室', 'bidding_time': '2025年9月15日上午9:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价'}, 'authorization_requirements': {'required': True, 'description': '4. 须提供法人授权委托书，明确投标代表的权限范围'}, 'credit_china': {'required': True, 'description': '5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明'}, 'commitment_letter': {'required': True, 'description': '6. 须提供企业投标承诺函，承诺投标文件内容真实有效'}, 'audit_report': {'required': True, 'description': '7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表'}, 'social_security': {'required': True, 'description': '8. 须提供近12个月的社会保险缴费证明，证明企业正常经营'}, 'labor_contract': {'required': True, 'description': '9. 须提供主要技术人员的劳动合同，证明人员配备能力'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 15:55:56,540 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 15:55:56,540 - INFO - ======================================================================
+2025-09-01 15:55:56,540 - INFO - 招标信息提取完成!
+2025-09-01 15:55:56,540 - INFO - ======================================================================
+2025-09-01 15:55:56,541 - INFO - 【基本信息】
+2025-09-01 15:55:56,541 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-01 15:55:56,541 - INFO - 项目编号: GXTC-C-251590031
+2025-09-01 15:55:56,541 - INFO - 招标人: 哈尔滨哈银消费金融有限责任公司
+2025-09-01 15:55:56,541 - INFO - 招标代理: 国信招标集团股份有限公司
+2025-09-01 15:55:56,541 - INFO - 投标方式: 公开招标
+2025-09-01 15:55:56,541 - INFO - 投标地点: 北京市朝阳区建国路88号SOHO现代城A座10层会议室
+2025-09-01 15:55:56,541 - INFO - 投标时间: 2025年9月15日上午9:30
+2025-09-01 15:55:56,541 - INFO - 中标人数量: 1家
+2025-09-01 15:55:56,541 - INFO - ----------------------------------------------------------------------
+2025-09-01 15:55:56,541 - INFO - 【资质要求】
+2025-09-01 15:55:56,541 - INFO - 营业执照: 需要提供 - 1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本
+2025-09-01 15:55:56,541 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件
+2025-09-01 15:55:56,541 - INFO - 业绩要求: 需要提供 - 3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价
+2025-09-01 15:55:56,541 - INFO - 授权要求: 需要提供 - 4. 须提供法人授权委托书，明确投标代表的权限范围
+2025-09-01 15:55:56,541 - INFO - 信用中国: 需要提供 - 5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明
+2025-09-01 15:55:56,541 - INFO - 承诺函（默认满足）: 需要提供 - 6. 须提供企业投标承诺函，承诺投标文件内容真实有效
+2025-09-01 15:55:56,541 - INFO - 审计报告（财务要求）: 需要提供 - 7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表
+2025-09-01 15:55:56,541 - INFO - 社保要求: 需要提供 - 8. 须提供近12个月的社会保险缴费证明，证明企业正常经营
+2025-09-01 15:55:56,541 - INFO - 劳动合同要求: 需要提供 - 9. 须提供主要技术人员的劳动合同，证明人员配备能力
+2025-09-01 15:55:56,541 - INFO - 其他要求: 不需要提供
+2025-09-01 15:55:56,541 - INFO - ======================================================================
+2025-09-01 19:25:08,097 - INFO - 开始处理招标文档...
+2025-09-01 19:25:08,097 - INFO - 正在读取文档: test_document.txt
+2025-09-01 19:25:08,097 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 19:25:08,097 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 19:25:08,099 - INFO - [LLM调用开始] 任务: 招标信息提取 (尝试 1/3)
+2025-09-01 19:25:08,099 - INFO - 请求内容长度: 3270 字符
+2025-09-01 19:25:09,296 - INFO - API返回状态码: 401
+2025-09-01 19:25:09,297 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 598ab96e-1e46-48ed-8311-eaf6426c5a61)","type":"new_api_error"}}
+2025-09-01 19:25:09,297 - ERROR - 第 1 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:25:09,297 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 598ab96e-1e46-48ed-8311-eaf6426c5a61)","type":"new_api_error"}}
+2025-09-01 19:25:09,297 - INFO - 将进行第 2 次重试...
+2025-09-01 19:25:09,297 - INFO - [LLM调用开始] 任务: 招标信息提取 (尝试 2/3)
+2025-09-01 19:25:09,297 - INFO - 请求内容长度: 3270 字符
+2025-09-01 19:25:09,857 - INFO - API返回状态码: 401
+2025-09-01 19:25:09,858 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 41455dae-8ed4-4573-a75e-a55277db9493)","type":"new_api_error"}}
+2025-09-01 19:25:09,858 - ERROR - 第 2 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:25:09,858 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 41455dae-8ed4-4573-a75e-a55277db9493)","type":"new_api_error"}}
+2025-09-01 19:25:09,858 - INFO - 将进行第 3 次重试...
+2025-09-01 19:25:09,858 - INFO - [LLM调用开始] 任务: 招标信息提取 (尝试 3/3)
+2025-09-01 19:25:09,858 - INFO - 请求内容长度: 3270 字符
+2025-09-01 19:25:10,486 - INFO - API返回状态码: 401
+2025-09-01 19:25:10,486 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 05f17647-8fe3-4d42-9324-ba18c8d7c018)","type":"new_api_error"}}
+2025-09-01 19:25:10,486 - ERROR - 第 3 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:25:10,486 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 05f17647-8fe3-4d42-9324-ba18c8d7c018)","type":"new_api_error"}}
+2025-09-01 19:25:10,486 - WARNING - 所有API调用重试都失败，将使用备用提取方法
+2025-09-01 19:25:10,486 - INFO - LLM原始响应: 
+2025-09-01 19:25:10,487 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-09-01 19:25:10,487 - ERROR - 原始响应: 
+2025-09-01 19:25:10,490 - WARNING - 使用备用方法提取的信息: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号SOHO现代城A座10层会议室', 'bidding_time': '2025年9月15日上午9:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价'}, 'authorization_requirements': {'required': True, 'description': '4. 须提供法人授权委托书，明确投标代表的权限范围'}, 'credit_china': {'required': True, 'description': '5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明'}, 'commitment_letter': {'required': True, 'description': '6. 须提供企业投标承诺函，承诺投标文件内容真实有效'}, 'audit_report': {'required': True, 'description': '7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表'}, 'social_security': {'required': True, 'description': '8. 须提供近12个月的社会保险缴费证明，证明企业正常经营'}, 'labor_contract': {'required': True, 'description': '9. 须提供主要技术人员的劳动合同，证明人员配备能力'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:25:10,492 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 19:25:10,492 - INFO - ======================================================================
+2025-09-01 19:25:10,492 - INFO - 招标信息提取完成!
+2025-09-01 19:25:10,492 - INFO - ======================================================================
+2025-09-01 19:25:10,492 - INFO - 【基本信息】
+2025-09-01 19:25:10,492 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-01 19:25:10,492 - INFO - 项目编号: GXTC-C-251590031
+2025-09-01 19:25:10,492 - INFO - 招标人: 哈尔滨哈银消费金融有限责任公司
+2025-09-01 19:25:10,492 - INFO - 招标代理: 国信招标集团股份有限公司
+2025-09-01 19:25:10,492 - INFO - 投标方式: 公开招标
+2025-09-01 19:25:10,492 - INFO - 投标地点: 北京市朝阳区建国路88号SOHO现代城A座10层会议室
+2025-09-01 19:25:10,492 - INFO - 投标时间: 2025年9月15日上午9:30
+2025-09-01 19:25:10,492 - INFO - 中标人数量: 1家
+2025-09-01 19:25:10,492 - INFO - ----------------------------------------------------------------------
+2025-09-01 19:25:10,492 - INFO - 【资质要求】
+2025-09-01 19:25:10,492 - INFO - 营业执照: 需要提供 - 1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本
+2025-09-01 19:25:10,492 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件
+2025-09-01 19:25:10,492 - INFO - 业绩要求: 需要提供 - 3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价
+2025-09-01 19:25:10,492 - INFO - 授权要求: 需要提供 - 4. 须提供法人授权委托书，明确投标代表的权限范围
+2025-09-01 19:25:10,492 - INFO - 信用中国: 需要提供 - 5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明
+2025-09-01 19:25:10,492 - INFO - 承诺函（默认满足）: 需要提供 - 6. 须提供企业投标承诺函，承诺投标文件内容真实有效
+2025-09-01 19:25:10,493 - INFO - 审计报告（财务要求）: 需要提供 - 7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表
+2025-09-01 19:25:10,493 - INFO - 社保要求: 需要提供 - 8. 须提供近12个月的社会保险缴费证明，证明企业正常经营
+2025-09-01 19:25:10,493 - INFO - 劳动合同要求: 需要提供 - 9. 须提供主要技术人员的劳动合同，证明人员配备能力
+2025-09-01 19:25:10,493 - INFO - 其他要求: 不需要提供
+2025-09-01 19:25:10,493 - INFO - ======================================================================
+2025-09-01 19:25:39,927 - INFO - 开始处理招标文档...
+2025-09-01 19:25:39,927 - INFO - 正在读取文档: test_document.txt
+2025-09-01 19:25:39,927 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 19:25:39,927 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 19:25:39,928 - INFO - [LLM调用开始] 任务: 招标信息提取 (尝试 1/3)
+2025-09-01 19:25:39,929 - INFO - 请求内容长度: 3270 字符
+2025-09-01 19:25:40,590 - INFO - API返回状态码: 401
+2025-09-01 19:25:40,590 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 7f15140c-2a12-42dd-98eb-391b5c142166)","type":"new_api_error"}}
+2025-09-01 19:25:40,590 - ERROR - 第 1 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:25:40,590 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 7f15140c-2a12-42dd-98eb-391b5c142166)","type":"new_api_error"}}
+2025-09-01 19:25:40,590 - INFO - 将进行第 2 次重试...
+2025-09-01 19:25:40,591 - INFO - [LLM调用开始] 任务: 招标信息提取 (尝试 2/3)
+2025-09-01 19:25:40,591 - INFO - 请求内容长度: 3270 字符
+2025-09-01 19:25:41,211 - INFO - API返回状态码: 401
+2025-09-01 19:25:41,212 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 01f12b23-f133-459c-bda5-85ffac774484)","type":"new_api_error"}}
+2025-09-01 19:25:41,212 - ERROR - 第 2 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:25:41,212 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 01f12b23-f133-459c-bda5-85ffac774484)","type":"new_api_error"}}
+2025-09-01 19:25:41,212 - INFO - 将进行第 3 次重试...
+2025-09-01 19:25:41,212 - INFO - [LLM调用开始] 任务: 招标信息提取 (尝试 3/3)
+2025-09-01 19:25:41,212 - INFO - 请求内容长度: 3270 字符
+2025-09-01 19:25:41,820 - INFO - API返回状态码: 401
+2025-09-01 19:25:41,821 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 8c1dcd97-d1cb-4ccc-954a-913dc54756fd)","type":"new_api_error"}}
+2025-09-01 19:25:41,821 - ERROR - 第 3 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:25:41,821 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 8c1dcd97-d1cb-4ccc-954a-913dc54756fd)","type":"new_api_error"}}
+2025-09-01 19:25:41,821 - WARNING - 所有API调用重试都失败，将使用备用提取方法
+2025-09-01 19:25:41,821 - INFO - LLM原始响应: 
+2025-09-01 19:25:41,821 - ERROR - JSON解析失败: Expecting value: line 1 column 1 (char 0)
+2025-09-01 19:25:41,821 - ERROR - 原始响应: 
+2025-09-01 19:25:41,827 - WARNING - 使用备用方法提取的信息: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号SOHO现代城A座10层会议室', 'bidding_time': '2025年9月15日上午9:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价'}, 'authorization_requirements': {'required': True, 'description': '4. 须提供法人授权委托书，明确投标代表的权限范围'}, 'credit_china': {'required': True, 'description': '5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明'}, 'commitment_letter': {'required': True, 'description': '6. 须提供企业投标承诺函，承诺投标文件内容真实有效'}, 'audit_report': {'required': True, 'description': '7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表'}, 'social_security': {'required': True, 'description': '8. 须提供近12个月的社会保险缴费证明，证明企业正常经营'}, 'labor_contract': {'required': True, 'description': '9. 须提供主要技术人员的劳动合同，证明人员配备能力'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:25:41,829 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 19:25:41,829 - INFO - ======================================================================
+2025-09-01 19:25:41,829 - INFO - 招标信息提取完成!
+2025-09-01 19:25:41,829 - INFO - ======================================================================
+2025-09-01 19:25:41,829 - INFO - 【基本信息】
+2025-09-01 19:25:41,829 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-01 19:25:41,829 - INFO - 项目编号: GXTC-C-251590031
+2025-09-01 19:25:41,829 - INFO - 招标人: 哈尔滨哈银消费金融有限责任公司
+2025-09-01 19:25:41,829 - INFO - 招标代理: 国信招标集团股份有限公司
+2025-09-01 19:25:41,829 - INFO - 投标方式: 公开招标
+2025-09-01 19:25:41,829 - INFO - 投标地点: 北京市朝阳区建国路88号SOHO现代城A座10层会议室
+2025-09-01 19:25:41,829 - INFO - 投标时间: 2025年9月15日上午9:30
+2025-09-01 19:25:41,829 - INFO - 中标人数量: 1家
+2025-09-01 19:25:41,829 - INFO - ----------------------------------------------------------------------
+2025-09-01 19:25:41,829 - INFO - 【资质要求】
+2025-09-01 19:25:41,829 - INFO - 营业执照: 需要提供 - 1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本
+2025-09-01 19:25:41,829 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件
+2025-09-01 19:25:41,829 - INFO - 业绩要求: 需要提供 - 3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价
+2025-09-01 19:25:41,829 - INFO - 授权要求: 需要提供 - 4. 须提供法人授权委托书，明确投标代表的权限范围
+2025-09-01 19:25:41,829 - INFO - 信用中国: 需要提供 - 5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明
+2025-09-01 19:25:41,829 - INFO - 承诺函（默认满足）: 需要提供 - 6. 须提供企业投标承诺函，承诺投标文件内容真实有效
+2025-09-01 19:25:41,829 - INFO - 审计报告（财务要求）: 需要提供 - 7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表
+2025-09-01 19:25:41,829 - INFO - 社保要求: 需要提供 - 8. 须提供近12个月的社会保险缴费证明，证明企业正常经营
+2025-09-01 19:25:41,829 - INFO - 劳动合同要求: 需要提供 - 9. 须提供主要技术人员的劳动合同，证明人员配备能力
+2025-09-01 19:25:41,829 - INFO - 其他要求: 不需要提供
+2025-09-01 19:25:41,830 - INFO - ======================================================================
+2025-09-01 19:31:15,167 - INFO - 开始处理招标文档...
+2025-09-01 19:31:15,168 - INFO - 正在读取文档: test_document.txt
+2025-09-01 19:31:15,168 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 19:31:15,168 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 19:31:15,169 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 19:31:15,171 - INFO - 正则表达式提取完成: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号SOHO现代城A座10层会议室', 'bidding_time': '2025年9月15日上午9:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价'}, 'authorization_requirements': {'required': True, 'description': '4. 须提供法人授权委托书，明确投标代表的权限范围'}, 'credit_china': {'required': True, 'description': '5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明'}, 'commitment_letter': {'required': True, 'description': '6. 须提供企业投标承诺函，承诺投标文件内容真实有效'}, 'audit_report': {'required': True, 'description': '7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表'}, 'social_security': {'required': True, 'description': '8. 须提供近12个月的社会保险缴费证明，证明企业正常经营'}, 'labor_contract': {'required': True, 'description': '9. 须提供主要技术人员的劳动合同，证明人员配备能力'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:31:15,171 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 19:31:15,171 - INFO - 验证结果 - 缺失字段: [], 质量差字段: ['winner_count']
+2025-09-01 19:31:15,171 - INFO - 【第三阶段】LLM补充缺失字段: ['winner_count']
+2025-09-01 19:31:15,171 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 19:31:15,171 - INFO - 请求内容长度: 693 字符
+2025-09-01 19:31:15,814 - INFO - API返回状态码: 401
+2025-09-01 19:31:15,814 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 6690a1ee-1b10-4e80-992b-7a75495e8c94)","type":"new_api_error"}}
+2025-09-01 19:31:15,815 - ERROR - 第 1 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:31:15,815 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 6690a1ee-1b10-4e80-992b-7a75495e8c94)","type":"new_api_error"}}
+2025-09-01 19:31:15,815 - INFO - 将进行第 2 次重试...
+2025-09-01 19:31:15,815 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 2/3)
+2025-09-01 19:31:15,815 - INFO - 请求内容长度: 693 字符
+2025-09-01 19:31:16,393 - INFO - API返回状态码: 401
+2025-09-01 19:31:16,393 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: 858dae65-e069-4466-82f0-28aed396cad3)","type":"new_api_error"}}
+2025-09-01 19:31:16,393 - ERROR - 第 2 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:31:16,393 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: 858dae65-e069-4466-82f0-28aed396cad3)","type":"new_api_error"}}
+2025-09-01 19:31:16,393 - INFO - 将进行第 3 次重试...
+2025-09-01 19:31:16,393 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 3/3)
+2025-09-01 19:31:16,393 - INFO - 请求内容长度: 693 字符
+2025-09-01 19:31:17,063 - INFO - API返回状态码: 401
+2025-09-01 19:31:17,063 - ERROR - 错误响应: {"error":{"message":"无效的令牌 (request id: cc336cbb-e251-42d5-977b-e9ee0fe39f77)","type":"new_api_error"}}
+2025-09-01 19:31:17,063 - ERROR - 第 3 次API调用失败: 401 Client Error: Unauthorized for url: https://api.oaipro.com/v1/chat/completions
+2025-09-01 19:31:17,063 - ERROR - 响应内容: {"error":{"message":"无效的令牌 (request id: cc336cbb-e251-42d5-977b-e9ee0fe39f77)","type":"new_api_error"}}
+2025-09-01 19:31:17,063 - WARNING - 所有API调用重试都失败，将使用备用提取方法
+2025-09-01 19:31:17,063 - INFO - LLM补充响应: 
+2025-09-01 19:31:17,063 - ERROR - LLM补充提取失败: Expecting value: line 1 column 1 (char 0)
+2025-09-01 19:31:17,063 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 19:31:17,063 - INFO - 最终提取结果: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号SOHO现代城A座10层会议室', 'bidding_time': '2025年9月15日上午9:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价'}, 'authorization_requirements': {'required': True, 'description': '4. 须提供法人授权委托书，明确投标代表的权限范围'}, 'credit_china': {'required': True, 'description': '5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明'}, 'commitment_letter': {'required': True, 'description': '6. 须提供企业投标承诺函，承诺投标文件内容真实有效'}, 'audit_report': {'required': True, 'description': '7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表'}, 'social_security': {'required': True, 'description': '8. 须提供近12个月的社会保险缴费证明，证明企业正常经营'}, 'labor_contract': {'required': True, 'description': '9. 须提供主要技术人员的劳动合同，证明人员配备能力'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:31:17,065 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 19:31:17,065 - INFO - ======================================================================
+2025-09-01 19:31:17,065 - INFO - 招标信息提取完成!
+2025-09-01 19:31:17,065 - INFO - ======================================================================
+2025-09-01 19:31:17,065 - INFO - 【基本信息】
+2025-09-01 19:31:17,065 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-01 19:31:17,065 - INFO - 项目编号: GXTC-C-251590031
+2025-09-01 19:31:17,065 - INFO - 招标人: 哈尔滨哈银消费金融有限责任公司
+2025-09-01 19:31:17,065 - INFO - 招标代理: 国信招标集团股份有限公司
+2025-09-01 19:31:17,065 - INFO - 投标方式: 公开招标
+2025-09-01 19:31:17,065 - INFO - 投标地点: 北京市朝阳区建国路88号SOHO现代城A座10层会议室
+2025-09-01 19:31:17,065 - INFO - 投标时间: 2025年9月15日上午9:30
+2025-09-01 19:31:17,065 - INFO - 中标人数量: 1家
+2025-09-01 19:31:17,065 - INFO - ----------------------------------------------------------------------
+2025-09-01 19:31:17,065 - INFO - 【资质要求】
+2025-09-01 19:31:17,065 - INFO - 营业执照: 需要提供 - 1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本
+2025-09-01 19:31:17,065 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件
+2025-09-01 19:31:17,065 - INFO - 业绩要求: 需要提供 - 3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价
+2025-09-01 19:31:17,065 - INFO - 授权要求: 需要提供 - 4. 须提供法人授权委托书，明确投标代表的权限范围
+2025-09-01 19:31:17,065 - INFO - 信用中国: 需要提供 - 5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明
+2025-09-01 19:31:17,065 - INFO - 承诺函（默认满足）: 需要提供 - 6. 须提供企业投标承诺函，承诺投标文件内容真实有效
+2025-09-01 19:31:17,065 - INFO - 审计报告（财务要求）: 需要提供 - 7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表
+2025-09-01 19:31:17,065 - INFO - 社保要求: 需要提供 - 8. 须提供近12个月的社会保险缴费证明，证明企业正常经营
+2025-09-01 19:31:17,065 - INFO - 劳动合同要求: 需要提供 - 9. 须提供主要技术人员的劳动合同，证明人员配备能力
+2025-09-01 19:31:17,065 - INFO - 其他要求: 不需要提供
+2025-09-01 19:31:17,065 - INFO - ======================================================================
+2025-09-01 19:31:34,964 - INFO - 开始处理招标文档...
+2025-09-01 19:31:34,965 - INFO - 正在读取文档: test_document.txt
+2025-09-01 19:31:34,965 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 19:31:34,965 - INFO - 文档读取成功，内容长度: 671 字符
+2025-09-01 19:31:34,966 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 19:31:34,968 - INFO - 正则表达式提取完成: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号SOHO现代城A座10层会议室', 'bidding_time': '2025年9月15日上午9:30', 'winner_count': '1家', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价'}, 'authorization_requirements': {'required': True, 'description': '4. 须提供法人授权委托书，明确投标代表的权限范围'}, 'credit_china': {'required': True, 'description': '5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明'}, 'commitment_letter': {'required': True, 'description': '6. 须提供企业投标承诺函，承诺投标文件内容真实有效'}, 'audit_report': {'required': True, 'description': '7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表'}, 'social_security': {'required': True, 'description': '8. 须提供近12个月的社会保险缴费证明，证明企业正常经营'}, 'labor_contract': {'required': True, 'description': '9. 须提供主要技术人员的劳动合同，证明人员配备能力'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:31:34,968 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 19:31:34,968 - INFO - 验证结果 - 缺失字段: [], 质量差字段: []
+2025-09-01 19:31:34,968 - INFO - 正则表达式提取结果完整，无需LLM补充
+2025-09-01 19:31:34,969 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 19:31:34,969 - INFO - ======================================================================
+2025-09-01 19:31:34,969 - INFO - 招标信息提取完成!
+2025-09-01 19:31:34,969 - INFO - ======================================================================
+2025-09-01 19:31:34,969 - INFO - 【基本信息】
+2025-09-01 19:31:34,969 - INFO - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-01 19:31:34,969 - INFO - 项目编号: GXTC-C-251590031
+2025-09-01 19:31:34,969 - INFO - 招标人: 哈尔滨哈银消费金融有限责任公司
+2025-09-01 19:31:34,969 - INFO - 招标代理: 国信招标集团股份有限公司
+2025-09-01 19:31:34,969 - INFO - 投标方式: 公开招标
+2025-09-01 19:31:34,969 - INFO - 投标地点: 北京市朝阳区建国路88号SOHO现代城A座10层会议室
+2025-09-01 19:31:34,969 - INFO - 投标时间: 2025年9月15日上午9:30
+2025-09-01 19:31:34,969 - INFO - 中标人数量: 1家
+2025-09-01 19:31:34,969 - INFO - ----------------------------------------------------------------------
+2025-09-01 19:31:34,969 - INFO - 【资质要求】
+2025-09-01 19:31:34,969 - INFO - 营业执照: 需要提供 - 1. 具有独立承担民事责任能力的法人，须提供有效的营业执照副本
+2025-09-01 19:31:34,969 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 具有增值税一般纳税人资格，须提供税务登记证明或相关证明文件
+2025-09-01 19:31:34,969 - INFO - 业绩要求: 需要提供 - 3. 须提供近3年内类似项目业绩证明材料，包括合同复印件及业主评价
+2025-09-01 19:31:34,969 - INFO - 授权要求: 需要提供 - 4. 须提供法人授权委托书，明确投标代表的权限范围
+2025-09-01 19:31:34,969 - INFO - 信用中国: 需要提供 - 5. 在"信用中国"网站查询无重大违法违规记录，须提供近期查询截图证明
+2025-09-01 19:31:34,969 - INFO - 承诺函（默认满足）: 需要提供 - 6. 须提供企业投标承诺函，承诺投标文件内容真实有效
+2025-09-01 19:31:34,969 - INFO - 审计报告（财务要求）: 需要提供 - 7. 须提供经审计的近2年财务报告，包括资产负债表、利润表、现金流量表
+2025-09-01 19:31:34,969 - INFO - 社保要求: 需要提供 - 8. 须提供近12个月的社会保险缴费证明，证明企业正常经营
+2025-09-01 19:31:34,969 - INFO - 劳动合同要求: 需要提供 - 9. 须提供主要技术人员的劳动合同，证明人员配备能力
+2025-09-01 19:31:34,969 - INFO - 其他要求: 不需要提供
+2025-09-01 19:31:34,969 - INFO - ======================================================================
+2025-09-01 19:58:59,014 - INFO - [LLM调用开始] 任务: 测试API连接 (尝试 1/3)
+2025-09-01 19:58:59,014 - INFO - 请求内容长度: 131 字符
+2025-09-01 19:59:00,826 - INFO - API返回状态码: 200
+2025-09-01 19:59:00,826 - INFO - API原始返回: {
+  "id": "chatcmpl-CAxTYTTO9igWexou28NBED3n3OAy5",
+  "object": "chat.completion",
+  "created": 1756727940,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n  \"项目名称\": \"中信信托有限责任公司2025年IT运维服务采购项目\",\n  \"项目编号\": \"2025-IT-0032\"\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 145,
+   ...
+2025-09-01 19:59:00,826 - INFO - [LLM调用完成] 返回内容长度: 67
+2025-09-01 19:59:07,322 - WARNING - 使用备用提取方法
+2025-09-01 19:59:07,327 - INFO - 正则表达式提取完成: {'tenderer': '哈尔滨哈银消费金融有限责任公司', 'agency': '国信招标集团股份有限公司', 'bidding_method': '公开招标', 'bidding_location': '', 'bidding_time': '', 'winner_count': '', 'project_name': '哈银消金2025年-2027年运营商数据采购项目', 'project_number': 'GXTC-C-251590031', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 具有独立承担民事责任能力的法人，须提供营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 具有增值税纳税人资格，须提供税务登记证或相关证明'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年类似项目业绩证明材料'}, 'authorization_requirements': {'required': True, 'description': '4. 须提供法人授权委托书'}, 'credit_china': {'required': True, 'description': '5. 在信用中国网站查询无不良记录，须提供查询截图'}, 'commitment_letter': {'required': True, 'description': '6. 须提供投标承诺函'}, 'audit_report': {'required': True, 'description': '7. 须提供经审计的近2年财务报告'}, 'social_security': {'required': True, 'description': '8. 须提供社会保险缴费证明'}, 'labor_contract': {'required': True, 'description': '9. 须提供主要技术人员劳动合同'}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:59:07,328 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 19:59:27,555 - INFO - 开始处理招标文档...
+2025-09-01 19:59:27,555 - INFO - 正在读取文档: test_document.txt
+2025-09-01 19:59:27,555 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 19:59:27,555 - INFO - 文档读取成功，内容长度: 203 字符
+2025-09-01 19:59:27,557 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 19:59:27,562 - INFO - 正则表达式提取完成: {'tenderer': '中信信托有限责任公司2025年IT运维服务采购项目', 'agency': '中信招标有限公司', 'bidding_method': '', 'bidding_location': '北京市朝阳区建国路88号', 'bidding_time': '2025年9月15日10:00', 'winner_count': '', 'project_name': '中信信托有限责任公司2025年IT运维服务采购项目', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 须提供营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 须提供增值税纳税人资格证明'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年类似项目业绩'}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:59:27,562 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 19:59:27,562 - INFO - 验证结果 - 缺失字段: ['bidding_method', 'winner_count'], 质量差字段: []
+2025-09-01 19:59:27,562 - INFO - 【第三阶段】LLM补充缺失字段: ['bidding_method', 'winner_count']
+2025-09-01 19:59:27,562 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 19:59:27,562 - INFO - 请求内容长度: 309 字符
+2025-09-01 19:59:29,443 - INFO - API返回状态码: 200
+2025-09-01 19:59:29,443 - INFO - API原始返回: {
+  "id": "chatcmpl-CAxU06vNBLgCQt7feIekxXFkIfi6q",
+  "object": "chat.completion",
+  "created": 1756727968,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\n    \"bidding_method\": \"公开招标\",\n    \"winner_count\": \"未提及中标人数量\"\n}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 248,
+    "c...
+2025-09-01 19:59:29,443 - INFO - [LLM调用完成] 返回内容长度: 64
+2025-09-01 19:59:29,444 - INFO - LLM补充响应: {
+    "bidding_method": "公开招标",
+    "winner_count": "未提及中标人数量"
+}
+2025-09-01 19:59:29,444 - INFO - 字段 bidding_method 使用LLM结果: 公开招标
+2025-09-01 19:59:29,444 - INFO - 字段 winner_count 使用LLM结果: 未提及中标人数量
+2025-09-01 19:59:29,444 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 19:59:29,444 - INFO - 最终提取结果: {'tenderer': '中信信托有限责任公司2025年IT运维服务采购项目', 'agency': '中信招标有限公司', 'bidding_method': '公开招标', 'bidding_location': '北京市朝阳区建国路88号', 'bidding_time': '2025年9月15日10:00', 'winner_count': '未提及中标人数量', 'project_name': '中信信托有限责任公司2025年IT运维服务采购项目', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 须提供营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 须提供增值税纳税人资格证明'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年类似项目业绩'}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 19:59:29,447 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 19:59:29,447 - INFO - ======================================================================
+2025-09-01 19:59:29,447 - INFO - 招标信息提取完成!
+2025-09-01 19:59:29,447 - INFO - ======================================================================
+2025-09-01 19:59:29,447 - INFO - 【基本信息】
+2025-09-01 19:59:29,447 - INFO - 项目名称: 中信信托有限责任公司2025年IT运维服务采购项目
+2025-09-01 19:59:29,447 - INFO - 项目编号: 2025-IT-0032
+2025-09-01 19:59:29,447 - INFO - 招标人: 中信信托有限责任公司2025年IT运维服务采购项目
+2025-09-01 19:59:29,447 - INFO - 招标代理: 中信招标有限公司
+2025-09-01 19:59:29,447 - INFO - 投标方式: 公开招标
+2025-09-01 19:59:29,447 - INFO - 投标地点: 北京市朝阳区建国路88号
+2025-09-01 19:59:29,447 - INFO - 投标时间: 2025年9月15日10:00
+2025-09-01 19:59:29,447 - INFO - 中标人数量: 未提及中标人数量
+2025-09-01 19:59:29,447 - INFO - ----------------------------------------------------------------------
+2025-09-01 19:59:29,447 - INFO - 【资质要求】
+2025-09-01 19:59:29,447 - INFO - 营业执照: 需要提供 - 1. 须提供营业执照副本
+2025-09-01 19:59:29,447 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 须提供增值税纳税人资格证明
+2025-09-01 19:59:29,447 - INFO - 业绩要求: 需要提供 - 3. 须提供近3年类似项目业绩
+2025-09-01 19:59:29,450 - INFO - 授权要求: 不需要提供
+2025-09-01 19:59:29,450 - INFO - 信用中国: 不需要提供
+2025-09-01 19:59:29,450 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函（默认满足）
+2025-09-01 19:59:29,450 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 19:59:29,450 - INFO - 社保要求: 不需要提供
+2025-09-01 19:59:29,450 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 19:59:29,450 - INFO - 其他要求: 不需要提供
+2025-09-01 19:59:29,450 - INFO - ======================================================================
+2025-09-01 20:09:34,006 - INFO - 开始处理招标文档...
+2025-09-01 20:09:34,006 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-09-01 20:09:34,187 - INFO - 使用python-docx成功读取Word文档（包含830个段落和12个表格）
+2025-09-01 20:09:34,188 - INFO - 文档读取成功，内容长度: 34890 字符
+2025-09-01 20:09:34,190 - WARNING - 文档内容过长，已截断至 3993 字符
+2025-09-01 20:09:34,190 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:09:34,222 - INFO - 正则表达式提取完成: {'tenderer': '被中国邮政集团有限公司和中邮人寿保险股份有限公司', 'agency': '', 'bidding_method': '恶意磋商的；\n磋商有效期不足的；\n符合《中华人民共和国招标', 'bidding_location': '北京市西城区金融大街甲3号金鼎大厦B座7层', 'bidding_time': '见竞争性磋商公告', 'winner_count': '', 'project_name': '中邮保险购买手机号实名认证服务项目', 'project_number': '2025', 'qualification_requirements': {'business_license': {'required': True, 'description': '营业执照副本复印件。（如不能体现注册资金,须'}, 'taxpayer_qualification': {'required': True, 'description': '我公司承诺为增值税一般纳税人，并承诺中标后向采购人开具符合采购人要求的增值税专用发票'}, 'performance_requirements': {'required': True, 'description': '2、业绩证明文件必须包括但不限于：合同首页、服务内容页、期限页及签字页的复印件'}, 'authorization_requirements': {'required': True, 'description': '授权代表签字的，则须在响应文件中出具“法定代表人（负责人）身份证明”和“法定代表人（负责人）授权书'}, 'credit_china': {'required': True, 'description': '被“信用中国”（www.creditchina.gov.cn）列入失信被执行人名单的供应商，被中国政府采购网（www.ccgp.gov.cn）列入政府采购严重违法失信行为记录名单的供应商，被中国邮政集团有限公司和中邮人寿保险股份有限公司列入黑名单且在有效期内的供应商，均无资格参加本项目的采购活动”的要求'}, 'commitment_letter': {'required': True, 'description': '承诺函；（须'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': True, 'description': '包含需要完成本项目所必须的所有服务，以及其他需要计费的项目'}}}
+2025-09-01 20:09:34,222 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:09:34,222 - INFO - 验证结果 - 缺失字段: ['agency', 'winner_count'], 质量差字段: ['bidding_time']
+2025-09-01 20:09:34,222 - INFO - 【第三阶段】LLM补充缺失字段: ['agency', 'winner_count', 'bidding_time']
+2025-09-01 20:09:34,222 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 20:09:34,222 - INFO - 请求内容长度: 4138 字符
+2025-09-01 20:09:36,298 - INFO - API返回状态码: 200
+2025-09-01 20:09:36,298 - INFO - API原始返回: {
+  "id": "chatcmpl-CAxdnRaQ5KpdsY3yqIClsreqqokmi",
+  "object": "chat.completion",
+  "created": 1756728575,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"agency\": \"中邮人寿保险股份有限公司\",\n    \"winner_count\": \"未明确\",\n    \"bidding_time\": \"2025年9月4日上午9:00前\"\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+  ...
+2025-09-01 20:09:36,298 - INFO - [LLM调用完成] 返回内容长度: 111
+2025-09-01 20:09:36,298 - INFO - LLM补充响应: ```json
+{
+    "agency": "中邮人寿保险股份有限公司",
+    "winner_count": "未明确",
+    "bidding_time": "2025年9月4日上午9:00前"
+}
+```
+2025-09-01 20:09:36,298 - INFO - 字段 agency 使用LLM结果: 中邮人寿保险股份有限公司
+2025-09-01 20:09:36,298 - INFO - 字段 bidding_time 使用LLM结果: 2025年9月4日上午9:00前
+2025-09-01 20:09:36,298 - INFO - 字段 winner_count 使用LLM结果: 未明确
+2025-09-01 20:09:36,298 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 20:09:36,298 - INFO - 最终提取结果: {'tenderer': '被中国邮政集团有限公司和中邮人寿保险股份有限公司', 'agency': '中邮人寿保险股份有限公司', 'bidding_method': '恶意磋商的；\n磋商有效期不足的；\n符合《中华人民共和国招标', 'bidding_location': '北京市西城区金融大街甲3号金鼎大厦B座7层', 'bidding_time': '2025年9月4日上午9:00前', 'winner_count': '未明确', 'project_name': '中邮保险购买手机号实名认证服务项目', 'project_number': '2025', 'qualification_requirements': {'business_license': {'required': True, 'description': '营业执照副本复印件。（如不能体现注册资金,须'}, 'taxpayer_qualification': {'required': True, 'description': '我公司承诺为增值税一般纳税人，并承诺中标后向采购人开具符合采购人要求的增值税专用发票'}, 'performance_requirements': {'required': True, 'description': '2、业绩证明文件必须包括但不限于：合同首页、服务内容页、期限页及签字页的复印件'}, 'authorization_requirements': {'required': True, 'description': '授权代表签字的，则须在响应文件中出具“法定代表人（负责人）身份证明”和“法定代表人（负责人）授权书'}, 'credit_china': {'required': True, 'description': '被“信用中国”（www.creditchina.gov.cn）列入失信被执行人名单的供应商，被中国政府采购网（www.ccgp.gov.cn）列入政府采购严重违法失信行为记录名单的供应商，被中国邮政集团有限公司和中邮人寿保险股份有限公司列入黑名单且在有效期内的供应商，均无资格参加本项目的采购活动”的要求'}, 'commitment_letter': {'required': True, 'description': '承诺函；（须'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': True, 'description': '包含需要完成本项目所必须的所有服务，以及其他需要计费的项目'}}}
+2025-09-01 20:09:36,300 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:09:36,300 - INFO - ======================================================================
+2025-09-01 20:09:36,300 - INFO - 招标信息提取完成!
+2025-09-01 20:09:36,300 - INFO - ======================================================================
+2025-09-01 20:09:36,300 - INFO - 【基本信息】
+2025-09-01 20:09:36,300 - INFO - 项目名称: 中邮保险购买手机号实名认证服务项目
+2025-09-01 20:09:36,300 - INFO - 项目编号: 2025
+2025-09-01 20:09:36,300 - INFO - 招标人: 被中国邮政集团有限公司和中邮人寿保险股份有限公司
+2025-09-01 20:09:36,300 - INFO - 招标代理: 中邮人寿保险股份有限公司
+2025-09-01 20:09:36,300 - INFO - 投标方式: 恶意磋商的；
+磋商有效期不足的；
+符合《中华人民共和国招标
+2025-09-01 20:09:36,300 - INFO - 投标地点: 北京市西城区金融大街甲3号金鼎大厦B座7层
+2025-09-01 20:09:36,300 - INFO - 投标时间: 2025年9月4日上午9:00前
+2025-09-01 20:09:36,300 - INFO - 中标人数量: 未明确
+2025-09-01 20:09:36,300 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:09:36,300 - INFO - 【资质要求】
+2025-09-01 20:09:36,300 - INFO - 营业执照: 需要提供 - 营业执照副本复印件。（如不能体现注册资金,须
+2025-09-01 20:09:36,300 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 我公司承诺为增值税一般纳税人，并承诺中标后向采购人开具符合采购人要求的增值税专用发票
+2025-09-01 20:09:36,300 - INFO - 业绩要求: 需要提供 - 2、业绩证明文件必须包括但不限于：合同首页、服务内容页、期限页及签字页的复印件
+2025-09-01 20:09:36,300 - INFO - 授权要求: 需要提供 - 授权代表签字的，则须在响应文件中出具“法定代表人（负责人）身份证明”和“法定代表人（负责人）授权书
+2025-09-01 20:09:36,300 - INFO - 信用中国: 需要提供 - 被“信用中国”（www.creditchina.gov.cn）列入失信被执行人名单的供应商，被中国政府采购网（www.ccgp.gov.cn）列入政府采购严重违法失信行为记录名单的供应商，被中国邮政集团有限公司和中邮人寿保险股份有限公司列入黑名单且在有效期内的供应商，均无资格参加本项目的采购活动”的要求
+2025-09-01 20:09:36,301 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函；（须
+2025-09-01 20:09:36,301 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:09:36,301 - INFO - 社保要求: 不需要提供
+2025-09-01 20:09:36,301 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:09:36,301 - INFO - 其他要求: 需要提供 - 包含需要完成本项目所必须的所有服务，以及其他需要计费的项目
+2025-09-01 20:09:36,301 - INFO - ======================================================================
+2025-09-01 20:11:08,895 - INFO - 开始处理招标文档...
+2025-09-01 20:11:08,895 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-09-01 20:11:09,026 - INFO - 使用python-docx成功读取Word文档（包含830个段落和12个表格）
+2025-09-01 20:11:09,026 - INFO - 文档读取成功，内容长度: 34890 字符
+2025-09-01 20:11:09,028 - WARNING - 文档内容过长，已截断至 3993 字符
+2025-09-01 20:11:09,028 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:11:09,053 - INFO - 正则表达式提取完成: {'tenderer': '中邮人寿保险股份有限公司', 'agency': '', 'bidding_method': '恶意磋商的；\n磋商有效期不足的；\n符合《中华人民共和国招标', 'bidding_location': '北京市西城区金融大街甲3号金鼎大厦B座7层', 'bidding_time': '见竞争性磋商公告', 'winner_count': '', 'project_name': '中邮保险购买手机号实名认证服务项目', 'project_number': '', 'qualification_requirements': {'business_license': {'required': True, 'description': '营业执照副本复印件。（如不能体现注册资金,须'}, 'taxpayer_qualification': {'required': True, 'description': '我公司承诺为增值税一般纳税人，并承诺中标后向采购人开具符合采购人要求的增值税专用发票'}, 'performance_requirements': {'required': True, 'description': '2、业绩证明文件必须包括但不限于：合同首页、服务内容页、期限页及签字页的复印件'}, 'authorization_requirements': {'required': True, 'description': '授权代表签字的，则须在响应文件中出具“法定代表人（负责人）身份证明”和“法定代表人（负责人）授权书'}, 'credit_china': {'required': True, 'description': '被“信用中国”（www.creditchina.gov.cn）列入失信被执行人名单的供应商，被中国政府采购网（www.ccgp.gov.cn）列入政府采购严重违法失信行为记录名单的供应商，被中国邮政集团有限公司和中邮人寿保险股份有限公司列入黑名单且在有效期内的供应商，均无资格参加本项目的采购活动”的要求'}, 'commitment_letter': {'required': True, 'description': '承诺函；（须'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': True, 'description': '包含需要完成本项目所必须的所有服务，以及其他需要计费的项目'}}}
+2025-09-01 20:11:09,053 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:11:09,053 - INFO - 验证结果 - 缺失字段: ['agency', 'winner_count', 'project_number'], 质量差字段: ['bidding_time']
+2025-09-01 20:11:09,053 - INFO - 【第三阶段】LLM补充缺失字段: ['agency', 'winner_count', 'project_number', 'bidding_time']
+2025-09-01 20:11:09,053 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 20:11:09,053 - INFO - 请求内容长度: 4211 字符
+2025-09-01 20:11:12,504 - INFO - API返回状态码: 200
+2025-09-01 20:11:12,505 - INFO - API原始返回: {
+  "id": "chatcmpl-CAxfK6F2BUtYYrStD3wZtqe4c0zbJ",
+  "object": "chat.completion",
+  "created": 1756728670,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"agency\": \"未提供\",\n    \"winner_count\": \"未提供\",\n    \"project_number\": \"未提供\",\n    \"bidding_time\": \"2025年9月4日上午9:00前\"\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "...
+2025-09-01 20:11:12,505 - INFO - [LLM调用完成] 返回内容长度: 131
+2025-09-01 20:11:12,506 - INFO - LLM补充响应: ```json
+{
+    "agency": "未提供",
+    "winner_count": "未提供",
+    "project_number": "未提供",
+    "bidding_time": "2025年9月4日上午9:00前"
+}
+```
+2025-09-01 20:11:12,506 - INFO - 字段 agency 使用LLM结果: 未提供
+2025-09-01 20:11:12,506 - INFO - 字段 bidding_time 使用LLM结果: 2025年9月4日上午9:00前
+2025-09-01 20:11:12,506 - INFO - 字段 winner_count 使用LLM结果: 未提供
+2025-09-01 20:11:12,506 - INFO - 字段 project_number 使用LLM结果: 未提供
+2025-09-01 20:11:12,506 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 20:11:12,506 - INFO - 最终提取结果: {'tenderer': '中邮人寿保险股份有限公司', 'agency': '未提供', 'bidding_method': '恶意磋商的；\n磋商有效期不足的；\n符合《中华人民共和国招标', 'bidding_location': '北京市西城区金融大街甲3号金鼎大厦B座7层', 'bidding_time': '2025年9月4日上午9:00前', 'winner_count': '未提供', 'project_name': '中邮保险购买手机号实名认证服务项目', 'project_number': '未提供', 'qualification_requirements': {'business_license': {'required': True, 'description': '营业执照副本复印件。（如不能体现注册资金,须'}, 'taxpayer_qualification': {'required': True, 'description': '我公司承诺为增值税一般纳税人，并承诺中标后向采购人开具符合采购人要求的增值税专用发票'}, 'performance_requirements': {'required': True, 'description': '2、业绩证明文件必须包括但不限于：合同首页、服务内容页、期限页及签字页的复印件'}, 'authorization_requirements': {'required': True, 'description': '授权代表签字的，则须在响应文件中出具“法定代表人（负责人）身份证明”和“法定代表人（负责人）授权书'}, 'credit_china': {'required': True, 'description': '被“信用中国”（www.creditchina.gov.cn）列入失信被执行人名单的供应商，被中国政府采购网（www.ccgp.gov.cn）列入政府采购严重违法失信行为记录名单的供应商，被中国邮政集团有限公司和中邮人寿保险股份有限公司列入黑名单且在有效期内的供应商，均无资格参加本项目的采购活动”的要求'}, 'commitment_letter': {'required': True, 'description': '承诺函；（须'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': True, 'description': '包含需要完成本项目所必须的所有服务，以及其他需要计费的项目'}}}
+2025-09-01 20:11:12,509 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:11:12,509 - INFO - ======================================================================
+2025-09-01 20:11:12,510 - INFO - 招标信息提取完成!
+2025-09-01 20:11:12,510 - INFO - ======================================================================
+2025-09-01 20:11:12,510 - INFO - 【基本信息】
+2025-09-01 20:11:12,510 - INFO - 项目名称: 中邮保险购买手机号实名认证服务项目
+2025-09-01 20:11:12,510 - INFO - 项目编号: 未提供
+2025-09-01 20:11:12,510 - INFO - 招标人: 中邮人寿保险股份有限公司
+2025-09-01 20:11:12,510 - INFO - 招标代理: 未提供
+2025-09-01 20:11:12,510 - INFO - 投标方式: 恶意磋商的；
+磋商有效期不足的；
+符合《中华人民共和国招标
+2025-09-01 20:11:12,510 - INFO - 投标地点: 北京市西城区金融大街甲3号金鼎大厦B座7层
+2025-09-01 20:11:12,510 - INFO - 投标时间: 2025年9月4日上午9:00前
+2025-09-01 20:11:12,510 - INFO - 中标人数量: 未提供
+2025-09-01 20:11:12,510 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:11:12,510 - INFO - 【资质要求】
+2025-09-01 20:11:12,510 - INFO - 营业执照: 需要提供 - 营业执照副本复印件。（如不能体现注册资金,须
+2025-09-01 20:11:12,510 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 我公司承诺为增值税一般纳税人，并承诺中标后向采购人开具符合采购人要求的增值税专用发票
+2025-09-01 20:11:12,510 - INFO - 业绩要求: 需要提供 - 2、业绩证明文件必须包括但不限于：合同首页、服务内容页、期限页及签字页的复印件
+2025-09-01 20:11:12,510 - INFO - 授权要求: 需要提供 - 授权代表签字的，则须在响应文件中出具“法定代表人（负责人）身份证明”和“法定代表人（负责人）授权书
+2025-09-01 20:11:12,510 - INFO - 信用中国: 需要提供 - 被“信用中国”（www.creditchina.gov.cn）列入失信被执行人名单的供应商，被中国政府采购网（www.ccgp.gov.cn）列入政府采购严重违法失信行为记录名单的供应商，被中国邮政集团有限公司和中邮人寿保险股份有限公司列入黑名单且在有效期内的供应商，均无资格参加本项目的采购活动”的要求
+2025-09-01 20:11:12,510 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函；（须
+2025-09-01 20:11:12,510 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:11:12,510 - INFO - 社保要求: 不需要提供
+2025-09-01 20:11:12,510 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:11:12,510 - INFO - 其他要求: 需要提供 - 包含需要完成本项目所必须的所有服务，以及其他需要计费的项目
+2025-09-01 20:11:12,510 - INFO - ======================================================================
+2025-09-01 20:20:23,097 - INFO - 开始处理招标文档...
+2025-09-01 20:20:23,097 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-09-01 20:20:23,151 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-09-01 20:20:23,157 - WARNING - antiword读取失败: module 'antiword' has no attribute 'extract_text'，尝试其他方法
+2025-09-01 20:20:23,183 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-09-01 20:20:23,183 - WARNING - 未安装pywin32库或非Windows环境
+2025-09-01 20:20:23,194 - WARNING - 使用二进制读取Word文档 (utf-8 编码)，已清理乱码字符
+2025-09-01 20:20:23,194 - INFO - 文档读取成功，内容长度: 93328 字符
+2025-09-01 20:20:23,197 - WARNING - 文档内容过长，已截断至 3953 字符
+2025-09-01 20:20:23,197 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:20:23,384 - INFO - 正则表达式提取完成: {'tenderer': '', 'agency': '', 'bidding_method': '', 'bidding_location': '', 'bidding_time': '', 'winner_count': '', 'project_name': '2025-IT-0032', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': False, 'description': ''}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:20:23,384 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:20:23,384 - INFO - 验证结果 - 缺失字段: ['tenderer', 'agency', 'bidding_method', 'bidding_location', 'bidding_time', 'winner_count'], 质量差字段: []
+2025-09-01 20:20:23,384 - INFO - 【第三阶段】LLM补充缺失字段: ['tenderer', 'agency', 'bidding_method', 'bidding_location', 'bidding_time', 'winner_count']
+2025-09-01 20:20:23,384 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 20:20:23,384 - INFO - 请求内容长度: 4245 字符
+2025-09-01 20:20:26,633 - INFO - API返回状态码: 200
+2025-09-01 20:20:26,633 - INFO - API原始返回: {
+  "id": "chatcmpl-CAxoH8AfEyh7mvCFMXDpzQ2LroVsq",
+  "object": "chat.completion",
+  "created": 1756729225,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"tenderer\": \"未提供\",\n    \"agency\": \"未提供\",\n    \"bidding_method\": \"未提供\",\n    \"bidding_location\": \"未提供\",\n    \"bidding_time\": \"未提供\",\n    \"winner_count\": \"未提供\"\n}\n```",
+        "refusal": null,
+        "annota...
+2025-09-01 20:20:26,633 - INFO - [LLM调用完成] 返回内容长度: 172
+2025-09-01 20:20:26,634 - INFO - LLM补充响应: ```json
+{
+    "tenderer": "未提供",
+    "agency": "未提供",
+    "bidding_method": "未提供",
+    "bidding_location": "未提供",
+    "bidding_time": "未提供",
+    "winner_count": "未提供"
+}
+```
+2025-09-01 20:20:26,634 - INFO - 字段 tenderer 使用LLM结果: 未提供
+2025-09-01 20:20:26,634 - INFO - 字段 agency 使用LLM结果: 未提供
+2025-09-01 20:20:26,634 - INFO - 字段 bidding_method 使用LLM结果: 未提供
+2025-09-01 20:20:26,634 - INFO - 字段 bidding_location 使用LLM结果: 未提供
+2025-09-01 20:20:26,634 - INFO - 字段 bidding_time 使用LLM结果: 未提供
+2025-09-01 20:20:26,634 - INFO - 字段 winner_count 使用LLM结果: 未提供
+2025-09-01 20:20:26,634 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 20:20:26,634 - INFO - 最终提取结果: {'tenderer': '未提供', 'agency': '未提供', 'bidding_method': '未提供', 'bidding_location': '未提供', 'bidding_time': '未提供', 'winner_count': '未提供', 'project_name': '2025-IT-0032', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': False, 'description': ''}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:20:26,637 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:20:26,637 - INFO - ======================================================================
+2025-09-01 20:20:26,637 - INFO - 招标信息提取完成!
+2025-09-01 20:20:26,637 - INFO - ======================================================================
+2025-09-01 20:20:26,637 - INFO - 【基本信息】
+2025-09-01 20:20:26,637 - INFO - 项目名称: 2025-IT-0032
+2025-09-01 20:20:26,637 - INFO - 项目编号: 2025-IT-0032
+2025-09-01 20:20:26,637 - INFO - 招标人: 未提供
+2025-09-01 20:20:26,637 - INFO - 招标代理: 未提供
+2025-09-01 20:20:26,637 - INFO - 投标方式: 未提供
+2025-09-01 20:20:26,637 - INFO - 投标地点: 未提供
+2025-09-01 20:20:26,637 - INFO - 投标时间: 未提供
+2025-09-01 20:20:26,637 - INFO - 中标人数量: 未提供
+2025-09-01 20:20:26,637 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:20:26,637 - INFO - 【资质要求】
+2025-09-01 20:20:26,637 - INFO - 营业执照: 不需要提供
+2025-09-01 20:20:26,637 - INFO - 纳税人资格（增值税纳税人）: 不需要提供
+2025-09-01 20:20:26,637 - INFO - 业绩要求: 不需要提供
+2025-09-01 20:20:26,637 - INFO - 授权要求: 不需要提供
+2025-09-01 20:20:26,638 - INFO - 信用中国: 不需要提供
+2025-09-01 20:20:26,638 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函（默认满足）
+2025-09-01 20:20:26,638 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:20:26,638 - INFO - 社保要求: 不需要提供
+2025-09-01 20:20:26,638 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:20:26,638 - INFO - 其他要求: 不需要提供
+2025-09-01 20:20:26,638 - INFO - ======================================================================
+2025-09-01 20:20:39,265 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-09-01 20:20:39,297 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-09-01 20:20:39,301 - WARNING - antiword读取失败: module 'antiword' has no attribute 'extract_text'，尝试其他方法
+2025-09-01 20:20:39,322 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-09-01 20:20:39,322 - WARNING - 未安装pywin32库或非Windows环境
+2025-09-01 20:20:39,333 - WARNING - 使用二进制读取Word文档 (utf-8 编码)，已清理乱码字符
+2025-09-01 20:20:39,333 - INFO - 文档读取成功，内容长度: 93328 字符
+2025-09-01 20:21:04,903 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-09-01 20:21:04,946 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-09-01 20:21:04,952 - WARNING - antiword读取失败: module 'antiword' has no attribute 'extract_text'，尝试其他方法
+2025-09-01 20:21:04,977 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-09-01 20:21:04,977 - WARNING - 未安装pywin32库或非Windows环境
+2025-09-01 20:21:04,988 - WARNING - 使用二进制读取Word文档 (utf-8 编码)，已清理乱码字符
+2025-09-01 20:21:04,988 - INFO - 文档读取成功，内容长度: 93328 字符
+2025-09-01 20:23:00,033 - INFO - 开始处理招标文档...
+2025-09-01 20:23:00,033 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-09-01 20:23:00,068 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-09-01 20:23:00,072 - WARNING - antiword读取失败: module 'antiword' has no attribute 'extract_text'，尝试其他方法
+2025-09-01 20:23:00,126 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-09-01 20:23:00,126 - WARNING - 未安装pywin32库或非Windows环境
+2025-09-01 20:23:00,139 - WARNING - 使用二进制读取Word文档 (utf-8 编码)，已清理乱码字符
+2025-09-01 20:23:00,139 - INFO - 文档读取成功，内容长度: 93328 字符
+2025-09-01 20:23:00,142 - WARNING - 文档内容过长，已截断至 3953 字符
+2025-09-01 20:23:00,142 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:23:00,391 - ERROR - 文档处理失败: no such group
+2025-09-01 20:23:00,391 - ERROR - 程序执行失败: no such group
+2025-09-01 20:23:31,519 - INFO - 开始处理招标文档...
+2025-09-01 20:23:31,519 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-09-01 20:23:31,538 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-09-01 20:23:31,541 - WARNING - antiword读取失败: module 'antiword' has no attribute 'extract_text'，尝试其他方法
+2025-09-01 20:23:31,563 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-09-01 20:23:31,563 - WARNING - 未安装pywin32库或非Windows环境
+2025-09-01 20:23:31,573 - WARNING - 使用二进制读取Word文档 (utf-8 编码)，已清理乱码字符
+2025-09-01 20:23:31,573 - INFO - 文档读取成功，内容长度: 93328 字符
+2025-09-01 20:23:31,577 - WARNING - 文档内容过长，已截断至 3953 字符
+2025-09-01 20:23:31,577 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:23:31,813 - INFO - 正则表达式提取完成: {'tenderer': '', 'agency': '', 'bidding_method': '', 'bidding_location': '', 'bidding_time': '2025年08月28日14时30分', 'winner_count': '', 'project_name': '所属运营商数据', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': False, 'description': ''}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:23:31,813 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:23:31,813 - INFO - 验证结果 - 缺失字段: ['tenderer', 'agency', 'bidding_method', 'bidding_location', 'winner_count'], 质量差字段: []
+2025-09-01 20:23:31,813 - INFO - 【第三阶段】LLM补充缺失字段: ['tenderer', 'agency', 'bidding_method', 'bidding_location', 'winner_count']
+2025-09-01 20:23:31,813 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 20:23:31,813 - INFO - 请求内容长度: 4204 字符
+2025-09-01 20:23:34,090 - INFO - API返回状态码: 200
+2025-09-01 20:23:34,094 - INFO - API原始返回: {
+  "id": "chatcmpl-CAxrI23NuRcdpnHSGwhpqNJACUjon",
+  "object": "chat.completion",
+  "created": 1756729412,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"tenderer\": \"未提供\",\n    \"agency\": \"未提供\",\n    \"bidding_method\": \"未提供\",\n    \"bidding_location\": \"未提供\",\n    \"winner_count\": \"未提供\"\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logpr...
+2025-09-01 20:23:34,094 - INFO - [LLM调用完成] 返回内容长度: 145
+2025-09-01 20:23:34,094 - INFO - LLM补充响应: ```json
+{
+    "tenderer": "未提供",
+    "agency": "未提供",
+    "bidding_method": "未提供",
+    "bidding_location": "未提供",
+    "winner_count": "未提供"
+}
+```
+2025-09-01 20:23:34,096 - INFO - 字段 tenderer 使用LLM结果: 未提供
+2025-09-01 20:23:34,096 - INFO - 字段 agency 使用LLM结果: 未提供
+2025-09-01 20:23:34,096 - INFO - 字段 bidding_method 使用LLM结果: 未提供
+2025-09-01 20:23:34,096 - INFO - 字段 bidding_location 使用LLM结果: 未提供
+2025-09-01 20:23:34,096 - INFO - 字段 winner_count 使用LLM结果: 未提供
+2025-09-01 20:23:34,096 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 20:23:34,096 - INFO - 最终提取结果: {'tenderer': '未提供', 'agency': '未提供', 'bidding_method': '未提供', 'bidding_location': '未提供', 'bidding_time': '2025年08月28日14时30分', 'winner_count': '未提供', 'project_name': '所属运营商数据', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': False, 'description': ''}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:23:34,099 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:23:34,099 - INFO - ======================================================================
+2025-09-01 20:23:34,099 - INFO - 招标信息提取完成!
+2025-09-01 20:23:34,099 - INFO - ======================================================================
+2025-09-01 20:23:34,099 - INFO - 【基本信息】
+2025-09-01 20:23:34,099 - INFO - 项目名称: 所属运营商数据
+2025-09-01 20:23:34,099 - INFO - 项目编号: 2025-IT-0032
+2025-09-01 20:23:34,099 - INFO - 招标人: 未提供
+2025-09-01 20:23:34,099 - INFO - 招标代理: 未提供
+2025-09-01 20:23:34,099 - INFO - 投标方式: 未提供
+2025-09-01 20:23:34,099 - INFO - 投标地点: 未提供
+2025-09-01 20:23:34,099 - INFO - 投标时间: 2025年08月28日14时30分
+2025-09-01 20:23:34,099 - INFO - 中标人数量: 未提供
+2025-09-01 20:23:34,099 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:23:34,099 - INFO - 【资质要求】
+2025-09-01 20:23:34,099 - INFO - 营业执照: 不需要提供
+2025-09-01 20:23:34,099 - INFO - 纳税人资格（增值税纳税人）: 不需要提供
+2025-09-01 20:23:34,099 - INFO - 业绩要求: 不需要提供
+2025-09-01 20:23:34,099 - INFO - 授权要求: 不需要提供
+2025-09-01 20:23:34,099 - INFO - 信用中国: 不需要提供
+2025-09-01 20:23:34,099 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函（默认满足）
+2025-09-01 20:23:34,100 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:23:34,100 - INFO - 社保要求: 不需要提供
+2025-09-01 20:23:34,100 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:23:34,100 - INFO - 其他要求: 不需要提供
+2025-09-01 20:23:34,100 - INFO - ======================================================================
+2025-09-01 20:23:59,958 - INFO - 开始处理招标文档...
+2025-09-01 20:23:59,958 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中信归属运营商/采购文件-2025-IT-0032所属运营商数据.doc
+2025-09-01 20:23:59,990 - WARNING - python-docx读取失败: "no relationship of type 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' in collection"，尝试其他方法
+2025-09-01 20:23:59,994 - WARNING - antiword读取失败: module 'antiword' has no attribute 'extract_text'，尝试其他方法
+2025-09-01 20:24:00,017 - WARNING - mammoth读取失败: Could not find main document part. Are you sure this is a valid .docx file?，尝试其他方法
+2025-09-01 20:24:00,017 - WARNING - 未安装pywin32库或非Windows环境
+2025-09-01 20:24:00,030 - WARNING - 使用二进制读取Word文档 (utf-8 编码)，已清理乱码字符
+2025-09-01 20:24:00,030 - INFO - 文档读取成功，内容长度: 93328 字符
+2025-09-01 20:24:00,035 - WARNING - 文档内容过长，已截断至 3953 字符
+2025-09-01 20:24:00,035 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:24:00,314 - INFO - 正则表达式提取完成: {'tenderer': '', 'agency': '', 'bidding_method': '', 'bidding_location': '', 'bidding_time': '2025年08月28日14时30分', 'winner_count': '', 'project_name': '所属运营商数据', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': False, 'description': ''}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:24:00,314 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:24:00,314 - INFO - 验证结果 - 缺失字段: ['tenderer', 'agency', 'bidding_method', 'bidding_location', 'winner_count'], 质量差字段: []
+2025-09-01 20:24:00,314 - INFO - 【第三阶段】LLM补充缺失字段: ['tenderer', 'agency', 'bidding_method', 'bidding_location', 'winner_count']
+2025-09-01 20:24:00,314 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 20:24:00,314 - INFO - 请求内容长度: 4307 字符
+2025-09-01 20:24:02,665 - INFO - API返回状态码: 200
+2025-09-01 20:24:02,666 - INFO - API原始返回: {
+  "id": "chatcmpl-CAxrlEXa35EWZnB8e8ox7m3y7Pgwm",
+  "object": "chat.completion",
+  "created": 1756729441,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"tenderer\": \"中信银行股份有限公司\",\n    \"agency\": \"未提供\",\n    \"bidding_method\": \"线上递交\",\n    \"bidding_location\": \"未提供\",\n    \"winner_count\": \"未提供\"\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+    ...
+2025-09-01 20:24:02,670 - INFO - [LLM调用完成] 返回内容长度: 153
+2025-09-01 20:24:02,675 - INFO - LLM补充响应: ```json
+{
+    "tenderer": "中信银行股份有限公司",
+    "agency": "未提供",
+    "bidding_method": "线上递交",
+    "bidding_location": "未提供",
+    "winner_count": "未提供"
+}
+```
+2025-09-01 20:24:02,681 - INFO - 字段 tenderer 使用LLM结果: 中信银行股份有限公司
+2025-09-01 20:24:02,681 - INFO - 字段 agency 使用LLM结果: 未提供
+2025-09-01 20:24:02,681 - INFO - 字段 bidding_method 使用LLM结果: 线上递交
+2025-09-01 20:24:02,681 - INFO - 字段 bidding_location 使用LLM结果: 未提供
+2025-09-01 20:24:02,694 - INFO - 字段 winner_count 使用LLM结果: 未提供
+2025-09-01 20:24:02,694 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 20:24:02,694 - INFO - 最终提取结果: {'tenderer': '中信银行股份有限公司', 'agency': '未提供', 'bidding_method': '线上递交', 'bidding_location': '未提供', 'bidding_time': '2025年08月28日14时30分', 'winner_count': '未提供', 'project_name': '所属运营商数据', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': False, 'description': ''}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:24:02,695 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:24:02,695 - INFO - ======================================================================
+2025-09-01 20:24:02,695 - INFO - 招标信息提取完成!
+2025-09-01 20:24:02,695 - INFO - ======================================================================
+2025-09-01 20:24:02,695 - INFO - 【基本信息】
+2025-09-01 20:24:02,695 - INFO - 项目名称: 所属运营商数据
+2025-09-01 20:24:02,695 - INFO - 项目编号: 2025-IT-0032
+2025-09-01 20:24:02,695 - INFO - 招标人: 中信银行股份有限公司
+2025-09-01 20:24:02,695 - INFO - 招标代理: 未提供
+2025-09-01 20:24:02,695 - INFO - 投标方式: 线上递交
+2025-09-01 20:24:02,695 - INFO - 投标地点: 未提供
+2025-09-01 20:24:02,695 - INFO - 投标时间: 2025年08月28日14时30分
+2025-09-01 20:24:02,695 - INFO - 中标人数量: 未提供
+2025-09-01 20:24:02,695 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:24:02,695 - INFO - 【资质要求】
+2025-09-01 20:24:02,695 - INFO - 营业执照: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 纳税人资格（增值税纳税人）: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 业绩要求: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 授权要求: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 信用中国: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函（默认满足）
+2025-09-01 20:24:02,695 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 社保要求: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:24:02,695 - INFO - 其他要求: 不需要提供
+2025-09-01 20:24:02,695 - INFO - ======================================================================
+2025-09-01 20:51:00,534 - INFO - 开始处理招标文档...
+2025-09-01 20:51:00,534 - INFO - 正在读取文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/数研所二次卡/数字人民币运营管理中心有限公司2025年二次放号查询服务采购项目采购需求文件.docx
+2025-09-01 20:51:00,640 - INFO - 使用python-docx成功读取Word文档（包含447个段落和12个表格）
+2025-09-01 20:51:00,640 - INFO - 文档读取成功，内容长度: 22393 字符
+2025-09-01 20:51:00,642 - WARNING - 文档内容过长，已截断至 3965 字符
+2025-09-01 20:51:00,642 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:51:00,670 - INFO - 正则表达式提取完成: {'tenderer': '数字人民币运营管理中心有限公司', 'agency': '', 'bidding_method': '', 'bidding_location': '北京市丰台区金唐西联大厦A座12层', 'bidding_time': '及地点 | 截止时间：2025年9月9日18点 地点：北京市丰台区金唐西联大厦A座12层', 'winner_count': '', 'project_name': '数字人民币运营管理中心有限公司2025年二次放号查询服务采购项目', 'project_number': '', 'qualification_requirements': {'business_license': {'required': True, 'description': '（6）★营业执照复印件加盖公章、法人身份证复印件及授权委托书（授权代表为非法定代表人时提供，同时须提供法人身份证正反面复印件、被授权人身份证正反面复印件，均需加盖响应人公章）'}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': True, 'description': '同类项目成功案例（可使用供应商全资子公司或分公司的案例），案例需提供合同复印件（至少需要'}, 'authorization_requirements': {'required': True, 'description': '授权的人知悉，乙方将采取一切必要措施以防止该信息的披露或使用。乙方同意，一旦发现任何对该保密信息的滥用或窃用情况，须以书'}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函，如果供应'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': True, 'description': '7.13 其他安全要求'}}}
+2025-09-01 20:51:00,671 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:51:00,671 - INFO - 验证结果 - 缺失字段: ['agency', 'bidding_method', 'winner_count', 'project_number'], 质量差字段: []
+2025-09-01 20:51:00,671 - INFO - 【第三阶段】LLM补充缺失字段: ['agency', 'bidding_method', 'winner_count', 'project_number']
+2025-09-01 20:51:00,671 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 20:51:00,671 - INFO - 请求内容长度: 4186 字符
+2025-09-01 20:51:02,686 - INFO - API返回状态码: 200
+2025-09-01 20:51:02,687 - INFO - API原始返回: {
+  "id": "chatcmpl-CAyHte4I21djhYGhILqLAANpPevEw",
+  "object": "chat.completion",
+  "created": 1756731061,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"agency\": \"未提供\",\n    \"bidding_method\": \"公开招标\",\n    \"winner_count\": \"2名\",\n    \"project_number\": \"未提供\"\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reas...
+2025-09-01 20:51:02,687 - INFO - [LLM调用完成] 返回内容长度: 120
+2025-09-01 20:51:02,688 - INFO - LLM补充响应: ```json
+{
+    "agency": "未提供",
+    "bidding_method": "公开招标",
+    "winner_count": "2名",
+    "project_number": "未提供"
+}
+```
+2025-09-01 20:51:02,688 - INFO - 字段 agency 使用LLM结果: 未提供
+2025-09-01 20:51:02,688 - INFO - 字段 bidding_method 使用LLM结果: 公开招标
+2025-09-01 20:51:02,688 - INFO - 字段 winner_count 使用LLM结果: 2名
+2025-09-01 20:51:02,688 - INFO - 字段 project_number 使用LLM结果: 未提供
+2025-09-01 20:51:02,688 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 20:51:02,688 - INFO - 最终提取结果: {'tenderer': '数字人民币运营管理中心有限公司', 'agency': '未提供', 'bidding_method': '公开招标', 'bidding_location': '北京市丰台区金唐西联大厦A座12层', 'bidding_time': '及地点 | 截止时间：2025年9月9日18点 地点：北京市丰台区金唐西联大厦A座12层', 'winner_count': '2名', 'project_name': '数字人民币运营管理中心有限公司2025年二次放号查询服务采购项目', 'project_number': '未提供', 'qualification_requirements': {'business_license': {'required': True, 'description': '（6）★营业执照复印件加盖公章、法人身份证复印件及授权委托书（授权代表为非法定代表人时提供，同时须提供法人身份证正反面复印件、被授权人身份证正反面复印件，均需加盖响应人公章）'}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': True, 'description': '同类项目成功案例（可使用供应商全资子公司或分公司的案例），案例需提供合同复印件（至少需要'}, 'authorization_requirements': {'required': True, 'description': '授权的人知悉，乙方将采取一切必要措施以防止该信息的披露或使用。乙方同意，一旦发现任何对该保密信息的滥用或窃用情况，须以书'}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函，如果供应'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': True, 'description': '7.13 其他安全要求'}}}
+2025-09-01 20:51:02,688 - INFO - 开始提取技术评分信息...
+2025-09-01 20:51:02,690 - WARNING - 文档内容过长，已截断至 5849 字符
+2025-09-01 20:51:02,690 - INFO - [LLM调用开始] 任务: 技术评分提取 (尝试 1/3)
+2025-09-01 20:51:02,690 - INFO - 请求内容长度: 6874 字符
+2025-09-01 20:51:12,464 - INFO - API返回状态码: 200
+2025-09-01 20:51:12,465 - INFO - API原始返回: {
+  "id": "chatcmpl-CAyHvBQw1981yYqnfzEaoxiAKG2TS",
+  "object": "chat.completion",
+  "created": 1756731063,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"technical_scoring_items\": [\n        {\n            \"name\": \"可靠性要求\",\n            \"weight\": \"未提及\",\n            \"criteria\": \"可靠性应达到99%\",\n            \"source\": \"第3.1.1条\"\n        },\n        {\n            \"name\...
+2025-09-01 20:51:12,465 - INFO - [LLM调用完成] 返回内容长度: 1663
+2025-09-01 20:51:12,466 - INFO - 技术评分提取响应长度: 1663
+2025-09-01 20:51:12,466 - INFO - 成功解析技术评分信息，包含 9 个评分项
+2025-09-01 20:51:12,468 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:51:12,469 - INFO - ======================================================================
+2025-09-01 20:51:12,469 - INFO - 招标信息提取完成!
+2025-09-01 20:51:12,469 - INFO - ======================================================================
+2025-09-01 20:51:12,469 - INFO - 【基本信息】
+2025-09-01 20:51:12,469 - INFO - 项目名称: 数字人民币运营管理中心有限公司2025年二次放号查询服务采购项目
+2025-09-01 20:51:12,469 - INFO - 项目编号: 未提供
+2025-09-01 20:51:12,469 - INFO - 招标人: 数字人民币运营管理中心有限公司
+2025-09-01 20:51:12,469 - INFO - 招标代理: 未提供
+2025-09-01 20:51:12,469 - INFO - 投标方式: 公开招标
+2025-09-01 20:51:12,469 - INFO - 投标地点: 北京市丰台区金唐西联大厦A座12层
+2025-09-01 20:51:12,469 - INFO - 投标时间: 及地点 | 截止时间：2025年9月9日18点 地点：北京市丰台区金唐西联大厦A座12层
+2025-09-01 20:51:12,469 - INFO - 中标人数量: 2名
+2025-09-01 20:51:12,469 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:51:12,469 - INFO - 【资质要求】
+2025-09-01 20:51:12,469 - INFO - 营业执照: 需要提供 - （6）★营业执照复印件加盖公章、法人身份证复印件及授权委托书（授权代表为非法定代表人时提供，同时须提供法人身份证正反面复印件、被授权人身份证正反面复印件，均需加盖响应人公章）
+2025-09-01 20:51:12,469 - INFO - 纳税人资格（增值税纳税人）: 不需要提供
+2025-09-01 20:51:12,469 - INFO - 业绩要求: 需要提供 - 同类项目成功案例（可使用供应商全资子公司或分公司的案例），案例需提供合同复印件（至少需要
+2025-09-01 20:51:12,469 - INFO - 授权要求: 需要提供 - 授权的人知悉，乙方将采取一切必要措施以防止该信息的披露或使用。乙方同意，一旦发现任何对该保密信息的滥用或窃用情况，须以书
+2025-09-01 20:51:12,469 - INFO - 信用中国: 不需要提供
+2025-09-01 20:51:12,469 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函，如果供应
+2025-09-01 20:51:12,470 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:51:12,470 - INFO - 社保要求: 不需要提供
+2025-09-01 20:51:12,470 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:51:12,470 - INFO - 其他要求: 需要提供 - 7.13 其他安全要求
+2025-09-01 20:51:12,470 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:51:12,470 - INFO - 【技术评分信息】
+2025-09-01 20:51:12,470 - INFO - 技术总分: 未提及
+2025-09-01 20:51:12,470 - INFO - 评分项数量: 9个
+2025-09-01 20:51:12,470 - INFO - 
+2025-09-01 20:51:12,470 - INFO - 评分项 1:
+2025-09-01 20:51:12,470 - INFO -   名称: 可靠性要求
+2025-09-01 20:51:12,470 - INFO -   分值: 未提及
+2025-09-01 20:51:12,470 - INFO -   标准: 可靠性应达到99%
+2025-09-01 20:51:12,470 - INFO -   来源: 第3.1.1条
+2025-09-01 20:51:12,470 - INFO - 
+2025-09-01 20:51:12,470 - INFO - 评分项 2:
+2025-09-01 20:51:12,470 - INFO -   名称: 扩展性要求
+2025-09-01 20:51:12,470 - INFO -   分值: 未提及
+2025-09-01 20:51:12,470 - INFO -   标准: 具有升级和扩展能力，便于扩充并具有支持对接接口升级的能力
+2025-09-01 20:51:12,470 - INFO -   来源: 第3.1.2条
+2025-09-01 20:51:12,470 - INFO - 
+2025-09-01 20:51:12,470 - INFO - 评分项 3:
+2025-09-01 20:51:12,470 - INFO -   名称: 成熟性要求
+2025-09-01 20:51:12,470 - INFO -   分值: 未提及
+2025-09-01 20:51:12,470 - INFO -   标准: 在技术上是先进而成熟的产品化程度高以相当范围的市场化应用历程证明其性能稳定
+2025-09-01 20:51:12,470 - INFO -   来源: 第3.1.3条
+2025-09-01 20:51:12,470 - INFO - 
+2025-09-01 20:51:12,470 - INFO - 评分项 4:
+2025-09-01 20:51:12,471 - INFO -   名称: 管理性要求
+2025-09-01 20:51:12,471 - INFO -   分值: 未提及
+2025-09-01 20:51:12,471 - INFO -   标准: 应具备必要的监控管理性能，管理配置管理用户管理和安全审计管理等功能
+2025-09-01 20:51:12,471 - INFO -   来源: 第3.1.4条
+2025-09-01 20:51:12,471 - INFO - 
+2025-09-01 20:51:12,471 - INFO - 评分项 5:
+2025-09-01 20:51:12,471 - INFO -   名称: 适用性要求
+2025-09-01 20:51:12,471 - INFO -   分值: 未提及
+2025-09-01 20:51:12,471 - INFO -   标准: 所采购产品应与现有设备有良好的兼容性，满足实际需要
+2025-09-01 20:51:12,471 - INFO -   来源: 第3.1.5条
+2025-09-01 20:51:12,471 - INFO - 
+2025-09-01 20:51:12,471 - INFO - 评分项 6:
+2025-09-01 20:51:12,471 - INFO -   名称: 开放性要求
+2025-09-01 20:51:12,471 - INFO -   分值: 未提及
+2025-09-01 20:51:12,471 - INFO -   标准: 遵循国际和国内标准，支持多种计算机网络协议实现系统间互连
+2025-09-01 20:51:12,471 - INFO -   来源: 第3.1.6条
+2025-09-01 20:51:12,471 - INFO - 
+2025-09-01 20:51:12,471 - INFO - 评分项 7:
+2025-09-01 20:51:12,471 - INFO -   名称: 经济性要求
+2025-09-01 20:51:12,471 - INFO -   分值: 未提及
+2025-09-01 20:51:12,471 - INFO -   标准: 应充分考虑性能价格比，选择最优的技术方案
+2025-09-01 20:51:12,472 - INFO -   来源: 第3.1.7条
+2025-09-01 20:51:12,472 - INFO - 
+2025-09-01 20:51:12,472 - INFO - 评分项 8:
+2025-09-01 20:51:12,472 - INFO -   名称: 质量标准要求
+2025-09-01 20:51:12,472 - INFO -   分值: 未提及
+2025-09-01 20:51:12,472 - INFO -   标准: 运营商应有完善的质量检测手段和质量保证体系，符合国家标准和行业标准
+2025-09-01 20:51:12,472 - INFO -   来源: 第1.2.1条
+2025-09-01 20:51:12,472 - INFO - 
+2025-09-01 20:51:12,472 - INFO - 评分项 9:
+2025-09-01 20:51:12,472 - INFO -   名称: 准确性要求
+2025-09-01 20:51:12,472 - INFO -   分值: 未提及
+2025-09-01 20:51:12,472 - INFO -   标准: 应确保返回结果准确，若因服务问题导致影响采购人正常工作，保留索赔和终止合同的权利
+2025-09-01 20:51:12,472 - INFO -   来源: 第1.2.4条
+2025-09-01 20:51:12,472 - INFO - 
+2025-09-01 20:51:12,472 - INFO - 提取说明: 提取了多项技术评分项，包含可靠性、扩展性、成熟性等要求。具体总分和权重未提及。
+2025-09-01 20:51:12,472 - INFO - ======================================================================
+2025-09-01 20:53:58,652 - INFO - 开始处理招标文档...
+2025-09-01 20:53:58,652 - INFO - 正在读取文档: test_document.txt
+2025-09-01 20:53:58,653 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 20:53:58,653 - INFO - 文档读取成功，内容长度: 203 字符
+2025-09-01 20:53:58,654 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:53:58,660 - INFO - 正则表达式提取完成: {'tenderer': '中信信托有限责任公司2025年IT运维服务采购项目', 'agency': '中信招标有限公司', 'bidding_method': '', 'bidding_location': '北京市朝阳区建国路88号', 'bidding_time': '2025年9月15日10:00', 'winner_count': '', 'project_name': '中信信托有限责任公司2025年IT运维服务采购项目', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 须提供营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 须提供增值税纳税人资格证明'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年类似项目业绩'}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:53:58,660 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:53:58,660 - INFO - 验证结果 - 缺失字段: ['bidding_method', 'winner_count'], 质量差字段: []
+2025-09-01 20:53:58,660 - INFO - 【第三阶段】LLM补充缺失字段: ['bidding_method', 'winner_count']
+2025-09-01 20:53:58,660 - INFO - [LLM调用开始] 任务: LLM补充提取 (尝试 1/3)
+2025-09-01 20:53:58,660 - INFO - 请求内容长度: 412 字符
+2025-09-01 20:54:00,410 - INFO - API返回状态码: 200
+2025-09-01 20:54:00,410 - INFO - API原始返回: {
+  "id": "chatcmpl-CAyKlzNMhpct0PALLi8PLA8E45lUE",
+  "object": "chat.completion",
+  "created": 1756731239,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"bidding_method\": \"线上递交\",\n    \"winner_count\": \"未提供\"\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 31...
+2025-09-01 20:54:00,410 - INFO - [LLM调用完成] 返回内容长度: 71
+2025-09-01 20:54:00,411 - INFO - LLM补充响应: ```json
+{
+    "bidding_method": "线上递交",
+    "winner_count": "未提供"
+}
+```
+2025-09-01 20:54:00,411 - INFO - 字段 bidding_method 使用LLM结果: 线上递交
+2025-09-01 20:54:00,411 - INFO - 字段 winner_count 使用LLM结果: 未提供
+2025-09-01 20:54:00,411 - INFO - 【第四阶段】最终验证与合并完成
+2025-09-01 20:54:00,411 - INFO - 最终提取结果: {'tenderer': '中信信托有限责任公司2025年IT运维服务采购项目', 'agency': '中信招标有限公司', 'bidding_method': '线上递交', 'bidding_location': '北京市朝阳区建国路88号', 'bidding_time': '2025年9月15日10:00', 'winner_count': '未提供', 'project_name': '中信信托有限责任公司2025年IT运维服务采购项目', 'project_number': '2025-IT-0032', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 须提供营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 须提供增值税纳税人资格证明'}, 'performance_requirements': {'required': True, 'description': '3. 须提供近3年类似项目业绩'}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:54:00,411 - INFO - 开始提取技术评分信息...
+2025-09-01 20:54:00,411 - INFO - [LLM调用开始] 任务: 技术评分提取 (尝试 1/3)
+2025-09-01 20:54:00,411 - INFO - 请求内容长度: 1217 字符
+2025-09-01 20:54:02,970 - INFO - API返回状态码: 200
+2025-09-01 20:54:02,970 - INFO - API原始返回: {
+  "id": "chatcmpl-CAyKnE7R6EZioMAyiJERNjRGq5AL3",
+  "object": "chat.completion",
+  "created": 1756731241,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"technical_scoring_items\": [],\n    \"total_technical_score\": \"未提及\",\n    \"extraction_summary\": \"未找到关于技术评分的具体内容，缺少评分项、权重和标准的相关信息。\"\n}\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null...
+2025-09-01 20:54:02,970 - INFO - [LLM调用完成] 返回内容长度: 147
+2025-09-01 20:54:02,971 - INFO - 技术评分提取响应长度: 147
+2025-09-01 20:54:02,971 - INFO - 成功解析技术评分信息，包含 0 个评分项
+2025-09-01 20:54:02,974 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:54:02,974 - INFO - ======================================================================
+2025-09-01 20:54:02,974 - INFO - 招标信息提取完成!
+2025-09-01 20:54:02,974 - INFO - ======================================================================
+2025-09-01 20:54:02,975 - INFO - 【基本信息】
+2025-09-01 20:54:02,975 - INFO - 项目名称: 中信信托有限责任公司2025年IT运维服务采购项目
+2025-09-01 20:54:02,975 - INFO - 项目编号: 2025-IT-0032
+2025-09-01 20:54:02,975 - INFO - 招标人: 中信信托有限责任公司2025年IT运维服务采购项目
+2025-09-01 20:54:02,975 - INFO - 招标代理: 中信招标有限公司
+2025-09-01 20:54:02,975 - INFO - 投标方式: 线上递交
+2025-09-01 20:54:02,975 - INFO - 投标地点: 北京市朝阳区建国路88号
+2025-09-01 20:54:02,975 - INFO - 投标时间: 2025年9月15日10:00
+2025-09-01 20:54:02,975 - INFO - 中标人数量: 未提供
+2025-09-01 20:54:02,975 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:54:02,975 - INFO - 【资质要求】
+2025-09-01 20:54:02,975 - INFO - 营业执照: 需要提供 - 1. 须提供营业执照副本
+2025-09-01 20:54:02,975 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 须提供增值税纳税人资格证明
+2025-09-01 20:54:02,975 - INFO - 业绩要求: 需要提供 - 3. 须提供近3年类似项目业绩
+2025-09-01 20:54:02,975 - INFO - 授权要求: 不需要提供
+2025-09-01 20:54:02,975 - INFO - 信用中国: 不需要提供
+2025-09-01 20:54:02,975 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函（默认满足）
+2025-09-01 20:54:02,975 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:54:02,975 - INFO - 社保要求: 不需要提供
+2025-09-01 20:54:02,975 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:54:02,976 - INFO - 其他要求: 不需要提供
+2025-09-01 20:54:02,976 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:54:02,976 - INFO - 【技术评分信息】
+2025-09-01 20:54:02,976 - INFO - 未找到技术评分信息或提取失败
+2025-09-01 20:54:02,976 - INFO - ======================================================================
+2025-09-01 20:59:28,729 - INFO - 开始处理招标文档...
+2025-09-01 20:59:28,730 - INFO - 正在读取文档: test_tech_scoring.txt
+2025-09-01 20:59:28,730 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 20:59:28,730 - INFO - 文档读取成功，内容长度: 739 字符
+2025-09-01 20:59:28,731 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 20:59:28,738 - INFO - 正则表达式提取完成: {'tenderer': '某市数字政府建设管理局', 'agency': '某省招标有限公司', 'bidding_method': '公开招标', 'bidding_location': '某市政务服务中心三楼会议室', 'bidding_time': '2025年9月25日14:30', 'winner_count': '1名', 'project_name': '智慧城市大数据平台建设项目', 'project_number': '2025-SC', 'qualification_requirements': {'business_license': {'required': True, 'description': '1. 须提供营业执照副本'}, 'taxpayer_qualification': {'required': True, 'description': '2. 须提供增值税纳税人资格证明'}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 20:59:28,738 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 20:59:28,738 - INFO - 验证结果 - 缺失字段: [], 质量差字段: []
+2025-09-01 20:59:28,738 - INFO - 正则表达式提取结果完整，无需LLM补充
+2025-09-01 20:59:28,738 - INFO - 开始提取技术评分信息...
+2025-09-01 20:59:28,738 - INFO - [LLM调用开始] 任务: 技术评分提取 (尝试 1/3)
+2025-09-01 20:59:28,738 - INFO - 请求内容长度: 1715 字符
+2025-09-01 20:59:36,658 - INFO - API返回状态码: 200
+2025-09-01 20:59:36,659 - INFO - API原始返回: {
+  "id": "chatcmpl-CAyQ5vMKs8Dw8wCDVd2P5RylFBp1j",
+  "object": "chat.completion",
+  "created": 1756731569,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"technical_scoring_items\": [\n        {\n            \"name\": \"系统可靠性\",\n            \"weight\": \"15分\",\n            \"criteria\": \"系统可靠性应达到99.9%以上具备完善的容错机制和故障自动恢复能力\", \n            \"source\": \"第3.1.1条\"\n        },\n     ...
+2025-09-01 20:59:36,659 - INFO - [LLM调用完成] 返回内容长度: 1342
+2025-09-01 20:59:36,660 - INFO - 技术评分提取响应长度: 1342
+2025-09-01 20:59:36,660 - INFO - 成功解析技术评分信息，包含 7 个评分项
+2025-09-01 20:59:36,663 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 20:59:36,663 - INFO - ======================================================================
+2025-09-01 20:59:36,663 - INFO - 招标信息提取完成!
+2025-09-01 20:59:36,663 - INFO - ======================================================================
+2025-09-01 20:59:36,663 - INFO - 【基本信息】
+2025-09-01 20:59:36,663 - INFO - 项目名称: 智慧城市大数据平台建设项目
+2025-09-01 20:59:36,663 - INFO - 项目编号: 2025-SC
+2025-09-01 20:59:36,663 - INFO - 招标人: 某市数字政府建设管理局
+2025-09-01 20:59:36,663 - INFO - 招标代理: 某省招标有限公司
+2025-09-01 20:59:36,663 - INFO - 投标方式: 公开招标
+2025-09-01 20:59:36,663 - INFO - 投标地点: 某市政务服务中心三楼会议室
+2025-09-01 20:59:36,663 - INFO - 投标时间: 2025年9月25日14:30
+2025-09-01 20:59:36,663 - INFO - 中标人数量: 1名
+2025-09-01 20:59:36,663 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:59:36,663 - INFO - 【资质要求】
+2025-09-01 20:59:36,663 - INFO - 营业执照: 需要提供 - 1. 须提供营业执照副本
+2025-09-01 20:59:36,663 - INFO - 纳税人资格（增值税纳税人）: 需要提供 - 2. 须提供增值税纳税人资格证明
+2025-09-01 20:59:36,663 - INFO - 业绩要求: 不需要提供
+2025-09-01 20:59:36,663 - INFO - 授权要求: 不需要提供
+2025-09-01 20:59:36,664 - INFO - 信用中国: 不需要提供
+2025-09-01 20:59:36,664 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函（默认满足）
+2025-09-01 20:59:36,664 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 20:59:36,664 - INFO - 社保要求: 不需要提供
+2025-09-01 20:59:36,664 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 20:59:36,664 - INFO - 其他要求: 不需要提供
+2025-09-01 20:59:36,664 - INFO - ----------------------------------------------------------------------
+2025-09-01 20:59:36,664 - INFO - 【技术评分信息】
+2025-09-01 20:59:36,664 - INFO - 技术总分: 100分
+2025-09-01 20:59:36,664 - INFO - 评分项数量: 7个
+2025-09-01 20:59:36,664 - INFO - 
+2025-09-01 20:59:36,664 - INFO - 评分项 1:
+2025-09-01 20:59:36,664 - INFO -   名称: 系统可靠性
+2025-09-01 20:59:36,664 - INFO -   分值: 15分
+2025-09-01 20:59:36,664 - INFO -   标准: 系统可靠性应达到99.9%以上具备完善的容错机制和故障自动恢复能力
+2025-09-01 20:59:36,664 - INFO -   来源: 第3.1.1条
+2025-09-01 20:59:36,664 - INFO - 
+2025-09-01 20:59:36,664 - INFO - 评分项 2:
+2025-09-01 20:59:36,664 - INFO -   名称: 数据处理能力
+2025-09-01 20:59:36,664 - INFO -   分值: 20分
+2025-09-01 20:59:36,664 - INFO -   标准: 系统应支持TB级数据处理能力具备实时数据采集清洗转换功能
+2025-09-01 20:59:36,664 - INFO -   来源: 第3.1.2条
+2025-09-01 20:59:36,664 - INFO - 
+2025-09-01 20:59:36,664 - INFO - 评分项 3:
+2025-09-01 20:59:36,664 - INFO -   名称: 系统扩展性
+2025-09-01 20:59:36,664 - INFO -   分值: 15分
+2025-09-01 20:59:36,664 - INFO -   标准: 系统架构应具有良好的扩展性支持水平扩展和垂直扩展便于后续功能模块接入
+2025-09-01 20:59:36,664 - INFO -   来源: 第3.1.3条
+2025-09-01 20:59:36,664 - INFO - 
+2025-09-01 20:59:36,665 - INFO - 评分项 4:
+2025-09-01 20:59:36,665 - INFO -   名称: 安全防护能力
+2025-09-01 20:59:36,665 - INFO -   分值: 20分
+2025-09-01 20:59:36,665 - INFO -   标准: 系统应具备完善的安全防护体系包括数据加密访问控制审计日志等安全机制
+2025-09-01 20:59:36,665 - INFO -   来源: 第3.1.4条
+2025-09-01 20:59:36,665 - INFO - 
+2025-09-01 20:59:36,665 - INFO - 评分项 5:
+2025-09-01 20:59:36,665 - INFO -   名称: 用户体验
+2025-09-01 20:59:36,665 - INFO -   分值: 10分
+2025-09-01 20:59:36,665 - INFO -   标准: 系统界面友好操作便捷响应时间不超过3秒支持移动端访问
+2025-09-01 20:59:36,665 - INFO -   来源: 第3.1.5条
+2025-09-01 20:59:36,665 - INFO - 
+2025-09-01 20:59:36,665 - INFO - 评分项 6:
+2025-09-01 20:59:36,665 - INFO -   名称: 技术先进性
+2025-09-01 20:59:36,665 - INFO -   分值: 10分
+2025-09-01 20:59:36,665 - INFO -   标准: 采用先进的大数据技术架构如微服务容器化部署AI算法等
+2025-09-01 20:59:36,665 - INFO -   来源: 第3.1.6条
+2025-09-01 20:59:36,665 - INFO - 
+2025-09-01 20:59:36,665 - INFO - 评分项 7:
+2025-09-01 20:59:36,665 - INFO -   名称: 实施能力
+2025-09-01 20:59:36,665 - INFO -   分值: 10分
+2025-09-01 20:59:36,665 - INFO -   标准: 投标人应具备完整的项目实施团队和丰富的实施经验提供详细的实施计划
+2025-09-01 20:59:36,665 - INFO -   来源: 第3.1.7条
+2025-09-01 20:59:36,666 - INFO - 
+2025-09-01 20:59:36,666 - INFO - 提取说明: 成功提取所有技术评分项，权重总和与文档声明的技术分总分一致。
+2025-09-01 20:59:36,666 - INFO - ======================================================================
+2025-09-01 21:07:28,583 - INFO - 开始处理招标文档...
+2025-09-01 21:07:28,583 - INFO - 正在读取文档: test_complete_scoring.txt
+2025-09-01 21:07:28,583 - INFO - 使用 utf-8 编码成功读取文本文件
+2025-09-01 21:07:28,583 - INFO - 文档读取成功，内容长度: 827 字符
+2025-09-01 21:07:28,585 - INFO - 【第一阶段】开始正则表达式提取...
+2025-09-01 21:07:28,592 - INFO - 正则表达式提取完成: {'tenderer': '某省政务服务和数字化建设管理局', 'agency': '某省政府采购中心', 'bidding_method': '公开招标', 'bidding_location': '某省政务服务中心201会议室', 'bidding_time': '2025年10月15日14:00', 'winner_count': '1名', 'project_name': '某省数字政府一体化平台建设项目', 'project_number': '2025-DG', 'qualification_requirements': {'business_license': {'required': False, 'description': ''}, 'taxpayer_qualification': {'required': False, 'description': ''}, 'performance_requirements': {'required': False, 'description': ''}, 'authorization_requirements': {'required': False, 'description': ''}, 'credit_china': {'required': False, 'description': ''}, 'commitment_letter': {'required': True, 'description': '承诺函（默认满足）'}, 'audit_report': {'required': False, 'description': ''}, 'social_security': {'required': False, 'description': ''}, 'labor_contract': {'required': False, 'description': ''}, 'other_requirements': {'required': False, 'description': ''}}}
+2025-09-01 21:07:28,592 - INFO - 【第二阶段】验证正则提取结果...
+2025-09-01 21:07:28,592 - INFO - 验证结果 - 缺失字段: [], 质量差字段: []
+2025-09-01 21:07:28,592 - INFO - 正则表达式提取结果完整，无需LLM补充
+2025-09-01 21:07:28,592 - INFO - 开始提取技术评分信息...
+2025-09-01 21:07:28,592 - INFO - [LLM调用开始] 任务: 技术评分提取 (尝试 1/3)
+2025-09-01 21:07:28,592 - INFO - 请求内容长度: 1766 字符
+2025-09-01 21:07:40,818 - INFO - API返回状态码: 200
+2025-09-01 21:07:40,819 - INFO - API原始返回: {
+  "id": "chatcmpl-CAyXpbAwcT9rWw56eUEXUJ7KMogUN",
+  "object": "chat.completion",
+  "created": 1756732049,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "```json\n{\n    \"technical_scoring_items\": [\n        {\n            \"name\": \"技术方案\",\n            \"weight\": \"10分\",\n            \"criteria\": \"方案完整得5分，每少一项扣1分；方案内容较为详尽基本满足本项目需求可行性一般得3分，方案内容简单存在不符合项目需求的内容可行性较差得0分\",\n            \"source\...
+2025-09-01 21:07:40,819 - INFO - [LLM调用完成] 返回内容长度: 1168
+2025-09-01 21:07:40,819 - INFO - 技术评分提取响应长度: 1168
+2025-09-01 21:07:40,819 - INFO - 成功解析技术评分信息，包含 5 个评分项
+2025-09-01 21:07:40,821 - INFO - 招标信息已保存到配置文件: tender_config.ini
+2025-09-01 21:07:40,822 - INFO - ======================================================================
+2025-09-01 21:07:40,822 - INFO - 招标信息提取完成!
+2025-09-01 21:07:40,822 - INFO - ======================================================================
+2025-09-01 21:07:40,822 - INFO - 【基本信息】
+2025-09-01 21:07:40,822 - INFO - 项目名称: 某省数字政府一体化平台建设项目
+2025-09-01 21:07:40,822 - INFO - 项目编号: 2025-DG
+2025-09-01 21:07:40,822 - INFO - 招标人: 某省政务服务和数字化建设管理局
+2025-09-01 21:07:40,822 - INFO - 招标代理: 某省政府采购中心
+2025-09-01 21:07:40,822 - INFO - 投标方式: 公开招标
+2025-09-01 21:07:40,822 - INFO - 投标地点: 某省政务服务中心201会议室
+2025-09-01 21:07:40,822 - INFO - 投标时间: 2025年10月15日14:00
+2025-09-01 21:07:40,822 - INFO - 中标人数量: 1名
+2025-09-01 21:07:40,822 - INFO - ----------------------------------------------------------------------
+2025-09-01 21:07:40,822 - INFO - 【资质要求】
+2025-09-01 21:07:40,822 - INFO - 营业执照: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 纳税人资格（增值税纳税人）: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 业绩要求: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 授权要求: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 信用中国: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 承诺函（默认满足）: 需要提供 - 承诺函（默认满足）
+2025-09-01 21:07:40,822 - INFO - 审计报告（财务要求）: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 社保要求: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 劳动合同要求: 不需要提供
+2025-09-01 21:07:40,822 - INFO - 其他要求: 不需要提供
+2025-09-01 21:07:40,822 - INFO - ----------------------------------------------------------------------
+2025-09-01 21:07:40,822 - INFO - 【技术评分信息】
+2025-09-01 21:07:40,822 - INFO - 技术总分: 30分
+2025-09-01 21:07:40,822 - INFO - 评分项数量: 5个
+2025-09-01 21:07:40,822 - INFO - 
+2025-09-01 21:07:40,822 - INFO - 评分项 1:
+2025-09-01 21:07:40,822 - INFO -   名称: 技术方案
+2025-09-01 21:07:40,822 - INFO -   分值: 10分
+2025-09-01 21:07:40,822 - INFO -   标准: 方案完整得5分，每少一项扣1分；方案内容较为详尽基本满足本项目需求可行性一般得3分，方案内容简单存在不符合项目需求的内容可行性较差得0分
+2025-09-01 21:07:40,822 - INFO -   来源: 未提及
+2025-09-01 21:07:40,822 - INFO - 
+2025-09-01 21:07:40,822 - INFO - 评分项 2:
+2025-09-01 21:07:40,822 - INFO -   名称: 实施方案
+2025-09-01 21:07:40,822 - INFO -   分值: 10分
+2025-09-01 21:07:40,822 - INFO -   标准: 方案完整得4分，每少一项扣2分；方案内容较为详尽基本满足本项目需求可行性一般得3分，方案内容简单存在不符合项目需求内容可行性较差得0分
+2025-09-01 21:07:40,822 - INFO -   来源: 未提及
+2025-09-01 21:07:40,822 - INFO - 
+2025-09-01 21:07:40,822 - INFO - 评分项 3:
+2025-09-01 21:07:40,822 - INFO -   名称: 安全性稳定性管理
+2025-09-01 21:07:40,822 - INFO -   分值: 3分
+2025-09-01 21:07:40,822 - INFO -   标准: 具有手机号实名服务所需的完备技术安全措施并能确保数据安全充分满足项目要求可操作性强得2分，基本满足项目要求可操作性一般得1分，存在不满足项目要求的得0分；具备较为完善的基础设施架构及系统完整的信息安全体系可提供稳定的手机实名认证服务得1分， 否则不得分
+2025-09-01 21:07:40,822 - INFO -   来源: 未提及
+2025-09-01 21:07:40,822 - INFO - 
+2025-09-01 21:07:40,822 - INFO - 评分项 4:
+2025-09-01 21:07:40,822 - INFO -   名称: 系统可用性
+2025-09-01 21:07:40,822 - INFO -   分值: 2分
+2025-09-01 21:07:40,822 - INFO -   标准: 可承载批量信息同时交互的并发压力确保提供724小时的服务得2分，否则不得分
+2025-09-01 21:07:40,822 - INFO -   来源: 未提及
+2025-09-01 21:07:40,822 - INFO - 
+2025-09-01 21:07:40,822 - INFO - 评分项 5:
+2025-09-01 21:07:40,822 - INFO -   名称: 异常处理机制
+2025-09-01 21:07:40,822 - INFO -   分值: 5分
+2025-09-01 21:07:40,822 - INFO -   标准: 有完备的异常处理机制及处理方案得5分，机制不完备或方案不详细得3分，无异常处理机制不得分
+2025-09-01 21:07:40,822 - INFO -   来源: 未提及
+2025-09-01 21:07:40,822 - INFO - 
+2025-09-01 21:07:40,822 - INFO - 提取说明: 提取了所有技术评分项，权重总和为30分，符合文档声明的技术分总分。
+2025-09-01 21:07:40,822 - INFO - ======================================================================

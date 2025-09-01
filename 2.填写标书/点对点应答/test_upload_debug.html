@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>招标信息提取调试</title>
+    <style>
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>招标信息提取功能调试</h1>
+    
+    <div class="upload-area" id="tenderUploadArea">
+        <p>点击此处选择文件</p>
+        <input type="file" id="tenderFileInput" accept=".docx,.doc,.txt,.pdf">
+    </div>
+    
+    <div id="fileInfo" style="display: none; margin-top: 20px;">
+        <p>文件名: <span id="fileName"></span></p>
+        <p>文件大小: <span id="fileSize"></span></p>
+    </div>
+    
+    <button id="uploadBtn" disabled>开始提取</button>
+    
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script>
+        console.log('Script started');
+        
+        const uploadArea = document.getElementById('tenderUploadArea');
+        const fileInput = document.getElementById('tenderFileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const result = document.getElementById('result');
+        
+        console.log('Elements:', {uploadArea, fileInput, fileInfo, fileName, fileSize, uploadBtn});
+        
+        // 点击上传区域触发文件选择
+        uploadArea.addEventListener('click', function() {
+            console.log('Upload area clicked');
+            fileInput.click();
+        });
+        
+        // 文件选择变化处理
+        fileInput.addEventListener('change', function(e) {
+            console.log('File input changed');
+            const file = e.target.files[0];
+            console.log('Selected file:', file);
+            
+            if (file) {
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                fileInfo.style.display = 'block';
+                uploadBtn.disabled = false;
+                console.log('File info updated');
+            }
+        });
+        
+        // 上传按钮处理
+        uploadBtn.addEventListener('click', function() {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请先选择文件');
+                return;
+            }
+            
+            console.log('Starting upload...');
+            result.innerHTML = '<p>上传中...</p>';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('api_key', 'sk-test');
+            
+            fetch('/extract-tender-info', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    result.innerHTML = '<h3>提取成功!</h3><pre>' + JSON.stringify(data.tender_info, null, 2) + '</pre>';
+                } else {
+                    result.innerHTML = '<h3 style="color:red">提取失败:</h3><p>' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                result.innerHTML = '<h3 style="color:red">上传失败:</h3><p>' + error.message + '</p>';
+            });
+        });
+        
+        console.log('Event listeners added');
+    </script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+2025-08-30 19:00:32,253 - __main__ - INFO - 标书生成系统初始化完成
+2025-08-30 19:00:32,253 - __main__ - INFO - 开始生成技术方案：招标文件=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx, 产品文档=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 19:00:32,253 - __main__ - INFO - 第一步：解析招标文件
+2025-08-30 19:00:32,253 - parsers.tender_parser - INFO - 开始解析招标文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-08-30 19:00:38,705 - parsers.tender_parser - INFO - 招标文件解析完成，发现 1 个需求项，0 个评分项
+2025-08-30 19:00:38,708 - __main__ - INFO - 招标文件解析完成：1 个需求，0 个评分项
+2025-08-30 19:00:38,708 - __main__ - INFO - 第二步：解析产品文档
+2025-08-30 19:00:38,709 - parsers.product_parser - INFO - 开始解析产品文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 19:00:44,384 - parsers.product_parser - INFO - 产品文档解析完成，发现 1 个功能特性
+2025-08-30 19:00:44,385 - __main__ - INFO - 产品文档解析完成：1 个功能特性
+2025-08-30 19:00:44,385 - __main__ - INFO - 第三步：进行需求功能匹配
+2025-08-30 19:00:44,385 - matchers.exact_matcher - INFO - 开始精确匹配: 1 个需求 vs 1 个功能
+2025-08-30 19:00:45,495 - matchers.exact_matcher - INFO - 精确匹配完成: 生成 1 个匹配结果
+2025-08-30 19:00:45,496 - matchers.semantic_matcher - INFO - 开始语义匹配: 1 个需求 vs 1 个功能
+2025-08-30 19:00:45,516 - matchers.semantic_matcher - INFO - 语义匹配完成: 生成 1 个匹配结果
+2025-08-30 19:00:45,517 - __main__ - INFO - 匹配完成：2 个匹配结果
+2025-08-30 19:00:45,517 - __main__ - INFO - 第四步：生成技术方案大纲
+2025-08-30 19:00:45,517 - generators.outline_generator - INFO - 开始生成技术方案大纲: 0 个评分项
+2025-08-30 19:00:54,471 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 2379
+2025-08-30 19:00:54,475 - generators.outline_generator - INFO - 大纲生成完成: 5 个主要章节
+2025-08-30 19:00:54,475 - __main__ - INFO - 大纲生成完成：5 个章节
+2025-08-30 19:00:54,475 - __main__ - INFO - 第五步：生成技术方案内容
+2025-08-30 19:00:54,475 - generators.content_generator - INFO - 开始生成技术方案内容
+2025-08-30 19:00:54,475 - generators.content_generator - INFO - 生成章节内容: 项目背景与需求分析
+2025-08-30 19:00:54,476 - generators.content_generator - INFO - 生成章节内容: 性能需求
+2025-08-30 19:00:54,476 - generators.content_generator - INFO - 生成章节内容: 技术方案设计
+2025-08-30 19:00:54,477 - generators.content_generator - INFO - 生成章节内容: 实施计划
+2025-08-30 19:00:54,477 - generators.content_generator - INFO - 生成章节内容: 风险管理
+2025-08-30 19:00:54,478 - generators.content_generator - INFO - 技术方案内容生成完成: {'total_sections': 5, 'generated_sections': 10, 'reused_content': 0, 'ai_generated': 0}
+2025-08-30 19:00:54,478 - __main__ - INFO - 第六步：生成匹配度报告
+2025-08-30 19:00:54,478 - __main__ - INFO - 第七步：保存结果文件
+2025-08-30 19:00:54,480 - utils.file_utils - INFO - JSON文件保存成功: output/中邮技术方案_outline.json
+2025-08-30 19:00:54,480 - utils.file_utils - INFO - JSON文件保存成功: output/中邮技术方案_match_report.json
+2025-08-30 19:00:54,481 - utils.file_utils - INFO - JSON文件保存成功: output/中邮技术方案_full_data.json
+2025-08-30 19:00:54,481 - __main__ - INFO - 技术方案生成完成：{'success': True, 'tender_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx', 'product_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx', 'requirements_count': 1, 'features_count': 1, 'matches_count': 2, 'sections_count': 5, 'generation_stats': {'total_sections': 5, 'generated_sections': 10, 'reused_content': 0, 'ai_generated': 0}, 'match_stats': {'matched_requirements': 1, 'unmatched_requirements': 0, 'average_match_score': 0.387656018795174}, 'output_files': {'outline': 'output/中邮技术方案_outline.json', 'proposal': 'output/中邮技术方案_proposal.txt', 'match_report': 'output/中邮技术方案_match_report.json', 'full_data': 'output/中邮技术方案_full_data.json'}}
+2025-08-30 19:01:48,020 - __main__ - INFO - 标书生成系统初始化完成
+2025-08-30 19:01:48,021 - __main__ - INFO - 开始生成技术方案：招标文件=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx, 产品文档=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 19:01:48,021 - __main__ - INFO - 第一步：解析招标文件
+2025-08-30 19:01:48,021 - parsers.tender_parser - INFO - 开始解析招标文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-08-30 19:01:53,995 - parsers.tender_parser - INFO - 招标文件解析完成，发现 1 个需求项，0 个评分项
+2025-08-30 19:01:53,996 - __main__ - INFO - 招标文件解析完成：1 个需求，0 个评分项
+2025-08-30 19:01:53,996 - __main__ - INFO - 第二步：解析产品文档
+2025-08-30 19:01:53,997 - parsers.product_parser - INFO - 开始解析产品文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 19:01:57,696 - parsers.product_parser - INFO - 产品文档解析完成，发现 1 个功能特性
+2025-08-30 19:01:57,696 - __main__ - INFO - 产品文档解析完成：1 个功能特性
+2025-08-30 19:01:57,696 - __main__ - INFO - 第三步：进行需求功能匹配
+2025-08-30 19:01:57,696 - matchers.exact_matcher - INFO - 开始精确匹配: 1 个需求 vs 1 个功能
+2025-08-30 19:01:58,098 - matchers.exact_matcher - INFO - 精确匹配完成: 生成 1 个匹配结果
+2025-08-30 19:01:58,098 - matchers.semantic_matcher - INFO - 开始语义匹配: 1 个需求 vs 1 个功能
+2025-08-30 19:01:58,107 - matchers.semantic_matcher - INFO - 语义匹配完成: 生成 1 个匹配结果
+2025-08-30 19:01:58,107 - __main__ - INFO - 匹配完成：2 个匹配结果
+2025-08-30 19:01:58,108 - __main__ - INFO - 第四步：生成技术方案大纲
+2025-08-30 19:01:58,108 - generators.outline_generator - INFO - 开始生成技术方案大纲: 0 个评分项
+2025-08-30 19:02:11,094 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 2982
+2025-08-30 19:02:11,095 - generators.outline_generator - INFO - 大纲生成完成: 6 个主要章节
+2025-08-30 19:02:11,096 - __main__ - INFO - 大纲生成完成：6 个章节
+2025-08-30 19:02:11,096 - __main__ - INFO - 第五步：生成技术方案内容
+2025-08-30 19:02:11,096 - generators.content_generator - INFO - 开始生成技术方案内容
+2025-08-30 19:02:11,096 - generators.content_generator - INFO - 生成章节内容: 项目概述
+2025-08-30 19:02:30,485 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1292
+2025-08-30 19:02:46,929 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1390
+2025-08-30 19:02:46,931 - generators.content_generator - INFO - 生成章节内容: 需求分析
+2025-08-30 19:02:46,932 - generators.content_generator - INFO - 生成章节内容: 技术方案
+2025-08-30 19:03:02,417 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1387
+2025-08-30 19:03:16,642 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1345
+2025-08-30 19:03:32,051 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1405
+2025-08-30 19:03:32,054 - generators.content_generator - INFO - 生成章节内容: 实施计划
+2025-08-30 19:03:32,055 - generators.content_generator - INFO - 生成章节内容: 风险管理
+2025-08-30 19:03:32,056 - generators.content_generator - INFO - 生成章节内容: 总结与展望
+2025-08-30 19:03:32,057 - generators.content_generator - INFO - 技术方案内容生成完成: {'total_sections': 6, 'generated_sections': 13, 'reused_content': 0, 'ai_generated': 5}
+2025-08-30 19:03:32,057 - __main__ - INFO - 第六步：生成匹配度报告
+2025-08-30 19:03:32,057 - __main__ - INFO - 第七步：保存结果文件
+2025-08-30 19:03:32,059 - utils.file_utils - INFO - JSON文件保存成功: output/proposal_outline.json
+2025-08-30 19:03:32,060 - utils.file_utils - INFO - JSON文件保存成功: output/proposal_match_report.json
+2025-08-30 19:03:32,062 - utils.file_utils - INFO - JSON文件保存成功: output/proposal_full_data.json
+2025-08-30 19:03:32,062 - __main__ - INFO - 技术方案生成完成：{'success': True, 'tender_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx', 'product_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx', 'requirements_count': 1, 'features_count': 1, 'matches_count': 2, 'sections_count': 6, 'generation_stats': {'total_sections': 6, 'generated_sections': 13, 'reused_content': 0, 'ai_generated': 5}, 'match_stats': {'matched_requirements': 1, 'unmatched_requirements': 0, 'average_match_score': 0.387656018795174}, 'output_files': {'outline': 'output/proposal_outline.json', 'proposal': 'output/proposal_proposal.txt', 'match_report': 'output/proposal_match_report.json', 'full_data': 'output/proposal_full_data.json'}}
+2025-08-30 19:09:18,145 - __main__ - INFO - 标书生成系统初始化完成
+2025-08-30 19:09:18,146 - __main__ - INFO - 开始生成技术方案：招标文件=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx, 产品文档=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 19:09:18,146 - __main__ - INFO - 第一步：解析招标文件
+2025-08-30 19:09:18,146 - parsers.tender_parser - INFO - 开始解析招标文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-08-30 19:09:23,812 - parsers.tender_parser - INFO - 招标文件解析完成，发现 1 个需求项，0 个评分项
+2025-08-30 19:09:23,813 - __main__ - INFO - 招标文件解析完成：1 个需求，0 个评分项
+2025-08-30 19:09:23,813 - __main__ - INFO - 第二步：解析产品文档
+2025-08-30 19:09:23,813 - parsers.product_parser - INFO - 开始解析产品文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 19:09:27,459 - parsers.product_parser - INFO - 产品文档解析完成，发现 1 个功能特性
+2025-08-30 19:09:27,460 - __main__ - INFO - 产品文档解析完成：1 个功能特性
+2025-08-30 19:09:27,460 - __main__ - INFO - 第三步：进行需求功能匹配
+2025-08-30 19:09:27,460 - matchers.exact_matcher - INFO - 开始精确匹配: 1 个需求 vs 1 个功能
+2025-08-30 19:09:27,865 - matchers.exact_matcher - INFO - 精确匹配完成: 生成 1 个匹配结果
+2025-08-30 19:09:27,865 - matchers.semantic_matcher - INFO - 开始语义匹配: 1 个需求 vs 1 个功能
+2025-08-30 19:09:27,873 - matchers.semantic_matcher - INFO - 语义匹配完成: 生成 1 个匹配结果
+2025-08-30 19:09:27,874 - __main__ - INFO - 匹配完成：2 个匹配结果
+2025-08-30 19:09:27,874 - __main__ - INFO - 第四步：生成技术方案大纲
+2025-08-30 19:09:27,874 - generators.outline_generator - INFO - 开始生成技术方案大纲: 0 个评分项
+2025-08-30 19:09:36,326 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 2840
+2025-08-30 19:09:36,328 - generators.outline_generator - INFO - 大纲生成完成: 6 个主要章节
+2025-08-30 19:09:36,328 - __main__ - INFO - 大纲生成完成：6 个章节
+2025-08-30 19:09:36,328 - __main__ - INFO - 第五步：生成技术方案内容
+2025-08-30 19:09:36,328 - generators.content_generator - INFO - 开始生成技术方案内容
+2025-08-30 19:09:36,328 - generators.content_generator - INFO - 生成章节内容: 项目背景与需求分析
+2025-08-30 19:09:36,329 - generators.content_generator - INFO - 生成章节内容: 技术方案设计
+2025-08-30 19:09:36,329 - generators.content_generator - INFO - 生成章节内容: 性能需求分析
+2025-08-30 19:09:36,330 - generators.content_generator - INFO - 生成章节内容: 安全性设计
+2025-08-30 19:09:36,330 - generators.content_generator - INFO - 生成章节内容: 实施计划
+2025-08-30 19:09:36,331 - generators.content_generator - INFO - 生成章节内容: 售后服务与支持
+2025-08-30 19:09:36,331 - generators.content_generator - INFO - 技术方案内容生成完成: {'total_sections': 6, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 0}
+2025-08-30 19:09:36,331 - __main__ - INFO - 第六步：生成匹配度报告
+2025-08-30 19:09:36,331 - __main__ - INFO - 第七步：保存结果文件
+2025-08-30 19:09:36,333 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json
+2025-08-30 19:09:36,333 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json
+2025-08-30 19:09:36,334 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json
+2025-08-30 19:09:36,334 - __main__ - INFO - 技术方案生成完成：{'success': True, 'tender_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx', 'product_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx', 'requirements_count': 1, 'features_count': 1, 'matches_count': 2, 'sections_count': 6, 'generation_stats': {'total_sections': 6, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 0}, 'match_stats': {'matched_requirements': 1, 'unmatched_requirements': 0, 'average_match_score': 0.387656018795174}, 'output_files': {'outline': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json', 'proposal': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_proposal.txt', 'match_report': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json', 'full_data': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json'}}
+2025-08-30 21:21:28,369 - __main__ - INFO - 标书生成系统初始化完成
+2025-08-30 21:21:28,369 - __main__ - INFO - 开始生成技术方案：招标文件=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx, 产品文档=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 21:21:28,369 - __main__ - INFO - 第一步：解析招标文件
+2025-08-30 21:21:28,369 - parsers.tender_parser - INFO - 开始解析招标文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-08-30 21:21:36,043 - parsers.tender_parser - INFO - 招标文件解析完成，发现 1 个需求项，32 个评分项
+2025-08-30 21:21:36,044 - __main__ - INFO - 招标文件解析完成：1 个需求，32 个评分项
+2025-08-30 21:21:36,044 - __main__ - INFO - 第二步：解析产品文档
+2025-08-30 21:21:36,044 - parsers.product_parser - INFO - 开始解析产品文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 21:21:38,410 - parsers.product_parser - INFO - 产品文档解析完成，发现 1 个功能特性
+2025-08-30 21:21:38,410 - __main__ - INFO - 产品文档解析完成：1 个功能特性
+2025-08-30 21:21:38,410 - __main__ - INFO - 第三步：进行需求功能匹配
+2025-08-30 21:21:38,410 - matchers.exact_matcher - INFO - 开始精确匹配: 1 个需求 vs 1 个功能
+2025-08-30 21:21:38,854 - matchers.exact_matcher - INFO - 精确匹配完成: 生成 1 个匹配结果
+2025-08-30 21:21:38,854 - matchers.semantic_matcher - INFO - 开始语义匹配: 1 个需求 vs 1 个功能
+2025-08-30 21:21:38,865 - matchers.semantic_matcher - INFO - 语义匹配完成: 生成 1 个匹配结果
+2025-08-30 21:21:38,865 - __main__ - INFO - 匹配完成：2 个匹配结果
+2025-08-30 21:21:38,866 - __main__ - INFO - 第四步：生成技术方案大纲
+2025-08-30 21:21:38,866 - generators.outline_generator - INFO - 开始生成技术方案大纲: 32 个评分项
+2025-08-30 21:21:55,853 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 4844
+2025-08-30 21:21:55,855 - generators.outline_generator - WARNING - 大纲章节数量过多，保留前10个
+2025-08-30 21:21:55,855 - generators.outline_generator - INFO - 大纲生成完成: 10 个主要章节
+2025-08-30 21:21:55,855 - __main__ - INFO - 大纲生成完成：10 个章节
+2025-08-30 21:21:55,855 - __main__ - INFO - 第五步：生成技术方案内容
+2025-08-30 21:21:55,856 - generators.content_generator - INFO - 开始生成技术方案内容
+2025-08-30 21:21:55,856 - generators.content_generator - INFO - 生成章节内容: 公司概况
+2025-08-30 21:22:14,913 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1387
+2025-08-30 21:22:14,914 - generators.content_generator - INFO - 生成章节内容: 企业认证
+2025-08-30 21:22:30,228 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1540
+2025-08-30 21:22:30,229 - generators.content_generator - INFO - 生成章节内容: 成立时间
+2025-08-30 21:22:47,983 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1714
+2025-08-30 21:22:47,985 - generators.content_generator - INFO - 生成章节内容: 处理能力
+2025-08-30 21:23:02,825 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1363
+2025-08-30 21:23:02,827 - generators.content_generator - INFO - 生成章节内容: 项目经验
+2025-08-30 21:23:17,927 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1315
+2025-08-30 21:23:17,930 - generators.content_generator - INFO - 生成章节内容: 商务文件响应及偏离情况
+2025-08-30 21:23:38,542 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1687
+2025-08-30 21:23:38,543 - generators.content_generator - INFO - 生成章节内容: 技术方案
+2025-08-30 21:23:53,530 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1585
+2025-08-30 21:24:12,684 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1521
+2025-08-30 21:24:12,686 - generators.content_generator - INFO - 生成章节内容: 实施方案
+2025-08-30 21:24:28,309 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1465
+2025-08-30 21:24:44,416 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1660
+2025-08-30 21:24:44,417 - generators.content_generator - INFO - 生成章节内容: 安全性与稳定性管理
+2025-08-30 21:24:44,418 - generators.content_generator - INFO - 生成章节内容: 系统可用性
+2025-08-30 21:25:00,340 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1631
+2025-08-30 21:25:00,346 - generators.content_generator - INFO - 技术方案内容生成完成: {'total_sections': 10, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 11}
+2025-08-30 21:25:00,347 - __main__ - INFO - 第六步：生成匹配度报告
+2025-08-30 21:25:00,347 - __main__ - INFO - 第七步：保存结果文件
+2025-08-30 21:25:00,353 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json
+2025-08-30 21:25:00,355 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json
+2025-08-30 21:25:00,356 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json
+2025-08-30 21:25:00,356 - __main__ - INFO - 技术方案生成完成：{'success': True, 'tender_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx', 'product_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx', 'requirements_count': 1, 'features_count': 1, 'matches_count': 2, 'sections_count': 10, 'generation_stats': {'total_sections': 10, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 11}, 'match_stats': {'matched_requirements': 1, 'unmatched_requirements': 0, 'average_match_score': 0.2998638320085406}, 'output_files': {'outline': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json', 'proposal': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_proposal.txt', 'match_report': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json', 'full_data': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json'}}
+2025-08-30 22:26:39,151 - __main__ - INFO - 标书生成系统初始化完成
+2025-08-30 22:26:39,152 - __main__ - INFO - 开始生成技术方案：招标文件=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx, 产品文档=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 22:26:39,152 - __main__ - INFO - 第一步：解析招标文件
+2025-08-30 22:26:39,152 - parsers.tender_parser - INFO - 开始解析招标文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-08-30 22:26:49,740 - parsers.tender_parser - INFO - 招标文件解析完成，发现 1 个需求项，32 个评分项
+2025-08-30 22:26:49,741 - __main__ - INFO - 招标文件解析完成：1 个需求，32 个评分项
+2025-08-30 22:26:49,741 - __main__ - INFO - 第二步：解析产品文档
+2025-08-30 22:26:49,741 - parsers.product_parser - INFO - 开始解析产品文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 22:26:53,108 - parsers.product_parser - INFO - 产品文档解析完成，发现 1 个功能特性
+2025-08-30 22:26:53,108 - __main__ - INFO - 产品文档解析完成：1 个功能特性
+2025-08-30 22:26:53,108 - __main__ - INFO - 第三步：进行需求功能匹配
+2025-08-30 22:26:53,108 - matchers.exact_matcher - INFO - 开始精确匹配: 1 个需求 vs 1 个功能
+2025-08-30 22:26:53,700 - matchers.exact_matcher - INFO - 精确匹配完成: 生成 1 个匹配结果
+2025-08-30 22:26:53,700 - matchers.semantic_matcher - INFO - 开始语义匹配: 1 个需求 vs 1 个功能
+2025-08-30 22:26:53,711 - matchers.semantic_matcher - INFO - 语义匹配完成: 生成 1 个匹配结果
+2025-08-30 22:26:53,711 - __main__ - INFO - 匹配完成：2 个匹配结果
+2025-08-30 22:26:53,711 - __main__ - INFO - 第四步：生成技术方案大纲
+2025-08-30 22:26:53,711 - generators.outline_generator - INFO - 开始生成技术方案大纲: 32 个评分项
+2025-08-30 22:27:07,233 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 3437
+2025-08-30 22:27:07,236 - generators.outline_generator - INFO - 大纲生成完成: 8 个主要章节
+2025-08-30 22:27:07,236 - __main__ - INFO - 大纲生成完成：8 个章节
+2025-08-30 22:27:07,236 - __main__ - INFO - 第五步：生成技术方案内容
+2025-08-30 22:27:07,236 - generators.content_generator - INFO - 开始生成技术方案内容
+2025-08-30 22:27:07,236 - generators.content_generator - INFO - 生成章节内容: 公司概况
+2025-08-30 22:27:25,901 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1619
+2025-08-30 22:27:25,903 - generators.content_generator - INFO - 生成章节内容: 商务部分
+2025-08-30 22:27:40,348 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1427
+2025-08-30 22:27:56,707 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1682
+2025-08-30 22:28:13,698 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1612
+2025-08-30 22:28:31,610 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1432
+2025-08-30 22:28:48,157 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1359
+2025-08-30 22:28:48,159 - generators.content_generator - INFO - 生成章节内容: 技术方案
+2025-08-30 22:29:01,753 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1313
+2025-08-30 22:29:01,755 - generators.content_generator - INFO - 生成章节内容: 实施方案
+2025-08-30 22:29:17,866 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1539
+2025-08-30 22:29:17,868 - generators.content_generator - INFO - 生成章节内容: 安全性与稳定性管理
+2025-08-30 22:29:17,870 - generators.content_generator - INFO - 生成章节内容: 系统可用性
+2025-08-30 22:29:33,329 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1441
+2025-08-30 22:29:33,331 - generators.content_generator - INFO - 生成章节内容: 异常处理机制
+2025-08-30 22:29:50,901 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1649
+2025-08-30 22:29:50,902 - generators.content_generator - INFO - 生成章节内容: 报价部分
+2025-08-30 22:29:50,905 - generators.content_generator - INFO - 技术方案内容生成完成: {'total_sections': 8, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 10}
+2025-08-30 22:29:50,905 - __main__ - INFO - 第六步：生成匹配度报告
+2025-08-30 22:29:50,905 - __main__ - INFO - 第七步：保存结果文件
+2025-08-30 22:29:50,910 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json
+2025-08-30 22:29:50,912 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json
+2025-08-30 22:29:50,913 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json
+2025-08-30 22:29:50,913 - __main__ - INFO - 技术方案生成完成：{'success': True, 'tender_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx', 'product_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx', 'requirements_count': 1, 'features_count': 1, 'matches_count': 2, 'sections_count': 8, 'generation_stats': {'total_sections': 8, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 10}, 'match_stats': {'matched_requirements': 1, 'unmatched_requirements': 0, 'average_match_score': 0.29986383200854055}, 'output_files': {'outline': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json', 'proposal': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_proposal.txt', 'match_report': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json', 'full_data': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json'}}
+2025-08-30 22:35:44,664 - __main__ - INFO - 标书生成系统初始化完成
+2025-08-30 22:35:44,665 - __main__ - INFO - 开始生成技术方案：招标文件=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx, 产品文档=/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 22:35:44,665 - __main__ - INFO - 第一步：解析招标文件
+2025-08-30 22:35:44,665 - parsers.tender_parser - INFO - 开始解析招标文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx
+2025-08-30 22:35:55,255 - parsers.tender_parser - INFO - 招标文件解析完成，发现 1 个需求项，32 个评分项
+2025-08-30 22:35:55,256 - __main__ - INFO - 招标文件解析完成：1 个需求，32 个评分项
+2025-08-30 22:35:55,256 - __main__ - INFO - 第二步：解析产品文档
+2025-08-30 22:35:55,256 - parsers.product_parser - INFO - 开始解析产品文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx
+2025-08-30 22:35:58,599 - parsers.product_parser - INFO - 产品文档解析完成，发现 1 个功能特性
+2025-08-30 22:35:58,600 - __main__ - INFO - 产品文档解析完成：1 个功能特性
+2025-08-30 22:35:58,600 - __main__ - INFO - 第三步：进行需求功能匹配
+2025-08-30 22:35:58,600 - matchers.exact_matcher - INFO - 开始精确匹配: 1 个需求 vs 1 个功能
+2025-08-30 22:35:59,203 - matchers.exact_matcher - INFO - 精确匹配完成: 生成 1 个匹配结果
+2025-08-30 22:35:59,203 - matchers.semantic_matcher - INFO - 开始语义匹配: 1 个需求 vs 1 个功能
+2025-08-30 22:35:59,213 - matchers.semantic_matcher - INFO - 语义匹配完成: 生成 1 个匹配结果
+2025-08-30 22:35:59,214 - __main__ - INFO - 匹配完成：2 个匹配结果
+2025-08-30 22:35:59,214 - __main__ - INFO - 第四步：生成技术方案大纲
+2025-08-30 22:35:59,214 - generators.outline_generator - INFO - 开始生成技术方案大纲: 32 个评分项
+2025-08-30 22:36:22,351 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 2932
+2025-08-30 22:36:22,353 - generators.outline_generator - INFO - 大纲生成完成: 4 个主要章节
+2025-08-30 22:36:22,353 - __main__ - INFO - 大纲生成完成：4 个章节
+2025-08-30 22:36:22,353 - __main__ - INFO - 第五步：生成技术方案内容
+2025-08-30 22:36:22,353 - generators.content_generator - INFO - 开始生成技术方案内容
+2025-08-30 22:36:22,353 - generators.content_generator - INFO - 生成章节内容: 公司概况
+2025-08-30 22:36:44,010 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1532
+2025-08-30 22:36:44,011 - generators.content_generator - INFO - 生成章节内容: 商务部分
+2025-08-30 22:37:06,919 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1490
+2025-08-30 22:37:26,249 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1438
+2025-08-30 22:37:42,834 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1370
+2025-08-30 22:38:02,494 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1582
+2025-08-30 22:38:22,383 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1510
+2025-08-30 22:38:22,385 - generators.content_generator - INFO - 生成章节内容: 技术方案
+2025-08-30 22:38:42,762 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1364
+2025-08-30 22:39:01,344 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1431
+2025-08-30 22:39:22,500 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1502
+2025-08-30 22:39:42,239 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1295
+2025-08-30 22:40:05,273 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1477
+2025-08-30 22:40:05,275 - generators.content_generator - INFO - 生成章节内容: 价格部分
+2025-08-30 22:40:24,760 - utils.llm_client - INFO - LLM API调用成功，返回内容长度: 1489
+2025-08-30 22:40:24,762 - generators.content_generator - INFO - 技术方案内容生成完成: {'total_sections': 4, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 12}
+2025-08-30 22:40:24,762 - __main__ - INFO - 第六步：生成匹配度报告
+2025-08-30 22:40:24,762 - __main__ - INFO - 第七步：保存结果文件
+2025-08-30 22:40:24,765 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json
+2025-08-30 22:40:24,765 - generators.word_generator - INFO - 开始生成Word文档: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_proposal.docx
+2025-08-30 22:40:24,884 - generators.word_generator - INFO - 添加了 4 个章节
+2025-08-30 22:40:24,901 - generators.word_generator - INFO - Word文档生成完成: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_proposal.docx
+2025-08-30 22:40:24,902 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json
+2025-08-30 22:40:24,903 - utils.file_utils - INFO - JSON文件保存成功: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json
+2025-08-30 22:40:24,903 - __main__ - INFO - 技术方案生成完成：{'success': True, 'tender_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/中邮保险手机号实名认证服务采购项目竞争性磋商采购文件(1).docx', 'product_file': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2022/售前项目/2.投标项目/资料收集/产品技术方案/服务方案.docx', 'requirements_count': 1, 'features_count': 1, 'matches_count': 2, 'sections_count': 4, 'generation_stats': {'total_sections': 4, 'generated_sections': 12, 'reused_content': 0, 'ai_generated': 12}, 'match_stats': {'matched_requirements': 1, 'unmatched_requirements': 0, 'average_match_score': 0.29986383200854066}, 'output_files': {'outline': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_outline.json', 'proposal': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_proposal.docx', 'match_report': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_match_report.json', 'full_data': '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/项目/中邮保险/_full_data.json'}}
