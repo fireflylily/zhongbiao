@@ -686,6 +686,181 @@ def list_tech_files():
         logger.error(f"列出技术方案文件失败: {e}")
         return jsonify({'error': f'获取文件列表失败: {str(e)}'}), 500
 
+@app.route('/api/companies')
+def list_companies():
+    """获取所有公司配置"""
+    try:
+        companies = []
+        company_configs_dir = 'company_configs'
+        
+        if os.path.exists(company_configs_dir):
+            for filename in os.listdir(company_configs_dir):
+                if filename.endswith('.json'):
+                    file_path = os.path.join(company_configs_dir, filename)
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            company_data = json.load(f)
+                            companies.append({
+                                'id': company_data.get('id', filename.replace('.json', '')),
+                                'companyName': company_data.get('companyName', '未命名公司'),
+                                'created_at': company_data.get('created_at', ''),
+                                'updated_at': company_data.get('updated_at', '')
+                            })
+                    except Exception as e:
+                        logger.warning(f"读取公司配置文件失败 {filename}: {e}")
+        
+        companies.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+        return jsonify({'success': True, 'companies': companies})
+        
+    except Exception as e:
+        logger.error(f"获取公司列表失败: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/companies/<company_id>')
+def get_company(company_id):
+    """获取指定公司的详细信息"""
+    try:
+        company_file = os.path.join('company_configs', f'{company_id}.json')
+        
+        if not os.path.exists(company_file):
+            return jsonify({'error': '公司不存在'}), 404
+            
+        with open(company_file, 'r', encoding='utf-8') as f:
+            company_data = json.load(f)
+            
+        return jsonify(company_data)
+        
+    except Exception as e:
+        logger.error(f"获取公司信息失败: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/project-config')
+def get_project_config():
+    """获取项目配置信息"""
+    try:
+        import configparser
+        
+        config_file = 'tender_config.ini'
+        if not os.path.exists(config_file):
+            return jsonify({'success': False, 'error': '项目配置文件不存在'})
+            
+        config = configparser.ConfigParser()
+        config.read(config_file, encoding='utf-8')
+        
+        # 提取项目信息
+        project_info = {}
+        if config.has_section('PROJECT_INFO'):
+            project_info = {
+                'projectName': config.get('PROJECT_INFO', 'project_name', fallback=''),
+                'projectNumber': config.get('PROJECT_INFO', 'project_number', fallback=''),
+                'tenderer': config.get('PROJECT_INFO', 'tenderer', fallback=''),
+                'biddingMethod': config.get('PROJECT_INFO', 'bidding_method', fallback=''),
+                'extractionTime': config.get('PROJECT_INFO', 'extraction_time', fallback='')
+            }
+        
+        # 生成当前日期
+        current_date = datetime.now().strftime('%Y年 %m月 %d日')
+        project_info['currentDate'] = current_date
+        
+        return jsonify({
+            'success': True, 
+            'project_info': project_info
+        })
+        
+    except Exception as e:
+        logger.error(f"获取项目配置失败: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/process-business-response', methods=['POST'])
+def process_business_response():
+    """处理商务应答请求"""
+    try:
+        logger.info("开始处理商务应答请求")
+        
+        # 检查上传的文件
+        if 'template_file' not in request.files:
+            return jsonify({'error': '未上传模板文件'}), 400
+            
+        file = request.files['template_file']
+        if file.filename == '':
+            return jsonify({'error': '未选择文件'}), 400
+            
+        # 获取表单数据
+        company_id = request.form.get('company_id')
+        project_name = request.form.get('project_name', '')
+        tender_no = request.form.get('tender_no', '')
+        date_text = request.form.get('date_text', '')
+        
+        if not company_id:
+            return jsonify({'error': '请选择公司'}), 400
+            
+        # 加载公司信息
+        company_file = os.path.join('company_configs', f'{company_id}.json')
+        if not os.path.exists(company_file):
+            return jsonify({'error': '公司配置不存在'}), 404
+            
+        with open(company_file, 'r', encoding='utf-8') as f:
+            company_info = json.load(f)
+            
+        # 保存上传的文件
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = secure_filename(file.filename)
+        upload_filename = f"{timestamp}_business_template_{filename}"
+        upload_path = os.path.join('uploads', upload_filename)
+        
+        os.makedirs('uploads', exist_ok=True)
+        file.save(upload_path)
+        logger.info(f"商务应答模板上传完成: {upload_path}")
+        
+        # 准备输出文件名
+        base_name = filename.rsplit('.', 1)[0]
+        output_filename = f"{base_name}-商务应答-{timestamp}.docx"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+        
+        # 初始化商务应答处理器
+        try:
+            from business_response_processor import BusinessResponseProcessor
+            processor = BusinessResponseProcessor()
+            logger.info("初始化商务应答处理器 (传统模式)")
+        except ImportError as e:
+            logger.error(f"商务应答处理器加载失败: {e}")
+            return jsonify({'error': '商务应答处理器不可用'}), 500
+        
+        # 处理商务应答
+        result = processor.process_business_response(
+            input_file=upload_path,
+            output_file=output_path,
+            company_info=company_info,
+            project_info={
+                'projectName': project_name,
+                'tenderNo': tender_no,
+                'date': date_text
+            }
+        )
+        
+        # 清理临时文件
+        try:
+            os.remove(upload_path)
+            logger.info(f"清理临时文件: {upload_path}")
+        except:
+            pass
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'output_file': output_filename,
+                'download_url': f'/download/{output_filename}',
+                'stats': result.get('stats', {}),
+                'message': '商务应答文档处理完成'
+            })
+        else:
+            return jsonify({'error': result.get('error', '处理失败')}), 500
+            
+    except Exception as e:
+        logger.error(f"商务应答处理失败: {e}", exc_info=True)
+        return jsonify({'error': f'处理失败: {str(e)}'}), 500
+
 def find_available_port(start_port=8080):
     """找到可用端口"""
     import socket
