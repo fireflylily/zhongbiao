@@ -790,6 +790,7 @@ def process_business_response():
         project_name = request.form.get('project_name', '')
         tender_no = request.form.get('tender_no', '')
         date_text = request.form.get('date_text', '')
+        use_mcp = request.form.get('use_mcp', 'false').lower() == 'true'
         
         if not company_id:
             return jsonify({'error': '请选择公司'}), 400
@@ -818,26 +819,59 @@ def process_business_response():
         output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
         os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
         
-        # 初始化商务应答处理器
-        try:
-            from business_response_processor import BusinessResponseProcessor
-            processor = BusinessResponseProcessor()
-            logger.info("初始化商务应答处理器 (传统模式)")
-        except ImportError as e:
-            logger.error(f"商务应答处理器加载失败: {e}")
-            return jsonify({'error': '商务应答处理器不可用'}), 500
-        
-        # 处理商务应答
-        result = processor.process_business_response(
-            input_file=upload_path,
-            output_file=output_path,
-            company_info=company_info,
-            project_info={
-                'projectName': project_name,
-                'tenderNo': tender_no,
-                'date': date_text
-            }
-        )
+        # 根据用户选择初始化处理器
+        if use_mcp:
+            # 使用MCP模式：只处理投标人名称，不处理其他内容
+            try:
+                # 首先尝试使用增强版处理器（带占位符清理修复）
+                try:
+                    from mcp_bidder_name_processor_enhanced import MCPBidderNameProcessor
+                    processor = MCPBidderNameProcessor()
+                    logger.info("初始化增强版MCP投标人名称处理器（含占位符清理修复）")
+                    
+                    # 只处理投标人名称填写
+                    result = processor.process_bidder_name(
+                        input_file=upload_path,
+                        output_file=output_path,
+                        company_name=company_info.get('companyName', '')
+                    )
+                except ImportError:
+                    # 如果增强版不可用，回退到原版
+                    from mcp_bidder_name_processor import MCPBidderNameProcessor
+                    processor = MCPBidderNameProcessor()
+                    logger.info("初始化原版MCP投标人名称处理器")
+                    
+                    # 只处理投标人名称填写
+                    result = processor.process_bidder_name(
+                        input_file=upload_path,
+                        output_file=output_path,
+                        company_name=company_info.get('companyName', '')
+                    )
+                
+            except ImportError as e:
+                logger.error(f"MCP处理器加载失败: {e}")
+                return jsonify({'error': 'MCP处理器不可用'}), 500
+        else:
+            # 使用传统模式：处理所有内容
+            try:
+                from business_response_processor import BusinessResponseProcessor
+                processor = BusinessResponseProcessor()
+                logger.info("初始化商务应答处理器 (传统模式)")
+                
+                # 处理完整的商务应答
+                result = processor.process_business_response(
+                    input_file=upload_path,
+                    output_file=output_path,
+                    company_info=company_info,
+                    project_info={
+                        'projectName': project_name,
+                        'tenderNo': tender_no,
+                        'date': date_text
+                    }
+                )
+            except ImportError as e:
+                logger.error(f"传统处理器加载失败: {e}")
+                return jsonify({'error': '传统处理器不可用'}), 500
         
         # 清理临时文件
         try:

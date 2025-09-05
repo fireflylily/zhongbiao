@@ -45,7 +45,7 @@ class BusinessResponseProcessor:
         if not DOCX_AVAILABLE:
             raise ImportError("请安装python-docx库：pip install python-docx")
         
-        # 投标人名称匹配规则 - 更新以支持10种指定格式
+        # 投标人名称匹配规则 - 增强版，解决跨run拆分和重复填写问题
         self.bidder_patterns = [
             # === 括号格式（最高优先级）===
             # 格式11: "（请填写供应商名称）" - 提示性括号内容替换
@@ -67,6 +67,15 @@ class BusinessResponseProcessor:
             # 格式6: "公司名称（全称、盖章）：________________" - 横线上填写
             re.compile(r'^(?P<label>公司名称（全称、盖章）)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})\s*$'),
             
+            # 格式6-2: "公司名称（全称、盖章）：" - 冒号后填写（无占位符）
+            re.compile(r'^(?P<label>公司名称（全称、盖章）)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
+            
+            # 格式6-3: "公司名称（全称、盖章）" - 无冒号格式（增强识别）
+            re.compile(r'^(?P<label>公司名称（全称、盖章）)\s*(?P<sep>)\s*(?P<placeholder>)\s*$'),
+            
+            # 格式6-4: 灵活匹配"公司名称"+"全称"+"盖章"的任意组合
+            re.compile(r'^(?P<label>公司名称[^:：]*全称[^:：]*盖章[^:：]*)\s*(?P<sep>[:：]?)\s*(?P<placeholder>.*?)\s*$'),
+            
             # 格式7: "公司名称（盖章）：" - 冒号后填写
             re.compile(r'^(?P<label>公司名称（盖章）)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
             
@@ -85,12 +94,25 @@ class BusinessResponseProcessor:
             # 格式2: "供应商名称：___________________" - 横线上填写
             re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})\s*$'),
             
+            # === 跨run拆分格式增强（解决供应商名称：被拆分的问题）===
+            # 增强格式A: "供应商名称："精确匹配（解决跨run问题）
+            re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
+            
+            # 增强格式B: "投标人名称："精确匹配
+            re.compile(r'^(?P<label>投标人名称)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
+            
+            # 增强格式C: "公司名称："精确匹配  
+            re.compile(r'^(?P<label>公司名称)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
+            
+            # 增强格式D: 灵活匹配含"供应商"和"名称"的任何组合
+            re.compile(r'^(?P<label>[^:：]*供应商[^:：]*名称[^:：]*)\s*(?P<sep>[:：])\s*(?P<placeholder>.*?)\s*$'),
+            
+            # 增强格式E: 灵活匹配含"投标人"和"名称"的任何组合
+            re.compile(r'^(?P<label>[^:：]*投标人[^:：]*名称[^:：]*)\s*(?P<sep>[:：])\s*(?P<placeholder>.*?)\s*$'),
+            
             # === 通用格式（最低优先级）===
             # 投标人名称相关
             re.compile(r'^(?P<label>投标人名称(?:（公章）|\(公章\))?)\s*(?P<sep>[:：]?)\s*(?P<placeholder>[_\-\u2014\s\u3000]*|＿*|——*)\s*$'),
-            
-            # 格式8: "供应商名称：" - 冒号后填写（最通用，放在最后）
-            re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
         ]
         
         # 项目信息匹配规则
@@ -203,7 +225,7 @@ class BusinessResponseProcessor:
         
         logger.info(f"检测到分行格式 - 第{current_index+1}行: '{current_text}', 第{next_index+1}行: '{next_text}'")
         
-        # 处理分行格式
+        # 处理分行格式 - 保持分行显示
         label = match_groups.get('label', '')
         sep = match_groups.get('sep', ':')
         
@@ -213,36 +235,59 @@ class BusinessResponseProcessor:
         else:
             seal_text = '（公章）' if '（公章）' in next_text else '(公章)'
         
-        # 构建新的标签
-        new_label = f"{label}{seal_text}"
+        # 确保分隔符正确
         if not sep:
             sep = ':'
         if sep and not sep.endswith(' '):
             sep += ' ' if sep in [':', '：'] else ''
         
-        # 修改当前段落
-        # 清空所有runs
+        # 修改当前段落 - 保持原有标签格式，添加公司名称
+        # 找到最佳源run用于复制格式
+        source_run = self._find_best_source_run(current_para)
+        
+        # 清空当前段落内容
         for run in current_para.runs:
             run.text = ""
         
-        # 添加新的标签
-        label_run = current_para.runs[0] if current_para.runs else current_para.add_run("")
-        label_run.text = f"{new_label}{sep}"
+        # 重建第一行内容：保持原标签格式，添加公司名称
+        if current_para.runs:
+            label_run = current_para.runs[0]
+        else:
+            label_run = current_para.add_run("")
+            
+        label_run.text = f"{label}{sep}"
         
-        # 添加公司名称（带下划线）
+        # 复制原标签的字体格式到标签run
+        if source_run:
+            self._copy_font_format(source_run, label_run)
+        
+        # 添加公司名称，保持相同字体样式但加下划线
         company_run = current_para.add_run(company_name)
         company_run.underline = True
         
-        # 使用最佳源run复制字体格式
-        source_run = self._find_best_source_run(current_para)
+        # 复制源run的字体格式到公司名称run
         if source_run:
             self._copy_font_format(source_run, company_run)
         
-        # 清空下一个段落（移除印章行）
+        # 修改下一个段落 - 保持印章在第二行
+        # 找到下一个段落的最佳源run用于复制格式
+        seal_source_run = self._find_best_source_run(next_para)
+        
         for run in next_para.runs:
             run.text = ""
         
-        logger.info(f"分行格式处理完成: '{new_label}{sep}{company_name}'")
+        # 重建印章行
+        if next_para.runs:
+            seal_run = next_para.runs[0]
+        else:
+            seal_run = next_para.add_run("")
+        seal_run.text = seal_text
+        
+        # 复制原印章行的字体格式
+        if seal_source_run:
+            self._copy_font_format(seal_source_run, seal_run)
+        
+        logger.info(f"分行格式处理完成: 第一行: '{label}{sep}{company_name}', 第二行: '{seal_text}'")
         
         # 标记两个段落都已处理
         processed_indices.add(current_index)
@@ -673,19 +718,55 @@ class BusinessResponseProcessor:
             full_text = ''.join(run.text for run in paragraph.runs)
             if not full_text.strip():
                 return False
+            
+            # 记录原始run结构用于调试
+            logger.debug(f"段落 #{current_index+1 if current_index is not None else '?'}: 完整文本='{full_text}', run数量={len(paragraph.runs)}")
+            for i, run in enumerate(paragraph.runs):
+                logger.debug(f"  Run {i+1}: '{run.text}' (长度: {len(run.text)})")
+            
+            # 特殊处理：检测跨run拆分的标签
+            if len(paragraph.runs) > 1:
+                # 检查是否存在标签被拆分的情况
+                potential_labels = ['供应商名称', '投标人名称', '公司名称', '公司名称（全称、盖章）', '公司名称（盖章）']
+                for label in potential_labels:
+                    if label in full_text and ':' in full_text or '：' in full_text:
+                        # 找到可能被拆分的标签，记录调试信息
+                        label_pos = full_text.find(label)
+                        colon_pos = max(full_text.find(':'), full_text.find('：'))
+                        if label_pos >= 0 and colon_pos > label_pos:
+                            logger.info(f"检测到可能的跨run标签拆分: '{label}' 在位置 {label_pos}, 冒号在位置 {colon_pos}")
+                            break
                 
-            # 检查是否已经包含公司名称，避免重复处理
+            # 增强的重复检测 - 解决问题1：重复填写
+            # 检查是否已经包含公司名称（完整匹配或部分匹配）
             if name in full_text:
                 logger.info(f"跳过已包含公司名称的段落: '{full_text.strip()}'")
                 return False
+            
+            # 检查是否已经被处理过（通过查找下划线格式的公司名称片段）
+            for run in paragraph.runs:
+                if run.underline and name in run.text:
+                    logger.info(f"跳过已有下划线格式公司名称的段落: '{full_text.strip()}'")
+                    return False
+            
+            # 检查是否包含公司名称的关键词（避免部分匹配时的重复处理）
+            company_keywords = name.split()[:2] if len(name) > 8 else [name]  # 取公司名前两个词或全名
+            if len(company_keywords) > 1:
+                keyword_matches = sum(1 for keyword in company_keywords if keyword in full_text)
+                if keyword_matches >= len(company_keywords):
+                    logger.info(f"跳过可能已包含公司关键词的段落: '{full_text.strip()}'")
+                    return False
             
             # 在合并文本上进行模式匹配
             new_full_text = full_text
             matched = False
             
-            for pattern in self.bidder_patterns:
+            for pattern_index, pattern in enumerate(self.bidder_patterns):
                 # 检查是否是括号格式模式
                 test_match = pattern.search(full_text)
+                if test_match:
+                    logger.debug(f"模式 #{pattern_index+1} 匹配成功: {test_match.groupdict()}")
+                
                 if test_match and 'prefix' in test_match.groupdict() and 'content' in test_match.groupdict():
                     # 括号格式：处理所有匹配项
                     matches = list(pattern.finditer(full_text))
@@ -733,6 +814,8 @@ class BusinessResponseProcessor:
                         # 生成替换文本 - 根据不同格式进行处理
                         placeholder = groups.get('placeholder', '')
                         
+                        logger.debug(f"处理标签: '{label}', 分隔符: '{sep}', 占位符: '{placeholder}' (长度: {len(placeholder)})")
+                        
                         # 特殊处理格式9：带后缀的格式（如："供应商名称：                                （加盖公章）"）
                         if suffix:
                             # 格式9: 中间空格处填写，保持后缀
@@ -748,32 +831,41 @@ class BusinessResponseProcessor:
                             if '_' in placeholder and len(placeholder) >= 3:
                                 # 格式2,6: 横线格式，直接替换横线
                                 new_full_text = f"{label}{sep}{name}"
+                                logger.debug(f"横线格式替换: {new_full_text}")
                             elif placeholder.strip() == '' and len(placeholder) >= 20:
                                 # 格式3: 长空格格式，检查是否可能是分行格式
                                 if check_multiline and self._might_be_multiline_format(full_text, paragraphs, current_index):
                                     # 可能是分行格式，跳过当前处理，留给分行格式处理
+                                    logger.debug("检测到分行格式，跳过处理")
                                     return False
                                 # 格式3: 空格处填写
                                 new_full_text = f"{label}{sep}{name}"
+                                logger.debug(f"长空格格式替换: {new_full_text}")
                             elif placeholder.strip() == '' and len(placeholder) >= 10:
                                 # 格式4: 中等长度空格，可能是分行格式，检查下一行
                                 if check_multiline and self._might_be_multiline_format(full_text, paragraphs, current_index):
                                     # 可能是分行格式，跳过当前处理，留给分行格式处理
+                                    logger.debug("检测到分行格式，跳过处理")
                                     return False
                                 # 格式4: 空格处填写
                                 new_full_text = f"{label}{sep}{name}"
+                                logger.debug(f"中等空格格式替换: {new_full_text}")
                             elif placeholder.strip() == '' and len(placeholder) > 0:
                                 # 格式5: 短空格格式
                                 new_full_text = f"{label}{sep} {name}"
+                                logger.debug(f"短空格格式替换: {new_full_text}")
                             elif placeholder == '':
                                 # 格式7,8: 空占位符（冒号后直接填写）
                                 new_full_text = f"{label}{sep} {name}"
+                                logger.debug(f"空占位符格式替换: {new_full_text}")
                             else:
                                 # 其他占位符情况
                                 new_full_text = f"{label}{sep}{name}"
+                                logger.debug(f"其他格式替换: {new_full_text}")
                         else:
                             # 没有占位符的情况，在标签后添加公司名
                             new_full_text = f"{label}{sep} {name}"
+                            logger.debug(f"无占位符格式替换: {new_full_text}")
                         
                         matched = True
                         break
