@@ -49,40 +49,13 @@ class MCPBidderNameProcessor:
         # 投标人名称匹配规则 - 按优先级排序
         self.bidder_patterns = [
             # === 第一种方式：替换内容 ===
-            # 格式11: "（请填写供应商名称）" - 提示性括号内容替换
+            # 通用括号内容替换 - 合并格式11-16（6个规则合并为1个）
             {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>请填写\s*供应商名称)\s*(?P<suffix>[\)）])'),
+                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>(?:请填写\s*)?(?:供应商名称|投标人名称|公司名称|单位名称))\s*(?P<suffix>[\)）])'),
                 'type': 'replace_content',
-                'description': '提示性括号内容替换 - 供应商名称'
+                'description': '通用括号内容替换 - 公司名称类'
             },
             
-            # 格式12: "（请填写投标人名称）" - 提示性括号内容替换
-            {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>请填写\s*投标人名称)\s*(?P<suffix>[\)）])'),
-                'type': 'replace_content',
-                'description': '提示性括号内容替换 - 投标人名称'
-            },
-            
-            # 格式13: "（请填写公司名称）" - 提示性括号内容替换
-            {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>请填写\s*公司名称)\s*(?P<suffix>[\)）])'),
-                'type': 'replace_content',
-                'description': '提示性括号内容替换 - 公司名称'
-            },
-            
-            # 格式14: "（公司名称）" - 括号内容替换
-            {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>公司名称)\s*(?P<suffix>[\)）])'),
-                'type': 'replace_content',
-                'description': '括号内容替换 - 公司名称'
-            },
-            
-            # 格式15: "（单位名称）" - 括号内容替换
-            {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>单位名称)\s*(?P<suffix>[\)）])'),
-                'type': 'replace_content',
-                'description': '括号内容替换 - 单位名称'
-            },
             
             # 格式17: "（供应商名称、地址）" - 括号内容替换为公司名称和地址
             {
@@ -91,68 +64,13 @@ class MCPBidderNameProcessor:
                 'description': '括号内容替换 - 供应商名称、地址'
             },
             
-            # 格式1: " (供应商全称)  " - 括号内容替换，保持字体和大小
-            {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>供应商全称)\s*(?P<suffix>[\)）])'),
-                'type': 'replace_content',
-                'description': '括号内容替换 - 供应商全称'
-            },
-            
-            # 格式10: "（供应商名称）" - 括号内容替换，保持字体和大小
-            {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>供应商名称)\s*(?P<suffix>[\)）])'),
-                'type': 'replace_content',
-                'description': '括号内容替换 - 供应商名称'
-            },
             
             # === 第二种方式：在空格处填写 ===
-            # 格式6: "公司名称（全称、盖章）：________________" - 横线上填写（允许前面有空格）
+            # 通用简单填空规则 - 合并多个简单fill_space规则
             {
-                'pattern': re.compile(r'^\s*(?P<label>公司名称（全称、盖章）)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})\s*$'),
+                'pattern': re.compile(r'^\s*(?P<label>公司名称（全称、盖章）|公司名称（盖章）|供应商名称\(盖章\)|供应商全称及公章|供应商名称)\s*(?P<sep>[:：])?\s*(?P<placeholder>_{3,}|\s{3,}|)\s*(?P<suffix>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))?\s*$'),
                 'type': 'fill_space',
-                'description': '横线上填写 - 公司名称（全称、盖章）'
-            },
-            
-            # 格式6-2: "公司名称（全称、盖章）：" - 冒号后填写（无占位符，允许前面有空格）
-            {
-                'pattern': re.compile(r'^\s*(?P<label>公司名称（全称、盖章）)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
-                'type': 'fill_space',
-                'description': '冒号后填写 - 公司名称（全称、盖章）'
-            },
-            
-            # 格式7: "公司名称（盖章）：" - 冒号后填写
-            {
-                'pattern': re.compile(r'^(?P<label>公司名称（盖章）)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
-                'type': 'fill_space',
-                'description': '冒号后填写 - 公司名称（盖章）'
-            },
-            
-            # 格式16: "供应商名称(盖章) ：         " - 冒号后填写（英文括号）
-            {
-                'pattern': re.compile(r'^(?P<label>供应商名称\(盖章\))\s*(?P<sep>[:：])\s*(?P<placeholder>\s*)\s*$'),
-                'type': 'fill_space',
-                'description': '冒号后填写 - 供应商名称(盖章)'
-            },
-            
-            # 格式5: "供应商全称及公章：  " - 冒号后填写（最少有空格）
-            {
-                'pattern': re.compile(r'^(?P<label>供应商全称及公章)\s*(?P<sep>[:：])\s*(?P<placeholder>\s+)\s*$'),
-                'type': 'fill_space',
-                'description': '冒号后填写 - 供应商全称及公章'
-            },
-            
-            # 格式9: "供应商名称：________________（公章）" - 下划线处填写，带公章后缀
-            {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})\s*(?P<suffix>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))\s*$'),
-                'type': 'fill_space',
-                'description': '下划线处填写 - 供应商名称（公章）'
-            },
-            
-            # 格式9-2: "供应商名称：                                （加盖公章）" - 中间空格处填写，带公章后缀
-            {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{10,})\s*(?P<suffix>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))\s*$'),
-                'type': 'fill_space',
-                'description': '中间空格处填写 - 供应商名称（公章）'
+                'description': '通用简单填空 - 各种公司供应商名称格式'
             },
             
             # 格式9-3: "供应商名称（加盖公章）：                     " - 公章在前，冒号后填写
@@ -176,53 +94,12 @@ class MCPBidderNameProcessor:
                 'description': '公章在前冒号后无占位符填写 - 供应商名称'
             },
             
-            # 格式3: "供应商名称：                                        " - 空格处填写（长空格）
-            {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{20,})\s*$'),
-                'type': 'fill_space',
-                'description': '空格处填写 - 供应商名称（长空格）'
-            },
             
-            # 格式4: "供应商名称：               " - 中等长度空格
+            # 通用无分隔符填写 - 合并格式18系列（4个规则合并为1个）
             {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{10,19})\s*$'),
-                'type': 'fill_space',
-                'description': '空格处填写 - 供应商名称（中等空格）'
-            },
-            
-            # 格式2: "供应商名称：___________________" - 横线上填写（允许后面有其他内容）
-            {
-                'pattern': re.compile(r'(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
-                'type': 'fill_space',
-                'description': '横线上填写 - 供应商名称'
-            },
-            
-            # 格式18: "供应商名称                                    " - 标签后空格填写（无冒号）
-            {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<placeholder>\s{20,})\s*$'),
+                'pattern': re.compile(r'^(?P<label>供应商名称|公司名称|投标人名称|单位名称)\s*(?P<placeholder>\s{20,})\s*$'),
                 'type': 'fill_space_no_separator',
-                'description': '标签后空格填写 - 供应商名称（无冒号）'
-            },
-            
-            # 格式18-2: "公司名称                                    " - 无冒号变体
-            {
-                'pattern': re.compile(r'^(?P<label>公司名称)\s*(?P<placeholder>\s{20,})\s*$'),
-                'type': 'fill_space_no_separator',
-                'description': '标签后空格填写 - 公司名称（无冒号）'
-            },
-            
-            # 格式18-3: "投标人名称                                " - 无冒号变体
-            {
-                'pattern': re.compile(r'^(?P<label>投标人名称)\s*(?P<placeholder>\s{20,})\s*$'),
-                'type': 'fill_space_no_separator',
-                'description': '标签后空格填写 - 投标人名称（无冒号）'
-            },
-            
-            # 格式18-4: "单位名称                                  " - 无冒号变体
-            {
-                'pattern': re.compile(r'^(?P<label>单位名称)\s*(?P<placeholder>\s{20,})\s*$'),
-                'type': 'fill_space_no_separator',
-                'description': '标签后空格填写 - 单位名称（无冒号）'
+                'description': '通用标签后空格填写 - 公司名称类（无冒号）'
             },
             
             # 新增：采购编号相关的单字段规则
@@ -268,18 +145,11 @@ class MCPBidderNameProcessor:
                 'description': '空格填写 - 编号（通用）'
             },
             
-            # 格式8: "供应商名称：" - 冒号后填写（最通用，允许前面有空格，放在最后）
+            # 通用投标供应商名称填空 - 合并最后的简单fill_space规则  
             {
-                'pattern': re.compile(r'^\s*(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
+                'pattern': re.compile(r'^\s*(?P<label>供应商名称|投标人名称(?:（公章）|\(公章\))?)\s*(?P<sep>[:：]?)\s*(?P<placeholder>[_\-\u2014\s\u3000]*|＿*|——*|)\s*$'),
                 'type': 'fill_space',
-                'description': '冒号后填写 - 供应商名称（通用）'
-            },
-            
-            # 投标人名称相关
-            {
-                'pattern': re.compile(r'^(?P<label>投标人名称(?:（公章）|\(公章\))?)\s*(?P<sep>[:：]?)\s*(?P<placeholder>[_\-\u2014\s\u3000]*|＿*|——*)\s*$'),
-                'type': 'fill_space',
-                'description': '投标人名称相关填写'
+                'description': '通用投标供应商名称填空 - 最终兜底规则'
             },
             
             # 项目名称相关 - 使用相同的处理逻辑
