@@ -190,9 +190,9 @@ class MCPBidderNameProcessor:
                 'description': '空格处填写 - 供应商名称（中等空格）'
             },
             
-            # 格式2: "供应商名称：___________________" - 横线上填写
+            # 格式2: "供应商名称：___________________" - 横线上填写（允许后面有其他内容）
             {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})\s*$'),
+                'pattern': re.compile(r'(?P<label>供应商名称)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
                 'type': 'fill_space',
                 'description': '横线上填写 - 供应商名称'
             },
@@ -225,11 +225,47 @@ class MCPBidderNameProcessor:
                 'description': '标签后空格填写 - 单位名称（无冒号）'
             },
             
-            # 格式19: "供应商名称：                          采购编号：                " - 双字段填写
+            # 新增：采购编号相关的单字段规则
+            # 格式21: "采购编号：___________________" - 下划线填写
             {
-                'pattern': re.compile(r'^(?P<label1>供应商名称)\s*(?P<sep1>[:：])\s*(?P<placeholder1>\s{10,})\s*(?P<label2>采购编号)\s*(?P<sep2>[:：])\s*(?P<placeholder2>\s*)\s*$'),
-                'type': 'fill_dual_fields',
-                'description': '双字段填写 - 供应商名称和采购编号'
+                'pattern': re.compile(r'(?P<label>采购编号)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
+                'type': 'fill_space_tender_no',
+                'description': '下划线填写 - 采购编号'
+            },
+            
+            # 格式22: "采购编号：               " - 空格填写
+            {
+                'pattern': re.compile(r'(?P<label>采购编号)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{5,})'),
+                'type': 'fill_space_tender_no',
+                'description': '空格填写 - 采购编号'
+            },
+            
+            # 格式23: "项目编号：___________________" - 下划线填写
+            {
+                'pattern': re.compile(r'(?P<label>项目编号)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
+                'type': 'fill_space_tender_no',
+                'description': '下划线填写 - 项目编号'
+            },
+            
+            # 格式24: "项目编号：               " - 空格填写
+            {
+                'pattern': re.compile(r'(?P<label>项目编号)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{5,})'),
+                'type': 'fill_space_tender_no',
+                'description': '空格填写 - 项目编号'
+            },
+            
+            # 格式25: "编号：___________________" - 下划线填写（通用编号）
+            {
+                'pattern': re.compile(r'(?P<label>编号)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
+                'type': 'fill_space_tender_no',
+                'description': '下划线填写 - 编号（通用）'
+            },
+            
+            # 格式26: "编号：               " - 空格填写（通用编号）
+            {
+                'pattern': re.compile(r'(?P<label>编号)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{10,})'),
+                'type': 'fill_space_tender_no',
+                'description': '空格填写 - 编号（通用）'
             },
             
             # 格式8: "供应商名称：" - 冒号后填写（最通用，允许前面有空格，放在最后）
@@ -369,9 +405,11 @@ class MCPBidderNameProcessor:
                 if self._should_use_batch_replacement(paragraph):
                     logger.info("🔄 检测到多项替换段落，使用批量替换策略")
                     
-                    # 尝试获取项目名称和招标编号
-                    project_name = self._extract_project_name_from_config()
-                    tender_number = self._extract_tender_number_from_config()
+                    # 优先使用传递进来的项目名称和招标编号，如果没有则从配置文件读取
+                    project_name = self.project_name if self.project_name else self._extract_project_name_from_config()
+                    tender_number = self.tender_no if self.tender_no else self._extract_tender_number_from_config()
+                    
+                    logger.info(f"批量替换使用项目信息: 项目名称='{project_name}', 招标编号='{tender_number}'")
                     
                     # 执行批量替换
                     batch_result = self._batch_replace_multiple_items(
@@ -442,8 +480,8 @@ class MCPBidderNameProcessor:
                             success = self._fill_space_no_separator_method(paragraph, match, company_name, rule)
                             if success:
                                 stats['fill_space_count'] += 1
-                        elif rule['type'] == 'fill_dual_fields':
-                            success = self._fill_dual_fields_method(paragraph, match, company_name, rule)
+                        elif rule['type'] == 'fill_space_tender_no':
+                            success = self._fill_space_tender_no_method(paragraph, match, rule)
                             if success:
                                 stats['fill_space_count'] += 1
                         elif rule['type'] == 'fill_space_with_seal_prefix':
@@ -475,7 +513,7 @@ class MCPBidderNameProcessor:
                             logger.info(f"处理后: '{paragraph.text[:100]}...'")
                             
                             # 如果是投标人名称相关处理，标记为已处理
-                            if rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no']:
+                            if rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'fill_space_tender_no']:
                                 bidder_name_processed = True
                             
                             # 不再需要break，允许在同一段落中进行多种类型的处理
@@ -1414,37 +1452,36 @@ class MCPBidderNameProcessor:
             logger.error(f"公章在前格式填写失败: {e}")
             return False
 
-    def _fill_dual_fields_method(self, paragraph: Paragraph, match, company_name: str, rule: dict) -> bool:
-        """双字段填写方法 - 供应商名称和采购编号"""
+    def _fill_space_tender_no_method(self, paragraph: Paragraph, match, rule: dict) -> bool:
+        """招标编号填写方法 - 处理采购编号、项目编号等"""
         try:
-            logger.info(f"执行双字段填写方法: {rule['description']}")
+            logger.info(f"执行招标编号填写方法: {rule['description']}")
             
-            # 获取匹配的各部分
-            label1 = match.group('label1')  # 供应商名称
-            sep1 = match.group('sep1')      # :
-            placeholder1 = match.group('placeholder1')  # 空格
-            label2 = match.group('label2')  # 采购编号
-            sep2 = match.group('sep2')      # :
-            placeholder2 = match.group('placeholder2')  # 空格
+            # 获取匹配的组
+            groups = match.groupdict()
+            label = groups.get('label', '')
+            sep = groups.get('sep', '')
+            placeholder = groups.get('placeholder', '')
             
-            # 构造新文本
-            new_text = f"{label1}{sep1}{company_name}     {label2}{sep2}{self.project_number}"
+            # 获取招标编号 - 优先使用tender_no，如果没有则使用project_number
+            tender_number = self.tender_no if hasattr(self, 'tender_no') and self.tender_no else \
+                           (self.project_number if hasattr(self, 'project_number') and self.project_number else "未提供编号")
             
-            # 替换整个匹配内容
-            original_text = match.group(0)
-            for run in paragraph.runs:
-                if label1 in run.text and label2 in run.text:
-                    run.text = run.text.replace(original_text, new_text)
-                    logger.info(f"双字段填写完成:")
-                    logger.info(f"  供应商名称: {company_name}")
-                    logger.info(f"  采购编号: {self.project_number}")
-                    logger.info(f"  结果: '{new_text}'")
-                    return True
+            # 使用智能三层替换策略
+            old_text = f"{label}{sep}{placeholder}"
+            new_text = f"{label}{sep}{tender_number}"
             
-            return False
+            success = self.smart_text_replace(paragraph, old_text, new_text)
+            
+            if success:
+                logger.info(f"招标编号填写完成: '{label}' -> '{tender_number}'")
+            else:
+                logger.error(f"招标编号填写失败: '{old_text}'")
+                
+            return success
             
         except Exception as e:
-            logger.error(f"双字段填写失败: {e}")
+            logger.error(f"招标编号填写方法失败: {e}")
             return False
 
     def _replace_content_project_method(self, paragraph: Paragraph, match, rule: dict) -> bool:
