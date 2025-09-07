@@ -832,6 +832,127 @@ def get_company(company_id):
         logger.error(f"获取公司信息失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/companies', methods=['POST'])
+def create_company():
+    """创建新公司"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': '请提供公司信息'}), 400
+        
+        company_name = data.get('companyName', '').strip()
+        if not company_name:
+            return jsonify({'success': False, 'error': '公司名称不能为空'}), 400
+        
+        # 生成唯一ID
+        import uuid
+        company_id = str(uuid.uuid4())
+        
+        # 准备公司数据
+        company_data = {
+            'id': company_id,
+            'companyName': company_name,
+            'establishDate': data.get('establishDate', ''),
+            'legalRepresentative': data.get('legalRepresentative', ''),
+            'legalRepresentativePosition': data.get('legalRepresentativePosition', ''),
+            'authorizedPersonName': data.get('authorizedPersonName', ''),
+            'authorizedPersonPosition': data.get('authorizedPersonPosition', ''),
+            'socialCreditCode': data.get('socialCreditCode', ''),
+            'registeredCapital': data.get('registeredCapital', ''),
+            'companyType': data.get('companyType', ''),
+            'fixedPhone': data.get('fixedPhone', ''),
+            'email': data.get('email', ''),
+            'postalCode': data.get('postalCode', ''),
+            'registeredAddress': data.get('registeredAddress', ''),
+            'officeAddress': data.get('officeAddress', ''),
+            'website': data.get('website', ''),
+            'employeeCount': data.get('employeeCount', ''),
+            'companyDescription': data.get('companyDescription', ''),
+            'businessScope': data.get('businessScope', ''),
+            'bankName': data.get('bankName', ''),
+            'bankAccount': data.get('bankAccount', ''),
+            'fax': data.get('fax', ''),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # 确保目录存在
+        os.makedirs('company_configs', exist_ok=True)
+        
+        # 保存公司信息
+        company_file = os.path.join('company_configs', f'{company_id}.json')
+        with open(company_file, 'w', encoding='utf-8') as f:
+            json.dump(company_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"创建新公司: {company_name} ({company_id})")
+        return jsonify({
+            'success': True,
+            'company_id': company_id,
+            'message': '公司信息保存成功'
+        })
+        
+    except Exception as e:
+        logger.error(f"创建公司失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/companies/<company_id>', methods=['PUT'])
+def update_company(company_id):
+    """更新公司信息"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': '请提供公司信息'}), 400
+        
+        company_file = os.path.join('company_configs', f'{company_id}.json')
+        
+        # 如果公司不存在，返回错误
+        if not os.path.exists(company_file):
+            return jsonify({'success': False, 'error': '公司不存在'}), 404
+        
+        # 读取现有数据
+        with open(company_file, 'r', encoding='utf-8') as f:
+            company_data = json.load(f)
+        
+        # 更新数据
+        company_data.update({
+            'companyName': data.get('companyName', company_data.get('companyName', '')),
+            'establishDate': data.get('establishDate', company_data.get('establishDate', '')),
+            'legalRepresentative': data.get('legalRepresentative', company_data.get('legalRepresentative', '')),
+            'legalRepresentativePosition': data.get('legalRepresentativePosition', company_data.get('legalRepresentativePosition', '')),
+            'authorizedPersonName': data.get('authorizedPersonName', company_data.get('authorizedPersonName', '')),
+            'authorizedPersonPosition': data.get('authorizedPersonPosition', company_data.get('authorizedPersonPosition', '')),
+            'socialCreditCode': data.get('socialCreditCode', company_data.get('socialCreditCode', '')),
+            'registeredCapital': data.get('registeredCapital', company_data.get('registeredCapital', '')),
+            'companyType': data.get('companyType', company_data.get('companyType', '')),
+            'fixedPhone': data.get('fixedPhone', company_data.get('fixedPhone', '')),
+            'email': data.get('email', company_data.get('email', '')),
+            'postalCode': data.get('postalCode', company_data.get('postalCode', '')),
+            'registeredAddress': data.get('registeredAddress', company_data.get('registeredAddress', '')),
+            'officeAddress': data.get('officeAddress', company_data.get('officeAddress', '')),
+            'website': data.get('website', company_data.get('website', '')),
+            'employeeCount': data.get('employeeCount', company_data.get('employeeCount', '')),
+            'companyDescription': data.get('companyDescription', company_data.get('companyDescription', '')),
+            'businessScope': data.get('businessScope', company_data.get('businessScope', '')),
+            'bankName': data.get('bankName', company_data.get('bankName', '')),
+            'bankAccount': data.get('bankAccount', company_data.get('bankAccount', '')),
+            'fax': data.get('fax', company_data.get('fax', '')),
+            'updated_at': datetime.now().isoformat()
+        })
+        
+        # 保存更新的数据
+        with open(company_file, 'w', encoding='utf-8') as f:
+            json.dump(company_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"更新公司信息: {company_data.get('companyName', '')} ({company_id})")
+        return jsonify({
+            'success': True,
+            'message': '公司信息更新成功'
+        })
+        
+    except Exception as e:
+        logger.error(f"更新公司信息失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/companies/<company_id>/qualifications')
 def get_company_qualifications(company_id):
     """获取指定公司的资质信息"""
@@ -859,11 +980,8 @@ def get_project_config():
     try:
         import configparser
         
-        # 优先读取"读取信息"模块生成的配置文件
-        tender_info_config_file = os.path.join(tender_info_path, 'tender_config.ini')
-        local_config_file = 'tender_config.ini'
-        
-        config_file = tender_info_config_file if os.path.exists(tender_info_config_file) else local_config_file
+        # 只读取"读取信息"模块生成的配置文件
+        config_file = os.path.join(tender_info_path, 'tender_config.ini')
         
         if not os.path.exists(config_file):
             return jsonify({'success': False, 'error': '项目配置文件不存在'})
@@ -891,7 +1009,7 @@ def get_project_config():
         project_info['currentDate'] = current_date
         
         # 添加配置文件来源信息
-        project_info['configSource'] = '读取信息模块' if config_file == tender_info_config_file else '本地配置'
+        project_info['configSource'] = '读取信息模块'
         
         logger.info(f"读取项目配置成功: {config_file}")
         
@@ -935,9 +1053,8 @@ def process_business_response():
             
         # 自动从配置文件读取项目信息
         import configparser
-        tender_info_config_file = os.path.join(tender_info_path, 'tender_config.ini')
-        local_config_file = 'tender_config.ini'
-        config_file = tender_info_config_file if os.path.exists(tender_info_config_file) else local_config_file
+        # 只读取"读取信息"模块生成的配置文件
+        config_file = os.path.join(tender_info_path, 'tender_config.ini')
         
         project_name = ''
         tender_no = ''

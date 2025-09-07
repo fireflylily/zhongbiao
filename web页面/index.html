@@ -217,33 +217,6 @@
                 </div>
             </div>
 
-            <!-- API密钥配置 -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0">
-                                <i class="bi bi-key"></i> API密钥配置
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8 mb-2">
-                                    <input type="password" class="form-control" id="tenderApiKey" 
-                                           placeholder="请输入始皇API密钥 (sk-...)" 
-                                           value="sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob">
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <button class="btn btn-outline-primary" type="button" id="testTenderApiBtn">
-                                        <i class="bi bi-wifi"></i> 测试连接
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="tenderApiStatus" class="api-status"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- 功能特点 -->
             <div class="row mb-5">
@@ -382,13 +355,32 @@
                                 </div>
                                 
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <label for="legalRepresentative" class="form-label">法定代表人</label>
                                         <input type="text" class="form-control" id="legalRepresentative">
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
+                                        <label for="legalRepresentativePosition" class="form-label">法定代表人职务</label>
+                                        <input type="text" class="form-control" id="legalRepresentativePosition">
+                                    </div>
+                                    <div class="col-md-4">
                                         <label for="socialCreditCode" class="form-label">统一社会信用代码</label>
                                         <input type="text" class="form-control" id="socialCreditCode">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="authorizedPersonName" class="form-label">被授权人名称</label>
+                                        <input type="text" class="form-control" id="authorizedPersonName">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="authorizedPersonPosition" class="form-label">被授权人职务</label>
+                                        <input type="text" class="form-control" id="authorizedPersonPosition">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="email" class="form-label">电子邮箱</label>
+                                        <input type="email" class="form-control" id="email">
                                     </div>
                                 </div>
                                 
@@ -830,54 +822,6 @@
             </div>
         </div>
 
-        <!-- API配置区域 -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5><i class="bi bi-gear"></i> API配置</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="apiKey" class="form-label">始皇API密钥</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="apiKey" 
-                                           placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxx" 
-                                           value="sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob">
-                                    <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                                <small class="form-text text-muted">
-                                    API密钥用于生成专业的技术应答，留空将使用默认模板
-                                </small>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">密钥管理</label>
-                                <div class="btn-group d-flex">
-                                    <button type="button" class="btn btn-outline-success btn-sm" id="saveApiBtn">
-                                        <i class="bi bi-save"></i> 保存
-                                    </button>
-                                    <button type="button" class="btn btn-outline-info btn-sm" id="loadApiBtn">
-                                        <i class="bi bi-upload"></i> 加载
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="manageApiBtn">
-                                        <i class="bi bi-gear"></i> 管理
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <button type="button" class="btn btn-outline-primary flex-fill" id="testApiBtn">
-                                    <i class="bi bi-wifi"></i> 测试连接
-                                </button>
-                            </div>
-                        </div>
-                        <div id="apiStatus" class="api-status"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
                 <!-- 功能特点 -->
         <div class="row mb-5">
@@ -1198,10 +1142,12 @@
         const resultArea = document.getElementById('resultArea');
         const errorArea = document.getElementById('errorArea');
         const uploadForm = document.getElementById('uploadForm');
-        const apiKeyInput = document.getElementById('apiKey');
-        const toggleApiBtn = document.getElementById('toggleApiKey');
-        const saveApiBtn = document.getElementById('saveApiBtn');
-        const loadApiBtn = document.getElementById('loadApiBtn');
+        // API相关元素（已删除）
+        // 创建空对象避免JavaScript错误
+        const apiKeyInput = { value: '', type: 'password' };
+        const toggleApiBtn = null;
+        const saveApiBtn = null;
+        const loadApiBtn = null;
 
         // API密钥安全管理
         const API_STORAGE_KEY = 'ai_tender_api_key_encrypted';
@@ -1224,38 +1170,20 @@
             }
         }
 
-        // 页面加载时尝试加载保存的API密钥或使用默认密钥
-        window.addEventListener('load', function() {
-            const defaultKey = '{{ default_api_key }}';
-            const saved = localStorage.getItem(API_STORAGE_KEY);
-            
-            if (saved) {
-                const decrypted = decryptApiKey(saved);
-                if (decrypted) {
-                    apiKeyInput.value = decrypted;
-                    document.getElementById('tenderApiKey').value = decrypted;
-                    showNotification('已加载保存的API密钥', 'success');
-                    return;
-                }
-            }
-            
-            // 如果没有保存的密钥，使用默认密钥
-            if (defaultKey && defaultKey !== 'None') {
-                apiKeyInput.value = defaultKey;
-                document.getElementById('tenderApiKey').value = defaultKey;
-                showNotification('已加载默认API密钥', 'info');
-            }
-        });
+        // API密钥相关功能已移除
 
-        // 显示/隐藏API密钥
-        toggleApiBtn.addEventListener('click', function() {
-            const isPassword = apiKeyInput.type === 'password';
-            apiKeyInput.type = isPassword ? 'text' : 'password';
-            this.innerHTML = isPassword ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
-        });
+        // API功能已移除 - 添加安全检查
+        if (toggleApiBtn) {
+            toggleApiBtn.addEventListener('click', function() {
+                const isPassword = apiKeyInput.type === 'password';
+                apiKeyInput.type = isPassword ? 'text' : 'password';
+                this.innerHTML = isPassword ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+            });
+        }
 
         // 保存API密钥
-        saveApiBtn.addEventListener('click', function() {
+        if (saveApiBtn) {
+            saveApiBtn.addEventListener('click', function() {
             const apiKey = apiKeyInput.value.trim();
             if (!apiKey) {
                 showNotification('请先输入API密钥', 'error');
@@ -1265,10 +1193,12 @@
             const encrypted = encryptApiKey(apiKey);
             localStorage.setItem(API_STORAGE_KEY, encrypted);
             showNotification('API密钥已安全保存到本地', 'success');
-        });
+            });
+        }
 
-        // 加载API密钥
-        loadApiBtn.addEventListener('click', function() {
+        // 加载API密钥功能已移除
+        if (loadApiBtn) {
+            loadApiBtn.addEventListener('click', function() {
             const saved = localStorage.getItem(API_STORAGE_KEY);
             if (saved) {
                 const decrypted = decryptApiKey(saved);
@@ -1281,17 +1211,23 @@
             } else {
                 showNotification('未找到保存的API密钥', 'error');
             }
-        });
+            });
+        }
 
-        // 管理API密钥备份
-        document.getElementById('manageApiBtn').addEventListener('click', function() {
+        // 管理API密钥备份功能已移除
+        const manageApiBtn = document.getElementById('manageApiBtn');
+        if (manageApiBtn) {
+            manageApiBtn.addEventListener('click', function() {
             document.getElementById('currentApiKey').value = apiKeyInput.value;
             loadBackupList();
             new bootstrap.Modal(document.getElementById('apiBackupModal')).show();
-        });
+            });
+        }
 
-        // 备份当前密钥到服务器
-        document.getElementById('backupCurrentBtn').addEventListener('click', function() {
+        // 备份当前密钥到服务器功能已移除
+        const backupCurrentBtn = document.getElementById('backupCurrentBtn');
+        if (backupCurrentBtn) {
+            backupCurrentBtn.addEventListener('click', function() {
             const apiKey = apiKeyInput.value.trim();
             if (!apiKey) {
                 showNotification('请先输入API密钥', 'error');
@@ -1326,9 +1262,10 @@
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             });
-        });
+            });
+        }
 
-        // 加载备份列表
+        // 加载备份列表功能已移除
         function loadBackupList() {
             const backupList = document.getElementById('backupList');
             backupList.innerHTML = '<div class="text-center text-muted"><i class="bi bi-hourglass-split"></i> 正在加载备份列表...</div>';
@@ -1428,7 +1365,9 @@
         }
 
         // 查看所有文件
-        document.getElementById('viewFilesBtn').addEventListener('click', function() {
+        const viewFilesBtn = document.getElementById('viewFilesBtn');
+        if (viewFilesBtn) {
+            viewFilesBtn.addEventListener('click', function() {
             fetch('/api/files')
             .then(response => response.json())
             .then(data => {
@@ -1448,7 +1387,8 @@
                 console.error('获取文件列表失败:', error);
                 alert('获取文件列表失败: ' + error.message);
             });
-        });
+            });
+        }
 
         // 通知功能
         function showNotification(message, type = 'info') {
@@ -1510,44 +1450,7 @@
             }
         }
 
-        // API测试
-        document.getElementById('testApiBtn').addEventListener('click', function() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const btn = this;
-            const originalText = btn.innerHTML;
-            const statusDiv = document.getElementById('apiStatus');
-            
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 测试中...';
-            btn.disabled = true;
-            
-            fetch('/api/test', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ api_key: apiKey })
-            })
-            .then(response => response.json())
-            .then(data => {
-                statusDiv.style.display = 'block';
-                if (data.success) {
-                    statusDiv.className = 'api-status success';
-                    statusDiv.innerHTML = `<i class="bi bi-check-circle"></i> ${data.message} (模型: ${data.model})`;
-                } else {
-                    statusDiv.className = 'api-status error';
-                    statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> ${data.message}`;
-                }
-            })
-            .catch(error => {
-                statusDiv.style.display = 'block';
-                statusDiv.className = 'api-status error';
-                statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> 连接失败: ${error.message}`;
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        });
+        // API测试功能已移除
 
         // 重试和重置功能
         document.getElementById('retryBtn').addEventListener('click', function() {
@@ -1567,7 +1470,7 @@
         function submitUpload() {
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-            formData.append('api_key', document.getElementById('apiKey').value.trim());
+            formData.append('api_key', '');
         
             // 显示进度条
             progressBar.style.display = 'block';
@@ -1703,7 +1606,7 @@
             formData.append('tender_file', techTenderFileInput.files[0]);
             formData.append('product_file', productFileInput.files[0]);
             formData.append('output_prefix', document.getElementById('outputPrefix').value.trim() || '技术方案');
-            formData.append('api_key', apiKeyInput.value.trim());
+            formData.append('api_key', '');
 
             // 显示进度条
             techProgressBar.style.display = 'block';
@@ -1917,7 +1820,9 @@
         }
 
         // API测试
-        document.getElementById('testTenderApiBtn').addEventListener('click', function() {
+        const testTenderApiBtn = document.getElementById('testTenderApiBtn');
+        if (testTenderApiBtn) {
+            testTenderApiBtn.addEventListener('click', function() {
             const apiKey = document.getElementById('tenderApiKey').value.trim();
             const btn = this;
             const originalText = btn.innerHTML;
@@ -1953,7 +1858,8 @@
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             });
-        });
+            });
+        }
 
         // 提取信息按钮事件
         extractInfoBtn.addEventListener('click', function() {
@@ -2311,6 +2217,10 @@
             'companyName': '公司名称',
             'establishDate': '成立日期',
             'legalRepresentative': '法定代表人',
+            'legalRepresentativePosition': '法定代表人职务',
+            'authorizedPersonName': '被授权人名称',
+            'authorizedPersonPosition': '被授权人职务',
+            'email': '电子邮箱',
             'socialCreditCode': '统一社会信用代码',
             'registeredCapital': '注册资本',
             'companyType': '公司类型',
@@ -2337,11 +2247,14 @@
 
         // 获取公司列表
         function loadCompanyList() {
+            console.log('Loading company list...');
             fetch('/api/companies')
             .then(response => response.json())
             .then(data => {
+                console.log('Company data received:', data);
                 if (data.success && data.companies) {
                     updateCompanySelect(data.companies);
+                    console.log('Company select updated with', data.companies.length, 'companies');
                 } else {
                     console.log('No companies found or error loading companies');
                 }
@@ -2391,17 +2304,26 @@
 
         // 更新公司选择下拉框
         function updateCompanySelect(companies) {
+            console.log('Updating company select with companies:', companies);
+            
+            if (!companySelect) {
+                console.error('companySelect element not found');
+                return;
+            }
+            
             companySelect.innerHTML = '<option value="">请选择公司（选择后自动加载）</option>';
             companies.forEach(company => {
                 const option = document.createElement('option');
                 option.value = company.id;
                 option.textContent = company.companyName;
                 companySelect.appendChild(option);
+                console.log('Added option:', company.companyName);
             });
             
             // 同时更新商务应答页面的公司下拉框
             const businessCompanySelect = document.getElementById('businessCompanySelect');
             if (businessCompanySelect) {
+                console.log('Updating business company select');
                 businessCompanySelect.innerHTML = '<option value="">请选择公司...</option>';
                 companies.forEach(company => {
                     const option = document.createElement('option');
@@ -2409,6 +2331,9 @@
                     option.textContent = company.companyName;
                     businessCompanySelect.appendChild(option);
                 });
+                console.log('Business company select updated');
+            } else {
+                console.log('businessCompanySelect element not found');
             }
             
             // 如果只有一个公司，自动选择它
@@ -2457,6 +2382,10 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.company) {
+                    // 先清空表单，防止新旧数据混合显示
+                    clearCompanyFormInternal();
+                    
+                    // 然后填充新公司信息
                     fillCompanyForm(data.company);
                     currentCompanyId = companyId;
                     deleteCompanyBtn.style.display = 'inline-block';
