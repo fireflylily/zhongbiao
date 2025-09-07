@@ -1822,9 +1822,9 @@ class MCPBidderNameProcessor:
                     'value': company_info.get('registeredAddress', ''),
                     'field_name': '注册地址'
                 },
-                # 办公地址
+                # 办公地址 - 只匹配空字段（下划线或空格）
                 {
-                    'patterns': [r'办公地址.*?[:：]\s*([_\s]*)', r'联系地址.*?[:：]\s*([_\s]*)', r'地址.*?[:：]\s*([_\s]*)'],
+                    'patterns': [r'办公地址.*?[:：]\s*([_\s]+)(?=\s|$)', r'联系地址.*?[:：]\s*([_\s]+)(?=\s|$)', r'地址.*?[:：]\s*([_\s]+)(?=\s|$)'],
                     'value': company_info.get('officeAddress', ''),
                     'field_name': '办公地址'
                 },
@@ -1840,9 +1840,9 @@ class MCPBidderNameProcessor:
                     'value': company_info.get('registeredCapital', ''),
                     'field_name': '注册资本'
                 },
-                # 电话
+                # 电话 - 只匹配空字段（下划线或空格）
                 {
-                    'patterns': [r'电话.*?[:：]\s*([_\s]*)', r'联系电话.*?[:：]\s*([_\s]*)', r'固定电话.*?[:：]\s*([_\s]*)'],
+                    'patterns': [r'电话.*?[:：]\s*([_\s]+)(?=\s|$)', r'联系电话.*?[:：]\s*([_\s]+)(?=\s|$)', r'固定电话.*?[:：]\s*([_\s]+)(?=\s|$)'],
                     'value': company_info.get('fixedPhone', ''),
                     'field_name': '联系电话'
                 },
@@ -1914,9 +1914,9 @@ class MCPBidderNameProcessor:
                     'value': self._get_project_info_field('agency'),
                     'field_name': '招标代理'
                 },
-                # 地址字段 - 使用改进模式，避免删除传真标签
+                # 地址字段 - 只匹配空字段（下划线或空格），避免删除传真标签
                 {
-                    'patterns': [r'(地址[:：])\s*([^传]*?)(?=传|$)', r'^(地址)\s*([^传]*?)(?=传|$)', r'^(地址)(\s+)(?=.*传真)'],
+                    'patterns': [r'(地址[:：])\s*([_\s]+?)(?=传|$)', r'^(地址)\s*([_\s]+?)(?=传|$)', r'^(地址)([_\s]+)(?=.*传真)'],
                     'value': company_info.get('registeredAddress', ''),
                     'field_name': '地址',
                     'compact_format': True,  # 标记使用紧凑格式
@@ -1937,9 +1937,9 @@ class MCPBidderNameProcessor:
                     'compact_format': True,  # 使用紧凑格式
                     'preserve_trailing': True  # 保留后续内容（如电子邮件标签）
                 },
-                # 电子邮件字段 - 使用email字段，如无则显示"未填写"
+                # 电子邮件字段 - 只匹配空字段（下划线或空格）
                 {
-                    'patterns': [r'(电子邮件)([_\s]*)$', r'(电子邮件)[:：]\s*([_\s]*)', r'^(电子邮件)\s*([_\s]*)', r'(邮箱)([_\s]*)$', r'(邮箱)[:：]\s*([_\s]*)', r'^(邮箱)\s*([_\s]*)'],
+                    'patterns': [r'(电子邮件)([_\s]+)$', r'(电子邮件)[:：]\s*([_\s]+)', r'^(电子邮件)\s*([_\s]+)', r'(邮箱)([_\s]+)$', r'(邮箱)[:：]\s*([_\s]+)', r'^(邮箱)\s*([_\s]+)'],
                     'value': company_info.get('email', '') or '未填写',
                     'field_name': '电子邮件',
                     'compact_format': True  # 使用紧凑格式，替换而不是追加
@@ -1989,6 +1989,25 @@ class MCPBidderNameProcessor:
                         
                         if match:
                             logger.info(f"段落 #{para_idx} 匹配{field_name}字段: '{para_text[:100]}...'")
+                            
+                            # 检查是否为联系信息字段，且已经包含有意义的内容（不是招标方要求填写的空字段）
+                            if field_name in ['联系电话', '电子邮件', '办公地址', '联系地址', '地址']:
+                                # 检查匹配的内容是否已经包含实际数据（非下划线和空格）
+                                captured_content = ""
+                                if len(match.groups()) >= 2:
+                                    captured_content = match.group(2) if match.group(2) else ""
+                                elif len(match.groups()) >= 1:
+                                    captured_content = match.group(1) if match.group(1) else ""
+                                
+                                # 特殊处理：如果捕获内容只是标签（如"邮箱"），不算作有意义内容
+                                meaningful_content = captured_content
+                                if field_name == '电子邮件' and captured_content in ['邮箱', '电子邮件']:
+                                    meaningful_content = ""
+                                
+                                # 如果捕获的内容包含非下划线非空格的字符，且不只是标签，说明已经有内容，跳过填写
+                                if meaningful_content and re.search(r'[^\s_]', meaningful_content):
+                                    logger.info(f"段落 #{para_idx} {field_name}字段已包含内容: '{meaningful_content.strip()}'，跳过填写")
+                                    continue
                             
                             # 检查是否是括号内容替换
                             is_bracket_replace = field_info.get('bracket_replace', False)
