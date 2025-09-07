@@ -1,0 +1,53 @@
+# AI标书系统配置文件
+# 注意：敏感信息如API密钥应通过环境变量设置，不要在此文件中存储
+
+llm:
+  # API基础URL
+  base_url: "https://api.oaipro.com/v1/chat/completions"
+  # 默认模型
+  model: "gpt-4o-mini"
+  # 最大token数
+  max_tokens: 2000
+  # 请求超时时间（秒）
+  timeout: 90
+  # 最大重试次数
+  max_retries: 3
+
+app:
+  # 日志级别
+  log_level: "INFO"
+  # 日志目录
+  log_dir: "logs"
+  # 最大文件大小
+  max_file_size: "50MB"
+  # 上传目录
+  upload_dir: "uploads"
+  # 输出目录
+  output_dir: "outputs"
+
+# 业务模块特定配置
+modules:
+  tender_info:
+    # 招标信息提取模块配置
+    config_file: "tender_config.ini"
+    supported_formats: [".docx", ".doc", ".txt", ".pdf"]
+    max_content_length: 6000
+    
+  inline_reply:
+    # 点对点应答模块配置
+    max_response_length: 5000
+    quality_check: true
+    
+  tech_proposal:
+    # 技术方案生成模块配置
+    template_dir: "templates"
+    output_format: "docx"
+
+# Web应用配置
+web:
+  host: "0.0.0.0"
+  port: 8080
+  debug: false
+  # 上传文件限制
+  max_content_length: 52428800  # 50MB
+  allowed_extensions: [".docx", ".doc", ".txt", ".pdf"]

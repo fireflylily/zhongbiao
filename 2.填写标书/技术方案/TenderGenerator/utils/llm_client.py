@@ -20,7 +20,8 @@ except ImportError:
     sys.path.append(str(Path(__file__).parent.parent))
     from config import (
         SHIHUANG_API_KEY, SHIHUANG_BASE_URL, SHIHUANG_MODEL,
-        REQUEST_TIMEOUT, MAX_CONCURRENT_REQUESTS
+        REQUEST_TIMEOUT, MAX_CONCURRENT_REQUESTS,
+        MIN_QUALITY_SCORE, OPTIMIZATION_THRESHOLD, MAX_OPTIMIZATION_ROUNDS
     )
 
 class LLMClient:
@@ -293,6 +294,143 @@ class LLMClient:
             return result is not None
         except:
             return False
+    
+    def generate_content_with_quality_control(self, 
+                                            requirement: str,
+                                            product_features: str,
+                                            section_title: str) -> Dict[str, Any]:
+        """
+        带质量控制的内容生成
+        
+        Args:
+            requirement: 需求描述
+            product_features: 产品功能
+            section_title: 章节标题
+            
+        Returns:
+            包含内容和质量信息的字典
+        """
+        try:
+            from ..config import CONTENT_QUALITY_PROMPT, CONTENT_OPTIMIZATION_PROMPT
+        except ImportError:
+            from config import CONTENT_QUALITY_PROMPT, CONTENT_OPTIMIZATION_PROMPT
+        
+        result = {
+            'content': '',
+            'quality_score': 0.0,
+            'optimization_rounds': 0,
+            'final_quality': 'unknown'
+        }
+        
+        # 第一次生成内容
+        initial_content = self.generate_content(requirement, product_features, section_title)
+        if not initial_content:
+            return result
+        
+        current_content = initial_content
+        optimization_round = 0
+        
+        while optimization_round < MAX_OPTIMIZATION_ROUNDS:
+            # 评估当前内容质量
+            quality_assessment = self._assess_content_quality(
+                current_content, requirement, section_title
+            )
+            
+            if not quality_assessment:
+                break
+                
+            overall_score = quality_assessment.get('overall_score', 0)
+            result['quality_score'] = overall_score
+            
+            # 如果质量已经足够好，退出优化循环
+            if overall_score >= OPTIMIZATION_THRESHOLD:
+                result['final_quality'] = 'excellent'
+                break
+            
+            # 如果质量太低且还有优化机会，进行优化
+            if overall_score < MIN_QUALITY_SCORE and optimization_round < MAX_OPTIMIZATION_ROUNDS - 1:
+                optimized_content = self._optimize_content(current_content, quality_assessment)
+                if optimized_content and len(optimized_content) > len(current_content) * 0.8:
+                    current_content = optimized_content
+                    optimization_round += 1
+                    result['optimization_rounds'] = optimization_round
+                else:
+                    break
+            else:
+                break
+        
+        result['content'] = current_content
+        
+        # 设置最终质量等级
+        if result['quality_score'] >= OPTIMIZATION_THRESHOLD:
+            result['final_quality'] = 'excellent'
+        elif result['quality_score'] >= MIN_QUALITY_SCORE:
+            result['final_quality'] = 'good'
+        else:
+            result['final_quality'] = 'average'
+        
+        self.logger.info(f"内容生成完成: 质量分数={result['quality_score']:.1f}, 优化轮次={result['optimization_rounds']}")
+        return result
+    
+    def _assess_content_quality(self, content: str, requirement: str, section_title: str) -> Optional[Dict[str, Any]]:
+        """评估内容质量"""
+        try:
+            from ..config import CONTENT_QUALITY_PROMPT
+        except ImportError:
+            from config import CONTENT_QUALITY_PROMPT
+        
+        prompt = CONTENT_QUALITY_PROMPT.format(
+            content=content,
+            requirement=requirement,
+            section_title=section_title
+        )
+        
+        result = self.chat_completion(
+            prompt=prompt,
+            max_tokens=800,
+            temperature=0.3
+        )
+        
+        if result:
+            try:
+                # 尝试解析JSON响应
+                assessment_data = json.loads(result)
+                return assessment_data
+            except json.JSONDecodeError:
+                # 如果直接解析失败，尝试提取JSON部分
+                try:
+                    start_idx = result.find('{')
+                    end_idx = result.rfind('}') + 1
+                    if start_idx != -1 and end_idx != 0:
+                        json_str = result[start_idx:end_idx]
+                        assessment_data = json.loads(json_str)
+                        return assessment_data
+                except:
+                    pass
+                
+                self.logger.warning(f"无法解析质量评估结果: {result}")
+        
+        return None
+    
+    def _optimize_content(self, original_content: str, quality_assessment: Dict[str, Any]) -> Optional[str]:
+        """优化内容"""
+        try:
+            from ..config import CONTENT_OPTIMIZATION_PROMPT
+        except ImportError:
+            from config import CONTENT_OPTIMIZATION_PROMPT
+        
+        prompt = CONTENT_OPTIMIZATION_PROMPT.format(
+            original_content=original_content,
+            quality_assessment=json.dumps(quality_assessment, ensure_ascii=False, indent=2)
+        )
+        
+        result = self.chat_completion(
+            prompt=prompt,
+            max_tokens=2500,
+            temperature=0.6
+        )
+        
+        return result
 
 
 # 全局LLM客户端实例

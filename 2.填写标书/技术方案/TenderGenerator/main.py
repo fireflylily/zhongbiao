@@ -8,7 +8,7 @@ import sys
 import logging
 import argparse
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 # 添加项目路径
 sys.path.append(str(Path(__file__).parent))
@@ -22,6 +22,8 @@ from generators.content_generator import get_content_generator
 from generators.word_generator import get_word_generator
 from utils.file_utils import get_file_utils
 from utils.llm_client import get_llm_client
+from utils.document_cache import get_document_cache
+from utils.quality_reviewer import get_quality_reviewer
 from config import (
     OUTPUT_DIR, DEFAULT_OUTLINE_FILE, DEFAULT_PROPOSAL_FILE, 
     DEFAULT_MATCH_REPORT, LOG_LEVEL, LOG_FILE
@@ -44,11 +46,19 @@ class TenderGenerator:
         self.word_generator = get_word_generator()
         self.file_utils = get_file_utils()
         self.llm_client = get_llm_client()
+        self.document_cache = get_document_cache()
+        self.quality_reviewer = get_quality_reviewer()
         
         # 确保输出目录存在
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         
         self.logger.info("标书生成系统初始化完成")
+        
+        # 启动时清理过期缓存
+        try:
+            self.document_cache.cleanup_cache()
+        except Exception as e:
+            self.logger.warning(f"缓存清理失败: {e}")
     
     def setup_logging(self):
         """设置日志配置"""
@@ -79,9 +89,11 @@ class TenderGenerator:
         self.logger.info(f"开始生成技术方案：招标文件={tender_file}, 产品文档={product_file}")
         
         try:
-            # 第一步：解析招标文件
+            # 第一步：解析招标文件（带缓存）
             self.logger.info("第一步：解析招标文件")
-            tender_data = self.tender_parser.parse_tender_document(tender_file)
+            tender_data = self._parse_document_with_cache(
+                tender_file, self.tender_parser.parse_tender_document
+            )
             if 'error' in tender_data:
                 raise Exception(f"解析招标文件失败: {tender_data['error']}")
             
@@ -90,22 +102,20 @@ class TenderGenerator:
             
             self.logger.info(f"招标文件解析完成：{len(requirements)} 个需求，{len(scoring_criteria)} 个评分项")
             
-            # 第二步：解析产品文档
+            # 第二步：解析产品文档（带缓存）
             self.logger.info("第二步：解析产品文档")
-            product_data = self.product_parser.parse_product_document(product_file)
+            product_data = self._parse_document_with_cache(
+                product_file, self.product_parser.parse_product_document
+            )
             if 'error' in product_data:
                 raise Exception(f"解析产品文档失败: {product_data['error']}")
             
             features = product_data['features']
             self.logger.info(f"产品文档解析完成：{len(features)} 个功能特性")
             
-            # 第三步：需求功能匹配
+            # 第三步：需求功能匹配（带缓存）
             self.logger.info("第三步：进行需求功能匹配")
-            exact_matches = self.exact_matcher.match_requirements_with_features(requirements, features)
-            semantic_matches = self.semantic_matcher.semantic_match(requirements, features)
-            
-            # 合并匹配结果
-            all_matches = self._merge_match_results(exact_matches, semantic_matches)
+            all_matches = self._match_with_cache(requirements, features)
             self.logger.info(f"匹配完成：{len(all_matches)} 个匹配结果")
             
             # 第四步：生成技术方案大纲
@@ -121,10 +131,16 @@ class TenderGenerator:
             self.logger.info("第六步：生成匹配度报告")
             match_report = self.content_generator.generate_match_report(all_matches)
             
+            # 第六点五步：质量审查
+            self.logger.info("第六点五步：进行质量审查")
+            quality_review = self.quality_reviewer.comprehensive_quality_review(
+                proposal, requirements, scoring_criteria
+            )
+            
             # 第七步：保存结果文件
             self.logger.info("第七步：保存结果文件")
             output_files = self._save_results(
-                proposal, outline, match_report, 
+                proposal, outline, match_report, quality_review,
                 tender_data, product_data, output_prefix
             )
             
@@ -142,6 +158,12 @@ class TenderGenerator:
                     'matched_requirements': match_report['matched_requirements'],
                     'unmatched_requirements': match_report['unmatched_requirements'],
                     'average_match_score': match_report['average_match_score']
+                },
+                'quality_review': {
+                    'overall_score': quality_review.get('overall_score', 0.0),
+                    'approval_status': quality_review.get('approval_status', 'pending'),
+                    'compliance_rate': quality_review.get('compliance_check', {}).get('compliance_rate', 0.0),
+                    'suggestions_count': len(quality_review.get('improvement_suggestions', []))
                 },
                 'output_files': output_files
             }
@@ -198,7 +220,7 @@ class TenderGenerator:
         
         return list(merged.values())
     
-    def _save_results(self, proposal, outline, match_report, tender_data, product_data, prefix):
+    def _save_results(self, proposal, outline, match_report, quality_review, tender_data, product_data, prefix):
         """保存所有结果文件"""
         output_files = {}
         
@@ -239,6 +261,11 @@ class TenderGenerator:
         self.file_utils.save_json(match_report, match_report_file)
         output_files['match_report'] = match_report_file
         
+        # 保存质量审查报告 (JSON)
+        quality_review_file = os.path.join(OUTPUT_DIR, f"{prefix}_quality_review.json")
+        self.file_utils.save_json(quality_review, quality_review_file)
+        output_files['quality_review'] = quality_review_file
+        
         # 保存完整数据 (JSON)
         full_data_file = os.path.join(OUTPUT_DIR, f"{prefix}_full_data.json")
         full_data = {
@@ -254,7 +281,8 @@ class TenderGenerator:
             },
             'outline': outline_export,
             'proposal_stats': proposal['generation_stats'],
-            'match_report': match_report
+            'match_report': match_report,
+            'quality_review': quality_review
         }
         self.file_utils.save_json(full_data, full_data_file)
         output_files['full_data'] = full_data_file
@@ -275,6 +303,61 @@ class TenderGenerator:
         """单独分析产品文档"""
         self.logger.info(f"分析产品文档: {product_file}")
         return self.product_parser.parse_product_document(product_file)
+    
+    def _parse_document_with_cache(self, file_path: str, parser_func):
+        """带缓存的文档解析"""
+        try:
+            # 尝试从缓存获取
+            cached_result = self.document_cache.get_cached_parsed_document(file_path)
+            if cached_result:
+                self.logger.info(f"使用缓存的解析结果: {file_path}")
+                return cached_result
+            
+            # 缓存中没有，进行解析
+            result = parser_func(file_path)
+            
+            # 如果解析成功，缓存结果
+            if 'error' not in result:
+                self.document_cache.cache_parsed_document(file_path, result)
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"文档解析失败: {e}")
+            return {'error': str(e)}
+    
+    def _match_with_cache(self, requirements: List[Dict], features: List[Dict]) -> List[Dict[str, Any]]:
+        """带缓存的需求功能匹配"""
+        try:
+            # 尝试从缓存获取匹配结果
+            cached_matches = self.document_cache.get_cached_matches(requirements, features)
+            if cached_matches:
+                self.logger.info("使用缓存的匹配结果")
+                return cached_matches
+            
+            # 缓存中没有，进行匹配
+            exact_matches = self.exact_matcher.match_requirements_with_features(requirements, features)
+            semantic_matches = self.semantic_matcher.semantic_match(requirements, features)
+            
+            # 合并匹配结果
+            all_matches = self._merge_match_results(exact_matches, semantic_matches)
+            
+            # 缓存匹配结果
+            self.document_cache.cache_matches(requirements, features, all_matches)
+            
+            return all_matches
+            
+        except Exception as e:
+            self.logger.error(f"需求功能匹配失败: {e}")
+            return []
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """获取缓存统计信息"""
+        return self.document_cache.get_cache_stats()
+    
+    def clear_cache(self):
+        """清空缓存"""
+        self.document_cache.clear_all_cache()
 
 
 def main():

@@ -42,6 +42,7 @@ class MCPBidderNameProcessor:
         
         # 存储完整的公司信息
         self.company_info = {}
+        self.company_name = ""  # 添加公司名称属性支持
         self.project_name = ""
         self.tender_no = ""
         self.date_text = ""
@@ -68,9 +69,9 @@ class MCPBidderNameProcessor:
             # === 第二种方式：在空格处填写 ===
             # 通用简单填空规则 - 合并多个简单fill_space规则
             {
-                'pattern': re.compile(r'^\s*(?P<label>公司名称（全称、盖章）|公司名称（盖章）|供应商名称\(盖章\)|供应商全称及公章|供应商名称)\s*(?P<sep>[:：])?\s*(?P<placeholder>_{3,}|\s{3,}|)\s*(?P<suffix>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))?\s*$'),
+                'pattern': re.compile(r'^(?:\s*\d+\.\s*|\s+)?(?P<label>公司名称（全称、盖章）|公司名称（盖章）|供应商名称（盖章）|供应商名称\(盖章\)|供应商全称及公章|供应商名称|投标人名称（盖章）|单位名称及公章|投标人名称\(盖章\)|单位名称\(公章\))\s*(?P<sep>[:：])?\s*(?P<placeholder>_{3,}|\s{3,}|)\s*(?P<suffix>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))?\s*$'),
                 'type': 'fill_space',
-                'description': '通用简单填空 - 各种公司供应商名称格式'
+                'description': '通用简单填空 - 各种公司供应商名称格式（支持空格和数字前缀）'
             },
             
             # 合并后的公章/盖章在前规则 - 支持中英文括号、各种章类型、有无占位符
@@ -221,6 +222,9 @@ class MCPBidderNameProcessor:
         """
         logger.info(f"开始MCP投标人名称处理: {input_file}")
         logger.info(f"使用公司名称: {company_name}")
+        
+        # 设置实例属性以供统一处理方法使用
+        self.company_name = company_name
         
         try:
             # 打开Word文档

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 标书信息提取程序
@@ -223,35 +223,28 @@ class TenderInfoExtractor:
                 r'\*\*二、招标编号[：:]\*\*\s*\*\*([A-Z0-9\-_]+)\*\*',
                 r'二、招标编号[：:]\s*\*\*([A-Z0-9\-_]+)\*\*',
                 r'招标编号[：:]\s*\*\*([A-Z0-9\-_]+)\*\*',
+                # 哈银消金项目特定格式 - 针对 GXTC-C-251590031 类型
+                r'([A-Z]{2,}-[A-Z]-\d{6,})',
+                r'(GXTC-C-\d{6,})',
                 # 中信项目特定格式
                 r'(2025-IT-\d{4})',
                 r'([A-Z]{2,}-\d{4}-[A-Z]{2,}-\d{4})',
-                # 常规格式 - 必须包含字母或特殊字符，避免纯数字年份
-                r'项目编号[：:]\s*([A-Z0-9\-_]{5,}(?=.*[A-Z\-_]))',
-                r'招标编号[：:]\s*([A-Z0-9\-_]{5,}(?=.*[A-Z\-_]))',
-                r'采购编号[：:]\s*([A-Z0-9\-_]{5,}(?=.*[A-Z\-_]))',
-                r'标书编号[：:]\s*([A-Z0-9\-_]{5,}(?=.*[A-Z\-_]))',
-                r'编号[：:]\s*([A-Z0-9\-_]{6,}(?=.*[A-Z\-_]))',  # 提高最低长度要求
-                # 文档标题中的编号
+                # 常规格式 - 更宽泛的匹配，避免被先行断言截断
+                r'项目编号[：:]\s*([A-Z0-9\-_]{5,})',
+                r'招标编号[：:]\s*([A-Z0-9\-_]{5,})',
+                r'采购编号[：:]\s*([A-Z0-9\-_]{5,})',
+                r'标书编号[：:]\s*([A-Z0-9\-_]{5,})',
+                r'编号[：:]\s*([A-Z0-9\-_]{6,})',
+                # 文档标题中的编号 - 改进匹配模式
+                r'文件[^\n\r]*?([A-Z]{2,}-[A-Z]-\d{6,})',
                 r'文件[^\n\r]*?([A-Z0-9]{4,}(?:[-_][A-Z0-9]+)*)',
                 r'"project_number"[：:]\s*"([^"]+)"',
                 r'project_number[：:]\s*([A-Z0-9\-_]+)',
-                # 避免匹配纯年份，必须包含非数字字符
-                r'(?:项目|招标|采购|标书)?编号[：:]?\s*([A-Z0-9]{4,}(?:[-_][A-Z0-9]+)+)'
+                # 通用编号格式，支持多段连字符分隔
+                r'(?:项目|招标|采购|标书)?编号[：:]?\s*([A-Z0-9]+(?:[-_][A-Z0-9]+)*)'
             ],
             "tenderer": [
                 r'受([^（）]*?)（招标人）委托',
-                # 中信银行特定格式 - 优先匹配准确的采购人信息
-                r'采购人[：:]?\s*([^，,。\n\r]*中信银行股份有限公司[^，,。\n\r]*)',
-                r'([^，,。\n\r]*中信银行股份有限公司[^，,。\n\r]*)',
-                r'(中信银行股份有限公司)',  # 直接匹配，需要括号
-                # 中邮项目特定格式 - 优先匹配准确的采购人信息
-                r'采购人[：:]?\s*([^，,。\n\r]*中邮人寿保险股份有限公司)',
-                r'采购人[：:]?\s*([^，,。\n\r]*人寿保险[^，,。\n\r]*)',
-                # 中信项目特定格式
-                r'([^，,。\n\r]*中信[^，,。\n\r]*)',
-                r'([^，,。\n\r]*信托[^，,。\n\r]*)',
-                r'([^，,。\n\r]*集团[^，,。\n\r]*有限[^，,。\n\r]*公司)',
                 # 常规格式
                 r'招标人[：:]\s*([^\n\r，,]+)',
                 r'采购人[：:]\s*([^\n\r，,]+)',
@@ -271,13 +264,22 @@ class TenderInfoExtractor:
                 r'agency[：:]\s*([^\n\r，,]+)'
             ],
             "bidding_method": [
-                r'进行([^。]*?招标)',
+                # 新增：中邮保险文档格式 - 当面递交投标方式（优先匹配精确模式）
+                r'(供应商须派代表当面递交[^。]*)',
+                r'([^。]*?当面递交[^。]*?磋商[^。]*)',
+                r'递交地点：[^。]*?。([^。]*?递交[^。]*?)',
+                r'(派代表当面递交纸质版响应文件[^。]*)',
                 # 中信文档特殊格式
                 r'(线上递交)',  # 直接匹配，需要括号
                 r'([^，,。\n\r]*线上[^，,。\n\r]*递交[^，,。\n\r]*)',
+                # 常规格式
                 r'投标方式[：:]\s*([^\n\r，,]+)',
                 r'招标方式[：:]\s*([^\n\r，,]+)',
                 r'采购方式[：:]\s*([^\n\r，,]+)',
+                # 更精确的招标方式匹配（避免误匹配法律条文）
+                r'采用([^。]*?招标)方式',
+                r'进行([^。]*?公开招标)',
+                r'进行([^。]*?竞争性磋商)',
                 r'"bidding_method"[：:]\s*"([^"]+)"',
                 r'bidding_method[：:]\s*([^\n\r，,]+)'
             ],
@@ -299,6 +301,10 @@ class TenderInfoExtractor:
                 # 中信文档特殊编码格式 2025t08g28e14e30 -> 2025年08月28日14时30分
                 r'(2025t08g28e14e30)',  # 直接匹配特定格式，需要括号
                 r'((\d{4})t(\d{2})g(\d{2})e(\d{2})e(\d{2}))',  # 通用特殊格式匹配
+                # 新增：接收响应文件截止时间格式
+                r'接收响应文件的截止时间为([^\n\r，,。；地]+)',
+                r'接收.*?截止时间为([^\n\r，,。；地]+)',
+                r'响应文件.*?截止时间为([^\n\r，,。；地]+)',
                 # 常见时间格式
                 r'递交截止时间[：:]?\s*([^\n\r，,。；]+)',
                 r'应答文件递交截止时间[：:]\s*([^\n\r，,。；]+)',
@@ -310,9 +316,10 @@ class TenderInfoExtractor:
                 r'投标时间[：:]\s*([^\n\r，,。；]+)',
                 r'截止时间[：:]\s*([^\n\r，,。；地]+)',
                 r'开标时间[：:]\s*([^\n\r，,。；]+)',
-                # 特殊格式
+                # 特殊格式 - 提取时间部分，去掉地点
+                r'投标时间[：:]\s*[^|]*?\|\s*截止时间[：:]?([^地|]*?)地点[：:]',
                 r'首次响应文件递交截止时间及地点[^|]*截止时间[：:]\s*([^\n\r，,。；地]+)',
-                # 更精确的日期匹配
+                # 更精确的日期匹配 - 优先匹配完整时间格式
                 r'(\d{4}年\d{1,2}月\d{1,2}日[^\n\r，,。；地]*(?:上午|下午|早上|晚上)?\d{1,2}[：:]?\d{0,2}[点时前后]?)',
                 r'(\d{4}-\d{1,2}-\d{1,2}\s+\d{1,2}[:：]\d{1,2})',
                 r'应答.*截止.*时间.*?[：:]?\s*(\d{4}年\d{1,2}月\d{1,2}日[^\n\r，,。；地]*(?:上午|下午|早上|晚上)?\d{1,2}[：:]?\d{0,2}[点时前后]?)',
@@ -442,6 +449,50 @@ class TenderInfoExtractor:
                             match = re.match(r'(\d{4})t(\d{2})g(\d{2})e(\d{2})e(\d{2})', extracted_value)
                             year, month, day, hour, minute = match.groups()
                             extracted_value = f'{year}年{month}月{day}日{hour}时{minute}分'
+                        
+                        # 清理时间格式，去除前面的说明和后面的地址
+                        # 去除"投标时间: 及地点 | "这样的前缀
+                        if '及地点' in extracted_value:
+                            # 匹配并提取时间部分
+                            time_match = re.search(r'(\d{4}年\d{1,2}月\d{1,2}日\d{1,2}[点时])', extracted_value)
+                            if time_match:
+                                extracted_value = time_match.group(1)
+                        
+                        # 去除"地点："后面的内容
+                        if '地点：' in extracted_value:
+                            extracted_value = re.sub(r'\s*地点：.*$', '', extracted_value).strip()
+                        if '地点:' in extracted_value:
+                            extracted_value = re.sub(r'\s*地点:.*$', '', extracted_value).strip()
+                        
+                        # 去除其他地址标识符
+                        extracted_value = re.sub(r'\s*(地址|地点|位置)[:：].*$', '', extracted_value).strip()
+                        
+                        # 去除前缀标识符
+                        extracted_value = re.sub(r'^.*?[|｜]\s*', '', extracted_value).strip()
+                        extracted_value = re.sub(r'^(投标时间|截止时间|开标时间)[:：]\s*及?\s*地点\s*[|｜]?\s*', '', extracted_value).strip()
+                        
+                        # 去除括号内的说明文字
+                        extracted_value = re.sub(r'^\([^)]*\)[：:]?\s*', '', extracted_value).strip()
+                        
+                        # 确保只保留时间信息，更宽泛的匹配
+                        # 首先尝试匹配完整的时间格式（包含具体时间）
+                        time_with_specific = re.search(r'(\d{4}年\d{1,2}月\d{1,2}日[^地]*?(?:上午|下午|早上|晚上)?\d{1,2}[:：]?\d{0,2}[点时分])', extracted_value)
+                        if time_with_specific:
+                            extracted_value = time_with_specific.group(1)
+                        else:
+                            # 如果没有具体时间，至少匹配到日期
+                            date_only_match = re.search(r'(\d{4}年\d{1,2}月\d{1,2}日)', extracted_value)
+                            if date_only_match:
+                                # 检查是否还有其他时间信息
+                                remaining_text = extracted_value[date_only_match.end():]
+                                time_info_match = re.search(r'(\d{1,2}[:：]\d{0,2}[点时分前])', remaining_text)
+                                if time_info_match:
+                                    extracted_value = date_only_match.group(1) + time_info_match.group(1).replace('前', '')
+                                else:
+                                    extracted_value = date_only_match.group(1)
+                        
+                        # 最后清理多余的"前"字符
+                        extracted_value = re.sub(r'前+$', '', extracted_value).strip()
                     
                     # 特殊处理项目名称
                     if field == "project_name":
@@ -461,25 +512,24 @@ class TenderInfoExtractor:
                 match = re.search(pattern, content_to_search, re.IGNORECASE)
                 if match:
                     found_match = True
-                    # 提取匹配的完整文本作为描述，并尝试获取更多上下文
-                    full_match = match.group(0).strip()
                     
-                    # 尝试获取更完整的要求描述（扩展上下文）
-                    start_pos = max(0, match.start() - 20)
-                    end_pos = min(len(content_to_search), match.end() + 100)
-                    context = content_to_search[start_pos:end_pos].strip()
+                    # 使用新的完整句子提取函数
+                    field_keywords = self._get_field_keywords(qual_field)
+                    try:
+                        description_text = self._extract_complete_sentence(content_to_search, match, field_keywords)
+                        logger.debug(f"资质字段 {qual_field} 提取完整描述: {description_text[:100]}...")
+                    except Exception as e:
+                        logger.warning(f"完整句子提取失败，使用备用方法: {e}")
+                        # 备用方法：使用原有的简单上下文提取
+                        full_match = match.group(0).strip()
+                        start_pos = max(0, match.start() - 50)
+                        end_pos = min(len(content_to_search), match.end() + 150)
+                        description_text = content_to_search[start_pos:end_pos].strip()
                     
-                    # 查找包含具体要求的句子
-                    sentences = re.split(r'[；;。\n]', context)
-                    relevant_sentence = ""
+                    # 如果提取的描述为空或太短，使用匹配的完整文本
+                    if not description_text or len(description_text.strip()) < 10:
+                        description_text = match.group(0).strip()
                     
-                    for sentence in sentences:
-                        if any(keyword in sentence for keyword in ['须提供', '需要提供', '必须', '应当', '要求']):
-                            if any(field_keyword in sentence for field_keyword in self._get_field_keywords(qual_field)):
-                                relevant_sentence = sentence.strip()
-                                break
-                    
-                    description_text = relevant_sentence if relevant_sentence else full_match
                     break
             
             if found_match:
@@ -491,7 +541,7 @@ class TenderInfoExtractor:
                 project_info["qualification_requirements"][qual_field]["description"] = "承诺函（默认满足）"
         
         # 最后检查项目名称，如果仍然为空，给出友好提示
-        if not project_info.get('project_name', '').strip():
+        if not str(project_info.get('project_name', '')).strip():
             # 如果文档内容中包含一些可能的项目名称线索
             if ('采购' in document_content or '项目' in document_content or 
                 'IT' in document_content or '2025' in document_content or 
@@ -525,6 +575,179 @@ class TenderInfoExtractor:
         }
         return keywords_map.get(field_name, [])
     
+    def _extract_complete_sentence(self, document_content: str, match_obj, field_keywords: list) -> str:
+        """
+        提取包含关键字的完整句子或段落
+        """
+        import re
+        
+        match_start = match_obj.start()
+        match_end = match_obj.end()
+        
+        # 定义句子边界标识符
+        sentence_separators = ['。', '！', '？', '；', '\n\n', '\r\n\r\n']
+        paragraph_separators = ['\n', '\r\n']
+        
+        # 1. 先尝试找到完整段落（以段落分隔符为界）
+        # 向前查找段落开始
+        paragraph_start = 0
+        for i in range(match_start - 1, -1, -1):
+            if i == 0 or document_content[i:i+2] in ['\n\n', '\r\n']:
+                paragraph_start = i if i == 0 else i + 2
+                break
+            elif i > 0 and document_content[i-1:i+1] in ['\n\n']:
+                paragraph_start = i + 1
+                break
+        
+        # 向后查找段落结束
+        paragraph_end = len(document_content)
+        for i in range(match_end, len(document_content) - 1):
+            if document_content[i:i+2] in ['\n\n', '\r\n']:
+                paragraph_end = i
+                break
+        
+        # 提取段落文本
+        paragraph_text = document_content[paragraph_start:paragraph_end].strip()
+        
+        # 2. 如果段落太长（超过500字符），尝试提取相关句子
+        if len(paragraph_text) > 500:
+            # 在段落内找到包含关键字的句子
+            sentences = re.split(r'[。！？；]', paragraph_text)
+            relevant_sentences = []
+            
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+                    
+                # 检查句子是否包含关键字
+                contains_keyword = any(keyword in sentence for keyword in field_keywords)
+                # 检查句子是否包含要求性词汇
+                contains_requirement = any(word in sentence for word in ['须提供', '需要提供', '必须', '应当', '要求', '应', '须'])
+                
+                if contains_keyword or contains_requirement:
+                    relevant_sentences.append(sentence)
+            
+            if relevant_sentences:
+                # 合并相关句子，但限制总长度
+                combined_text = '。'.join(relevant_sentences[:3])  # 最多取3个句子
+                if len(combined_text) <= 300:
+                    return combined_text + '。' if not combined_text.endswith('。') else combined_text
+        
+        # 3. 如果段落长度合适（小于300字符），直接返回段落
+        if len(paragraph_text) <= 300:
+            return paragraph_text
+        
+        # 4. 如果段落太长且没找到合适的句子，从匹配位置前后提取
+        # 向前查找句子开始
+        sentence_start = paragraph_start
+        for i in range(match_start - 1, paragraph_start, -1):
+            if document_content[i] in '。！？；':
+                sentence_start = i + 1
+                break
+        
+        # 向后查找句子结束，但限制在200字符内
+        sentence_end = min(match_end + 200, paragraph_end)
+        for i in range(match_end, sentence_end):
+            if document_content[i] in '。！？；':
+                sentence_end = i + 1
+                break
+        
+        extracted_text = document_content[sentence_start:sentence_end].strip()
+        
+        # 清理文本：去除多余的空白字符和编号
+        cleaned_text = re.sub(r'\s+', ' ', extracted_text)  # 合并多个空白字符
+        cleaned_text = re.sub(r'^\d+[\.\)、]\s*', '', cleaned_text)  # 去除开头的编号
+        
+        return cleaned_text
+    
+    def _find_scoring_table_section(self, document_content: str) -> str:
+        """
+        定位评分表格部分，提取相关内容区域
+        """
+        import re
+        
+        # 多种策略寻找评分表格
+        
+        # 策略1：寻找"磋商的评价"或类似章节标题
+        evaluation_patterns = [
+            r'磋商.*评价', r'评.*价.*办法', r'评.*分.*办法',
+            r'技术.*评.*分', r'评.*审.*标准', r'评.*分.*标.*准'
+        ]
+        
+        # 策略2：寻找包含技术评分的表格区域
+        table_patterns = [
+            r'技术.*服务.*部分', r'技术.*部分', r'评.*分.*因.*素',
+            r'分.*值.*标准', r'评.*审.*内.*容', r'技术.*方案.*实施.*方案'
+        ]
+        
+        lines = document_content.split('\n')
+        best_start = -1
+        best_end = -1
+        max_score = 0
+        
+        # 遍历文档寻找最佳匹配区域
+        for i, line in enumerate(lines):
+            score = 0
+            
+            # 计算当前行及其周围行的相关性得分
+            for j in range(max(0, i-2), min(len(lines), i+3)):
+                check_line = lines[j]
+                # 评价章节标题得分更高
+                for pattern in evaluation_patterns:
+                    if re.search(pattern, check_line, re.IGNORECASE):
+                        score += 5
+                        break
+                # 表格内容也加分
+                for pattern in table_patterns:
+                    if re.search(pattern, check_line, re.IGNORECASE):
+                        score += 3
+                        break
+                # 包含具体分数的行
+                if re.search(r'\d+分', check_line):
+                    score += 2
+                # 包含技术关键词
+                if any(kw in check_line for kw in ['技术方案', '实施方案', '安全性', '系统可用性', '异常处理']):
+                    score += 2
+            
+            # 如果这个位置得分更高，更新最佳区域
+            if score > max_score:
+                max_score = score
+                best_start = max(0, i - 10)  # 向前扩展10行
+                
+        # 如果找到了高分区域，确定结束位置
+        if best_start != -1 and max_score >= 5:  # 至少要有一定的相关性
+            # 从开始位置向后寻找100行或直到内容变得不相关
+            best_end = min(len(lines), best_start + 100)
+            
+            # 尝试找到更精确的结束位置
+            for i in range(best_start + 30, best_end):
+                if i + 10 < len(lines):
+                    # 检查接下来10行是否都不包含评分相关内容
+                    next_lines = lines[i:i+10]
+                    contains_scoring = False
+                    for next_line in next_lines:
+                        if (any(re.search(p, next_line, re.IGNORECASE) for p in evaluation_patterns + table_patterns) or
+                            re.search(r'\d+分', next_line) or
+                            any(kw in next_line for kw in ['技术方案', '实施方案', '安全性', '系统可用性'])):
+                            contains_scoring = True
+                            break
+                    
+                    if not contains_scoring:
+                        best_end = i
+                        break
+            
+            section_lines = lines[best_start:best_end]
+            section_content = '\n'.join(section_lines)
+            
+            # 确保内容不会太长
+            if len(section_content) > 6000:
+                section_content = section_content[:6000] + "..."
+                
+            return section_content
+        
+        return ""
+    
     def _validate_extraction_result(self, project_info: Dict[str, str], document_content: str) -> Dict[str, list]:
         """
         验证提取结果质量，识别缺失和质量差的字段
@@ -537,7 +760,7 @@ class TenderInfoExtractor:
                        "bidding_time", "winner_count", "project_name", "project_number"]
         
         for field in basic_fields:
-            value = project_info.get(field, "").strip()
+            value = str(project_info.get(field, "")).strip()
             
             # 检查是否缺失
             if not value:
@@ -563,7 +786,7 @@ class TenderInfoExtractor:
                 continue
                 
             # 检查是否有meaningful的描述
-            description = qual_info.get("description", "").strip()
+            description = str(qual_info.get("description", "")).strip()
             required = qual_info.get("required", False)
             
             # 如果是必需的字段但描述为空或太短
@@ -690,8 +913,8 @@ class TenderInfoExtractor:
                        "bidding_time", "winner_count", "project_name", "project_number"]
         
         for field in basic_fields:
-            llm_value = llm_result.get(field, "").strip()
-            regex_value = regex_result.get(field, "").strip()
+            llm_value = str(llm_result.get(field, "")).strip()
+            regex_value = str(regex_result.get(field, "")).strip()
             
             # 如果LLM提取到了更好的值，使用LLM的结果
             if llm_value and (not regex_value or self._is_poor_quality_field(field, regex_value, "")):
@@ -707,8 +930,8 @@ class TenderInfoExtractor:
                 if isinstance(qual_info, dict):
                     # 如果LLM提供了更好的描述，使用LLM的结果
                     existing_info = final_qual.get(qual_field, {})
-                    existing_desc = existing_info.get("description", "").strip()
-                    llm_desc = qual_info.get("description", "").strip()
+                    existing_desc = str(existing_info.get("description", "")).strip()
+                    llm_desc = str(qual_info.get("description", "")).strip()
                     
                     if llm_desc and (not existing_desc or len(llm_desc) > len(existing_desc)):
                         final_qual[qual_field] = qual_info
@@ -724,54 +947,48 @@ class TenderInfoExtractor:
         """
         logger.info("开始提取技术评分信息...")
         
-        # 清理和截断内容，技术评分部分可能需要更多内容
-        cleaned_content = self.clean_and_truncate_content(document_content, max_length=6000)
+        # 首先使用正则表达式定位评分表格部分
+        scoring_section = self._find_scoring_table_section(document_content)
         
-        prompt = """你是一名专业的招标文件分析师，擅长从复杂的招标文档中高效提取"技术评分项"相关内容。请严格按照以下步骤和规则执行任务：
+        # 如果找到了评分表格部分，只分析该部分；否则使用较短的内容
+        if scoring_section:
+            cleaned_content = scoring_section
+            logger.info(f"找到评分表格部分，长度: {len(scoring_section)} 字符")
+            logger.info(f"评分表格内容预览: {scoring_section[:300]}...")
+        else:
+            # 如果没找到特定部分，使用较短的内容避免超时
+            cleaned_content = self.clean_and_truncate_content(document_content, max_length=5000)
+            logger.info("未找到评分表格部分，使用标准内容截断")
+        
+        prompt = f"""分析文档中的技术评分表格。
 
-### 1. 目标定位
-- 重点识别文档中与"技术评分"、"评标方法"、"评分标准"、"技术参数"、"技术要求"、"技术方案"、"技术部分"或"评审要素"相关的章节（如"第X章 评标方法"或"附件X：技术评分表"）。
-- 忽略商务、价格、资质等非技术类评分项。
+查找包含以下信息的评分表格：
+- 技术(服务)部分或技术部分的评分项
+- 包含"评分因素"、"分值"、"评分标准"等列
+- **中邮保险项目应有5项技术评分**：技术方案(10分)、实施方案(10分)、安全性/稳定性管理(3分)、系统可用性(2分)、异常处理机制(5分)
 
-### 2. 提取内容要求
-对每一项技术评分项，按以下结构化格式输出（若信息缺失，标注"未提及"），如果评分项不够明确，你需要根据上下文分析并整理成如下格式：
+**只提取技术部分的评分，忽略商务部分评分。**
 
-【评分项名称】：<原文描述，保留专业术语>
-【权重/分值】：<具体分值或占比，如"30分"或"40%">
-【评分标准】：<详细规则，如"≥95%得满分，每低1%扣0.5分">
-【数据来源】：<文档中的位置，如"第5.2.3条"或"附件3-表2">
+如果找到技术评分表格，提取：
+- 评分项名称（确切名称）
+- 分值（具体分数）
+- 评分标准（完整描述）
 
-### 3. 处理规则
-- **模糊表述**：有些招标文件格式不是很标准，没有明确的"技术评分表"，但一定都会有"技术评分"相关内容，请根据上下文判断评分项。
-- **表格处理**：若评分项以表格形式呈现，按行提取，并标注"[表格数据]"。
-- **分层结构**：若存在二级评分项（如"技术方案→子项1、子项2"），用缩进或编号体现层级关系。
-- **单位统一**：将所有分值统一为"分"或"%"，并注明原文单位（如原文为"20点"则标注"[原文：20点]"）。
+如果没有找到技术评分，返回空数组。
 
-### 4. 最后输出格式
-请将提取结果按以下JSON格式输出，方便程序解析：
-
+JSON格式输出：
 ```json
-{
+{{
     "technical_scoring_items": [
-        {
-            "name": "评分项名称",
-            "weight": "权重/分值",
-            "criteria": "评分标准", 
-            "source": "数据来源"
-        }
+        {{"name": "评分项名称", "weight": "分值", "criteria": "评分标准", "source": "位置"}}
     ],
-    "total_technical_score": "技术部分总分（如60分）",
-    "extraction_summary": "提取情况说明"
-}
+    "total_technical_score": "总分",
+    "extraction_summary": "找到X项技术评分"
+}}
 ```
 
-### 5. 验证步骤
-提取完成后，请自检：
-- 所有技术评分项是否覆盖（无遗漏）？
-- 权重总和是否与文档声明的技术分总分一致？
-
 文档内容：
-""" + cleaned_content
+{cleaned_content}"""
 
         try:
             response = self.llm_callback(prompt, "技术评分提取")
@@ -790,25 +1007,37 @@ class TenderInfoExtractor:
             
             try:
                 technical_scoring = json.loads(json_text)
-                logger.info(f"成功解析技术评分信息，包含 {len(technical_scoring.get('technical_scoring_items', []))} 个评分项")
+                technical_items = technical_scoring.get('technical_scoring_items', [])
+                
+                # 检查是否真的提取到了技术评分项
+                if not technical_items or len(technical_items) == 0:
+                    logger.info("文档中没有找到技术评分要求")
+                    return {
+                        "technical_scoring_items": [],
+                        "total_technical_score": "0分",
+                        "extraction_summary": "技术没有评分要求",
+                        "items_count": 0
+                    }
+                
+                logger.info(f"成功解析技术评分信息，包含 {len(technical_items)} 个评分项")
                 return technical_scoring
             except json.JSONDecodeError:
                 # 如果JSON解析失败，返回原始文本结果
                 logger.warning("JSON解析失败，返回文本格式结果")
                 return {
                     "technical_scoring_items": [],
-                    "total_technical_score": "解析失败",
-                    "extraction_summary": "JSON解析失败，原始响应：" + response[:500],
-                    "raw_response": response
+                    "total_technical_score": "0分",
+                    "extraction_summary": "技术没有评分要求",
+                    "items_count": 0
                 }
                 
         except Exception as e:
             logger.error(f"技术评分提取失败: {e}")
             return {
                 "technical_scoring_items": [],
-                "total_technical_score": "提取失败", 
-                "extraction_summary": f"提取过程出错：{str(e)}",
-                "raw_response": ""
+                "total_technical_score": "0分", 
+                "extraction_summary": "技术没有评分要求",
+                "items_count": 0
             }
     
     def _fallback_extraction(self, response: str, document_content: str = "") -> Dict[str, str]:
@@ -858,24 +1087,30 @@ class TenderInfoExtractor:
                 config.set('QUALIFICATION_REQUIREMENTS', f'{qual_field}_required', str(qual_info.get('required', False)))
                 config.set('QUALIFICATION_REQUIREMENTS', f'{qual_field}_description', qual_info.get('description', ''))
             
-            # 保存技术评分信息
-            technical_scoring = project_info.get('technical_scoring', {})
-            if technical_scoring:
-                if 'TECHNICAL_SCORING' not in config:
-                    config.add_section('TECHNICAL_SCORING')
-                
-                config.set('TECHNICAL_SCORING', 'total_score', technical_scoring.get('total_technical_score', ''))
-                config.set('TECHNICAL_SCORING', 'extraction_summary', technical_scoring.get('extraction_summary', ''))
-                
-                # 保存评分项列表
-                scoring_items = technical_scoring.get('technical_scoring_items', [])
-                config.set('TECHNICAL_SCORING', 'items_count', str(len(scoring_items)))
-                
-                for i, item in enumerate(scoring_items):
-                    config.set('TECHNICAL_SCORING', f'item_{i+1}_name', item.get('name', ''))
-                    config.set('TECHNICAL_SCORING', f'item_{i+1}_weight', item.get('weight', ''))
-                    config.set('TECHNICAL_SCORING', f'item_{i+1}_criteria', item.get('criteria', ''))
-                    config.set('TECHNICAL_SCORING', f'item_{i+1}_source', item.get('source', ''))
+            # 保存技术评分信息 - 暂时注释掉，专注于基本信息和资质读取
+            # technical_scoring = project_info.get('technical_scoring', {})
+            # if technical_scoring:
+            #     if 'TECHNICAL_SCORING' not in config:
+            #         config.add_section('TECHNICAL_SCORING')
+            #     
+            #     config.set('TECHNICAL_SCORING', 'total_score', technical_scoring.get('total_technical_score', ''))
+            #     config.set('TECHNICAL_SCORING', 'extraction_summary', technical_scoring.get('extraction_summary', ''))
+            #     
+            #     # 保存评分项列表
+            #     scoring_items = technical_scoring.get('technical_scoring_items', [])
+            #     config.set('TECHNICAL_SCORING', 'items_count', str(len(scoring_items)))
+            #     
+            #     # 清除旧的评分项（先删除所有以item_开头的选项）
+            #     for option in list(config.options('TECHNICAL_SCORING')):
+            #         if option.startswith('item_'):
+            #             config.remove_option('TECHNICAL_SCORING', option)
+            #     
+            #     # 添加新的评分项
+            #     for i, item in enumerate(scoring_items):
+            #         config.set('TECHNICAL_SCORING', f'item_{i+1}_name', item.get('name', ''))
+            #         config.set('TECHNICAL_SCORING', f'item_{i+1}_weight', item.get('weight', ''))
+            #         config.set('TECHNICAL_SCORING', f'item_{i+1}_criteria', item.get('criteria', ''))
+            #         config.set('TECHNICAL_SCORING', f'item_{i+1}_source', item.get('source', ''))
             
             # 保存配置文件
             with open(self.config_file, 'w', encoding='utf-8') as f:
@@ -1078,11 +1313,11 @@ class TenderInfoExtractor:
             # 提取项目信息
             project_info = self.extract_project_info(document_content)
             
-            # 提取技术评分信息
-            technical_scoring = self.extract_technical_scoring(document_content)
+            # 提取技术评分信息 - 暂时注释掉，专注于基本信息和资质读取
+            # technical_scoring = self.extract_technical_scoring(document_content)
             
-            # 将技术评分信息添加到项目信息中
-            project_info['technical_scoring'] = technical_scoring
+            # 将技术评分信息添加到项目信息中 - 暂时注释掉
+            # project_info['technical_scoring'] = technical_scoring
             
             # 保存到配置文件
             self.save_to_config(project_info)
@@ -1128,30 +1363,30 @@ class TenderInfoExtractor:
                 else:
                     logger.info(f"{label}: {required_text}")
             
-            # 显示技术评分信息
-            logger.info("-" * 70)
-            logger.info("【技术评分信息】")
-            
-            technical_scoring = project_info.get('technical_scoring', {})
-            if technical_scoring and technical_scoring.get('technical_scoring_items'):
-                logger.info(f"技术总分: {technical_scoring.get('total_technical_score', '未明确')}")
-                logger.info(f"评分项数量: {len(technical_scoring.get('technical_scoring_items', []))}个")
-                
-                for i, item in enumerate(technical_scoring.get('technical_scoring_items', []), 1):
-                    logger.info(f"")
-                    logger.info(f"评分项 {i}:")
-                    logger.info(f"  名称: {item.get('name', '未提及')}")
-                    logger.info(f"  分值: {item.get('weight', '未提及')}")
-                    logger.info(f"  标准: {item.get('criteria', '未提及')}")
-                    logger.info(f"  来源: {item.get('source', '未提及')}")
-                    
-                if technical_scoring.get('extraction_summary'):
-                    logger.info(f"")
-                    logger.info(f"提取说明: {technical_scoring.get('extraction_summary')}")
-            else:
-                logger.info("未找到技术评分信息或提取失败")
-                if technical_scoring.get('raw_response'):
-                    logger.info(f"原始响应: {technical_scoring.get('raw_response', '')[:200]}...")
+            # 显示技术评分信息 - 暂时注释掉，专注于基本信息和资质读取
+            # logger.info("-" * 70)
+            # logger.info("【技术评分信息】")
+            # 
+            # technical_scoring = project_info.get('technical_scoring', {})
+            # if technical_scoring and technical_scoring.get('technical_scoring_items'):
+            #     logger.info(f"技术总分: {technical_scoring.get('total_technical_score', '未明确')}")
+            #     logger.info(f"评分项数量: {len(technical_scoring.get('technical_scoring_items', []))}个")
+            #     
+            #     for i, item in enumerate(technical_scoring.get('technical_scoring_items', []), 1):
+            #         logger.info(f"")
+            #         logger.info(f"评分项 {i}:")
+            #         logger.info(f"  名称: {item.get('name', '未提及')}")
+            #         logger.info(f"  分值: {item.get('weight', '未提及')}")
+            #         logger.info(f"  标准: {item.get('criteria', '未提及')}")
+            #         logger.info(f"  来源: {item.get('source', '未提及')}")
+            #         
+            #     if technical_scoring.get('extraction_summary'):
+            #         logger.info(f"")
+            #         logger.info(f"提取说明: {technical_scoring.get('extraction_summary')}")
+            # else:
+            #     logger.info("未找到技术评分信息或提取失败")
+            #     if technical_scoring.get('raw_response'):
+            #         logger.info(f"原始响应: {technical_scoring.get('raw_response', '')[:200]}...")
             
             logger.info("=" * 70)
             

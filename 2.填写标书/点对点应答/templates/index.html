@@ -691,32 +691,6 @@
                                            placeholder="例如：2025年 9月 3日">
                                 </div>
 
-                                <!-- 处理器模式选择 -->
-                                <div class="mb-3">
-                                    <label class="form-label">处理器模式</label>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="processorMode" 
-                                                       id="businessUseMcp" value="true" checked>
-                                                <label class="form-check-label" for="businessUseMcp">
-                                                    <strong>MCP处理器</strong> <span class="badge bg-success">推荐</span>
-                                                    <br><small class="text-muted">专门处理投标人名称填写，支持两种填写方式，避免重复处理</small>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="processorMode" 
-                                                       id="businessUseTraditional" value="false">
-                                                <label class="form-check-label" for="businessUseTraditional">
-                                                    <strong>传统处理器</strong>
-                                                    <br><small class="text-muted">兼容性处理器，可能存在重复填写</small>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
 
                                 <!-- 处理按钮 -->
                                 <button type="submit" class="btn btn-success">
@@ -1164,6 +1138,11 @@
         <!-- 页脚 -->
         <div class="footer text-center">
             <p>&copy; 2025 智慧足迹AI标书生成系统 | 专业 · 高效 · 智能</p>
+            <p>
+                <a href="/help.html" class="text-decoration-none">
+                    <i class="bi bi-question-circle"></i> 帮助中心
+                </a>
+            </p>
         </div>
     </div>
 
@@ -3346,7 +3325,7 @@
             const projectName = document.getElementById('businessProjectName').value;
             const tenderNo = document.getElementById('businessTenderNo').value;
             const dateText = document.getElementById('businessDate').value;
-            const useMcp = document.querySelector('input[name="processorMode"]:checked').value;
+            const useMcp = 'true'; // 默认使用MCP处理器
             
             // 验证必填字段
             if (!templateFile) {
@@ -3467,6 +3446,23 @@
         // 页面加载时加载商务应答文件列表
         window.addEventListener('load', function() {
             loadBusinessFilesList();
+            
+            // 添加商务应答公司选择事件监听器
+            const businessCompanySelect = document.getElementById('businessCompanySelect');
+            if (businessCompanySelect) {
+                businessCompanySelect.addEventListener('change', function() {
+                    if (this.value) {
+                        // 当选择公司时，自动加载项目信息
+                        console.log('Company selected for business response:', this.value);
+                        loadProjectInfo();
+                    } else {
+                        // 清空项目信息字段
+                        document.getElementById('businessProjectName').value = '';
+                        document.getElementById('businessTenderNo').value = '';
+                        document.getElementById('businessDate').value = '';
+                    }
+                });
+            }
         });
 
     </script>

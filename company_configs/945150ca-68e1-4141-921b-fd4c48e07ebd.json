@@ -1,0 +1,83 @@
+{
+  "companyName": "智慧足迹数据科技有限公司",
+  "establishDate": "2015-12-18",
+  "legalRepresentative": "李振军",
+  "socialCreditCode": "91110101MA002N1D30",
+  "registeredCapital": "15466.6667万元",
+  "companyType": "有限责任公司",
+  "fixedPhone": "010-63271000",
+  "postalCode": "100010",
+  "registeredAddress": "北京市东城区王府井大街200号七层711室",
+  "officeAddress": "北京市西城区成方街25号长话北院",
+  "website": "http://www.smartsteps.com",
+  "employeeCount": "101-500人",
+  "companyDescription": "",
+  "businessScope": "计算机信息技术；技术推广、技术开发、技术转让、技术服务、技术咨询；计算机软件开发、设计；计算机软件服务；计算机系统服务；计算机及系统集成；数据处理（数据处理中的银行卡中心、 PUE值在1.5以上的云计算数据中心除外）；应用软件服务；设计；制作、代理、发布广告；计算机、软件及辅助设备、通讯设备、电子产品、电子元器件、仪器仪表、办公用机械、消防器材、社会公共安全设备批发、零售。（市场主体依法自主选择经营项目，开展经营活动，依法须经批准的项目，经相关部门批准后依批准的内容开展经营活动；不得从事国家和本市场政策禁止和限制类项目的经营活动。）",
+  "bankName": "中国工商银行股份有限公司北京灵境支行",
+  "bankAccount": "0200013319200068890",
+  "id": "945150ca-68e1-4141-921b-fd4c48e07ebd",
+  "created_at": "2025-09-02T08:30:02.006206",
+  "updated_at": "2025-09-02T11:04:10.682517",
+  "qualifications": {
+    "business_license": {
+      "original_filename": "营业执照_智慧足迹.png",
+      "safe_filename": "business_license_20250902_110303.png",
+      "file_size": 972130,
+      "upload_time": "2025-09-02T11:03:03.712394"
+    },
+    "auth_id_front": {
+      "original_filename": "被授权人身份证_正面_吕贺.png",
+      "safe_filename": "auth_id_front_20250902_110410.png",
+      "file_size": 691480,
+      "upload_time": "2025-09-02T11:04:10.671248"
+    },
+    "auth_id_back": {
+      "original_filename": "被授权人身份证_反面_吕贺.png",
+      "safe_filename": "auth_id_back_20250902_110410.png",
+      "file_size": 734770,
+      "upload_time": "2025-09-02T11:04:10.674388"
+    },
+    "iso9001": {
+      "original_filename": "质量管理体系认证证书.png",
+      "safe_filename": "iso9001_20250902_110410.png",
+      "file_size": 536427,
+      "upload_time": "2025-09-02T11:04:10.675564"
+    },
+    "iso20000": {
+      "original_filename": "信息技术管理体系认证证书.png",
+      "safe_filename": "iso20000_20250902_110410.png",
+      "file_size": 501438,
+      "upload_time": "2025-09-02T11:04:10.676281"
+    },
+    "iso27001": {
+      "original_filename": "信息安全管理体系认证证书.png",
+      "safe_filename": "iso27001_20250902_110410.png",
+      "file_size": 531694,
+      "upload_time": "2025-09-02T11:04:10.677790"
+    },
+    "credit_dishonest": {
+      "original_filename": "失信被执行人-智慧足迹.png",
+      "safe_filename": "credit_dishonest_20250902_110410.png",
+      "file_size": 515308,
+      "upload_time": "2025-09-02T11:04:10.678955"
+    },
+    "credit_corruption": {
+      "original_filename": "无贪污受贿_智慧足迹.png",
+      "safe_filename": "credit_corruption_20250902_110410.png",
+      "file_size": 317125,
+      "upload_time": "2025-09-02T11:04:10.680284"
+    },
+    "credit_tax": {
+      "original_filename": "重大税收失信主体名单-智慧足迹.png",
+      "safe_filename": "credit_tax_20250902_110410.png",
+      "file_size": 358972,
+      "upload_time": "2025-09-02T11:04:10.680711"
+    },
+    "credit_procurement": {
+      "original_filename": "政府采购严重违法失信记录名单-智慧足迹.png",
+      "safe_filename": "credit_procurement_20250902_110410.png",
+      "file_size": 360587,
+      "upload_time": "2025-09-02T11:04:10.681333"
+    }
+  }
+}

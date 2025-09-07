@@ -7,6 +7,7 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 try:
     from ..utils.llm_client import get_llm_client
+    from ..utils.document_cache import get_document_cache
     from ..matchers.exact_matcher import get_exact_matcher
     from ..matchers.semantic_matcher import get_semantic_matcher
     from ..config import (
@@ -18,6 +19,7 @@ except ImportError:
     from pathlib import Path
     sys.path.append(str(Path(__file__).parent.parent))
     from utils.llm_client import get_llm_client
+    from utils.document_cache import get_document_cache
     from matchers.exact_matcher import get_exact_matcher
     from matchers.semantic_matcher import get_semantic_matcher
     from config import (
@@ -33,6 +35,7 @@ class ContentGenerator:
         self.llm_client = get_llm_client()
         self.exact_matcher = get_exact_matcher()
         self.semantic_matcher = get_semantic_matcher()
+        self.document_cache = get_document_cache()
     
     def generate_proposal_content(self, 
                                  outline: Dict[str, Any],
@@ -58,7 +61,11 @@ class ContentGenerator:
                 'total_sections': 0,
                 'generated_sections': 0,
                 'reused_content': 0,
-                'ai_generated': 0
+                'ai_generated': 0,
+                'quality_scores': [],
+                'optimization_rounds': 0,
+                'high_quality_sections': 0,
+                'average_quality_score': 0.0
             }
         }
         
@@ -73,6 +80,11 @@ class ContentGenerator:
             self._update_generation_stats(proposal['generation_stats'], section_content)
         
         proposal['generation_stats']['total_sections'] = len(proposal['sections'])
+        
+        # 计算平均质量分数
+        quality_scores = proposal['generation_stats']['quality_scores']
+        if quality_scores:
+            proposal['generation_stats']['average_quality_score'] = sum(quality_scores) / len(quality_scores)
         
         self.logger.info(f"技术方案内容生成完成: {proposal['generation_stats']}")
         return proposal
@@ -132,18 +144,25 @@ class ContentGenerator:
             'title': subsection_title,
             'level': subsection.get('level', 2),
             'content': '',
-            'generation_method': 'unknown'
+            'generation_method': 'unknown',
+            'quality_score': 0.0,
+            'optimization_rounds': 0
         }
         
         # 查找最相关的匹配
         best_match = self._find_best_match_for_subsection(subsection_title, related_matches)
         
         if best_match:
-            content, method = self._generate_content_based_on_match(
+            content, method, quality_info = self._generate_content_based_on_match(
                 best_match, subsection_title, parent_title
             )
             subsection_content['content'] = content
             subsection_content['generation_method'] = method
+            
+            # 更新质量信息
+            if isinstance(quality_info, dict):
+                subsection_content['quality_score'] = quality_info.get('quality_score', 0.0)
+                subsection_content['optimization_rounds'] = quality_info.get('optimization_rounds', 0)
         else:
             # 没有匹配，基于要点生成内容
             content = self._generate_content_from_points(
@@ -230,32 +249,35 @@ class ContentGenerator:
     def _generate_content_based_on_match(self, 
                                        match: Dict[str, Any], 
                                        subsection_title: str,
-                                       parent_title: str) -> Tuple[str, str]:
+                                       parent_title: str) -> Tuple[str, str, Dict[str, Any]]:
         """基于匹配结果生成内容"""
         match_score = match.get('match_score', match.get('semantic_score', 0))
         match_type = match.get('match_type', 'unknown')
         requirement = match.get('requirement', {})
         feature = match.get('feature', {})
+        quality_info = {'quality_score': 0.0, 'optimization_rounds': 0}
         
         # 根据匹配分数决定生成策略
         if match_score >= EXACT_MATCH_THRESHOLD:
             # 直接复用产品功能描述
             content = self._reuse_feature_content(feature, requirement, subsection_title)
-            return content, 'direct_reuse'
+            quality_info['quality_score'] = 8.0  # 直接复用假设质量较高
+            return content, 'direct_reuse', quality_info
             
         elif match_score >= REWRITE_THRESHOLD:
             # 改写产品功能描述
             content = self._rewrite_feature_content(
                 feature, requirement, subsection_title, parent_title
             )
-            return content, 'rewrite'
+            quality_info['quality_score'] = 7.0  # 改写假设中等质量
+            return content, 'rewrite', quality_info
             
         else:
-            # AI生成新内容
-            content = self._generate_ai_content(
+            # AI生成新内容（带质量控制）
+            content, ai_quality_info = self._generate_ai_content(
                 requirement, feature, subsection_title, parent_title
             )
-            return content, 'ai_generate'
+            return content, 'ai_generate', ai_quality_info
     
     def _reuse_feature_content(self, 
                              feature: Dict[str, Any], 
@@ -302,29 +324,75 @@ class ContentGenerator:
                            requirement: Dict[str, Any],
                            feature: Optional[Dict[str, Any]],
                            subsection_title: str,
-                           parent_title: str) -> str:
-        """使用AI生成新内容"""
+                           parent_title: str) -> Tuple[str, Dict[str, Any]]:
+        """使用AI生成新内容（带质量控制和缓存）"""
+        quality_info = {'quality_score': 0.0, 'optimization_rounds': 0}
+        
         if not self.llm_client:
-            return self._generate_fallback_content(subsection_title, parent_title)
+            content = self._generate_fallback_content(subsection_title, parent_title)
+            quality_info['quality_score'] = 4.0  # 回退内容质量较低
+            return content, quality_info
         
         try:
             requirement_text = requirement.get('content', requirement.get('title', ''))
             feature_text = feature.get('description', '') if feature else ''
             
-            content = self.llm_client.generate_content(
-                requirement=requirement_text,
-                product_features=feature_text,
-                section_title=subsection_title
+            # 检查缓存
+            cached_content = self.document_cache.get_cached_generated_content(
+                requirement_text, feature_text, subsection_title
             )
             
-            if content:
-                return content
+            if cached_content:
+                self.logger.info(f"使用缓存的生成内容: {subsection_title}")
+                return cached_content['content'], cached_content['quality_info']
+            
+            # 使用质量控制的内容生成
+            if hasattr(self.llm_client, 'generate_content_with_quality_control'):
+                generation_result = self.llm_client.generate_content_with_quality_control(
+                    requirement=requirement_text,
+                    product_features=feature_text,
+                    section_title=subsection_title
+                )
+                
+                if generation_result and generation_result.get('content'):
+                    content = generation_result['content']
+                    quality_info = {
+                        'quality_score': generation_result.get('quality_score', 0.0),
+                        'optimization_rounds': generation_result.get('optimization_rounds', 0)
+                    }
+                    
+                    # 缓存生成的内容
+                    self.document_cache.cache_generated_content(
+                        requirement_text, feature_text, subsection_title, content, quality_info
+                    )
+                    
+                    self.logger.info(f"高质量内容生成完成: {subsection_title} (质量分数: {quality_info['quality_score']:.1f})")
+                    return content, quality_info
+            else:
+                # 回退到原始方法
+                content = self.llm_client.generate_content(
+                    requirement=requirement_text,
+                    product_features=feature_text,
+                    section_title=subsection_title
+                )
+                
+                if content:
+                    quality_info['quality_score'] = 6.0  # 原始方法假设中等质量
+                    
+                    # 缓存生成的内容
+                    self.document_cache.cache_generated_content(
+                        requirement_text, feature_text, subsection_title, content, quality_info
+                    )
+                    
+                    return content, quality_info
             
         except Exception as e:
             self.logger.warning(f"AI内容生成失败: {e}")
         
         # 回退到默认内容
-        return self._generate_fallback_content(subsection_title, parent_title)
+        content = self._generate_fallback_content(subsection_title, parent_title)
+        quality_info['quality_score'] = 4.0
+        return content, quality_info
     
     def _generate_content_from_points(self, 
                                     points: List[str], 
@@ -399,11 +467,21 @@ class ContentGenerator:
         """更新生成统计"""
         for subsection in section_content.get('subsections', []):
             method = subsection.get('generation_method', 'unknown')
+            quality_score = subsection.get('quality_score', 0.0)
+            optimization_rounds = subsection.get('optimization_rounds', 0)
             
             if method == 'direct_reuse':
                 stats['reused_content'] += 1
             elif method in ['rewrite', 'ai_generate']:
                 stats['ai_generated'] += 1
+            
+            # 更新质量统计
+            if quality_score > 0:
+                stats['quality_scores'].append(quality_score)
+                stats['optimization_rounds'] += optimization_rounds
+                
+                if quality_score >= 8.0:  # 高质量阈值
+                    stats['high_quality_sections'] += 1
             
             stats['generated_sections'] += 1
     
