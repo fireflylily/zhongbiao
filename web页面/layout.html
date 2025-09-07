@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{page_title}} - AI标书智能生成系统</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- 自定义样式 -->
+    <link href="css/common.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- 页面标题 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 text-primary">
+                        <i class="bi bi-robot"></i> AI标书智能生成系统
+                    </h1>
+                    <p class="lead text-muted">智能识别采购需求，自动生成专业应答和技术方案</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导航菜单 -->
+        <div class="row">
+            <div class="col-12">
+                <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
+                    <div class="container-fluid">
+                        <div class="navbar-nav nav-pills nav-justified w-100" id="mainNav">
+                            <a class="nav-link {{active_tender_info}}" href="tender_info.html{{url_params}}">
+                                <i class="bi bi-search"></i> 读取信息
+                            </a>
+                            <a class="nav-link {{active_company_selection}}" href="company_selection.html{{url_params}}">
+                                <i class="bi bi-building"></i> 选择应答人
+                            </a>
+                            <a class="nav-link {{active_business_response}}" href="business_response.html{{url_params}}">
+                                <i class="bi bi-briefcase"></i> 商务应答
+                            </a>
+                            <a class="nav-link {{active_point_to_point}}" href="point_to_point.html{{url_params}}">
+                                <i class="bi bi-arrow-left-right"></i> 点对点应答
+                            </a>
+                            <a class="nav-link {{active_tech_proposal}}" href="tech_proposal.html{{url_params}}">
+                                <i class="bi bi-gear"></i> 技术方案
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 页面内容 -->
+        <div class="row">
+            <div class="col-12">
+                {{page_content}}
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer text-center">
+            <div class="container">
+                <p>&copy; 2025 AI标书智能生成系统. 智慧足迹科技有限公司</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 公共JavaScript -->
+    <script src="js/state-manager.js"></script>
+    <script src="js/common.js"></script>
+    
+    <!-- 页面特定脚本 -->
+    {{page_scripts}}
+
+    <script>
+        // 页面初始化
+        onPageReady(function() {
+            // 从URL和存储中恢复状态
+            const companyId = StateManager.getCompanyId();
+            if (companyId) {
+                console.log('当前选择的公司ID:', companyId);
+            }
+
+            // 更新导航链接，保持状态参数
+            updateNavigationLinks();
+        });
+
+        function updateNavigationLinks() {
+            const nav = document.getElementById('mainNav');
+            const companyId = StateManager.getCompanyId();
+            
+            if (nav && companyId) {
+                nav.querySelectorAll('a.nav-link').forEach(link => {
+                    const url = new URL(link.href, window.location.origin);
+                    url.searchParams.set('companyId', companyId);
+                    link.href = url.toString();
+                });
+            }
+        }
+    </script>
+</body>
+</html>

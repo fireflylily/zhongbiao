@@ -48,6 +48,52 @@ except ImportError as e:
 web_pages_dir = str(Path(__file__).parent.parent.parent / "web页面")
 app = Flask(__name__, template_folder=web_pages_dir)
 app.secret_key = 'ai_tender_response_system_2025'
+
+def render_template_with_layout(page_template, page_title, active_nav):
+    """使用布局模板渲染页面"""
+    try:
+        # 读取页面内容
+        page_path = os.path.join(web_pages_dir, page_template)
+        with open(page_path, 'r', encoding='utf-8') as f:
+            page_content = f.read()
+        
+        # 读取布局模板
+        layout_path = os.path.join(web_pages_dir, 'layout.html')
+        with open(layout_path, 'r', encoding='utf-8') as f:
+            layout_content = f.read()
+        
+        # 获取URL参数
+        from urllib.parse import urlencode
+        url_params = request.args.to_dict()
+        url_params_str = '?' + urlencode(url_params) if url_params else ''
+        
+        # 确定页面专用脚本
+        page_script = page_template.replace('.html', '.js')
+        page_scripts = f'<script src="js/{page_script}"></script>'
+        
+        # 替换模板变量
+        replacements = {
+            '{{page_title}}': page_title,
+            '{{page_content}}': page_content,
+            '{{page_scripts}}': page_scripts,
+            '{{url_params}}': url_params_str,
+            '{{active_tender_info}}': 'active' if active_nav == 'active_tender_info' else '',
+            '{{active_company_selection}}': 'active' if active_nav == 'active_company_selection' else '',
+            '{{active_business_response}}': 'active' if active_nav == 'active_business_response' else '',
+            '{{active_point_to_point}}': 'active' if active_nav == 'active_point_to_point' else '',
+            '{{active_tech_proposal}}': 'active' if active_nav == 'active_tech_proposal' else '',
+        }
+        
+        # 执行替换
+        html_content = layout_content
+        for placeholder, value in replacements.items():
+            html_content = html_content.replace(placeholder, value)
+            
+        return html_content
+        
+    except Exception as e:
+        logging.error(f"模板渲染失败: {e}")
+        return f"<h1>页面加载失败</h1><p>错误: {str(e)}</p>", 500
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
 # 全局进度追踪
@@ -101,6 +147,31 @@ def index():
 def help_page():
     """帮助页面"""
     return render_template('help.html')
+
+@app.route('/tender_info.html')
+def tender_info():
+    """招标信息提取页面"""
+    return render_template_with_layout('tender_info.html', '读取信息', 'active_tender_info')
+
+@app.route('/company_selection.html')
+def company_selection():
+    """公司选择页面"""
+    return render_template_with_layout('company_selection.html', '选择应答人', 'active_company_selection')
+
+@app.route('/business_response.html')
+def business_response():
+    """商务应答页面"""
+    return render_template_with_layout('business_response.html', '商务应答', 'active_business_response')
+
+@app.route('/point_to_point.html')
+def point_to_point():
+    """点对点应答页面"""
+    return render_template_with_layout('point_to_point.html', '点对点应答', 'active_point_to_point')
+
+@app.route('/tech_proposal.html')
+def tech_proposal():
+    """技术方案页面"""
+    return render_template_with_layout('tech_proposal.html', '技术方案', 'active_tech_proposal')
 
 @app.route('/debug')
 def debug_upload():
