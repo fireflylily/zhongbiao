@@ -1026,242 +1026,25 @@ class MCPBidderNameProcessor:
             pass
     
     def _smart_placeholder_cleanup(self, paragraph: Paragraph, current_label: str = None) -> None:
-        """
-        智能占位符清理 - 区分占位符和分隔符（临时禁用版）
-        
-        Args:
-            paragraph: 要清理的段落
-            current_label: 当前正在处理的标签（如"供应商名称"），用于精确清理
-        """
-        try:
-            # 临时禁用智能清理系统，防止无限递归
-            logger.info(f"智能占位符清理已临时禁用，跳过清理: '{paragraph.text[:50]}...'")
-            return
-            
-            # 递归防护：检查是否已经在清理中
-            if hasattr(paragraph, '_cleanup_in_progress') and paragraph._cleanup_in_progress:
-                logger.info("检测到递归调用，跳过重复清理")
-                return
-                
-            full_text = paragraph.text
-            if not full_text:
-                return
-                
-            # 设置递归防护标志
-            paragraph._cleanup_in_progress = True
-            
-            logger.info(f"开始智能占位符清理: '{full_text}', 当前标签: '{current_label}'")
-            
-            # 识别段落中的所有标签
-            labels = self._identify_all_labels_in_paragraph(paragraph)
-            logger.info(f"识别到 {len(labels)} 个标签: {[label['label'] for label in labels]}")
-            
-            if len(labels) == 0:
-                logger.info("没有识别到标签，跳过清理")
-                return
-            
-            if len(labels) == 1:
-                # 单标签情况：保留前置空格，清理后置占位符
-                logger.info("单标签情况，执行前置空格保留清理")
-                self._single_label_cleanup_safe(paragraph, labels[0])
-            else:
-                # 多标签情况：智能保留分隔符
-                logger.info("多标签情况，执行智能分隔符保留清理")
-                self._multi_label_cleanup(paragraph, labels, current_label)
-                
-            logger.info(f"智能占位符清理完成: '{paragraph.text}'")
-            
-        except Exception as e:
-            logger.error(f"智能占位符清理失败: {e}")
-            # 如果智能清理失败，回退到全局清理
-            logger.info("回退到全局占位符清理")
-            self._global_placeholder_cleanup(paragraph)
-        finally:
-            # 清除递归防护标志
-            if hasattr(paragraph, '_cleanup_in_progress'):
-                delattr(paragraph, '_cleanup_in_progress')
+        """智能占位符清理系统已删除 - 使用强化残留清理系统代替"""
+        logger.debug(f"智能占位符清理系统已删除，跳过处理: '{paragraph.text[:50]}...'")
+        pass
     
     def _identify_all_labels_in_paragraph(self, paragraph: Paragraph) -> list:
-        """识别段落中的所有标签（供应商名称、采购编号等）"""
-        try:
-            import re
-            full_text = paragraph.text
-            labels = []
-            
-            # 定义常见的标签模式
-            label_patterns = [
-                r'供应商名称(?:\（[^）]*\）)?',
-                r'投标人名称(?:\（[^）]*\）)?',
-                r'采购编号',
-                r'项目编号', 
-                r'编号',
-                r'项目名称',
-                r'地址',
-                r'传真',
-                r'电话',
-                r'电子邮件',
-                r'邮编'
-            ]
-            
-            # 匹配所有标签及其位置
-            for pattern in label_patterns:
-                full_pattern = f'({pattern})\\s*[:：]'
-                matches = re.finditer(full_pattern, full_text)
-                for match in matches:
-                    labels.append({
-                        'label': match.group(1),
-                        'start_position': match.start(),
-                        'end_position': match.end(),
-                        'full_match': match.group(0)
-                    })
-            
-            # 按位置排序
-            labels.sort(key=lambda x: x['start_position'])
-            return labels
-            
-        except Exception as e:
-            logger.error(f"识别标签失败: {e}")
-            return []
-    
-    def _single_label_cleanup(self, paragraph: Paragraph, label_info: dict):
-        """单标签清理：保留前置布局空格，清理后置占位符"""
-        try:
-            full_text = paragraph.text
-            label_end = label_info['end_position']
-            
-            # 分两段：标签（含前置空格） + 后置内容
-            prefix_and_label = full_text[:label_end]  # 保留前置空格和标签
-            suffix = full_text[label_end:]            # 后置内容需要清理
-            
-            # 只清理后置的占位符，保留前置的布局空格
-            cleaned_suffix = re.sub(r'[ \t]{3,}$', '', suffix)     # 清理末尾长空格
-            cleaned_suffix = re.sub(r'_{2,}', '', cleaned_suffix)   # 清理下划线
-            cleaned_suffix = re.sub(r'[ \t]{3,}', '', cleaned_suffix)  # 清理中间的长空格（如果有其他内容）
-            
-            # 重构段落文本
-            new_text = prefix_and_label + cleaned_suffix
-            
-            # 应用到runs（简单替换，保持格式）
-            if new_text != full_text:
-                self._apply_cleaned_text_to_runs(paragraph, full_text, new_text)
-                logger.info(f"单标签清理完成: '{full_text}' -> '{new_text}'")
-            
-        except Exception as e:
-            logger.error(f"单标签清理失败: {e}")
-
+        """智能占位符清理系统已删除 - 返回空列表"""
+        return []
     def _single_label_cleanup_safe(self, paragraph: Paragraph, label_info: dict):
-        """单标签清理（安全版）：保留前置布局空格，清理后置占位符，不触发递归清理"""
-        try:
-            full_text = paragraph.text
-            label_end = label_info['end_position']
-            
-            # 分两段：标签（含前置空格） + 后置内容
-            prefix_and_label = full_text[:label_end]  # 保留前置空格和标签
-            suffix = full_text[label_end:]            # 后置内容需要清理
-            
-            # 只清理后置的占位符，保留前置的布局空格
-            cleaned_suffix = re.sub(r'[ \t]{3,}$', '', suffix)     # 清理末尾长空格
-            cleaned_suffix = re.sub(r'_{2,}', '', cleaned_suffix)   # 清理下划线
-            cleaned_suffix = re.sub(r'[ \t]{3,}', '', cleaned_suffix)  # 清理中间的长空格（如果有其他内容）
-            
-            # 重构段落文本
-            new_text = prefix_and_label + cleaned_suffix
-            
-            # 直接应用到runs，不调用可能触发递归的方法
-            if new_text != full_text:
-                self._direct_text_replace(paragraph, full_text, new_text)
-                logger.info(f"单标签安全清理完成: '{full_text}' -> '{new_text}'")
-            
-        except Exception as e:
-            logger.error(f"单标签安全清理失败: {e}")
-
+        """智能占位符清理系统已删除 - 空实现"""
+        pass
     def _direct_text_replace(self, paragraph: Paragraph, old_text: str, new_text: str):
-        """直接文本替换（不触发智能清理），用于防止递归"""
-        try:
-            logger.info(f"直接替换文本: '{old_text}' -> '{new_text}'")
-            
-            # 简单的直接替换，不调用智能替换系统
-            success = False
-            for run in paragraph.runs:
-                if old_text in run.text:
-                    run.text = run.text.replace(old_text, new_text)
-                    success = True
-                    break
-            
-            if success:
-                logger.info("✅ 直接文本替换成功")
-            else:
-                logger.warning("⚠️ 直接文本替换失败")
-                
-        except Exception as e:
-            logger.error(f"直接文本替换失败: {e}")
-    
+        """智能占位符清理系统已删除 - 空实现"""
+        pass
     def _multi_label_cleanup(self, paragraph: Paragraph, labels: list, current_label: str):
-        """多标签清理：智能保留分隔符"""
-        try:
-            full_text = paragraph.text
-            cleaned_text = full_text
-            
-            # 从后往前处理，避免位置偏移
-            for i in reversed(range(len(labels))):
-                label_info = labels[i]
-                label_end = label_info['end_position']
-                
-                # 确定这个标签的处理范围
-                next_label_start = labels[i + 1]['start_position'] if i + 1 < len(labels) else len(full_text)
-                
-                # 提取标签后到下一个标签前的内容
-                between_content = cleaned_text[label_end:next_label_start]
-                
-                # 判断是否需要清理这个标签的占位符
-                should_clean = (current_label is None or 
-                               current_label == label_info['label'] or
-                               current_label in label_info['label'])
-                
-                if should_clean:
-                    # 清理占位符但保留分隔符
-                    has_next_label = i + 1 < len(labels)
-                    cleaned_between = self._clean_placeholder_keep_separator(between_content, has_next_label)
-                    
-                    # 更新文本
-                    cleaned_text = cleaned_text[:label_end] + cleaned_between + cleaned_text[next_label_start:]
-                    logger.info(f"清理标签 '{label_info['label']}' 的占位符: '{between_content}' -> '{cleaned_between}'")
-            
-            # 应用清理结果
-            if cleaned_text != full_text:
-                self._apply_cleaned_text_to_runs(paragraph, full_text, cleaned_text)
-                logger.info(f"多标签清理完成: '{full_text}' -> '{cleaned_text}'")
-                
-        except Exception as e:
-            logger.error(f"多标签清理失败: {e}")
-    
+        """智能占位符清理系统已删除 - 空实现"""
+        pass
     def _clean_placeholder_keep_separator(self, content: str, has_next_label: bool) -> str:
-        """清理占位符但保留分隔符"""
-        if not content:
-            return content
-            
-        import re
-        
-        if not has_next_label:
-            # 最后一个标签，清理所有尾部占位符
-            cleaned = re.sub(r'_{2,}', '', content)           # 清理下划线
-            cleaned = re.sub(r'[ \t]{3,}$', '', cleaned)      # 清理尾部长空格
-            return cleaned
-        else:
-            # 中间标签，保留适当分隔符
-            cleaned = re.sub(r'_{2,}', '', content)           # 清理下划线
-            # 将长空格替换为合适的分隔符（3-4个空格）
-            cleaned = re.sub(r'[ \t]{8,}', '   ', cleaned)    # 很长空格 -> 3个空格
-            cleaned = re.sub(r'[ \t]{5,7}', '  ', cleaned)    # 中等空格 -> 2个空格
-            
-            # 如果清理后内容不以空格开头且不以空格结尾，可能需要添加分隔符
-            if cleaned and not cleaned.startswith(' ') and not cleaned.endswith(' '):
-                # 如果这是一个公司名称等内容，在末尾添加分隔符
-                if len(cleaned) > 10 and any(char in cleaned for char in '有限公司股份集团'):
-                    cleaned = cleaned + '   '
-            
-            return cleaned
-    
+        """智能占位符清理系统已删除 - 返回原内容"""
+        return content
     def _apply_cleaned_text_to_runs(self, paragraph: Paragraph, old_text: str, new_text: str):
         """将清理后的文本应用到runs，保持格式 - 修复版"""
         try:
@@ -1593,7 +1376,7 @@ class MCPBidderNameProcessor:
                     logger.info(f"无分隔符填写完成（单run）: '{original_text}' -> '{new_text}'")
                     
                     # 智能占位符清理
-                    self._smart_placeholder_cleanup(paragraph, label)
+                    # 智能占位符清理已删除
                     return True
             
             # 方法2：如果标签跨run，使用智能重分布方法
@@ -1623,7 +1406,7 @@ class MCPBidderNameProcessor:
                 if success:
                     logger.info(f"无分隔符填写完成（跨run）: '{original_text}' -> '{new_text}'")
                     # 智能占位符清理
-                    self._smart_placeholder_cleanup(paragraph, label)
+                    # 智能占位符清理已删除
                     return True
                 else:
                     logger.warning("智能重分布失败，尝试简单替换")
@@ -1671,7 +1454,7 @@ class MCPBidderNameProcessor:
                     logger.info(f"公章在前格式填写完成（单run）: '{original_text}' -> '{new_text}'")
                     
                     # 智能占位符清理
-                    self._smart_placeholder_cleanup(paragraph, label)
+                    # 智能占位符清理已删除
                     return True
             
             # 方法2：跨run处理
@@ -1698,7 +1481,7 @@ class MCPBidderNameProcessor:
                 if success:
                     logger.info(f"公章在前格式填写完成（跨run）: '{original_text}' -> '{new_text}'")
                     # 智能占位符清理
-                    self._smart_placeholder_cleanup(paragraph, label)
+                    # 智能占位符清理已删除
                     return True
             
             # 方法3：回退方案
@@ -1740,7 +1523,7 @@ class MCPBidderNameProcessor:
             
             if success:
                 # 智能占位符清理 - 区分占位符和分隔符
-                self._smart_placeholder_cleanup(paragraph, label)
+                # 智能占位符清理已删除
                 logger.info(f"招标编号填写完成: '{label}' -> '{tender_number}' (已清理占位符)")
             else:
                 logger.error(f"招标编号填写失败: '{old_text}'")
@@ -1958,11 +1741,13 @@ class MCPBidderNameProcessor:
                     'value': company_info.get('registeredAddress', ''),
                     'field_name': '注册地址'
                 },
-                # 办公地址 - 只匹配空字段（下划线或空格）
+                # 办公地址 - 简单分组匹配，直接替换占位符
                 {
-                    'patterns': [r'办公地址.*?[:：]\s*([_\s]+)(?=\s|$)', r'联系地址.*?[:：]\s*([_\s]+)(?=\s|$)', r'地址.*?[:：]\s*([_\s]+)(?=\s|$)'],
+                    'patterns': [r'(办公地址[:：]\s*)([_\s]+)', r'(联系地址[:：]\s*)([_\s]+)'],
                     'value': company_info.get('officeAddress', ''),
-                    'field_name': '办公地址'
+                    'field_name': '办公地址',
+                    'compact_format': True,  # 使用紧凑格式
+                    'preserve_trailing': True  # 保留后续内容
                 },
                 # 统一社会信用代码
                 {
@@ -1976,15 +1761,17 @@ class MCPBidderNameProcessor:
                     'value': company_info.get('registeredCapital', ''),
                     'field_name': '注册资本'
                 },
-                # 电话 - 只匹配空字段（下划线或空格）
+                # 电话 - 简单分组匹配，直接替换占位符
                 {
-                    'patterns': [r'电话.*?[:：]\s*([_\s]+)(?=\s|$)', r'联系电话.*?[:：]\s*([_\s]+)(?=\s|$)', r'固定电话.*?[:：]\s*([_\s]+)(?=\s|$)'],
+                    'patterns': [r'(电话[:：]\s*)([_\s]+)', r'(联系电话[:：]\s*)([_\s]+)', r'(固定电话[:：]\s*)([_\s]+)'],
                     'value': company_info.get('fixedPhone', ''),
-                    'field_name': '联系电话'
+                    'field_name': '联系电话',
+                    'compact_format': True,  # 使用紧凑格式
+                    'preserve_trailing': True  # 保留后续内容
                 },
                 # 邮政编码
                 {
-                    'patterns': [r'邮政编码.*?[:：]\s*([_\s]*)', r'邮编.*?[:：]\s*([_\s]*)'],
+                    'patterns': [r'(邮政编码[:：]\s*)([_\s]*)', r'(邮编[:：]\s*)([_\s]*)'],
                     'value': company_info.get('postalCode', ''),
                     'field_name': '邮政编码'
                 },
@@ -2056,9 +1843,9 @@ class MCPBidderNameProcessor:
                     'value': self._get_project_info_field('agency'),
                     'field_name': '招标代理'
                 },
-                # 地址字段 - 只匹配空字段（下划线或空格），避免删除传真标签
+                # 地址字段 - 简单分组匹配，直接替换占位符
                 {
-                    'patterns': [r'(地址[:：])\s*([_\s]+?)(?=传|$)', r'^(地址)\s*([_\s]+?)(?=传|$)', r'^(地址)([_\s]+)(?=.*传真)'],
+                    'patterns': [r'(地址[:：]\s*)([_\s]+)', r'^(地址\s*)([_\s]+)'],
                     'value': company_info.get('registeredAddress', ''),
                     'field_name': '地址',
                     'compact_format': True,  # 标记使用紧凑格式
@@ -2066,22 +1853,21 @@ class MCPBidderNameProcessor:
                 },
                 # 传真字段 - 优先使用fax字段，如无则显示"未填写"
                 {
-                    'patterns': [r'(传真)([_\s]*)', r'(传真)[:：]\s*([_\s]*)', r'(传真号码)[:：]\s*([_\s]*)', r'(传真号码)\s*([_\s]*)'],
+                    'patterns': [r'(传真[:：]\s*)([_\s]*)', r'(传真号码[:：]\s*)([_\s]*)'],
                     'value': company_info.get('fax', '') or '未填写',
                     'field_name': '传真',
                     'compact_format': True  # 使用紧凑格式
                 },
-                # 电话字段 - 使用固定电话
+                # 电子邮件字段
                 {
-                    'patterns': [r'^电话[_\s]*$', r'^电话[:：]\s*([_\s]*)', r'^(电话)(\s+)(?=.*电子邮件)', r'^(电话)\s*([_\s]*)'],
-                    'value': company_info.get('fixedPhone', ''),
-                    'field_name': '电话',
-                    'compact_format': True,  # 使用紧凑格式
-                    'preserve_trailing': True  # 保留后续内容（如电子邮件标签）
-                },
-                # 电子邮件字段 - 只匹配空字段（下划线或空格）
-                {
-                    'patterns': [r'(电子邮件)([_\s]+)$', r'(电子邮件)[:：]\s*([_\s]+)', r'^(电子邮件)\s*([_\s]+)', r'(邮箱)([_\s]+)$', r'(邮箱)[:：]\s*([_\s]+)', r'^(邮箱)\s*([_\s]+)'],
+                    'patterns': [
+                        r'(电子邮件[:：]\s*)([_\s]+)',              # 有占位符的情况
+                        r'(电子邮件[:：]\s*)()',                    # 完全为空的情况
+                        r'(电子邮箱[:：]\s*)([_\s]+)',              # 有占位符的情况
+                        r'(电子邮箱[:：]\s*)()',                    # 电子邮箱完全为空
+                        r'(邮箱[:：]\s*)([_\s]+)',                  # 有占位符的情况
+                        r'(邮箱[:：]\s*)()',                        # 邮箱完全为空
+                    ],
                     'value': company_info.get('email', '') or '未填写',
                     'field_name': '电子邮件',
                     'compact_format': True  # 使用紧凑格式，替换而不是追加
@@ -2098,7 +1884,9 @@ class MCPBidderNameProcessor:
                 # 检查每个字段模式
                 # 特殊处理：如果段落包含多个字段（如地址和传真），需要处理所有字段
                 has_multiple_fields = ('地址' in para_text and '传真' in para_text) or \
-                                    ('电话' in para_text and '电子邮件' in para_text)
+                                    ('电话' in para_text and '电子邮件' in para_text) or \
+                                    ('邮编' in para_text and '地址' in para_text) or \
+                                    ('电话' in para_text and '传真' in para_text)
                 
                 paragraph_modified = False  # 标记本段落是否已被修改
                 current_text = para_text  # 跟踪当前文本状态
@@ -2301,11 +2089,11 @@ class MCPBidderNameProcessor:
                     if trailing_content:
                         # 特别处理需要添加空格的情况
                         if field_name == '地址' and '传真' in trailing_content:
-                            # 在地址后添加4个空格，然后添加传真部分
-                            new_text += "    " + trailing_content.lstrip()
-                        elif field_name == '电话' and '电子邮件' in trailing_content:
-                            # 在电话后添加4个空格，然后添加电子邮件部分
-                            new_text += "    " + trailing_content.lstrip()
+                            # 保持原有格式，不强制添加空格
+                            new_text += trailing_content
+                        elif field_name == '电话' and ('电子邮件' in trailing_content or '电子邮箱' in trailing_content):
+                            # 保持原有格式，不强制添加空格
+                            new_text += trailing_content
                         else:
                             new_text += trailing_content
                         logger.info(f"保留后续内容: '{trailing_content}'")
@@ -2473,9 +2261,9 @@ class MCPBidderNameProcessor:
                 if trailing_content:
                     # 特殊处理地址和传真、电话和电子邮件之间的间距
                     if field_name == '地址' and '传真' in trailing_content:
-                        suffix = "    " + trailing_content.lstrip()
-                    elif field_name == '电话' and '电子邮件' in trailing_content:
-                        suffix = "    " + trailing_content.lstrip()
+                        suffix = trailing_content
+                    elif field_name == '电话' and ('电子邮件' in trailing_content or '电子邮箱' in trailing_content):
+                        suffix = trailing_content
                     else:
                         suffix = trailing_content
                     logger.info(f"保留后续内容: '{trailing_content}'")

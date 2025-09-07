@@ -17,7 +17,7 @@
   "bankAccount": "0200013319200068890",
   "id": "945150ca-68e1-4141-921b-fd4c48e07ebd",
   "created_at": "2025-09-02T08:30:02.006206",
-  "updated_at": "2025-09-02T22:17:51.027657",
+  "updated_at": "2025-09-07T19:42:27.639365",
   "qualifications": {
     "business_license": {
       "original_filename": "营业执照.png",
@@ -26,14 +26,14 @@
       "upload_time": "2025-09-02T11:03:03.000000"
     },
     "legal_id_front": {
-      "original_filename": "法人身份证正面.png", 
+      "original_filename": "法人身份证正面.png",
       "safe_filename": "legal_id_front_20250902_083135.png",
       "file_size": 927087,
       "upload_time": "2025-09-02T08:31:35.000000"
     },
     "legal_id_back": {
       "original_filename": "法人身份证反面.png",
-      "safe_filename": "legal_id_back_20250902_083135.png", 
+      "safe_filename": "legal_id_back_20250902_083135.png",
       "file_size": 956485,
       "upload_time": "2025-09-02T08:31:35.000000"
     },
@@ -44,7 +44,7 @@
       "upload_time": "2025-09-02T11:04:10.000000"
     },
     "auth_id_back": {
-      "original_filename": "授权人身份证反面.png", 
+      "original_filename": "授权人身份证反面.png",
       "safe_filename": "auth_id_back_20250902_110410.png",
       "file_size": 734770,
       "upload_time": "2025-09-02T11:04:10.000000"
@@ -57,7 +57,7 @@
     },
     "iso27001": {
       "original_filename": "ISO27001信息安全管理体系认证证书.png",
-      "safe_filename": "iso27001_20250902_110410.png", 
+      "safe_filename": "iso27001_20250902_110410.png",
       "file_size": 531694,
       "upload_time": "2025-09-02T11:04:10.000000"
     },
@@ -81,7 +81,7 @@
     },
     "credit_tax": {
       "original_filename": "纳税信用等级证明.png",
-      "safe_filename": "credit_tax_20250902_110410.png", 
+      "safe_filename": "credit_tax_20250902_110410.png",
       "file_size": 358972,
       "upload_time": "2025-09-02T11:04:10.000000"
     },
@@ -91,5 +91,10 @@
       "file_size": 317125,
       "upload_time": "2025-09-02T11:04:10.000000"
     }
-  }
+  },
+  "legalRepresentativePosition": "总经理",
+  "authorizedPersonName": "吕贺",
+  "authorizedPersonPosition": "客户经理",
+  "email": "lvhe@smartsteps.com",
+  "fax": "010-63271000"
 }
