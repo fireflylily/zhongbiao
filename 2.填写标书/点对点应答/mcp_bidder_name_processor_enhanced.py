@@ -37,13 +37,13 @@ class MCPBidderNameProcessor:
         # 公司地址信息（默认值，可被覆盖）
         self.company_address = "北京市东城区王府井大街200号七层711室"
         
-        # 尝试从配置文件读取项目编号
+        # 尝试从配置文件读取项目编号和项目名称
         self.project_number = self._load_project_number()
         
         # 存储完整的公司信息
         self.company_info = {}
         self.company_name = ""  # 添加公司名称属性支持
-        self.project_name = ""
+        self.project_name = self._extract_project_name_from_config() or ""  # 从配置文件加载项目名称
         self.tender_no = ""
         self.date_text = ""
         
@@ -52,7 +52,7 @@ class MCPBidderNameProcessor:
             # === 第一种方式：替换内容 ===
             # 通用括号内容替换 - 合并格式11-16（6个规则合并为1个）
             {
-                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>(?:请填写\s*)?(?:供应商名称|投标人名称|公司名称|单位名称))\s*(?P<suffix>[\)）])'),
+                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>(?:请填写\s*)?(?:供应商名称|供应商全称|投标人名称|公司名称|单位名称|采购人|供应商住址|供应商地址|公司地址|注册地址))\s*(?P<suffix>[\)）])'),
                 'type': 'replace_content',
                 'description': '通用括号内容替换 - 公司名称类'
             },
@@ -65,11 +65,18 @@ class MCPBidderNameProcessor:
                 'description': '括号内容替换 - 供应商名称、地址'
             },
             
+            # 格式18: "（项目名称、项目编号）" - 括号内容替换为项目名称和项目编号
+            {
+                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>项目名称\s*[、，]\s*项目编号)\s*(?P<suffix>[\)）])'),
+                'type': 'replace_content_with_project_info',
+                'description': '括号内容替换 - 项目名称、项目编号'
+            },
+            
             
             # === 第二种方式：在空格处填写 ===
             # 通用简单填空规则 - 合并多个简单fill_space规则
             {
-                'pattern': re.compile(r'^(?:\s*\d+\.\s*|\s+)?(?P<label>公司名称（全称、盖章）|公司名称（盖章）|供应商名称（盖章）|供应商名称\(盖章\)|供应商全称及公章|供应商名称|投标人名称（盖章）|单位名称及公章|投标人名称\(盖章\)|单位名称\(公章\))\s*(?P<sep>[:：])?\s*(?P<placeholder>_{3,}|\s{3,}|)\s*(?P<suffix>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))?\s*$'),
+                'pattern': re.compile(r'^(?:\s*\d+\.\s*|\s+)?(?P<label>公司名称（全称、盖章）|公司名称（盖章）|供应商名称（盖章）|供应商名称\(盖章\)|供应商全称及公章|供应商全称|供应商名称|投标人名称（盖章）|单位名称及公章|投标人名称\(盖章\)|单位名称\(公章\))\s*(?P<sep>[:：])?\s*(?P<placeholder>_{3,}|\s{3,}|)\s*(?P<suffix>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))?\s*$'),
                 'type': 'fill_space',
                 'description': '通用简单填空 - 各种公司供应商名称格式（支持空格和数字前缀）'
             },
@@ -98,7 +105,7 @@ class MCPBidderNameProcessor:
             
             # 通用投标供应商名称填空 - 支持部分匹配（去掉$以支持同行多标签）
             {
-                'pattern': re.compile(r'(?P<label>供应商名称|投标人名称(?:（公章）|\(公章\))?)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{3,}|[_\-\u2014]+|＿+|——+)'),
+                'pattern': re.compile(r'(?P<label>供应商名称|投标人名称(?:（公章）|\(公章\))?)\s*(?P<sep>[:：])\s*(?P<placeholder>\s.*|[_\-\u2014]+|＿+|——+)'),
                 'type': 'fill_space',
                 'description': '通用投标供应商名称填空 - 支持部分匹配'
             },
@@ -123,8 +130,8 @@ class MCPBidderNameProcessor:
             },
         ]
         
-        # 运行时验证：确保使用合并后的10规则版本
-        expected_rule_count = 10
+        # 运行时验证：确保使用合并后的11规则版本（已添加项目名称、项目编号组合规则）
+        expected_rule_count = 11
         actual_rule_count = len(self.bidder_patterns)
         if actual_rule_count != expected_rule_count:
             logger.error(f"❌ 严重错误：期望{expected_rule_count}个规则，实际{actual_rule_count}个！缓存问题未解决")
@@ -133,26 +140,32 @@ class MCPBidderNameProcessor:
             logger.info(f"✅ 规则验证通过：成功加载{actual_rule_count}个合并规则")
     
     def _load_project_number(self) -> str:
-        """从配置文件加载项目编号"""
+        """从“读取信息”页面的tender_config.ini加载项目编号"""
         try:
             import configparser
+            import os
+            from pathlib import Path
             
-            # 尝试读取tender_config.ini文件
-            config_file = "tender_config.ini"
+            # 指向“读取信息”页面的配置文件
+            tender_info_path = str(Path(__file__).parent.parent.parent / "1.读取信息")
+            config_file = os.path.join(tender_info_path, 'tender_config.ini')
+            
             if os.path.exists(config_file):
                 config = configparser.ConfigParser()
                 config.read(config_file, encoding='utf-8')
-                if 'PROJECT_INFO' in config and 'project_number' in config['PROJECT_INFO']:
-                    project_num = config['PROJECT_INFO']['project_number']
-                    if project_num and project_num != '未提供':
-                        return project_num
+                if config.has_section('PROJECT_INFO'):
+                    project_num = config.get('PROJECT_INFO', 'project_number', fallback='')
+                    if project_num and project_num.strip():
+                        logger.info(f"从读取信息页面加载项目编号: {project_num}")
+                        return project_num.strip()
             
-            # 如果没有找到，返回默认值
-            return "未提供项目编号"
+            # 如果没有找到，返回空字符串
+            logger.info(f"未找到读取信息页面的配置文件: {config_file}")
+            return ""
             
         except Exception as e:
-            logger.warning(f"无法加载项目编号: {e}")
-            return "未提供项目编号"
+            logger.warning(f"从读取信息页面加载项目编号失败: {e}")
+            return ""
     
     def _format_chinese_date(self, date_str: str) -> str:
         """
@@ -178,34 +191,39 @@ class MCPBidderNameProcessor:
             return date_str
     
     def _get_project_info_field(self, field_name: str) -> str:
-        """从配置文件读取项目信息字段"""
+        """从"读取信息"页面的配置文件读取项目信息字段"""
         try:
             import configparser
+            import os
+            from pathlib import Path
             
-            config_file = "tender_config.ini"
+            # 指向"读取信息"页面的配置文件
+            tender_info_path = str(Path(__file__).parent.parent.parent / "1.读取信息")
+            config_file = os.path.join(tender_info_path, 'tender_config.ini')
+            
             if not os.path.exists(config_file):
-                logger.warning(f"配置文件不存在: {config_file}")
+                logger.warning(f"读取信息页面的配置文件不存在: {config_file}")
                 return ""
             
             config = configparser.ConfigParser()
             config.read(config_file, encoding='utf-8')
             
             if 'PROJECT_INFO' not in config:
-                logger.warning("配置文件中没有PROJECT_INFO节")
+                logger.warning("读取信息页面配置文件中没有PROJECT_INFO节")
                 return ""
             
             value = config['PROJECT_INFO'].get(field_name, '')
             
             # 过滤掉"未提供"等无效值
             if value and value not in ['未提供', '未知', 'N/A', 'n/a', '']:
-                logger.info(f"从配置文件读取{field_name}: {value}")
+                logger.info(f"从读取信息页面获取项目字段{field_name}: {value}")
                 return value
             else:
-                logger.info(f"配置文件中{field_name}字段为空或无效: {value}")
+                logger.info(f"读取信息页面{field_name}字段为空或无效: {value}")
                 return ""
                 
         except Exception as e:
-            logger.warning(f"读取项目信息字段{field_name}失败: {e}")
+            logger.warning(f"从读取信息页面读取项目信息字段{field_name}失败: {e}")
             return ""
         
     def process_bidder_name(self, input_file: str, output_file: str, company_name: str) -> Dict:
@@ -291,12 +309,12 @@ class MCPBidderNameProcessor:
                 for rule_idx, rule in enumerate(self.bidder_patterns):
                     # 项目名称和项目编号处理可以与投标人名称处理并行进行
                     if (bidder_name_processed and 
-                        rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no']):
+                        rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_with_project_info']):
                         continue  # 如果投标人名称已处理，只允许项目名称和项目编号处理继续
                         
                     pattern = rule['pattern']
                     # 项目名称和项目编号处理使用当前文本，其他处理使用原始文本
-                    search_text = paragraph.text if rule['type'] in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no'] else original_para_text
+                    search_text = paragraph.text if rule['type'] in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_with_project_info'] else original_para_text
                     match = pattern.search(search_text)
                     
                     if match:
@@ -316,6 +334,10 @@ class MCPBidderNameProcessor:
                                 stats['replace_content_count'] += 1
                         elif rule['type'] == 'replace_content_with_address':
                             success = self._replace_content_with_address_method(paragraph, match, company_name, rule)
+                            if success:
+                                stats['replace_content_count'] += 1
+                        elif rule['type'] == 'replace_content_with_project_info':
+                            success = self._replace_content_with_project_info_method(paragraph, match, company_name, rule)
                             if success:
                                 stats['replace_content_count'] += 1
                         elif rule['type'] == 'fill_space':
@@ -397,14 +419,25 @@ class MCPBidderNameProcessor:
             if not content:
                 return False
             
+            # 根据内容类型选择替换文本
+            if '采购人' in content:
+                # 如果是采购人，使用项目信息中的采购人名称
+                replacement_text = self._get_project_info_field('tenderer') or "未提供采购人信息"
+            elif any(addr_keyword in content for addr_keyword in ['住址', '地址']):
+                # 如果是地址相关，使用公司地址
+                replacement_text = self.company_address or "未提供公司地址"
+            else:
+                # 其他情况使用公司名称
+                replacement_text = company_name
+            
             # 使用智能三层替换策略
             old_text = f"{prefix}{content}{suffix}"
-            new_text = f"{prefix}{company_name}{suffix}"
+            new_text = f"{prefix}{replacement_text}{suffix}"
             
             success = self.smart_text_replace(paragraph, old_text, new_text)
             
             if success:
-                logger.info(f"智能替换内容完成: '{content}' -> '{company_name}'")
+                logger.info(f"智能替换内容完成: '{content}' -> '{replacement_text}'")
             else:
                 logger.error(f"智能替换内容失败: '{old_text}'")
                 
@@ -537,8 +570,10 @@ class MCPBidderNameProcessor:
             if found_and_replaced:
                 logger.info(f"空格填写方式成功: 填写'{company_name}'，保持原有格式")
                 
-                # 智能占位符清理 - 区分占位符和分隔符
-                self._smart_placeholder_cleanup(paragraph, label)
+                # 强化清理：专门处理"内容+残留占位符"混合状态
+                self._enhanced_residual_placeholder_cleanup(paragraph, label, company_name)
+                
+                # 注意：强化清理已包含完整的清理逻辑，无需再调用智能清理
                 
                 # 特殊清理：处理字段间下划线占位符
                 self._cleanup_underline_placeholders_between_fields(paragraph, company_name)
@@ -743,8 +778,10 @@ class MCPBidderNameProcessor:
             
             logger.info(f"跨run处理成功: '{label}{sep} {company_name}'")
             
-            # 智能占位符清理
-            self._smart_placeholder_cleanup(paragraph, label)
+            # 强化清理：专门处理"内容+残留占位符"混合状态
+            self._enhanced_residual_placeholder_cleanup(paragraph, label, company_name)
+            
+            # 注意：强化清理已包含完整的清理逻辑，无需再调用智能清理
             
             return True
             
@@ -990,17 +1027,29 @@ class MCPBidderNameProcessor:
     
     def _smart_placeholder_cleanup(self, paragraph: Paragraph, current_label: str = None) -> None:
         """
-        智能占位符清理 - 区分占位符和分隔符
+        智能占位符清理 - 区分占位符和分隔符（临时禁用版）
         
         Args:
             paragraph: 要清理的段落
             current_label: 当前正在处理的标签（如"供应商名称"），用于精确清理
         """
         try:
+            # 临时禁用智能清理系统，防止无限递归
+            logger.info(f"智能占位符清理已临时禁用，跳过清理: '{paragraph.text[:50]}...'")
+            return
+            
+            # 递归防护：检查是否已经在清理中
+            if hasattr(paragraph, '_cleanup_in_progress') and paragraph._cleanup_in_progress:
+                logger.info("检测到递归调用，跳过重复清理")
+                return
+                
             full_text = paragraph.text
             if not full_text:
                 return
                 
+            # 设置递归防护标志
+            paragraph._cleanup_in_progress = True
+            
             logger.info(f"开始智能占位符清理: '{full_text}', 当前标签: '{current_label}'")
             
             # 识别段落中的所有标签
@@ -1014,7 +1063,7 @@ class MCPBidderNameProcessor:
             if len(labels) == 1:
                 # 单标签情况：保留前置空格，清理后置占位符
                 logger.info("单标签情况，执行前置空格保留清理")
-                self._single_label_cleanup(paragraph, labels[0])
+                self._single_label_cleanup_safe(paragraph, labels[0])
             else:
                 # 多标签情况：智能保留分隔符
                 logger.info("多标签情况，执行智能分隔符保留清理")
@@ -1027,6 +1076,10 @@ class MCPBidderNameProcessor:
             # 如果智能清理失败，回退到全局清理
             logger.info("回退到全局占位符清理")
             self._global_placeholder_cleanup(paragraph)
+        finally:
+            # 清除递归防护标志
+            if hasattr(paragraph, '_cleanup_in_progress'):
+                delattr(paragraph, '_cleanup_in_progress')
     
     def _identify_all_labels_in_paragraph(self, paragraph: Paragraph) -> list:
         """识别段落中的所有标签（供应商名称、采购编号等）"""
@@ -1095,6 +1148,53 @@ class MCPBidderNameProcessor:
             
         except Exception as e:
             logger.error(f"单标签清理失败: {e}")
+
+    def _single_label_cleanup_safe(self, paragraph: Paragraph, label_info: dict):
+        """单标签清理（安全版）：保留前置布局空格，清理后置占位符，不触发递归清理"""
+        try:
+            full_text = paragraph.text
+            label_end = label_info['end_position']
+            
+            # 分两段：标签（含前置空格） + 后置内容
+            prefix_and_label = full_text[:label_end]  # 保留前置空格和标签
+            suffix = full_text[label_end:]            # 后置内容需要清理
+            
+            # 只清理后置的占位符，保留前置的布局空格
+            cleaned_suffix = re.sub(r'[ \t]{3,}$', '', suffix)     # 清理末尾长空格
+            cleaned_suffix = re.sub(r'_{2,}', '', cleaned_suffix)   # 清理下划线
+            cleaned_suffix = re.sub(r'[ \t]{3,}', '', cleaned_suffix)  # 清理中间的长空格（如果有其他内容）
+            
+            # 重构段落文本
+            new_text = prefix_and_label + cleaned_suffix
+            
+            # 直接应用到runs，不调用可能触发递归的方法
+            if new_text != full_text:
+                self._direct_text_replace(paragraph, full_text, new_text)
+                logger.info(f"单标签安全清理完成: '{full_text}' -> '{new_text}'")
+            
+        except Exception as e:
+            logger.error(f"单标签安全清理失败: {e}")
+
+    def _direct_text_replace(self, paragraph: Paragraph, old_text: str, new_text: str):
+        """直接文本替换（不触发智能清理），用于防止递归"""
+        try:
+            logger.info(f"直接替换文本: '{old_text}' -> '{new_text}'")
+            
+            # 简单的直接替换，不调用智能替换系统
+            success = False
+            for run in paragraph.runs:
+                if old_text in run.text:
+                    run.text = run.text.replace(old_text, new_text)
+                    success = True
+                    break
+            
+            if success:
+                logger.info("✅ 直接文本替换成功")
+            else:
+                logger.warning("⚠️ 直接文本替换失败")
+                
+        except Exception as e:
+            logger.error(f"直接文本替换失败: {e}")
     
     def _multi_label_cleanup(self, paragraph: Paragraph, labels: list, current_label: str):
         """多标签清理：智能保留分隔符"""
@@ -1163,21 +1263,16 @@ class MCPBidderNameProcessor:
             return cleaned
     
     def _apply_cleaned_text_to_runs(self, paragraph: Paragraph, old_text: str, new_text: str):
-        """将清理后的文本应用到runs，保持格式"""
+        """将清理后的文本应用到runs，保持格式 - 修复版"""
         try:
-            # 简单策略：如果文本长度差不多，直接用智能替换
-            if len(new_text) >= len(old_text) * 0.5:  # 长度没有剧烈变化
-                self.smart_text_replace(paragraph, old_text, new_text)
+            # 修复Bug: 直接执行替换，不做长度判断避免递归死循环
+            logger.info(f"应用清理文本: '{old_text}' -> '{new_text}'")
+            success = self.smart_text_replace(paragraph, old_text, new_text)
+            
+            if success:
+                logger.info("✅ 清理文本应用成功")
             else:
-                # 如果文本变化太大，可能需要更复杂的处理
-                # 尝试智能清理，如果检测不到标签则使用全局清理
-                labels = self._identify_all_labels_in_paragraph(paragraph)
-                if labels:
-                    # 如果检测到标签，使用第一个标签进行智能清理
-                    self._smart_placeholder_cleanup(paragraph, labels[0])
-                else:
-                    # 如果没有检测到标签，使用全局清理作为fallback
-                    self._global_placeholder_cleanup(paragraph)
+                logger.warning(f"⚠️ smart_text_replace失败，但不再尝试其他清理方法避免递归")
                 
         except Exception as e:
             logger.error(f"应用清理文本失败: {e}")
@@ -1212,6 +1307,47 @@ class MCPBidderNameProcessor:
             
         except Exception as e:
             logger.error(f"替换内容（含地址）失败: {e}")
+            return False
+
+    def _replace_content_with_project_info_method(self, paragraph: Paragraph, match, company_name: str, rule: dict) -> bool:
+        """替换内容方法 - 包含项目名称和项目编号信息，使用智能三层替换"""
+        try:
+            logger.info(f"执行替换内容方法（含项目信息）: {rule['description']}")
+            
+            # 获取项目名称和项目编号
+            project_name = self.project_name if hasattr(self, 'project_name') and self.project_name else "未提供项目名称"
+            project_number = ""
+            if hasattr(self, 'tender_no') and self.tender_no:
+                project_number = self.tender_no
+            elif hasattr(self, 'project_number') and self.project_number:
+                project_number = self.project_number
+            else:
+                project_number = "未提供项目编号"
+            
+            # 构造替换文本：项目名称 + 项目编号
+            replacement_text = f"{project_name}、{project_number}"
+            
+            # 获取匹配的组
+            prefix = match.group('prefix')  # （
+            content = match.group('content')  # 项目名称、项目编号
+            suffix = match.group('suffix')  # ）
+            full_match = match.group(0)  # （项目名称、项目编号）
+            
+            # 使用智能三层替换策略
+            old_text = full_match  # 完整的匹配文本
+            new_text = f"{prefix}{replacement_text}{suffix}"  # 完整的替换文本
+            
+            success = self.smart_text_replace(paragraph, old_text, new_text)
+            
+            if success:
+                logger.info(f"智能替换完成: '{content}' -> '{replacement_text}'")
+            else:
+                logger.error(f"智能替换失败: '{full_match}'")
+                
+            return success
+            
+        except Exception as e:
+            logger.error(f"替换内容（含项目信息）失败: {e}")
             return False
 
     def _redistribute_text_to_runs(self, paragraph: Paragraph, new_text: str, replacement_text: str) -> bool:
@@ -1869,6 +2005,12 @@ class MCPBidderNameProcessor:
                     'patterns': [r'银行账号.*?[:：]\s*([_\s]*)', r'账号.*?[:：]\s*([_\s]*)', r'银行账户.*?[:：]\s*([_\s]*)'],
                     'value': company_info.get('bankAccount', ''),
                     'field_name': '银行账号'
+                },
+                # 经营范围
+                {
+                    'patterns': [r'经营范围.*?[:：]\s*([_\s]+)', r'营业范围.*?[:：]\s*([_\s]+)', r'业务范围.*?[:：]\s*([_\s]+)'],
+                    'value': company_info.get('businessScope', ''),
+                    'field_name': '经营范围'
                 },
                 # 成立日期 - 使用方案A的改进模式
                 {
@@ -2771,14 +2913,20 @@ class MCPBidderNameProcessor:
             ]
             
             # 2. 收集项目名称相关替换
+            project_patterns = []
             if project_name:
-                project_patterns = [
+                project_patterns.extend([
                     (r'（项目名称）', f'（{project_name}）'),
                     (r'\(项目名称\)', f'（{project_name}）'),
                     (r'为\s*[\(（][^）)]*[\)）]\s*项目', f'为（{project_name}）项目'),
-                ]
-            else:
-                project_patterns = []
+                ])
+            
+            # 添加项目名称和项目编号的组合模式
+            if project_name and tender_number:
+                project_patterns.extend([
+                    (r'（项目名称\s*[、，]\s*项目编号）', f'（{project_name}、{tender_number}）'),
+                    (r'\(项目名称\s*[、，]\s*项目编号\)', f'（{project_name}、{tender_number}）'),
+                ])
             
             # 3. 收集采购编号相关替换  
             if tender_number:
@@ -3105,103 +3253,75 @@ class MCPBidderNameProcessor:
             return False
     
     def _extract_project_name_from_config(self) -> str:
-        """从配置中提取项目名称"""
+        """从“读取信息”页面的tender_config.ini提取项目名称"""
         try:
             import configparser
             import os
+            from pathlib import Path
             
-            # 查找配置文件
-            config_files = [
-                'tender_config.ini',
-                '../tender_config.ini',
-                '../../tender_config.ini'
-            ]
+            # 指向“读取信息”页面的配置文件
+            tender_info_path = str(Path(__file__).parent.parent.parent / "1.读取信息")
+            config_file = os.path.join(tender_info_path, 'tender_config.ini')
             
-            for config_file in config_files:
-                if os.path.exists(config_file):
-                    config = configparser.ConfigParser()
-                    config.read(config_file, encoding='utf-8')
-                    
-                    # 尝试不同的项目名称配置键名
-                    keys_to_try = [
-                        ('project_info', 'project_name'),
-                        ('project_info', 'tender_name'), 
-                        ('DEFAULT', 'project_name'),
-                        ('DEFAULT', 'tender_name'),
-                    ]
-                    
-                    for section, key in keys_to_try:
-                        try:
-                            if config.has_section(section) and config.has_option(section, key):
-                                project_name = config.get(section, key)
-                                if project_name and project_name.strip():
-                                    logger.info(f"从配置文件加载项目名称: {project_name}")
-                                    return project_name.strip()
-                        except:
-                            continue
-                            
-            logger.info("未找到配置中的项目名称，跳过项目名称替换")
+            if os.path.exists(config_file):
+                config = configparser.ConfigParser()
+                config.read(config_file, encoding='utf-8')
+                
+                # 只从PROJECT_INFO节的project_name键读取
+                if config.has_section('PROJECT_INFO'):
+                    project_name = config.get('PROJECT_INFO', 'project_name', fallback='')
+                    if project_name and project_name.strip():
+                        logger.info(f"从读取信息页面读取项目名称: {project_name}")
+                        return project_name.strip()
+                        
+            logger.info(f"未找到读取信息页面的配置文件: {config_file}")
             return None
             
         except Exception as e:
-            logger.error(f"提取项目名称失败: {e}")
+            logger.error(f"从读取信息页面提取项目名称失败: {e}")
             return None
     
     def _extract_tender_number_from_config(self) -> str:
-        """从配置中提取招标编号"""
+        """从tender_config.ini的PROJECT_INFO节提取项目编号"""
         try:
-            # 尝试读取配置文件中的招标编号
-            if hasattr(self, 'project_number') and self.project_number:
-                return self.project_number
+            # 优先使用传递进来的参数
+            if hasattr(self, 'tender_no') and self.tender_no:
+                return self.tender_no
                 
-            # 也可以从其他配置源读取
+            # 从配置文件读取
             return self._load_tender_number_from_config()
             
         except Exception as e:
-            logger.error(f"提取招标编号失败: {e}")
+            logger.error(f"提取项目编号失败: {e}")
             return None
     
     def _load_tender_number_from_config(self) -> str:
-        """从配置文件加载招标编号"""
+        """从“读取信息”页面的tender_config.ini加载项目编号"""
         try:
             import configparser
             import os
+            from pathlib import Path
             
-            # 查找配置文件
-            config_files = [
-                'tender_config.ini',
-                '../tender_config.ini',
-                '../../tender_config.ini'
-            ]
+            # 指向“读取信息”页面的配置文件
+            tender_info_path = str(Path(__file__).parent.parent.parent / "1.读取信息")
+            config_file = os.path.join(tender_info_path, 'tender_config.ini')
             
-            for config_file in config_files:
-                if os.path.exists(config_file):
-                    config = configparser.ConfigParser()
-                    config.read(config_file, encoding='utf-8')
-                    
-                    # 尝试不同的配置键名
-                    keys_to_try = [
-                        ('project_info', 'tender_number'),
-                        ('project_info', 'project_number'),
-                        ('DEFAULT', 'tender_number'),
-                        ('DEFAULT', 'project_number'),
-                    ]
-                    
-                    for section, key in keys_to_try:
-                        try:
-                            if config.has_section(section) and config.has_option(section, key):
-                                tender_number = config.get(section, key)
-                                if tender_number and tender_number.strip():
-                                    logger.info(f"从配置文件加载招标编号: {tender_number}")
-                                    return tender_number.strip()
-                        except:
-                            continue
-                            
-            logger.info("未找到配置中的招标编号")
+            if os.path.exists(config_file):
+                config = configparser.ConfigParser()
+                config.read(config_file, encoding='utf-8')
+                
+                # 只从PROJECT_INFO节的project_number键读取
+                if config.has_section('PROJECT_INFO'):
+                    project_number = config.get('PROJECT_INFO', 'project_number', fallback='')
+                    if project_number and project_number.strip():
+                        logger.info(f"从读取信息页面读取项目编号: {project_number}")
+                        return project_number.strip()
+                        
+            logger.info(f"未找到读取信息页面的配置文件: {config_file}")
             return None
             
         except Exception as e:
-            logger.error(f"加载招标编号配置失败: {e}")
+            logger.error(f"从读取信息页面提取项目编号失败: {e}")
             return None
 
     def smart_text_replace(self, paragraph, old_text: str, new_text: str):
@@ -3425,6 +3545,72 @@ class MCPBidderNameProcessor:
         except Exception as e:
             logger.error(f"第二层跨run替换失败: {e}", exc_info=True)
             return False
+
+    def _enhanced_residual_placeholder_cleanup(self, paragraph: Paragraph, label: str, company_name: str) -> None:
+        """
+        强化残留占位符清理 - 专门处理"内容+残留占位符"混合状态
+        
+        针对如下情况：
+        原始：供应商名称：                                        
+        填写后：供应商名称：中国联合网络通信有限公司                                        
+        期望：供应商名称：中国联合网络通信有限公司
+        
+        Args:
+            paragraph: 要清理的段落
+            label: 标签名称（如"供应商名称"）
+            company_name: 已填入的公司名称
+        """
+        try:
+            full_text = paragraph.text
+            if not full_text or not company_name or not label:
+                return
+                
+            logger.info(f"开始强化残留占位符清理: '{full_text}'")
+            
+            # 构建期望的完整格式
+            expected_prefix = f"{label}："
+            if expected_prefix in full_text and company_name in full_text:
+                # 找到公司名称在文本中的位置
+                company_pos = full_text.find(company_name)
+                prefix_pos = full_text.find(expected_prefix)
+                
+                if company_pos > prefix_pos >= 0:
+                    # 计算公司名称结束位置
+                    company_end = company_pos + len(company_name)
+                    
+                    # 检查公司名称后是否有残留占位符
+                    remaining_text = full_text[company_end:]
+                    
+                    # 如果公司名称后有大量空格或下划线，认为是残留占位符
+                    if re.search(r'[\s_]{3,}', remaining_text):
+                        logger.info(f"检测到残留占位符: '{remaining_text}' (长度:{len(remaining_text)})")
+                        
+                        # 构建清理后的文本：保留前置内容+公司名称，清除后续占位符
+                        before_company = full_text[:company_pos]
+                        clean_text = before_company + company_name
+                        
+                        # 保留非占位符的有意义内容（如括号、后缀等）
+                        meaningful_suffix = re.sub(r'[\s_]{3,}', '', remaining_text).strip()
+                        if meaningful_suffix:
+                            clean_text += meaningful_suffix
+                            
+                        logger.info(f"清理目标: '{full_text}' -> '{clean_text}'")
+                        
+                        # 应用清理结果到段落runs
+                        if clean_text != full_text:
+                            self._apply_cleaned_text_to_runs(paragraph, full_text, clean_text)
+                            logger.info(f"✅ 强化清理完成：移除了 {len(full_text) - len(clean_text)} 个残留字符")
+                        else:
+                            logger.info("文本已经是最佳状态，无需清理")
+                    else:
+                        logger.info("未检测到需要清理的残留占位符")
+                else:
+                    logger.info("文本结构不符合预期，跳过强化清理")
+            else:
+                logger.info("未找到预期的标签和公司名称组合")
+                
+        except Exception as e:
+            logger.error(f"强化残留占位符清理失败: {e}")
 
 
 def test_mcp_bidder_processor():
