@@ -1877,9 +1877,22 @@ class MCPBidderNameProcessor:
                     'field_name': '成立日期',
                     'compact_format': True  # 标记使用紧凑格式
                 },
-                # 日期
+                # 日期 - 支持多种格式
                 {
-                    'patterns': [r'日期.*?[:：]\s*([_\s]*)', r'时间.*?[:：]\s*([_\s]*)'],
+                    'patterns': [
+                        r'(日\s+期)\s*[:：]\s*([_\s]*)',  # 日          期：_____ (日期中间有空格) - 优先匹配
+                        r'(时\s+间)\s*[:：]\s*([_\s]*)',  # 时          间：_____ (时间中间有空格) - 优先匹配
+                        r'^(日期)(\s{10,})$',  # 日期后跟多个空格（无冒号格式）- 修正：分别捕获标签和占位符
+                        r'^(时间)(\s{10,})$',  # 时间后跟多个空格（无冒号格式）- 修正：分别捕获标签和占位符
+                        r'日期.*?[:：]\s*([_\s]*)',  # 日期：_____ 或 日期：_____
+                        r'时间.*?[:：]\s*([_\s]*)',  # 时间：_____ 
+                        r'(日期)\s*[:：]\s*([_-]+)',  # 日期: _____ 或 日期: -----
+                        r'(日期)\s*[:：]\s*([_\s]*年[_\s]*月[_\s]*日)', # 日期：___年___月___日
+                        r'(日期\s*[:：])\s*(.*?)$',  # 日期: 后面任意内容到行末（修正组匹配）
+                        r'^(\s*)([_-]+年[_-]+月[_-]+日)(\s*)$',  # 独立的 ____年____月____日 格式
+                        r'([_-]+年[_-]+月[_-]+日)',  # 段落中的 ____年____月____日 格式
+                        r'(\s{2,}年\s{2,}月\s{2,}日)',  # 空格分隔的年月日格式：     年     月     日
+                    ],
                     'value': date_text,
                     'field_name': '日期'
                 },
@@ -2008,6 +2021,16 @@ class MCPBidderNameProcessor:
                                     # 特殊处理成立日期字段，避免重复的"年月日"
                                     elif field_name == '成立日期' and field_value:
                                         new_text = self._smart_date_replace(replace_text, match, field_value)
+                                    # 优先处理无冒号日期格式（双捕获组：标签+占位符） - 调整到前面避免被其他条件拦截
+                                    elif len(match.groups()) == 2 and field_name == '日期' and match.group(1) in ['日期', '时间']:
+                                        # 保留标签，替换占位符：标签 + 日期值
+                                        label = match.group(1)  # 第1组：标签
+                                        # 第2组：占位符空格，直接替换为日期值
+                                        new_text = replace_text.replace(match.group(0), label + field_value, 1)
+                                        logger.info(f"无冒号日期格式替换: '{match.group(0)}' -> '{label + field_value}'")
+                                    # 特殊处理一般日期字段，也避免重复的"年月日"
+                                    elif field_name == '日期' and field_value and '年' in field_value and '月' in field_value and '日' in field_value:
+                                        new_text = self._smart_date_replace(replace_text, match, field_value)
                                     else:
                                         placeholder = match.group(1) if match.groups() else ""
                                         if placeholder:  # 只有当有占位符时才替换
@@ -2030,6 +2053,13 @@ class MCPBidderNameProcessor:
                                     success = self._compact_format_paragraph_replace(paragraph, match, field_value, field_name, preserve_trailing)
                                 elif field_name == '成立日期':
                                     # 成立日期字段：使用智能日期替换方法
+                                    success = self._smart_date_paragraph_replace(paragraph, compare_text, new_text, field_value)
+                                # 优先处理无冒号日期格式的段落替换 - 调整到前面避免被其他条件拦截
+                                elif len(match.groups()) == 2 and field_name == '日期' and match.group(1) in ['日期', '时间']:
+                                    # 无冒号日期格式的段落替换：保留标签，替换占位符
+                                    success = self._no_colon_date_paragraph_replace(paragraph, match, field_value)
+                                elif field_name == '日期' and field_value and '年' in field_value and '月' in field_value and '日' in field_value:
+                                    # 一般日期字段：如果包含"年月日"也使用智能日期替换方法
                                     success = self._smart_date_paragraph_replace(paragraph, compare_text, new_text, field_value)
                                 else:
                                     # 普通字段：使用标准替换方法
@@ -2137,21 +2167,44 @@ class MCPBidderNameProcessor:
         例如：成立时间：2015年12月18日年月日 -> 成立时间：2015年12月18日
         """
         try:
+            import re  # 移到方法开始，确保在使用前导入
             logger.info(f"智能日期替换: 原文本='{para_text}', 日期值='{date_value}'")
             
             # 获取匹配的部分
             match_text = match.group(0)
             placeholder = match.group(1) if match.groups() else ""
             
-            # 执行基本替换
-            if placeholder:
+            # 执行基本替换 - 首先检查是否是特殊格式
+            if re.match(r'^(日\s+期|时\s+间)\s*[:：]\s*([_\s]*)$', match_text):
+                # 带空格的日期/时间格式，保持原有格式，只替换占位符
+                spaced_match = re.match(r'^(日\s+期|时\s+间)\s*[:：]\s*([_\s]*)$', match_text)
+                label_part = spaced_match.group(1)  # "日   期" 或 "时   间"
+                placeholder_part = spaced_match.group(2)  # 占位符部分
+                # 保持原有标签格式，只替换占位符或添加日期
+                new_text = para_text.replace(match_text, f"{label_part}：{date_value}", 1)
+                logger.info(f"带空格格式替换(保持原标签): '{match_text}' -> '{label_part}：{date_value}'")
+            elif placeholder:
                 new_text = para_text.replace(match.group(0), match.group(0).replace(placeholder, date_value, 1))
             else:
-                # 在匹配部分后直接添加日期
-                new_text = para_text.replace(match_text, match_text + date_value, 1)
+                # 检查是否是独立的年月日格式
+                if re.match(r'^(\s*)([_-]+年[_-]+月[_-]+日)(\s*)$', match_text):
+                    # 独立格式，直接替换整个匹配内容
+                    groups = re.match(r'^(\s*)([_-]+年[_-]+月[_-]+日)(\s*)$', match_text).groups()
+                    new_text = para_text.replace(match_text, groups[0] + date_value + groups[2], 1)
+                    logger.info(f"独立日期格式替换: '{match_text}' -> '{groups[0] + date_value + groups[2]}'")
+                elif re.match(r'^[_-]+年[_-]+月[_-]+日$', match_text):
+                    # 段落中的年月日格式，直接替换
+                    new_text = para_text.replace(match_text, date_value, 1)
+                    logger.info(f"段落内日期格式替换: '{match_text}' -> '{date_value}'")
+                elif re.match(r'^\s{2,}年\s{2,}月\s{2,}日$', match_text):
+                    # 空格分隔的年月日格式，直接替换
+                    new_text = para_text.replace(match_text, date_value, 1)
+                    logger.info(f"空格年月日格式替换: '{match_text}' -> '{date_value}'")
+                else:
+                    # 在匹配部分后直接添加日期
+                    new_text = para_text.replace(match_text, match_text + date_value, 1)
             
             # 检查并清理重复的年月日字符 - 更智能的清理逻辑
-            import re
             
             # 处理各种重复模式
             redundant_patterns = [
@@ -2180,6 +2233,33 @@ class MCPBidderNameProcessor:
                     old_new_text = new_text
                     new_text = re.sub(pattern, r'\1', new_text)
                     logger.info(f"清理重复字符: '{old_new_text}' -> '{new_text}'")
+            
+            # 额外清理：处理日期后的占位符残留
+            # 例如："2025年09月07日_____月_____日" -> "2025年09月07日"
+            placeholder_cleanup_patterns = [
+                # 清理日期后的下划线占位符
+                r'(\d+年\d+月\d+日)_+月_+日',  # 2025年09月07日_____月_____日
+                r'(\d+年\d+月\d+日)_+月',      # 2025年09月07日_____月
+                r'(\d+年\d+月\d+日)_+日',      # 2025年09月07日_____日
+                r'(\d+年\d+月\d+日)_+年_+月_+日', # 2025年09月07日_____年_____月_____日
+                r'(\d+年\d+月\d+日)_+年_+月',     # 2025年09月07日_____年_____月
+                r'(\d+年\d+月\d+日)_+年',         # 2025年09月07日_____年
+                # 清理空格和下划线混合的情况
+                r'(\d+年\d+月\d+日)[\s_]+月[\s_]*日', # 2025年09月07日 ___月___日
+                r'(\d+年\d+月\d+日)[\s_]+年[\s_]*月[\s_]*日', # 带空格的混合情况
+                # 清理横线形式的占位符
+                r'(\d+年\d+月\d+日)-+',        # 2025年09月07日--------
+                r'(\d+年\d+月\d+日)[\s-]+$',   # 2025年09月07日 ---- (行末)
+                r'(\d+年\d+月\d+日)_+$',       # 2025年09月07日_____ (行末)
+                # 清理日期后的任意组合占位符（更通用的模式）
+                r'(\d+年\d+月\d+日)[\s_-]+.*?$', # 日期后任意占位符到行末
+            ]
+            
+            for pattern in placeholder_cleanup_patterns:
+                if re.search(pattern, new_text):
+                    old_new_text = new_text
+                    new_text = re.sub(pattern, r'\1', new_text)
+                    logger.info(f"清理占位符残留: '{old_new_text}' -> '{new_text}'")
             
             logger.info(f"智能日期替换完成: '{new_text}'")
             return new_text
@@ -2285,6 +2365,64 @@ class MCPBidderNameProcessor:
             logger.error(f"紧凑格式段落替换失败: {e}")
             return False
 
+    def _no_colon_date_paragraph_replace(self, paragraph, match, field_value: str) -> bool:
+        """
+        无冒号日期格式的段落替换 - 处理 '日期                    ' 这种格式
+        保留标签，替换占位符空格为日期值
+        """
+        try:
+            label = match.group(1)  # 标签（日期/时间）
+            placeholder = match.group(2)  # 占位符空格
+            original_text = match.group(0)  # 完整匹配
+            target_text = label + field_value  # 目标文本：标签+日期值
+            
+            logger.info(f"无冒号日期格式段落替换: '{original_text}' -> '{target_text}'")
+            
+            # 先尝试单run替换，保持原有格式
+            for i, run in enumerate(paragraph.runs):
+                if original_text in run.text:
+                    # 单run情况，保持格式的替换
+                    new_text = run.text.replace(original_text, target_text, 1)
+                    
+                    # 使用格式保持策略：清空所有run，将新文本放入第一个run（保持格式）
+                    for r in paragraph.runs:
+                        r.text = ""
+                    paragraph.runs[0].text = new_text
+                    
+                    logger.info(f"✅ 无冒号日期格式单run替换成功（保持格式）")
+                    return True
+            
+            # 跨run处理
+            if len(paragraph.runs) > 1:
+                # 构建完整段落文本用于匹配
+                para_text = ''.join([run.text for run in paragraph.runs])
+                if original_text in para_text:
+                    # 找到第一个包含标签的run
+                    first_run_with_label = None
+                    for i, run in enumerate(paragraph.runs):
+                        if label in run.text:
+                            first_run_with_label = i
+                            break
+                    
+                    if first_run_with_label is not None:
+                        # 构建完整的新文本
+                        new_para_text = para_text.replace(original_text, target_text, 1)
+                        
+                        # 使用格式保持策略：清空所有run，将新文本放入第一个run（保持格式）
+                        for r in paragraph.runs:
+                            r.text = ""
+                        paragraph.runs[0].text = new_para_text
+                        
+                        logger.info(f"✅ 无冒号日期格式跨run替换成功（保持格式）")
+                        return True
+            
+            logger.warning("无冒号日期格式段落替换失败：未找到匹配内容")
+            return False
+            
+        except Exception as e:
+            logger.error(f"无冒号日期格式段落替换失败: {e}")
+            return False
+
     def _smart_date_paragraph_replace(self, paragraph, old_text: str, new_text: str, date_value: str) -> bool:
         """
         智能日期段落替换 - 专门处理成立日期的run分布
@@ -2293,12 +2431,18 @@ class MCPBidderNameProcessor:
         try:
             logger.info(f"智能日期段落替换: '{old_text}' -> '{new_text}'")
             
-            # 先尝试单run替换
+            # 先尝试单run替换，保持原有格式
             for i, run in enumerate(paragraph.runs):
                 if old_text in run.text:
-                    # 单run情况，直接替换
-                    run.text = run.text.replace(old_text, new_text)
-                    logger.info(f"✅ 成立日期单run替换成功")
+                    # 单run情况，保持格式的替换
+                    updated_text = run.text.replace(old_text, new_text)
+                    
+                    # 使用格式保持策略：清空所有run，将新文本放入第一个run（保持格式）
+                    for r in paragraph.runs:
+                        r.text = ""
+                    paragraph.runs[0].text = updated_text
+                    
+                    logger.info(f"✅ 成立日期单run替换成功（保持格式）")
                     return True
             
             # 跨run情况：需要重新分布文本
@@ -2332,17 +2476,13 @@ class MCPBidderNameProcessor:
             # 执行替换：将完整日期放到第一个相关run中
             new_full_text = full_text.replace(old_text, new_text)
             
-            # 将新文本放到第一个run中，清空其他所有run
+            # 使用格式保持策略：清空所有run，将新文本放入第一个run（保持格式）
             if paragraph.runs:
+                for r in paragraph.runs:
+                    r.text = ""
                 paragraph.runs[0].text = new_full_text
-                logger.info(f"✅ 成立日期跨run替换成功，完整日期放在第一个run中")
                 
-                # 清空所有其他run（避免多余的"年月日"字符）
-                for i in range(1, len(paragraph.runs)):
-                    if paragraph.runs[i].text:
-                        logger.info(f"清理run[{i}]中的多余内容: '{paragraph.runs[i].text}' -> ''")
-                        paragraph.runs[i].text = ""
-                
+                logger.info(f"✅ 成立日期跨run替换成功，完整日期放在第一个run中（保持格式）")
                 return True
             
             return False
