@@ -646,9 +646,6 @@
                             <small class="text-muted">上传商务应答模板，按选择的公司信息填写投标人名称、项目信息并插入资质证明图片</small>
                         </div>
                         <div class="card-body">
-                            <!-- 项目信息显示区域 -->
-                            <div id="projectInfoDisplay"></div>
-                            
                             <form id="businessResponseForm" enctype="multipart/form-data">
                                 <!-- 模板文件上传 -->
                                 <div class="mb-3">
@@ -674,24 +671,24 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="businessProjectName" class="form-label">项目名称 <small class="text-muted">(自动填充)</small></label>
+                                            <label for="businessProjectName" class="form-label">项目名称</label>
                                             <input type="text" class="form-control" id="businessProjectName" 
-                                                   placeholder="将自动从配置文件读取" readonly>
+                                                   placeholder="输入项目名称">
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="mb-3">
-                                            <label for="businessTenderNo" class="form-label">招标编号 <small class="text-muted">(自动填充)</small></label>
+                                            <label for="businessTenderNo" class="form-label">招标编号</label>
                                             <input type="text" class="form-control" id="businessTenderNo" 
-                                                   placeholder="将自动从配置文件读取" readonly>
+                                                   placeholder="输入招标编号">
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="businessDate" class="form-label">日期 <small class="text-muted">(自动生成)</small></label>
+                                    <label for="businessDate" class="form-label">日期</label>
                                     <input type="text" class="form-control" id="businessDate" 
-                                           placeholder="将自动生成当前日期" readonly>
+                                           placeholder="例如：2025年 9月 3日">
                                 </div>
 
                                 <!-- 处理器模式选择 -->
@@ -2400,31 +2397,14 @@
             
             if (projectNameField && projectInfo.projectName) {
                 projectNameField.value = projectInfo.projectName;
-                projectNameField.title = `项目名称: ${projectInfo.projectName}`;
             }
             
             if (tenderNoField && projectInfo.projectNumber && projectInfo.projectNumber !== '未提供') {
                 tenderNoField.value = projectInfo.projectNumber;
-                tenderNoField.title = `项目编号: ${projectInfo.projectNumber}`;
             }
             
             if (dateField && projectInfo.currentDate) {
                 dateField.value = projectInfo.currentDate;
-            }
-            
-            // 在页面上显示项目基本信息提示
-            const infoDisplay = document.getElementById('projectInfoDisplay');
-            if (infoDisplay && projectInfo.projectName) {
-                const tendererInfo = projectInfo.tenderer ? `招标人: ${projectInfo.tenderer}` : '';
-                const configSource = projectInfo.configSource ? `(${projectInfo.configSource})` : '';
-                infoDisplay.innerHTML = `
-                    <div class="alert alert-info mb-3">
-                        <i class="bi bi-info-circle"></i> <strong>项目信息已自动填充</strong> ${configSource}<br>
-                        <small>项目名称: ${projectInfo.projectName}<br>
-                        ${projectInfo.projectNumber ? `项目编号: ${projectInfo.projectNumber}<br>` : ''}
-                        ${tendererInfo}</small>
-                    </div>
-                `;
             }
             
             console.log('Project info loaded:', projectInfo);
@@ -3363,6 +3343,9 @@
             
             const templateFile = document.getElementById('businessTemplateFile').files[0];
             const companyId = document.getElementById('businessCompanySelect').value;
+            const projectName = document.getElementById('businessProjectName').value;
+            const tenderNo = document.getElementById('businessTenderNo').value;
+            const dateText = document.getElementById('businessDate').value;
             const useMcp = document.querySelector('input[name="processorMode"]:checked').value;
             
             // 验证必填字段
@@ -3391,9 +3374,10 @@
             const formData = new FormData();
             formData.append('template_file', templateFile);
             formData.append('company_id', companyId);
+            formData.append('project_name', projectName);
+            formData.append('tender_no', tenderNo);
+            formData.append('date_text', dateText);
             formData.append('use_mcp', useMcp);
-            
-            console.log('商务应答处理: 项目信息将从服务器配置文件自动读取');
             
             // 发送请求
             fetch('/process-business-response', {
@@ -3483,38 +3467,6 @@
         // 页面加载时加载商务应答文件列表
         window.addEventListener('load', function() {
             loadBusinessFilesList();
-            
-            // 添加商务应答标签页切换事件监听器
-            const businessTab = document.getElementById('business-response-tab');
-            if (businessTab) {
-                businessTab.addEventListener('click', function() {
-                    console.log('Business response tab clicked, loading project info');
-                    loadProjectInfo();
-                });
-            }
-            
-            // 添加商务应答公司选择事件监听器
-            const businessCompanySelect = document.getElementById('businessCompanySelect');
-            if (businessCompanySelect) {
-                businessCompanySelect.addEventListener('change', function() {
-                    if (this.value) {
-                        // 当选择公司时，自动加载项目信息
-                        console.log('Company selected for business response:', this.value);
-                        loadProjectInfo();
-                    } else {
-                        // 清空项目信息字段
-                        document.getElementById('businessProjectName').value = '';
-                        document.getElementById('businessTenderNo').value = '';
-                        document.getElementById('businessDate').value = '';
-                        
-                        // 清空项目信息显示区域
-                        const infoDisplay = document.getElementById('projectInfoDisplay');
-                        if (infoDisplay) {
-                            infoDisplay.innerHTML = '';
-                        }
-                    }
-                });
-            }
         });
 
     </script>

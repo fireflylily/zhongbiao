@@ -12,8 +12,7 @@ import base64
 from datetime import datetime
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
-# from enhanced_inline_reply import EnhancedInlineReplyProcessor  # 已弃用，使用MCP方法
-from mcp_bidder_name_processor_enhanced import MCPBidderNameProcessor
+from enhanced_inline_reply import EnhancedInlineReplyProcessor
 import tempfile
 import shutil
 import sys
@@ -137,39 +136,19 @@ def upload_file():
             os.remove(upload_path)
             return jsonify({'error': '文件过大，请上传小于50MB的文件'}), 400
         
-        # 处理文档 - 统一使用MCP处理器
-        logger.info("开始初始化MCP文档处理器")
+        # 处理文档
+        logger.info("开始初始化文档处理器")
+        processor = EnhancedInlineReplyProcessor(api_key=api_key)
         
-        # 使用默认公司名称（智慧足迹数据科技有限公司）
-        default_company_name = "智慧足迹数据科技有限公司"
+        # 生成输出文件名
+        base_name = os.path.splitext(filename)[0]
+        output_filename = f"{base_name}-AI应答-{timestamp}.docx"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
         
-        try:
-            from mcp_bidder_name_processor_enhanced import MCPBidderNameProcessor
-            processor = MCPBidderNameProcessor()
-            logger.info("初始化增强版MCP投标人名称处理器")
-            
-            # 生成输出文件名
-            base_name = os.path.splitext(filename)[0]
-            output_filename = f"{base_name}-AI应答-{timestamp}.docx"
-            output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-            
-            logger.info(f"开始处理文档: {filename}")
-            
-            # 执行MCP处理
-            result = processor.process_bidder_name(
-                input_file=upload_path,
-                output_file=output_path,
-                company_name=default_company_name
-            )
-            
-            if not result.get('success'):
-                raise Exception(result.get('error', 'MCP处理失败'))
-                
-            result_file = output_path
-            
-        except ImportError as e:
-            logger.error(f"MCP处理器加载失败: {e}")
-            return jsonify({'error': 'MCP处理器不可用，请检查系统配置'}), 500
+        logger.info(f"开始处理文档: {filename}")
+        
+        # 执行处理
+        result_file = processor.process_document_enhanced(upload_path, output_path)
         
         logger.info(f"文档处理完成: {result_file}")
         
@@ -276,34 +255,6 @@ def list_files():
         logger.error(f"列出文件失败: {e}")
         return jsonify({'error': f'获取文件列表失败: {str(e)}'}), 500
 
-@app.route('/api/business-files')
-def list_business_files():
-    """列出商务应答文件"""
-    try:
-        output_dir = app.config['OUTPUT_FOLDER']
-        if not os.path.exists(output_dir):
-            return jsonify({'files': []})
-            
-        files = []
-        for filename in os.listdir(output_dir):
-            # 只显示商务应答相关文件
-            if filename.endswith('.docx') and ('商务应答' in filename or 'business' in filename.lower()):
-                file_path = os.path.join(output_dir, filename)
-                stat = os.stat(file_path)
-                files.append({
-                    'name': filename,
-                    'size': stat.st_size,
-                    'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
-                    'download_url': url_for('download_file', filename=filename)
-                })
-        
-        files.sort(key=lambda x: x['created'], reverse=True)
-        return jsonify({'files': files})
-        
-    except Exception as e:
-        logger.error(f"列出商务应答文件失败: {e}")
-        return jsonify({'error': f'获取商务应答文件列表失败: {str(e)}'}), 500
-
 @app.route('/api/test', methods=['POST'])
 def test_api():
     """测试API连接"""
@@ -312,19 +263,18 @@ def test_api():
         if not api_key:
             return jsonify({'error': 'API密钥不能为空'}), 400
             
-        # MCP处理器不需要API连接测试，直接返回成功
-        try:
-            from mcp_bidder_name_processor_enhanced import MCPBidderNameProcessor
-            processor = MCPBidderNameProcessor()
+        processor = EnhancedInlineReplyProcessor(api_key=api_key)
+        
+        if processor.test_api_connection():
             return jsonify({
                 'success': True,
-                'message': 'MCP处理器初始化成功！使用本地处理模式',
-                'model': 'MCP Local Processing'
+                'message': 'API连接测试成功！',
+                'model': processor.model_config['model']
             })
-        except ImportError as e:
+        else:
             return jsonify({
                 'success': False,
-                'message': f'MCP处理器初始化失败: {str(e)}'
+                'message': 'API连接测试失败，请检查密钥是否正确'
             })
             
     except Exception as e:
@@ -773,37 +723,16 @@ def get_company(company_id):
         company_file = os.path.join('company_configs', f'{company_id}.json')
         
         if not os.path.exists(company_file):
-            return jsonify({'success': False, 'error': '公司不存在'}), 404
+            return jsonify({'error': '公司不存在'}), 404
             
         with open(company_file, 'r', encoding='utf-8') as f:
             company_data = json.load(f)
             
-        return jsonify({'success': True, 'company': company_data})
+        return jsonify(company_data)
         
     except Exception as e:
         logger.error(f"获取公司信息失败: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/companies/<company_id>/qualifications')
-def get_company_qualifications(company_id):
-    """获取指定公司的资质信息"""
-    try:
-        company_file = os.path.join('company_configs', f'{company_id}.json')
-        
-        if not os.path.exists(company_file):
-            return jsonify({'success': False, 'error': '公司不存在'}), 404
-            
-        with open(company_file, 'r', encoding='utf-8') as f:
-            company_data = json.load(f)
-        
-        # 提取资质信息
-        qualifications = company_data.get('qualifications', {})
-        
-        return jsonify({'success': True, 'qualifications': qualifications})
-        
-    except Exception as e:
-        logger.error(f"获取公司资质信息失败: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/project-config')
 def get_project_config():
@@ -811,16 +740,11 @@ def get_project_config():
     try:
         import configparser
         
-        # 优先读取"读取信息"模块生成的配置文件
-        tender_info_config_file = os.path.join(tender_info_path, 'tender_config.ini')
-        local_config_file = 'tender_config.ini'
-        
-        config_file = tender_info_config_file if os.path.exists(tender_info_config_file) else local_config_file
-        
+        config_file = 'tender_config.ini'
         if not os.path.exists(config_file):
             return jsonify({'success': False, 'error': '项目配置文件不存在'})
             
-        config = configparser.ConfigParser(interpolation=None)
+        config = configparser.ConfigParser()
         config.read(config_file, encoding='utf-8')
         
         # 提取项目信息
@@ -830,22 +754,13 @@ def get_project_config():
                 'projectName': config.get('PROJECT_INFO', 'project_name', fallback=''),
                 'projectNumber': config.get('PROJECT_INFO', 'project_number', fallback=''),
                 'tenderer': config.get('PROJECT_INFO', 'tenderer', fallback=''),
-                'agency': config.get('PROJECT_INFO', 'agency', fallback=''),
                 'biddingMethod': config.get('PROJECT_INFO', 'bidding_method', fallback=''),
-                'biddingLocation': config.get('PROJECT_INFO', 'bidding_location', fallback=''),
-                'biddingTime': config.get('PROJECT_INFO', 'bidding_time', fallback=''),
-                'winnerCount': config.get('PROJECT_INFO', 'winner_count', fallback=''),
                 'extractionTime': config.get('PROJECT_INFO', 'extraction_time', fallback='')
             }
         
         # 生成当前日期
-        current_date = datetime.now().strftime('%Y年%m月%d日')
+        current_date = datetime.now().strftime('%Y年 %m月 %d日')
         project_info['currentDate'] = current_date
-        
-        # 添加配置文件来源信息
-        project_info['configSource'] = '读取信息模块' if config_file == tender_info_config_file else '本地配置'
-        
-        logger.info(f"读取项目配置成功: {config_file}")
         
         return jsonify({
             'success': True, 
@@ -872,6 +787,9 @@ def process_business_response():
             
         # 获取表单数据
         company_id = request.form.get('company_id')
+        project_name = request.form.get('project_name', '')
+        tender_no = request.form.get('tender_no', '')
+        date_text = request.form.get('date_text', '')
         use_mcp = request.form.get('use_mcp', 'false').lower() == 'true'
         
         if not company_id:
@@ -884,34 +802,6 @@ def process_business_response():
             
         with open(company_file, 'r', encoding='utf-8') as f:
             company_info = json.load(f)
-            
-        # 自动从配置文件读取项目信息
-        import configparser
-        tender_info_config_file = os.path.join(tender_info_path, 'tender_config.ini')
-        local_config_file = 'tender_config.ini'
-        config_file = tender_info_config_file if os.path.exists(tender_info_config_file) else local_config_file
-        
-        project_name = ''
-        tender_no = ''
-        
-        if os.path.exists(config_file):
-            try:
-                config = configparser.ConfigParser(interpolation=None)
-                config.read(config_file, encoding='utf-8')
-                
-                if config.has_section('PROJECT_INFO'):
-                    project_name = config.get('PROJECT_INFO', 'project_name', fallback='')
-                    tender_no = config.get('PROJECT_INFO', 'project_number', fallback='')
-                    
-                logger.info(f"从配置文件读取项目信息: 项目名称='{project_name}', 项目编号='{tender_no}'")
-            except Exception as e:
-                logger.error(f"读取项目配置失败: {e}")
-                return jsonify({'error': f'读取项目配置失败: {str(e)}'}), 500
-        else:
-            logger.warning("项目配置文件不存在，将使用空的项目信息")
-            
-        # 生成当前日期
-        date_text = datetime.now().strftime('%Y年%m月%d日')
             
         # 保存上传的文件
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -929,25 +819,59 @@ def process_business_response():
         output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
         os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
         
-        # 统一使用MCP模式处理投标人名称
-        try:
-            from mcp_bidder_name_processor_enhanced import MCPBidderNameProcessor
-            processor = MCPBidderNameProcessor()
-            logger.info("初始化增强版MCP投标人名称处理器（含占位符清理修复）")
-            
-            # 使用MCP处理器的商务应答处理方法
-            result = processor.process_business_response(
-                input_file=upload_path,
-                output_file=output_path,
-                company_info=company_info,
-                project_name=project_name,
-                tender_no=tender_no,
-                date_text=date_text
-            )
-            
-        except ImportError as e:
-            logger.error(f"MCP处理器加载失败: {e}")
-            return jsonify({'error': 'MCP处理器不可用'}), 500
+        # 根据用户选择初始化处理器
+        if use_mcp:
+            # 使用MCP模式：只处理投标人名称，不处理其他内容
+            try:
+                # 首先尝试使用增强版处理器（带占位符清理修复）
+                try:
+                    from mcp_bidder_name_processor_enhanced import MCPBidderNameProcessor
+                    processor = MCPBidderNameProcessor()
+                    logger.info("初始化增强版MCP投标人名称处理器（含占位符清理修复）")
+                    
+                    # 只处理投标人名称填写
+                    result = processor.process_bidder_name(
+                        input_file=upload_path,
+                        output_file=output_path,
+                        company_name=company_info.get('companyName', '')
+                    )
+                except ImportError:
+                    # 如果增强版不可用，回退到原版
+                    from mcp_bidder_name_processor import MCPBidderNameProcessor
+                    processor = MCPBidderNameProcessor()
+                    logger.info("初始化原版MCP投标人名称处理器")
+                    
+                    # 只处理投标人名称填写
+                    result = processor.process_bidder_name(
+                        input_file=upload_path,
+                        output_file=output_path,
+                        company_name=company_info.get('companyName', '')
+                    )
+                
+            except ImportError as e:
+                logger.error(f"MCP处理器加载失败: {e}")
+                return jsonify({'error': 'MCP处理器不可用'}), 500
+        else:
+            # 使用传统模式：处理所有内容
+            try:
+                from business_response_processor import BusinessResponseProcessor
+                processor = BusinessResponseProcessor()
+                logger.info("初始化商务应答处理器 (传统模式)")
+                
+                # 处理完整的商务应答
+                result = processor.process_business_response(
+                    input_file=upload_path,
+                    output_file=output_path,
+                    company_info=company_info,
+                    project_info={
+                        'projectName': project_name,
+                        'tenderNo': tender_no,
+                        'date': date_text
+                    }
+                )
+            except ImportError as e:
+                logger.error(f"传统处理器加载失败: {e}")
+                return jsonify({'error': '传统处理器不可用'}), 500
         
         # 清理临时文件
         try:

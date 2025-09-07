@@ -73,25 +73,11 @@ class MCPBidderNameProcessor:
                 'description': '通用简单填空 - 各种公司供应商名称格式'
             },
             
-            # 格式9-3: "供应商名称（加盖公章）：                     " - 公章在前，冒号后填写
+            # 合并后的公章/盖章在前规则 - 支持中英文括号、各种章类型、有无占位符
             {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<seal>（[^）]*公章[^）]*）|\([^)]*公章[^)]*\))\s*(?P<sep>[:：])\s*(?P<placeholder>\s{10,})\s*$'),
+                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<seal>[（(][^）)]*[公盖]章[^）)]*[）)])\s*(?P<sep>[:：])\s*(?P<placeholder>\s*)\s*$'),
                 'type': 'fill_space_with_seal_prefix',
-                'description': '公章在前冒号后填写 - 供应商名称'
-            },
-            
-            # 格式9-4: "供应商名称(盖章) ：         " - 英文括号版本
-            {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<seal>\([^)]*章[^)]*\))\s*(?P<sep>[:：])\s*(?P<placeholder>\s{5,})\s*$'),
-                'type': 'fill_space_with_seal_prefix',
-                'description': '盖章在前冒号后填写 - 供应商名称'
-            },
-            
-            # 格式9-5: "供应商名称（加盖公章）：" - 公章在前，冒号后无占位符
-            {
-                'pattern': re.compile(r'^(?P<label>供应商名称)\s*(?P<seal>（[^）]*公章[^）]*）|（[^）]*章[^）]*）|\([^)]*章[^)]*\))\s*(?P<sep>[:：])\s*(?P<placeholder>)\s*$'),
-                'type': 'fill_space_with_seal_prefix',
-                'description': '公章在前冒号后无占位符填写 - 供应商名称'
+                'description': '公章/盖章在前统一规则 - 供应商名称'
             },
             
             
@@ -102,54 +88,18 @@ class MCPBidderNameProcessor:
                 'description': '通用标签后空格填写 - 公司名称类（无冒号）'
             },
             
-            # 新增：采购编号相关的单字段规则
-            # 格式21: "采购编号：___________________" - 下划线填写
+            # 合并后的所有编号类填写规则 - 支持采购编号、项目编号、通用编号，下划线或空格
             {
-                'pattern': re.compile(r'(?P<label>采购编号)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
+                'pattern': re.compile(r'(?P<label>采购编号|项目编号|编号)\s*(?P<sep>[:：])\s*(?P<placeholder>_+|[ \t]+)'),
                 'type': 'fill_space_tender_no',
-                'description': '下划线填写 - 采购编号'
+                'description': '所有编号类统一填写规则'
             },
             
-            # 格式22: "采购编号：               " - 空格填写
+            # 通用投标供应商名称填空 - 支持部分匹配（去掉$以支持同行多标签）
             {
-                'pattern': re.compile(r'(?P<label>采购编号)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{5,})'),
-                'type': 'fill_space_tender_no',
-                'description': '空格填写 - 采购编号'
-            },
-            
-            # 格式23: "项目编号：___________________" - 下划线填写
-            {
-                'pattern': re.compile(r'(?P<label>项目编号)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
-                'type': 'fill_space_tender_no',
-                'description': '下划线填写 - 项目编号'
-            },
-            
-            # 格式24: "项目编号：               " - 空格填写
-            {
-                'pattern': re.compile(r'(?P<label>项目编号)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{5,})'),
-                'type': 'fill_space_tender_no',
-                'description': '空格填写 - 项目编号'
-            },
-            
-            # 格式25: "编号：___________________" - 下划线填写（通用编号）
-            {
-                'pattern': re.compile(r'(?P<label>编号)\s*(?P<sep>[:：])\s*(?P<placeholder>_{3,})'),
-                'type': 'fill_space_tender_no',
-                'description': '下划线填写 - 编号（通用）'
-            },
-            
-            # 格式26: "编号：               " - 空格填写（通用编号）
-            {
-                'pattern': re.compile(r'(?P<label>编号)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{10,})'),
-                'type': 'fill_space_tender_no',
-                'description': '空格填写 - 编号（通用）'
-            },
-            
-            # 通用投标供应商名称填空 - 合并最后的简单fill_space规则  
-            {
-                'pattern': re.compile(r'^\s*(?P<label>供应商名称|投标人名称(?:（公章）|\(公章\))?)\s*(?P<sep>[:：]?)\s*(?P<placeholder>[_\-\u2014\s\u3000]*|＿*|——*|)\s*$'),
+                'pattern': re.compile(r'(?P<label>供应商名称|投标人名称(?:（公章）|\(公章\))?)\s*(?P<sep>[:：])\s*(?P<placeholder>\s{3,}|[_\-\u2014]+|＿+|——+)'),
                 'type': 'fill_space',
-                'description': '通用投标供应商名称填空 - 最终兜底规则'
+                'description': '通用投标供应商名称填空 - 支持部分匹配'
             },
             
             # 项目名称相关 - 使用相同的处理逻辑
@@ -164,23 +114,22 @@ class MCPBidderNameProcessor:
                 'description': '上下文中的项目名称替换 - 为（xxx）项目格式'
             },
             
-            # 项目编号相关 - 使用相同的处理逻辑
+            # 合并后的括号内所有编号替换规则
             {
-                'pattern': re.compile(r'[\(（]\s*采购编号\s*[\)）]'),
+                'pattern': re.compile(r'[\(（]\s*(?P<content>采购编号|招标编号|项目编号)\s*[\)）]'),
                 'type': 'replace_content_tender_no',
-                'description': '括号内容替换 - 采购编号'
-            },
-            {
-                'pattern': re.compile(r'[\(（]\s*招标编号\s*[\)）]'),
-                'type': 'replace_content_tender_no',
-                'description': '括号内容替换 - 招标编号'
-            },
-            {
-                'pattern': re.compile(r'[\(（]\s*项目编号\s*[\)）]'),
-                'type': 'replace_content_tender_no',
-                'description': '括号内容替换 - 项目编号'
+                'description': '括号内所有编号类型统一替换'
             },
         ]
+        
+        # 运行时验证：确保使用合并后的10规则版本
+        expected_rule_count = 10
+        actual_rule_count = len(self.bidder_patterns)
+        if actual_rule_count != expected_rule_count:
+            logger.error(f"❌ 严重错误：期望{expected_rule_count}个规则，实际{actual_rule_count}个！缓存问题未解决")
+            raise RuntimeError(f"规则数量不匹配：期望{expected_rule_count}，实际{actual_rule_count}")
+        else:
+            logger.info(f"✅ 规则验证通过：成功加载{actual_rule_count}个合并规则")
     
     def _load_project_number(self) -> str:
         """从配置文件加载项目编号"""
@@ -203,6 +152,29 @@ class MCPBidderNameProcessor:
         except Exception as e:
             logger.warning(f"无法加载项目编号: {e}")
             return "未提供项目编号"
+    
+    def _format_chinese_date(self, date_str: str) -> str:
+        """
+        将英文日期格式(YYYY-MM-DD)转换为中文日期格式(YYYY年M月D日)
+        例如：2000-04-21 -> 2000年4月21日
+        """
+        if not date_str or not isinstance(date_str, str):
+            return ''
+        
+        try:
+            # 匹配 YYYY-MM-DD 格式
+            import re
+            match = re.match(r'^(\d{4})-(\d{1,2})-(\d{1,2})$', date_str.strip())
+            if match:
+                year, month, day = match.groups()
+                # 转换为中文格式，去掉前导0
+                return f"{year}年{int(month)}月{int(day)}日"
+            else:
+                # 如果不匹配预期格式，返回原字符串
+                return date_str
+        except Exception as e:
+            logger.warning(f"日期格式转换失败: {date_str}, 错误: {e}")
+            return date_str
     
     def _get_project_info_field(self, field_name: str) -> str:
         """从配置文件读取项目信息字段"""
@@ -490,24 +462,82 @@ class MCPBidderNameProcessor:
             # 如果没找到完整匹配，尝试分别查找标签和占位符
             if not found_and_replaced:
                 logger.info("未找到完整匹配，尝试分别处理")
-                for run in paragraph.runs:
-                    # 查找包含占位符的部分
-                    if placeholder and placeholder in run.text:
-                        logger.info(f"找到包含占位符的run: '{run.text}'")
-                        # 只替换第一个匹配的占位符，避免重复替换
-                        run.text = run.text.replace(placeholder, company_name, 1)
-                        logger.info(f"替换占位符后: '{run.text}'")
-                        found_and_replaced = True
+                
+                # 首先定位包含标签的run的位置（支持跨run标签）
+                label_run_index = -1
+                
+                # 方法1：查找包含完整标签的单个run
+                for i, run in enumerate(paragraph.runs):
+                    if label and label in run.text:
+                        label_run_index = i
                         break
+                
+                # 方法2：如果没找到完整标签，查找标签开始的run
+                if label_run_index == -1 and label:
+                    # 查找标签的第一个词或关键词
+                    if "供应商" in label:
+                        search_term = "供应商"
+                    elif "投标人" in label:
+                        search_term = "投标人"
+                    elif "投标" in label:
+                        search_term = "投标"
+                    else:
+                        label_parts = label.split()
+                        search_term = label_parts[0] if label_parts else label
+                    
+                    for i, run in enumerate(paragraph.runs):
+                        if search_term in run.text:
+                            logger.info(f"找到标签关键词 '{search_term}' 在run {i}")
+                            label_run_index = i
+                            break
+                
+                # 如果找到标签run，从该位置开始向后查找占位符
+                if label_run_index >= 0:
+                    logger.info(f"找到标签run在位置 {label_run_index}")
+                    # 从标签run开始向后查找占位符
+                    for i in range(label_run_index, len(paragraph.runs)):
+                        run = paragraph.runs[i]
+                        if placeholder and placeholder in run.text:
+                            logger.info(f"找到标签后的占位符run: '{run.text}'")
+                            # 只替换第一个匹配的占位符，避免重复替换
+                            run.text = run.text.replace(placeholder, company_name, 1)
+                            
+                            # 清除可能的下划线格式（因为占位符可能有下划线，但填充内容不需要）
+                            if run.underline:
+                                run.underline = False
+                                logger.info("清除了填充内容的下划线格式")
+                            
+                            logger.info(f"替换占位符后: '{run.text}'")
+                            found_and_replaced = True
+                            break
+                
+                # 如果还是没找到，使用原来的逻辑作为fallback
+                if not found_and_replaced:
+                    logger.info("未找到标签后的占位符，使用通用查找")
+                    for run in paragraph.runs:
+                        # 查找包含占位符的部分
+                        if placeholder and placeholder in run.text:
+                            logger.info(f"找到包含占位符的run: '{run.text}'")
+                            # 只替换第一个匹配的占位符，避免重复替换
+                            run.text = run.text.replace(placeholder, company_name, 1)
+                            
+                            # 清除可能的下划线格式（因为占位符可能有下划线，但填充内容不需要）
+                            if run.underline:
+                                run.underline = False
+                                logger.info("清除了填充内容的下划线格式")
+                            
+                            logger.info(f"替换占位符后: '{run.text}'")
+                            found_and_replaced = True
+                            break
             
             if found_and_replaced:
                 logger.info(f"空格填写方式成功: 填写'{company_name}'，保持原有格式")
                 
-                # 清理可能的尾部空格和下划线
-                self._clean_trailing_spaces(paragraph)
+                # 智能占位符清理 - 区分占位符和分隔符
+                self._smart_placeholder_cleanup(paragraph, label)
                 
-                # 清理公司名称后面的多余占位符空格
-                self._cleanup_trailing_placeholders_after_company(paragraph, company_name)
+                # 特殊清理：处理字段间下划线占位符
+                self._cleanup_underline_placeholders_between_fields(paragraph, company_name)
                 
                 return True
             else:
@@ -520,45 +550,106 @@ class MCPBidderNameProcessor:
     
     def _enhanced_cross_run_fill(self, paragraph: Paragraph, label: str, sep: str, company_name: str) -> bool:
         """
-        增强的跨run填写方法
-        专门处理像"供应商名称："这样被拆分成两个run的情况
-        保留原有格式，只在适当位置添加公司名称
+        增强的跨run填写方法 - 修复版
+        专门处理像"供应商名称："这样被拆分成多个run的情况
+        正确重构完整标签，避免拆分问题
         """
         try:
             logger.info(f"使用增强跨run填写: 标签='{label}', 分隔符='{sep}'")
             
-            # 寻找包含分隔符的run，在其后添加公司名称
-            for i, run in enumerate(paragraph.runs):
-                if sep in run.text:
-                    # 在包含分隔符的run后面添加公司名称和空格
-                    if run.text.endswith(sep):
-                        # 如果run以分隔符结尾，直接添加
-                        run.text = run.text + " " + company_name
-                    else:
-                        # 如果分隔符在中间，在分隔符后面插入
-                        run.text = run.text.replace(sep, sep + " " + company_name, 1)
-                    
-                    # 给公司名称添加下划线（如果需要）
-                    run.underline = True
-                    
-                    logger.info(f"增强跨run填写成功: '{label}{sep}' + '{company_name}'（带下划线）")
-                    return True
+            # 获取完整段落文本
+            full_text = paragraph.text
+            complete_label_sep = f"{label}{sep}"
             
-            # 如果没找到分隔符，尝试在最后一个run添加
-            if paragraph.runs:
-                last_run = paragraph.runs[-1]
-                # 添加公司名称到最后一个run
-                if not last_run.text.strip():
-                    # 如果最后一个run是空的或只有空格，替换为公司名称
-                    last_run.text = company_name
-                else:
-                    # 否则添加到末尾
-                    last_run.text = last_run.text + company_name
+            logger.info(f"完整段落文本: '{full_text}'")
+            logger.info(f"寻找完整标签: '{complete_label_sep}'")
+            
+            # 检查run结构，找到构成完整标签的所有runs
+            accumulated_text = ""
+            label_runs = []
+            
+            for i, run in enumerate(paragraph.runs):
+                if run.text.strip():  # 忽略纯空格run
+                    potential_text = accumulated_text + run.text.strip()
+                    
+                    # 检查是否匹配标签的开始部分
+                    if complete_label_sep.startswith(potential_text):
+                        label_runs.append((i, run))
+                        accumulated_text = potential_text
+                        
+                        logger.info(f"Run {i} 匹配标签部分: '{run.text}' -> 累积: '{accumulated_text}'")
+                        
+                        # 如果已经构成完整标签
+                        if accumulated_text == complete_label_sep:
+                            logger.info(f"找到完整跨run标签，涉及runs: {[(j, r.text) for j, r in label_runs]}")
+                            break
+                    elif accumulated_text and not complete_label_sep.startswith(accumulated_text):
+                        # 重新开始查找
+                        if complete_label_sep.startswith(run.text.strip()):
+                            label_runs = [(i, run)]
+                            accumulated_text = run.text.strip()
+                        else:
+                            label_runs = []
+                            accumulated_text = ""
+            
+            # 如果找到了完整的跨run标签
+            if label_runs and accumulated_text == complete_label_sep:
+                logger.info(f"成功识别跨run标签，开始重构")
                 
-                last_run.underline = True
-                logger.info(f"增强跨run填写成功: 在最后run添加'{company_name}'（带下划线）")
+                # 重构策略：使用第一个run承载完整内容，清空其他runs
+                first_run_idx, first_run = label_runs[0]
+                
+                # 查找占位符（在标签runs之后的空格或下划线）
+                placeholder_found = False
+                for i in range(len(paragraph.runs)):
+                    if i not in [idx for idx, _ in label_runs]:
+                        run = paragraph.runs[i]
+                        # 检查是否为占位符run
+                        if run.text and (run.text.isspace() or '_' in run.text):
+                            # 将公司名称放到第一个run，替换占位符
+                            first_run.text = f"{complete_label_sep} {company_name}"
+                            run.text = ""  # 清空占位符run
+                            placeholder_found = True
+                            logger.info(f"重构成功: 标签run设为 '{first_run.text}', 清空占位符run")
+                            break
+                
+                # 如果没有找到占位符，直接在标签后添加
+                if not placeholder_found:
+                    first_run.text = f"{complete_label_sep} {company_name}"
+                    logger.info(f"重构成功: 直接添加 '{first_run.text}'")
+                
+                # 清空其他标签runs
+                for i in range(1, len(label_runs)):
+                    _, run_to_clear = label_runs[i]
+                    run_to_clear.text = ""
+                    logger.info(f"清空标签run: 原内容 '{run_to_clear.text}'")
+                
+                logger.info(f"增强跨run填写成功（完整重构）: '{complete_label_sep}' + '{company_name}'")
                 return True
             
+            # 备用方案：如果无法识别跨run结构，尝试简单处理
+            logger.warning(f"无法识别跨run结构，使用备用方案")
+            
+            # 查找分隔符后面的占位符并替换
+            import re
+            patterns = [
+                re.compile(f"{re.escape(label)}{re.escape(sep)}\\s*(_+|\\s{{3,}})"),  # 标签:___ 或 标签:   
+                re.compile(f"{re.escape(label)}\\s*{re.escape(sep)}\\s*(_+|\\s{{3,}})")  # 标签 :___ 或 标签 :   
+            ]
+            
+            for pattern in patterns:
+                match = pattern.search(full_text)
+                if match:
+                    # 找到占位符，进行智能替换
+                    old_text = match.group(0)
+                    new_text = f"{label}{sep} {company_name}"
+                    
+                    success = self.smart_text_replace(paragraph, old_text, new_text)
+                    if success:
+                        logger.info(f"增强跨run填写成功（备用方案）: '{old_text}' -> '{new_text}'")
+                        return True
+            
+            logger.warning(f"增强跨run填写失败，无法处理")
             return False
             
         except Exception as e:
@@ -575,42 +666,81 @@ class MCPBidderNameProcessor:
             label = groups.get('label', '')
             sep = groups.get('sep', '')
             
-            # 查找包含标签的run
-            label_run = None
+            # 改进的跨run处理：正确重构完整标签
+            complete_label_with_sep = label + sep
+            
+            # 首先尝试找到完整包含标签+分隔符的run
+            target_run = None
             for run in paragraph.runs:
-                if label in run.text:
-                    label_run = run
+                if complete_label_with_sep in run.text:
+                    target_run = run
+                    logger.info(f"找到完整标签run: '{run.text}'")
                     break
             
-            if not label_run:
-                logger.warning(f"未能找到包含标签'{label}'的run")
-                return False
-            
-            # 智能地在适当位置添加公司名称
-            # 如果标签run已经包含分隔符，直接添加公司名称
-            if sep in label_run.text:
-                # 在现有内容基础上添加，避免重复分隔符
-                if label_run.text.endswith(sep):
-                    label_run.text = label_run.text + " " + company_name
+            if target_run:
+                # 情况1：完整标签在一个run中，直接替换
+                if target_run.text.endswith(complete_label_with_sep):
+                    target_run.text = target_run.text + " " + company_name
                 else:
-                    # 分隔符在中间，在分隔符后插入
-                    label_run.text = label_run.text.replace(sep, f"{sep} {company_name}", 1)
+                    target_run.text = target_run.text.replace(complete_label_with_sep, f"{complete_label_with_sep} {company_name}", 1)
             else:
-                # 如果标签run不包含分隔符，添加分隔符和公司名称
-                label_run.text = label_run.text + f"{sep} {company_name}"
+                # 情况2：标签跨run分布，需要重构
+                logger.info(f"标签跨run分布，开始重构: '{complete_label_with_sep}'")
+                
+                # 找到包含标签开始部分的runs
+                label_runs = []
+                accumulated_text = ""
+                
+                for i, run in enumerate(paragraph.runs):
+                    if run.text.strip():  # 跳过空run
+                        potential_text = accumulated_text + run.text.strip()
+                        if complete_label_with_sep.startswith(potential_text):
+                            label_runs.append((i, run))
+                            accumulated_text = potential_text
+                            
+                            # 检查是否已经构成完整标签
+                            if accumulated_text == complete_label_with_sep:
+                                logger.info(f"找到完整跨run标签: {[(j, r.text) for j, r in label_runs]}")
+                                break
+                        elif accumulated_text and complete_label_with_sep.startswith(accumulated_text):
+                            # 继续累加，但不匹配当前run
+                            pass
+                        else:
+                            # 重新开始
+                            if complete_label_with_sep.startswith(run.text.strip()):
+                                label_runs = [(i, run)]
+                                accumulated_text = run.text.strip()
+                            else:
+                                label_runs = []
+                                accumulated_text = ""
+                
+                if label_runs and accumulated_text == complete_label_with_sep:
+                    # 重构完整标签：使用第一个run，清空其他
+                    first_run_idx, first_run = label_runs[0]
+                    first_run.text = f"{complete_label_with_sep} {company_name}"
+                    
+                    # 清空其他标签runs
+                    for i in range(1, len(label_runs)):
+                        _, run_to_clear = label_runs[i]
+                        run_to_clear.text = ""
+                    
+                    logger.info(f"跨run标签重构成功: '{complete_label_with_sep} {company_name}'")
+                else:
+                    logger.warning(f"无法重构跨run标签: '{complete_label_with_sep}'")
+                    return False
             
-            # 清空后续run中的空格、占位符或分隔符
+            # 清空其余占位符runs
             for run in paragraph.runs:
-                if run != label_run:
-                    # 清空包含分隔符、空格或下划线的run
-                    if (run.text.strip() == '' or '_' in run.text or 
-                        run.text.strip() == sep or run.text.isspace()):
+                if run != target_run and run not in [r[1] for r in (label_runs if 'label_runs' in locals() else [])]:
+                    # 清空包含空格或下划线的run
+                    if (run.text.strip() == '' or '_' in run.text or run.text.isspace() or
+                        (run.text.strip() and all(c in ' _　' for c in run.text))):
                         run.text = ""
             
             logger.info(f"跨run处理成功: '{label}{sep} {company_name}'")
             
-            # 清理公司名称后面的多余占位符空格
-            self._cleanup_trailing_placeholders_after_company(paragraph, company_name)
+            # 智能占位符清理
+            self._smart_placeholder_cleanup(paragraph, label)
             
             return True
             
@@ -717,57 +847,6 @@ class MCPBidderNameProcessor:
         except Exception as e:
             logger.error(f"应用格式失败: {e}", exc_info=True)
     
-    def _cleanup_trailing_spaces(self, paragraph: Paragraph, company_name: str):
-        """
-        清理段落中公司名称后面的多余空格和下划线
-        仅删除末尾的纯空格和下划线，保留有汉字的后缀
-        """
-        try:
-            original_text = paragraph.text
-            
-            # 查找公司名称在文本中的位置
-            company_pos = original_text.find(company_name)
-            if company_pos == -1:
-                logger.debug("未找到公司名称，跳过尾部清理")
-                return
-            
-            # 获取公司名称后面的内容
-            after_company = original_text[company_pos + len(company_name):]
-            
-            # 检查后缀是否只包含空格、下划线等非汉字字符
-            # 使用正则匹配末尾的空格和下划线
-            trailing_pattern = re.compile(r'^([\s_]+)(.*)$')
-            match = trailing_pattern.match(after_company)
-            
-            if match:
-                trailing_chars = match.group(1)  # 空格和下划线
-                remaining_text = match.group(2)  # 剩余文本
-                
-                # 如果剩余文本包含汉字，则保留（如"（加盖公章）"）
-                if re.search(r'[\u4e00-\u9fa5]', remaining_text):
-                    # 有汉字，只删除公司名称和汉字内容之间的空格下划线
-                    cleaned_after = remaining_text
-                    logger.info(f"保留汉字后缀，删除中间空格: '{trailing_chars}' -> ''")
-                else:
-                    # 没有汉字，可以删除所有尾部字符
-                    cleaned_after = remaining_text
-                    logger.info(f"删除末尾空格下划线: '{trailing_chars}' -> ''")
-                
-                # 构建新的文本
-                before_company = original_text[:company_pos + len(company_name)]
-                new_text = before_company + cleaned_after
-                
-                if new_text != original_text:
-                    # 更新段落中的run
-                    self._update_paragraph_text(paragraph, original_text, new_text)
-                    logger.info(f"尾部清理完成: 删除了{len(original_text) - len(new_text)}个字符")
-                else:
-                    logger.debug("无需清理尾部空格")
-            else:
-                logger.debug("公司名称后面无需清理的内容")
-                
-        except Exception as e:
-            logger.error(f"尾部清理失败: {e}", exc_info=True)
     
     def _update_paragraph_text(self, paragraph: Paragraph, old_text: str, new_text: str):
         """更新段落文本，保持格式"""
@@ -796,133 +875,309 @@ class MCPBidderNameProcessor:
             logger.error(f"更新段落文本失败: {e}", exc_info=True)
             return False
     
-    def _cleanup_extra_placeholders(self, paragraph, company_name: str):
-        """清理多余的占位符（主要是长空格），但保留前导空格格式"""
+
+
+    def _cleanup_underline_placeholders_between_fields(self, paragraph, company_name: str):
+        """清理供应商名称和采购编号之间的下划线占位符"""
         try:
             import re
             
             full_text = paragraph.text
-            if not full_text or company_name not in full_text:
+            if not full_text or company_name not in full_text or '采购编号' not in full_text:
                 return
                 
-            logger.info(f"开始清理占位符: '{full_text}'")
+            logger.info(f"开始清理字段间下划线占位符: '{full_text}'")
             
-            # 查找公司名称在完整文本中的位置，以确定哪些空格需要清理
-            company_pos = full_text.find(company_name)
+            # 方案1: 检查是否在同一个run中
+            same_run_found = False
+            pattern = f"({re.escape(company_name)})([\\s_]+)(采购编号)"
             
-            # 清理每个run中的多余占位符
-            current_pos = 0
-            for run_idx, run in enumerate(paragraph.runs):
-                run_text = run.text
-                if not run_text:
-                    continue
-                    
-                logger.info(f"  检查run #{run_idx}: '{run_text}'")
-                
-                # 计算当前run在完整文本中的位置
-                run_start_pos = current_pos
-                run_end_pos = current_pos + len(run_text)
-                current_pos = run_end_pos
-                
-                # 清理长空格（超过5个连续空格）
-                long_spaces = re.findall(r'\s{10,}', run_text)  # 只处理10个以上的长空格
-                if long_spaces:
-                    cleaned_text = run_text
-                    for spaces in long_spaces:
-                        space_pos_in_run = cleaned_text.find(spaces)
-                        space_pos_in_full_text = run_start_pos + space_pos_in_run
+            for run in paragraph.runs:
+                if company_name in run.text and '采购编号' in run.text:
+                    # 在同一个run中处理
+                    match = re.search(pattern, run.text)
+                    if match:
+                        company_part = match.group(1)  # 公司名称
+                        middle_part = match.group(2)   # 中间的空格和下划线
+                        field_part = match.group(3)    # "采购编号"
                         
-                        # 只清理在公司名称之后的占位符空格
-                        if company_pos >= 0 and space_pos_in_full_text > company_pos:
-                            # 检查空格前后的内容，决定清理策略
-                            before_space = cleaned_text[:space_pos_in_run]
-                            after_space = cleaned_text[space_pos_in_run + len(spaces):]
+                        # 分析中间部分，如果有下划线，替换为4个空格
+                        underscore_count = middle_part.count('_')
+                        if underscore_count > 0:
+                            new_middle = "    "
+                            logger.info(f"同run清理{underscore_count}个下划线，替换为4个空格")
                             
-                            # 如果后面是括号或特殊内容，保留适当空格；否则删除
-                            if (after_space.startswith('（') or after_space.startswith('(') or 
-                                after_space.startswith('为') or after_space.startswith('，') or
-                                after_space.startswith('的')):
-                                # 保留2个空格用于格式对齐
-                                cleaned_text = cleaned_text.replace(spaces, '  ', 1)
-                                logger.info(f"    清理长空格（保留2个）: {len(spaces)} -> 2个空格")
-                            else:
-                                # 完全删除多余空格
-                                cleaned_text = cleaned_text.replace(spaces, '', 1)
-                                logger.info(f"    清理长空格（删除）: {len(spaces)} -> 0个空格")
-                        else:
-                            # 在公司名称之前的空格，很可能是前导空格，不要清理
-                            logger.info(f"    保留前导空格: {len(spaces)}个空格")
+                            # 重建文本
+                            new_text = run.text.replace(
+                                match.group(0), 
+                                f"{company_part}{new_middle}{field_part}"
+                            )
+                            run.text = new_text
+                            logger.info(f"同run字段间占位符清理完成: '{new_text}'")
+                            same_run_found = True
+                            break
+            
+            # 方案2: 如果不在同一run中，查找包含下划线的独立run
+            if not same_run_found:
+                logger.info("未找到同run中的字段，检查跨run下划线占位符")
+                
+                for i, run in enumerate(paragraph.runs):
+                    run_text = run.text
+                    # 查找只包含下划线和空格的run
+                    if '_' in run_text and len(run_text.strip('_ ')) == 0:
+                        underscore_count = run_text.count('_')
+                        if underscore_count > 0:
+                            # 将下划线替换为4个空格
+                            run.text = "    "
+                            logger.info(f"跨run清理独立下划线run#{i}: '{run_text}' -> '    '")
                     
-                    if cleaned_text != run_text:
-                        run.text = cleaned_text
-                        logger.info(f"    清理完成: '{cleaned_text}'")
-            
-            logger.info(f"占位符清理完成: '{paragraph.text}'")
-            
+                    # 查找包含大量空格和下划线混合的run
+                    elif re.search(r'[\s_]{5,}', run_text):
+                        # 如果run中有很多空格和下划线的组合
+                        underscore_count = run_text.count('_')
+                        if underscore_count > 0:
+                            # 替换所有下划线为空格，然后压缩为4个空格
+                            new_text = re.sub(r'_+', ' ', run_text)
+                            new_text = re.sub(r'\s{5,}', '    ', new_text)
+                            run.text = new_text
+                            logger.info(f"跨run清理混合占位符run#{i}: '{run_text}' -> '{new_text}'")
+                            
+            logger.info("字段间下划线占位符清理完成")
+                            
         except Exception as e:
-            logger.error(f"清理占位符失败: {e}")
+            logger.error(f"清理字段间下划线占位符失败: {e}")
 
-    def _cleanup_trailing_placeholders_after_company(self, paragraph, company_name: str):
-        """清理公司名称后面的多余占位符空格，但保留前导空格"""
+    def _global_placeholder_cleanup(self, paragraph: Paragraph) -> None:
+        """全局占位符清理 - 处理整个段落中的所有占位符"""
         try:
             import re
             
             full_text = paragraph.text
-            if not full_text or company_name not in full_text:
+            if not full_text:
                 return
                 
-            logger.info(f"开始清理公司名称后的占位符: '{full_text}'")
+            logger.info(f"开始全局占位符清理: '{full_text}'")
             
-            # 找到公司名称在完整文本中的位置
-            company_pos = full_text.find(company_name)
-            if company_pos == -1:
-                return
-                
-            company_end_pos = company_pos + len(company_name)
-            
-            # 清理每个run中的多余占位符
-            current_pos = 0
+            # 逐个处理每个run
             for run_idx, run in enumerate(paragraph.runs):
-                run_text = run.text
-                if not run_text:
+                if not run.text:
                     continue
                     
-                # 计算当前run在完整文本中的位置
-                run_start_pos = current_pos
-                run_end_pos = current_pos + len(run_text)
-                current_pos = run_end_pos
+                original_text = run.text
+                cleaned_text = original_text
                 
-                # 只清理在公司名称之后的run中的占位符空格
-                if run_start_pos >= company_end_pos:
-                    # 检查是否有长空格占位符
-                    long_spaces = re.findall(r'\s{10,}', run_text)
-                    if long_spaces:
-                        cleaned_text = run_text
-                        for spaces in long_spaces:
-                            # 清理长空格占位符，但保留2-3个空格用于格式
-                            if len(spaces) >= 10:
-                                # 如果后面还有其他内容，保留少量空格；否则删除
-                                space_pos = cleaned_text.find(spaces)
-                                after_space = cleaned_text[space_pos + len(spaces):]
-                                
-                                if after_space.strip():
-                                    # 后面还有内容，保留2个空格
-                                    cleaned_text = cleaned_text.replace(spaces, '  ', 1)
-                                    logger.info(f"    清理公司名后占位符（保留2个）: {len(spaces)} -> 2个空格")
-                                else:
-                                    # 后面没有内容，删除多余空格
-                                    cleaned_text = cleaned_text.replace(spaces, '', 1)
-                                    logger.info(f"    清理公司名后占位符（删除）: {len(spaces)} -> 0个空格")
-                        
-                        if cleaned_text != run_text:
-                            run.text = cleaned_text
-                            logger.info(f"    run #{run_idx} 清理完成: '{cleaned_text}'")
-            
-            logger.info(f"公司名称后占位符清理完成: '{paragraph.text}'")
+                # 清理连续的空格占位符（3个或以上）
+                cleaned_text = re.sub(r'[ \t]{3,}', '', cleaned_text)
+                
+                # 清理连续的下划线占位符（2个或以上）
+                cleaned_text = re.sub(r'_{2,}', '', cleaned_text)
+                
+                # 如果有变化则更新
+                if cleaned_text != original_text:
+                    run.text = cleaned_text
+                    logger.info(f"全局清理run #{run_idx}: '{original_text}' -> '{cleaned_text}'")
+                            
+            logger.info(f"全局占位符清理完成: '{paragraph.text}'")
             
         except Exception as e:
-            logger.error(f"清理公司名称后占位符失败: {e}")
-
+            logger.error(f"全局占位符清理失败: {e}")
+            # 如果智能清理失败，不执行任何清理，保持原状
+            pass
+    
+    def _smart_placeholder_cleanup(self, paragraph: Paragraph, current_label: str = None) -> None:
+        """
+        智能占位符清理 - 区分占位符和分隔符
+        
+        Args:
+            paragraph: 要清理的段落
+            current_label: 当前正在处理的标签（如"供应商名称"），用于精确清理
+        """
+        try:
+            full_text = paragraph.text
+            if not full_text:
+                return
+                
+            logger.info(f"开始智能占位符清理: '{full_text}', 当前标签: '{current_label}'")
+            
+            # 识别段落中的所有标签
+            labels = self._identify_all_labels_in_paragraph(paragraph)
+            logger.info(f"识别到 {len(labels)} 个标签: {[label['label'] for label in labels]}")
+            
+            if len(labels) == 0:
+                logger.info("没有识别到标签，跳过清理")
+                return
+            
+            if len(labels) == 1:
+                # 单标签情况：保留前置空格，清理后置占位符
+                logger.info("单标签情况，执行前置空格保留清理")
+                self._single_label_cleanup(paragraph, labels[0])
+            else:
+                # 多标签情况：智能保留分隔符
+                logger.info("多标签情况，执行智能分隔符保留清理")
+                self._multi_label_cleanup(paragraph, labels, current_label)
+                
+            logger.info(f"智能占位符清理完成: '{paragraph.text}'")
+            
+        except Exception as e:
+            logger.error(f"智能占位符清理失败: {e}")
+            # 如果智能清理失败，回退到全局清理
+            logger.info("回退到全局占位符清理")
+            self._global_placeholder_cleanup(paragraph)
+    
+    def _identify_all_labels_in_paragraph(self, paragraph: Paragraph) -> list:
+        """识别段落中的所有标签（供应商名称、采购编号等）"""
+        try:
+            import re
+            full_text = paragraph.text
+            labels = []
+            
+            # 定义常见的标签模式
+            label_patterns = [
+                r'供应商名称(?:\（[^）]*\）)?',
+                r'投标人名称(?:\（[^）]*\）)?',
+                r'采购编号',
+                r'项目编号', 
+                r'编号',
+                r'项目名称',
+                r'地址',
+                r'传真',
+                r'电话',
+                r'电子邮件',
+                r'邮编'
+            ]
+            
+            # 匹配所有标签及其位置
+            for pattern in label_patterns:
+                full_pattern = f'({pattern})\\s*[:：]'
+                matches = re.finditer(full_pattern, full_text)
+                for match in matches:
+                    labels.append({
+                        'label': match.group(1),
+                        'start_position': match.start(),
+                        'end_position': match.end(),
+                        'full_match': match.group(0)
+                    })
+            
+            # 按位置排序
+            labels.sort(key=lambda x: x['start_position'])
+            return labels
+            
+        except Exception as e:
+            logger.error(f"识别标签失败: {e}")
+            return []
+    
+    def _single_label_cleanup(self, paragraph: Paragraph, label_info: dict):
+        """单标签清理：保留前置布局空格，清理后置占位符"""
+        try:
+            full_text = paragraph.text
+            label_end = label_info['end_position']
+            
+            # 分两段：标签（含前置空格） + 后置内容
+            prefix_and_label = full_text[:label_end]  # 保留前置空格和标签
+            suffix = full_text[label_end:]            # 后置内容需要清理
+            
+            # 只清理后置的占位符，保留前置的布局空格
+            cleaned_suffix = re.sub(r'[ \t]{3,}$', '', suffix)     # 清理末尾长空格
+            cleaned_suffix = re.sub(r'_{2,}', '', cleaned_suffix)   # 清理下划线
+            cleaned_suffix = re.sub(r'[ \t]{3,}', '', cleaned_suffix)  # 清理中间的长空格（如果有其他内容）
+            
+            # 重构段落文本
+            new_text = prefix_and_label + cleaned_suffix
+            
+            # 应用到runs（简单替换，保持格式）
+            if new_text != full_text:
+                self._apply_cleaned_text_to_runs(paragraph, full_text, new_text)
+                logger.info(f"单标签清理完成: '{full_text}' -> '{new_text}'")
+            
+        except Exception as e:
+            logger.error(f"单标签清理失败: {e}")
+    
+    def _multi_label_cleanup(self, paragraph: Paragraph, labels: list, current_label: str):
+        """多标签清理：智能保留分隔符"""
+        try:
+            full_text = paragraph.text
+            cleaned_text = full_text
+            
+            # 从后往前处理，避免位置偏移
+            for i in reversed(range(len(labels))):
+                label_info = labels[i]
+                label_end = label_info['end_position']
+                
+                # 确定这个标签的处理范围
+                next_label_start = labels[i + 1]['start_position'] if i + 1 < len(labels) else len(full_text)
+                
+                # 提取标签后到下一个标签前的内容
+                between_content = cleaned_text[label_end:next_label_start]
+                
+                # 判断是否需要清理这个标签的占位符
+                should_clean = (current_label is None or 
+                               current_label == label_info['label'] or
+                               current_label in label_info['label'])
+                
+                if should_clean:
+                    # 清理占位符但保留分隔符
+                    has_next_label = i + 1 < len(labels)
+                    cleaned_between = self._clean_placeholder_keep_separator(between_content, has_next_label)
+                    
+                    # 更新文本
+                    cleaned_text = cleaned_text[:label_end] + cleaned_between + cleaned_text[next_label_start:]
+                    logger.info(f"清理标签 '{label_info['label']}' 的占位符: '{between_content}' -> '{cleaned_between}'")
+            
+            # 应用清理结果
+            if cleaned_text != full_text:
+                self._apply_cleaned_text_to_runs(paragraph, full_text, cleaned_text)
+                logger.info(f"多标签清理完成: '{full_text}' -> '{cleaned_text}'")
+                
+        except Exception as e:
+            logger.error(f"多标签清理失败: {e}")
+    
+    def _clean_placeholder_keep_separator(self, content: str, has_next_label: bool) -> str:
+        """清理占位符但保留分隔符"""
+        if not content:
+            return content
+            
+        import re
+        
+        if not has_next_label:
+            # 最后一个标签，清理所有尾部占位符
+            cleaned = re.sub(r'_{2,}', '', content)           # 清理下划线
+            cleaned = re.sub(r'[ \t]{3,}$', '', cleaned)      # 清理尾部长空格
+            return cleaned
+        else:
+            # 中间标签，保留适当分隔符
+            cleaned = re.sub(r'_{2,}', '', content)           # 清理下划线
+            # 将长空格替换为合适的分隔符（3-4个空格）
+            cleaned = re.sub(r'[ \t]{8,}', '   ', cleaned)    # 很长空格 -> 3个空格
+            cleaned = re.sub(r'[ \t]{5,7}', '  ', cleaned)    # 中等空格 -> 2个空格
+            
+            # 如果清理后内容不以空格开头且不以空格结尾，可能需要添加分隔符
+            if cleaned and not cleaned.startswith(' ') and not cleaned.endswith(' '):
+                # 如果这是一个公司名称等内容，在末尾添加分隔符
+                if len(cleaned) > 10 and any(char in cleaned for char in '有限公司股份集团'):
+                    cleaned = cleaned + '   '
+            
+            return cleaned
+    
+    def _apply_cleaned_text_to_runs(self, paragraph: Paragraph, old_text: str, new_text: str):
+        """将清理后的文本应用到runs，保持格式"""
+        try:
+            # 简单策略：如果文本长度差不多，直接用智能替换
+            if len(new_text) >= len(old_text) * 0.5:  # 长度没有剧烈变化
+                self.smart_text_replace(paragraph, old_text, new_text)
+            else:
+                # 如果文本变化太大，可能需要更复杂的处理
+                # 尝试智能清理，如果检测不到标签则使用全局清理
+                labels = self._identify_all_labels_in_paragraph(paragraph)
+                if labels:
+                    # 如果检测到标签，使用第一个标签进行智能清理
+                    self._smart_placeholder_cleanup(paragraph, labels[0])
+                else:
+                    # 如果没有检测到标签，使用全局清理作为fallback
+                    self._global_placeholder_cleanup(paragraph)
+                
+        except Exception as e:
+            logger.error(f"应用清理文本失败: {e}")
+            
 
     def _replace_content_with_address_method(self, paragraph: Paragraph, match, company_name: str, rule: dict) -> bool:
         """替换内容方法 - 包含地址信息，使用智能三层替换"""
@@ -1197,8 +1452,8 @@ class MCPBidderNameProcessor:
                     run.text = run.text.replace(original_text, new_text)
                     logger.info(f"无分隔符填写完成（单run）: '{original_text}' -> '{new_text}'")
                     
-                    # 清理后导占位符
-                    self._cleanup_trailing_placeholders_after_company(paragraph, company_name)
+                    # 智能占位符清理
+                    self._smart_placeholder_cleanup(paragraph, label)
                     return True
             
             # 方法2：如果标签跨run，使用智能重分布方法
@@ -1227,8 +1482,8 @@ class MCPBidderNameProcessor:
                 
                 if success:
                     logger.info(f"无分隔符填写完成（跨run）: '{original_text}' -> '{new_text}'")
-                    # 清理后导占位符
-                    self._cleanup_trailing_placeholders_after_company(paragraph, company_name)
+                    # 智能占位符清理
+                    self._smart_placeholder_cleanup(paragraph, label)
                     return True
                 else:
                     logger.warning("智能重分布失败，尝试简单替换")
@@ -1275,8 +1530,8 @@ class MCPBidderNameProcessor:
                     run.text = run.text.replace(original_text, new_text)
                     logger.info(f"公章在前格式填写完成（单run）: '{original_text}' -> '{new_text}'")
                     
-                    # 清理后导占位符
-                    self._cleanup_trailing_placeholders_after_company(paragraph, company_name)
+                    # 智能占位符清理
+                    self._smart_placeholder_cleanup(paragraph, label)
                     return True
             
             # 方法2：跨run处理
@@ -1302,8 +1557,8 @@ class MCPBidderNameProcessor:
                 
                 if success:
                     logger.info(f"公章在前格式填写完成（跨run）: '{original_text}' -> '{new_text}'")
-                    # 清理后导占位符
-                    self._cleanup_trailing_placeholders_after_company(paragraph, company_name)
+                    # 智能占位符清理
+                    self._smart_placeholder_cleanup(paragraph, label)
                     return True
             
             # 方法3：回退方案
@@ -1344,7 +1599,9 @@ class MCPBidderNameProcessor:
             success = self.smart_text_replace(paragraph, old_text, new_text)
             
             if success:
-                logger.info(f"招标编号填写完成: '{label}' -> '{tender_number}'")
+                # 智能占位符清理 - 区分占位符和分隔符
+                self._smart_placeholder_cleanup(paragraph, label)
+                logger.info(f"招标编号填写完成: '{label}' -> '{tender_number}' (已清理占位符)")
             else:
                 logger.error(f"招标编号填写失败: '{old_text}'")
                 
@@ -1547,12 +1804,13 @@ class MCPBidderNameProcessor:
             
             # 定义字段映射关系
             field_patterns = [
-                # 法定代表人 - 特殊处理：如果包含"签字"则不填写
+                # 法定代表人 - 使用方案A的改进模式，特殊处理：如果包含"签字"则不填写
                 {
-                    'patterns': [r'法定代表人.*?[:：]\s*([_\s]*)', r'法人代表.*?[:：]\s*([_\s]*)', r'法人.*?[:：]\s*([_\s]*)'],
+                    'patterns': [r'(法定代表人.*?[:：])\s*(.*?)$', r'(法人代表.*?[:：])\s*(.*?)$', r'(法人.*?[:：])\s*(.*?)$'],
                     'value': company_info.get('legalRepresentative', ''),
                     'field_name': '法定代表人',
-                    'skip_if_contains': ['签字']  # 如果原文包含"签字"则跳过填写
+                    'skip_if_contains': ['签字'],  # 如果原文包含"签字"则跳过填写
+                    'compact_format': True  # 标记使用紧凑格式
                 },
                 # 注册地址
                 {
@@ -1608,11 +1866,12 @@ class MCPBidderNameProcessor:
                     'value': company_info.get('bankAccount', ''),
                     'field_name': '银行账号'
                 },
-                # 成立日期
+                # 成立日期 - 使用方案A的改进模式
                 {
-                    'patterns': [r'成立日期.*?[:：]\s*([_\s]*)', r'成立时间.*?[:：]\s*([_\s]*)', r'设立日期.*?[:：]\s*([_\s]*)'],
-                    'value': company_info.get('establishDate', ''),
-                    'field_name': '成立日期'
+                    'patterns': [r'(成立日期[:：])\s*(.*?)$', r'(成立时间[:：])\s*(.*?)$', r'(设立日期[:：])\s*(.*?)$'],
+                    'value': self._format_chinese_date(company_info.get('establishDate', '')),
+                    'field_name': '成立日期',
+                    'compact_format': True  # 标记使用紧凑格式
                 },
                 # 日期
                 {
@@ -1637,6 +1896,36 @@ class MCPBidderNameProcessor:
                     'patterns': [r'招标代理.*?[:：]\s*([_\s]*)', r'代理机构.*?[:：]\s*([_\s]*)', r'招标代理机构.*?[:：]\s*([_\s]*)'],
                     'value': self._get_project_info_field('agency'),
                     'field_name': '招标代理'
+                },
+                # 地址字段 - 使用改进模式，避免删除传真标签
+                {
+                    'patterns': [r'(地址[:：])\s*([^传]*?)(?=传|$)', r'^(地址)\s*([^传]*?)(?=传|$)', r'^(地址)(\s+)(?=.*传真)'],
+                    'value': company_info.get('registeredAddress', ''),
+                    'field_name': '地址',
+                    'compact_format': True,  # 标记使用紧凑格式
+                    'preserve_trailing': True  # 保留后续内容（如传真标签）
+                },
+                # 传真字段 - 优先使用fax字段，如无则显示"未填写"
+                {
+                    'patterns': [r'(传真)([_\s]*)', r'(传真)[:：]\s*([_\s]*)', r'(传真号码)[:：]\s*([_\s]*)', r'(传真号码)\s*([_\s]*)'],
+                    'value': company_info.get('fax', '') or '未填写',
+                    'field_name': '传真',
+                    'compact_format': True  # 使用紧凑格式
+                },
+                # 电话字段 - 使用固定电话
+                {
+                    'patterns': [r'^电话[_\s]*$', r'^电话[:：]\s*([_\s]*)', r'^(电话)(\s+)(?=.*电子邮件)', r'^(电话)\s*([_\s]*)'],
+                    'value': company_info.get('fixedPhone', ''),
+                    'field_name': '电话',
+                    'compact_format': True,  # 使用紧凑格式
+                    'preserve_trailing': True  # 保留后续内容（如电子邮件标签）
+                },
+                # 电子邮件字段 - 使用email字段，如无则显示"未填写"
+                {
+                    'patterns': [r'(电子邮件)([_\s]*)$', r'(电子邮件)[:：]\s*([_\s]*)', r'^(电子邮件)\s*([_\s]*)', r'(邮箱)([_\s]*)$', r'(邮箱)[:：]\s*([_\s]*)', r'^(邮箱)\s*([_\s]*)'],
+                    'value': company_info.get('email', '') or '未填写',
+                    'field_name': '电子邮件',
+                    'compact_format': True  # 使用紧凑格式，替换而不是追加
                 }
             ]
             
@@ -1648,10 +1937,16 @@ class MCPBidderNameProcessor:
                     continue
                 
                 # 检查每个字段模式
+                # 特殊处理：如果段落包含多个字段（如地址和传真），需要处理所有字段
+                has_multiple_fields = ('地址' in para_text and '传真' in para_text) or \
+                                    ('电话' in para_text and '电子邮件' in para_text)
+                
                 paragraph_modified = False  # 标记本段落是否已被修改
+                current_text = para_text  # 跟踪当前文本状态
                 
                 for field_info in field_patterns:
-                    if paragraph_modified:  # 如果段落已被修改，跳过其他字段处理
+                    # 如果不是多字段情况且段落已修改，跳过
+                    if not has_multiple_fields and paragraph_modified:
                         break
                         
                     field_value = field_info['value']
@@ -1671,7 +1966,9 @@ class MCPBidderNameProcessor:
                     # 检查所有模式
                     for pattern_str in field_info['patterns']:
                         pattern = re.compile(pattern_str, re.IGNORECASE)
-                        match = pattern.search(para_text)
+                        # 如果是多字段情况，使用更新后的文本
+                        search_text = current_text if has_multiple_fields and paragraph_modified else para_text
+                        match = pattern.search(search_text)
                         
                         if match:
                             logger.info(f"段落 #{para_idx} 匹配{field_name}字段: '{para_text[:100]}...'")
@@ -1697,20 +1994,46 @@ class MCPBidderNameProcessor:
                             else:
                                 # 常规字段替换
                                 try:
-                                    placeholder = match.group(1) if match.groups() else ""
-                                    if placeholder:  # 只有当有占位符时才替换
-                                        new_text = para_text.replace(match.group(0), match.group(0).replace(placeholder, field_value, 1))
+                                    # 使用正确的文本进行替换（多字段情况使用search_text）
+                                    replace_text = search_text if has_multiple_fields and paragraph_modified else para_text
+                                    
+                                    # 检查是否使用紧凑格式（方案A）
+                                    if field_info.get('compact_format', False):
+                                        preserve_trailing = field_info.get('preserve_trailing', False)
+                                        new_text = self._compact_format_replace(replace_text, match, field_value, field_name, preserve_trailing)
+                                    # 特殊处理成立日期字段，避免重复的"年月日"
+                                    elif field_name == '成立日期' and field_value:
+                                        new_text = self._smart_date_replace(replace_text, match, field_value)
                                     else:
-                                        # 如果没有占位符，在匹配的分隔符后添加字段值
-                                        new_text = pattern.sub(lambda m: m.group(0) + field_value, para_text, count=1)
+                                        placeholder = match.group(1) if match.groups() else ""
+                                        if placeholder:  # 只有当有占位符时才替换
+                                            new_text = replace_text.replace(match.group(0), match.group(0).replace(placeholder, field_value, 1))
+                                        else:
+                                            # 如果没有占位符，在匹配的分隔符后添加字段值
+                                            new_text = pattern.sub(lambda m: m.group(0) + field_value, replace_text, count=1)
                                 except IndexError:
                                     # 如果没有捕获组，直接替换整个匹配
                                     new_text = pattern.sub(field_value, para_text, count=1)
                             
                             # 验证替换是否成功且避免重复填写
-                            if new_text != para_text and (new_text.count(field_value) == 1 or is_bracket_replace):
+                            compare_text = search_text if has_multiple_fields and paragraph_modified else para_text
+                            if new_text != compare_text and (new_text.count(field_value) == 1 or is_bracket_replace):
                                 # 使用更安全的方法替换文本，保持格式
-                                self._safe_replace_paragraph_text(paragraph, para_text, new_text)
+                                # 根据字段类型选择合适的替换方法
+                                if field_info.get('compact_format', False):
+                                    # 紧凑格式字段：使用专门的格式保持替换方法
+                                    preserve_trailing = field_info.get('preserve_trailing', False)
+                                    success = self._compact_format_paragraph_replace(paragraph, match, field_value, field_name, preserve_trailing)
+                                elif field_name == '成立日期':
+                                    # 成立日期字段：使用智能日期替换方法
+                                    success = self._smart_date_paragraph_replace(paragraph, compare_text, new_text, field_value)
+                                else:
+                                    # 普通字段：使用标准替换方法
+                                    success = self._safe_replace_paragraph_text(paragraph, compare_text, new_text)
+                                
+                                if not success:
+                                    logger.warning(f"段落文本替换失败，跳过该字段")
+                                    continue
                                 
                                 logger.info(f"{field_name}字段填写完成: '{new_text[:100]}...'")
                                 total_replacements += 1
@@ -1720,7 +2043,15 @@ class MCPBidderNameProcessor:
                                     'new_text': new_text[:100] + ('...' if len(new_text) > 100 else ''),
                                     'paragraph_index': para_idx
                                 })
-                                processed_paragraphs.add(para_idx)  # 标记为已处理
+                                
+                                # 更新当前文本（用于多字段处理）
+                                if has_multiple_fields:
+                                    current_text = paragraph.text  # 获取最新的段落文本
+                                    
+                                # 只有单字段情况才标记段落为已处理
+                                if not has_multiple_fields:
+                                    processed_paragraphs.add(para_idx)
+                                    
                                 paragraph_modified = True
                                 break  # 找到匹配就退出内层循环
             
@@ -1743,6 +2074,279 @@ class MCPBidderNameProcessor:
                 'success': False,
                 'error': f'字段处理失败: {str(e)}'
             }
+
+    def _compact_format_replace(self, para_text: str, match, field_value: str, field_name: str, preserve_trailing: bool = False) -> str:
+        """
+        方案A：紧凑格式替换 - 消除大量空格，使用紧凑格式
+        例如：'成立时间：                    年月日' -> '成立时间：2000年4月21日'
+        支持保留后续内容，如：'地址：xxx传真' -> '地址：新地址传真'
+        """
+        try:
+            logger.info(f"紧凑格式替换: 字段={field_name}, 原文本='{para_text[:50]}...', 填写值='{field_value}', 保留后续内容={preserve_trailing}")
+            
+            # 获取匹配的组
+            if match.groups() and len(match.groups()) >= 1:
+                label = match.group(1)  # 标签部分，如 '成立时间：'
+                existing_content = match.group(2).strip() if len(match.groups()) >= 2 else ""  # 现有内容部分
+                
+                logger.info(f"标签部分: '{label}', 现有内容: '{existing_content}'")
+                
+                # 构建紧凑格式结果
+                clean_label = label.rstrip()
+                if clean_label.endswith('：') or clean_label.endswith(':'):
+                    # 冒号格式：直接拼接
+                    new_text = f"{clean_label}{field_value}"
+                else:
+                    # 其他格式：添加一个空格
+                    new_text = f"{clean_label} {field_value}"
+                
+                # 如果需要保留后续内容，添加匹配后的剩余部分
+                if preserve_trailing:
+                    trailing_content = para_text[match.end():]
+                    if trailing_content:
+                        # 特别处理需要添加空格的情况
+                        if field_name == '地址' and '传真' in trailing_content:
+                            # 在地址后添加4个空格，然后添加传真部分
+                            new_text += "    " + trailing_content.lstrip()
+                        elif field_name == '电话' and '电子邮件' in trailing_content:
+                            # 在电话后添加4个空格，然后添加电子邮件部分
+                            new_text += "    " + trailing_content.lstrip()
+                        else:
+                            new_text += trailing_content
+                        logger.info(f"保留后续内容: '{trailing_content}'")
+                
+                logger.info(f"紧凑格式替换完成: '{new_text}'")
+                return new_text
+            else:
+                # 降级到原有逻辑
+                logger.warning("紧凑格式替换失败：匹配组不足，降级到原有逻辑")
+                return self._smart_date_replace(para_text, match, field_value) if field_name == '成立日期' else para_text
+                
+        except Exception as e:
+            logger.error(f"紧凑格式替换失败: {e}")
+            # 降级到原有逻辑
+            return self._smart_date_replace(para_text, match, field_value) if field_name == '成立日期' else para_text
+
+    def _smart_date_replace(self, para_text: str, match, date_value: str) -> str:
+        """
+        智能日期替换 - 专门处理成立日期，避免重复的"年月日"
+        例如：成立时间：2015年12月18日年月日 -> 成立时间：2015年12月18日
+        """
+        try:
+            logger.info(f"智能日期替换: 原文本='{para_text}', 日期值='{date_value}'")
+            
+            # 获取匹配的部分
+            match_text = match.group(0)
+            placeholder = match.group(1) if match.groups() else ""
+            
+            # 执行基本替换
+            if placeholder:
+                new_text = para_text.replace(match.group(0), match.group(0).replace(placeholder, date_value, 1))
+            else:
+                # 在匹配部分后直接添加日期
+                new_text = para_text.replace(match_text, match_text + date_value, 1)
+            
+            # 检查并清理重复的年月日字符 - 更智能的清理逻辑
+            import re
+            
+            # 处理各种重复模式
+            redundant_patterns = [
+                # 直接重复的年月日字符
+                r'(\d+年\d+月\d+日)年',  # 2015年12月18日年
+                r'(\d+年\d+月\d+日)月',  # 2015年12月18日月  
+                r'(\d+年\d+月\d+日)日',  # 2015年12月18日日
+                r'(\d+年\d+月\d+日)年\s*月',  # 2015年12月18日年月
+                r'(\d+年\d+月\d+日)年\s*月\s*日',  # 2015年12月18日年月日
+                r'(\d+年\d+月\d+日)月\s*日',  # 2015年12月18日月日
+                # 带空格的重复模式
+                r'(\d+年\d+月\d+日)\s+年',  # 2015年12月18日 年
+                r'(\d+年\d+月\d+日)\s+月',  # 2015年12月18日 月
+                r'(\d+年\d+月\d+日)\s+日',  # 2015年12月18日 日
+                r'(\d+年\d+月\d+日)\s+年\s*月',  # 2015年12月18日 年月
+                r'(\d+年\d+月\d+日)\s+年\s*月\s*日',  # 2015年12月18日 年月日
+                r'(\d+年\d+月\d+日)\s+月\s*日',  # 2015年12月18日 月日
+                # 更宽泛的模式，处理多个空格的情况
+                r'(\d+年\d+月\d+日)\s*年\s*月\s*日',  # 2015年12月18日年月日（任意空格）
+                r'(\d+年\d+月\d+日)\s+月\s+日',  # 2015年12月18日  月  日
+                r'(\d+年\d+月\d+日)\s+年\s+月',  # 2015年12月18日  年  月
+            ]
+            
+            for pattern in redundant_patterns:
+                if re.search(pattern, new_text):
+                    old_new_text = new_text
+                    new_text = re.sub(pattern, r'\1', new_text)
+                    logger.info(f"清理重复字符: '{old_new_text}' -> '{new_text}'")
+            
+            logger.info(f"智能日期替换完成: '{new_text}'")
+            return new_text
+            
+        except Exception as e:
+            logger.error(f"智能日期替换失败: {e}")
+            # 降级到普通替换
+            placeholder = match.group(1) if match.groups() else ""
+            if placeholder:
+                return para_text.replace(match.group(0), match.group(0).replace(placeholder, date_value, 1))
+            else:
+                return para_text.replace(match.group(0), match.group(0) + date_value, 1)
+
+    def _compact_format_paragraph_replace(self, paragraph, match, field_value: str, field_name: str, preserve_trailing: bool = False) -> bool:
+        """
+        紧凑格式段落替换 - 保持原有格式的情况下消除大量空格
+        专门为方案A设计，确保不破坏原有的字体格式
+        """
+        try:
+            logger.info(f"紧凑格式段落替换: 字段={field_name}, 填写值='{field_value}'")
+            
+            if not match.groups() or len(match.groups()) < 1:
+                logger.warning("匹配组不足，降级到标准替换")
+                return False
+            
+            label = match.group(1)  # 标签部分
+            existing_content = match.group(2).strip() if len(match.groups()) >= 2 else ""  # 现有内容部分
+            
+            # 获取完整的段落文本
+            full_text = paragraph.text
+            
+            # 构建字段部分的新文本
+            clean_label = label.rstrip()
+            if clean_label.endswith('：') or clean_label.endswith(':'):
+                new_field_text = f"{clean_label}{field_value}"
+            else:
+                new_field_text = f"{clean_label} {field_value}"
+            
+            # 构建完整的新文本（包含匹配前后的内容）
+            match_start = match.start()
+            match_end = match.end()
+            
+            # 匹配前的内容
+            prefix = full_text[:match_start]
+            
+            # 匹配后的内容（如果需要保留）
+            suffix = ""
+            if preserve_trailing:
+                trailing_content = full_text[match_end:]
+                if trailing_content:
+                    # 特殊处理地址和传真、电话和电子邮件之间的间距
+                    if field_name == '地址' and '传真' in trailing_content:
+                        suffix = "    " + trailing_content.lstrip()
+                    elif field_name == '电话' and '电子邮件' in trailing_content:
+                        suffix = "    " + trailing_content.lstrip()
+                    else:
+                        suffix = trailing_content
+                    logger.info(f"保留后续内容: '{trailing_content}'")
+            
+            # 组合完整的新文本
+            new_full_text = prefix + new_field_text + suffix
+            
+            # 尝试智能run替换，保持格式
+            full_text = paragraph.text
+            
+            # 方法1：更精确的标签run定位
+            # 找到完整匹配文本在段落中的位置
+            match_start = match.start()
+            match_end = match.end()
+            
+            # 定位包含匹配开始位置的run
+            current_pos = 0
+            target_run_index = -1
+            
+            for i, run in enumerate(paragraph.runs):
+                run_start = current_pos
+                run_end = current_pos + len(run.text)
+                
+                # 如果匹配的开始位置在这个run的范围内
+                if run_start <= match_start < run_end:
+                    target_run_index = i
+                    break
+                    
+                current_pos = run_end
+            
+            # 采用最保险的方法：整体替换，但保持第一个run的格式
+            logger.info("使用整体替换策略，保持第一个run的格式")
+            
+            # 清空所有run的文本
+            for run in paragraph.runs:
+                run.text = ""
+            
+            # 将新文本放到第一个run中（保持第一个run的原始格式）
+            if paragraph.runs:
+                paragraph.runs[0].text = new_full_text
+                logger.info(f"✅ 紧凑格式段落替换成功，内容统一放在第一个run中")
+                return True
+            else:
+                logger.warning("段落没有run，无法替换")
+                return False
+            
+        except Exception as e:
+            logger.error(f"紧凑格式段落替换失败: {e}")
+            return False
+
+    def _smart_date_paragraph_replace(self, paragraph, old_text: str, new_text: str, date_value: str) -> bool:
+        """
+        智能日期段落替换 - 专门处理成立日期的run分布
+        确保完整的日期如"2015年12月18日"放在第一个相关run中，清理多余的"年月日"
+        """
+        try:
+            logger.info(f"智能日期段落替换: '{old_text}' -> '{new_text}'")
+            
+            # 先尝试单run替换
+            for i, run in enumerate(paragraph.runs):
+                if old_text in run.text:
+                    # 单run情况，直接替换
+                    run.text = run.text.replace(old_text, new_text)
+                    logger.info(f"✅ 成立日期单run替换成功")
+                    return True
+            
+            # 跨run情况：需要重新分布文本
+            full_text = paragraph.text
+            if old_text not in full_text:
+                logger.warning("原文本不在段落中，无法替换")
+                return False
+            
+            # 查找包含日期相关文本的run
+            date_related_runs = []
+            current_pos = 0
+            
+            for i, run in enumerate(paragraph.runs):
+                run_start = current_pos
+                run_end = current_pos + len(run.text)
+                
+                # 检查这个run是否包含日期相关内容
+                contains_date_chars = any(char in run.text for char in ['年', '月', '日', '时', '期', ':', '：'])
+                
+                date_related_runs.append({
+                    'index': i,
+                    'run': run,
+                    'start': run_start, 
+                    'end': run_end,
+                    'text': run.text,
+                    'contains_date': contains_date_chars
+                })
+                
+                current_pos = run_end
+            
+            # 执行替换：将完整日期放到第一个相关run中
+            new_full_text = full_text.replace(old_text, new_text)
+            
+            # 将新文本放到第一个run中，清空其他所有run
+            if paragraph.runs:
+                paragraph.runs[0].text = new_full_text
+                logger.info(f"✅ 成立日期跨run替换成功，完整日期放在第一个run中")
+                
+                # 清空所有其他run（避免多余的"年月日"字符）
+                for i in range(1, len(paragraph.runs)):
+                    if paragraph.runs[i].text:
+                        logger.info(f"清理run[{i}]中的多余内容: '{paragraph.runs[i].text}' -> ''")
+                        paragraph.runs[i].text = ""
+                
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"智能日期段落替换失败: {e}")
+            # 降级到标准替换
+            return self._safe_replace_paragraph_text(paragraph, old_text, new_text)
 
     def _safe_replace_paragraph_text(self, paragraph, old_text: str, new_text: str):
         """
@@ -1920,7 +2524,24 @@ class MCPBidderNameProcessor:
             if format_info['italic'] is not None:
                 run.font.italic = format_info['italic']
             if format_info['underline'] is not None:
-                run.font.underline = format_info['underline']
+                # 检查内容是否是填充的值（公司名称、招标编号等），如果是则不应用下划线
+                run_text = run.text.strip()
+                is_filled_content = False
+                
+                # 检查是否包含常见的填充内容
+                if (hasattr(self, 'company_name') and self.company_name and self.company_name in run_text) or \
+                   (hasattr(self, 'tender_no') and self.tender_no and self.tender_no in run_text) or \
+                   (hasattr(self, 'project_name') and self.project_name and self.project_name in run_text) or \
+                   ('中国联合网络通信有限公司' in run_text) or \
+                   ('GXTC-C-251590031' in run_text):
+                    is_filled_content = True
+                
+                if is_filled_content and format_info['underline']:
+                    # 如果是填充内容且原格式有下划线，不应用下划线
+                    run.font.underline = False
+                    logger.info(f"跳过下划线格式应用: 填充内容'{run_text[:20]}...'")
+                else:
+                    run.font.underline = format_info['underline']
             if format_info['color']:
                 run.font.color.rgb = format_info['color']
         except Exception as e:
@@ -2457,18 +3078,31 @@ class MCPBidderNameProcessor:
         return False
 
     def _find_first_char_format(self, paragraph, old_text: str):
-        """找到目标文本第一个字符所在run的格式"""
+        """找到目标文本的最佳格式 - 优先查找占位符格式"""
         if not old_text:
             return None
             
-        first_char = old_text[0]
         full_text = paragraph.text
         target_pos = full_text.find(old_text)
         
         if target_pos == -1:
             return None
         
-        # 找到第一个字符所在的run
+        # 优先策略：查找占位符部分的格式（空格或下划线）
+        placeholder_chars = [' ', '_', '—', '－', '＿']
+        for char in placeholder_chars:
+            if char in old_text and old_text.count(char) >= 3:  # 至少3个占位符字符
+                placeholder_pos = old_text.find(char)
+                if placeholder_pos != -1:
+                    # 在段落中找到这个占位符的位置
+                    actual_placeholder_pos = target_pos + placeholder_pos
+                    format_info = self._find_run_format_at_position(paragraph, actual_placeholder_pos)
+                    if format_info:
+                        logger.info(f"找到占位符'{char}'的格式，位置{actual_placeholder_pos}")
+                        return format_info
+        
+        # 备用策略：查找第一个字符的格式
+        first_char = old_text[0]
         current_pos = 0
         for run in paragraph.runs:
             run_end = current_pos + len(run.text)
@@ -2482,6 +3116,16 @@ class MCPBidderNameProcessor:
         for run in paragraph.runs:
             if run.text.strip():
                 return self._extract_run_format(run)
+        return None
+        
+    def _find_run_format_at_position(self, paragraph, position: int):
+        """在指定位置找到对应run的格式"""
+        current_pos = 0
+        for run in paragraph.runs:
+            run_end = current_pos + len(run.text)
+            if current_pos <= position < run_end:
+                return self._extract_run_format(run)
+            current_pos = run_end
         return None
 
     def _cross_run_replace_with_format(self, paragraph, old_text: str, new_text: str, target_format):

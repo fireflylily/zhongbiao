@@ -20,11 +20,5 @@
     ],
     "deny": [],
     "ask": []
-  },
-  "env": {
-    "USER_LANGUAGE": "中文",
-    "PYTHON_CMD": "python3",
-    "PROJECT_TYPE": "AI标书处理系统",
-    "COMMUNICATION_STYLE": "始终使用中文回复所有问题和说明"
   }
 }
