@@ -1,0 +1,166 @@
+{
+  "title": "技术方案",
+  "generation_method": "ai",
+  "total_sections": 6,
+  "sections": [
+    {
+      "order": 1,
+      "title": "项目概述",
+      "level": 1,
+      "weight": "10分",
+      "max_score": 0,
+      "subsections": [
+        {
+          "title": "项目背景",
+          "level": 2,
+          "points": [
+            "中邮保险手机号实名认证服务的必要性",
+            "市场需求分析"
+          ]
+        },
+        {
+          "title": "项目目标",
+          "level": 2,
+          "points": [
+            "实现高效的实名认证",
+            "提高用户体验"
+          ]
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "title": "需求分析",
+      "level": 1,
+      "weight": "20分",
+      "max_score": 0,
+      "subsections": [
+        {
+          "title": "功能需求",
+          "level": 2,
+          "points": [
+            "用户信息采集",
+            "实名认证流程设计"
+          ]
+        },
+        {
+          "title": "性能需求",
+          "level": 2,
+          "points": [
+            "响应时间要求",
+            "并发用户处理能力"
+          ]
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "title": "技术方案",
+      "level": 1,
+      "weight": "30分",
+      "max_score": 0,
+      "subsections": [
+        {
+          "title": "系统架构设计",
+          "level": 2,
+          "points": [
+            "系统组件及其功能",
+            "数据流动路径"
+          ]
+        },
+        {
+          "title": "技术选型",
+          "level": 2,
+          "points": [
+            "使用的技术栈",
+            "安全性考虑"
+          ]
+        },
+        {
+          "title": "接口设计",
+          "level": 2,
+          "points": [
+            "API接口定义",
+            "数据格式及传输协议"
+          ]
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "title": "实施计划",
+      "level": 1,
+      "weight": "20分",
+      "max_score": 0,
+      "subsections": [
+        {
+          "title": "项目实施步骤",
+          "level": 2,
+          "points": [
+            "需求确认",
+            "系统开发",
+            "测试阶段"
+          ]
+        },
+        {
+          "title": "时间安排",
+          "level": 2,
+          "points": [
+            "各阶段的时间节点",
+            "里程碑设置"
+          ]
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "title": "风险管理",
+      "level": 1,
+      "weight": "10分",
+      "max_score": 0,
+      "subsections": [
+        {
+          "title": "风险识别",
+          "level": 2,
+          "points": [
+            "技术风险",
+            "项目管理风险"
+          ]
+        },
+        {
+          "title": "风险应对策略",
+          "level": 2,
+          "points": [
+            "风险缓解措施",
+            "应急预案"
+          ]
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "title": "总结与展望",
+      "level": 1,
+      "weight": "10分",
+      "max_score": 0,
+      "subsections": [
+        {
+          "title": "项目预期效果",
+          "level": 2,
+          "points": [
+            "提升用户信任度",
+            "增强品牌形象"
+          ]
+        },
+        {
+          "title": "后续发展规划",
+          "level": 2,
+          "points": [
+            "功能扩展",
+            "市场推广策略"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI标书点对点应答系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .feature-card {
+            transition: transform 0.2s ease;
+            height: 100%;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        /* 响应式导航样式 */
+        #mainTabs .nav-link {
+            white-space: nowrap;
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        /* 在较小屏幕上调整导航 */
+        @media (max-width: 992px) {
+            #mainTabs .nav-link {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.6rem;
+            }
+            #mainTabs .nav-link i {
+                font-size: 0.9rem;
+                margin-right: 0.3rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #mainTabs .nav-link {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.5rem;
+            }
+            #mainTabs .nav-link i {
+                font-size: 0.8rem;
+                margin-right: 0.2rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            #mainTabs .nav-link {
+                font-size: 0.7rem;
+                padding: 0.3rem 0.4rem;
+            }
+            #mainTabs .nav-link i {
+                display: block;
+                font-size: 1rem;
+                margin: 0 0 0.2rem 0;
+            }
+        }
+        
+        /* 确保导航项始终保持水平布局 */
+        #mainTabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+        #mainTabs .nav-item {
+            flex: 1;
+            min-width: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- 页面标题 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 text-primary">
+                        <i class="bi bi-robot"></i> AI标书智能生成系统
+                    </h1>
+                    <p class="lead text-muted">智能化的标书生成解决方案</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能选项卡 -->
+        <div class="row">
+            <div class="col-12">
+                <ul class="nav nav-pills nav-justified mb-4" id="mainTabs">
+                    <li class="nav-item">
+                        <a class="nav-link" href="tender_info.html">
+                            <i class="bi bi-search"></i> 读取信息
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="company_selection.html">
+                            <i class="bi bi-building"></i> 选择应答人
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="business_response.html">
+                            <i class="bi bi-briefcase"></i> 商务应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="point_to_point.html">
+                            <i class="bi bi-chat-dots"></i> 点对点应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="tech_proposal.html">
+                            <i class="bi bi-file-earmark-code"></i> 技术方案生成
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="help.html">
+                            <i class="bi bi-question-circle"></i> 帮助
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 欢迎内容 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h4 class="card-title mb-4">
+                            <i class="bi bi-rocket text-primary"></i> 
+                            欢迎使用AI标书智能生成系统
+                        </h4>
+                        <p class="card-text text-muted mb-4">
+                            请点击上方导航菜单选择需要的功能模块
+                        </p>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 feature-card">
+                                    <div class="card-body">
+                                        <i class="bi bi-search text-info fs-1"></i>
+                                        <h6 class="mt-3">读取信息</h6>
+                                        <small class="text-muted">从招标文档中提取关键信息</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 feature-card">
+                                    <div class="card-body">
+                                        <i class="bi bi-chat-dots text-success fs-1"></i>
+                                        <h6 class="mt-3">点对点应答</h6>
+                                        <small class="text-muted">智能生成对应答文档</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 feature-card">
+                                    <div class="card-body">
+                                        <i class="bi bi-file-earmark-code text-warning fs-1"></i>
+                                        <h6 class="mt-3">技术方案</h6>
+                                        <small class="text-muted">生成专业技术方案文档</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统信息 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="text-center text-muted">
+                    <small>
+                        <i class="bi bi-info-circle"></i> 
+                        AI标书智能生成系统 - 使用始皇API提供智能内容生成服务
+                    </small>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

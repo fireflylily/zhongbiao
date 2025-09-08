@@ -1,0 +1,175 @@
+<!-- 技术方案页面内容 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-upload"></i> 技术方案生成</h5>
+            </div>
+            <div class="card-body">
+                <form id="techProposalForm" enctype="multipart/form-data">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="upload-area tech-upload" data-type="tender">
+                                <i class="bi bi-file-earmark-check text-primary" style="font-size: 2rem;"></i>
+                                <h5 class="mt-2">招标文件</h5>
+                                <p class="text-muted mb-3">上传招标文件或需求文档</p>
+                                <input type="file" class="d-none" id="techTenderFileInput" name="tender_file" accept=".docx,.doc,.pdf">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('techTenderFileInput').click();">
+                                    <i class="bi bi-folder2-open"></i> 选择招标文件
+                                </button>
+                                <div id="techTenderFileInfo" class="mt-2" style="display: none;">
+                                    <small class="text-success"><i class="bi bi-check-circle"></i> <span id="techTenderFileName"></span></small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="upload-area tech-upload" data-type="product">
+                                <i class="bi bi-file-earmark-code text-info" style="font-size: 2rem;"></i>
+                                <h5 class="mt-2">产品文档</h5>
+                                <p class="text-muted mb-3">上传产品功能说明文档</p>
+                                <input type="file" class="d-none" id="productFileInput" name="product_file" accept=".docx,.doc,.pdf">
+                                <button type="button" class="btn btn-info btn-sm" onclick="document.getElementById('productFileInput').click();">
+                                    <i class="bi bi-folder2-open"></i> 选择产品文档
+                                </button>
+                                <div id="productFileInfo" class="mt-2" style="display: none;">
+                                    <small class="text-success"><i class="bi bi-check-circle"></i> <span id="productFileName"></span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="outputPrefix" class="form-label">输出文件前缀</label>
+                            <input type="text" class="form-control" id="outputPrefix" name="output_prefix" value="技术方案" placeholder="输入文件名前缀">
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success btn-lg flex-fill" id="generateProposalBtn" disabled>
+                                <i class="bi bi-play-circle"></i> 生成技术方案
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- 进度条 -->
+                <div class="progress mt-3" id="techProgressBar" style="display: none;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+                
+                <!-- 结果区域 -->
+                <div id="techResultArea" class="mt-4" style="display: none;">
+                    <div class="alert alert-success">
+                        <h5><i class="bi bi-check-circle"></i> 技术方案生成完成！</h5>
+                        <p id="techResultMessage"></p>
+                        <div id="techDownloadArea" class="mt-3">
+                            <!-- 下载按钮将动态生成 -->
+                        </div>
+                        <div id="techPreviewArea" class="mt-2">
+                            <!-- 预览按钮将动态生成 -->
+                        </div>
+                        <div class="text-center mt-3">
+                            <button type="button" class="btn btn-outline-success" onclick="window.location.reload()">
+                                <i class="bi bi-arrow-left"></i> 返回首页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 错误区域 -->
+                <div id="techErrorArea" class="mt-4" style="display: none;">
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-exclamation-triangle"></i> 生成失败</h5>
+                        <p id="techErrorMessage"></p>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary" id="techRetryBtn">
+                                <i class="bi bi-arrow-clockwise"></i> 重试
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="techResetBtn">
+                                <i class="bi bi-arrow-counterclockwise"></i> 重新选择文件
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 技术方案功能特点 -->
+<div class="row mb-5">
+    <div class="col-md-4 mb-3">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text text-info" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">智能解析</h5>
+                <p class="card-text text-muted">自动解析招标文件和产品文档，提取关键信息</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-gear-wide-connected text-warning" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">智能匹配</h5>
+                <p class="card-text text-muted">精确匹配产品功能与招标需求</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-journal-text text-success" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">方案生成</h5>
+                <p class="card-text text-muted">自动生成完整的技术方案文档</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 技术方案使用说明 -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-question-circle"></i> 技术方案生成说明</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📋 支持的文档格式</h6>
+                        <ul>
+                            <li>Word文档 (.docx, .doc)</li>
+                            <li>PDF文档 (.pdf)</li>
+                            <li>文档大小限制：50MB</li>
+                        </ul>
+                        
+                        <h6>🎯 生成功能</h6>
+                        <ul>
+                            <li>自动解析招标需求和产品功能</li>
+                            <li>智能匹配需求与功能特性</li>
+                            <li>生成完整的技术方案大纲</li>
+                            <li>输出专业的Word格式方案文档</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>📊 输出文件</h6>
+                        <ul>
+                            <li>技术方案文档 (.docx)</li>
+                            <li>方案大纲 (.json)</li>
+                            <li>匹配度报告 (.json)</li>
+                            <li>完整数据 (.json)</li>
+                        </ul>
+                        
+                        <h6>⚠️ 注意事项</h6>
+                        <ul>
+                            <li>需要上传招标文件和产品文档</li>
+                            <li>生成时间较长，请耐心等待</li>
+                            <li>建议使用格式规范的文档</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
