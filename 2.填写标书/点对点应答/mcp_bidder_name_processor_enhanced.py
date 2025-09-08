@@ -1875,20 +1875,21 @@ class MCPBidderNameProcessor:
                     'field_name': '传真',
                     'compact_format': True  # 使用紧凑格式
                 },
-                # 电子邮件字段
+                # 电子邮件字段 - 修复重复问题
                 {
                     'patterns': [
+                        r'(电子邮箱[:：]\s*)([_\s]+)',              # 有占位符的情况 - 优先匹配电子邮箱
+                        r'(电子邮箱[:：]\s*)()',                    # 电子邮箱完全为空
                         r'(电子邮件[:：]\s*)([_\s]+)',              # 有占位符的情况
                         r'(电子邮件[:：]\s*)()',                    # 完全为空的情况
-                        r'(电子邮箱[:：]\s*)([_\s]+)',              # 有占位符的情况
-                        r'(电子邮箱[:：]\s*)()',                    # 电子邮箱完全为空
-                        r'(邮箱[:：]\s*)([_\s]+)',                  # 有占位符的情况
+                        r'(邮箱[:：]\s*)([_\s]+)',                  # 有占位符的情况 - 最后匹配邮箱，避免过于宽泛
                         r'(邮箱[:：]\s*)()',                        # 邮箱完全为空
                     ],
                     'value': company_info.get('email', '') or '未填写',
                     'field_name': '电子邮件',
                     'compact_format': True,  # 使用紧凑格式，替换而不是追加
-                    'preserve_trailing': False  # 电子邮件通常是复合段落的最后字段，不需要保留后续内容
+                    'preserve_trailing': True,   # 修复复合段落处理：在复合段落中需要保留其他字段内容
+                    'prevent_duplicate_label': True  # 防止重复标签
                 }
             ]
             
@@ -1953,6 +1954,26 @@ class MCPBidderNameProcessor:
                         
                         if match:
                             logger.info(f"段落 #{para_idx} 匹配{field_name}字段: '{para_text[:100]}...'")
+                            
+                            # 防止重复标签处理：如果字段已经包含了正确的值，跳过处理
+                            if field_info.get('prevent_duplicate_label', False) and field_name == '电子邮件':
+                                # 检查段落是否已经包含了邮件地址，如果有且不是占位符，则跳过
+                                email_value = field_info['value']
+                                if email_value and email_value != '未填写' and email_value in search_text:
+                                    logger.info(f"段落 #{para_idx} {field_name}字段已包含正确值: '{email_value}'，跳过处理")
+                                    continue
+                                    
+                                # 检查是否存在重复的标签情况（如"电子邮箱  电子邮箱"）
+                                if search_text.count('电子邮箱') > 1 or search_text.count('电子邮件') > 1:
+                                    logger.info(f"段落 #{para_idx} 检测到{field_name}标签重复，跳过处理避免进一步重复")
+                                    continue
+                                
+                                # 特别检查复合段落中的电话+电子邮箱组合
+                                if '电话：' in search_text and '电子邮箱：' in search_text:
+                                    # 检查电子邮箱字段是否已包含有效内容，而非仅检查结构
+                                    if re.search(r'电话：[^电子邮箱]*电子邮箱：\s*[^\s_]', search_text):
+                                        logger.info(f"段落 #{para_idx} 复合段落电子邮箱已填写有效内容，跳过处理")
+                                        continue
                             
                             # 检查是否为联系信息字段，且已经包含有意义的内容（不是招标方要求填写的空字段）
                             if field_name in ['联系电话', '电子邮件', '办公地址', '联系地址', '地址']:
@@ -2333,27 +2354,45 @@ class MCPBidderNameProcessor:
             # 如果这是复合段落（包含多个字段），需要更小心地处理
             is_compound_paragraph = any(keyword in current_text for keyword in ['电话', '传真', '电子邮件', '电子邮箱', '地址'])
             
-            # 直接使用现有的精确跨run替换方法，不再做复杂的特殊处理
+            # 🔧 修复：对复合段落使用修复版的精确跨run替换方法
             if is_compound_paragraph and preserve_trailing:
-                logger.info(f"复合段落检测: 使用精确跨run替换方法")
-                # 直接跳转到精确跨run替换方法
-                pass
-            else:
-                # 非复合段落，使用原有的整体替换策略
-                logger.info("单一字段段落，使用整体替换策略")
-                
-                # 清空所有run的文本
-                for run in paragraph.runs:
-                    run.text = ""
-                
-                # 将新文本放到第一个run中（保持第一个run的原始格式）
-                if paragraph.runs:
-                    paragraph.runs[0].text = new_full_text
-                    logger.info(f"✅ 整体替换成功，内容统一放在第一个run中")
+                logger.info(f"复合段落检测: 使用修复版精确跨run替换方法")
+                # 使用修复版的精确跨run替换
+                match_text = match.group(0)
+                success = self._precise_cross_run_replace(paragraph, match_text, new_field_text)
+                if success:
+                    logger.info("✅ 复合段落跨run替换成功")
                     return True
                 else:
-                    logger.warning("段落没有run，无法替换")
-                    return False
+                    logger.warning("复合段落跨run替换失败，尝试简化版文本重分配")
+                    # 🔧 对于复合段落，尝试简化版文本重分配而不是整体替换
+                    try:
+                        success = self._simplified_text_redistribution(paragraph, new_full_text)
+                        if success:
+                            logger.info("✅ 复合段落简化版重分配成功")
+                            return True
+                        else:
+                            logger.error("❌ 复合段落处理完全失败，保留原内容避免数据丢失")
+                            return False
+                    except Exception as e:
+                        logger.error(f"❌ 复合段落处理异常: {e}，保留原内容")
+                        return False
+            
+            # 🔧 统一的整体替换策略（非复合段落或降级情况）
+            logger.info("使用整体替换策略")
+            
+            # 清空所有run的文本
+            for run in paragraph.runs:
+                run.text = ""
+            
+            # 将新文本放到第一个run中（保持第一个run的原始格式）
+            if paragraph.runs:
+                paragraph.runs[0].text = new_full_text
+                logger.info(f"✅ 整体替换成功，内容统一放在第一个run中")
+                return True
+            else:
+                logger.warning("段落没有run，无法替换")
+                return False
             
         except Exception as e:
             logger.error(f"紧凑格式段落替换失败: {e}")
@@ -2509,11 +2548,11 @@ class MCPBidderNameProcessor:
 
     def _precise_cross_run_replace(self, paragraph, old_text: str, new_text: str):
         """
-        精确跨run替换 - 智能重新分布文本，保持格式边界
+        精确跨run替换 - 修复版：使用简化策略，专注于解决替换失败问题
         """
         try:
             full_text = paragraph.text
-            logger.info(f"执行精确跨run替换: '{old_text}' -> '{new_text}'")
+            logger.info(f"执行修复版精确跨run替换: '{old_text}' -> '{new_text}'")
             
             # 查找目标文本位置
             start_pos = full_text.find(old_text)
@@ -2521,40 +2560,54 @@ class MCPBidderNameProcessor:
                 logger.warning("目标文本未找到")
                 return False
             
-            end_pos = start_pos + len(old_text)
-            logger.info(f"目标文本位置: {start_pos}-{end_pos}")
+            # 🔧 修复策略1：优先尝试简单的文本替换
+            new_full_text = full_text.replace(old_text, new_text, 1)
+            logger.info(f"构建新文本: '{new_full_text[:100]}...'")
             
-            # 分析所有run的信息和格式
-            all_runs_info = []
-            current_pos = 0
-            
-            for i, run in enumerate(paragraph.runs):
-                run_start = current_pos
-                run_end = current_pos + len(run.text)
-                
-                all_runs_info.append({
-                    'index': i,
-                    'run': run,
-                    'run_start': run_start,
-                    'run_end': run_end,
-                    'original_text': run.text,
-                    'format': self._extract_run_format(run),
-                    'affected': run_start < end_pos and run_end > start_pos
-                })
-                
-                current_pos = run_end
-            
-            # 构建替换后的完整文本
-            new_full_text = full_text.replace(old_text, new_text)
-            logger.info(f"替换后完整文本: '{new_full_text[:100]}...'")
-            
-            # 🎯 关键修复：智能重新分布文本到run，保持格式边界
-            return self._smart_redistribute_cross_run_text(paragraph, all_runs_info, old_text, new_text, new_full_text, start_pos, end_pos)
+            # 🔧 修复策略2：使用简化的文本重分配
+            return self._simplified_cross_run_redistribute(paragraph, new_full_text)
             
         except Exception as e:
-            logger.error(f"精确跨run替换失败: {e}", exc_info=True)
+            logger.error(f"修复版精确跨run替换失败: {e}", exc_info=True)
             # 降级到传统方法
             return self._fallback_safe_replace(paragraph, old_text, new_text)
+    
+    def _simplified_cross_run_redistribute(self, paragraph, new_full_text: str):
+        """
+        简化版跨run文本重分配 - 专门解决当前问题
+        """
+        try:
+            logger.info(f"执行简化版文本重分配: '{new_full_text[:50]}...'")
+            
+            # 策略1：尝试找到最适合的单个run进行整体替换
+            for i, run in enumerate(paragraph.runs):
+                if len(run.text.strip()) > 0:  # 找到第一个非空run
+                    # 保存原始格式
+                    original_format = self._extract_run_format(run)
+                    
+                    # 清空所有run
+                    for r in paragraph.runs:
+                        r.text = ""
+                    
+                    # 将新文本放入这个run，保持格式
+                    run.text = new_full_text
+                    self._apply_run_format(run, original_format)
+                    
+                    logger.info("✅ 简化版重分配成功：单run承载")
+                    return True
+            
+            # 策略2：如果没有合适的run，使用第一个run
+            if paragraph.runs:
+                paragraph.runs[0].text = new_full_text
+                logger.info("✅ 简化版重分配成功：使用第一个run")
+                return True
+            
+            logger.warning("简化版重分配失败：没有可用的run")
+            return False
+            
+        except Exception as e:
+            logger.error(f"简化版文本重分配失败: {e}", exc_info=True)
+            return False
     
     def _smart_redistribute_cross_run_text(self, paragraph, all_runs_info, old_text: str, new_text: str, new_full_text: str, start_pos: int, end_pos: int):
         """

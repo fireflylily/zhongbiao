@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Company Test</title>
+</head>
+<body>
+    <select id="companySelect">
+        <option value="">请选择公司</option>
+    </select>
+    <div id="result"></div>
+
+    <script>
+        console.log('Starting test...');
+        
+        // 测试API调用
+        fetch('/api/companies')
+        .then(response => {
+            console.log('API Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('API Response data:', data);
+            
+            if (data.success && data.companies) {
+                const select = document.getElementById('companySelect');
+                const result = document.getElementById('result');
+                
+                select.innerHTML = '<option value="">请选择公司</option>';
+                
+                data.companies.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = company.id;
+                    option.textContent = company.companyName;
+                    select.appendChild(option);
+                    console.log('Added company:', company.companyName);
+                });
+                
+                result.innerHTML = `成功加载 ${data.companies.length} 个公司`;
+            } else {
+                document.getElementById('result').innerHTML = '无公司数据';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('result').innerHTML = '加载失败: ' + error.message;
+        });
+    </script>
+</body>
+</html>
