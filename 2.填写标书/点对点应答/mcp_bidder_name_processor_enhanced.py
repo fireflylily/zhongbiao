@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-MCP投标人名称处理器
+================================================================================
+AI标书智能生成系统 - 增强版MCP投标人名称处理器
+================================================================================
 专门处理文档中投标人名称的填写
 支持两种填写方式：
 1. 替换内容（如将"（公司全称）"替换为公司名称）
 2. 在空格处填写（将空格替换为公司名称，格式与标签保持一致）
+
+功能架构：
+- 规则匹配：11种匹配规则
+- Run精确处理：12种处理方式
+- 后处理机制：6种清理机制
+================================================================================
 """
 
 import os
@@ -13,6 +21,14 @@ import re
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional
+
+# 导入工具函数
+from tender_utils import (
+    format_chinese_date,
+    extract_project_info_field,
+    clean_placeholder_keep_separator,
+    get_replacement_type
+)
 
 try:
     from docx import Document
@@ -26,6 +42,10 @@ except ImportError:
 # 配置日志
 logger = logging.getLogger(__name__)
 
+
+# ========================================================================================
+# 第一部分：核心类定义和初始化
+# ========================================================================================
 
 class MCPBidderNameProcessor:
     """MCP投标人名称处理器 - 专门处理投标人名称填写"""
@@ -139,6 +159,10 @@ class MCPBidderNameProcessor:
         else:
             logger.info(f"✅ 规则验证通过：成功加载{actual_rule_count}个合并规则")
     
+    # ========================================================================================
+    # 第二部分：配置加载和辅助方法
+    # ========================================================================================
+    
     def _load_project_number(self) -> str:
         """从“读取信息”页面的tender_config.ini加载项目编号"""
         try:
@@ -166,29 +190,6 @@ class MCPBidderNameProcessor:
         except Exception as e:
             logger.warning(f"从读取信息页面加载项目编号失败: {e}")
             return ""
-    
-    def _format_chinese_date(self, date_str: str) -> str:
-        """
-        将英文日期格式(YYYY-MM-DD)转换为中文日期格式(YYYY年M月D日)
-        例如：2000-04-21 -> 2000年4月21日
-        """
-        if not date_str or not isinstance(date_str, str):
-            return ''
-        
-        try:
-            # 匹配 YYYY-MM-DD 格式
-            import re
-            match = re.match(r'^(\d{4})-(\d{1,2})-(\d{1,2})$', date_str.strip())
-            if match:
-                year, month, day = match.groups()
-                # 转换为中文格式，去掉前导0
-                return f"{year}年{int(month)}月{int(day)}日"
-            else:
-                # 如果不匹配预期格式，返回原字符串
-                return date_str
-        except Exception as e:
-            logger.warning(f"日期格式转换失败: {date_str}, 错误: {e}")
-            return date_str
     
     def _get_project_info_field(self, field_name: str) -> str:
         """从"读取信息"页面的配置文件读取项目信息字段"""
@@ -225,7 +226,11 @@ class MCPBidderNameProcessor:
         except Exception as e:
             logger.warning(f"从读取信息页面读取项目信息字段{field_name}失败: {e}")
             return ""
-        
+    
+    # ========================================================================================
+    # 第三部分：主处理入口方法（公开接口）
+    # ========================================================================================
+    
     def process_bidder_name(self, input_file: str, output_file: str, company_name: str) -> Dict:
         """
         处理投标人名称填写
@@ -403,6 +408,12 @@ class MCPBidderNameProcessor:
                 'success': False,
                 'error': f'处理失败: {str(e)}'
             }
+    
+    # ========================================================================================
+    # 第四部分：规则匹配处理方法（11种规则对应的处理方法）
+    # ========================================================================================
+    
+    # ---------- 内容替换类规则 ----------
     
     def _replace_content_method(self, paragraph: Paragraph, match, company_name: str, rule: dict) -> bool:
         """
@@ -586,6 +597,12 @@ class MCPBidderNameProcessor:
         except Exception as e:
             logger.error(f"填空方式处理失败: {e}")
             return False
+    
+    # ========================================================================================
+    # 第五部分：Run精确处理方法（12种处理方式）
+    # ========================================================================================
+    
+    # ---------- 跨Run处理 ----------
     
     def _enhanced_cross_run_fill(self, paragraph: Paragraph, label: str, sep: str, company_name: str) -> bool:
         """
@@ -1802,7 +1819,7 @@ class MCPBidderNameProcessor:
                 # 成立日期 - 使用方案A的改进模式
                 {
                     'patterns': [r'(成立日期[:：])\s*(.*?)$', r'(成立时间[:：])\s*(.*?)$', r'(设立日期[:：])\s*(.*?)$'],
-                    'value': self._format_chinese_date(company_info.get('establishDate', '')),
+                    'value': format_chinese_date(company_info.get('establishDate', '')),
                     'field_name': '成立日期',
                     'compact_format': True  # 标记使用紧凑格式
                 },
@@ -1870,7 +1887,8 @@ class MCPBidderNameProcessor:
                     ],
                     'value': company_info.get('email', '') or '未填写',
                     'field_name': '电子邮件',
-                    'compact_format': True  # 使用紧凑格式，替换而不是追加
+                    'compact_format': True,  # 使用紧凑格式，替换而不是追加
+                    'preserve_trailing': False  # 电子邮件通常是复合段落的最后字段，不需要保留后续内容
                 }
             ]
             
@@ -1882,19 +1900,12 @@ class MCPBidderNameProcessor:
                     continue
                 
                 # 检查每个字段模式
-                # 特殊处理：如果段落包含多个字段（如地址和传真），需要处理所有字段
-                has_multiple_fields = ('地址' in para_text and '传真' in para_text) or \
-                                    ('电话' in para_text and '电子邮件' in para_text) or \
-                                    ('邮编' in para_text and '地址' in para_text) or \
-                                    ('电话' in para_text and '传真' in para_text)
+                # 移除特定组合限制，允许处理段落中的所有字段
                 
                 paragraph_modified = False  # 标记本段落是否已被修改
                 current_text = para_text  # 跟踪当前文本状态
                 
                 for field_info in field_patterns:
-                    # 如果不是多字段情况且段落已修改，跳过
-                    if not has_multiple_fields and paragraph_modified:
-                        break
                         
                     field_value = field_info['value']
                     field_name = field_info['field_name']
@@ -1913,9 +1924,32 @@ class MCPBidderNameProcessor:
                     # 检查所有模式
                     for pattern_str in field_info['patterns']:
                         pattern = re.compile(pattern_str, re.IGNORECASE)
-                        # 如果是多字段情况，使用更新后的文本
-                        search_text = current_text if has_multiple_fields and paragraph_modified else para_text
+                        # 使用更新后的文本来处理同一段落的多个字段
+                        search_text = current_text if paragraph_modified else para_text
+                        
+                        # 详细的regex匹配过程日志
+                        logger.info(f"=== regex匹配详情 ===")
+                        logger.info(f"字段名: {field_name}")
+                        logger.info(f"正则表达式: {pattern_str}")
+                        logger.info(f"搜索文本: '{search_text}'")
+                        logger.info(f"搜索文本长度: {len(search_text)}")
+                        
                         match = pattern.search(search_text)
+                        
+                        if match:
+                            logger.info(f"✓ 匹配成功!")
+                            logger.info(f"匹配位置: {match.start()} - {match.end()}")
+                            logger.info(f"完整匹配内容: '{match.group(0)}'")
+                            for i, group in enumerate(match.groups(), 1):
+                                logger.info(f"分组 {i}: '{group}'")
+                            # 显示匹配前后的文本
+                            before_text = search_text[:match.start()]
+                            after_text = search_text[match.end():]
+                            logger.info(f"匹配前文本: '{before_text[-20:] if len(before_text) > 20 else before_text}'")
+                            logger.info(f"匹配后文本: '{after_text[:20] if len(after_text) > 20 else after_text}'")
+                        else:
+                            logger.info(f"✗ 未匹配")
+                        logger.info(f"=====================")
                         
                         if match:
                             logger.info(f"段落 #{para_idx} 匹配{field_name}字段: '{para_text[:100]}...'")
@@ -1961,7 +1995,7 @@ class MCPBidderNameProcessor:
                                 # 常规字段替换
                                 try:
                                     # 使用正确的文本进行替换（多字段情况使用search_text）
-                                    replace_text = search_text if has_multiple_fields and paragraph_modified else para_text
+                                    replace_text = para_text
                                     
                                     # 检查是否使用紧凑格式（方案A）
                                     if field_info.get('compact_format', False):
@@ -1992,7 +2026,7 @@ class MCPBidderNameProcessor:
                                     new_text = pattern.sub(field_value, para_text, count=1)
                             
                             # 验证替换是否成功且避免重复填写
-                            compare_text = search_text if has_multiple_fields and paragraph_modified else para_text
+                            compare_text = para_text
                             if new_text != compare_text and (new_text.count(field_value) == 1 or is_bracket_replace):
                                 # 使用更安全的方法替换文本，保持格式
                                 # 根据字段类型选择合适的替换方法
@@ -2027,13 +2061,8 @@ class MCPBidderNameProcessor:
                                     'paragraph_index': para_idx
                                 })
                                 
-                                # 更新当前文本（用于多字段处理）
-                                if has_multiple_fields:
-                                    current_text = paragraph.text  # 获取最新的段落文本
-                                    
-                                # 只有单字段情况才标记段落为已处理
-                                if not has_multiple_fields:
-                                    processed_paragraphs.add(para_idx)
+                                # 标记段落为已处理
+                                processed_paragraphs.add(para_idx)
                                     
                                 paragraph_modified = True
                                 break  # 找到匹配就退出内层循环
@@ -2294,21 +2323,37 @@ class MCPBidderNameProcessor:
                     
                 current_pos = run_end
             
-            # 采用最保险的方法：整体替换，但保持第一个run的格式
-            logger.info("使用整体替换策略，保持第一个run的格式")
+            # 修复：使用智能合并策略而不是整体替换策略
+            # 避免覆盖已经填写的字段内容
+            logger.info("使用智能合并策略，保留已填写的字段内容")
             
-            # 清空所有run的文本
-            for run in paragraph.runs:
-                run.text = ""
+            # 检查段落是否已经包含其他字段的填写内容
+            current_text = paragraph.text
             
-            # 将新文本放到第一个run中（保持第一个run的原始格式）
-            if paragraph.runs:
-                paragraph.runs[0].text = new_full_text
-                logger.info(f"✅ 紧凑格式段落替换成功，内容统一放在第一个run中")
-                return True
+            # 如果这是复合段落（包含多个字段），需要更小心地处理
+            is_compound_paragraph = any(keyword in current_text for keyword in ['电话', '传真', '电子邮件', '电子邮箱', '地址'])
+            
+            # 直接使用现有的精确跨run替换方法，不再做复杂的特殊处理
+            if is_compound_paragraph and preserve_trailing:
+                logger.info(f"复合段落检测: 使用精确跨run替换方法")
+                # 直接跳转到精确跨run替换方法
+                pass
             else:
-                logger.warning("段落没有run，无法替换")
-                return False
+                # 非复合段落，使用原有的整体替换策略
+                logger.info("单一字段段落，使用整体替换策略")
+                
+                # 清空所有run的文本
+                for run in paragraph.runs:
+                    run.text = ""
+                
+                # 将新文本放到第一个run中（保持第一个run的原始格式）
+                if paragraph.runs:
+                    paragraph.runs[0].text = new_full_text
+                    logger.info(f"✅ 整体替换成功，内容统一放在第一个run中")
+                    return True
+                else:
+                    logger.warning("段落没有run，无法替换")
+                    return False
             
         except Exception as e:
             logger.error(f"紧凑格式段落替换失败: {e}")
@@ -2455,7 +2500,7 @@ class MCPBidderNameProcessor:
                     logger.info(f"✅ 单run精确替换成功，完美保持格式")
                     return True
             
-            # 方法2：精确跨run处理 - 只修改涉及的run，保留其他run
+            # 使用精确跨run处理 - 这是成熟的方法，可以智能重分布文本并保持格式边界
             return self._precise_cross_run_replace(paragraph, old_text, new_text)
             
         except Exception as e:
