@@ -34,7 +34,7 @@ class WordEditor {
             selector: `#${this.containerId}`,
             plugins: [
                 'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-                'preview', 'anchor', 'searchreplace', 'visualblocks', 'code',
+                'preview', 'anchor', 'searchreplace', 'code',
                 'fullscreen', 'insertdatetime', 'media', 'table', 'help',
                 'wordcount', 'paste', 'importcss', 'autosave'
             ],
@@ -63,6 +63,9 @@ class WordEditor {
             paste_word_valid_elements: 'b,strong,i,em,h1,h2,h3,h4,h5,h6,p,ol,ul,li,a[href],span,color,font-size,font-color,font-family,mark,table,tr,td,th',
             paste_retain_style_properties: 'color font-size font-family',
             placeholder: this.options.placeholder,
+            // 禁用不可见字符显示
+            show_invisible_characters: false,
+            visualblocks_default_state: false,
             setup: function(editor) {
                 self.editor = editor;
                 

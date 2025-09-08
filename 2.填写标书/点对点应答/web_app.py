@@ -1342,12 +1342,12 @@ def load_document_by_url():
         with open(file_path, 'rb') as f:
             file_content = f.read()
         
-        # 检查文件类型
-        if not (filename.endswith('.docx') or filename.endswith('.doc')):
+        # 检查文件类型 - 检查实际文件路径而不是传入的filename参数
+        if not (file_path.endswith('.docx') or file_path.endswith('.doc')):
             return jsonify({'error': '只支持Word文档格式(.docx/.doc)'}), 400
         
         # 创建临时文件
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx' if filename.endswith('.docx') else '.doc') as temp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx' if file_path.endswith('.docx') else '.doc') as temp_file:
             temp_file.write(file_content)
             temp_file_path = temp_file.name
         
@@ -1608,7 +1608,7 @@ def find_available_port(start_port=8080):
     for port in range(start_port, start_port + 100):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('localhost', port))
+                s.bind(('0.0.0.0', port))
                 return port
         except OSError:
             continue
