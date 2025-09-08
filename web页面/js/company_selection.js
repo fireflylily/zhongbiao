@@ -161,6 +161,18 @@ function loadCompanyInfo(companyId) {
 }
 
 function populateCompanyForm(company) {
+    // 先清空所有表单字段，确保不会显示前一家公司的信息
+    Object.keys(companyFields).forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+            element.value = '';
+        }
+    });
+    
+    // 清空资质文件信息，避免显示前一家公司的资质文件
+    clearAllQualificationsInternal();
+    
+    // 再填充新公司的信息
     Object.keys(companyFields).forEach(fieldId => {
         const element = document.getElementById(fieldId);
         if (element && company.hasOwnProperty(fieldId)) {

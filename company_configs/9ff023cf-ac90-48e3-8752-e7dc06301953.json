@@ -17,7 +17,7 @@
   "bankAccount": "200003309221111116",
   "id": "9ff023cf-ac90-48e3-8752-e7dc06301953",
   "created_at": "2025-09-02T08:09:01.355261",
-  "updated_at": "2025-09-02T08:28:29.024328",
+  "updated_at": "2025-09-08T22:05:39.218979",
   "qualifications": {
     "credit_procurement": {
       "original_filename": "未列入严重失信违法名单（黑名单）信息.png",
@@ -25,5 +25,10 @@
       "file_size": 531958,
       "upload_time": "2025-09-02T08:28:29.022448"
     }
-  }
+  },
+  "legalRepresentativePosition": "董事长",
+  "authorizedPersonName": "",
+  "authorizedPersonPosition": "",
+  "email": "",
+  "fax": ""
 }

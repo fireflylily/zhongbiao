@@ -29,6 +29,9 @@ onPageReady(function() {
     // 加载公司列表
     loadBusinessCompanyList();
     
+    // 加载项目信息
+    loadProjectInfo();
+    
     // 从状态管理器恢复选中的公司
     const savedCompanyId = StateManager.getCompanyId();
     if (savedCompanyId && businessCompanySelect) {
@@ -60,6 +63,38 @@ function loadBusinessCompanyList() {
         })
         .catch(error => {
             console.error('加载公司列表失败:', error);
+        });
+}
+
+function loadProjectInfo() {
+    fetch('/api/project-config')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.project_info) {
+                // 填充项目信息到表单
+                const projectNameField = document.getElementById('businessProjectName');
+                const tenderNoField = document.getElementById('businessTenderNo');
+                const dateField = document.getElementById('businessDate');
+                
+                if (projectNameField && data.project_info.projectName) {
+                    projectNameField.value = data.project_info.projectName;
+                }
+                
+                if (tenderNoField && data.project_info.projectNumber) {
+                    tenderNoField.value = data.project_info.projectNumber;
+                }
+                
+                if (dateField && data.project_info.currentDate) {
+                    dateField.value = data.project_info.currentDate;
+                }
+                
+                console.log('项目信息加载成功', data.project_info);
+            } else {
+                console.warn('项目信息加载失败:', data.error || '无项目信息');
+            }
+        })
+        .catch(error => {
+            console.warn('加载项目信息失败:', error);
         });
 }
 
