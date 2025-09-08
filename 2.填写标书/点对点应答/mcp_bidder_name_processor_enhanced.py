@@ -2036,7 +2036,7 @@ class MCPBidderNameProcessor:
                                     elif field_name == '日期' and field_value and '年' in field_value and '月' in field_value and '日' in field_value:
                                         new_text = self._smart_date_replace(replace_text, match, field_value)
                                     else:
-                                        placeholder = match.group(1) if match.groups() else ""
+                                        placeholder = match.group(2) if len(match.groups()) >= 2 else match.group(1) if match.groups() else ""
                                         if placeholder:  # 只有当有占位符时才替换
                                             new_text = replace_text.replace(match.group(0), match.group(0).replace(placeholder, field_value, 1))
                                         else:

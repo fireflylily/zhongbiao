@@ -404,11 +404,15 @@
                                 </div>
                                 
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <label for="fixedPhone" class="form-label">固定电话</label>
                                         <input type="tel" class="form-control" id="fixedPhone" placeholder="例：010-12345678">
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
+                                        <label for="fax" class="form-label">传真</label>
+                                        <input type="tel" class="form-control" id="fax" placeholder="例：010-12345678">
+                                    </div>
+                                    <div class="col-md-4">
                                         <label for="postalCode" class="form-label">邮政编码</label>
                                         <input type="text" class="form-control" id="postalCode" maxlength="6">
                                     </div>
@@ -2225,6 +2229,7 @@
             'registeredCapital': '注册资本',
             'companyType': '公司类型',
             'fixedPhone': '固定电话',
+            'fax': '传真',
             'postalCode': '邮政编码',
             'registeredAddress': '注册地址',
             'officeAddress': '办公地址',
@@ -2651,8 +2656,8 @@
             isLoadingCompany = true; // 防止填充时触发事件
             Object.keys(companyFields).forEach(fieldId => {
                 const element = document.getElementById(fieldId);
-                if (element && company[fieldId]) {
-                    element.value = company[fieldId];
+                if (element && company.hasOwnProperty(fieldId)) {
+                    element.value = company[fieldId] || '';
                 }
             });
             isLoadingCompany = false; // 重置标志

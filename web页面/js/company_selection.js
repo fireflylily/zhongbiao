@@ -23,6 +23,7 @@ const companyFields = {
     'registeredCapital': '注册资本',
     'companyType': '公司类型',
     'fixedPhone': '固定电话',
+    'fax': '传真',
     'postalCode': '邮政编码',
     'registeredAddress': '注册地址',
     'officeAddress': '办公地址',
