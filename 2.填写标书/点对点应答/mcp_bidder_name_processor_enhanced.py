@@ -148,10 +148,17 @@ class MCPBidderNameProcessor:
                 'type': 'replace_content_tender_no',
                 'description': '括号内所有编号类型统一替换'
             },
+            
+            # 供应商代表姓名替换规则
+            {
+                'pattern': re.compile(r'(?P<prefix>[\(（])\s*(?P<content>供应商代表姓名)\s*(?P<suffix>[\)）])'),
+                'type': 'replace_content_authorized_person',
+                'description': '括号内容替换 - 供应商代表姓名'
+            },
         ]
         
-        # 运行时验证：确保使用合并后的11规则版本（已添加项目名称、项目编号组合规则）
-        expected_rule_count = 11
+        # 运行时验证：确保使用合并后的12规则版本（已添加供应商代表姓名替换规则）
+        expected_rule_count = 12
         actual_rule_count = len(self.bidder_patterns)
         if actual_rule_count != expected_rule_count:
             logger.error(f"❌ 严重错误：期望{expected_rule_count}个规则，实际{actual_rule_count}个！缓存问题未解决")
@@ -314,12 +321,12 @@ class MCPBidderNameProcessor:
                 for rule_idx, rule in enumerate(self.bidder_patterns):
                     # 项目名称和项目编号处理可以与投标人名称处理并行进行
                     if (bidder_name_processed and 
-                        rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_with_project_info']):
-                        continue  # 如果投标人名称已处理，只允许项目名称和项目编号处理继续
+                        rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_authorized_person', 'replace_content_with_project_info']):
+                        continue  # 如果投标人名称已处理，只允许项目名称、项目编号和授权人处理继续
                         
                     pattern = rule['pattern']
                     # 项目名称和项目编号处理使用当前文本，其他处理使用原始文本
-                    search_text = paragraph.text if rule['type'] in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_with_project_info'] else original_para_text
+                    search_text = paragraph.text if rule['type'] in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_authorized_person', 'replace_content_with_project_info'] else original_para_text
                     match = pattern.search(search_text)
                     
                     if match:
@@ -373,6 +380,10 @@ class MCPBidderNameProcessor:
                             success = self._replace_content_tender_no_method(paragraph, match, rule)
                             if success:
                                 stats['replace_content_count'] += 1
+                        elif rule['type'] == 'replace_content_authorized_person':
+                            success = self._replace_content_authorized_person_method(paragraph, match, rule)
+                            if success:
+                                stats['replace_content_count'] += 1
                                 
                         if success:
                             stats['total_replacements'] += 1
@@ -386,7 +397,7 @@ class MCPBidderNameProcessor:
                             logger.info(f"处理后: '{paragraph.text[:100]}...'")
                             
                             # 如果是投标人名称相关处理，标记为已处理
-                            if rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'fill_space_tender_no']:
+                            if rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_authorized_person', 'fill_space_tender_no']:
                                 bidder_name_processed = True
                             
                             # 不再需要break，允许在同一段落中进行多种类型的处理
@@ -1636,6 +1647,44 @@ class MCPBidderNameProcessor:
             
         except Exception as e:
             logger.error(f"项目编号括号替换失败: {e}")
+            return False
+
+    def _replace_content_authorized_person_method(self, paragraph: Paragraph, match, rule: dict) -> bool:
+        """供应商代表姓名括号内容替换方法 - 使用智能三层替换"""
+        try:
+            logger.info(f"执行供应商代表姓名括号内容替换: {rule['description']}")
+            
+            # 获取授权人姓名 - 从公司信息中读取
+            authorized_person_name = ""
+            if hasattr(self, 'company_info') and self.company_info:
+                authorized_person_name = self.company_info.get('authorizedPersonName', '')
+            
+            # 如果没有授权人姓名，使用默认值
+            if not authorized_person_name.strip():
+                authorized_person_name = "吕贺"  # 默认值
+                logger.warning(f"未找到授权人姓名，使用默认值: {authorized_person_name}")
+            
+            # 获取匹配的组
+            prefix = match.group('prefix')  # （
+            content = match.group('content')  # 供应商代表姓名
+            suffix = match.group('suffix')  # ）
+            match_text = match.group(0)  # 完整匹配文本
+            
+            # 构造新文本
+            new_text = f"{prefix}{authorized_person_name}{suffix}"
+            
+            # 使用智能三层替换策略
+            success = self.smart_text_replace(paragraph, match_text, new_text)
+            
+            if success:
+                logger.info(f"供应商代表姓名智能替换完成: '{match_text}' -> '{new_text}'")
+            else:
+                logger.error(f"供应商代表姓名智能替换失败: '{match_text}'")
+                
+            return success
+            
+        except Exception as e:
+            logger.error(f"供应商代表姓名括号替换失败: {e}")
             return False
 
     def process_business_response(self, input_file: str, output_file: str, 
