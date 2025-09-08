@@ -46,7 +46,7 @@ except ImportError as e:
 
 # 计算web页面目录路径，统一管理所有web页面
 web_pages_dir = str(Path(__file__).parent.parent.parent / "web页面")
-app = Flask(__name__, template_folder=web_pages_dir)
+app = Flask(__name__, template_folder=web_pages_dir, static_folder=web_pages_dir)
 app.secret_key = 'ai_tender_response_system_2025'
 
 def render_template_with_layout(page_template, page_title, active_nav):
@@ -173,10 +173,32 @@ def tech_proposal():
     """技术方案页面"""
     return render_template_with_layout('tech_proposal.html', '技术方案', 'active_tech_proposal')
 
+@app.route('/preview-document')
+def preview_document():
+    """文档预览页面"""
+    return render_template_with_layout('document_preview.html', '文档预览', '')
+
+@app.route('/document_preview.html')
+def document_preview():
+    """文档预览页面（直接访问）"""
+    return render_template_with_layout('document_preview.html', '文档预览', '')
+
 @app.route('/debug')
 def debug_upload():
     """调试上传页面"""
     return send_file('test_upload_debug.html')
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    """处理静态文件"""
+    try:
+        static_path = os.path.join(web_pages_dir, filename)
+        if os.path.exists(static_path) and os.path.isfile(static_path):
+            return send_file(static_path)
+        else:
+            return "File not found", 404
+    except Exception as e:
+        return f"Error serving file: {e}", 500
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -330,6 +352,41 @@ def download_file(filename):
     except Exception as e:
         logger.error(f"文件下载失败: {e}", exc_info=True)
         return jsonify({'error': f'下载失败: {str(e)}'}), 500
+
+@app.route('/outputs/images/<filename>')
+def serve_editor_images(filename):
+    """服务编辑器上传的图片文件"""
+    try:
+        # 安全性检查：防止路径遍历攻击
+        if '..' in filename or '/' in filename or '\\' in filename:
+            logger.warning(f"不安全的图片文件名: {filename}")
+            return "无效的文件名", 400
+            
+        # 构建图片文件路径
+        images_dir = os.path.join('outputs', 'images')
+        image_path = os.path.join(images_dir, filename)
+        
+        if not os.path.exists(image_path):
+            logger.error(f"图片文件不存在: {image_path}")
+            return "文件不存在", 404
+            
+        # 根据文件扩展名设置正确的MIME类型
+        file_ext = filename.lower().split('.')[-1]
+        mime_types = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'bmp': 'image/bmp',
+            'webp': 'image/webp'
+        }
+        mimetype = mime_types.get(file_ext, 'application/octet-stream')
+            
+        return send_file(os.path.abspath(image_path), mimetype=mimetype)
+        
+    except Exception as e:
+        logger.error(f"编辑器图片文件访问失败: {e}", exc_info=True)
+        return jsonify({'error': f'访问失败: {str(e)}'}), 500
 
 @app.route('/web页面/<path:filename>')
 def serve_web_pages(filename):
@@ -1093,6 +1150,229 @@ def get_project_config():
         logger.error(f"获取项目配置失败: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/editor/load-document', methods=['POST'])
+def load_document():
+    """读取Word文档转换为HTML"""
+    try:
+        logger.info("开始处理Word文档读取请求")
+        
+        if 'file' not in request.files:
+            return jsonify({'error': '未上传文件'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': '文件名为空'}), 400
+        
+        # 检查文件类型
+        allowed_extensions = {'docx', 'doc'}
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': '只支持 .docx 和 .doc 格式的Word文档'}), 400
+        
+        # 保存临时文件
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        temp_filename = f"temp_editor_{timestamp}_{secure_filename(file.filename)}"
+        temp_path = os.path.join('uploads', temp_filename)
+        
+        os.makedirs('uploads', exist_ok=True)
+        file.save(temp_path)
+        logger.info(f"临时文件已保存: {temp_path}")
+        
+        try:
+            # 使用mammoth转换Word为HTML
+            import mammoth
+            
+            with open(temp_path, "rb") as docx_file:
+                result = mammoth.convert_to_html(docx_file)
+                html_content = result.value
+                
+                # 获取转换警告（如果有）
+                warnings = [str(warning) for warning in result.messages]
+                if warnings:
+                    logger.warning(f"Word转换警告: {warnings}")
+            
+            # 清理HTML内容，确保格式正确
+            html_content = clean_html_content(html_content)
+            
+            logger.info(f"Word文档转换成功: {file.filename}")
+            
+            return jsonify({
+                'success': True,
+                'html_content': html_content,
+                'original_filename': file.filename,
+                'warnings': warnings if 'warnings' in locals() else []
+            })
+            
+        finally:
+            # 清理临时文件
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+                logger.info(f"临时文件已清理: {temp_path}")
+                
+    except Exception as e:
+        logger.error(f"Word文档读取失败: {e}", exc_info=True)
+        return jsonify({'error': f'文档读取失败: {str(e)}'}), 500
+
+@app.route('/api/editor/save-document', methods=['POST'])
+def save_document():
+    """将HTML内容保存为Word文档"""
+    try:
+        logger.info("开始处理HTML到Word转换请求")
+        
+        data = request.get_json()
+        html_content = data.get('html_content', '')
+        filename = data.get('filename', '文档')
+        
+        if not html_content.strip():
+            return jsonify({'error': 'HTML内容为空'}), 400
+        
+        # 清理文件名，移除特殊字符
+        filename = ''.join(c for c in filename if c.isalnum() or c in (' ', '-', '_', '（', '）', '中', '文')).strip() or '文档'
+        
+        # 生成输出文件
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"{filename}_{timestamp}.docx"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+        
+        os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+        
+        # 转换HTML为Word文档
+        convert_html_to_docx(html_content, output_path)
+        
+        logger.info(f"HTML转Word文档成功: {output_filename}")
+        
+        # 直接返回文件供下载
+        return send_file(
+            os.path.abspath(output_path),
+            as_attachment=True,
+            download_name=output_filename,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        
+    except Exception as e:
+        logger.error(f"HTML转Word文档失败: {e}", exc_info=True)
+        return jsonify({'error': f'文档保存失败: {str(e)}'}), 500
+
+@app.route('/api/editor/load-document-by-url', methods=['POST'])
+def load_document_by_url():
+    """通过文件URL加载Word文档并转换为HTML"""
+    try:
+        logger.info("开始处理通过URL加载Word文档请求")
+        
+        data = request.get_json()
+        file_url = data.get('file_url', '')
+        filename = data.get('filename', '文档')
+        
+        if not file_url:
+            return jsonify({'error': '未提供文件URL'}), 400
+        
+        # 检查URL类型并处理
+        if file_url.startswith('/download/'):
+            # 处理相对下载URL，转换为实际文件路径
+            filename_only = file_url.replace('/download/', '')
+            file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename_only)
+            logger.info(f"处理下载URL: {file_url} -> {file_path}")
+        elif file_url.startswith('/download-tech/'):
+            # 处理技术方案下载URL
+            filename_only = file_url.replace('/download-tech/', '')
+            file_path = os.path.join(app.config['TECH_OUTPUT_FOLDER'], filename_only)
+            logger.info(f"处理技术方案下载URL: {file_url} -> {file_path}")
+        elif file_url.startswith('/') or file_url.startswith('file://'):
+            # 本地文件路径处理
+            if file_url.startswith('file://'):
+                file_path = file_url[7:]  # 移除 'file://' 前缀
+            else:
+                file_path = file_url
+            logger.info(f"处理本地文件路径: {file_url} -> {file_path}")
+        else:
+            # 处理HTTP URL（如果需要的话）
+            return jsonify({'error': '暂不支持HTTP URL下载'}), 400
+        
+        if not os.path.exists(file_path):
+            logger.error(f"文件不存在: {file_path}")
+            return jsonify({'error': '文件不存在'}), 404
+            
+        # 读取本地文件
+        with open(file_path, 'rb') as f:
+            file_content = f.read()
+        
+        # 检查文件类型
+        if not (filename.endswith('.docx') or filename.endswith('.doc')):
+            return jsonify({'error': '只支持Word文档格式(.docx/.doc)'}), 400
+        
+        # 创建临时文件
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx' if filename.endswith('.docx') else '.doc') as temp_file:
+            temp_file.write(file_content)
+            temp_file_path = temp_file.name
+        
+        try:
+            # 使用mammoth将Word文档转换为HTML
+            import mammoth
+            with open(temp_file_path, "rb") as docx_file:
+                result = mammoth.convert_to_html(docx_file)
+                html_content = result.value
+                messages = result.messages
+                
+            logger.info(f"Word文档转换成功，包含 {len(messages)} 个转换消息")
+            
+            return jsonify({
+                'success': True,
+                'html_content': html_content,
+                'original_filename': filename,
+                'conversion_messages': [str(msg) for msg in messages]
+            })
+        
+        finally:
+            # 清理临时文件
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+        
+    except Exception as e:
+        logger.error(f"通过URL加载Word文档失败: {e}", exc_info=True)
+        return jsonify({'error': f'文档加载失败: {str(e)}'}), 500
+
+@app.route('/api/editor/upload-image', methods=['POST'])
+def upload_image():
+    """上传编辑器中的图片"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': '未上传图片'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': '文件名为空'}), 400
+        
+        # 检查文件类型
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': '只支持常见图片格式'}), 400
+        
+        # 保存图片文件
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        image_filename = f"editor_image_{timestamp}_{secure_filename(file.filename)}"
+        
+        # 创建图片存储目录
+        images_dir = os.path.join('outputs', 'images')
+        os.makedirs(images_dir, exist_ok=True)
+        
+        image_path = os.path.join(images_dir, image_filename)
+        file.save(image_path)
+        
+        # 返回图片URL
+        image_url = f'/outputs/images/{image_filename}'
+        
+        logger.info(f"编辑器图片上传成功: {image_filename}")
+        
+        return jsonify({
+            'success': True,
+            'location': image_url
+        })
+        
+    except Exception as e:
+        logger.error(f"编辑器图片上传失败: {e}")
+        return jsonify({'error': f'图片上传失败: {str(e)}'}), 500
+
 @app.route('/process-business-response', methods=['POST'])
 def process_business_response():
     """处理商务应答请求"""
@@ -1208,6 +1488,73 @@ def process_business_response():
     except Exception as e:
         logger.error(f"商务应答处理失败: {e}", exc_info=True)
         return jsonify({'error': f'处理失败: {str(e)}'}), 500
+
+def clean_html_content(html_content):
+    """清理HTML内容，确保格式正确"""
+    try:
+        from bs4 import BeautifulSoup
+        
+        # 解析HTML
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # 清理不需要的标签和属性
+        for tag in soup.find_all():
+            # 保留常见的样式属性
+            allowed_attrs = ['style', 'class', 'id', 'href', 'src', 'alt', 'title']
+            attrs = dict(tag.attrs)
+            for attr in attrs:
+                if attr not in allowed_attrs:
+                    del tag.attrs[attr]
+        
+        # 返回清理后的HTML
+        return str(soup)
+    except Exception as e:
+        logger.warning(f"HTML内容清理失败: {e}")
+        return html_content
+
+def convert_html_to_docx(html_content, output_path):
+    """HTML转Word文档"""
+    try:
+        from htmldocx import HtmlToDocx
+        
+        # 创建HTML转换器
+        new_parser = HtmlToDocx()
+        
+        # 转换HTML到Word
+        new_parser.parse_html_string(html_content)
+        
+        # 保存文档
+        new_parser.save(output_path)
+        
+        logger.info(f"HTML成功转换为Word文档: {output_path}")
+        
+    except Exception as e:
+        logger.error(f"HTML转Word失败: {e}")
+        # 如果htmldocx失败，尝试使用python-docx的基础功能
+        try:
+            from docx import Document
+            from bs4 import BeautifulSoup
+            
+            doc = Document()
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # 简单处理：提取文本并添加到文档
+            for element in soup.find_all(['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+                text = element.get_text().strip()
+                if text:
+                    if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                        # 标题
+                        doc.add_heading(text, level=int(element.name[1]))
+                    else:
+                        # 普通段落
+                        doc.add_paragraph(text)
+            
+            doc.save(output_path)
+            logger.info(f"使用备用方法成功转换HTML为Word文档: {output_path}")
+            
+        except Exception as e2:
+            logger.error(f"备用HTML转Word方法也失败: {e2}")
+            raise Exception(f"HTML转Word失败: {str(e)} / {str(e2)}")
 
 def find_available_port(start_port=8080):
     """找到可用端口"""

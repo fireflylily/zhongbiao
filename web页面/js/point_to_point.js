@@ -2,6 +2,8 @@
  * 点对点应答页面JavaScript
  */
 
+// 点对点应答页面变量
+
 // 继承原有的点对点应答功能
 // 这里包含原始的上传处理逻辑
 
@@ -72,8 +74,14 @@ function submitUpload(event) {
                 document.getElementById('resultMessage').textContent = data.message || '文档处理完成';
                 
                 const downloadBtn = document.getElementById('downloadBtn');
+                const previewBtn = document.getElementById('previewBtn');
+                
                 if (downloadBtn && data.download_url) {
                     downloadBtn.onclick = () => downloadFile(data.download_url, data.filename);
+                }
+                
+                if (previewBtn && data.download_url) {
+                    previewBtn.onclick = () => previewDocument(data.download_url, data.filename, '点对点应答');
                 }
                 
                 resultArea.style.display = 'block';
@@ -95,4 +103,14 @@ function submitUpload(event) {
         errorArea.style.display = 'block';
         showNotification('文档处理失败', 'error');
     });
+}
+
+// ==================== 文档预览功能 ====================
+
+/**
+ * 通用预览文档函数
+ */
+function previewDocument(downloadUrl, filename, docType) {
+    const previewUrl = `/preview-document?file=${encodeURIComponent(downloadUrl)}&filename=${encodeURIComponent(filename)}&type=${encodeURIComponent(docType)}`;
+    window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
 }

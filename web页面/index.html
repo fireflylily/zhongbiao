@@ -701,12 +701,20 @@
                             </div>
 
                             <!-- 结果显示 -->
-                            <div class="alert alert-success mt-3" id="businessResult" style="display: none;">
+                            <div class="alert alert-success mt-3" id="businessResult">
                                 <h6>处理完成！</h6>
                                 <p id="businessResultMessage"></p>
-                                <a href="#" id="businessDownloadLink" class="btn btn-primary">
-                                    <i class="bi bi-download"></i> 下载文件
-                                </a>
+                                <div>
+                                    <a href="#" id="businessDownloadLink" class="btn btn-primary me-2">
+                                        <i class="bi bi-download"></i> 下载文件
+                                    </a>
+                                    <button id="businessPreviewBtn" class="btn btn-success" onclick="previewBusinessDocument()">
+                                        <i class="bi bi-eye"></i> 预览文档
+                                    </button>
+                                    <button class="btn btn-info ms-2" onclick="testPreviewWithLatestFile()">
+                                        <i class="bi bi-play-circle"></i> 测试预览
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- 错误提示 -->

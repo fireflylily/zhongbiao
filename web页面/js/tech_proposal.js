@@ -2,6 +2,8 @@
  * 技术方案页面JavaScript
  */
 
+// 技术方案页面变量
+
 // 页面元素和状态  
 let techProposalForm, techTenderFileInput, productFileInput;
 let techProgressBar, techResultArea, techErrorArea;
@@ -136,6 +138,23 @@ function handleTechProposalSubmit(event) {
                     downloadArea.innerHTML = downloadHtml;
                 }
                 
+                // 生成预览按钮
+                const previewArea = document.getElementById('techPreviewArea');
+                if (previewArea && data.files) {
+                    let previewHtml = '';
+                    data.files.forEach(file => {
+                        // 只为Word文档生成预览按钮
+                        if (file.filename && (file.filename.endsWith('.docx') || file.filename.endsWith('.doc'))) {
+                            previewHtml += `
+                                <button class="btn btn-success me-2 mb-2" onclick="previewTechDocument('${file.url}', '${file.filename}')">
+                                    <i class="bi bi-eye"></i> 预览 ${file.name}
+                                </button>
+                            `;
+                        }
+                    });
+                    previewArea.innerHTML = previewHtml;
+                }
+                
                 techResultArea.style.display = 'block';
                 showNotification('技术方案生成成功！', 'success');
             } else {
@@ -161,4 +180,14 @@ function handleTechProposalSubmit(event) {
         techErrorArea.style.display = 'block';
         showNotification('技术方案生成失败', 'error');
     });
+}
+
+// ==================== 文档预览功能 ====================
+
+/**
+ * 预览技术方案文档
+ */
+function previewTechDocument(downloadUrl, filename) {
+    const previewUrl = `/preview-document?file=${encodeURIComponent(downloadUrl)}&filename=${encodeURIComponent(filename)}&type=技术方案`;
+    window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
 }

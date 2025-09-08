@@ -2,6 +2,8 @@
  * 商务应答页面JavaScript
  */
 
+// 商务应答页面变量
+
 // 页面元素和状态
 let businessResponseForm, businessTemplateFile, businessCompanySelect;
 let businessProgress, businessResult, businessError;
@@ -127,6 +129,13 @@ function handleBusinessResponseSubmit(event) {
                 if (downloadLink && data.download_url) {
                     downloadLink.href = data.download_url;
                     downloadLink.onclick = () => downloadFile(data.download_url, data.filename);
+                    
+                    // 同时更新预览按钮，存储必要的数据
+                    const previewBtn = document.getElementById('businessPreviewBtn');
+                    if (previewBtn) {
+                        previewBtn.setAttribute('data-file-url', data.download_url);
+                        previewBtn.setAttribute('data-filename', data.filename || '商务应答文档');
+                    }
                 }
                 
                 businessResult.style.display = 'block';
@@ -152,4 +161,48 @@ function handleBusinessResponseSubmit(event) {
         businessError.style.display = 'block';
         showNotification('商务应答处理失败', 'error');
     });
+}
+
+// ==================== 文档预览功能 ====================
+
+/**
+ * 预览商务应答文档
+ */
+function previewBusinessDocument() {
+    const previewBtn = document.getElementById('businessPreviewBtn');
+    let fileUrl = null;
+    let filename = '商务应答文档';
+    
+    // 优先使用data属性中存储的文件信息
+    if (previewBtn && previewBtn.getAttribute('data-file-url')) {
+        fileUrl = previewBtn.getAttribute('data-file-url');
+        filename = previewBtn.getAttribute('data-filename') || '商务应答文档';
+    } else {
+        // 回退到原来的逻辑
+        const downloadLink = document.getElementById('businessDownloadLink');
+        if (downloadLink && downloadLink.href && downloadLink.href !== '#') {
+            fileUrl = downloadLink.href;
+        }
+    }
+    
+    if (fileUrl) {
+        const previewUrl = `/preview-document?file=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(filename)}&type=商务应答`;
+        window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    } else {
+        showNotification('没有可预览的文档', 'error');
+    }
+}
+
+/**
+ * 测试预览功能（使用最新生成的文件）
+ */
+function testPreviewWithLatestFile() {
+    // 使用最新生成的商务应答文件进行测试
+    const testFileUrl = '/download/docx-商务应答-20250908_173139.docx';
+    const testFilename = 'docx-商务应答-20250908_173139.docx';
+    
+    const previewUrl = `/preview-document?file=${encodeURIComponent(testFileUrl)}&filename=${encodeURIComponent(testFilename)}&type=商务应答`;
+    window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    
+    showNotification('正在打开预览窗口...', 'info');
 }
