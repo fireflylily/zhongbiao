@@ -321,17 +321,15 @@ class MCPBidderNameProcessor:
                 for rule_idx, rule in enumerate(self.bidder_patterns):
                     # 项目名称和项目编号处理可以与投标人名称处理并行进行
                     if (bidder_name_processed and 
-                        rule['type'] not in ['replace_content', 'replace_content_with_address', 'replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_authorized_person', 'replace_content_with_project_info']):
-                        logger.info(f"🔧 修复验证：跳过规则 #{rule_idx+1} - {rule['description']} (bidder_name_processed={bidder_name_processed})")
+                        rule['type'] not in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_authorized_person', 'replace_content_with_project_info']):
                         continue  # 如果投标人名称已处理，只允许项目名称、项目编号和授权人处理继续
                         
                     pattern = rule['pattern']
-                    # 替换内容类规则和项目相关规则使用当前文本，其他规则使用原始文本
-                    search_text = paragraph.text if rule['type'] in ['replace_content', 'replace_content_with_address', 'replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_authorized_person', 'replace_content_with_project_info'] else original_para_text
-                    # 使用finditer查找所有匹配项，而不仅仅是第一个
-                    matches = list(pattern.finditer(search_text))
+                    # 项目名称和项目编号处理使用当前文本，其他处理使用原始文本
+                    search_text = paragraph.text if rule['type'] in ['replace_content_project', 'replace_content_project_context', 'replace_content_tender_no', 'replace_content_authorized_person', 'replace_content_with_project_info'] else original_para_text
+                    match = pattern.search(search_text)
                     
-                    for match in matches:
+                    if match:
                         logger.info(f"匹配到规则 #{rule_idx+1}: {rule['description']}")
                         logger.info(f"匹配文本: '{match.group(0)}'")
                         
