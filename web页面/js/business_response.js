@@ -47,7 +47,7 @@ function loadBusinessCompanyList() {
                 data.companies.forEach(company => {
                     const option = document.createElement('option');
                     option.value = company.id;
-                    option.textContent = company.name;
+                    option.textContent = company.companyName;
                     businessCompanySelect.appendChild(option);
                 });
                 

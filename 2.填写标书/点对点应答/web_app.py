@@ -46,6 +46,8 @@ except ImportError as e:
 
 # 计算web页面目录路径，统一管理所有web页面
 web_pages_dir = str(Path(__file__).parent.parent.parent / "web页面")
+# 计算公司配置目录路径
+company_configs_dir = str(Path(__file__).parent.parent.parent / "company_configs")
 app = Flask(__name__, template_folder=web_pages_dir, static_folder=web_pages_dir)
 app.secret_key = 'ai_tender_response_system_2025'
 
@@ -917,7 +919,6 @@ def list_companies():
     """获取所有公司配置"""
     try:
         companies = []
-        company_configs_dir = 'company_configs'
         
         if os.path.exists(company_configs_dir):
             for filename in os.listdir(company_configs_dir):
@@ -946,7 +947,7 @@ def list_companies():
 def get_company(company_id):
     """获取指定公司的详细信息"""
     try:
-        company_file = os.path.join('company_configs', f'{company_id}.json')
+        company_file = os.path.join(company_configs_dir, f'{company_id}.json')
         
         if not os.path.exists(company_file):
             return jsonify({'success': False, 'error': '公司不存在'}), 404
@@ -1005,10 +1006,10 @@ def create_company():
         }
         
         # 确保目录存在
-        os.makedirs('company_configs', exist_ok=True)
+        os.makedirs(company_configs_dir, exist_ok=True)
         
         # 保存公司信息
-        company_file = os.path.join('company_configs', f'{company_id}.json')
+        company_file = os.path.join(company_configs_dir, f'{company_id}.json')
         with open(company_file, 'w', encoding='utf-8') as f:
             json.dump(company_data, f, ensure_ascii=False, indent=2)
         
@@ -1031,7 +1032,7 @@ def update_company(company_id):
         if not data:
             return jsonify({'success': False, 'error': '请提供公司信息'}), 400
         
-        company_file = os.path.join('company_configs', f'{company_id}.json')
+        company_file = os.path.join(company_configs_dir, f'{company_id}.json')
         
         # 如果公司不存在，返回错误
         if not os.path.exists(company_file):
@@ -1085,7 +1086,7 @@ def update_company(company_id):
 def get_company_qualifications(company_id):
     """获取指定公司的资质信息"""
     try:
-        company_file = os.path.join('company_configs', f'{company_id}.json')
+        company_file = os.path.join(company_configs_dir, f'{company_id}.json')
         
         if not os.path.exists(company_file):
             return jsonify({'success': False, 'error': '公司不存在'}), 404
@@ -1100,6 +1101,51 @@ def get_company_qualifications(company_id):
         
     except Exception as e:
         logger.error(f"获取公司资质信息失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/companies/<company_id>/qualifications/<key>/download')
+def download_qualification_file(company_id, key):
+    """下载指定公司的资质文件"""
+    try:
+        # 读取公司配置，获取文件信息
+        company_file = os.path.join(company_configs_dir, f'{company_id}.json')
+        
+        if not os.path.exists(company_file):
+            return jsonify({'success': False, 'error': '公司不存在'}), 404
+            
+        with open(company_file, 'r', encoding='utf-8') as f:
+            company_data = json.load(f)
+        
+        # 获取资质文件信息
+        qualifications = company_data.get('qualifications', {})
+        if key not in qualifications:
+            return jsonify({'success': False, 'error': '资质文件不存在'}), 404
+        
+        file_info = qualifications[key]
+        safe_filename = file_info.get('safe_filename')
+        
+        if not safe_filename:
+            return jsonify({'success': False, 'error': '文件信息不完整'}), 400
+        
+        # 构建文件路径
+        qualifications_dir = os.path.join(os.path.dirname(__file__), 'qualifications', company_id)
+        file_path = os.path.join(qualifications_dir, safe_filename)
+        
+        if not os.path.exists(file_path):
+            logger.error(f"资质文件不存在: {file_path}")
+            return jsonify({'success': False, 'error': '文件不存在'}), 404
+        
+        # 使用原始文件名作为下载文件名
+        original_filename = file_info.get('original_filename', safe_filename)
+        
+        return send_file(
+            file_path,
+            as_attachment=False,  # 设置为False以便在浏览器中预览
+            download_name=original_filename
+        )
+        
+    except Exception as e:
+        logger.error(f"下载资质文件失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/project-config')
@@ -1395,7 +1441,7 @@ def process_business_response():
             return jsonify({'error': '请选择公司'}), 400
             
         # 加载公司信息
-        company_file = os.path.join('company_configs', f'{company_id}.json')
+        company_file = os.path.join(company_configs_dir, f'{company_id}.json')
         if not os.path.exists(company_file):
             return jsonify({'error': '公司配置不存在'}), 404
             
@@ -1571,20 +1617,20 @@ def find_available_port(start_port=8080):
 if __name__ == '__main__':
     port = find_available_port()
     if port:
-        print("🚀 启动AI标书智能生成系统...")
-        print(f"📱 Web界面地址: http://localhost:{port}")
-        print("📋 点对点应答: 支持 .docx, .doc")
-        print("📊 技术方案: 支持 .docx, .doc, .pdf") 
-        print("📄 招标信息提取: 支持 .docx, .doc, .txt, .pdf")
-        print("🤖 使用始皇API生成专业内容")
+        print("启动AI标书智能生成系统...")
+        print(f"Web界面地址: http://localhost:{port}")
+        print("点对点应答: 支持 .docx, .doc")
+        print("技术方案: 支持 .docx, .doc, .pdf") 
+        print("招标信息提取: 支持 .docx, .doc, .txt, .pdf")
+        print("使用始皇API生成专业内容")
         if TECH_PROPOSAL_AVAILABLE:
-            print("✅ 技术方案生成功能已加载")
+            print("技术方案生成功能已加载")
         else:
-            print("⚠️ 技术方案生成功能未加载")
+            print("警告: 技术方案生成功能未加载")
         if TENDER_INFO_AVAILABLE:
-            print("✅ 招标信息提取功能已加载")
+            print("招标信息提取功能已加载")
         else:
-            print("⚠️ 招标信息提取功能未加载")
+            print("警告: 招标信息提取功能未加载")
         app.run(debug=True, host='0.0.0.0', port=port)
     else:
-        print("❌ 无法找到可用端口，请手动指定端口运行")
+        print("错误: 无法找到可用端口，请手动指定端口运行")

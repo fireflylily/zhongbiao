@@ -38,13 +38,15 @@ const companyFields = {
 // 标准资质类型定义
 const standardQualifications = {
     'business_license': '营业执照',
-    'taxpayer_qualification': '纳税人资格证明',
-    'performance_certificate': '业绩证明',
-    'authorization_letter': '授权书',
-    'credit_report': '信用报告',
-    'audit_report': '审计报告',
-    'social_security_proof': '社保证明',
-    'labor_contract': '劳动合同'
+    'auth_id_front': '被授权人身份证正面',
+    'auth_id_back': '被授权人身份证反面', 
+    'iso9001': '质量管理体系认证证书',
+    'iso27001': '信息安全管理体系认证证书',
+    'iso20000': '信息技术管理体系认证证书',
+    'credit_corruption': '无贪污受贿记录证明',
+    'credit_dishonest': '失信被执行人查询结果',
+    'credit_procurement': '政府采购严重违法失信记录查询结果',
+    'credit_tax': '重大税收失信主体查询结果'
 };
 
 onPageReady(function() {
@@ -109,7 +111,7 @@ function populateCompanySelect(companies) {
     companies.forEach(company => {
         const option = document.createElement('option');
         option.value = company.id;
-        option.textContent = company.name;
+        option.textContent = company.companyName;
         if (company.id === currentCompanyId) {
             option.selected = true;
         }
@@ -563,9 +565,9 @@ function loadCompanyQualifications(companyId) {
                 // 加载已上传的资质文件状态
                 Object.entries(data.qualifications).forEach(([key, info]) => {
                     qualificationFiles[key] = {
-                        name: info.filename,
+                        name: info.original_filename,
                         uploaded: true,
-                        uploadDate: info.upload_date
+                        uploadDate: info.upload_time
                     };
                     
                     const statusElement = document.getElementById(`${key}Status`);
@@ -573,7 +575,7 @@ function loadCompanyQualifications(companyId) {
                     const deleteBtn = document.querySelector(`[onclick="removeQualificationFile('${key}')"]`);
                     
                     if (statusElement) {
-                        statusElement.textContent = `已上传: ${info.filename} (${info.upload_date})`;
+                        statusElement.textContent = `已上传: ${info.original_filename} (${new Date(info.upload_time).toLocaleString('zh-CN')})`;
                         statusElement.className = 'text-primary';
                     }
                     if (previewBtn) previewBtn.disabled = false;
