@@ -892,46 +892,34 @@ def extract_tender_info_step():
         elif step == '3':
             # 第三步：提取技术评分
             file_path = request.form.get('file_path')
+            result_file = request.form.get('result_file')
             
             if not file_path or not os.path.exists(file_path):
                 return jsonify({'error': '文件路径无效'}), 400
                 
-            # 读取配置文件获取技术评分信息
-            config_file_path = os.path.join(tender_info_path, 'tender_config.ini')
+            # 尝试从临时结果文件读取技术评分
             technical_scoring = {}
-            
-            if os.path.exists(config_file_path):
+            if result_file and os.path.exists(result_file):
                 try:
-                    import configparser
-                    config = configparser.ConfigParser(interpolation=None)
-                    config.read(config_file_path, encoding='utf-8')
-                    
-                    if 'TECHNICAL_SCORING' in config:
-                        items_count = int(config.get('TECHNICAL_SCORING', 'items_count', fallback='0'))
-                        
-                        for i in range(items_count):
-                            item_key = f'item_{i}_name'
-                            score_key = f'item_{i}_score'
-                            criteria_key = f'item_{i}_criteria'
-                            
-                            if config.has_option('TECHNICAL_SCORING', item_key):
-                                item_name = config.get('TECHNICAL_SCORING', item_key)
-                                item_score = config.get('TECHNICAL_SCORING', score_key, fallback='未指定分值')
-                                item_criteria = config.get('TECHNICAL_SCORING', criteria_key, fallback='').split('|')
-                                
-                                technical_scoring[item_name] = {
-                                    'score': item_score,
-                                    'criteria': [c.strip() for c in item_criteria if c.strip()]
-                                }
+                    with open(result_file, 'r', encoding='utf-8') as f:
+                        tender_info = json.load(f)
+                        technical_scoring = tender_info.get('technical_scoring', {})
                 except Exception as e:
-                    logger.error(f"读取技术评分配置失败: {e}")
+                    logger.error(f"读取临时结果文件失败: {e}")
+                    
+            # 如果没有技术评分数据，重新提取
+            if not technical_scoring:
+                logger.info("重新提取技术评分信息")
+                extractor = TenderInfoExtractor(api_key=api_key)
+                tender_info = extractor.process_document(file_path)
+                technical_scoring = tender_info.get('technical_scoring', {})
             
-            # 如果没有技术评分数据，提供默认信息
+            # 如果仍然没有技术评分数据，提供默认信息
             if not technical_scoring:
                 technical_scoring = {
-                    '技术方案': {
+                    '未检测到评分项目': {
                         'score': '未提取到分值',
-                        'criteria': ['未检测到具体评分标准']
+                        'criteria': ['未检测到具体评分标准，请检查文档中是否包含评分表格']
                     }
                 }
             

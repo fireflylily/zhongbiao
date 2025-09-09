@@ -1313,11 +1313,11 @@ JSON格式输出：
             # 提取项目信息
             project_info = self.extract_project_info(document_content)
             
-            # 提取技术评分信息 - 暂时注释掉，专注于基本信息和资质读取
-            # technical_scoring = self.extract_technical_scoring(document_content)
+            # 提取技术评分信息
+            technical_scoring = self.extract_technical_scoring(document_content)
             
-            # 将技术评分信息添加到项目信息中 - 暂时注释掉
-            # project_info['technical_scoring'] = technical_scoring
+            # 将技术评分信息添加到项目信息中
+            project_info['technical_scoring'] = technical_scoring
             
             # 保存到配置文件
             self.save_to_config(project_info)
