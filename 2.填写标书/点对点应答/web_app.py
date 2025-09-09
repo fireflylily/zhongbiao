@@ -10,6 +10,7 @@ import json
 import hashlib
 import base64
 import importlib
+import requests
 from datetime import datetime
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
@@ -49,16 +50,99 @@ try:
 except ImportError:
     IMAGE_INSERTER_AVAILABLE = False
 
-# 添加招标信息提取模块路径
-tender_info_path = str(Path(__file__).parent.parent.parent / "1.读取信息")
-sys.path.insert(0, tender_info_path)
-
+# 导入招标信息提取模块
 try:
+    # 添加读取信息目录到sys.path
+    info_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '1.读取信息')
+    if info_path not in sys.path:
+        sys.path.append(info_path)
     from read_info import TenderInfoExtractor
     TENDER_INFO_AVAILABLE = True
+    print("招标信息提取模块加载成功")
 except ImportError as e:
     print(f"警告：招标信息提取模块未能加载: {e}")
     TENDER_INFO_AVAILABLE = False
+
+# 招标信息提取功能配置
+print(f"招标信息提取功能状态: {'可用' if TENDER_INFO_AVAILABLE else '不可用'}")
+
+def extract_tender_info_direct(file_path, api_key):
+    """直接调用招标信息提取功能"""
+    if not TENDER_INFO_AVAILABLE:
+        raise Exception("招标信息提取模块不可用")
+    
+    try:
+        extractor = TenderInfoExtractor(api_key=api_key)
+        result = extractor.process_document(file_path)
+        return {'success': True, 'data': result}
+    except Exception as e:
+        logger.error(f"招标信息提取失败: {e}")
+        raise Exception(f"提取失败: {str(e)}")
+
+def extract_tender_info_step_direct(step, file_path, result_data, api_key):
+    """直接调用招标信息提取的分步功能"""
+    if not TENDER_INFO_AVAILABLE:
+        raise Exception("招标信息提取模块不可用")
+    
+    try:
+        if step == '1':
+            # 第一步：提取基本信息
+            extractor = TenderInfoExtractor(api_key=api_key)
+            tender_info = extractor.process_document(file_path)
+            basic_info = {
+                'tenderer': tender_info.get('tenderer', ''),
+                'agency': tender_info.get('agency', ''),  
+                'bidding_method': tender_info.get('bidding_method', ''),
+                'bidding_location': tender_info.get('bidding_location', ''),
+                'bidding_time': tender_info.get('bidding_time', ''),
+                'winner_count': tender_info.get('winner_count', ''),
+                'project_name': tender_info.get('project_name', ''),
+                'project_number': tender_info.get('project_number', '')
+            }
+            return {
+                'success': True,
+                'basic_info': basic_info,
+                'full_data': tender_info
+            }
+        elif step == '2':
+            # 第二步：获取资质要求
+            qualification_requirements = result_data.get('qualification_requirements', {})
+            if not qualification_requirements:
+                qualification_requirements = {
+                    'business_license': {'required': False, 'description': '未检测到相关要求'},
+                    'taxpayer_qualification': {'required': False, 'description': '未检测到相关要求'},
+                    'performance_requirements': {'required': False, 'description': '未检测到相关要求'},
+                    'authorization_requirements': {'required': False, 'description': '未检测到相关要求'},
+                    'credit_china': {'required': False, 'description': '未检测到相关要求'},
+                    'commitment_letter': {'required': False, 'description': '未检测到相关要求'},
+                    'audit_report': {'required': False, 'description': '未检测到相关要求'},
+                    'social_security': {'required': False, 'description': '未检测到相关要求'},
+                    'labor_contract': {'required': False, 'description': '未检测到相关要求'},
+                    'other_requirements': {'required': False, 'description': '未检测到相关要求'}
+                }
+            return {
+                'success': True,
+                'qualification_requirements': qualification_requirements
+            }
+        elif step == '3':
+            # 第三步：获取技术评分
+            technical_scoring = result_data.get('technical_scoring', {})
+            if not technical_scoring:
+                technical_scoring = {
+                    '未检测到评分项目': {
+                        'score': '未提取到分值',
+                        'criteria': ['未检测到具体评分标准，请检查文档中是否包含评分表格']
+                    }
+                }
+            return {
+                'success': True,
+                'technical_scoring': technical_scoring
+            }
+        else:
+            raise Exception(f'无效的步骤: {step}')
+    except Exception as e:
+        logger.error(f"分步提取失败: {e}")
+        raise Exception(f"提取失败: {str(e)}")
 
 # 添加技术方案模块路径
 tech_proposal_path = str(Path(__file__).parent.parent / "技术方案" / "TenderGenerator")
@@ -655,9 +739,7 @@ def restore_api_key(backup_id):
 
 @app.route('/extract-tender-info', methods=['POST'])
 def extract_tender_info():
-    """提取招标信息"""
-    upload_path = None
-    
+    """提取招标信息 - 通过调用独立服务"""
     try:
         logger.info("开始处理招标信息提取请求")
         logger.info(f"请求方法: {request.method}")
@@ -665,8 +747,8 @@ def extract_tender_info():
         logger.info(f"请求表单: {list(request.form.keys())}")
         
         if not TENDER_INFO_AVAILABLE:
-            logger.error("招标信息提取模块未加载")
-            return jsonify({'error': '招标信息提取模块未加载，请检查系统配置'}), 500
+            logger.error("招标信息提取服务不可用")
+            return jsonify({'error': '招标信息提取服务不可用，请检查系统配置'}), 500
         
         # 检查文件
         if 'file' not in request.files:
@@ -685,73 +767,48 @@ def extract_tender_info():
         if not allowed_tender_info_file(file.filename):
             return jsonify({'error': '不支持的文件类型，请上传.docx、.doc、.txt或.pdf文件'}), 400
         
-        # 保存上传的文件
+        # 保存文件并直接调用招标信息提取功能
+        logger.info("直接调用招标信息提取功能")
+        
+        # 保存临时文件
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = secure_filename(file.filename)
         unique_filename = f"{timestamp}_tender_{filename}"
-        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        upload_path = os.path.join('uploads', unique_filename)
+        
+        # 确保uploads目录存在
+        os.makedirs('uploads', exist_ok=True)
         file.save(upload_path)
         
-        logger.info(f"招标文档上传完成: {upload_path}")
-        
-        # 初始化招标信息提取器
-        logger.info("初始化招标信息提取器")
-        extractor = TenderInfoExtractor(api_key=api_key)
-        
-        # 提取招标信息
-        logger.info("开始提取招标信息")
-        tender_info = extractor.process_document(upload_path)
-        
-        # 读取配置文件获取技术评分信息
-        config_file_path = os.path.join(tender_info_path, 'tender_config.ini')
-        technical_scoring = None
-        if os.path.exists(config_file_path):
-            try:
-                import configparser
-                config = configparser.ConfigParser(interpolation=None)
-                config.read(config_file_path, encoding='utf-8')
-                
-                if 'TECHNICAL_SCORING' in config:
-                    technical_scoring = {
-                        'total_score': config.get('TECHNICAL_SCORING', 'total_score', fallback=''),
-                        'extraction_summary': config.get('TECHNICAL_SCORING', 'extraction_summary', fallback=''),
-                        'items_count': int(config.get('TECHNICAL_SCORING', 'items_count', fallback='0')),
-                        'items': []
-                    }
-                    
-                    # 读取技术评分项
-                    for i in range(1, technical_scoring['items_count'] + 1):
-                        item = {
-                            'name': config.get('TECHNICAL_SCORING', f'item_{i}_name', fallback=''),
-                            'weight': config.get('TECHNICAL_SCORING', f'item_{i}_weight', fallback=''),
-                            'criteria': config.get('TECHNICAL_SCORING', f'item_{i}_criteria', fallback=''),
-                            'source': config.get('TECHNICAL_SCORING', f'item_{i}_source', fallback='')
-                        }
-                        if item['name']:  # 只添加有名称的项目
-                            technical_scoring['items'].append(item)
-                    
-                    logger.info(f"成功读取技术评分信息: {len(technical_scoring['items'])} 个评分项")
-            except Exception as e:
-                logger.error(f"读取技术评分配置失败: {e}")
-                technical_scoring = None
-        
-        # 将技术评分信息添加到返回结果中
-        if technical_scoring:
-            tender_info['technical_scoring'] = technical_scoring
-        
-        logger.info(f"招标信息提取成功: {tender_info}")
-        
-        return jsonify({
-            'success': True,
-            'message': '招标信息提取完成',
-            'tender_info': tender_info
-        })
+        try:
+            result = extract_tender_info_direct(upload_path, api_key)
+            
+            if result.get('success'):
+                logger.info("招标信息提取成功")
+                return jsonify({
+                    'success': True,
+                    'message': '招标信息提取完成',
+                    'tender_info': result.get('data', {})
+                })
+            else:
+                logger.error(f"招标信息提取失败: {result}")
+                return jsonify({'error': '提取失败'}), 500
+        finally:
+            # 清理临时文件
+            if os.path.exists(upload_path):
+                try:
+                    os.remove(upload_path)
+                    logger.info(f"清理临时文件: {upload_path}")
+                except Exception as cleanup_error:
+                    logger.error(f"清理临时文件失败: {cleanup_error}")
         
     except Exception as e:
         logger.error(f"招标信息提取失败: {e}", exc_info=True)
         
         error_message = str(e)
-        if "API" in error_message or "OpenAI" in error_message:
+        if "连接" in error_message or "服务不可用" in error_message:
+            error_message = "招标信息提取服务不可用，请确保读取信息服务正在运行"
+        elif "API" in error_message or "OpenAI" in error_message:
             error_message = f"AI服务调用失败: {error_message}"
         elif "Memory" in error_message or "内存" in error_message:
             error_message = "文档过大导致内存不足，请尝试上传更小的文件"
@@ -759,39 +816,32 @@ def extract_tender_info():
             error_message = "文件读取失败，请确保上传的是有效的文档文件"
         
         return jsonify({'error': f'提取失败: {error_message}'}), 500
-    
-    finally:
-        # 清理临时文件
-        if upload_path and os.path.exists(upload_path):
-            try:
-                os.remove(upload_path)
-                logger.info(f"清理临时文件: {upload_path}")
-            except Exception as cleanup_error:
-                logger.error(f"清理临时文件失败: {cleanup_error}")
 
 @app.route('/extract-tender-info-step', methods=['POST'])
 def extract_tender_info_step():
-    """分步提取招标信息"""
-    upload_path = None
-    
+    """分步提取招标信息 - 通过调用独立服务"""
     try:
         step = request.form.get('step', '1')
         api_key = request.form.get('api_key', '').strip()
         
         logger.info(f"分步提取招标信息 - 步骤: {step}")
         
-        # 检查招标信息提取模块是否可用
+        # 检查招标信息提取服务是否可用
         if not TENDER_INFO_AVAILABLE:
-            logger.error("招标信息提取模块未加载")
-            return jsonify({'error': '招标信息提取模块未加载，请检查系统配置'}), 500
+            logger.error("招标信息提取服务不可用")
+            return jsonify({'error': '招标信息提取服务不可用，请检查系统配置'}), 500
         
         # 如果没有提供API密钥，使用默认密钥
         if not api_key:
             api_key = get_default_api_key()
             logger.info("使用默认API密钥")
         
+        # 处理分步提取逻辑
+        file_path = None
+        result_data = {}
+        
         if step == '1':
-            # 第一步：处理文件上传并提取基本信息
+            # 第一步：处理文件上传
             if 'file' not in request.files:
                 return jsonify({'error': '需要上传招标文档'}), 400
                 
@@ -800,153 +850,63 @@ def extract_tender_info_step():
                 return jsonify({'error': '请选择招标文档'}), 400
                 
             if not allowed_tender_info_file(file.filename):
-                return jsonify({'error': '不支持的文件格式，请上传 .docx, .doc, .txt 或 .pdf 文件'}), 400
+                return jsonify({'error': '不支持的文件类型，请上传.docx、.doc、.txt或.pdf文件'}), 400
             
             # 保存文件
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = secure_filename(file.filename)
             unique_filename = f"{timestamp}_tender_{filename}"
-            upload_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            file.save(upload_path)
+            file_path = os.path.join('uploads', unique_filename)
             
-            logger.info(f"招标文档上传完成: {upload_path}")
-            
-            # 初始化招标信息提取器
-            logger.info("初始化招标信息提取器")
-            extractor = TenderInfoExtractor(api_key=api_key)
-            
-            # 提取招标信息
-            logger.info("开始提取招标信息")
-            tender_info = extractor.process_document(upload_path)
-            
-            # 从提取结果中获取基本信息
-            basic_info = {
-                'tenderer': tender_info.get('tenderer', ''),
-                'agency': tender_info.get('agency', ''),  
-                'bidding_method': tender_info.get('bidding_method', ''),
-                'bidding_location': tender_info.get('bidding_location', ''),
-                'bidding_time': tender_info.get('bidding_time', ''),
-                'winner_count': tender_info.get('winner_count', ''),
-                'project_name': tender_info.get('project_name', ''),
-                'project_number': tender_info.get('project_number', '')
-            }
-            
-            # 保存提取结果到临时文件供后续步骤使用
-            temp_result_file = upload_path + '.result.json'
-            with open(temp_result_file, 'w', encoding='utf-8') as f:
-                json.dump(tender_info, f, ensure_ascii=False, indent=2)
-            
-            return jsonify({
-                'success': True,
-                'basic_info': basic_info,
-                'file_path': upload_path,
-                'result_file': temp_result_file
-            })
-            
-        elif step == '2':
-            # 第二步：提取资质要求
-            file_path = request.form.get('file_path')
-            result_file = request.form.get('result_file')
-            
-            if not file_path or not os.path.exists(file_path):
-                return jsonify({'error': '文件路径无效'}), 400
-                
-            # 尝试从临时结果文件读取
-            tender_info = {}
-            if result_file and os.path.exists(result_file):
-                try:
-                    with open(result_file, 'r', encoding='utf-8') as f:
-                        tender_info = json.load(f)
-                except:
-                    pass
-                    
-            # 如果没有临时结果，重新提取
-            if not tender_info:
-                logger.info("重新提取招标信息")
-                extractor = TenderInfoExtractor(api_key=api_key)
-                tender_info = extractor.process_document(file_path)
-                
-            # 从提取结果中获取资质要求
-            qualification_requirements = tender_info.get('qualification_requirements', {})
-            
-            # 如果没有资质要求数据，提供默认结构
-            if not qualification_requirements:
-                qualification_requirements = {
-                    'business_license': {'required': False, 'description': '未检测到相关要求'},
-                    'taxpayer_qualification': {'required': False, 'description': '未检测到相关要求'},
-                    'performance_requirements': {'required': False, 'description': '未检测到相关要求'},
-                    'authorization_requirements': {'required': False, 'description': '未检测到相关要求'},
-                    'credit_china': {'required': False, 'description': '未检测到相关要求'},
-                    'commitment_letter': {'required': False, 'description': '未检测到相关要求'},
-                    'audit_report': {'required': False, 'description': '未检测到相关要求'},
-                    'social_security': {'required': False, 'description': '未检测到相关要求'},
-                    'labor_contract': {'required': False, 'description': '未检测到相关要求'},
-                    'other_requirements': {'required': False, 'description': '未检测到相关要求'}
-                }
-            
-            return jsonify({
-                'success': True,
-                'qualification_requirements': qualification_requirements
-            })
-            
-        elif step == '3':
-            # 第三步：提取技术评分
-            file_path = request.form.get('file_path')
-            result_file = request.form.get('result_file')
-            
-            if not file_path or not os.path.exists(file_path):
-                return jsonify({'error': '文件路径无效'}), 400
-                
-            # 尝试从临时结果文件读取技术评分
-            technical_scoring = {}
-            if result_file and os.path.exists(result_file):
-                try:
-                    with open(result_file, 'r', encoding='utf-8') as f:
-                        tender_info = json.load(f)
-                        technical_scoring = tender_info.get('technical_scoring', {})
-                except Exception as e:
-                    logger.error(f"读取临时结果文件失败: {e}")
-                    
-            # 如果没有技术评分数据，重新提取
-            if not technical_scoring:
-                logger.info("重新提取技术评分信息")
-                extractor = TenderInfoExtractor(api_key=api_key)
-                tender_info = extractor.process_document(file_path)
-                technical_scoring = tender_info.get('technical_scoring', {})
-            
-            # 如果仍然没有技术评分数据，提供默认信息
-            if not technical_scoring:
-                technical_scoring = {
-                    '未检测到评分项目': {
-                        'score': '未提取到分值',
-                        'criteria': ['未检测到具体评分标准，请检查文档中是否包含评分表格']
-                    }
-                }
-            
-            return jsonify({
-                'success': True,
-                'technical_scoring': technical_scoring
-            })
+            # 确保uploads目录存在
+            os.makedirs('uploads', exist_ok=True)
+            file.save(file_path)
             
         else:
-            return jsonify({'error': f'无效的步骤: {step}'}), 400
+            # 后续步骤使用之前保存的文件路径和结果数据
+            file_path = request.form.get('file_path')
+            result_file = request.form.get('result_file')
+            
+            # 尝试从临时结果文件读取
+            if result_file and os.path.exists(result_file):
+                try:
+                    with open(result_file, 'r', encoding='utf-8') as f:
+                        result_data = json.load(f)
+                except Exception as e:
+                    logger.error(f"读取临时结果文件失败: {e}")
+        
+        # 直接调用招标信息提取功能
+        logger.info(f"直接调用招标信息提取功能 - 步骤 {step}")
+        result = extract_tender_info_step_direct(step, file_path, result_data, api_key)
+        
+        # 处理步骤1的特殊逻辑，保存完整数据到临时文件
+        if step == '1' and result.get('success') and 'full_data' in result:
+            temp_result_file = file_path + '.result.json'
+            with open(temp_result_file, 'w', encoding='utf-8') as f:
+                json.dump(result['full_data'], f, ensure_ascii=False, indent=2)
+            
+            # 返回结果时包含文件路径信息
+            result['file_path'] = file_path
+            result['result_file'] = temp_result_file
+            
+            # 清理full_data，避免返回过大的数据
+            result.pop('full_data', None)
+        
+        if result.get('success'):
+            logger.info(f"步骤 {step} 提取成功")
+            return jsonify(result)
+        else:
+            logger.error(f"步骤 {step} 提取失败: {result}")
+            return jsonify({'error': '提取失败'}), 500
             
     except Exception as e:
         logger.error(f"分步提取失败: {e}", exc_info=True)
-        return jsonify({'error': f'提取失败: {str(e)}'}), 500
         
-    finally:
-        # 清理临时文件（仅在步骤3之后）
-        if step == '3' and upload_path and os.path.exists(upload_path):
-            try:
-                os.remove(upload_path)
-                logger.info(f"清理临时文件: {upload_path}")
-                # 同时清理结果文件
-                result_file = upload_path + '.result.json'
-                if os.path.exists(result_file):
-                    os.remove(result_file)
-            except Exception as cleanup_error:
-                logger.error(f"清理临时文件失败: {cleanup_error}")
+        error_message = str(e)
+        if "连接" in error_message or "服务不可用" in error_message:
+            error_message = "招标信息提取服务不可用，请确保读取信息服务正在运行"
+        
+        return jsonify({'error': f'提取失败: {error_message}'}), 500
 
 @app.route('/health')
 def health_check():
