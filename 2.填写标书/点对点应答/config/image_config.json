@@ -1,0 +1,138 @@
+{
+  "text_markers": {
+    "enabled": true,
+    "priority": 1,
+    "markers": {
+      "business_license": [
+        "[营业执照]",
+        "【营业执照】",
+        "{营业执照}",
+        "（营业执照）",
+        "<<营业执照>>",
+        "［营业执照］",
+        "〔营业执照〕"
+      ],
+      "qualification_cert": [
+        "[资质证书]",
+        "【资质证书】",
+        "{资质证书}",
+        "（资质证书）",
+        "[资质证明]",
+        "【资质证明】",
+        "[企业资质]",
+        "【企业资质】"
+      ],
+      "legal_person_id": [
+        "[法人身份证]",
+        "【法人身份证】",
+        "{法人身份证}",
+        "[法定代表人身份证]",
+        "【法定代表人身份证】",
+        "[法人证件]",
+        "【法人证件】"
+      ],
+      "iso_certificates": [
+        "[ISO证书]",
+        "【ISO证书】",
+        "[质量管理体系证书]",
+        "【质量管理体系证书】",
+        "[ISO9001]",
+        "【ISO9001】"
+      ]
+    },
+    "default_width_inches": 3.5
+  },
+  "paragraph_placeholders": {
+    "enabled": true,
+    "priority": 2,
+    "placeholders": [
+      "营业执照附件",
+      "资质证书附件",
+      "法人身份证附件",
+      "此处插入营业执照",
+      "此处插入资质证明",
+      "此处插入法人身份证",
+      "请附营业执照",
+      "请附资质证书",
+      "请附法人身份证",
+      "营业执照（见附件）",
+      "资质证书（见附件）",
+      "法人身份证（见附件）",
+      "附：营业执照",
+      "附：资质证书",
+      "附：法人身份证"
+    ],
+    "default_width_inches": 4,
+    "add_title": true,
+    "center_align": true
+  },
+  "document_structure": {
+    "enabled": true,
+    "priority": 3,
+    "after_sections": {
+      "公司资质": ["business_license", "qualification_cert"],
+      "企业资质": ["business_license", "qualification_cert"],
+      "资质证明": ["business_license", "qualification_cert"],
+      "资质文件": ["business_license", "qualification_cert"],
+      "公司简介": ["business_license"],
+      "企业简介": ["business_license"],
+      "法人信息": ["legal_person_id"],
+      "法定代表人": ["legal_person_id"],
+      "附件": ["business_license", "qualification_cert", "legal_person_id"],
+      "附录": ["business_license", "qualification_cert", "legal_person_id"],
+      "相关证明": ["business_license", "qualification_cert", "legal_person_id"]
+    },
+    "default_width_inches": 3.5,
+    "add_caption": true
+  },
+  "fallback": {
+    "enabled": true,
+    "append_to_end": true,
+    "create_appendix": true,
+    "appendix_title": "附件：企业资质证明",
+    "add_page_break": true
+  },
+  "image_settings": {
+    "default_width_inches": 4,
+    "max_width_inches": 5,
+    "max_height_inches": 6,
+    "min_width_inches": 2,
+    "quality": 85,
+    "formats": ["jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff"],
+    "center_align": true,
+    "add_captions": true,
+    "caption_format": "图 {index}: {title}",
+    "page_break_after": false,
+    "preserve_aspect_ratio": true
+  },
+  "image_mapping": {
+    "business_license": {
+      "title": "营业执照",
+      "caption": "企业营业执照",
+      "required": true
+    },
+    "qualification_cert": {
+      "title": "资质证书",
+      "caption": "企业资质证书",
+      "required": false
+    },
+    "legal_person_id": {
+      "title": "法定代表人身份证",
+      "caption": "法定代表人身份证明",
+      "required": false
+    },
+    "iso_certificates": {
+      "title": "ISO认证证书",
+      "caption": "质量管理体系认证证书",
+      "required": false
+    }
+  },
+  "required_images": ["business_license"],
+  "optional_images": ["qualification_cert", "legal_person_id", "iso_certificates"],
+  "processing_options": {
+    "stop_on_first_match": false,
+    "remove_markers_after_insert": true,
+    "log_unmatched_markers": true,
+    "validate_image_files": true
+  }
+}
