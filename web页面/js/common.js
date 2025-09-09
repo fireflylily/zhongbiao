@@ -218,6 +218,85 @@ function onPageReady(callback) {
 }
 
 /**
+ * 启用粘贴上传图片功能
+ * @param {HTMLElement} targetElement - 目标元素，用于接收粘贴事件
+ * @param {Function} onImagePasted - 图片粘贴后的回调函数
+ */
+function enablePasteImageUpload(targetElement, onImagePasted) {
+    if (!targetElement) return;
+    
+    // 添加粘贴事件监听
+    targetElement.addEventListener('paste', function(e) {
+        e.preventDefault();
+        
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            
+            // 检查是否为图片
+            if (item.type.indexOf('image') !== -1) {
+                const file = item.getAsFile();
+                if (file) {
+                    // 创建一个新的文件对象，设置文件名
+                    const timestamp = new Date().getTime();
+                    const fileName = `pasted_image_${timestamp}.${file.type.split('/')[1] || 'png'}`;
+                    const newFile = new File([file], fileName, { type: file.type });
+                    
+                    // 调用回调函数处理图片
+                    if (typeof onImagePasted === 'function') {
+                        onImagePasted(newFile);
+                    }
+                    
+                    showNotification('已粘贴图片：' + fileName, 'success');
+                }
+                break;
+            }
+        }
+    });
+    
+    // 添加拖放支持
+    targetElement.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        targetElement.classList.add('drag-over');
+    });
+    
+    targetElement.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        targetElement.classList.remove('drag-over');
+    });
+    
+    targetElement.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        targetElement.classList.remove('drag-over');
+        
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type.startsWith('image/')) {
+                    if (typeof onImagePasted === 'function') {
+                        onImagePasted(file);
+                    }
+                    showNotification('已上传图片：' + file.name, 'success');
+                    break;
+                }
+            }
+        }
+    });
+    
+    // 添加提示信息
+    const hint = document.createElement('small');
+    hint.className = 'text-muted d-block mt-1';
+    hint.innerHTML = '<i class="bi bi-info-circle"></i> 支持 Ctrl+V 粘贴图片或拖放图片文件';
+    targetElement.appendChild(hint);
+}
+
+/**
  * 格式化时间
  */
 function formatDateTime(date = new Date()) {

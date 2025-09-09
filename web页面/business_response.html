@@ -7,6 +7,11 @@
                 <small class="text-muted">上传商务应答模板，按选择的公司信息填写投标人名称、项目信息并插入资质证明图片</small>
             </div>
             <div class="card-body">
+                <!-- 显示招标文件名称 -->
+                <div id="tenderFileNameDisplay" class="alert alert-info mb-3" style="display: none;">
+                    <i class="bi bi-file-earmark-text"></i> 当前招标文件：<strong id="tenderFileNameText"></strong>
+                </div>
+                
                 <form id="businessResponseForm" enctype="multipart/form-data">
                     <!-- 模板文件上传 -->
                     <div class="mb-3">
@@ -23,9 +28,17 @@
                     <!-- 公司选择 -->
                     <div class="mb-3">
                         <label for="businessCompanySelect" class="form-label">选择应答公司 *</label>
-                        <select class="form-select" id="businessCompanySelect">
-                            <option value="">请选择公司...</option>
-                        </select>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select" id="businessCompanySelect" style="flex: 1;">
+                                <option value="">请选择公司...</option>
+                            </select>
+                            <a href="company_selection.html" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye"></i> 查看公司
+                            </a>
+                            <a href="company_selection.html#add-company" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-plus-circle"></i> 新增公司
+                            </a>
+                        </div>
                     </div>
 
                     <!-- 项目信息 -->

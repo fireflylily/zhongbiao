@@ -88,6 +88,17 @@ function loadProjectInfo() {
                     dateField.value = data.project_info.currentDate;
                 }
                 
+                // 显示招标文件名称
+                if (data.project_info.tenderFileName) {
+                    const tenderFileDisplay = document.getElementById('tenderFileNameDisplay');
+                    const tenderFileText = document.getElementById('tenderFileNameText');
+                    
+                    if (tenderFileDisplay && tenderFileText) {
+                        tenderFileText.textContent = data.project_info.tenderFileName;
+                        tenderFileDisplay.style.display = 'block';
+                    }
+                }
+                
                 console.log('项目信息加载成功', data.project_info);
             } else {
                 console.warn('项目信息加载失败:', data.error || '无项目信息');
@@ -173,6 +184,16 @@ function handleBusinessResponseSubmit(event) {
                     }
                 }
                 
+                // 显示处理步骤结果
+                if (data.processing_steps) {
+                    showProcessingSteps(data.processing_steps);
+                }
+                
+                // 显示统计信息
+                if (data.statistics) {
+                    showStatistics(data.statistics);
+                }
+                
                 businessResult.style.display = 'block';
                 showNotification('商务应答处理成功！', 'success');
             } else {
@@ -196,6 +217,121 @@ function handleBusinessResponseSubmit(event) {
         businessError.style.display = 'block';
         showNotification('商务应答处理失败', 'error');
     });
+}
+
+/**
+ * 显示处理步骤结果
+ */
+function showProcessingSteps(steps) {
+    const statsElement = document.getElementById('businessStats');
+    const statsContent = document.getElementById('businessStatsContent');
+    
+    if (!statsElement || !statsContent) return;
+    
+    let stepsHtml = '<div class="processing-steps">';
+    
+    // 文本填写步骤
+    if (steps.text) {
+        const textClass = steps.text.success ? 'text-success' : 'text-danger';
+        const textIcon = steps.text.success ? 'bi-check-circle' : 'bi-x-circle';
+        stepsHtml += `
+            <div class="step mb-2">
+                <i class="bi ${textIcon} ${textClass}"></i>
+                <strong>文本填写：</strong>
+                <span class="${textClass}">${steps.text.message || '未处理'}</span>
+                ${steps.text.count ? `<small class="text-muted ms-2">(${steps.text.count}处替换)</small>` : ''}
+            </div>
+        `;
+    }
+    
+    // 表格处理步骤
+    if (steps.tables) {
+        const tableClass = steps.tables.success ? 'text-success' : 'text-warning';
+        const tableIcon = steps.tables.success ? 'bi-check-circle' : 'bi-exclamation-circle';
+        stepsHtml += `
+            <div class="step mb-2">
+                <i class="bi ${tableIcon} ${tableClass}"></i>
+                <strong>表格处理：</strong>
+                <span class="${tableClass}">${steps.tables.message || '未处理'}</span>
+                ${steps.tables.count ? `<small class="text-muted ms-2">(${steps.tables.count}个表格，${steps.tables.fields || 0}个字段)</small>` : ''}
+            </div>
+        `;
+    }
+    
+    // 图片插入步骤
+    if (steps.images) {
+        const imageClass = steps.images.success ? 'text-success' : 'text-warning';
+        const imageIcon = steps.images.success ? 'bi-check-circle' : 'bi-exclamation-circle';
+        stepsHtml += `
+            <div class="step mb-2">
+                <i class="bi ${imageIcon} ${imageClass}"></i>
+                <strong>图片插入：</strong>
+                <span class="${imageClass}">${steps.images.message || '未处理'}</span>
+                ${steps.images.count ? `<small class="text-muted ms-2">(${steps.images.count}张图片)</small>` : ''}
+            </div>
+        `;
+    }
+    
+    stepsHtml += '</div>';
+    statsContent.innerHTML = stepsHtml;
+    statsElement.style.display = 'block';
+}
+
+/**
+ * 显示统计信息
+ */
+function showStatistics(statistics) {
+    const statsContent = document.getElementById('businessStatsContent');
+    if (!statsContent) return;
+    
+    // 在处理步骤后添加统计摘要
+    const summaryHtml = `
+        <hr>
+        <div class="statistics-summary">
+            <h6 class="mb-3">处理统计</h6>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-item text-center">
+                        <i class="bi bi-pencil-square text-primary display-6"></i>
+                        <div class="mt-2">
+                            <strong>${statistics.text_replacements || 0}</strong>
+                            <small class="d-block text-muted">文本替换</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item text-center">
+                        <i class="bi bi-table text-info display-6"></i>
+                        <div class="mt-2">
+                            <strong>${statistics.tables_processed || 0}</strong>
+                            <small class="d-block text-muted">表格处理</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item text-center">
+                        <i class="bi bi-input-cursor text-warning display-6"></i>
+                        <div class="mt-2">
+                            <strong>${statistics.fields_filled || 0}</strong>
+                            <small class="d-block text-muted">字段填充</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item text-center">
+                        <i class="bi bi-image text-success display-6"></i>
+                        <div class="mt-2">
+                            <strong>${statistics.images_inserted || 0}</strong>
+                            <small class="d-block text-muted">图片插入</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 追加到现有内容
+    statsContent.innerHTML += summaryHtml;
 }
 
 // ==================== 文档预览功能 ====================
