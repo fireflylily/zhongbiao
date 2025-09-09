@@ -106,6 +106,7 @@ def render_template_with_layout(page_template, page_title, active_nav):
             '{{page_content}}': page_content,
             '{{page_scripts}}': page_scripts,
             '{{url_params}}': url_params_str,
+            '{{active_home}}': 'active' if active_nav == 'active_home' else '',
             '{{active_tender_info}}': 'active' if active_nav == 'active_tender_info' else '',
             '{{active_company_selection}}': 'active' if active_nav == 'active_company_selection' else '',
             '{{active_business_response}}': 'active' if active_nav == 'active_business_response' else '',
@@ -176,6 +177,11 @@ def index():
 def help_page():
     """帮助页面"""
     return render_template('help.html')
+
+@app.route('/index.html')
+def index_page():
+    """首页"""
+    return send_file(os.path.join(web_pages_dir, 'index.html'))
 
 @app.route('/tender_info.html')
 def tender_info():

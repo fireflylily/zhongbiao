@@ -43,6 +43,7 @@ class FieldMatch:
     target_position: Tuple[int, int, int]  # (table_idx, row_idx, col_idx)
     confidence: float
     matched_text: str
+    same_cell_mode: bool = False  # 是否为同单元格填写模式
 
 
 class TableProcessor:
@@ -307,12 +308,16 @@ class TableProcessor:
                     )
                     
                     if target_position:
+                        # 检查是否为同单元格填写模式
+                        same_cell_mode = (target_position[0] == row_idx and target_position[1] == col_idx)
+                        
                         match = FieldMatch(
                             field_type=field_type,
                             label_position=(table_idx, row_idx, col_idx),
                             target_position=(table_idx, target_position[0], target_position[1]),
                             confidence=self._calculate_confidence(cell.text, field_type),
-                            matched_text=cell.text.strip()
+                            matched_text=cell.text.strip(),
+                            same_cell_mode=same_cell_mode
                         )
                         matches.append(match)
                         logger.debug(f"匹配字段: {field_type} <- {cell.text.strip()}")
@@ -359,6 +364,11 @@ class TableProcessor:
             (row_idx, col_idx) 或 None
         """
         rows = table.rows
+        current_cell = rows[row_idx].cells[col_idx]
+        
+        # 策略0: 检查当前单元格是否包含"字段名：可填写标记"的模式
+        if self._is_same_cell_fillable(current_cell.text):
+            return (row_idx, col_idx)  # 返回当前单元格作为目标
         
         # 策略1: 检查右侧单元格（水平布局）
         if col_idx + 1 < len(rows[row_idx].cells):
@@ -379,6 +389,53 @@ class TableProcessor:
                 return (row_idx, col_idx + 2)
         
         return None
+    
+    def _is_same_cell_fillable(self, text: str) -> bool:
+        """
+        检查文本是否为同单元格可填写模式
+        例如: "企业员工总人数（人）：______"
+        """
+        import re
+        
+        text = text.strip()
+        if not text:
+            return False
+        
+        # 检查是否包含冒号后面跟着可填写标记的模式
+        patterns = [
+            r'.*[:：]\s*_+\s*$',           # 冒号+下划线
+            r'.*[:：]\s*\.+\s*$',          # 冒号+点
+            r'.*[:：]\s*-+\s*$',           # 冒号+横线
+            r'.*[:：]\s*（\s*）\s*$',       # 冒号+空括号
+            r'.*[:：]\s*（.*待填.*）\s*$',   # 冒号+带"待填"的括号
+            r'.*[:：]\s*\[\s*\]\s*$',      # 冒号+空方括号
+            r'.*[:：]\s*【\s*】\s*$',       # 冒号+空中括号
+            r'.*[:：]\s*(请填写|请输入|待填|此处填写|必填|选填)\s*$',  # 冒号+填写提示
+            r'.*[:：]\s*$'                 # 冒号+空白
+        ]
+        
+        for pattern in patterns:
+            if re.match(pattern, text):
+                return True
+        
+        return False
+    
+    def _extract_field_label(self, text: str) -> str:
+        """
+        从匹配的文本中提取字段标签
+        例如: "企业员工总人数（人）：______" -> "企业员工总人数（人）"
+        """
+        import re
+        
+        text = text.strip()
+        
+        # 查找冒号位置，提取冒号前的内容作为标签
+        colon_match = re.search(r'^(.*?)[:：]', text)
+        if colon_match:
+            return colon_match.group(1).strip()
+        
+        # 如果没有冒号，返回原文本
+        return text
     
     def _is_fillable_cell(self, cell: _Cell) -> bool:
         """判断单元格是否为可填写区域"""
@@ -451,10 +508,7 @@ class TableProcessor:
             try:
                 cell = document.tables[table_idx].rows[row_idx].cells[col_idx]
                 
-                # 清空原内容
-                cell.text = ""
-                
-                # 填充新内容
+                # 格式化内容
                 if match.field_type in ['established_date']:
                     # 格式化日期
                     content = self._format_date(content)
@@ -462,8 +516,15 @@ class TableProcessor:
                     # 格式化货币
                     content = self._format_currency(content)
                 
-                # 设置内容
-                cell.text = str(content)
+                # 根据填写模式设置内容
+                if match.same_cell_mode:
+                    # 同单元格模式：生成完整的"字段名：内容"格式
+                    field_label = self._extract_field_label(match.matched_text)
+                    cell.text = f"{field_label}：{content}"
+                else:
+                    # 相邻单元格模式：清空原内容后填写新内容
+                    cell.text = ""
+                    cell.text = str(content)
                 
                 # 保持原有格式（如果有）
                 if cell.paragraphs:
@@ -487,9 +548,27 @@ class TableProcessor:
         
         # 特殊处理资质认证情况
         if field_key == 'qualifications':
-            qualifications = company_info.get('qualifications', [])
-            if isinstance(qualifications, list):
-                # 过滤掉营业执照和身份证
+            qualifications = company_info.get('qualifications', {})
+            if isinstance(qualifications, dict):
+                # 从字典结构中提取认证名称，过滤掉营业执照和身份证
+                cert_names = []
+                for key, value in qualifications.items():
+                    if isinstance(value, dict) and 'original_filename' in value:
+                        filename = value['original_filename']
+                        if '营业执照' not in filename and '身份证' not in filename:
+                            # 根据键名和文件名推断认证类型
+                            if 'iso9001' in key or '质量管理' in filename:
+                                cert_names.append('质量管理体系认证证书')
+                            elif 'iso27001' in key or '信息安全' in filename:
+                                cert_names.append('信息安全管理体系认证证书')
+                            elif 'iso20000' in key or '信息技术管理' in filename:
+                                cert_names.append('信息技术管理体系认证证书')
+                            elif not key.startswith('credit_') and not key.startswith('auth_'):
+                                # 其他认证类型，使用文件名
+                                cert_names.append(filename.replace('.png', '').replace('.jpg', '').replace('.pdf', ''))
+                return '、'.join(cert_names) if cert_names else '无'
+            elif isinstance(qualifications, list):
+                # 兼容列表格式
                 filtered_qualifications = [
                     qual for qual in qualifications 
                     if qual and '营业执照' not in qual and '身份证' not in qual
