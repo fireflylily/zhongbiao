@@ -22,6 +22,33 @@ import sys
 from pathlib import Path
 from web_config import get_default_api_key, get_api_config, get_web_config
 
+# 导入新的文档处理模块
+try:
+    from document_processor import DocumentProcessor, ProcessingOptions
+    from table_processor import TableProcessor
+    from image_inserter import SmartImageInserter
+    DOCUMENT_PROCESSOR_AVAILABLE = True
+    TABLE_PROCESSOR_AVAILABLE = True
+    IMAGE_INSERTER_AVAILABLE = True
+except ImportError as e:
+    print(f"警告：文档处理模块未能加载: {e}")
+    DOCUMENT_PROCESSOR_AVAILABLE = False
+    TABLE_PROCESSOR_AVAILABLE = False
+    IMAGE_INSERTER_AVAILABLE = False
+    
+# 分别检查各个模块
+try:
+    from table_processor import TableProcessor
+    TABLE_PROCESSOR_AVAILABLE = True
+except ImportError:
+    TABLE_PROCESSOR_AVAILABLE = False
+    
+try:
+    from image_inserter import SmartImageInserter
+    IMAGE_INSERTER_AVAILABLE = True
+except ImportError:
+    IMAGE_INSERTER_AVAILABLE = False
+
 # 添加招标信息提取模块路径
 tender_info_path = str(Path(__file__).parent.parent.parent / "1.读取信息")
 sys.path.insert(0, tender_info_path)
@@ -79,6 +106,7 @@ def render_template_with_layout(page_template, page_title, active_nav):
             '{{page_content}}': page_content,
             '{{page_scripts}}': page_scripts,
             '{{url_params}}': url_params_str,
+            '{{active_home}}': 'active' if active_nav == 'active_home' else '',
             '{{active_tender_info}}': 'active' if active_nav == 'active_tender_info' else '',
             '{{active_company_selection}}': 'active' if active_nav == 'active_company_selection' else '',
             '{{active_business_response}}': 'active' if active_nav == 'active_business_response' else '',
@@ -142,13 +170,17 @@ def allowed_tender_info_file(filename):
 @app.route('/')
 def index():
     """主页"""
-    default_api_key = get_default_api_key()
-    return render_template('index.html', default_api_key=default_api_key)
+    return render_template_with_layout('index.html', '首页', 'active_home')
 
 @app.route('/help.html')
 def help_page():
     """帮助页面"""
     return render_template('help.html')
+
+@app.route('/index.html')
+def index_page():
+    """首页"""
+    return render_template_with_layout('index.html', '首页', 'active_home')
 
 @app.route('/tender_info.html')
 def tender_info():
@@ -1513,22 +1545,175 @@ def process_business_response():
             logger.error(f"MCP处理器加载失败: {e}")
             return jsonify({'error': 'MCP处理器不可用'}), 500
         
-        # 清理临时文件
-        try:
-            os.remove(upload_path)
-            logger.info(f"清理临时文件: {upload_path}")
-        except:
-            pass
-        
+        # 如果文本处理成功，继续进行表格处理和图片插入
         if result.get('success'):
+            current_file = output_path
+            processing_steps = {
+                'text': {
+                    'success': True,
+                    'count': result.get('stats', {}).get('replacements', 0),
+                    'message': '文本填写完成'
+                }
+            }
+            
+            # 第2步：表格处理
+            if TABLE_PROCESSOR_AVAILABLE:
+                try:
+                    logger.info("开始表格处理")
+                    from table_processor import TableProcessor
+                    table_config_path = os.path.join(os.path.dirname(__file__), 'config', 'table_config.json')
+                    table_processor = TableProcessor(table_config_path)
+                    
+                    # 生成表格处理后的文件名
+                    table_output = current_file.replace('.docx', '_table.docx')
+                    table_result = table_processor.process_document(
+                        current_file,
+                        company_info,
+                        table_output
+                    )
+                    
+                    # 检查处理结果
+                    if table_result.get('success'):
+                        processing_steps['tables'] = {
+                            'success': True,
+                            'count': table_result.get('tables_processed', 0),
+                            'fields': table_result.get('fields_filled', 0),
+                            'message': f"处理了{table_result.get('tables_processed', 0)}个表格"
+                        }
+                        current_file = table_output
+                        logger.info(f"表格处理完成: {table_result.get('message')}")
+                    else:
+                        processing_steps['tables'] = {
+                            'success': False,
+                            'error': table_result.get('error', '未知错误'),
+                            'message': '表格处理失败'
+                        }
+                        logger.warning(f"表格处理失败: {table_result.get('error')}")
+                    
+                except Exception as e:
+                    logger.error(f"表格处理失败: {e}")
+                    processing_steps['tables'] = {
+                        'success': False,
+                        'error': str(e),
+                        'message': '表格处理失败'
+                    }
+            else:
+                processing_steps['tables'] = {
+                    'success': False,
+                    'message': '表格处理模块未加载'
+                }
+            
+            # 第3步：图片插入
+            if IMAGE_INSERTER_AVAILABLE:
+                try:
+                    logger.info("开始图片插入")
+                    from image_inserter import SmartImageInserter
+                    image_inserter = SmartImageInserter()
+                    
+                    # 生成最终输出文件名
+                    final_output = current_file.replace('_table.docx', '_final.docx').replace('.docx', '_final.docx') if '_table' in current_file else current_file.replace('.docx', '_final.docx')
+                    
+                    # 检查公司信息中是否有资质图片
+                    if 'qualifications' in company_info and company_info['qualifications']:
+                        # 调用图片插入器，不传递输出路径，让它自己生成
+                        image_output, image_results = image_inserter.process_document(
+                            current_file,
+                            company_info
+                        )
+                        
+                        success_count = len([r for r in image_results if r.success])
+                        if success_count > 0:
+                            processing_steps['images'] = {
+                                'success': True,
+                                'count': success_count,
+                                'message': f"插入了{success_count}张图片"
+                            }
+                            current_file = image_output  # 使用返回的输出路径
+                            logger.info(f"图片插入完成: 成功插入{success_count}张图片")
+                        else:
+                            processing_steps['images'] = {
+                                'success': False,
+                                'count': 0,
+                                'message': '未能插入任何图片'
+                            }
+                            logger.warning("图片插入: 未能插入任何图片")
+                    else:
+                        processing_steps['images'] = {
+                            'success': False,
+                            'message': '未配置资质图片'
+                        }
+                        logger.info("跳过图片插入：未配置资质图片")
+                        
+                except Exception as e:
+                    logger.error(f"图片插入失败: {e}")
+                    processing_steps['images'] = {
+                        'success': False,
+                        'error': str(e),
+                        'message': '图片插入失败'
+                    }
+            else:
+                processing_steps['images'] = {
+                    'success': False,
+                    'message': '图片插入模块未加载'
+                }
+            
+            # 清理临时文件
+            try:
+                os.remove(upload_path)
+                logger.info(f"清理上传的临时文件: {upload_path}")
+                # 不要清理中间文件，因为它们可能就是最终文件
+                # 只记录日志，不删除文件
+                logger.info(f"保留处理后的文件: {current_file}")
+            except Exception as e:
+                logger.warning(f"清理临时文件失败: {e}")
+            
+            # 重命名最终文件为原始输出文件名
+            final_file = current_file  # 保存实际的最终文件路径
+            logger.info(f"当前文件路径: {current_file}")
+            logger.info(f"目标输出路径: {output_path}")
+            
+            if current_file != output_path:
+                try:
+                    import shutil
+                    # 如果目标文件已存在，先删除
+                    if os.path.exists(output_path):
+                        os.remove(output_path)
+                        logger.info(f"删除已存在的目标文件: {output_path}")
+                    
+                    shutil.move(current_file, output_path)
+                    logger.info(f"移动最终文件成功: {current_file} -> {output_path}")
+                    final_file = output_path
+                except Exception as e:
+                    logger.warning(f"移动文件失败，保持使用当前文件: {e}")
+                    # 移动失败时，保持使用实际生成的文件
+                    final_file = current_file
+            
+            # 确保使用实际存在的文件名
+            actual_filename = os.path.basename(final_file)
+            logger.info(f"最终文件路径: {final_file}")
+            logger.info(f"最终文件名: {actual_filename}")
+            
             return jsonify({
                 'success': True,
-                'output_file': output_filename,
-                'download_url': f'/download/{output_filename}',
-                'stats': result.get('stats', {}),
+                'output_file': actual_filename,
+                'download_url': f'/download/{actual_filename}',
+                'filename': actual_filename,  # 添加明确的filename字段供预览使用
+                'processing_steps': processing_steps,
+                'statistics': {
+                    'text_replacements': processing_steps['text'].get('count', 0),
+                    'tables_processed': processing_steps['tables'].get('count', 0),
+                    'fields_filled': processing_steps['tables'].get('fields', 0),
+                    'images_inserted': processing_steps['images'].get('count', 0)
+                },
                 'message': '商务应答文档处理完成'
             })
         else:
+            # 清理临时文件
+            try:
+                os.remove(upload_path)
+                logger.info(f"清理临时文件: {upload_path}")
+            except:
+                pass
             return jsonify({'error': result.get('error', '处理失败')}), 500
             
     except Exception as e:
@@ -1601,6 +1786,253 @@ def convert_html_to_docx(html_content, output_path):
         except Exception as e2:
             logger.error(f"备用HTML转Word方法也失败: {e2}")
             raise Exception(f"HTML转Word失败: {str(e)} / {str(e2)}")
+
+# ===================== 新增：表格处理和图片插入路由 =====================
+
+@app.route('/api/document/process', methods=['POST'])
+def process_document_complete():
+    """完整文档处理接口 - 包括表格填充和图片插入"""
+    if not DOCUMENT_PROCESSOR_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'error': '文档处理模块未加载'
+        }), 500
+    
+    try:
+        # 获取上传的文件
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': '未找到上传文件'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': '未选择文件'}), 400
+        
+        # 获取公司ID
+        company_id = request.form.get('company_id')
+        if not company_id:
+            return jsonify({'success': False, 'error': '未指定公司'}), 400
+        
+        # 获取处理选项
+        process_tables = request.form.get('process_tables', 'true').lower() == 'true'
+        insert_images = request.form.get('insert_images', 'true').lower() == 'true'
+        process_names = request.form.get('process_names', 'false').lower() == 'true'
+        
+        # 保存上传的文件
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = secure_filename(file.filename)
+        temp_dir = tempfile.mkdtemp()
+        input_path = os.path.join(temp_dir, filename)
+        file.save(input_path)
+        
+        # 加载公司信息
+        processor = DocumentProcessor()
+        company_info = processor.load_company_info(company_id)
+        
+        if not company_info:
+            return jsonify({'success': False, 'error': '公司信息未找到'}), 404
+        
+        # 设置处理选项
+        options = ProcessingOptions(
+            process_names=process_names,
+            process_tables=process_tables,
+            insert_images=insert_images,
+            keep_intermediate=False
+        )
+        
+        # 处理文档
+        result = processor.process_document(input_path, company_info, options)
+        
+        # 清理临时文件
+        shutil.rmtree(temp_dir)
+        
+        if result.success:
+            # 获取输出文件名
+            output_filename = os.path.basename(result.output_path)
+            
+            return jsonify({
+                'success': True,
+                'output_file': output_filename,
+                'download_url': f'/download/{output_filename}',
+                'statistics': result.statistics,
+                'processing_time': result.processing_time
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'errors': result.errors
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"文档处理失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/table/analyze', methods=['POST'])
+def analyze_tables():
+    """分析文档中的表格结构"""
+    if not DOCUMENT_PROCESSOR_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'error': '表格处理模块未加载'
+        }), 500
+    
+    try:
+        # 获取上传的文件
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': '未找到上传文件'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': '未选择文件'}), 400
+        
+        # 保存临时文件
+        temp_dir = tempfile.mkdtemp()
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(temp_dir, filename)
+        file.save(file_path)
+        
+        # 分析表格
+        table_config_path = os.path.join(os.path.dirname(__file__), 'config', 'table_config.json')
+        processor = TableProcessor(table_config_path)
+        analysis = processor.analyze_tables(file_path)
+        
+        # 清理临时文件
+        shutil.rmtree(temp_dir)
+        
+        return jsonify({
+            'success': True,
+            'analysis': analysis
+        })
+        
+    except Exception as e:
+        logger.error(f"表格分析失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/table/process', methods=['POST'])
+def process_tables_only():
+    """仅处理表格填充"""
+    if not DOCUMENT_PROCESSOR_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'error': '表格处理模块未加载'
+        }), 500
+    
+    try:
+        # 获取上传的文件
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': '未找到上传文件'}), 400
+        
+        file = request.files['file']
+        company_id = request.form.get('company_id')
+        
+        if not company_id:
+            return jsonify({'success': False, 'error': '未指定公司'}), 400
+        
+        # 保存临时文件
+        temp_dir = tempfile.mkdtemp()
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(temp_dir, filename)
+        file.save(file_path)
+        
+        # 加载公司信息
+        processor = DocumentProcessor()
+        company_info = processor.load_company_info(company_id)
+        
+        # 处理表格
+        table_config_path = os.path.join(os.path.dirname(__file__), 'config', 'table_config.json')
+        table_processor = TableProcessor(table_config_path)
+        output_path = table_processor.process_document(file_path, company_info)
+        
+        # 清理临时文件
+        shutil.rmtree(temp_dir)
+        
+        # 获取输出文件名
+        output_filename = os.path.basename(output_path)
+        
+        return jsonify({
+            'success': True,
+            'output_file': output_filename,
+            'download_url': f'/download/{output_filename}'
+        })
+        
+    except Exception as e:
+        logger.error(f"表格处理失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/image/insert', methods=['POST'])
+def insert_images_only():
+    """仅处理图片插入"""
+    if not DOCUMENT_PROCESSOR_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'error': '图片插入模块未加载'
+        }), 500
+    
+    try:
+        # 获取上传的文件
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': '未找到上传文件'}), 400
+        
+        file = request.files['file']
+        company_id = request.form.get('company_id')
+        
+        if not company_id:
+            return jsonify({'success': False, 'error': '未指定公司'}), 400
+        
+        # 保存临时文件
+        temp_dir = tempfile.mkdtemp()
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(temp_dir, filename)
+        file.save(file_path)
+        
+        # 加载公司信息
+        processor = DocumentProcessor()
+        company_info = processor.load_company_info(company_id)
+        
+        # 插入图片
+        image_inserter = SmartImageInserter()
+        output_path, results = image_inserter.process_document(file_path, company_info)
+        
+        # 清理临时文件
+        shutil.rmtree(temp_dir)
+        
+        # 统计结果
+        success_count = sum(1 for r in results if r.success)
+        
+        # 获取输出文件名
+        output_filename = os.path.basename(output_path)
+        
+        return jsonify({
+            'success': True,
+            'output_file': output_filename,
+            'download_url': f'/download/{output_filename}',
+            'images_inserted': success_count,
+            'results': [
+                {
+                    'image_type': r.image_type,
+                    'success': r.success,
+                    'strategy': r.strategy_used,
+                    'position': r.position
+                } for r in results
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"图片插入失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ===================== 结束新增路由 =====================
 
 def find_available_port(start_port=8080):
     """找到可用端口"""

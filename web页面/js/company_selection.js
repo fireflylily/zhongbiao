@@ -49,6 +49,9 @@ const standardQualifications = {
     'credit_tax': '重大税收失信主体查询结果'
 };
 
+// 存储必要资质要求
+let requiredQualifications = [];
+
 onPageReady(function() {
     // 初始化页面元素
     companySelect = document.getElementById('companySelect');
@@ -317,6 +320,12 @@ function loadProjectInfo() {
         .then(data => {
             if (data.success && data.project_info) {
                 console.log('项目信息加载成功', data.project_info);
+                
+                // 存储必要资质要求
+                if (data.project_info.requiredQualifications) {
+                    requiredQualifications = data.project_info.requiredQualifications;
+                    updateQualificationsWithStars();
+                }
             }
         })
         .catch(error => {
@@ -335,17 +344,52 @@ function initializeQualifications() {
     });
 }
 
+// 更新资质项目的星标显示
+function updateQualificationsWithStars() {
+    const allQualItems = document.querySelectorAll('[data-qual-key]');
+    
+    allQualItems.forEach(item => {
+        const key = item.getAttribute('data-qual-key');
+        const nameElement = item.querySelector('h6');
+        if (!nameElement) return;
+        
+        // 获取资质名称（去除图标和星标）
+        const name = nameElement.textContent.replace(/📋|📄|⭐/g, '').trim();
+        
+        // 检查是否为必要资质
+        const isRequired = requiredQualifications.includes(name) || requiredQualifications.includes(key);
+        
+        if (isRequired) {
+            // 更新边框样式
+            const card = item.querySelector('.card');
+            if (card) {
+                card.classList.remove('border-secondary');
+                card.classList.add('border-warning');
+            }
+            
+            // 添加星标（如果还没有）
+            if (!nameElement.innerHTML.includes('⭐')) {
+                nameElement.innerHTML += '<span class="text-warning ms-2" title="本次招标必要内容">⭐</span>';
+            }
+        }
+    });
+}
+
 function createQualificationItem(key, name, container, isCustom = false) {
     const qualItem = document.createElement('div');
     qualItem.className = 'mb-3';
     qualItem.setAttribute('data-qual-key', key);
     
+    // 检查是否为必要资质
+    const isRequired = requiredQualifications.includes(name) || requiredQualifications.includes(key);
+    const starMark = isRequired ? '<span class="text-warning ms-2" title="本次招标必要内容">⭐</span>' : '';
+    
     qualItem.innerHTML = `
-        <div class="card border-secondary">
+        <div class="card ${isRequired ? 'border-warning' : 'border-secondary'}">
             <div class="card-body">
                 <div class="row align-items-center">
                     <div class="col-md-3">
-                        <h6 class="mb-0">${isCustom ? '📄' : '📋'} ${name}</h6>
+                        <h6 class="mb-0">${isCustom ? '📄' : '📋'} ${name}${starMark}</h6>
                     </div>
                     <div class="col-md-6">
                         <input type="file" class="form-control" id="${key}File" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
@@ -376,6 +420,20 @@ function createQualificationItem(key, name, container, isCustom = false) {
     fileInput.addEventListener('change', function(e) {
         handleQualificationFileSelect(key, e.target.files[0]);
     });
+    
+    // 启用粘贴图片功能
+    const cardBody = qualItem.querySelector('.card-body');
+    if (cardBody && typeof enablePasteImageUpload === 'function') {
+        enablePasteImageUpload(cardBody, function(imageFile) {
+            // 将粘贴的图片设置到文件输入框
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(imageFile);
+            fileInput.files = dataTransfer.files;
+            
+            // 触发文件选择事件
+            handleQualificationFileSelect(key, imageFile);
+        });
+    }
 }
 
 function handleQualificationFileSelect(key, file) {

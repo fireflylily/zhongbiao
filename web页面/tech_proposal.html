@@ -14,7 +14,7 @@
                                 <h5 class="mt-2">招标文件</h5>
                                 <p class="text-muted mb-3">上传招标文件或需求文档</p>
                                 <input type="file" class="d-none" id="techTenderFileInput" name="tender_file" accept=".docx,.doc,.pdf">
-                                <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('techTenderFileInput').click();">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('techTenderFileInput').click();">
                                     <i class="bi bi-folder2-open"></i> 选择招标文件
                                 </button>
                                 <div id="techTenderFileInfo" class="mt-2" style="display: none;">
@@ -28,7 +28,7 @@
                                 <h5 class="mt-2">产品文档</h5>
                                 <p class="text-muted mb-3">上传产品功能说明文档</p>
                                 <input type="file" class="d-none" id="productFileInput" name="product_file" accept=".docx,.doc,.pdf">
-                                <button type="button" class="btn btn-info btn-sm" onclick="document.getElementById('productFileInput').click();">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('productFileInput').click();">
                                     <i class="bi bi-folder2-open"></i> 选择产品文档
                                 </button>
                                 <div id="productFileInfo" class="mt-2" style="display: none;">
@@ -44,8 +44,8 @@
                             <input type="text" class="form-control" id="outputPrefix" name="output_prefix" value="技术方案" placeholder="输入文件名前缀">
                         </div>
                         <div class="col-md-6 d-flex align-items-end">
-                            <button type="submit" class="btn btn-success btn-lg flex-fill" id="generateProposalBtn" disabled>
-                                <i class="bi bi-play-circle"></i> 生成技术方案
+                            <button type="submit" class="btn btn-outline-success btn-sm flex-fill" id="generateProposalBtn" disabled>
+                                <i class="bi bi-play-fill"></i> 生成技术方案
                             </button>
                         </div>
                     </div>
@@ -69,7 +69,7 @@
                             <!-- 预览按钮将动态生成 -->
                         </div>
                         <div class="text-center mt-3">
-                            <button type="button" class="btn btn-outline-success" onclick="window.location.reload()">
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="window.location.reload()">
                                 <i class="bi bi-arrow-left"></i> 返回首页
                             </button>
                         </div>
@@ -82,10 +82,10 @@
                         <h5><i class="bi bi-exclamation-triangle"></i> 生成失败</h5>
                         <p id="techErrorMessage"></p>
                         <div class="mt-3">
-                            <button type="button" class="btn btn-outline-primary" id="techRetryBtn">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="techRetryBtn">
                                 <i class="bi bi-arrow-clockwise"></i> 重试
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" id="techResetBtn">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="techResetBtn">
                                 <i class="bi bi-arrow-counterclockwise"></i> 重新选择文件
                             </button>
                         </div>

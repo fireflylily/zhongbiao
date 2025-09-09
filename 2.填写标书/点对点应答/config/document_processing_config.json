@@ -1,0 +1,110 @@
+{
+  "enabled_modules": {
+    "name_processor": true,
+    "table_processor": true,
+    "image_inserter": true
+  },
+  "processing_order": [
+    "name_processor",
+    "table_processor",
+    "image_inserter"
+  ],
+  "output_settings": {
+    "create_backup": true,
+    "use_timestamp": true,
+    "output_dir": "outputs/complete"
+  },
+  "table_processing": {
+    "field_mappings": {
+      "standard_fields": {
+        "company_name": {
+          "keywords": ["公司名称", "企业名称", "单位名称", "投标人名称", "投标单位"],
+          "patterns": [".*公司.*名称", ".*企业.*名称"],
+          "priority": 1
+        },
+        "established_date": {
+          "keywords": ["成立日期", "注册日期", "成立时间"],
+          "patterns": [".*成立.*日期", ".*注册.*时间"],
+          "priority": 2
+        },
+        "legal_representative": {
+          "keywords": ["法定代表人", "法人代表", "法人"],
+          "patterns": [".*法.*代表人", ".*法人.*"],
+          "priority": 1
+        },
+        "registered_capital": {
+          "keywords": ["注册资本", "注册资金", "资本金"],
+          "patterns": [".*注册.*资本", ".*注册.*资金"],
+          "priority": 2
+        },
+        "business_scope": {
+          "keywords": ["经营范围", "业务范围", "主营业务"],
+          "patterns": [".*经营.*范围", ".*业务.*范围"],
+          "priority": 3
+        }
+      },
+      "custom_fields": {},
+      "industry_specific": {}
+    },
+    "processing_rules": {
+      "date_formats": ["YYYY-MM-DD", "YYYY年MM月DD日", "YYYY/MM/DD"],
+      "currency_formats": ["￥#,###.##", "人民币#,###.##元"],
+      "skip_empty_tables": true,
+      "min_confidence": 0.6
+    }
+  },
+  "image_insertion": {
+    "methods": {
+      "text_markers": {
+        "enabled": true,
+        "priority": 1,
+        "markers": {
+          "营业执照": ["[营业执照]", "【营业执照】", "{营业执照}", "（营业执照）"],
+          "资质证书": ["[资质证书]", "【资质证书】", "{资质证书}", "（资质证书）"],
+          "法人身份证": ["[法人身份证]", "【法人身份证】", "{法人身份证}"]
+        }
+      },
+      "paragraph_placeholders": {
+        "enabled": true,
+        "priority": 2,
+        "placeholders": [
+          "营业执照附件",
+          "资质证书附件", 
+          "法人身份证附件",
+          "此处插入营业执照",
+          "此处插入资质证明",
+          "请附营业执照",
+          "请附资质证书"
+        ]
+      },
+      "structure_based": {
+        "enabled": true,
+        "priority": 3,
+        "after_sections": {
+          "公司资质": ["business_license", "qualification_cert"],
+          "企业资质": ["business_license", "qualification_cert"],
+          "资质证明": ["business_license", "qualification_cert"],
+          "法人信息": ["legal_person_id"],
+          "附件": ["business_license", "qualification_cert", "legal_person_id"]
+        }
+      }
+    },
+    "fallback_strategy": {
+      "enabled": true,
+      "append_to_end": true,
+      "create_appendix_section": true
+    },
+    "image_settings": {
+      "default_width_inches": 4,
+      "max_width_inches": 5,
+      "max_height_inches": 6,
+      "quality": 85,
+      "formats": ["jpg", "jpeg", "png", "gif", "bmp"],
+      "center_align": true,
+      "add_captions": true,
+      "page_break_after": false
+    },
+    "required_images": ["business_license"],
+    "optional_images": ["qualification_cert", "legal_person_id"]
+  }
+}

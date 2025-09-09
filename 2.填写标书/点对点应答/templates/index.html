@@ -84,12 +84,6 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="company-selection-tab" data-bs-toggle="pill" 
-                                data-bs-target="#company-selection" type="button" role="tab">
-                            <i class="bi bi-building"></i> 选择应答人
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
                         <button class="nav-link" id="business-response-tab" data-bs-toggle="pill" 
                                 data-bs-target="#business-response" type="button" role="tab">
                             <i class="bi bi-briefcase"></i> 商务应答
@@ -324,317 +318,6 @@
         </div>
         <!-- 结束读取信息选项卡 -->
 
-        <!-- 选择应答人选项卡 -->
-        <div class="tab-pane fade" id="company-selection" role="tabpanel">
-            
-            <!-- 公司选择区域 -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card border-info">
-                        <div class="card-header bg-info text-white">
-                            <h6 class="mb-0">
-                                <i class="bi bi-building"></i> 选择现有公司
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8 mb-2">
-                                    <select class="form-select" id="companySelect">
-                                        <option value="">请选择公司（选择后自动加载）</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <div class="btn-group w-100">
-                                        <button type="button" class="btn btn-outline-info" id="loadCompanyBtn">
-                                            <i class="bi bi-arrow-clockwise"></i> 重新加载
-                                        </button>
-                                        <button type="button" class="btn btn-outline-success" id="newCompanyBtn">
-                                            <i class="bi bi-plus"></i> 新建
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 公司信息编辑区域 -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="bi bi-pencil-square"></i> 公司信息编辑
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <form id="companyInfoForm">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="companyName" class="form-label">公司名称 <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" id="companyName" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="establishDate" class="form-label">成立日期</label>
-                                        <input type="date" class="form-control" id="establishDate">
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="legalRepresentative" class="form-label">法定代表人</label>
-                                        <input type="text" class="form-control" id="legalRepresentative">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="socialCreditCode" class="form-label">统一社会信用代码</label>
-                                        <input type="text" class="form-control" id="socialCreditCode">
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="registeredCapital" class="form-label">注册资本</label>
-                                        <input type="text" class="form-control" id="registeredCapital" placeholder="例：1000万人民币">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="companyType" class="form-label">公司类型</label>
-                                        <select class="form-select" id="companyType">
-                                            <option value="">请选择公司类型</option>
-                                            <option value="有限责任公司">有限责任公司</option>
-                                            <option value="股份有限公司">股份有限公司</option>
-                                            <option value="合伙企业">合伙企业</option>
-                                            <option value="个人独资企业">个人独资企业</option>
-                                            <option value="外商投资企业">外商投资企业</option>
-                                            <option value="其他">其他</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="fixedPhone" class="form-label">固定电话</label>
-                                        <input type="tel" class="form-control" id="fixedPhone" placeholder="例：010-12345678">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="postalCode" class="form-label">邮政编码</label>
-                                        <input type="text" class="form-control" id="postalCode" maxlength="6">
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label for="registeredAddress" class="form-label">注册地址</label>
-                                        <textarea class="form-control" id="registeredAddress" rows="2"></textarea>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label for="officeAddress" class="form-label">办公地址</label>
-                                        <textarea class="form-control" id="officeAddress" rows="2"></textarea>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="website" class="form-label">官方网址</label>
-                                        <input type="url" class="form-control" id="website" placeholder="https://www.example.com">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="employeeCount" class="form-label">员工人数</label>
-                                        <select class="form-select" id="employeeCount">
-                                            <option value="">请选择员工规模</option>
-                                            <option value="1-10人">1-10人</option>
-                                            <option value="11-50人">11-50人</option>
-                                            <option value="51-100人">51-100人</option>
-                                            <option value="101-500人">101-500人</option>
-                                            <option value="501-1000人">501-1000人</option>
-                                            <option value="1000人以上">1000人以上</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label for="companyDescription" class="form-label">公司简介</label>
-                                        <textarea class="form-control" id="companyDescription" rows="3"></textarea>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label for="businessScope" class="form-label">经营范围</label>
-                                        <textarea class="form-control" id="businessScope" rows="3"></textarea>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="bankName" class="form-label">开户行全称</label>
-                                        <input type="text" class="form-control" id="bankName" placeholder="例：中国工商银行股份有限公司北京分行">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="bankAccount" class="form-label">银行账号</label>
-                                        <input type="text" class="form-control" id="bankAccount">
-                                    </div>
-                                </div>
-                                
-                                <div class="text-center mt-4">
-                                    <button type="button" class="btn btn-success btn-lg me-3" id="saveCompanyBtn">
-                                        <i class="bi bi-save"></i> 保存公司信息
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-lg me-3" id="clearFormBtn">
-                                        <i class="bi bi-x-circle"></i> 清空表单
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger btn-lg" id="deleteCompanyBtn" style="display: none;">
-                                        <i class="bi bi-trash"></i> 删除公司
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 资质文件上传区域 -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card border-warning">
-                        <div class="card-header bg-warning text-dark">
-                            <h6 class="mb-0">
-                                <i class="bi bi-file-earmark-arrow-up"></i> 资质文件上传
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <!-- 预定义资质类型 -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-primary mb-3">
-                                        <i class="bi bi-collection"></i> 标准资质文件
-                                    </h6>
-                                    <div id="standardQualifications">
-                                        <!-- 标准资质项目将在这里动态生成 -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 自定义资质类型 -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="text-success mb-3">
-                                        <i class="bi bi-plus-circle"></i> 自定义资质文件
-                                    </h6>
-                                    
-                                    <!-- 添加自定义资质 -->
-                                    <div class="card bg-light mb-3">
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col-md-8">
-                                                    <input type="text" class="form-control" id="customQualificationName" 
-                                                           placeholder="输入资质名称，如：软件著作权登记证书">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <button type="button" class="btn btn-success w-100" id="addCustomQualificationBtn">
-                                                        <i class="bi bi-plus"></i> 添加资质项
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 自定义资质列表 -->
-                                    <div id="customQualifications">
-                                        <!-- 自定义资质项目将在这里动态生成 -->
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 批量操作 -->
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="text-center">
-                                        <button type="button" class="btn btn-primary btn-lg me-3" id="saveAllQualificationsBtn">
-                                            <i class="bi bi-cloud-upload"></i> 保存所有资质文件
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-lg" id="clearAllQualificationsBtn">
-                                            <i class="bi bi-x-circle"></i> 清空所有资质
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 操作结果显示 -->
-            <div id="companyResultArea" class="mt-4" style="display: none;">
-                <div class="alert alert-success">
-                    <h6><i class="bi bi-check-circle"></i> 操作成功</h6>
-                    <p id="companyResultMessage"></p>
-                </div>
-            </div>
-            
-            <!-- 错误信息显示 -->
-            <div id="companyErrorArea" class="mt-4" style="display: none;">
-                <div class="alert alert-danger">
-                    <h6><i class="bi bi-exclamation-triangle"></i> 操作失败</h6>
-                    <p id="companyErrorMessage"></p>
-                </div>
-            </div>
-
-            <!-- 功能说明 -->
-            <div class="row mt-5">
-                <div class="col-12">
-                    <div class="card border-info">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0">
-                                <i class="bi bi-info-circle"></i> 功能说明
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>📋 主要功能</h6>
-                                    <ul>
-                                        <li>保存多个公司信息配置</li>
-                                        <li>快速选择和切换公司</li>
-                                        <li>编辑和更新公司详细信息</li>
-                                        <li>删除不需要的公司配置</li>
-                                    </ul>
-                                    
-                                    <h6>🔧 操作说明</h6>
-                                    <ul>
-                                        <li>选择现有公司或点击新建</li>
-                                        <li>填写完整的公司信息</li>
-                                        <li>点击保存按钮存储配置</li>
-                                        <li>下次可直接选择使用</li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>📝 必填信息</h6>
-                                    <ul>
-                                        <li>公司名称（必填）</li>
-                                        <li>其他字段为可选填写</li>
-                                        <li>建议填写完整信息</li>
-                                    </ul>
-                                    
-                                    <h6>⚠️ 注意事项</h6>
-                                    <ul>
-                                        <li>公司信息将保存到本地配置</li>
-                                        <li>请确保信息准确无误</li>
-                                        <li>银行信息请谨慎填写</li>
-                                        <li>可随时编辑和更新信息</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- 结束选择应答人选项卡 -->
 
         <!-- 商务应答选项卡 -->
         <div class="tab-pane fade" id="business-response" role="tabpanel">
@@ -693,7 +376,7 @@
 
 
                                 <!-- 处理按钮 -->
-                                <button type="submit" class="btn btn-success">
+                                <button type="submit" class="btn btn-outline-success">
                                     <i class="bi bi-play-fill"></i> 开始处理
                                 </button>
                             </form>
@@ -708,9 +391,14 @@
                             <div class="alert alert-success mt-3" id="businessResult" style="display: none;">
                                 <h6>处理完成！</h6>
                                 <p id="businessResultMessage"></p>
-                                <a href="#" id="businessDownloadLink" class="btn btn-primary">
-                                    <i class="bi bi-download"></i> 下载文件
-                                </a>
+                                <div class="d-flex gap-2">
+                                    <a href="#" id="businessDownloadLink" class="btn btn-primary">
+                                        <i class="bi bi-download"></i> 下载文件
+                                    </a>
+                                    <button type="button" class="btn btn-outline-primary" id="businessNextStepBtn">
+                                        <i class="bi bi-arrow-right"></i> 下一步：点对点应答
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- 错误提示 -->
@@ -3410,6 +3098,17 @@
             });
         });
         
+        // 商务应答"下一步"按钮点击处理
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'businessNextStepBtn') {
+                // 切换到点对点应答选项卡
+                const pointToPointTab = document.getElementById('point-to-point-tab');
+                if (pointToPointTab) {
+                    pointToPointTab.click();
+                }
+            }
+        });
+        
         // 加载商务应答历史文件
         function loadBusinessFilesList() {
             fetch('/api/business-files')
@@ -3443,8 +3142,31 @@
             });
         }
         
+        // 页面加载时初始化商务应答页面
+        function initBusinessResponsePage() {
+            // 确保所有结果区域都被隐藏
+            const businessResult = document.getElementById('businessResult');
+            const businessError = document.getElementById('businessError');
+            const businessStats = document.getElementById('businessStats');
+            const businessProgress = document.getElementById('businessProgress');
+            
+            if (businessResult) businessResult.style.display = 'none';
+            if (businessError) businessError.style.display = 'none';
+            if (businessStats) businessStats.style.display = 'none';
+            if (businessProgress) businessProgress.style.display = 'none';
+        }
+        
+        // 监听商务应答选项卡的显示事件
+        document.addEventListener('shown.bs.tab', function(e) {
+            if (e.target.id === 'business-response-tab') {
+                // 当切换到商务应答选项卡时，确保结果区域被隐藏
+                initBusinessResponsePage();
+            }
+        });
+        
         // 页面加载时加载商务应答文件列表
         window.addEventListener('load', function() {
+            initBusinessResponsePage();
             loadBusinessFilesList();
             
             // 添加商务应答公司选择事件监听器

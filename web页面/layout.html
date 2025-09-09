@@ -29,27 +29,33 @@
         <!-- 导航菜单 -->
         <div class="row">
             <div class="col-12">
-                <nav class="navbar navbar-expand-lg navbar-light bg-light rounded mb-4">
-                    <div class="container-fluid">
-                        <div class="navbar-nav nav-pills nav-justified w-100" id="mainNav">
-                            <a class="nav-link {{active_tender_info}}" href="tender_info.html{{url_params}}">
-                                <i class="bi bi-search"></i> 读取信息
-                            </a>
-                            <a class="nav-link {{active_company_selection}}" href="company_selection.html{{url_params}}">
-                                <i class="bi bi-building"></i> 选择应答人
-                            </a>
-                            <a class="nav-link {{active_business_response}}" href="business_response.html{{url_params}}">
-                                <i class="bi bi-briefcase"></i> 商务应答
-                            </a>
-                            <a class="nav-link {{active_point_to_point}}" href="point_to_point.html{{url_params}}">
-                                <i class="bi bi-arrow-left-right"></i> 点对点应答
-                            </a>
-                            <a class="nav-link {{active_tech_proposal}}" href="tech_proposal.html{{url_params}}">
-                                <i class="bi bi-gear"></i> 技术方案
-                            </a>
-                        </div>
-                    </div>
-                </nav>
+                <ul class="nav nav-pills nav-justified mb-4" id="mainNav">
+                    <li class="nav-item">
+                        <a class="nav-link {{active_home}}" href="index.html{{url_params}}">
+                            <i class="bi bi-house"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{active_tender_info}}" href="tender_info.html{{url_params}}">
+                            <i class="bi bi-search"></i> 读取信息
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{active_business_response}}" href="business_response.html{{url_params}}">
+                            <i class="bi bi-briefcase"></i> 商务应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{active_point_to_point}}" href="point_to_point.html{{url_params}}">
+                            <i class="bi bi-chat-dots"></i> 点对点应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{active_tech_proposal}}" href="tech_proposal.html{{url_params}}">
+                            <i class="bi bi-file-earmark-code"></i> 技术方案
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
 

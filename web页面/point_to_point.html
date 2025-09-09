@@ -12,7 +12,7 @@
                         <h4 class="mt-3">拖拽文档到这里或点击选择</h4>
                         <p class="text-muted">支持 .docx 和 .doc 格式，最大 50MB</p>
                         <input type="file" class="d-none" id="fileInput" name="file" accept=".docx,.doc">
-                        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('fileInput').click();">
                             <i class="bi bi-folder2-open"></i> 选择文件
                         </button>
                     </div>
@@ -26,10 +26,10 @@
                     </div>
                     
                     <div class="mt-3 text-center">
-                        <button type="submit" class="btn btn-success btn-lg me-3" id="processBtn" disabled>
-                            <i class="bi bi-play-circle"></i> 开始处理
+                        <button type="submit" class="btn btn-outline-success btn-sm me-3" id="processBtn" disabled>
+                            <i class="bi bi-play-fill"></i> 开始处理
                         </button>
-                        <button type="button" class="btn btn-primary btn-lg" onclick="StateManager.navigateToPage('tech_proposal.html')">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="StateManager.navigateToPage('tech_proposal.html')">
                             <i class="bi bi-arrow-right"></i> 下一步：技术方案
                         </button>
                     </div>
@@ -47,13 +47,13 @@
                         <h5><i class="bi bi-check-circle"></i> 处理完成！</h5>
                         <p id="resultMessage"></p>
                         <div class="mt-3">
-                            <button id="downloadBtn" class="btn btn-primary me-2">
+                            <button id="downloadBtn" class="btn btn-outline-primary btn-sm me-2">
                                 <i class="bi bi-download"></i> 下载处理后的文档
                             </button>
-                            <button id="previewBtn" class="btn btn-success me-2">
+                            <button id="previewBtn" class="btn btn-outline-success btn-sm me-2">
                                 <i class="bi bi-eye"></i> 预览文档
                             </button>
-                            <button id="viewFilesBtn" class="btn btn-outline-info">
+                            <button id="viewFilesBtn" class="btn btn-outline-info btn-sm">
                                 <i class="bi bi-file-earmark-text"></i> 查看所有文件
                             </button>
                         </div>
@@ -66,10 +66,10 @@
                         <h5><i class="bi bi-exclamation-triangle"></i> 处理失败</h5>
                         <p id="errorMessage"></p>
                         <div class="mt-3">
-                            <button type="button" class="btn btn-outline-primary" id="retryBtn">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="retryBtn">
                                 <i class="bi bi-arrow-clockwise"></i> 重试
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" id="resetBtn">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="resetBtn">
                                 <i class="bi bi-arrow-counterclockwise"></i> 重新选择文件
                             </button>
                         </div>

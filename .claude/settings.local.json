@@ -6,7 +6,11 @@
       "Bash(python:*)",
       "Bash(pip install:*)",
       "Bash(git push:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Read(//Users/lvhe/Library/**)",
+      "Bash(sed:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

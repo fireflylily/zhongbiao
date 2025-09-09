@@ -1,0 +1,19 @@
+启动AI标书智能生成系统...
+Web界面地址: http://localhost:8081
+点对点应答: 支持 .docx, .doc
+技术方案: 支持 .docx, .doc, .pdf
+招标信息提取: 支持 .docx, .doc, .txt, .pdf
+使用始皇API生成专业内容
+技术方案生成功能已加载
+招标信息提取功能已加载
+ * Serving Flask app 'web_app'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8081
+ * Running on http://192.168.32.124:8081
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 989-437-274
+INFO:werkzeug: * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/2.填写标书/点对点应答/table_processor.py', reloading

@@ -10696,3 +10696,24 @@ ModuleNotFoundError: No module named 'mammoth'
 2025-09-08 23:50:45,497 - INFO - 处理下载URL: /download/docx-商务应答-20250908_234012.docx -> outputs\docx-商务应答-20250908_234012.docx
 2025-09-08 23:50:45,579 - INFO - Word文档转换成功，包含 0 个转换消息
 2025-09-08 23:50:45,582 - INFO - 127.0.0.1 - - [08/Sep/2025 23:50:45] "POST /api/editor/load-document-by-url HTTP/1.1" 200 -
+2025-09-08 23:57:34,807 - INFO - 127.0.0.1 - - [08/Sep/2025 23:57:34] "GET /preview-document?file=/download/docx-商务应答-20250908_173139.docx&filename=docx-商务应答-20250908_173139.docx&type=商务应答 HTTP/1.1" 200 -
+2025-09-08 23:57:34,881 - INFO - 127.0.0.1 - - [08/Sep/2025 23:57:34] "[36mGET /css/common.css HTTP/1.1[0m" 304 -
+2025-09-08 23:57:34,888 - INFO - 127.0.0.1 - - [08/Sep/2025 23:57:34] "[36mGET /js/common.js HTTP/1.1[0m" 304 -
+2025-09-08 23:57:34,892 - INFO - 127.0.0.1 - - [08/Sep/2025 23:57:34] "[36mGET /js/state-manager.js HTTP/1.1[0m" 304 -
+2025-09-08 23:57:34,893 - INFO - 127.0.0.1 - - [08/Sep/2025 23:57:34] "[33mGET /js/document_preview.js HTTP/1.1[0m" 404 -
+2025-09-08 23:57:34,895 - INFO - 127.0.0.1 - - [08/Sep/2025 23:57:34] "[36mGET /js/word-editor.js HTTP/1.1[0m" 304 -
+2025-09-08 23:57:39,072 - INFO - 开始处理通过URL加载Word文档请求
+2025-09-08 23:57:39,072 - INFO - 处理下载URL: /download/docx-商务应答-20250908_173139.docx -> outputs\docx-商务应答-20250908_173139.docx
+2025-09-08 23:57:39,073 - ERROR - 文件不存在: outputs\docx-商务应答-20250908_173139.docx
+2025-09-08 23:57:39,073 - INFO - 127.0.0.1 - - [08/Sep/2025 23:57:39] "[33mPOST /api/editor/load-document-by-url HTTP/1.1[0m" 404 -
+2025-09-09 19:10:53,958 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:53] "GET /business_response.html?companyId=945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-09 19:10:53,988 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:53] "[36mGET /css/common.css HTTP/1.1[0m" 304 -
+2025-09-09 19:10:53,992 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:53] "[36mGET /js/common.js HTTP/1.1[0m" 304 -
+2025-09-09 19:10:53,993 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:53] "[36mGET /js/state-manager.js HTTP/1.1[0m" 304 -
+2025-09-09 19:10:53,994 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:53] "[36mGET /js/word-editor.js HTTP/1.1[0m" 304 -
+2025-09-09 19:10:53,999 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:53] "[36mGET /js/business_response.js HTTP/1.1[0m" 304 -
+2025-09-09 19:10:54,912 - INFO - 读取项目配置成功: D:\749\AI编程\zhongbiao\1.读取信息\tender_config.ini
+2025-09-09 19:10:54,912 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:54] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-09 19:10:54,913 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:54] "GET /api/companies HTTP/1.1" 200 -
+2025-09-09 19:16:23,765 - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\2.填写标书\\点对点应答\\web_app.py', reloading
+2025-09-09 19:16:23,985 - INFO -  * Restarting with stat
