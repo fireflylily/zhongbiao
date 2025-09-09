@@ -136,10 +136,10 @@ async function performStepwiseExtraction(formData, progressBar, tenderResultArea
             throw new Error(step3Data.error);
         }
         
-        // 显示技术评分
-        displayTechnicalScoring(step3Data.technical_scoring);
+        // 显示技术评分（如果存在）
+        const hasTechnicalScoring = displayTechnicalScoring(step3Data.technical_scoring);
         progressBar.style.width = '100%';
-        document.getElementById('stepMessage').textContent = '所有信息提取完成！';
+        document.getElementById('stepMessage').textContent = hasTechnicalScoring ? '所有信息提取完成！' : '信息提取完成（未检测到技术评分标准）！';
         
         // 清理定时器
         clearTimeout(timeoutId);
@@ -362,14 +362,49 @@ function displayQualificationRequirements(qualificationRequirements) {
 }
 
 function displayTechnicalScoring(technicalScoring) {
+    // 检查是否有有效的技术评分数据
+    const hasValidScoring = technicalScoring && 
+                            Object.keys(technicalScoring).length > 0 && 
+                            !Object.keys(technicalScoring).some(key => key === '未检测到评分项目');
+    
+    // 如果没有有效的技术评分数据，直接返回false，不显示任何内容
+    if (!hasValidScoring) {
+        return false;
+    }
+    
     const container = document.createElement('div');
     container.id = 'technicalContainer';
     container.innerHTML = `<hr><h5 class="text-info mb-3 mt-4"><i class="bi bi-award"></i> 技术评分标准</h5>`;
     
-    if (technicalScoring && Object.keys(technicalScoring).length > 0) {
-        let html = '<div class="row">';
-        
-        for (const [category, details] of Object.entries(technicalScoring)) {
+    let html = '<div class="row">';
+    
+    for (const [category, details] of Object.entries(technicalScoring)) {
+        // 处理新的数据结构（technical_scoring_items数组）
+        if (category === 'technical_scoring_items' && Array.isArray(details)) {
+            details.forEach(item => {
+                const name = item.name || '未命名';
+                const weight = item.weight || '未指定';
+                const criteria = item.criteria || '无具体要求';
+                const source = item.source || '位置未确定';
+                
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h6 class="card-title text-info">
+                                    <i class="bi bi-award"></i> ${name}
+                                </h6>
+                                <p class="card-text"><strong>分值：</strong><span class="text-primary">${weight}</span></p>
+                                <p class="card-text"><strong>评分标准：</strong></p>
+                                <p class="small text-muted">${criteria}</p>
+                                <p class="card-text small"><strong>来源：</strong>${source}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            // 处理旧的数据结构
             const score = details.score || '未指定';
             const criteria = details.criteria || [];
             
@@ -392,12 +427,10 @@ function displayTechnicalScoring(technicalScoring) {
                 </div>
             `;
         }
-        
-        html += '</div>';
-        container.innerHTML += html;
-    } else {
-        container.innerHTML += '<p class="text-muted">未找到技术评分标准</p>';
     }
     
+    html += '</div>';
+    container.innerHTML += html;
     document.getElementById('tenderInfoDisplay').appendChild(container);
+    return true;
 }

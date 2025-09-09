@@ -10,6 +10,8 @@ import json
 import logging
 import configparser
 import os
+import signal
+import re
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
@@ -30,6 +32,69 @@ class TenderInfoExtractor:
     def __init__(self, api_key: str = None):
         self.config_file = 'tender_config.ini'
         self.api_key = api_key or "sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob"
+    
+    def _timeout_regex_search(self, pattern: str, text: str, timeout: int = 5):
+        """
+        带超时的正则表达式搜索，防止灾难性回溯
+        """
+        import threading
+        import time
+        
+        result = None
+        exception = None
+        
+        def search_target():
+            nonlocal result, exception
+            try:
+                result = re.search(pattern, text)
+            except Exception as e:
+                exception = e
+        
+        thread = threading.Thread(target=search_target)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout)
+        
+        if thread.is_alive():
+            logger.warning(f"正则表达式搜索超时，跳过模式: {pattern[:50]}...")
+            return None
+        
+        if exception:
+            logger.warning(f"正则表达式搜索出错，跳过模式: {str(exception)}")
+            return None
+            
+        return result
+    
+    def _timeout_regex_search_ignore_case(self, pattern: str, text: str, timeout: int = 5):
+        """
+        带超时的正则表达式搜索（忽略大小写），防止灾难性回溯
+        """
+        import threading
+        
+        result = None
+        exception = None
+        
+        def search_target():
+            nonlocal result, exception
+            try:
+                result = re.search(pattern, text, re.IGNORECASE)
+            except Exception as e:
+                exception = e
+        
+        thread = threading.Thread(target=search_target)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout)
+        
+        if thread.is_alive():
+            logger.warning(f"正则表达式搜索超时（忽略大小写），跳过模式: {pattern[:50]}...")
+            return None
+        
+        if exception:
+            logger.warning(f"正则表达式搜索出错（忽略大小写），跳过模式: {str(exception)}")
+            return None
+            
+        return result
 
     def llm_callback(self, prompt: str, purpose: str = "应答", max_retries: int = 3) -> str:
         """
@@ -422,7 +487,7 @@ class TenderInfoExtractor:
         # 对每个字段尝试匹配
         for field, patterns in field_patterns.items():
             for pattern in patterns:
-                match = re.search(pattern, content_to_search)
+                match = self._timeout_regex_search(pattern, content_to_search, timeout=3)
                 if match:
                     extracted_value = match.group(1).strip()
                     
@@ -509,7 +574,7 @@ class TenderInfoExtractor:
             description_text = ""
             
             for pattern in patterns:
-                match = re.search(pattern, content_to_search, re.IGNORECASE)
+                match = self._timeout_regex_search_ignore_case(pattern, content_to_search, timeout=3)
                 if match:
                     found_match = True
                     
@@ -1134,6 +1199,8 @@ JSON格式输出：
                 content = self._read_text_file(file_path)
             elif file_path.lower().endswith(('.doc', '.docx')):
                 content = self._read_word_document(file_path)
+            elif file_path.lower().endswith('.pdf'):
+                content = self._read_pdf_document(file_path)
             else:
                 # 默认按文本文件处理
                 content = self._read_text_file(file_path)
@@ -1299,6 +1366,116 @@ JSON格式输出：
         except Exception as e:
             logger.error(f"所有方法都失败了: {e}")
             raise Exception(f"无法读取Word文档 {file_path}。请尝试将文档转换为.docx或.txt格式，或安装相关依赖库：pip install python-docx mammoth pywin32")
+    
+    def _read_pdf_document(self, file_path: str) -> str:
+        """读取PDF文档，包含多种方法和错误恢复"""
+        content = ""
+        
+        # 方法1: 使用PyMuPDF (fitz)
+        try:
+            import fitz  # PyMuPDF
+            doc = fitz.open(file_path)
+            text_content = []
+            
+            logger.info(f"PDF文档包含 {len(doc)} 页")
+            
+            for page_num in range(len(doc)):
+                page = doc.load_page(page_num)
+                page_text = page.get_text()
+                if page_text.strip():
+                    text_content.append(f"=== 第{page_num + 1}页 ===\n{page_text}")
+            
+            doc.close()
+            content = '\n'.join(text_content)
+            
+            if len(content.strip()) > 100:
+                logger.info(f"使用PyMuPDF成功读取PDF文档，提取文本长度: {len(content)} 字符")
+                return content
+            else:
+                logger.warning("PyMuPDF提取的文本内容过少，尝试其他方法")
+                
+        except ImportError:
+            logger.warning("未安装PyMuPDF库，尝试其他方法")
+        except Exception as e:
+            logger.warning(f"PyMuPDF读取失败: {e}，尝试其他方法")
+        
+        # 方法2: 使用pdfplumber
+        try:
+            import pdfplumber
+            text_content = []
+            
+            with pdfplumber.open(file_path) as pdf:
+                logger.info(f"PDF文档包含 {len(pdf.pages)} 页")
+                
+                for page_num, page in enumerate(pdf.pages):
+                    page_text = page.extract_text()
+                    if page_text and page_text.strip():
+                        text_content.append(f"=== 第{page_num + 1}页 ===\n{page_text}")
+                        
+                    # 提取表格
+                    tables = page.extract_tables()
+                    for table_idx, table in enumerate(tables):
+                        if table:
+                            table_content = f"\n=== 第{page_num + 1}页表格{table_idx + 1} ===\n"
+                            for row_idx, row in enumerate(table):
+                                if row and any(cell for cell in row if cell):
+                                    clean_row = [str(cell).strip() if cell else "" for cell in row]
+                                    table_content += f"第{row_idx + 1}行: " + " | ".join(clean_row) + "\n"
+                            text_content.append(table_content)
+            
+            content = '\n'.join(text_content)
+            
+            if len(content.strip()) > 100:
+                logger.info(f"使用pdfplumber成功读取PDF文档，提取文本长度: {len(content)} 字符")
+                return content
+            else:
+                logger.warning("pdfplumber提取的文本内容过少，尝试其他方法")
+                
+        except ImportError:
+            logger.warning("未安装pdfplumber库，尝试其他方法")
+        except Exception as e:
+            logger.warning(f"pdfplumber读取失败: {e}，尝试其他方法")
+        
+        # 方法3: 使用PyPDF2作为备选方案
+        try:
+            import PyPDF2
+            text_content = []
+            
+            with open(file_path, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                logger.info(f"PDF文档包含 {len(pdf_reader.pages)} 页")
+                
+                for page_num, page in enumerate(pdf_reader.pages):
+                    try:
+                        page_text = page.extract_text()
+                        if page_text and page_text.strip():
+                            text_content.append(f"=== 第{page_num + 1}页 ===\n{page_text}")
+                    except Exception as e:
+                        logger.warning(f"第{page_num + 1}页文本提取失败: {e}")
+                        continue
+            
+            content = '\n'.join(text_content)
+            
+            if len(content.strip()) > 100:
+                logger.info(f"使用PyPDF2成功读取PDF文档，提取文本长度: {len(content)} 字符")
+                return content
+            else:
+                logger.warning("PyPDF2提取的文本内容过少")
+                
+        except ImportError:
+            logger.warning("未安装PyPDF2库")
+        except Exception as e:
+            logger.warning(f"PyPDF2读取失败: {e}")
+        
+        # 如果所有方法都失败，抛出异常
+        if not content or len(content.strip()) < 50:
+            raise Exception(f"无法读取PDF文档 {file_path}。可能原因：\n"
+                          f"1. PDF是扫描件或图片，没有可提取的文本\n"
+                          f"2. PDF被加密或损坏\n"
+                          f"3. 缺少PDF处理库：pip install PyMuPDF pdfplumber PyPDF2\n"
+                          f"建议：将PDF转换为Word文档或提供文本版本")
+        
+        return content
     
     def process_document(self, file_path: str) -> Dict[str, str]:
         """
