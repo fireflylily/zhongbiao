@@ -170,8 +170,7 @@ def allowed_tender_info_file(filename):
 @app.route('/')
 def index():
     """主页"""
-    default_api_key = get_default_api_key()
-    return render_template('index.html', default_api_key=default_api_key)
+    return render_template_with_layout('index.html', '首页', 'active_home')
 
 @app.route('/help.html')
 def help_page():
@@ -181,7 +180,7 @@ def help_page():
 @app.route('/index.html')
 def index_page():
     """首页"""
-    return send_file(os.path.join(web_pages_dir, 'index.html'))
+    return render_template_with_layout('index.html', '首页', 'active_home')
 
 @app.route('/tender_info.html')
 def tender_info():
