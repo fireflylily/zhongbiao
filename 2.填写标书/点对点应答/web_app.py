@@ -1556,7 +1556,8 @@ def process_business_response():
                 try:
                     logger.info("开始表格处理")
                     from table_processor import TableProcessor
-                    table_processor = TableProcessor()
+                    table_config_path = os.path.join(os.path.dirname(__file__), 'config', 'table_config.json')
+                    table_processor = TableProcessor(table_config_path)
                     
                     # 生成表格处理后的文件名
                     table_output = current_file.replace('.docx', '_table.docx')
@@ -1888,7 +1889,8 @@ def analyze_tables():
         file.save(file_path)
         
         # 分析表格
-        processor = TableProcessor()
+        table_config_path = os.path.join(os.path.dirname(__file__), 'config', 'table_config.json')
+        processor = TableProcessor(table_config_path)
         analysis = processor.analyze_tables(file_path)
         
         # 清理临时文件
@@ -1937,7 +1939,8 @@ def process_tables_only():
         company_info = processor.load_company_info(company_id)
         
         # 处理表格
-        table_processor = TableProcessor()
+        table_config_path = os.path.join(os.path.dirname(__file__), 'config', 'table_config.json')
+        table_processor = TableProcessor(table_config_path)
         output_path = table_processor.process_document(file_path, company_info)
         
         # 清理临时文件

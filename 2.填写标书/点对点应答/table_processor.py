@@ -77,6 +77,15 @@ class TableProcessor:
     
     def _load_field_rules(self) -> Dict:
         """加载字段匹配规则"""
+        # 如果配置文件中有字段规则，优先使用配置文件中的规则
+        if hasattr(self, 'config') and 'field_rules' in self.config:
+            # 合并配置文件中的所有类别的字段规则
+            merged_rules = {}
+            for category_rules in self.config['field_rules'].values():
+                merged_rules.update(category_rules)
+            return merged_rules
+        
+        # 否则使用默认的硬编码规则
         return {
             'company_name': {
                 'keywords': ['公司名称', '企业名称', '单位名称', '投标人名称', '投标单位', 
@@ -140,6 +149,60 @@ class TableProcessor:
                 'patterns': [r'.*信用代码.*', r'.*营业执照.*号'],
                 'priority': 1,
                 'field_key': 'socialCreditCode'
+            },
+            'legal_address': {
+                'keywords': ['法定地址', '法定住所', '注册住所地址'],
+                'patterns': [r'.*法定.*地址', r'.*法定.*住所'],
+                'priority': 1,
+                'field_key': 'registeredAddress'
+            },
+            'contact_person': {
+                'keywords': ['联系人', '联系人姓名', '项目联系人', '企业联系人'],
+                'patterns': [r'.*联系人.*', r'.*联系.*姓名'],
+                'priority': 2,
+                'field_key': 'authorizedPersonName'
+            },
+            'fax_number': {
+                'keywords': ['传真', '传真号', '传真号码', '企业传真'],
+                'patterns': [r'.*传真.*', r'.*传真.*号'],
+                'priority': 2,
+                'field_key': 'fax'
+            },
+            'tax_id': {
+                'keywords': ['纳税人识别号', '税务登记号', '国税登记号', '税号'],
+                'patterns': [r'.*纳税人.*识别号', r'.*税.*登记号'],
+                'priority': 1,
+                'field_key': 'socialCreditCode'
+            },
+            'local_tax_id': {
+                'keywords': ['地税登记号', '地方税登记号'],
+                'patterns': [r'.*地税.*登记号', r'.*地方税.*登记号'],
+                'priority': 1,
+                'field_key': 'socialCreditCode'
+            },
+            'industry_certifications': {
+                'keywords': ['行业相关认证情况', '资质认证', '行业认证', '相关认证'],
+                'patterns': [r'.*行业.*认证.*', r'.*资质.*认证'],
+                'priority': 3,
+                'field_key': 'qualifications'
+            },
+            'employee_count': {
+                'keywords': ['企业员工总人数', '员工总人数', '职工总数', '员工人数', '从业人数'],
+                'patterns': [r'.*员工.*总人数', r'.*职工.*总数', r'.*从业.*人数'],
+                'priority': 2,
+                'field_key': 'employeeCount'
+            },
+            'beijing_office_address': {
+                'keywords': ['北京市办公场所地址', '北京办公地址', '北京市办公地址', '办公场所地址'],
+                'patterns': [r'.*北京.*办公.*地址', r'.*办公.*场所.*地址'],
+                'priority': 2,
+                'field_key': 'officeAddress'
+            },
+            'postal_code': {
+                'keywords': ['邮政编码', '邮编', '邮码', 'postal code', 'zip code'],
+                'patterns': [r'.*邮政编码.*', r'.*邮编.*', r'.*邮码.*'],
+                'priority': 2,
+                'field_key': 'postalCode'
             },
             'bank_name': {
                 'keywords': ['开户银行', '开户行', '银行名称', '基本户开户行',
@@ -261,19 +324,30 @@ class TableProcessor:
         text = text.strip().lower()
         
         # 移除常见的标点符号
-        text = re.sub(r'[：:：\s]', '', text)
+        text_clean = re.sub(r'[：:：\s]', '', text)
+        
+        # 优先匹配更具体的字段
+        field_priority = []
         
         for field_type, rules in self.field_rules.items():
             # 关键词精确匹配
             for keyword in rules['keywords']:
                 keyword_clean = re.sub(r'[：:：\s]', '', keyword.lower())
-                if keyword_clean == text or keyword_clean in text:
-                    return field_type
+                if keyword_clean == text_clean:
+                    return field_type  # 完全匹配立即返回
+                elif keyword_clean in text_clean:
+                    field_priority.append((field_type, rules['priority'], len(keyword_clean)))
             
             # 正则模式匹配
             for pattern in rules['patterns']:
                 if re.search(pattern, text, re.IGNORECASE):
-                    return field_type
+                    field_priority.append((field_type, rules['priority'], len(pattern)))
+        
+        # 如果有多个匹配，选择优先级最高且关键词最长的
+        if field_priority:
+            # 按优先级升序、关键词长度降序排序
+            field_priority.sort(key=lambda x: (x[1], -x[2]))
+            return field_priority[0][0]
         
         return None
     
@@ -410,6 +484,21 @@ class TableProcessor:
         field_key = self.field_rules[field_type].get('field_key')
         if not field_key:
             return None
+        
+        # 特殊处理资质认证情况
+        if field_key == 'qualifications':
+            qualifications = company_info.get('qualifications', [])
+            if isinstance(qualifications, list):
+                # 过滤掉营业执照和身份证
+                filtered_qualifications = [
+                    qual for qual in qualifications 
+                    if qual and '营业执照' not in qual and '身份证' not in qual
+                ]
+                return '、'.join(filtered_qualifications) if filtered_qualifications else '无'
+            elif isinstance(qualifications, str):
+                return qualifications if qualifications else '无'
+            else:
+                return '无'
         
         # 从公司信息中获取值
         value = company_info.get(field_key)

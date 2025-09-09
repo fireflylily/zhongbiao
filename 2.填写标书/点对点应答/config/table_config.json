@@ -54,6 +54,60 @@
         "patterns": [".*信用代码.*", ".*营业执照.*号"],
         "priority": 1,
         "field_key": "socialCreditCode"
+      },
+      "legal_address": {
+        "keywords": ["法定地址", "法定住所", "注册住所地址"],
+        "patterns": [".*法定.*地址", ".*法定.*住所"],
+        "priority": 1,
+        "field_key": "registeredAddress"
+      },
+      "contact_person": {
+        "keywords": ["联系人", "联系人姓名", "项目联系人", "企业联系人"],
+        "patterns": [".*联系人.*", ".*联系.*姓名"],
+        "priority": 2,
+        "field_key": "authorizedPersonName"
+      },
+      "fax_number": {
+        "keywords": ["传真", "传真号", "传真号码", "企业传真"],
+        "patterns": [".*传真.*", ".*传真.*号"],
+        "priority": 2,
+        "field_key": "fax"
+      },
+      "tax_id": {
+        "keywords": ["纳税人识别号", "税务登记号", "国税登记号", "税号"],
+        "patterns": [".*纳税人.*识别号", ".*税.*登记号"],
+        "priority": 1,
+        "field_key": "socialCreditCode"
+      },
+      "local_tax_id": {
+        "keywords": ["地税登记号", "地方税登记号"],
+        "patterns": [".*地税.*登记号", ".*地方税.*登记号"],
+        "priority": 1,
+        "field_key": "socialCreditCode"
+      },
+      "industry_certifications": {
+        "keywords": ["行业相关认证情况", "资质认证", "行业认证", "相关认证"],
+        "patterns": [".*行业.*认证.*", ".*资质.*认证"],
+        "priority": 3,
+        "field_key": "qualifications"
+      },
+      "employee_count": {
+        "keywords": ["企业员工总人数", "员工总人数", "职工总数", "员工人数", "从业人数"],
+        "patterns": [".*员工.*总人数", ".*职工.*总数", ".*从业.*人数"],
+        "priority": 2,
+        "field_key": "employeeCount"
+      },
+      "beijing_office_address": {
+        "keywords": ["北京市办公场所地址", "北京办公地址", "北京市办公地址", "办公场所地址"],
+        "patterns": [".*北京.*办公.*地址", ".*办公.*场所.*地址"],
+        "priority": 2,
+        "field_key": "officeAddress"
+      },
+      "postal_code": {
+        "keywords": ["邮政编码", "邮编", "邮码", "postal code", "zip code"],
+        "patterns": [".*邮政编码.*", ".*邮编.*", ".*邮码.*"],
+        "priority": 2,
+        "field_key": "postalCode"
       }
     },
     "financial_info": {
