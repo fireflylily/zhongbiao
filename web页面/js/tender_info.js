@@ -101,6 +101,7 @@ async function performStepwiseExtraction(formData, progressBar, tenderResultArea
         const step2FormData = new FormData();
         step2FormData.append('step', '2');
         step2FormData.append('file_path', step1Data.file_path);
+        step2FormData.append('result_file', step1Data.result_file || '');
         step2FormData.append('api_key', StateManager.getApiKey() || '');
         
         const step2Response = await fetch('/extract-tender-info-step', {

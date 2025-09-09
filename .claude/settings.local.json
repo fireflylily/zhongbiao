@@ -10,7 +10,9 @@
       "Read(//Users/lvhe/Library/**)",
       "Bash(sed:*)",
       "Bash(curl:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(dir:*)",
+      "Bash(del test_tender.txt)"
     ],
     "deny": [],
     "ask": []

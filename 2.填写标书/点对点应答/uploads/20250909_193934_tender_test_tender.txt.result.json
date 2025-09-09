@@ -1,0 +1,52 @@
+{
+  "tenderer": "测试科技有限公司",
+  "agency": "测试招标代理有限公司",
+  "bidding_method": "公开招标",
+  "bidding_location": "测试市政务中心三楼会议室",
+  "bidding_time": "2024年12月15日",
+  "winner_count": "1家",
+  "project_name": "智能办公系统采购项目",
+  "project_number": "PROJ2024-TEST-001",
+  "qualification_requirements": {
+    "business_license": {
+      "required": true,
+      "description": "资质要求：\n1. 营业执照：供应商须具有独立承担民事责任的能力，营业执照在有效期内\n2. 纳税人资格：一般纳税人资格\n3. 业绩要求：近3年内完成过类似项目业绩\n4. 信用中国：供应商未被列入失信被执行人名单"
+    },
+    "taxpayer_qualification": {
+      "required": true,
+      "description": "资质要求：\n1. 营业执照：供应商须具有独立承担民事责任的能力，营业执照在有效期内\n2. 纳税人资格：一般纳税人资格\n3. 业绩要求：近3年内完成过类似项目业绩\n4. 信用中国：供应商未被列入失信被执行人名单"
+    },
+    "performance_requirements": {
+      "required": true,
+      "description": "资质要求：\n1. 营业执照：供应商须具有独立承担民事责任的能力，营业执照在有效期内\n2. 纳税人资格：一般纳税人资格\n3. 业绩要求：近3年内完成过类似项目业绩\n4. 信用中国：供应商未被列入失信被执行人名单"
+    },
+    "authorization_requirements": {
+      "required": false,
+      "description": ""
+    },
+    "credit_china": {
+      "required": true,
+      "description": "资质要求：\n1. 营业执照：供应商须具有独立承担民事责任的能力，营业执照在有效期内\n2. 纳税人资格：一般纳税人资格\n3. 业绩要求：近3年内完成过类似项目业绩\n4. 信用中国：供应商未被列入失信被执行人名单"
+    },
+    "commitment_letter": {
+      "required": true,
+      "description": "承诺函（默认满足）"
+    },
+    "audit_report": {
+      "required": false,
+      "description": ""
+    },
+    "social_security": {
+      "required": false,
+      "description": ""
+    },
+    "labor_contract": {
+      "required": false,
+      "description": ""
+    },
+    "other_requirements": {
+      "required": true,
+      "description": "资质要求：\n1. 营业执照：供应商须具有独立承担民事责任的能力，营业执照在有效期内\n2. 纳税人资格：一般纳税人资格\n3. 业绩要求：近3年内完成过类似项目业绩\n4. 信用中国：供应商未被列入失信被执行人名单"
+    }
+  }
+}

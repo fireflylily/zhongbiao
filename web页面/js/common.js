@@ -207,13 +207,42 @@ function collectFormData(formElement) {
 }
 
 /**
+ * 初始化默认API密钥
+ */
+async function initializeDefaultApiKey() {
+    // 如果StateManager中已经有API密钥，则不需要初始化
+    if (StateManager && StateManager.getApiKey && StateManager.getApiKey()) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/get-default-api-key');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.api_key && StateManager && StateManager.setApiKey) {
+                StateManager.setApiKey(data.api_key);
+                console.log('已自动设置默认API密钥');
+            }
+        } else {
+            console.warn('无法获取默认API密钥，可能需要手动配置');
+        }
+    } catch (error) {
+        console.warn('获取默认API密钥失败:', error);
+    }
+}
+
+/**
  * 页面加载完成时初始化
  */
 function onPageReady(callback) {
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', callback);
+        document.addEventListener('DOMContentLoaded', () => {
+            // 先初始化API密钥，再执行回调
+            initializeDefaultApiKey().then(callback).catch(callback);
+        });
     } else {
-        callback();
+        // 先初始化API密钥，再执行回调
+        initializeDefaultApiKey().then(callback).catch(callback);
     }
 }
 

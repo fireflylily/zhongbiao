@@ -582,6 +582,19 @@ def save_api_key():
         logger.error(f"API密钥保存失败: {e}")
         return jsonify({'error': f'保存失败: {str(e)}'}), 500
 
+@app.route('/api/get-default-api-key', methods=['GET'])
+def get_api_key():
+    """获取默认API密钥"""
+    try:
+        default_api_key = get_default_api_key()
+        if default_api_key:
+            return jsonify({'api_key': default_api_key})
+        else:
+            return jsonify({'error': '未配置默认API密钥'}), 404
+    except Exception as e:
+        logger.error(f"获取默认API密钥失败: {e}")
+        return jsonify({'error': f'获取API密钥失败: {str(e)}'}), 500
+
 @app.route('/api/load-backups', methods=['GET'])
 def load_api_backups():
     """加载API密钥备份列表"""
@@ -753,6 +766,197 @@ def extract_tender_info():
             try:
                 os.remove(upload_path)
                 logger.info(f"清理临时文件: {upload_path}")
+            except Exception as cleanup_error:
+                logger.error(f"清理临时文件失败: {cleanup_error}")
+
+@app.route('/extract-tender-info-step', methods=['POST'])
+def extract_tender_info_step():
+    """分步提取招标信息"""
+    upload_path = None
+    
+    try:
+        step = request.form.get('step', '1')
+        api_key = request.form.get('api_key', '').strip()
+        
+        logger.info(f"分步提取招标信息 - 步骤: {step}")
+        
+        # 检查招标信息提取模块是否可用
+        if not TENDER_INFO_AVAILABLE:
+            logger.error("招标信息提取模块未加载")
+            return jsonify({'error': '招标信息提取模块未加载，请检查系统配置'}), 500
+        
+        # 如果没有提供API密钥，使用默认密钥
+        if not api_key:
+            api_key = get_default_api_key()
+            logger.info("使用默认API密钥")
+        
+        if step == '1':
+            # 第一步：处理文件上传并提取基本信息
+            if 'file' not in request.files:
+                return jsonify({'error': '需要上传招标文档'}), 400
+                
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'error': '请选择招标文档'}), 400
+                
+            if not allowed_tender_info_file(file.filename):
+                return jsonify({'error': '不支持的文件格式，请上传 .docx, .doc, .txt 或 .pdf 文件'}), 400
+            
+            # 保存文件
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = secure_filename(file.filename)
+            unique_filename = f"{timestamp}_tender_{filename}"
+            upload_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            file.save(upload_path)
+            
+            logger.info(f"招标文档上传完成: {upload_path}")
+            
+            # 初始化招标信息提取器
+            logger.info("初始化招标信息提取器")
+            extractor = TenderInfoExtractor(api_key=api_key)
+            
+            # 提取招标信息
+            logger.info("开始提取招标信息")
+            tender_info = extractor.process_document(upload_path)
+            
+            # 从提取结果中获取基本信息
+            basic_info = {
+                'tenderer': tender_info.get('tenderer', ''),
+                'agency': tender_info.get('agency', ''),  
+                'bidding_method': tender_info.get('bidding_method', ''),
+                'bidding_location': tender_info.get('bidding_location', ''),
+                'bidding_time': tender_info.get('bidding_time', ''),
+                'winner_count': tender_info.get('winner_count', ''),
+                'project_name': tender_info.get('project_name', ''),
+                'project_number': tender_info.get('project_number', '')
+            }
+            
+            # 保存提取结果到临时文件供后续步骤使用
+            temp_result_file = upload_path + '.result.json'
+            with open(temp_result_file, 'w', encoding='utf-8') as f:
+                json.dump(tender_info, f, ensure_ascii=False, indent=2)
+            
+            return jsonify({
+                'success': True,
+                'basic_info': basic_info,
+                'file_path': upload_path,
+                'result_file': temp_result_file
+            })
+            
+        elif step == '2':
+            # 第二步：提取资质要求
+            file_path = request.form.get('file_path')
+            result_file = request.form.get('result_file')
+            
+            if not file_path or not os.path.exists(file_path):
+                return jsonify({'error': '文件路径无效'}), 400
+                
+            # 尝试从临时结果文件读取
+            tender_info = {}
+            if result_file and os.path.exists(result_file):
+                try:
+                    with open(result_file, 'r', encoding='utf-8') as f:
+                        tender_info = json.load(f)
+                except:
+                    pass
+                    
+            # 如果没有临时结果，重新提取
+            if not tender_info:
+                logger.info("重新提取招标信息")
+                extractor = TenderInfoExtractor(api_key=api_key)
+                tender_info = extractor.process_document(file_path)
+                
+            # 从提取结果中获取资质要求
+            qualification_requirements = tender_info.get('qualification_requirements', {})
+            
+            # 如果没有资质要求数据，提供默认结构
+            if not qualification_requirements:
+                qualification_requirements = {
+                    'business_license': {'required': False, 'description': '未检测到相关要求'},
+                    'taxpayer_qualification': {'required': False, 'description': '未检测到相关要求'},
+                    'performance_requirements': {'required': False, 'description': '未检测到相关要求'},
+                    'authorization_requirements': {'required': False, 'description': '未检测到相关要求'},
+                    'credit_china': {'required': False, 'description': '未检测到相关要求'},
+                    'commitment_letter': {'required': False, 'description': '未检测到相关要求'},
+                    'audit_report': {'required': False, 'description': '未检测到相关要求'},
+                    'social_security': {'required': False, 'description': '未检测到相关要求'},
+                    'labor_contract': {'required': False, 'description': '未检测到相关要求'},
+                    'other_requirements': {'required': False, 'description': '未检测到相关要求'}
+                }
+            
+            return jsonify({
+                'success': True,
+                'qualification_requirements': qualification_requirements
+            })
+            
+        elif step == '3':
+            # 第三步：提取技术评分
+            file_path = request.form.get('file_path')
+            
+            if not file_path or not os.path.exists(file_path):
+                return jsonify({'error': '文件路径无效'}), 400
+                
+            # 读取配置文件获取技术评分信息
+            config_file_path = os.path.join(tender_info_path, 'tender_config.ini')
+            technical_scoring = {}
+            
+            if os.path.exists(config_file_path):
+                try:
+                    import configparser
+                    config = configparser.ConfigParser(interpolation=None)
+                    config.read(config_file_path, encoding='utf-8')
+                    
+                    if 'TECHNICAL_SCORING' in config:
+                        items_count = int(config.get('TECHNICAL_SCORING', 'items_count', fallback='0'))
+                        
+                        for i in range(items_count):
+                            item_key = f'item_{i}_name'
+                            score_key = f'item_{i}_score'
+                            criteria_key = f'item_{i}_criteria'
+                            
+                            if config.has_option('TECHNICAL_SCORING', item_key):
+                                item_name = config.get('TECHNICAL_SCORING', item_key)
+                                item_score = config.get('TECHNICAL_SCORING', score_key, fallback='未指定分值')
+                                item_criteria = config.get('TECHNICAL_SCORING', criteria_key, fallback='').split('|')
+                                
+                                technical_scoring[item_name] = {
+                                    'score': item_score,
+                                    'criteria': [c.strip() for c in item_criteria if c.strip()]
+                                }
+                except Exception as e:
+                    logger.error(f"读取技术评分配置失败: {e}")
+            
+            # 如果没有技术评分数据，提供默认信息
+            if not technical_scoring:
+                technical_scoring = {
+                    '技术方案': {
+                        'score': '未提取到分值',
+                        'criteria': ['未检测到具体评分标准']
+                    }
+                }
+            
+            return jsonify({
+                'success': True,
+                'technical_scoring': technical_scoring
+            })
+            
+        else:
+            return jsonify({'error': f'无效的步骤: {step}'}), 400
+            
+    except Exception as e:
+        logger.error(f"分步提取失败: {e}", exc_info=True)
+        return jsonify({'error': f'提取失败: {str(e)}'}), 500
+        
+    finally:
+        # 清理临时文件（仅在步骤3之后）
+        if step == '3' and upload_path and os.path.exists(upload_path):
+            try:
+                os.remove(upload_path)
+                logger.info(f"清理临时文件: {upload_path}")
+                # 同时清理结果文件
+                result_file = upload_path + '.result.json'
+                if os.path.exists(result_file):
+                    os.remove(result_file)
             except Exception as cleanup_error:
                 logger.error(f"清理临时文件失败: {cleanup_error}")
 

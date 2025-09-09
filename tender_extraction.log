@@ -10717,3 +10717,6 @@ ModuleNotFoundError: No module named 'mammoth'
 2025-09-09 19:10:54,913 - INFO - 127.0.0.1 - - [09/Sep/2025 19:10:54] "GET /api/companies HTTP/1.1" 200 -
 2025-09-09 19:16:23,765 - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\2.填写标书\\点对点应答\\web_app.py', reloading
 2025-09-09 19:16:23,985 - INFO -  * Restarting with stat
+2025-09-09 19:25:16,760 - INFO -  * Restarting with stat
+2025-09-09 19:27:45,732 - INFO -  * Restarting with stat
+2025-09-09 19:35:07,741 - INFO -  * Restarting with stat
