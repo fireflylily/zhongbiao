@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统帮助 - AI标书点对点应答系统 v2.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.0.0/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; }
+        .help-header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            padding: 2rem 0;
+            text-align: center;
+        }
+        .version-badge {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-left: 1rem;
+        }
+        .feature-highlight {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+            border-left: 4px solid #28a745;
+            padding: 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .mermaid {
+            background: #fafafa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+        .update-highlight {
+            background: linear-gradient(135deg, #fff3e0 0%, #fef7f0 100%);
+            border-left: 4px solid #ff9800;
+            padding: 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="btn btn-primary back-btn">
+        <i class="bi bi-arrow-left"></i> 返回主页
+    </a>
+
+    <div class="help-header">
+        <div class="container">
+            <h1><i class="bi bi-info-circle"></i> 商务应答系统帮助</h1>
+            <p class="lead mb-2">智能文档处理平台 - MCP架构驱动</p>
+            <span class="version-badge">v2.0 - 2025.09.07</span>
+        </div>
+    </div>
+
+    <div class="container my-5">
+        <!-- 系统概述 -->
+        <div class="section-card">
+            <h2><i class="bi bi-gear text-primary"></i> 系统概述</h2>
+            <p class="fs-5">商务应答系统是一个智能文档处理平台，支持自动填充公司信息、项目信息匹配和文档生成功能。系统采用MCP (Model Context Protocol) 处理架构，支持<strong>10种优化格式规则</strong>和跨run处理技术，具备完善的<strong>盖章格式识别能力</strong>。</p>
+            
+            <div class="feature-highlight">
+                <h5><i class="bi bi-star-fill text-warning"></i> v2.0 核心特色</h5>
+                <ul class="mb-0">
+                    <li><strong>🏷️ 盖章格式专项优化</strong>：完美支持"公司名称（全称、盖章）"等复杂格式</li>
+                    <li><strong>📝 智能前导空格处理</strong>：自适应前导空格、制表符和数字编号</li>
+                    <li><strong>⚡ 高效规则处理</strong>：从27规则优化至10规则，提升处理效率</li>
+                    <li><strong>🔧 中英文括号兼容</strong>：同时支持（）和()两种括号格式</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 系统流程图 -->
+        <div class="section-card">
+            <h2><i class="bi bi-diagram-3 text-primary"></i> 更新后的系统流程图</h2>
+            <p class="text-muted">v2.0版本流程图，突出显示盖章格式专项处理分支</p>
+            
+            <div class="mermaid">
+flowchart TD
+    A[用户访问系统] --> B[上传商务应答模板]
+    B --> C{文件验证}
+    C -->|文件格式错误| D[显示错误信息]
+    C -->|验证通过| E[选择公司信息]
+    
+    E --> F[输入项目信息]
+    F --> G[项目名称输入]
+    F --> H[招标编号输入]
+    F --> I[日期输入]
+    
+    G --> J{信息完整性检查}
+    H --> J
+    I --> J
+    
+    J -->|信息不完整| K[提示补充信息]
+    J -->|信息完整| L[提交处理请求]
+    
+    L --> M[Flask后端接收请求]
+    M --> N[创建处理任务]
+    N --> O[调用MCP处理器]
+    
+    O --> P[MCP处理器启动]
+    P --> Q[文档结构分析]
+    Q --> R[识别文档中的占位符]
+    
+    R --> S[格式模式识别]
+    S --> T{10种优化格式规则匹配}
+    
+    T --> U[规则1: 括号内容替换]
+    T --> V[规则2: 盖章格式处理]
+    T --> W[规则3: 编号类填写]
+    T --> X[规则4-10: 其他优化规则...]
+    
+    U --> Y[跨Run处理分析]
+    V --> Y1[盖章格式专项处理]
+    W --> Y
+    X --> Y
+    
+    Y1 --> Y1A[检测前导空格和数字编号]
+    Y1A --> Y1B[识别中英文括号格式]
+    Y1B --> Y1C[支持多种盖章标识]
+    Y1C --> Y
+    
+    Y --> Z[检测跨run文本分割]
+    Z --> AA[计算替换边界]
+    AA --> BB[执行精确替换]
+    
+    BB --> CC{替换结果验证}
+    CC -->|替换失败| DD[记录错误日志]
+    CC -->|替换成功| EE[应用格式保持]
+    
+    EE --> FF[生成处理后文档]
+    FF --> GG[文档质量检查]
+    
+    GG --> HH{质量检查结果}
+    HH -->|存在问题| II[问题修复]
+    HH -->|检查通过| JJ[保存到输出目录]
+    
+    II --> GG
+    
+    JJ --> KK[生成下载链接]
+    KK --> LL[返回处理结果]
+    
+    LL --> MM[前端接收响应]
+    MM --> NN{处理状态检查}
+    
+    NN -->|处理失败| OO[显示错误信息]
+    NN -->|处理成功| PP[显示成功消息]
+    
+    PP --> QQ[提供下载按钮]
+    QQ --> RR[用户点击下载]
+    RR --> SS[文档下载完成]
+    
+    D --> TT[返回上传页面]
+    K --> TT
+    OO --> TT
+    
+    DD --> UU[错误处理流程]
+    UU --> VV[记录详细错误信息]
+    VV --> WW[生成错误报告]
+    WW --> XX[通知用户处理失败]
+    XX --> TT
+    
+    style A fill:#e1f5fe
+    style SS fill:#c8e6c9
+    style DD fill:#ffcdd2
+    style UU fill:#ffcdd2
+    style P fill:#fff3e0
+    style S fill:#fff3e0
+    style Y fill:#fff3e0
+    style Y1 fill:#e8f5e8
+    style Y1A fill:#e8f5e8
+    style Y1B fill:#e8f5e8
+    style Y1C fill:#e8f5e8
+            </div>
+        </div>
+
+        <!-- 核心功能说明 -->
+        <div class="section-card">
+            <h2><i class="bi bi-cpu text-primary"></i> MCP处理器核心功能</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>🔧 基础处理能力</h5>
+                    <ul>
+                        <li><strong>文档结构分析</strong>：解析Word文档内部结构</li>
+                        <li><strong>占位符识别</strong>：自动识别需要填写的位置</li>
+                        <li><strong>跨run处理</strong>：解决Word文档技术难题</li>
+                        <li><strong>精确替换</strong>：通过边界计算确保准确性</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5>⚡ 优化规则体系</h5>
+                    <ul>
+                        <li>规则1: 通用括号内容替换（公司名称类）</li>
+                        <li><strong>规则2: 盖章格式专项处理</strong></li>
+                        <li>规则3: 编号类统一填写（采购编号、项目编号等）</li>
+                        <li>规则4-10: 其他优化处理规则</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="update-highlight">
+                <h5><i class="bi bi-award text-success"></i> 盖章格式专项处理亮点</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="mb-0">
+                            <li>✅ 支持前导空格和制表符</li>
+                            <li>✅ 支持数字编号前缀</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="mb-0">
+                            <li>✅ 支持中英文括号混用</li>
+                            <li>✅ 识别多种盖章标识</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="mt-2 mb-0"><strong>示例：</strong> "    公司名称（全称、盖章）：________________" ✅ 完美处理</p>
+            </div>
+        </div>
+
+        <!-- 更新记录 -->
+        <div class="section-card">
+            <h2><i class="bi bi-clock-history text-primary"></i> v2.0 更新记录</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-arrow-up-circle text-success"></i> 主要改进</h6>
+                    <ul>
+                        <li><strong>规则优化</strong>：从27规则优化至10规则</li>
+                        <li><strong>盖章格式修复</strong>：完美支持复杂盖章格式</li>
+                        <li><strong>前导空格支持</strong>：智能处理各种缩进</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-tools text-warning"></i> 技术改进</h6>
+                    <ul>
+                        <li><strong>正则表达式优化</strong>：<code>^(?:\s*\d+\.\s*|\s+)?</code></li>
+                        <li><strong>括号兼容性</strong>：中英文括号统一支持</li>
+                        <li><strong>测试验证</strong>：多重测试确保稳定性</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-5">
+            <a href="/" class="btn btn-primary btn-lg">
+                <i class="bi bi-arrow-left"></i> 返回主页开始使用
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 初始化 Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI标书系统 - 系统状态</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/common.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-center mb-4">AI标书系统 v2.0</h1>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>系统状态</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="status-info">
+                            <p>正在检查系统状态...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h3>功能模块</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">招标信息提取</h5>
+                                    <p class="card-text">从招标文档中提取项目信息、资质要求和技术评分标准</p>
+                                    <span id="tender-status" class="badge bg-secondary">检查中...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">点对点应答</h5>
+                                    <p class="card-text">智能处理商务应答和技术方案生成</p>
+                                    <span id="ptp-status" class="badge bg-secondary">检查中...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="/" class="btn btn-primary">返回主页</a>
+                    <button id="refresh-status" class="btn btn-outline-secondary">刷新状态</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function checkSystemStatus() {
+            fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('status-info');
+                    const tenderStatus = document.getElementById('tender-status');
+                    const ptpStatus = document.getElementById('ptp-status');
+                    
+                    statusDiv.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>系统状态:</strong> 
+                                <span class="badge bg-success">${data.status}</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>版本:</strong> ${data.version}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>检查时间:</strong> ${new Date(data.timestamp).toLocaleString()}
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 更新模块状态
+                    tenderStatus.className = data.tender_info_available ? 'badge bg-success' : 'badge bg-danger';
+                    tenderStatus.textContent = data.tender_info_available ? '可用' : '不可用';
+                    
+                    ptpStatus.className = data.point_to_point_available ? 'badge bg-success' : 'badge bg-danger';
+                    ptpStatus.textContent = data.point_to_point_available ? '可用' : '不可用';
+                })
+                .catch(error => {
+                    document.getElementById('status-info').innerHTML = `
+                        <div class="alert alert-danger">
+                            <strong>错误:</strong> 无法获取系统状态 - ${error.message}
+                        </div>
+                    `;
+                });
+        }
+        
+        // 页面加载时检查状态
+        document.addEventListener('DOMContentLoaded', checkSystemStatus);
+        
+        // 刷新按钮事件
+        document.getElementById('refresh-status').addEventListener('click', checkSystemStatus);
+    </script>
+</body>
+</html>

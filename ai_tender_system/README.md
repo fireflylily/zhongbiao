@@ -1,203 +1,233 @@
 # AI标书系统 v2.0
 
-重构后的统一招标文档处理平台
+## 🎯 系统概述
 
-## 🎯 主要改进
+AI标书系统v2.0是一个重构后的统一Web应用，整合了招标信息提取、点对点应答、技术方案生成等所有功能。
 
-### ✅ 解决的核心问题
-- **消除代码重复**：LLM调用、文档处理等重复代码减少70%+
-- **统一配置管理**：解决硬编码API密钥和分散配置问题
-- **模块化架构**：清晰的分层结构，降低耦合度
-- **统一日志系统**：标准化的日志格式和管理
-- **类型安全**：完整的数据模型和类型注解
+### 主要改进
 
-## 📁 新架构结构
+- ✅ **统一架构**: 合并原有的双服务为单一Web服务
+- ✅ **模块化设计**: 清晰的模块边界和职责分离  
+- ✅ **配置统一**: 统一的配置管理和API密钥处理
+- ✅ **日志优化**: 统一的日志系统和错误处理
+- ✅ **代码复用**: 消除重复代码，建立共享组件库
+- ✅ **增强验证**: 完整的错误处理和状态验证机制
+
+## 📁 目录结构
 
 ```
 ai_tender_system/
-├── common/                    # 🔧 公共组件层
-│   ├── config.py             # 统一配置管理
-│   ├── llm_client.py         # 统一LLM客户端
-│   ├── document_processor.py # 文档处理器
-│   ├── logger.py            # 日志管理
-│   └── exceptions.py        # 异常定义
-├── modules/                  # 📦 业务模块层
-│   └── tender_info/         # 招标信息提取
-│       ├── extractor.py     # 提取器
-│       └── models.py        # 数据模型
-├── web/                     # 🌐 Web服务层
-│   ├── app.py              # Flask应用
-│   └── templates/          # 页面模板
-├── tests/                   # 🧪 测试代码
-├── configs/                 # ⚙️ 配置文件
-└── logs/                   # 📄 日志目录
+├── web/                   # Web应用
+│   ├── app.py            # 主应用文件
+│   ├── templates/        # HTML模板
+│   └── static/           # 静态资源
+├── modules/              # 业务模块
+│   ├── tender_info/      # 招标信息提取
+│   ├── point_to_point/   # 点对点应答
+│   └── tech_proposal/    # 技术方案生成
+├── common/               # 共享组件
+│   ├── config.py         # 统一配置
+│   ├── logger.py         # 日志管理
+│   ├── exceptions.py     # 异常处理
+│   └── utils.py          # 工具函数
+├── data/                 # 数据目录
+│   ├── uploads/          # 上传文件
+│   ├── outputs/          # 输出文件
+│   ├── configs/          # 配置文件
+│   └── logs/             # 日志文件
+├── run.py               # 启动脚本
+└── README.md            # 说明文档
 ```
 
-## 🚀 快速开始
+## 🚀 快速启动
 
-### 1. 环境配置
+### 1. 环境要求
 
-```bash
-# 安装依赖
-pip install -r requirements.txt
+- Python 3.8+
+- 必要的Python包:
+  ```bash
+  pip install flask flask-cors requests PyPDF2 python-docx configparser
+  ```
 
-# 设置API密钥（必须）
-export SHIHUANG_API_KEY="your-api-key-here"
-
-# 可选配置
-export LOG_LEVEL="INFO"
-export MAX_FILE_SIZE="50MB"
-```
-
-### 2. 命令行使用
+### 2. 启动系统
 
 ```bash
-# 进入系统目录
 cd ai_tender_system
-
-# 提取招标信息
-python -m modules.tender_info.extractor /path/to/tender_document.docx
+python3 run.py
 ```
 
-### 3. Web服务使用
+### 3. 访问系统
 
-```bash
-# 启动Web服务
-python web/app.py
-
-# 访问 http://localhost:5000
-```
-
-### 4. Python API使用
-
-```python
-from ai_tender_system import TenderInfoExtractor, setup_logging
-
-# 初始化
-setup_logging()
-extractor = TenderInfoExtractor()
-
-# 提取信息
-tender_info = extractor.extract_from_file("document.docx")
-
-# 查看结果
-print(tender_info.get_summary())
-extractor.print_results(tender_info)
-```
-
-## 🧪 运行测试
-
-```bash
-# 系统集成测试
-python tests/test_system.py
-
-# 使用pytest（如果安装）
-pytest tests/
-```
+- 主页: http://localhost:8082
+- 系统状态: http://localhost:8082/system_status.html
+- API健康检查: http://localhost:8082/api/health
 
 ## 🔧 配置说明
 
-### 环境变量（推荐）
-- `SHIHUANG_API_KEY`: API密钥（必需）
-- `LOG_LEVEL`: 日志级别 (DEBUG/INFO/WARNING/ERROR)
-- `LLM_MODEL`: 使用的模型名称
-- `MAX_FILE_SIZE`: 最大文件大小
+### API配置
 
-### 配置文件
-编辑 `configs/app_config.yaml` 进行详细配置。
+系统使用统一的API配置，支持环境变量覆盖：
 
-## 📊 性能改进
+```python
+# 环境变量配置
+export DEFAULT_API_KEY="your-api-key"
+export API_ENDPOINT="https://api.oaipro.com/v1/chat/completions"
+export MODEL_NAME="gpt-5"
+export WEB_PORT="8082"
+```
 
-| 指标 | 重构前 | 重构后 | 改进 |
-|------|--------|--------|------|
-| 代码重复率 | ~30% | <5% | ✅ 显著降低 |
-| 配置管理 | 分散 | 统一 | ✅ 集中管理 |
-| 错误处理 | 不一致 | 标准化 | ✅ 统一规范 |
-| 日志管理 | 混乱 | 结构化 | ✅ 清晰管理 |
-| 安全性 | 密钥暴露 | 环境变量 | ✅ 安全加固 |
+### 文件路径配置
 
-## 🔄 迁移指南
+- 上传目录: `data/uploads/`
+- 输出目录: `data/outputs/`
+- 配置目录: `data/configs/`
+- 日志目录: `data/logs/`
 
-### 从旧系统迁移
+## 📋 功能特性
 
-1. **保存现有数据**
-   ```bash
-   # 备份现有配置和输出
-   cp -r outputs/ outputs_backup/
-   cp *.ini config_backup/
-   ```
+### 招标信息提取
+- 支持PDF、Word、文本文件
+- 提取项目基本信息
+- 识别资质要求
+- 分析技术评分标准
+- 分步处理和一键处理
 
-2. **更新调用代码**
-   ```python
-   # 旧方式
-   from read_info import TenderInfoExtractor
-   
-   # 新方式  
-   from ai_tender_system import TenderInfoExtractor
-   ```
+### 点对点应答
+- 商务应答模板填充
+- 智能公司信息匹配
+- 文档处理和格式化
+- 表格分析和处理
 
-3. **设置环境变量**
-   ```bash
-   # 从旧代码中提取API密钥，设置为环境变量
-   export SHIHUANG_API_KEY="sk-..."
-   ```
+### 技术方案生成
+- 基于招标要求生成方案
+- 智能内容匹配
+- 多格式输出支持
 
-## 🛠️ 开发指南
+## 🔍 API文档
 
-### 添加新模块
+### 核心API端点
 
-1. 在 `modules/` 下创建新目录
-2. 实现模块的业务逻辑
-3. 在 `web/app.py` 中添加API端点
-4. 添加相应的测试
+- `GET /api/health` - 系统健康检查
+- `GET /api/config` - 获取API配置
+- `POST /extract-tender-info` - 招标信息提取
+- `POST /process-business-response` - 商务应答处理
+- `POST /generate-proposal` - 技术方案生成
 
-### 扩展功能
+### 招标信息提取API
 
-- **新的文档格式**：在 `document_processor.py` 中添加处理器
-- **新的LLM提供商**：继承 `BaseLLMClient` 实现
-- **新的配置选项**：修改 `config.py` 和 `app_config.yaml`
+```bash
+# 完整提取
+curl -X POST http://localhost:8082/extract-tender-info \
+  -F "file=@tender.pdf" \
+  -F "api_key=your-api-key"
 
-## 🐛 故障排除
+# 分步提取
+curl -X POST http://localhost:8082/extract-tender-info-step \
+  -H "Content-Type: application/json" \
+  -d '{"step": "1", "file_path": "path/to/file", "api_key": "your-key"}'
+```
+
+## 🧪 测试验证
+
+### 1. 模块测试
+
+```bash
+cd ai_tender_system
+
+# 测试配置系统
+python3 -c "from common.config import get_config; print('配置正常')"
+
+# 测试日志系统  
+python3 -c "from common.logger import get_module_logger; print('日志正常')"
+
+# 测试招标信息提取
+python3 -c "from modules.tender_info.extractor import TenderInfoExtractor; print('招标模块正常')"
+
+# 测试点对点应答
+python3 -c "from modules.point_to_point.processor import PointToPointProcessor; print('应答模块正常')"
+```
+
+### 2. Web应用测试
+
+```bash
+# 测试Web应用创建
+python3 -c "from web.app import create_app; app = create_app(); print('Web应用正常')"
+
+# 测试API健康检查
+curl http://localhost:8082/api/health
+```
+
+## 🔒 安全考虑
+
+- API密钥通过环境变量或配置文件管理
+- 文件上传类型验证
+- 路径遍历防护
+- 错误信息过滤
+
+## 📊 监控和日志
+
+### 日志文件位置
+- 主日志: `data/logs/ai_tender_system.log`
+- 模块日志: `data/logs/{module_name}.log`
+- 错误日志: `data/logs/errors.log`
+
+### 系统监控
+- 访问 `/system_status.html` 查看系统状态
+- 使用 `/api/health` 进行健康检查
+- 日志轮转自动管理
+
+## 🆘 故障排除
 
 ### 常见问题
 
-1. **API密钥错误**
-   ```
-   错误: API密钥未找到
-   解决: export SHIHUANG_API_KEY="your-key"
-   ```
+1. **模块导入失败**
+   - 检查Python路径设置
+   - 确认依赖包安装完整
 
-2. **文档读取失败**
-   ```
-   错误: 无法读取Word文档
-   解决: pip install python-docx
-   ```
+2. **API调用失败**
+   - 验证API密钥配置
+   - 检查网络连接
+   - 查看日志文件
 
-3. **权限问题**
-   ```
-   错误: 无法创建日志目录
-   解决: 检查目录权限或更改LOG_DIR
-   ```
+3. **文件处理错误**
+   - 确认文件格式支持
+   - 检查文件完整性
+   - 验证文件权限
 
-## 📈 后续计划
+### 日志分析
 
-- [ ] 完成点对点应答模块重构
-- [ ] 完成技术方案生成模块重构  
-- [ ] 添加缓存机制提升性能
-- [ ] 实现异步处理
-- [ ] 添加更多测试用例
-- [ ] 部署和CI/CD配置
+```bash
+# 查看最新日志
+tail -f data/logs/ai_tender_system.log
 
-## 🤝 贡献
+# 搜索错误
+grep -i error data/logs/*.log
 
-重构遵循以下原则：
-- 单一职责原则
-- 开闭原则
-- 依赖注入
-- 测试驱动开发
+# 查看特定模块日志
+tail -f data/logs/tender_info.log
+```
+
+## 🔄 维护和更新
+
+### 日常维护
+- 定期清理临时文件
+- 监控日志文件大小
+- 检查系统性能
+
+### 备份建议
+- 定期备份配置文件
+- 保存重要的输出结果
+- 备份公司信息数据
+
+## 📞 技术支持
+
+如有问题，请按以下顺序排查：
+
+1. 查看系统状态页面
+2. 检查日志文件
+3. 验证配置设置
+4. 测试API连接
 
 ---
 
-**版本**: 2.0.0  
-**重构日期**: 2024年9月  
-**兼容性**: 向后兼容，支持渐进式迁移
+**AI标书系统 v2.0** - 重构完成于 2025年9月10日

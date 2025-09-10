@@ -1,0 +1,24 @@
+2025-09-10 12:34:18,077 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:40:18,259 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:40:37,253 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:40:37,256 - web.app - ERROR - Exception on /api/health [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py", line 141, in health_check
+    'timestamp': config.get_config().get('timestamp', 'unknown')
+                 ^^^^^^^^^^^^^^^^^
+AttributeError: 'Config' object has no attribute 'get_config'. Did you mean: 'web_config'?
+2025-09-10 12:40:37,257 - ai_tender_system.web_app - ERROR - 内部服务器错误: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2025-09-10 12:40:52,293 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:42:29,756 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
