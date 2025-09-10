@@ -1,5 +1,6 @@
 /**
  * 招标信息提取页面JavaScript
+ * 版本: 2025-09-10-v2.1 - 修复技术评分显示问题，强制缓存刷新
  */
 
 // 页面元素
@@ -363,9 +364,23 @@ function displayQualificationRequirements(qualificationRequirements) {
 
 function displayTechnicalScoring(technicalScoring) {
     // 检查是否有有效的技术评分数据
-    const hasValidScoring = technicalScoring && 
-                            Object.keys(technicalScoring).length > 0 && 
-                            !Object.keys(technicalScoring).some(key => key === '未检测到评分项目');
+    let hasValidScoring = false;
+    
+    if (technicalScoring) {
+        // 检查新的数据结构：technical_scoring_items数组
+        if (technicalScoring.technical_scoring_items && 
+            Array.isArray(technicalScoring.technical_scoring_items) && 
+            technicalScoring.technical_scoring_items.length > 0) {
+            hasValidScoring = true;
+        } 
+        // 检查旧的数据结构：直接的评分对象
+        else if (Object.keys(technicalScoring).length > 0 && 
+                 !Object.keys(technicalScoring).some(key => key === '未检测到评分项目')) {
+            hasValidScoring = true;
+        }
+    }
+    
+    console.log('技术评分数据检查:', { technicalScoring, hasValidScoring });
     
     // 如果没有有效的技术评分数据，直接返回false，不显示任何内容
     if (!hasValidScoring) {
@@ -377,34 +392,54 @@ function displayTechnicalScoring(technicalScoring) {
     container.innerHTML = `<hr><h5 class="text-info mb-3 mt-4"><i class="bi bi-award"></i> 技术评分标准</h5>`;
     
     let html = '<div class="row">';
+    let itemsProcessed = 0;
     
-    for (const [category, details] of Object.entries(technicalScoring)) {
-        // 处理新的数据结构（technical_scoring_items数组）
-        if (category === 'technical_scoring_items' && Array.isArray(details)) {
-            details.forEach(item => {
-                const name = item.name || '未命名';
-                const weight = item.weight || '未指定';
-                const criteria = item.criteria || '无具体要求';
-                const source = item.source || '位置未确定';
-                
-                html += `
-                    <div class="col-md-6 mb-3">
-                        <div class="card border-info">
-                            <div class="card-body">
-                                <h6 class="card-title text-info">
-                                    <i class="bi bi-award"></i> ${name}
-                                </h6>
-                                <p class="card-text"><strong>分值：</strong><span class="text-primary">${weight}</span></p>
-                                <p class="card-text"><strong>评分标准：</strong></p>
-                                <p class="small text-muted">${criteria}</p>
-                                <p class="card-text small"><strong>来源：</strong>${source}</p>
-                            </div>
+    // 处理新的数据结构：technical_scoring_items数组
+    if (technicalScoring.technical_scoring_items && Array.isArray(technicalScoring.technical_scoring_items)) {
+        technicalScoring.technical_scoring_items.forEach(item => {
+            const name = item.name || '未命名';
+            const weight = item.weight || '未指定';
+            const criteria = item.criteria || '无具体要求';
+            const source = item.source || '位置未确定';
+            
+            html += `
+                <div class="col-md-6 mb-3">
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h6 class="card-title text-info">
+                                <i class="bi bi-award"></i> ${name}
+                            </h6>
+                            <p class="card-text"><strong>分值：</strong><span class="text-primary">${weight}</span></p>
+                            <p class="card-text"><strong>评分标准：</strong></p>
+                            <p class="small text-muted">${criteria}</p>
+                            ${source && source !== '位置未确定' ? `<p class="card-text small"><strong>来源：</strong>${source}</p>` : ''}
                         </div>
                     </div>
-                `;
-            });
-        } else {
-            // 处理旧的数据结构
+                </div>
+            `;
+            itemsProcessed++;
+        });
+        
+        // 添加总分信息
+        if (technicalScoring.total_technical_score) {
+            html += `
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <h6><i class="bi bi-calculator"></i> 技术评分总分：<strong class="text-primary">${technicalScoring.total_technical_score}</strong></h6>
+                        ${technicalScoring.extraction_summary ? `<p class="mb-0 small">${technicalScoring.extraction_summary}</p>` : ''}
+                        ${technicalScoring.confidence ? `<p class="mb-0 small">提取置信度：<span class="badge bg-${technicalScoring.confidence === 'high' ? 'success' : technicalScoring.confidence === 'medium' ? 'warning' : 'danger'}">${technicalScoring.confidence}</span></p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        // 处理旧的数据结构（向后兼容）
+        for (const [category, details] of Object.entries(technicalScoring)) {
+            // 跳过元数据字段
+            if (['total_technical_score', 'extraction_summary', 'confidence', 'items_count'].includes(category)) {
+                continue;
+            }
+            
             const score = details.score || '未指定';
             const criteria = details.criteria || [];
             
@@ -426,8 +461,11 @@ function displayTechnicalScoring(technicalScoring) {
                     </div>
                 </div>
             `;
+            itemsProcessed++;
         }
     }
+    
+    console.log(`技术评分渲染完成，共处理 ${itemsProcessed} 个评分项`);
     
     html += '</div>';
     container.innerHTML += html;

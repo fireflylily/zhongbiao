@@ -168,7 +168,7 @@ class TenderInfoExtractor:
 
 
 
-    def clean_and_truncate_content(self, content: str, max_length: int = 4000) -> str:
+    def clean_and_truncate_content(self, content: str, max_length: int = 15000) -> str:
         """
         清理和截断文档内容
         """
@@ -726,90 +726,210 @@ class TenderInfoExtractor:
         
         return cleaned_text
     
-    def _find_scoring_table_section(self, document_content: str) -> str:
+    def _is_scoring_table_content(self, content: str) -> bool:
         """
-        定位评分表格部分，提取相关内容区域
+        验证内容是否真正包含评分表格信息
         """
         import re
         
-        # 多种策略寻找评分表格
-        
-        # 策略1：寻找"磋商的评价"或类似章节标题
-        evaluation_patterns = [
-            r'磋商.*评价', r'评.*价.*办法', r'评.*分.*办法',
-            r'技术.*评.*分', r'评.*审.*标准', r'评.*分.*标.*准'
+        # 必须包含的评分表格特征
+        table_indicators = [
+            r'技术.*\d+.*分',  # 技术XX分
+            r'评分.*项目.*分值',  # 评分项目和分值的组合
+            r'评审.*内容.*分值',  # 评审内容和分值的组合
+            r'分值.*标准.*技术',  # 分值+标准+技术的组合
+            r'评价.*因素.*分数',  # 评价因素和分数的组合
         ]
         
-        # 策略2：寻找包含技术评分的表格区域
-        table_patterns = [
-            r'技术.*服务.*部分', r'技术.*部分', r'评.*分.*因.*素',
-            r'分.*值.*标准', r'评.*审.*内.*容', r'技术.*方案.*实施.*方案'
+        # 检查是否包含表格特征
+        table_score = 0
+        for indicator in table_indicators:
+            if re.search(indicator, content, re.IGNORECASE):
+                table_score += 2
+        
+        # 检查是否包含具体的评分项
+        scoring_items = [
+            r'技术方案.*\d+分', r'实施方案.*\d+分', r'安全.*管理.*\d+分',
+            r'系统.*可用性.*\d+分', r'异常.*处理.*\d+分', r'技术指标.*\d+分'
+        ]
+        
+        for item in scoring_items:
+            if re.search(item, content, re.IGNORECASE):
+                table_score += 3
+                
+        # 检查表格结构特征（列标题）
+        column_headers = [
+            r'评分项目.*分值.*评分标准', r'评价内容.*分数.*标准',
+            r'技术.*服务.*分值', r'项目.*权重.*标准'
+        ]
+        
+        for header in column_headers:
+            if re.search(header, content, re.IGNORECASE):
+                table_score += 5
+        
+        # 排除不相关内容
+        exclusion_patterns = [
+            r'中标通知书', r'合同.*组成', r'招标代理.*服务费',
+            r'履约保证金', r'合同.*签.*定', r'投标.*保证金'
+        ]
+        
+        for pattern in exclusion_patterns:
+            if re.search(pattern, content, re.IGNORECASE):
+                table_score -= 3
+                
+        logger.info(f"评分表格内容验证得分: {table_score}")
+        return table_score >= 5  # 需要至少5分才认为是有效的评分表格内容
+
+    def _find_scoring_table_section(self, document_content: str) -> str:
+        """
+        定位评分表格部分，提取相关内容区域 - 增强版
+        """
+        import re
+        
+        # 策略1：寻找章节标题关键词
+        chapter_patterns = [
+            r'第.*章.*评.*分.*办.*法', r'第.*节.*评.*分.*办.*法',
+            r'评.*分.*办.*法', r'评.*价.*办.*法', r'评.*审.*办.*法',
+            r'评.*标.*办.*法', r'评.*估.*办.*法', r'磋商.*评价',
+            r'技术.*评.*分', r'评.*审.*标准', r'评.*分.*标.*准',
+            r'评.*分.*细.*则', r'评.*价.*标.*准', r'评.*分.*方.*法'
+        ]
+        
+        # 策略2：寻找表格标题和结构
+        table_title_patterns = [
+            r'技术.*服务.*部分.*评.*分', r'技术.*部分.*评.*分',
+            r'评.*分.*因.*素.*表', r'评.*分.*项.*目.*表',
+            r'评.*审.*内.*容.*表', r'技术.*评.*价.*表'
+        ]
+        
+        # 策略3：寻找表格列标题
+        column_patterns = [
+            r'评分项目.*分值.*评分标准', r'项目.*分值.*评价标准',
+            r'评审内容.*分值.*评分标准', r'评分因素.*权重.*评分标准',
+            r'技术指标.*分值.*标准', r'评价内容.*分数.*评分标准'
+        ]
+        
+        # 策略4：寻找具体评分项内容
+        scoring_item_patterns = [
+            r'技术方案.*\d+分', r'实施方案.*\d+分', r'安全.*管理.*\d+分',
+            r'系统.*可用性.*\d+分', r'异常.*处理.*\d+分', r'技术指标.*\d+分',
+            r'服务.*能力.*\d+分', r'项目.*管理.*\d+分'
         ]
         
         lines = document_content.split('\n')
-        best_start = -1
-        best_end = -1
-        max_score = 0
+        candidates = []  # 候选区域列表
         
-        # 遍历文档寻找最佳匹配区域
+        # 第一轮：寻找所有可能的评分相关区域
         for i, line in enumerate(lines):
             score = 0
+            line_indicators = []
             
-            # 计算当前行及其周围行的相关性得分
-            for j in range(max(0, i-2), min(len(lines), i+3)):
-                check_line = lines[j]
-                # 评价章节标题得分更高
-                for pattern in evaluation_patterns:
-                    if re.search(pattern, check_line, re.IGNORECASE):
-                        score += 5
-                        break
-                # 表格内容也加分
-                for pattern in table_patterns:
-                    if re.search(pattern, check_line, re.IGNORECASE):
-                        score += 3
-                        break
-                # 包含具体分数的行
-                if re.search(r'\d+分', check_line):
-                    score += 2
-                # 包含技术关键词
-                if any(kw in check_line for kw in ['技术方案', '实施方案', '安全性', '系统可用性', '异常处理']):
-                    score += 2
+            # 检查章节标题
+            for pattern in chapter_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    score += 10
+                    line_indicators.append(f"章节标题:{pattern}")
+                    break
             
-            # 如果这个位置得分更高，更新最佳区域
-            if score > max_score:
-                max_score = score
-                best_start = max(0, i - 10)  # 向前扩展10行
+            # 检查表格标题
+            for pattern in table_title_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    score += 8
+                    line_indicators.append(f"表格标题:{pattern}")
+                    break
+            
+            # 检查列标题
+            for pattern in column_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    score += 12  # 列标题是强指示符
+                    line_indicators.append(f"列标题:{pattern}")
+                    break
+            
+            # 检查具体评分项
+            for pattern in scoring_item_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    score += 6
+                    line_indicators.append(f"评分项:{pattern}")
+                    break
+            
+            # 检查周围行的相关性
+            context_score = 0
+            for j in range(max(0, i-3), min(len(lines), i+4)):
+                if j != i:  # 不重复计算当前行
+                    context_line = lines[j]
+                    if re.search(r'\d+分|评分|分值|权重|标准', context_line, re.IGNORECASE):
+                        context_score += 1
+                    if any(kw in context_line for kw in ['技术方案', '实施方案', '安全性', '系统可用性']):
+                        context_score += 1
+            
+            score += min(context_score, 5)  # 上下文得分最多5分
+            
+            # 记录高分候选区域
+            if score >= 8:
+                candidates.append({
+                    'line_idx': i,
+                    'score': score,
+                    'indicators': line_indicators,
+                    'content_preview': line[:100]
+                })
+        
+        # 按得分排序候选区域
+        candidates.sort(key=lambda x: x['score'], reverse=True)
+        
+        # 第二轮：对每个候选区域提取内容并验证
+        for candidate in candidates[:3]:  # 检查得分前3的候选区域
+            line_idx = candidate['line_idx']
+            start_line = max(0, line_idx - 20)
+            end_line = min(len(lines), line_idx + 100)
+            
+            # 精确定位表格开始和结束位置
+            table_start = start_line
+            table_end = end_line
+            
+            # 向上查找表格开始标记
+            for i in range(line_idx, max(0, line_idx - 30), -1):
+                line = lines[i]
+                if any(re.search(p, line, re.IGNORECASE) for p in chapter_patterns + table_title_patterns):
+                    table_start = i
+                    break
+            
+            # 向下查找表格结束标记
+            for i in range(line_idx + 20, min(len(lines), line_idx + 150)):
+                line = lines[i]
+                # 遇到新章节或无关内容则停止
+                if (re.search(r'第.*章|第.*节|\d+\.|^\s*\d+\s', line) and 
+                    not any(kw in line for kw in ['评分', '分值', '技术', '评价', '标准'])):
+                    table_end = i
+                    break
+                # 连续多行没有评分相关内容则停止
+                if i + 5 < len(lines):
+                    next_5_lines = '\n'.join(lines[i:i+5])
+                    if not re.search(r'评分|分值|技术|标准|分数', next_5_lines, re.IGNORECASE):
+                        table_end = i
+                        break
+            
+            section_content = '\n'.join(lines[table_start:table_end])
+            
+            # 验证提取的内容是否真正包含评分表格
+            if self._is_scoring_table_content(section_content):
+                logger.info(f"找到有效评分区域 - 候选{candidates.index(candidate)+1}, 行号: {line_idx}, 得分: {candidate['score']}")
+                logger.info(f"指示符: {candidate['indicators']}")
+                logger.info(f"提取区域: 从行{table_start}到{table_end}, 内容长度: {len(section_content)}")
+                logger.info(f"内容预览: {section_content[:200]}...")
                 
-        # 如果找到了高分区域，确定结束位置
-        if best_start != -1 and max_score >= 5:  # 至少要有一定的相关性
-            # 从开始位置向后寻找100行或直到内容变得不相关
-            best_end = min(len(lines), best_start + 100)
-            
-            # 尝试找到更精确的结束位置
-            for i in range(best_start + 30, best_end):
-                if i + 10 < len(lines):
-                    # 检查接下来10行是否都不包含评分相关内容
-                    next_lines = lines[i:i+10]
-                    contains_scoring = False
-                    for next_line in next_lines:
-                        if (any(re.search(p, next_line, re.IGNORECASE) for p in evaluation_patterns + table_patterns) or
-                            re.search(r'\d+分', next_line) or
-                            any(kw in next_line for kw in ['技术方案', '实施方案', '安全性', '系统可用性'])):
-                            contains_scoring = True
-                            break
-                    
-                    if not contains_scoring:
-                        best_end = i
-                        break
-            
-            section_lines = lines[best_start:best_end]
-            section_content = '\n'.join(section_lines)
-            
-            # 确保内容不会太长
-            if len(section_content) > 6000:
-                section_content = section_content[:6000] + "..."
+                # 限制内容长度
+                if len(section_content) > 10000:
+                    section_content = section_content[:10000] + "..."
                 
-            return section_content
+                return section_content
+        
+        # 如果所有候选区域都无效，记录详细信息
+        if candidates:
+            logger.info("找到候选区域但验证失败:")
+            for i, candidate in enumerate(candidates[:3]):
+                logger.info(f"候选{i+1}: 行{candidate['line_idx']}, 得分{candidate['score']}, 指示符{candidate['indicators']}")
+        else:
+            logger.info("未找到任何候选的评分区域")
         
         return ""
     
@@ -1015,45 +1135,75 @@ class TenderInfoExtractor:
         # 首先使用正则表达式定位评分表格部分
         scoring_section = self._find_scoring_table_section(document_content)
         
-        # 如果找到了评分表格部分，只分析该部分；否则使用较短的内容
+        # 如果找到了评分表格部分，只分析该部分；否则使用扩展的内容搜索
         if scoring_section:
             cleaned_content = scoring_section
             logger.info(f"找到评分表格部分，长度: {len(scoring_section)} 字符")
             logger.info(f"评分表格内容预览: {scoring_section[:300]}...")
         else:
-            # 如果没找到特定部分，使用较短的内容避免超时
-            cleaned_content = self.clean_and_truncate_content(document_content, max_length=5000)
-            logger.info("未找到评分表格部分，使用标准内容截断")
+            # 如果没找到特定部分，使用更长的内容搜索评分表格
+            logger.info("未找到明确的评分表格区域，尝试扩大搜索范围")
+            # 增加搜索长度，确保包含可能的评分表格
+            cleaned_content = self.clean_and_truncate_content(document_content, max_length=25000)
+            logger.info(f"使用扩展内容搜索，长度: {len(cleaned_content)} 字符")
         
-        prompt = f"""分析文档中的技术评分表格。
+        prompt = f"""你是一个专业的招标文档分析专家，请仔细分析文档中的技术评分表格。
 
-查找包含以下信息的评分表格：
-- 技术(服务)部分或技术部分的评分项
-- 包含"评分因素"、"分值"、"评分标准"等列
-- **中邮保险项目应有5项技术评分**：技术方案(10分)、实施方案(10分)、安全性/稳定性管理(3分)、系统可用性(2分)、异常处理机制(5分)
+## 任务目标
+提取文档中**技术评分表格**的详细信息，包括具体的评分项目、分值和评分标准。
 
-**只提取技术部分的评分，忽略商务部分评分。**
+## 识别要点
+1. **表格特征识别**：
+   - 寻找包含"评分项目"、"分值"、"评分标准"等列标题的表格
+   - 寻找"技术部分"、"技术服务部分"等章节标题
+   - 识别表格行中的具体评分项和分数
 
-如果找到技术评分表格，提取：
-- 评分项名称（确切名称）
-- 分值（具体分数）
-- 评分标准（完整描述）
+2. **技术评分项特征**：
+   - 技术方案、实施方案、安全性管理、系统可用性、异常处理等技术相关内容
+   - 每项通常有具体的分值（如"10分"、"5分"等）
+   - 有详细的评分标准或评价要求
 
-如果没有找到技术评分，返回空数组。
+3. **排除内容**：
+   - 商务评分、价格评分等非技术评分
+   - 合同条款、保证金、服务费等内容
+   - 投标须知、资格要求等程序性内容
 
-JSON格式输出：
+## 分析方法
+1. **表格定位**：先查找表格标题和章节标题
+2. **内容识别**：识别表格中的具体评分项和分值
+3. **标准提取**：提取每个评分项的详细评分标准
+
+## 常见表格格式示例
+```
+评分项目          分值    评分标准
+技术方案          10分    技术方案的完整性、可行性...
+实施方案          10分    项目实施计划的合理性...
+安全性管理         3分    数据安全和系统安全措施...
+```
+
+## 输出格式
+严格按照JSON格式输出，即使没有找到也要返回完整结构：
+
 ```json
 {{
     "technical_scoring_items": [
-        {{"name": "评分项名称", "weight": "分值", "criteria": "评分标准", "source": "位置"}}
+        {{
+            "name": "评分项名称",
+            "weight": "X分", 
+            "criteria": "评分标准详细描述",
+            "source": "在文档中的位置描述"
+        }}
     ],
-    "total_technical_score": "总分",
-    "extraction_summary": "找到X项技术评分"
+    "total_technical_score": "总分数",
+    "extraction_summary": "提取结果说明，如：找到N项技术评分 或 未找到技术评分表格",
+    "confidence": "high/medium/low"
 }}
 ```
 
-文档内容：
-{cleaned_content}"""
+## 分析的文档内容：
+{cleaned_content}
+
+请仔细分析上述文档内容，准确提取技术评分信息。"""
 
         try:
             response = self.llm_callback(prompt, "技术评分提取")
@@ -1073,19 +1223,37 @@ JSON格式输出：
             try:
                 technical_scoring = json.loads(json_text)
                 technical_items = technical_scoring.get('technical_scoring_items', [])
+                confidence = technical_scoring.get('confidence', 'medium')
+                extraction_summary = technical_scoring.get('extraction_summary', '未找到技术评分表格')
                 
                 # 检查是否真的提取到了技术评分项
                 if not technical_items or len(technical_items) == 0:
-                    logger.info("文档中没有找到技术评分要求")
+                    logger.info(f"文档中没有找到技术评分要求，置信度: {confidence}")
+                    logger.info(f"提取摘要: {extraction_summary}")
                     return {
                         "technical_scoring_items": [],
                         "total_technical_score": "0分",
-                        "extraction_summary": "技术没有评分要求",
+                        "extraction_summary": extraction_summary,
+                        "confidence": confidence,
                         "items_count": 0
                     }
                 
-                logger.info(f"成功解析技术评分信息，包含 {len(technical_items)} 个评分项")
-                return technical_scoring
+                logger.info(f"成功解析技术评分信息，包含 {len(technical_items)} 个评分项，置信度: {confidence}")
+                
+                # 记录每个评分项的详细信息
+                for i, item in enumerate(technical_items, 1):
+                    logger.info(f"评分项{i}: {item.get('name', '未知')} - {item.get('weight', '未知')} - {item.get('criteria', '未知')[:100]}...")
+                
+                # 确保返回结果包含必要字段
+                result = {
+                    "technical_scoring_items": technical_items,
+                    "total_technical_score": technical_scoring.get('total_technical_score', '未知'),
+                    "extraction_summary": extraction_summary,
+                    "confidence": confidence,
+                    "items_count": len(technical_items)
+                }
+                
+                return result
             except json.JSONDecodeError:
                 # 如果JSON解析失败，返回原始文本结果
                 logger.warning("JSON解析失败，返回文本格式结果")

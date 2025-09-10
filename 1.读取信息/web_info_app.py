@@ -307,8 +307,14 @@ def extract_tender_info_step():
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
-    """服务静态文件"""
-    return send_from_directory('static', filename)
+    """服务静态文件，强制缓存刷新"""
+    response = send_from_directory('static', filename)
+    # 对JavaScript文件强制禁用缓存
+    if filename.endswith('.js'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 @app.route('/health')
 def health_check():
