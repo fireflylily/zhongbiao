@@ -15,7 +15,9 @@
       "Bash(del test_tender.txt)",
       "Bash(find:*)",
       "Bash(lsof:*)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "Bash(xargs rm:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
