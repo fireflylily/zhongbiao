@@ -15,113 +15,128 @@ KEYS: {
 }
 ```
 
-## 各页面状态依赖关系
+## 各页面状态依赖关系 (Updated 2025-09-12 - Single Page Architecture)
 
-### 1. 招标信息提取页面 (tender_info.js)
+### 1. index.html - 单页面应用 (Main SPA Container)
 
+**核心组件状态管理**:
+
+#### A. GlobalCompanyManager (新增全局公司管理器)
+```javascript
+const GlobalCompanyManager = {
+    // 统一更新所有公司选择器
+    syncCompanySelectors(companyId) {
+        // 同步商务应答选择器和公司管理选择器
+        // 更新StateManager
+        StateManager.setCompanyId(companyId);
+    },
+    
+    // 更新UI状态指示
+    updateCompanyStatusUI(companyId),
+    
+    // 绑定所有公司选择器事件
+    bindCompanySelectors()
+};
+```
+
+#### B. 招标信息提取功能 (Integrated)
 **依赖的状态**:
-- 无特定状态依赖（作为流程起始页面）
+- 无特定状态依赖（作为流程起始）
 
 **产生的状态**:
 - `UPLOAD_FILES` - 保存招标文件信息
-  ```javascript
-  StateManager.setUploadInfo({
-      tenderFile: {
-          name: file.name,
-          size: file.size, 
-          type: file.type
-      }
-  });
-  ```
+- 通过StateManager在选项卡间共享
+
+#### C. 商务应答功能 (Integrated)  
+**依赖的状态**:
+- `COMPANY_ID` - 通过GlobalCompanyManager统一获取
+- 项目配置API数据
 
 **状态操作**:
-- `StateManager.setUploadInfo()` - 保存文件上传信息
-- `StateManager.remove(KEYS.UPLOAD_FILES)` - 重置时清理状态
+- 使用`getSelectedCompanyInfo()`统一获取公司信息
+- 公司选择变化自动同步到所有选择器
 
-### 2. 商务应答页面 (business_response.js)
-
+#### D. 点对点应答功能 (Integrated)
 **依赖的状态**:
-- `COMPANY_ID` - 获取当前选择的公司ID
-- 项目配置API数据 (通过后端API获取)
-
-**产生的状态**:
-- 公司选择变化时更新公司ID状态
+- `COMPANY_ID` - 通过GlobalCompanyManager统一管理
+- 基本文件处理状态
 
 **状态操作**:
-- `StateManager.getCompanyId()` - 获取当前公司ID
-- 表单字段自动填充项目信息
-- 公司下拉列表状态恢复
+- 使用统一的公司信息获取接口
+- 选项卡内状态管理
 
-**关键代码**:
-```javascript
-// 恢复公司选择状态
-const savedCompanyId = StateManager.getCompanyId();
-if (savedCompanyId) {
-    businessCompanySelect.value = savedCompanyId;
-}
-```
-
-### 3. 点对点应答页面 (point_to_point.js)
-
+#### E. 技术方案功能 (Integrated)
 **依赖的状态**:
-- 基本文件处理状态（通过common.js共享功能）
-
-**产生的状态**:
-- 文件处理结果状态
-- 页面导航状态（跳转到技术方案页面）
+- `COMPANY_ID` - 通过GlobalCompanyManager统一管理
+- 双文件上传状态（本地管理）
 
 **状态操作**:
-- `StateManager.navigateToPage('tech_proposal.html')` - 页面导航
+- 使用`getSelectedCompanyInfo()`获取公司能力信息
+- 选项卡内文件选择状态
 
-### 4. 技术方案页面 (tech_proposal.js)
-
+#### F. 公司管理功能 (Integrated)
 **依赖的状态**:
-- 无直接状态依赖
-- 依赖文件选择状态来控制按钮启用
+- `COMPANY_ID` - 通过GlobalCompanyManager管理
 
 **产生的状态**:
-- 文件选择状态（本地组件状态）
-
-**状态操作**:
-- 本地状态管理（双文件上传验证）
-
-### 5. 公司管理页面 (company_selection.js)
-
-**依赖的状态**:
-- `COMPANY_ID` - 当前选择的公司ID
-
-**产生的状态**:
-- `COMPANY_ID` - 更新公司选择状态
+- 公司选择变更通过GlobalCompanyManager广播
 - 资质文件管理状态
 
-**状态操作**:
-- `StateManager.getCompanyId()` - 获取当前公司
-- `StateManager.setCompanyId()` - 设置新的公司ID
-- 公司信息表单状态管理
-
-**关键代码**:
+**关键增强**:
 ```javascript
-// 从状态管理器恢复公司ID
-const savedCompanyId = StateManager.getCompanyId();
-if (savedCompanyId) {
-    currentCompanyId = savedCompanyId;
-    loadCompanyInfo(savedCompanyId);
-}
+// 统一的公司信息获取接口
+const getSelectedCompanyInfo = async () => {
+    const companyId = StateManager.getCompanyId();
+    if (!companyId) {
+        throw new Error('请先选择公司');
+    }
+    return await apiRequest(`/api/companies/${companyId}`, 'GET');
+};
 ```
 
-### 6. Word编辑器组件 (word-editor.js)
+### 2. 独立页面状态管理
 
+#### A. help.html (Help and Documentation)
+**依赖的状态**:
+- 基本common.js功能
+- 无状态依赖
+
+#### B. system_status.html (System Status)
+**依赖的状态**:
+- StateManager基本功能
+- 系统状态检测（本地管理）
+
+#### C. word-editor.js (Standalone Utility)
 **依赖的状态**:
 - 编辑器内容状态（TinyMCE管理）
 - 图片上传状态
+- 独立组件，无跨页面状态依赖
 
-**产生的状态**:
-- 文档内容状态
-- 编辑状态
+### 3. 已删除页面与JS文件 (Functionality Moved to index.html - 2025-09-12)
 
-**状态操作**:
-- 本地组件状态管理
-- 自动保存功能（通过TinyMCE插件）
+**已删除的HTML页面**:
+```
+[REMOVED] business_response.html - 功能集成到index.html选项卡
+[REMOVED] company_selection.html - 功能集成到index.html选项卡
+[REMOVED] point_to_point.html - 功能集成到index.html选项卡
+[REMOVED] tech_proposal.html - 功能集成到index.html选项卡
+[REMOVED] tender_info.html - 功能集成到index.html选项卡
+```
+
+**已删除的JavaScript文件**:
+```
+[REMOVED] ai_tender_system/web/static/js/tender_info.js - 功能集成到index.html
+[REMOVED] ai_tender_system/web/static/js/company_selection.js - 功能集成到index.html  
+[REMOVED] ai_tender_system/web/static/js/business_response.js - 功能集成到index.html
+[REMOVED] ai_tender_system/web/static/js/point_to_point.js - 功能集成到index.html
+[REMOVED] ai_tender_system/web/static/js/tech_proposal.js - 功能集成到index.html
+```
+
+**架构优化结果**:
+- 减少约87,000行代码
+- 统一状态管理，减少状态不一致问题
+- 改善用户体验，无页面跳转
+- 简化维护工作，集中式功能管理
 
 ## StateManager 高级功能
 
@@ -292,12 +307,17 @@ if (effectiveCompanyId !== currentCompanyId) {
 - 关键操作的状态快照
 - 状态不一致时的自动修复
 
-### 修复的问题
-1. **状态同步问题**: 页面刷新后状态丢失
-2. **选项卡切换问题**: 不同选项卡间状态不一致  
-3. **保存失败问题**: 资质保存时提示"需要先设置公司信息"
+### 修复的问题 (Updated 2025-09-12)
+1. **状态同步问题**: 页面刷新后状态丢失 ✅ 已修复
+2. **选项卡切换问题**: 不同选项卡间状态不一致 ✅ 已修复  
+3. **保存失败问题**: 资质保存时提示"需要先设置公司信息" ✅ 已修复
+4. **公司列表加载错误**: `companies.forEach is not a function` ✅ 已修复
+5. **API密钥解密错误**: `InvalidCharacterError: Failed to execute 'atob'` ✅ 已修复
 
-### 改进的组件
-- `company_selection.js` - 全面增强状态管理
-- 与`StateManager`的集成更加紧密
-- 添加了状态验证和自动恢复机制
+### 改进的组件 (Updated 2025-09-12)
+- **单页面架构**: 所有功能集成到`index.html`，移除独立JS文件
+- **GlobalCompanyManager**: 新增统一公司状态管理器
+- **StateManager增强**: 添加跨页面状态广播和验证机制
+- **common.js增强**: 改进API密钥解密，增加base64验证和自动清理
+- **错误处理增强**: 全面的异常捕获和用户友好提示
+- **响应格式修复**: 正确处理`/api/companies`响应格式

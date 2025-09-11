@@ -5071,30 +5071,38 @@
         // 加载公司列表
         async function loadCompanyList() {
             try {
-                const companies = await apiRequest('/api/companies', 'GET');
+                const response = await apiRequest('/api/companies', 'GET');
+                
+                // 检查响应格式，处理API返回的 {success: true, companies: []} 格式
+                const companies = response.companies || response || [];
+                console.log('加载公司列表:', companies);
                 
                 // 更新商务应答选择器
                 const businessSelect = document.getElementById('businessCompanySelect');
                 if (businessSelect) {
                     businessSelect.innerHTML = '<option value="">请选择公司...</option>';
-                    companies.forEach(company => {
-                        const option = document.createElement('option');
-                        option.value = company.id;
-                        option.textContent = company.companyName;
-                        businessSelect.appendChild(option);
-                    });
+                    if (Array.isArray(companies)) {
+                        companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company.id;
+                            option.textContent = company.companyName;
+                            businessSelect.appendChild(option);
+                        });
+                    }
                 }
                 
                 // 更新公司管理选择器
                 const companySelect = document.getElementById('companyListSelect');
                 if (companySelect) {
                     companySelect.innerHTML = '<option value="">请选择公司</option>';
-                    companies.forEach(company => {
-                        const option = document.createElement('option');
-                        option.value = company.id;
-                        option.textContent = company.companyName;
-                        companySelect.appendChild(option);
-                    });
+                    if (Array.isArray(companies)) {
+                        companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company.id;
+                            option.textContent = company.companyName;
+                            companySelect.appendChild(option);
+                        });
+                    }
                 }
                 
                 // 恢复选中状态

@@ -14,12 +14,55 @@ function encryptApiKey(key) {
 function decryptApiKey(encrypted) {
     if (!encrypted) return '';
     try {
+        // 验证输入是否为有效字符串
+        if (typeof encrypted !== 'string') {
+            console.warn('解密输入无效，期望字符串，实际类型:', typeof encrypted);
+            return '';
+        }
+        
         const reversed = encrypted.split('').reverse().join('');
+        
+        // 验证反转后的字符串是否为有效的base64格式
+        if (!isValidBase64(reversed)) {
+            console.warn('反转后的字符串不是有效的base64格式:', reversed.substring(0, 50) + '...');
+            // 尝试清理存储的损坏数据
+            if (window.StateManager && window.StateManager.remove) {
+                window.StateManager.remove(window.StateManager.KEYS?.API_KEY || 'ai_tender_api_key_encrypted');
+                console.log('已清理损坏的API密钥数据');
+            }
+            return '';
+        }
+        
         return decodeURIComponent(escape(atob(reversed)));
     } catch (e) {
         console.error('解密失败:', e);
+        console.error('输入数据:', encrypted?.substring ? encrypted.substring(0, 50) + '...' : encrypted);
+        
+        // 自动清理损坏的数据
+        if (window.StateManager && window.StateManager.remove) {
+            window.StateManager.remove(window.StateManager.KEYS?.API_KEY || 'ai_tender_api_key_encrypted');
+            console.log('已清理损坏的API密钥数据');
+        }
         return '';
     }
+}
+
+// 验证base64字符串的辅助函数
+function isValidBase64(str) {
+    if (!str || typeof str !== 'string') return false;
+    
+    // Base64字符集检查
+    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+    if (!base64Regex.test(str)) {
+        return false;
+    }
+    
+    // 长度检查（base64编码的字符串长度必须是4的倍数）
+    if (str.length % 4 !== 0) {
+        return false;
+    }
+    
+    return true;
 }
 
 /**

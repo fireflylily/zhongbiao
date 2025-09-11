@@ -97,7 +97,7 @@ Pillow            # Image processing
 
 ## JavaScript Module Relationships
 
-### Frontend Module Dependency Graph
+### Frontend Module Dependency Graph (Updated 2025-09-12)
 
 ```
 web/static/js/
@@ -105,92 +105,63 @@ web/static/js/
 │   ├── Provides: API utilities, file handling, notifications, drag-drop
 │   ├── Functions: apiRequest(), showNotification(), downloadFile(), setupDragDrop()
 │   └── Global utilities used by all other modules
-├── state-manager.js (State Management - No Dependencies)
-│   ├── Provides: Client-side state persistence
+├── state-manager.js (State Management - No Dependencies) [ENHANCED]
+│   ├── Provides: Client-side state persistence, cross-page messaging
 │   ├── Functions: StateManager.get(), StateManager.set(), StateManager.remove()
+│   ├── Enhanced: validateCompanyState(), syncAllPages(), broadcastStateChange()
+│   ├── Cross-page communication via storage events
 │   └── Uses: localStorage for persistence
-├── tender_info.js (Depends on: common.js, state-manager.js)
-│   ├── Uses: onPageReady(), setupDragDrop(), showNotification(), StateManager
-│   ├── Provides: Tender document processing UI
-│   └── API Endpoints: /extract-tender-info, /extract-tender-info-step
-├── company_selection.js (Depends on: common.js, state-manager.js) [ENHANCED]
-│   ├── Uses: apiRequest(), showNotification(), StateManager (enhanced integration)
-│   ├── Provides: Company profile management, State synchronization
-│   ├── New Functions: validateCompanyState() - State consistency validation
-│   ├── Enhanced Functions: saveAllQualifications() - Priority state lookup
-│   └── API Endpoints: /api/companies, /api/companies/<id>, /api/companies/<id>/qualifications
-├── business_response.js (Depends on: common.js, state-manager.js)
-│   ├── Uses: setupDragDrop(), showNotification(), StateManager
-│   ├── Provides: Business response processing UI
-│   └── API Endpoints: /process-business-response, /api/business-files
-├── point_to_point.js (Depends on: common.js, state-manager.js)
-│   ├── Uses: apiRequest(), setupDragDrop(), StateManager
-│   ├── Provides: Point-to-point response UI
-│   └── API Endpoints: /api/document/process, /api/table/analyze
-├── tech_proposal.js (Depends on: common.js, state-manager.js)
-│   ├── Uses: apiRequest(), showNotification(), StateManager
-│   ├── Provides: Technical proposal generation UI
-│   └── API Endpoints: /generate-proposal (placeholder)
 └── word-editor.js (Depends on: common.js)
     ├── Uses: showNotification(), enablePasteImageUpload()
     ├── Provides: Word document editing capabilities
     └── Standalone utility for document editing
+
+REMOVED MODULES (Integrated into index.html):
+├── [DELETED] tender_info.js - Functionality moved to index.html
+├── [DELETED] company_selection.js - Functionality moved to index.html  
+├── [DELETED] business_response.js - Functionality moved to index.html
+├── [DELETED] point_to_point.js - Functionality moved to index.html
+└── [DELETED] tech_proposal.js - Functionality moved to index.html
 ```
 
-### JavaScript Loading Order (Critical)
+### JavaScript Loading Order (Updated 2025-09-12)
 ```html
-<!-- Base dependencies (must load first) -->
+<!-- Single Page Application - All in index.html -->
 <script src="js/state-manager.js"></script>
 <script src="js/common.js"></script>
 
-<!-- Page-specific modules (can load in any order after base) -->
-<script src="js/tender_info.js"></script>
-<script src="js/company_selection.js"></script>
-<script src="js/business_response.js"></script>
-<script src="js/point_to_point.js"></script>
-<script src="js/tech_proposal.js"></script>
-<script src="js/word-editor.js"></script>
+<!-- Inline JavaScript within index.html:
+- GlobalCompanyManager (Company state synchronization)
+- All feature functionality (tender info, business response, etc.)
+- Unified company selection management
+- Cross-tab state synchronization
+-->
+
+<!-- Optional standalone utilities -->
+<script src="js/word-editor.js"></script> <!-- Only when needed -->
 ```
 
 ## HTML Template Relationships
 
-### Template Hierarchy
+### Template Hierarchy (Updated 2025-09-12 - Single Page Architecture)
 ```
 web/templates/
 ├── Base Layout (Implicit - Bootstrap CDN)
 │   ├── Bootstrap 5.1.3 CSS/JS
 │   ├── Bootstrap Icons 1.7.2
 │   └── Common CSS/JS includes
-├── index.html (Main Dashboard)
-│   ├── Includes: common.js, state-manager.js
-│   ├── Navigation to all modules
+├── index.html (Single Page Application Hub) [ENHANCED]
+│   ├── Includes: state-manager.js, common.js
+│   ├── Integrated Features:
+│   │   ├── Tender Information Extraction (Tab-based)
+│   │   ├── Company Management (Tab-based)
+│   │   ├── Business Response Processing (Tab-based)
+│   │   ├── Point-to-Point Response (Tab-based)
+│   │   └── Technical Proposal Generation (Tab-based)
+│   ├── GlobalCompanyManager (Unified company state)
+│   ├── Cross-tab state synchronization
 │   ├── API key configuration
 │   └── System status display
-├── tender_info.html (Tender Information Page)
-│   ├── Depends on: common.js, state-manager.js, tender_info.js
-│   ├── File upload interface
-│   ├── Progressive extraction display
-│   └── Tabbed results view
-├── company_selection.html (Company Management)
-│   ├── Depends on: common.js, state-manager.js, company_selection.js
-│   ├── Company profile CRUD interface
-│   ├── Qualification file management
-│   └── Form validation
-├── business_response.html (Business Response)
-│   ├── Depends on: common.js, state-manager.js, business_response.js
-│   ├── Template upload interface
-│   ├── Company data integration
-│   └── Response generation
-├── point_to_point.html (Point-to-Point Response)
-│   ├── Depends on: common.js, state-manager.js, point_to_point.js
-│   ├── Requirement analysis interface
-│   ├── Document processing
-│   └── Table analysis tools
-├── tech_proposal.html (Technical Proposal)
-│   ├── Depends on: common.js, state-manager.js, tech_proposal.js
-│   ├── Proposal generation interface
-│   ├── Word editing integration
-│   └── Template management
 ├── help.html (Help and Documentation)
 │   ├── Depends on: common.js
 │   ├── System usage guide
@@ -201,6 +172,13 @@ web/templates/
     ├── Module availability status
     ├── Configuration validation
     └── System health checks
+
+REMOVED TEMPLATES (Functionality integrated into index.html):
+├── [DELETED] tender_info.html - Now a tab in index.html
+├── [DELETED] company_selection.html - Now a tab in index.html
+├── [DELETED] business_response.html - Now a tab in index.html
+├── [DELETED] point_to_point.html - Now a tab in index.html
+└── [DELETED] tech_proposal.html - Now a tab in index.html
 ```
 
 ## CSS Dependencies
@@ -240,18 +218,29 @@ All modules import get_config()
 Runtime configuration access
 ```
 
-### State Management Flow (Updated 2025-09-12)
+### State Management Flow (Updated 2025-09-12 - Unified Architecture)
 ```
-StateManager (Global State)
+StateManager (Enhanced Global State)
+    ├── validateCompanyState() - State consistency validation
+    ├── broadcastStateChange() - Cross-component messaging  
+    ├── syncAllPages() - Force state synchronization
+    └── onStateChangeByKey() - Targeted event listeners
     ↓
-company_selection.js
-    ├── validateCompanyState() [NEW] - State consistency validation
-    ├── handleCompanySelection() - Enhanced with immediate sync
-    ├── loadCompanyInfo() - Enhanced with state logging
-    └── saveAllQualifications() - Enhanced with priority state lookup
+GlobalCompanyManager (New Unified Layer)
+    ├── syncCompanySelectors() - Sync all company dropdowns
+    ├── updateCompanyStatusUI() - Update UI state indicators
+    ├── bindCompanySelectors() - Bind all selector events
+    └── init() - Initialize unified state management
     ↓
-Other pages (business_response.js, etc.)
-    └── Get consistent company state
+All Feature Components (Within index.html)
+    ├── Business Response Processing
+    ├── Company Management  
+    ├── Point-to-Point Response
+    ├── Technical Proposal Generation
+    └── Tender Information Extraction
+    ↓
+Unified Company Information Access
+    └── getSelectedCompanyInfo() - Single API for all features
 ```
 
 ### Logging Flow
@@ -293,16 +282,17 @@ Response to frontend
 
 ## Critical Dependencies
 
-### Must Load First (Bootstrap Dependencies)
-1. **state-manager.js** - Required by all other JS modules
-2. **common.js** - Required by all page-specific modules
+### Must Load First (Bootstrap Dependencies - Updated 2025-09-12)
+1. **state-manager.js** - Enhanced with cross-page messaging, required by index.html
+2. **common.js** - Required by all functionality within index.html  
 3. **common/config.py** - Required by all Python modules
 
-### Circular Dependency Prevention
+### Circular Dependency Prevention (Simplified Architecture)
 - **common/** modules have no dependencies on **modules/** or **web/**
 - **modules/** can import from **common/** but not from **web/**
 - **web/** can import from both **common/** and **modules/**
-- Frontend JS modules use explicit dependency loading order
+- **Single Page Architecture**: All frontend functionality consolidated in index.html
+- **No Cross-Template Dependencies**: Each template is self-contained
 
 ### External Service Dependencies
 - **LLM API Service** - Required for AI processing (configurable endpoint)

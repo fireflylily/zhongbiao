@@ -4,17 +4,20 @@
 
 本文档详细记录了AI智慧标书系统的API架构、接口规范和使用方式。系统采用Flask后端 + HTML/JavaScript前端架构，提供完整的招标文档处理、公司管理、商务应答等功能。
 
-## 系统架构
+## 系统架构 (Updated 2025-09-12 - Single Page Architecture)
 
 ```
-Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
-     ↓                    ↓              ↓              ↓
-- tender_info.js    - Flask Routes  - TenderExtractor  - LLM APIs
-- company_selection.js - API Endpoints - P2P Processor   - File Processing
-- business_response.js - Static Routes - Doc Processor   - Image Upload
-- tech_proposal.js     - Error Handling                  
-- point_to_point.js                                     
-- word-editor.js                                        
+Frontend (Single Page App) ←→ Flask API ←→ Business Modules ←→ External APIs
+         ↓                        ↓              ↓              ↓
+- index.html (Integrated)    - Flask Routes  - TenderExtractor  - LLM APIs
+  ├── Tender Info Extract   - API Endpoints  - P2P Processor    - File Processing  
+  ├── Company Management    - Static Routes  - Doc Processor    - Image Upload
+  ├── Business Response     - Error Handling                    
+  ├── Point-to-Point        - Fixed Response Format Issues
+  └── Technical Proposal                                        
+- common.js (Utilities)                                         
+- state-manager.js (Enhanced)                                   
+- word-editor.js (Standalone)                                   
 ```
 
 ## 后端API接口详细规范
@@ -51,12 +54,16 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
 }
 ```
 
-#### 1.3 API密钥管理
+#### 1.3 API密钥管理 (Enhanced Error Handling 2025-09-12)
 - **获取默认密钥**: `GET /api/get-default-api-key`
   - 返回前10位API密钥用于验证
 - **保存密钥**: `POST /api/save-key`
   - 请求体: `{"api_key": "your_api_key"}`
   - 响应: `{"success": true, "message": "API密钥保存成功"}`
+- **安全增强**: 
+  - 前端API密钥解密现在包含base64验证
+  - 自动清理损坏的API密钥数据
+  - 增强错误日志记录
 
 ### 2. 文件处理接口
 
@@ -133,7 +140,7 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
 
 ### 4. 公司管理接口
 
-#### 4.1 公司列表
+#### 4.1 公司列表 (Fixed Response Format 2025-09-12)
 - **路径**: `GET /api/companies`
 - **描述**: 获取所有公司配置
 - **响应示例**:
@@ -150,6 +157,7 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
   ]
 }
 ```
+- **重要修复**: 前端现在正确处理响应格式，提取`response.companies`数组而不是直接使用response
 
 #### 4.2 公司详细信息
 - **路径**: `GET /api/companies/<company_id>`
@@ -324,9 +332,16 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
 }
 ```
 
-## 前端组件API调用映射
+## 前端组件API调用映射 (Updated 2025-09-12 - Single Page Architecture)
 
-### 1. tender_info.js - 招标信息提取
+### 单页面应用（index.html）- 集成所有功能
+
+**架构变更**:
+- 所有功能模块已从独立JS文件迁移到index.html内联JavaScript
+- 采用选项卡式界面，统一状态管理
+- 实现GlobalCompanyManager统一公司选择管理
+
+### 1. 招标信息提取功能 (原tender_info.js)
 
 **主要API调用**:
 - `/extract-tender-info` - 完整信息提取
@@ -342,42 +357,44 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
 用户上传文件 → 文件验证 → API调用 → 进度显示 → 结果解析 → 分类展示
 ```
 
-### 2. company_selection.js - 公司管理
+### 2. 公司管理功能 (原company_selection.js)
 
 **主要API调用**:
-- `/api/companies` - CRUD操作
+- `/api/companies` - CRUD操作（已修复响应格式问题）
 - `/api/companies/<id>/qualifications/*` - 资质管理
 - `/api/project-config` - 项目信息
 
 **关键功能**:
-- 公司信息表单管理
+- 公司信息表单管理（集成到GlobalCompanyManager）
 - 资质文件上传下载
 - 表单状态跟踪（FormStateManager）
 - 标签切换拦截机制
 
-**状态管理**:
-- 使用FormStateManager跟踪未保存更改
+**状态管理增强**:
+- 使用GlobalCompanyManager统一管理所有公司选择器
 - 支持拖拽和粘贴图片上传
 - 自动保存状态到StateManager
+- 跨选项卡公司选择同步
 
-### 3. business_response.js - 商务应答
+### 3. 商务应答功能 (原business_response.js)
 
 **主要API调用**:
 - `/process-business-response` - 商务应答处理
-- `/api/companies` - 获取公司列表
+- `/api/companies` - 获取公司列表（统一通过GlobalCompanyManager）
 - `/api/project-config` - 项目信息
 
 **处理流程**:
 ```
-选择模板 → 选择公司 → 填写项目信息 → 提交处理 → 进度跟踪 → 结果下载
+统一公司选择 → 选择模板 → 填写项目信息 → 提交处理 → 进度跟踪 → 结果下载
 ```
 
 **特色功能**:
 - 处理步骤可视化显示
 - 统计信息展示
 - 文档预览功能
+- 与GlobalCompanyManager集成
 
-### 4. point_to_point.js - 点对点应答
+### 4. 点对点应答功能 (原point_to_point.js)
 
 **主要API调用**:
 - `/upload` - 文件上传处理
@@ -386,15 +403,38 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
 - 简化的文件处理流程
 - 拖拽上传支持
 - 进度条显示
+- 统一公司信息访问
 
-### 5. tech_proposal.js - 技术方案
+### 5. 技术方案功能 (原tech_proposal.js)
 
 **主要API调用**:
 - `/generate-proposal` - 技术方案生成
 
 **当前状态**: 功能正在迁移，API返回占位响应
+**集成增强**: 使用统一的公司信息获取接口
 
-### 6. word-editor.js - Word编辑器
+### 6. 统一状态管理层
+
+**GlobalCompanyManager**:
+```javascript
+const GlobalCompanyManager = {
+    syncCompanySelectors(companyId),     // 同步所有公司选择器
+    updateCompanyStatusUI(companyId),    // 更新UI状态指示
+    bindCompanySelectors(),              // 绑定选择器事件
+    init()                              // 初始化管理器
+};
+```
+
+**统一公司信息访问**:
+```javascript
+const getSelectedCompanyInfo = async () => {
+    const companyId = StateManager.getCompanyId();
+    if (!companyId) throw new Error('请先选择公司');
+    return await apiRequest(`/api/companies/${companyId}`, 'GET');
+};
+```
+
+### 7. word-editor.js - Word编辑器 (独立组件)
 
 **主要API调用**:
 - `/api/editor/load-document` - 加载Word文档
@@ -404,12 +444,14 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
 **特色功能**:
 - 集成TinyMCE富文本编辑器
 - Word文档导入导出
-- 图片粘贴上传
+- 图片粘贴上传（已增强错误处理）
 - 实时保存提示
+
+**独立性**: 此组件未集成到单页面应用，保持独立运行
 
 ## 通用JavaScript工具库
 
-### common.js - 公共功能
+### common.js - 公共功能 (Enhanced 2025-09-12)
 
 **核心功能**:
 - `showNotification()` - 通知显示
@@ -418,13 +460,27 @@ Frontend (HTML/JS) ←→ Flask API ←→ Business Modules ←→ External APIs
 - `apiRequest()` - API请求封装
 - `enablePasteImageUpload()` - 图片粘贴上传
 
-### state-manager.js - 状态管理
+**API密钥管理增强**:
+- `encryptApiKey()` - API密钥加密
+- `decryptApiKey()` - API密钥解密（增强错误处理）
+- `isValidBase64()` - Base64格式验证（新增）
+- 自动清理损坏的API密钥数据
+- 增强的错误日志和调试支持
+
+### state-manager.js - 状态管理 (Enhanced 2025-09-12)
 
 **主要功能**:
 - 跨页面状态保持
 - localStorage操作封装
 - URL参数管理
 - 页面间消息传递
+
+**增强功能**:
+- `broadcastStateChange()` - 广播状态变更到其他页面
+- `onStateChange()` - 监听状态变更事件
+- `onStateChangeByKey()` - 监听特定键的状态变更
+- `validateCompanyState()` - 验证公司状态一致性
+- `syncAllPages()` - 强制同步所有页面状态
 
 **状态键定义**:
 ```javascript
@@ -435,6 +491,11 @@ KEYS: {
   PAGE_CONTEXT: 'page_context'
 }
 ```
+
+**跨页面通信**:
+- 使用localStorage事件进行实时状态同步
+- 支持状态变更的源页面识别
+- 自动清理临时消息数据
 
 ## 外部API集成
 
@@ -575,33 +636,55 @@ graph TB
     M --> H
 ```
 
-## 常见问题和解决方案
+## 常见问题和解决方案 (Updated 2025-09-12)
 
-### 1. API密钥问题
-- **问题**: 提示"API密钥未配置"
+### 1. API密钥问题 (Enhanced)
+- **问题**: 提示"API密钥未配置"或解密失败
 - **解决**: 检查环境变量DEFAULT_API_KEY或在页面中手动设置
+- **新增**: 如遇到解密错误，系统会自动清理损坏的API密钥数据
 
-### 2. 文件上传失败
+### 2. 公司列表加载问题 (Fixed)
+- **问题**: "companies.forEach is not a function"错误
+- **解决**: 已修复API响应格式处理，正确提取companies数组
+- **技术细节**: 使用`const companies = response.companies || response || [];`
+
+### 3. 文件上传失败
 - **问题**: 文件上传超时或失败
 - **解决**: 检查文件大小（限制10MB）、网络连接、文件格式
 
-### 3. 跨页面状态丢失
+### 4. 跨页面状态丢失 (Enhanced)
 - **问题**: 切换页面后选择的公司信息丢失
 - **解决**: 使用StateManager保存状态，检查localStorage
+- **新增**: 单页面应用架构减少了状态丢失问题，增强了状态同步
 
-### 4. 进度条不显示
+### 5. 进度条不显示
 - **问题**: 长时间操作没有进度提示
 - **解决**: 检查progressBar元素是否存在，确认事件监听正确绑定
 
-## 总结
+### 6. 选项卡间状态不一致 (New)
+- **问题**: 不同选项卡间公司选择不同步
+- **解决**: 使用GlobalCompanyManager统一管理，自动同步所有公司选择器
+
+### 7. 页面刷新后状态丢失 (New)
+- **问题**: 刷新页面后公司选择等状态重置
+- **解决**: StateManager支持URL参数同步，确保状态持久化
+
+## 总结 (Updated 2025-09-12)
 
 本API系统采用现代Web架构，提供了完整的招标文档处理能力。主要特点：
 
 1. **完整的REST API设计**：覆盖所有业务功能
 2. **智能文档处理**：集成LLM进行信息提取
-3. **用户友好的界面**：丰富的交互反馈
-4. **健壮的错误处理**：全面的异常捕获和用户提示
-5. **灵活的状态管理**：支持跨页面数据保持
-6. **安全的文件处理**：完善的文件上传下载机制
+3. **统一的单页面架构**：集成所有功能模块，改善用户体验
+4. **增强的状态管理**：GlobalCompanyManager统一公司选择，跨组件状态同步
+5. **健壮的错误处理**：全面的异常捕获、自动数据清理、用户友好提示
+6. **灵活的状态管理**：支持跨页面数据保持、URL参数同步
+7. **安全的文件处理**：完善的文件上传下载机制
 
-开发者可以基于这套API快速构建招标相关的应用功能，系统提供了良好的扩展性和维护性。
+### 2025-09-12更新要点：
+- **架构简化**：从多页面迁移到单页面应用，减少状态管理复杂性
+- **错误修复**：修复公司列表加载和API密钥解密关键错误
+- **状态增强**：实现统一公司管理和跨组件状态同步
+- **代码精简**：移除5个独立JS文件（约87,000行代码），提高维护性
+
+开发者可以基于这套API快速构建招标相关的应用功能，系统经过重构后提供了更好的扩展性和维护性。

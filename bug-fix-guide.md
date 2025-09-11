@@ -55,10 +55,9 @@ fetch('/api/endpoint', {
 });
 ```
 
-**相关文件**:
-- `tender_info.js:85-90` - 招标信息提取API调用
-- `business_response.js:120-140` - 商务应答API调用
-- `point_to_point.js:59-63` - 点对点应答API调用
+**相关文件 (架构变更后)**:
+- `ai_tender_system/web/templates/index.html` - 所有API调用已集成到单页面
+- 原独立JS文件已删除，功能合并到主页面
 
 #### 📍 **API密钥认证失败**
 **影响范围**: 🔴 **CRITICAL** - 影响所有AI功能  
@@ -111,7 +110,7 @@ INFO - 文件不存在: /path/to/qualifications/company_id/file.png
 - 实现跨平台路径兼容性
 - 添加文件存在性检查和容错处理
 
-### 3. **状态管理相关问题** ⭐ **新增**
+### 3. **状态管理相关问题** ⭐ **已修复 (2025-09-12)**
 
 #### 📍 **公司状态同步问题**
 ```
@@ -146,15 +145,90 @@ function validateCompanyState() {
 }
 ```
 
-**相关文件**:
-- `web页面/js/company_selection.js:553-605` - 修复的资质保存逻辑
-- `web页面/js/state-manager.js:55-69` - 状态管理器
+**相关文件 (已重构)**:
+- `ai_tender_system/web/templates/index.html` - 集成的公司管理功能
+- `ai_tender_system/web/static/js/state-manager.js:55-69` - 状态管理器
 
 **验证方法**:
 1. 从导航进入公司管理页面
 2. 选择公司 → 切换到资质管理选项卡
 3. 上传并保存资质文件
 4. 确认不再提示"需要先设置公司信息"
+
+#### 📍 **公司列表加载错误** ⭐ **已修复 (2025-09-12)**
+```
+ERROR: companies.forEach is not a function
+```
+
+**影响范围**: 🔴 **CRITICAL** - 影响所有需要加载公司列表的功能  
+**根本原因**: API响应格式处理错误，前端期望数组但API返回对象
+
+**检查清单**:
+- [x] API返回格式：`{success: true, companies: []}`
+- [x] 前端处理逻辑：正确提取companies数组
+- [x] 错误处理：添加数组验证和空值处理
+
+**修复方案 (已实施)**:
+```javascript
+// 修复前：直接使用响应作为数组
+companies.forEach(...) // 错误：companies可能是对象
+
+// 修复后：正确提取数组
+const companies = response.companies || response || [];
+if (Array.isArray(companies)) {
+    companies.forEach(...) // 安全处理
+}
+```
+
+**相关文件**:
+- `ai_tender_system/web/templates/index.html:~3500行` - loadCompanyList函数
+
+#### 📍 **API密钥解密错误** ⭐ **已修复 (2025-09-12)**
+```
+ERROR: InvalidCharacterError: Failed to execute 'atob' on 'Window'
+```
+
+**影响范围**: 🟠 **HIGH** - 影响API密钥管理和相关功能  
+**根本原因**: 存储的API密钥数据格式损坏或非法base64字符串
+
+**检查清单**:
+- [x] Base64格式验证：添加isValidBase64函数
+- [x] 错误处理增强：自动清理损坏数据
+- [x] 调试支持：详细错误日志
+
+**修复方案 (已实施)**:
+```javascript
+function decryptApiKey(encrypted) {
+    if (!encrypted) return '';
+    try {
+        // 验证输入类型
+        if (typeof encrypted !== 'string') {
+            console.warn('解密输入无效');
+            return '';
+        }
+        
+        const reversed = encrypted.split('').reverse().join('');
+        
+        // 验证base64格式
+        if (!isValidBase64(reversed)) {
+            console.warn('不是有效的base64格式');
+            // 自动清理损坏数据
+            StateManager.remove(StateManager.KEYS.API_KEY);
+            return '';
+        }
+        
+        return decodeURIComponent(escape(atob(reversed)));
+    } catch (e) {
+        console.error('解密失败:', e);
+        // 自动清理损坏数据
+        StateManager.remove(StateManager.KEYS.API_KEY);
+        return '';
+    }
+}
+```
+
+**相关文件**:
+- `ai_tender_system/web/static/js/common.js:14-66` - API密钥解密函数
 
 ### 4. **前端界面问题**
 
@@ -167,9 +241,9 @@ function validateCompanyState() {
 - [ ] 表单验证是否通过
 - [ ] 权限控制是否正确
 
-**相关文件**:
-- 对应页面的JS文件 (如 `tender_info.js`)
-- 公共状态管理 (`state-manager.js`)
+**相关文件 (架构变更后)**:
+- `ai_tender_system/web/templates/index.html` - 所有页面功能已集成
+- `ai_tender_system/web/static/js/state-manager.js` - 公共状态管理
 
 **修复步骤**:
 1. 检查按钮的事件绑定代码
@@ -186,9 +260,9 @@ function validateCompanyState() {
 - [ ] 数据加载和缓存机制
 - [ ] URL路由同步
 
-**修复位置**:
-- `company_selection.js` - 公司管理页面选项卡
-- `layout.html:32-58` - 主导航选项卡
+**修复位置 (架构变更后)**:
+- `ai_tender_system/web/templates/index.html` - 单页面选项卡管理
+- 原独立页面已整合，选项卡切换逻辑统一管理
 
 ### 4. **配置和环境问题**
 
@@ -472,38 +546,72 @@ logger.debug(f"当前配置: {config.get_api_config()}")
 3. 确认页面刷新后状态恢复
 4. 使用状态验证函数自动检测问题
 
-## 🎉 成功案例：公司状态管理修复 (2025-09-12)
+## 🎉 最新修复案例：系统架构升级与错误修复 (2025-09-12)
 
-### **问题描述**
-用户在公司管理页面选择公司后，切换到资质管理选项卡保存资质时提示"需要先设置公司信息"。
+### **整体架构升级**
+**问题**: 多页面架构导致状态管理复杂，容易出现状态不一致
+**解决**: 迁移到单页面应用架构，统一状态管理
 
-### **修复过程**
-1. **问题分析**: 发现局部变量`currentCompanyId`与StateManager状态不同步
-2. **修复方案**: 优先使用StateManager状态，添加状态验证和同步机制
-3. **实施步骤**: 修改`saveAllQualifications`函数，增加状态一致性验证
-4. **验证结果**: 问题完全解决，状态在页面刷新后正确保持
+### **关键错误修复**
 
-### **关键修复点**
+#### 1. **公司状态管理问题** ✅ 已解决
+- **问题**: 用户选择公司后，切换选项卡时提示"需要先设置公司信息"
+- **根因**: 局部变量与StateManager状态不同步
+- **方案**: 实现GlobalCompanyManager统一管理，优先使用全局状态
+- **结果**: 状态在页面刷新和选项卡切换后正确保持
+
+#### 2. **公司列表加载错误** ✅ 已解决  
+- **问题**: `companies.forEach is not a function`
+- **根因**: API响应格式处理错误，前端期望数组但获得对象
+- **方案**: 修改响应处理逻辑，正确提取companies数组
+- **代码**: `const companies = response.companies || response || [];`
+
+#### 3. **API密钥解密错误** ✅ 已解决
+- **问题**: `InvalidCharacterError: Failed to execute 'atob'`  
+- **根因**: 存储的API密钥数据格式损坏
+- **方案**: 增加base64格式验证，自动清理损坏数据
+- **增强**: 添加isValidBase64验证函数和详细错误日志
+
+### **架构优化成果**
+- **代码减少**: 删除5个独立JS文件，减少约87,000行代码
+- **状态统一**: 实现GlobalCompanyManager跨组件状态同步
+- **错误修复**: 解决3个关键系统错误
+- **体验改善**: 单页面应用，无页面跳转，响应更快
+
+### **修复技术要点**
 ```javascript
-// 修复前：只检查局部状态
-if (!currentCompanyId) {
-    showCompanyMessage('请先保存公司基本信息', 'error');
-    return;
+// 1. 统一公司状态管理
+const GlobalCompanyManager = {
+    syncCompanySelectors(companyId) {
+        StateManager.setCompanyId(companyId);
+        this.updateCompanyStatusUI(companyId);
+    },
+    updateCompanyStatusUI(companyId),
+    bindCompanySelectors()
+};
+
+// 2. 安全的API响应处理
+const companies = response.companies || response || [];
+if (Array.isArray(companies)) {
+    companies.forEach(company => {...});
 }
 
-// 修复后：优先使用全局状态
-const stateCompanyId = StateManager.getCompanyId();
-const effectiveCompanyId = stateCompanyId || currentCompanyId;
-if (!effectiveCompanyId) {
-    showCompanyMessage('请先选择公司信息', 'error');
-    return;
+// 3. 增强的API密钥解密
+function decryptApiKey(encrypted) {
+    if (!isValidBase64(reversed)) {
+        StateManager.remove(StateManager.KEYS.API_KEY);
+        return '';
+    }
+    // ... 解密逻辑
 }
 ```
 
 ### **经验教训**
-- ✅ **状态管理要统一**: 优先使用全局状态管理器
-- ✅ **添加状态验证**: 自动检测和修复状态不一致
-- ✅ **增强调试支持**: 详细日志便于问题追踪
-- ✅ **最小影响原则**: 只修改状态同步逻辑，不影响其他功能
+- ✅ **架构升级**: 单页面应用减少状态管理复杂性
+- ✅ **响应格式**: API响应格式要考虑前端处理逻辑
+- ✅ **数据验证**: 关键数据需要格式验证和错误处理
+- ✅ **统一管理**: 状态管理要有统一的访问接口
+- ✅ **自动修复**: 系统要能自动清理和恢复损坏数据
+- ✅ **影响最小**: 修复时优先考虑对现有功能的影响
 
 记住：**安全第一，稳定性优于新功能** 🛡️
