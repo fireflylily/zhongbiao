@@ -27,7 +27,8 @@
       "Bash(fi)",
       "Bash(done)",
       "Bash(kill:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []
