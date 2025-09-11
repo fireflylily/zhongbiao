@@ -52,6 +52,26 @@ const standardQualifications = {
 // 存储必要资质要求
 let requiredQualifications = [];
 
+// 状态一致性验证函数
+function validateCompanyState() {
+    const stateCompanyId = StateManager.getCompanyId();
+    const localCompanyId = currentCompanyId;
+    
+    if (stateCompanyId !== localCompanyId) {
+        console.warn('[状态验证] 状态不一致:', {
+            stateCompanyId,
+            localCompanyId,
+            action: '同步到StateManager状态'
+        });
+        
+        // 以StateManager为准
+        currentCompanyId = stateCompanyId;
+        return stateCompanyId;
+    }
+    
+    return stateCompanyId;
+}
+
 onPageReady(function() {
     // 初始化页面元素
     companySelect = document.getElementById('companySelect');
@@ -85,12 +105,42 @@ onPageReady(function() {
     document.getElementById('saveAllQualificationsBtn')?.addEventListener('click', saveAllQualifications);
     document.getElementById('clearAllQualificationsBtn')?.addEventListener('click', clearAllQualifications);
 
-    // 从状态管理器恢复公司ID
+    // 从状态管理器恢复公司ID - 统一状态管理
     const savedCompanyId = StateManager.getCompanyId();
+    console.log('[公司状态] 页面初始化，从StateManager获取公司ID:', savedCompanyId);
+    
     if (savedCompanyId) {
         currentCompanyId = savedCompanyId;
+        console.log('[公司状态] 设置本地currentCompanyId:', currentCompanyId);
         loadCompanyInfo(savedCompanyId);
+    } else {
+        console.log('[公司状态] 未找到已保存的公司ID');
     }
+    
+    // 监听来自其他页面的公司状态变更
+    StateManager.onStateChangeByKey('companyId', function(newCompanyId, oldCompanyId) {
+        console.log('[公司管理] 接收到公司状态变更:', {
+            new: newCompanyId,
+            old: oldCompanyId
+        });
+        
+        // 更新本页面的公司选择和状态
+        if (newCompanyId !== currentCompanyId) {
+            currentCompanyId = newCompanyId;
+            
+            if (companySelect) {
+                companySelect.value = newCompanyId || '';
+            }
+            
+            if (newCompanyId) {
+                loadCompanyInfo(newCompanyId);
+            } else {
+                clearCompanyForm();
+            }
+            
+            console.log('[公司管理] 已同步公司状态:', newCompanyId);
+        }
+    });
 });
 
 function loadCompanyList() {
@@ -126,9 +176,17 @@ function handleCompanySelection(event) {
     if (isLoadingCompany) return;
     
     const companyId = event.target.value;
+    console.log('[公司选择] 用户选择公司ID:', companyId);
+    
     if (companyId) {
+        // 立即同步状态到StateManager
+        StateManager.setCompanyId(companyId);
+        console.log('[公司选择] 已同步状态到StateManager:', companyId);
         loadCompanyInfo(companyId);
     } else {
+        // 清空时也要清理StateManager中的状态
+        StateManager.setCompanyId('');
+        console.log('[公司选择] 已清空StateManager中的公司状态');
         clearCompanyForm();
     }
 }
@@ -144,8 +202,12 @@ function loadCompanyInfo(companyId) {
                 currentCompanyId = companyId;
                 deleteCompanyBtn.style.display = 'inline-block';
                 
-                // 保存到状态管理器
+                // 确保状态同步到StateManager
                 StateManager.setCompanyId(companyId);
+                console.log('[公司加载] 成功加载公司信息并同步状态:', {
+                    companyId,
+                    companyName: data.company?.companyName
+                });
                 
                 // 加载资质文件信息
                 loadCompanyQualifications(companyId);
@@ -546,9 +608,26 @@ function clearQualificationFileUI(key) {
 }
 
 function saveAllQualifications() {
-    if (!currentCompanyId) {
-        showCompanyMessage('请先保存公司基本信息', 'error');
+    // 优先从StateManager获取公司ID，确保状态一致性
+    const stateCompanyId = StateManager.getCompanyId();
+    const effectiveCompanyId = stateCompanyId || currentCompanyId;
+    
+    console.log('[资质保存] 状态检查:', {
+        stateCompanyId,
+        currentCompanyId,
+        effectiveCompanyId
+    });
+    
+    if (!effectiveCompanyId) {
+        console.log('[资质保存] 错误：未找到有效的公司ID');
+        showCompanyMessage('请先选择公司信息', 'error');
         return;
+    }
+    
+    // 同步状态：确保本地变量与StateManager一致
+    if (effectiveCompanyId !== currentCompanyId) {
+        console.log('[资质保存] 同步本地公司状态:', effectiveCompanyId);
+        currentCompanyId = effectiveCompanyId;
     }
 
     const fileCount = Object.keys(qualificationFiles).length;
@@ -563,7 +642,8 @@ function saveAllQualifications() {
     btn.disabled = true;
 
     const formData = new FormData();
-    formData.append('company_id', currentCompanyId);
+    formData.append('company_id', effectiveCompanyId);
+    console.log('[资质保存] 使用公司ID进行资质上传:', effectiveCompanyId);
 
     // 添加所有文件
     for (const [key, fileInfo] of Object.entries(qualificationFiles)) {
@@ -579,7 +659,7 @@ function saveAllQualifications() {
         }
     }
 
-    fetch(`/api/companies/${currentCompanyId}/qualifications`, {
+    fetch(`/api/companies/${effectiveCompanyId}/qualifications`, {
         method: 'POST',
         body: formData
     })

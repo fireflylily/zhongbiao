@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司管理系统 - AI标书智能生成系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .footer {
+            margin-top: 50px;
+            padding: 20px 0;
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- 页面标题 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 text-primary">
+                        <i class="bi bi-building"></i> 公司管理系统
+                    </h1>
+                    <p class="lead text-muted">管理公司信息和资质证书</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导航菜单 -->
+        <div class="row">
+            <div class="col-12">
+                <ul class="nav nav-pills nav-justified mb-4" id="mainNav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/index.html">
+                            <i class="bi bi-house"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/tender_info.html">
+                            <i class="bi bi-search"></i> 读取信息
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/business_response.html">
+                            <i class="bi bi-briefcase"></i> 商务应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/point_to_point.html">
+                            <i class="bi bi-chat-dots"></i> 点对点应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/tech_proposal.html">
+                            <i class="bi bi-file-earmark-code"></i> 技术方案
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 公司选择区域 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-building"></i> 选择现有公司
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8 mb-2">
+                                <select class="form-select" id="companySelect">
+                                    <option value="">请选择公司（选择后自动加载）</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="btn-group w-100">
+                                    <button type="button" class="btn btn-outline-info" id="loadCompanyBtn">
+                                        <i class="bi bi-arrow-clockwise"></i> 重新加载
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success" id="newCompanyBtn">
+                                        <i class="bi bi-plus"></i> 新建
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 公司信息编辑区域 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-pencil-square"></i> 公司信息编辑
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="companyInfoForm">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="companyName" class="form-label">公司名称 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="companyName" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="establishDate" class="form-label">成立日期</label>
+                                    <input type="text" class="form-control" id="establishDate" placeholder="例如：2010年1月1日">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="legalRepresentative" class="form-label">法定代表人</label>
+                                    <input type="text" class="form-control" id="legalRepresentative">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="socialCreditCode" class="form-label">统一社会信用代码</label>
+                                    <input type="text" class="form-control" id="socialCreditCode">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="authorizedPersonName" class="form-label">被授权人名称</label>
+                                    <input type="text" class="form-control" id="authorizedPersonName">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="email" class="form-label">电子邮箱</label>
+                                    <input type="email" class="form-control" id="email">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label for="registeredAddress" class="form-label">注册地址</label>
+                                    <input type="text" class="form-control" id="registeredAddress">
+                                </div>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="text-center">
+                                <button type="button" class="btn btn-success me-2" id="saveCompanyBtn">
+                                    <i class="bi bi-check-circle"></i> 保存公司信息
+                                </button>
+                                <button type="button" class="btn btn-outline-warning me-2" id="clearFormBtn">
+                                    <i class="bi bi-x-circle"></i> 清空表单
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="deleteCompanyBtn">
+                                    <i class="bi bi-trash"></i> 删除公司
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果和错误区域 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-success" id="companyResultArea" style="display: none;">
+                    <h6>操作成功！</h6>
+                    <p id="companyResultMessage"></p>
+                </div>
+
+                <div class="alert alert-danger" id="companyErrorArea" style="display: none;">
+                    <h6>操作失败！</h6>
+                    <p id="companyErrorMessage"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer text-center">
+            <div class="container">
+                <p>&copy; 2025 AI标书智能生成系统. 智慧足迹科技有限公司</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/state-manager.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/company_selection.js"></script>
+
+    <script>
+        // 页面初始化
+        onPageReady(function() {
+            // 从URL和存储中恢复状态
+            const companyId = StateManager.getCompanyId();
+            if (companyId) {
+                console.log('当前选择的公司ID:', companyId);
+            }
+
+            // 更新导航链接，保持状态参数
+            updateNavigationLinks();
+        });
+
+        function updateNavigationLinks() {
+            const nav = document.getElementById('mainNav');
+            const companyId = StateManager.getCompanyId();
+            
+            if (nav && companyId) {
+                nav.querySelectorAll('a.nav-link').forEach(link => {
+                    if (!link.href.includes('companyId=')) {
+                        const url = new URL(link.href, window.location.origin);
+                        url.searchParams.set('companyId', companyId);
+                        link.href = url.toString();
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

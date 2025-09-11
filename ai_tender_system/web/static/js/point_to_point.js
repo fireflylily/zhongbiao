@@ -8,6 +8,9 @@
 // 这里包含原始的上传处理逻辑
 
 onPageReady(function() {
+    // 显示当前选中的公司信息
+    displayCurrentCompany();
+    
     // 设置拖拽上传
     setupDragDrop('uploadArea', 'fileInput', handleFileSelect);
     
@@ -16,6 +19,17 @@ onPageReady(function() {
     if (uploadForm) {
         uploadForm.addEventListener('submit', submitUpload);
     }
+    
+    // 监听公司状态变化（跨页面同步）
+    StateManager.onStateChangeByKey('companyId', function(newCompanyId, oldCompanyId) {
+        console.log('[点对点应答] 接收到公司状态变更:', {
+            new: newCompanyId,
+            old: oldCompanyId
+        });
+        
+        // 重新显示公司信息
+        displayCurrentCompany();
+    });
 });
 
 function handleFileSelect(file) {
@@ -113,4 +127,84 @@ function submitUpload(event) {
 function previewDocument(downloadUrl, filename, docType) {
     const previewUrl = `/preview-document?file=${encodeURIComponent(downloadUrl)}&filename=${encodeURIComponent(filename)}&type=${encodeURIComponent(docType)}`;
     window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+}
+
+// ==================== 公司信息显示功能 ====================
+
+/**
+ * 显示当前选中的公司信息
+ */
+function displayCurrentCompany() {
+    const companyId = StateManager.getCompanyId();
+    console.log('[点对点应答] 当前公司ID:', companyId);
+    
+    if (companyId) {
+        loadAndDisplayCompanyInfo(companyId);
+    } else {
+        showNoCompanyWarning();
+    }
+}
+
+/**
+ * 加载并显示公司信息
+ */
+function loadAndDisplayCompanyInfo(companyId) {
+    fetch('/api/companies')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const company = data.companies.find(c => c.id === companyId);
+                if (company) {
+                    showCompanyInfo(company);
+                } else {
+                    console.warn('[点对点应答] 未找到公司信息，ID:', companyId);
+                    showNoCompanyWarning();
+                }
+            } else {
+                console.error('[点对点应答] 加载公司列表失败:', data.error);
+                showNoCompanyWarning();
+            }
+        })
+        .catch(error => {
+            console.error('[点对点应答] 网络错误:', error);
+            showNoCompanyWarning();
+        });
+}
+
+/**
+ * 显示公司信息
+ */
+function showCompanyInfo(company) {
+    const companyInfo = document.getElementById('pointToPointCompanyInfo');
+    const noCompanyWarning = document.getElementById('pointToPointNoCompany');
+    const companyName = document.getElementById('pointToPointCompanyName');
+    
+    if (companyInfo && companyName) {
+        companyName.textContent = company.companyName;
+        companyInfo.style.display = 'block';
+    }
+    
+    if (noCompanyWarning) {
+        noCompanyWarning.style.display = 'none';
+    }
+    
+    console.log('[点对点应答] 已显示公司信息:', company.companyName);
+}
+
+/**
+ * 显示未选择公司的警告
+ */
+function showNoCompanyWarning() {
+    const companyInfo = document.getElementById('pointToPointCompanyInfo');
+    const noCompanyWarning = document.getElementById('pointToPointNoCompany');
+    
+    if (companyInfo) {
+        companyInfo.style.display = 'none';
+    }
+    
+    if (noCompanyWarning) {
+        noCompanyWarning.style.display = 'block';
+    }
+    
+    console.log('[点对点应答] 显示未选择公司警告');
 }

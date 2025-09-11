@@ -37,6 +37,36 @@ onPageReady(function() {
     if (savedCompanyId && businessCompanySelect) {
         businessCompanySelect.value = savedCompanyId;
     }
+    
+    // 添加公司选择变更事件监听器
+    if (businessCompanySelect) {
+        businessCompanySelect.addEventListener('change', function() {
+            const selectedCompanyId = this.value;
+            console.log('[商务应答] 用户选择公司ID:', selectedCompanyId);
+            
+            if (selectedCompanyId) {
+                StateManager.setCompanyId(selectedCompanyId);
+                console.log('[商务应答] 已同步状态到StateManager:', selectedCompanyId);
+            } else {
+                StateManager.setCompanyId('');
+                console.log('[商务应答] 已清空StateManager中的公司状态');
+            }
+        });
+    }
+    
+    // 监听来自其他页面的公司状态变更
+    StateManager.onStateChangeByKey('companyId', function(newCompanyId, oldCompanyId) {
+        console.log('[商务应答] 接收到公司状态变更:', {
+            new: newCompanyId,
+            old: oldCompanyId
+        });
+        
+        // 更新本页面的公司选择框
+        if (businessCompanySelect && businessCompanySelect.value !== newCompanyId) {
+            businessCompanySelect.value = newCompanyId || '';
+            console.log('[商务应答] 已同步公司选择框:', newCompanyId);
+        }
+    });
 });
 
 function loadBusinessCompanyList() {

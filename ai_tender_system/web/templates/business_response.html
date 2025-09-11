@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商务应答系统 - AI标书智能生成系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            background-color: #f8f9fa;
+            border-color: #0056b3;
+        }
+        .upload-area.dragover {
+            background-color: #e3f2fd;
+            border-color: #1976d2;
+        }
+        .feature-card {
+            transition: transform 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-2px);
+        }
+        .progress {
+            display: none;
+        }
+        .footer {
+            margin-top: 50px;
+            padding: 20px 0;
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- 页面标题 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 text-primary">
+                        <i class="bi bi-briefcase"></i> 商务应答系统
+                    </h1>
+                    <p class="lead text-muted">智能填写公司信息，生成标准商务应答文档</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导航菜单 -->
+        <div class="row">
+            <div class="col-12">
+                <ul class="nav nav-pills nav-justified mb-4" id="mainNav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/index.html">
+                            <i class="bi bi-house"></i> 首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/tender_info.html">
+                            <i class="bi bi-search"></i> 读取信息
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/business_response.html">
+                            <i class="bi bi-briefcase"></i> 商务应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/point_to_point.html">
+                            <i class="bi bi-chat-dots"></i> 点对点应答
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/tech_proposal.html">
+                            <i class="bi bi-file-earmark-code"></i> 技术方案
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 页面内容 -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-briefcase"></i> 商务应答处理</h5>
+                        <small class="text-muted">上传商务应答模板，按选择的公司信息填写投标人名称、项目信息并插入资质证明图片</small>
+                    </div>
+                    <div class="card-body">
+                        <!-- 显示招标文件名称 -->
+                        <div id="tenderFileNameDisplay" class="alert alert-info mb-3" style="display: none;">
+                            <i class="bi bi-file-earmark-text"></i> 当前招标文件：<strong id="tenderFileNameText"></strong>
+                        </div>
+                        
+                        <form id="businessResponseForm" enctype="multipart/form-data">
+                            <!-- 模板文件上传 -->
+                            <div class="mb-3">
+                                <label for="businessTemplateFile" class="form-label">商务应答模板 *</label>
+                                <div class="upload-area" onclick="document.getElementById('businessTemplateFile').click()">
+                                    <i class="bi bi-cloud-upload display-4 text-primary"></i>
+                                    <h5>点击上传商务应答模板</h5>
+                                    <p class="text-muted">支持 .docx, .doc 格式</p>
+                                    <input type="file" id="businessTemplateFile" name="template_file" class="form-control" accept=".docx,.doc" style="display: none;">
+                                </div>
+                                <div class="mt-2" id="businessTemplateFileName"></div>
+                            </div>
+
+                            <!-- 公司选择 -->
+                            <div class="mb-3">
+                                <label for="businessCompanySelect" class="form-label">选择应答公司 *</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <select class="form-select" id="businessCompanySelect" style="flex: 1;">
+                                        <option value="">请选择公司...</option>
+                                    </select>
+                                    <a href="/company_selection.html" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> 查看公司
+                                    </a>
+                                    <a href="/company_selection.html#add-company" class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-plus-circle"></i> 新增公司
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- 项目信息 -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="businessProjectName" class="form-label">项目名称</label>
+                                        <input type="text" class="form-control" id="businessProjectName" 
+                                               placeholder="输入项目名称">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="businessTenderNo" class="form-label">招标编号</label>
+                                        <input type="text" class="form-control" id="businessTenderNo" 
+                                               placeholder="输入招标编号">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="businessDate" class="form-label">日期</label>
+                                <input type="text" class="form-control" id="businessDate" 
+                                       placeholder="例如：2025年 9月 3日">
+                            </div>
+
+                            <!-- 处理按钮 -->
+                            <div class="text-center mt-4">
+                                <button type="submit" class="btn btn-outline-success btn-sm me-3">
+                                    <i class="bi bi-play-fill"></i> 开始处理
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.location.href='/point_to_point.html'">
+                                    <i class="bi bi-arrow-right"></i> 下一步：点对点应答
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- 进度条 -->
+                        <div class="progress mt-3" id="businessProgress" style="display: none;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+
+                        <!-- 结果显示 -->
+                        <div class="alert alert-success mt-3" id="businessResult" style="display: none;">
+                            <h6>处理完成！</h6>
+                            <p id="businessResultMessage"></p>
+                            <div>
+                                <a href="#" id="businessDownloadLink" class="btn btn-outline-primary me-2">
+                                    <i class="bi bi-download"></i> 下载文件
+                                </a>
+                                <button id="businessPreviewBtn" class="btn btn-outline-success" onclick="previewBusinessDocument()">
+                                    <i class="bi bi-eye"></i> 预览文档
+                                </button>
+                                <button class="btn btn-outline-info ms-2" onclick="testPreviewWithLatestFile()">
+                                    <i class="bi bi-play-circle"></i> 测试预览
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 错误显示 -->
+                        <div class="alert alert-danger mt-3" id="businessError" style="display: none;">
+                            <h6>处理失败！</h6>
+                            <p id="businessErrorMessage"></p>
+                        </div>
+
+                        <!-- 统计信息显示 -->
+                        <div class="mt-3" id="businessStats" style="display: none;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">处理详情</h6>
+                                </div>
+                                <div class="card-body" id="businessStatsContent">
+                                    <!-- 统计内容将通过JavaScript动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 商务应答功能特点 -->
+                <div class="row mb-5">
+                    <div class="col-md-4 mb-3">
+                        <div class="card feature-card">
+                            <div class="card-body text-center">
+                                <i class="bi bi-building text-primary" style="font-size: 2rem;"></i>
+                                <h5 class="card-title mt-3">公司信息</h5>
+                                <p class="card-text text-muted">自动填入公司基本信息和联系方式</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card feature-card">
+                            <div class="card-body text-center">
+                                <i class="bi bi-award text-warning" style="font-size: 2rem;"></i>
+                                <h5 class="card-title mt-3">资质证明</h5>
+                                <p class="card-text text-muted">自动插入各类资质证书和证明文件</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card feature-card">
+                            <div class="card-body text-center">
+                                <i class="bi bi-table text-success" style="font-size: 2rem;"></i>
+                                <h5 class="card-title mt-3">表格填充</h5>
+                                <p class="card-text text-muted">智能填充投标人信息表格</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 使用说明 -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="bi bi-question-circle"></i> 使用说明</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>📋 支持的功能</h6>
+                                        <ul>
+                                            <li>投标人名称自动替换</li>
+                                            <li>公司信息表格自动填充</li>
+                                            <li>资质证书图片自动插入</li>
+                                            <li>项目信息自动填写</li>
+                                        </ul>
+                                        
+                                        <h6>📁 文件要求</h6>
+                                        <ul>
+                                            <li>商务应答模板：Word文档(.docx, .doc)</li>
+                                            <li>文档大小限制：50MB</li>
+                                            <li>需要预先配置公司信息</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>🔧 处理流程</h6>
+                                        <ol>
+                                            <li>上传商务应答模板文件</li>
+                                            <li>选择应答公司</li>
+                                            <li>填写项目基本信息</li>
+                                            <li>点击"开始处理"按钮</li>
+                                            <li>下载处理后的文档</li>
+                                        </ol>
+                                        
+                                        <h6>⚠️ 注意事项</h6>
+                                        <ul>
+                                            <li>请先在公司管理中配置公司信息</li>
+                                            <li>确保上传了必要的资质证书</li>
+                                            <li>处理时间根据文档复杂度而定</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer text-center">
+            <div class="container">
+                <p>&copy; 2025 AI标书智能生成系统. 智慧足迹科技有限公司</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/state-manager.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/business_response.js"></script>
+
+    <script>
+        // 页面初始化
+        onPageReady(function() {
+            // 从URL和存储中恢复状态
+            const companyId = StateManager.getCompanyId();
+            if (companyId) {
+                console.log('当前选择的公司ID:', companyId);
+            }
+
+            // 更新导航链接，保持状态参数
+            updateNavigationLinks();
+        });
+
+        function updateNavigationLinks() {
+            const nav = document.getElementById('mainNav');
+            const companyId = StateManager.getCompanyId();
+            
+            if (nav && companyId) {
+                nav.querySelectorAll('a.nav-link').forEach(link => {
+                    if (!link.href.includes('companyId=')) {
+                        const url = new URL(link.href, window.location.origin);
+                        url.searchParams.set('companyId', companyId);
+                        link.href = url.toString();
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

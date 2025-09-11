@@ -111,7 +111,52 @@ INFO - 文件不存在: /path/to/qualifications/company_id/file.png
 - 实现跨平台路径兼容性
 - 添加文件存在性检查和容错处理
 
-### 3. **前端界面问题**
+### 3. **状态管理相关问题** ⭐ **新增**
+
+#### 📍 **公司状态同步问题**
+```
+错误：在公司管理页面选择公司后，切换到资质管理选项卡保存时提示"需要先设置公司信息"
+```
+
+**影响范围**: 🟠 **HIGH** - 影响公司管理和资质保存功能  
+**根本原因**: 状态管理不一致，局部状态与全局状态不同步
+
+**检查清单**:
+- [ ] 确认StateManager中是否有正确的公司ID
+- [ ] 检查页面刷新后状态是否保持
+- [ ] 验证选项卡切换时状态一致性
+- [ ] 查看浏览器控制台的状态日志
+
+**修复方案 (已实施)**:
+```javascript
+// 优先从StateManager获取状态
+const stateCompanyId = StateManager.getCompanyId();
+const effectiveCompanyId = stateCompanyId || currentCompanyId;
+
+// 状态一致性验证
+function validateCompanyState() {
+    const stateCompanyId = StateManager.getCompanyId();
+    const localCompanyId = currentCompanyId;
+    
+    if (stateCompanyId !== localCompanyId) {
+        console.warn('[状态验证] 状态不一致');
+        currentCompanyId = stateCompanyId; // 同步状态
+    }
+    return stateCompanyId;
+}
+```
+
+**相关文件**:
+- `web页面/js/company_selection.js:553-605` - 修复的资质保存逻辑
+- `web页面/js/state-manager.js:55-69` - 状态管理器
+
+**验证方法**:
+1. 从导航进入公司管理页面
+2. 选择公司 → 切换到资质管理选项卡
+3. 上传并保存资质文件
+4. 确认不再提示"需要先设置公司信息"
+
+### 4. **前端界面问题**
 
 #### 📍 **按钮功能失效**
 **影响范围**: 🟡 **MEDIUM** - 通常只影响当前组件  
@@ -420,5 +465,45 @@ logger.debug(f"当前配置: {config.get_api_config()}")
 2. 检查数据备份完整性
 3. 评估数据恢复可能性
 4. 制定数据恢复方案
+
+### **状态管理问题** ⭐ **新增**
+1. 检查浏览器控制台的状态日志
+2. 验证StateManager和局部状态的一致性
+3. 确认页面刷新后状态恢复
+4. 使用状态验证函数自动检测问题
+
+## 🎉 成功案例：公司状态管理修复 (2025-09-12)
+
+### **问题描述**
+用户在公司管理页面选择公司后，切换到资质管理选项卡保存资质时提示"需要先设置公司信息"。
+
+### **修复过程**
+1. **问题分析**: 发现局部变量`currentCompanyId`与StateManager状态不同步
+2. **修复方案**: 优先使用StateManager状态，添加状态验证和同步机制
+3. **实施步骤**: 修改`saveAllQualifications`函数，增加状态一致性验证
+4. **验证结果**: 问题完全解决，状态在页面刷新后正确保持
+
+### **关键修复点**
+```javascript
+// 修复前：只检查局部状态
+if (!currentCompanyId) {
+    showCompanyMessage('请先保存公司基本信息', 'error');
+    return;
+}
+
+// 修复后：优先使用全局状态
+const stateCompanyId = StateManager.getCompanyId();
+const effectiveCompanyId = stateCompanyId || currentCompanyId;
+if (!effectiveCompanyId) {
+    showCompanyMessage('请先选择公司信息', 'error');
+    return;
+}
+```
+
+### **经验教训**
+- ✅ **状态管理要统一**: 优先使用全局状态管理器
+- ✅ **添加状态验证**: 自动检测和修复状态不一致
+- ✅ **增强调试支持**: 详细日志便于问题追踪
+- ✅ **最小影响原则**: 只修改状态同步逻辑，不影响其他功能
 
 记住：**安全第一，稳定性优于新功能** 🛡️

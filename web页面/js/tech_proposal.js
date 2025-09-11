@@ -10,6 +10,9 @@ let techProgressBar, techResultArea, techErrorArea;
 let generateProposalBtn;
 
 onPageReady(function() {
+    // 显示当前选中的公司信息
+    displayCurrentCompany();
+    
     // 初始化页面元素
     techProposalForm = document.getElementById('techProposalForm');
     techTenderFileInput = document.getElementById('techTenderFileInput');
@@ -34,6 +37,17 @@ onPageReady(function() {
 
     // 检查表单准备状态
     checkTechFormReady();
+    
+    // 监听公司状态变化（跨页面同步）
+    StateManager.onStateChangeByKey('companyId', function(newCompanyId, oldCompanyId) {
+        console.log('[技术方案] 接收到公司状态变更:', {
+            new: newCompanyId,
+            old: oldCompanyId
+        });
+        
+        // 重新显示公司信息
+        displayCurrentCompany();
+    });
 });
 
 function handleTechTenderFileSelect(event) {
@@ -190,4 +204,84 @@ function handleTechProposalSubmit(event) {
 function previewTechDocument(downloadUrl, filename) {
     const previewUrl = `/preview-document?file=${encodeURIComponent(downloadUrl)}&filename=${encodeURIComponent(filename)}&type=技术方案`;
     window.open(previewUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+}
+
+// ==================== 公司信息显示功能 ====================
+
+/**
+ * 显示当前选中的公司信息
+ */
+function displayCurrentCompany() {
+    const companyId = StateManager.getCompanyId();
+    console.log('[技术方案] 当前公司ID:', companyId);
+    
+    if (companyId) {
+        loadAndDisplayCompanyInfo(companyId);
+    } else {
+        showNoCompanyWarning();
+    }
+}
+
+/**
+ * 加载并显示公司信息
+ */
+function loadAndDisplayCompanyInfo(companyId) {
+    fetch('/api/companies')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const company = data.companies.find(c => c.id === companyId);
+                if (company) {
+                    showCompanyInfo(company);
+                } else {
+                    console.warn('[技术方案] 未找到公司信息，ID:', companyId);
+                    showNoCompanyWarning();
+                }
+            } else {
+                console.error('[技术方案] 加载公司列表失败:', data.error);
+                showNoCompanyWarning();
+            }
+        })
+        .catch(error => {
+            console.error('[技术方案] 网络错误:', error);
+            showNoCompanyWarning();
+        });
+}
+
+/**
+ * 显示公司信息
+ */
+function showCompanyInfo(company) {
+    const companyInfo = document.getElementById('techProposalCompanyInfo');
+    const noCompanyWarning = document.getElementById('techProposalNoCompany');
+    const companyName = document.getElementById('techProposalCompanyName');
+    
+    if (companyInfo && companyName) {
+        companyName.textContent = company.companyName;
+        companyInfo.style.display = 'block';
+    }
+    
+    if (noCompanyWarning) {
+        noCompanyWarning.style.display = 'none';
+    }
+    
+    console.log('[技术方案] 已显示公司信息:', company.companyName);
+}
+
+/**
+ * 显示未选择公司的警告
+ */
+function showNoCompanyWarning() {
+    const companyInfo = document.getElementById('techProposalCompanyInfo');
+    const noCompanyWarning = document.getElementById('techProposalNoCompany');
+    
+    if (companyInfo) {
+        companyInfo.style.display = 'none';
+    }
+    
+    if (noCompanyWarning) {
+        noCompanyWarning.style.display = 'block';
+    }
+    
+    console.log('[技术方案] 显示未选择公司警告');
 }

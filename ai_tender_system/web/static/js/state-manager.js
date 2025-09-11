@@ -53,9 +53,15 @@ const StateManager = {
     
     // 公司ID管理
     setCompanyId(companyId) {
+        const oldCompanyId = this.get(this.KEYS.COMPANY_ID);
         this.set(this.KEYS.COMPANY_ID, companyId);
         // 同时更新URL参数（如果需要）
         this.updateUrlParam('companyId', companyId);
+        
+        // 广播公司状态变更（如果值有变化）
+        if (oldCompanyId !== companyId) {
+            this.broadcastStateChange('companyId', companyId, oldCompanyId);
+        }
     },
 
     getCompanyId() {
@@ -173,6 +179,94 @@ const StateManager = {
                 }
             }
         });
+    },
+
+    /**
+     * 增强的跨页面状态管理
+     */
+    
+    // 广播状态变更
+    broadcastStateChange(key, newValue, oldValue) {
+        const changeEvent = {
+            type: 'stateChange',
+            key: key,
+            newValue: newValue,
+            oldValue: oldValue,
+            timestamp: Date.now(),
+            source: window.location.pathname
+        };
+        
+        console.log('[StateManager] 广播状态变更:', changeEvent);
+        
+        // 触发storage事件以通知其他页面
+        const eventKey = '_state_change_' + Date.now() + '_' + Math.random();
+        localStorage.setItem(eventKey, JSON.stringify(changeEvent));
+        
+        // 短暂延迟后清理事件数据
+        setTimeout(() => {
+            localStorage.removeItem(eventKey);
+        }, 100);
+    },
+    
+    // 监听状态变更
+    onStateChange(callback) {
+        window.addEventListener('storage', (e) => {
+            if (e.key && e.key.startsWith('_state_change_') && e.newValue) {
+                try {
+                    const changeEvent = JSON.parse(e.newValue);
+                    // 不处理来自当前页面的变更事件
+                    if (changeEvent.source !== window.location.pathname) {
+                        console.log('[StateManager] 接收到状态变更:', changeEvent);
+                        callback(changeEvent);
+                    }
+                } catch (err) {
+                    console.warn('[StateManager] 状态变更事件解析失败:', err);
+                }
+            }
+        });
+    },
+    
+    // 监听特定键的状态变更
+    onStateChangeByKey(key, callback) {
+        this.onStateChange((changeEvent) => {
+            if (changeEvent.key === key) {
+                callback(changeEvent.newValue, changeEvent.oldValue, changeEvent);
+            }
+        });
+    },
+    
+    // 验证公司状态一致性
+    validateCompanyState() {
+        const companyId = this.getCompanyId();
+        const urlCompanyId = this.getUrlParam('companyId');
+        const storedCompanyId = this.get(this.KEYS.COMPANY_ID);
+        
+        console.log('[StateManager] 公司状态验证:', {
+            current: companyId,
+            url: urlCompanyId, 
+            stored: storedCompanyId
+        });
+        
+        // 如果状态不一致，使用优先级进行同步
+        if (urlCompanyId && urlCompanyId !== storedCompanyId) {
+            console.log('[StateManager] URL参数优先，同步存储状态');
+            this.set(this.KEYS.COMPANY_ID, urlCompanyId);
+            return urlCompanyId;
+        }
+        
+        return companyId;
+    },
+    
+    // 强制同步所有页面状态
+    syncAllPages() {
+        const currentState = {
+            companyId: this.getCompanyId(),
+            timestamp: Date.now()
+        };
+        
+        console.log('[StateManager] 强制同步所有页面状态:', currentState);
+        
+        this.sendMessage('syncState', currentState);
     }
 };
 

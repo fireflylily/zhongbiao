@@ -113,10 +113,12 @@ web/static/js/
 │   ├── Uses: onPageReady(), setupDragDrop(), showNotification(), StateManager
 │   ├── Provides: Tender document processing UI
 │   └── API Endpoints: /extract-tender-info, /extract-tender-info-step
-├── company_selection.js (Depends on: common.js, state-manager.js)
-│   ├── Uses: apiRequest(), showNotification(), StateManager
-│   ├── Provides: Company profile management
-│   └── API Endpoints: /api/companies, /api/companies/<id>
+├── company_selection.js (Depends on: common.js, state-manager.js) [ENHANCED]
+│   ├── Uses: apiRequest(), showNotification(), StateManager (enhanced integration)
+│   ├── Provides: Company profile management, State synchronization
+│   ├── New Functions: validateCompanyState() - State consistency validation
+│   ├── Enhanced Functions: saveAllQualifications() - Priority state lookup
+│   └── API Endpoints: /api/companies, /api/companies/<id>, /api/companies/<id>/qualifications
 ├── business_response.js (Depends on: common.js, state-manager.js)
 │   ├── Uses: setupDragDrop(), showNotification(), StateManager
 │   ├── Provides: Business response processing UI
@@ -236,6 +238,20 @@ common/config.py (Config class)
 All modules import get_config()
     ↓
 Runtime configuration access
+```
+
+### State Management Flow (Updated 2025-09-12)
+```
+StateManager (Global State)
+    ↓
+company_selection.js
+    ├── validateCompanyState() [NEW] - State consistency validation
+    ├── handleCompanySelection() - Enhanced with immediate sync
+    ├── loadCompanyInfo() - Enhanced with state logging
+    └── saveAllQualifications() - Enhanced with priority state lookup
+    ↓
+Other pages (business_response.js, etc.)
+    └── Get consistent company state
 ```
 
 ### Logging Flow

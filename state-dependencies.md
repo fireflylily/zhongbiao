@@ -176,8 +176,18 @@ sendMessage(type, data) {
 依赖关系：
 tender_info.js ──(产生)──→ UPLOAD_FILES
 business_response.js ──(消费)──→ COMPANY_ID
-company_selection.js ──(产生+消费)──→ COMPANY_ID
+company_selection.js ──(产生+消费+验证)──→ COMPANY_ID [ENHANCED]
 所有页面 ──(消费)──→ API_KEY (如果需要)
+
+状态同步增强 (2025-09-12更新)：
+┌─────────────────────────────────────────────┐
+│ company_selection.js 状态管理增强           │
+├─────────────────────────────────────────────┤
+│ 新增: validateCompanyState() - 状态一致性验证 │
+│ 增强: handleCompanySelection() - 立即同步   │
+│ 增强: saveAllQualifications() - 优先查找   │
+│ 增强: 详细的调试日志和状态追踪             │
+└─────────────────────────────────────────────┘
 ```
 
 ## 状态持久化策略
@@ -238,3 +248,56 @@ company_selection.js ──(产生+消费)──→ COMPANY_ID
 - 避免频繁的状态读写
 - 状态变更时的批量更新
 - 合理的状态颗粒度设计
+
+## 状态管理增强 (2025-09-12 更新)
+
+### 新增功能
+
+#### 1. 状态一致性验证
+```javascript
+function validateCompanyState() {
+    const stateCompanyId = StateManager.getCompanyId();
+    const localCompanyId = currentCompanyId;
+    
+    if (stateCompanyId !== localCompanyId) {
+        console.warn('[状态验证] 状态不一致:', {
+            stateCompanyId,
+            localCompanyId,
+            action: '同步到StateManager状态'
+        });
+        
+        // 以StateManager为准
+        currentCompanyId = stateCompanyId;
+        return stateCompanyId;
+    }
+    
+    return stateCompanyId;
+}
+```
+
+#### 2. 优先状态查找机制
+```javascript
+// 在关键操作前，优先从StateManager获取状态
+const stateCompanyId = StateManager.getCompanyId();
+const effectiveCompanyId = stateCompanyId || currentCompanyId;
+
+// 确保状态同步
+if (effectiveCompanyId !== currentCompanyId) {
+    currentCompanyId = effectiveCompanyId;
+}
+```
+
+#### 3. 增强的调试支持
+- 状态变化全程日志记录
+- 关键操作的状态快照
+- 状态不一致时的自动修复
+
+### 修复的问题
+1. **状态同步问题**: 页面刷新后状态丢失
+2. **选项卡切换问题**: 不同选项卡间状态不一致  
+3. **保存失败问题**: 资质保存时提示"需要先设置公司信息"
+
+### 改进的组件
+- `company_selection.js` - 全面增强状态管理
+- 与`StateManager`的集成更加紧密
+- 添加了状态验证和自动恢复机制
