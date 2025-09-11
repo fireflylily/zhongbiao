@@ -2969,7 +2969,7 @@
                         </div>
                         <div class="col-lg-4 col-md-12 mb-2 mb-lg-0">
                             <div class="upload-zone border-2 border-dashed rounded p-3 text-center" 
-                                 onclick="document.querySelector('[data-qual-key=&quot;${key}&quot;]').click()">
+                                 data-qual-key="${key}" style="cursor: pointer;">
                                 <input type="file" class="form-control d-none qual-file-input" 
                                        accept=".pdf,.jpg,.jpeg,.png,.docx,.doc" 
                                        data-qual-key="${key}">
@@ -3031,6 +3031,14 @@
             fileInput.addEventListener('change', function() {
                 handleQualificationFileChange(key, this);
             });
+            
+            // 绑定上传区域点击事件
+            const uploadZone = div.querySelector('.upload-zone');
+            if (uploadZone) {
+                uploadZone.addEventListener('click', function() {
+                    fileInput.click();
+                });
+            }
 
             // 绑定查看按钮事件
             const viewBtn = div.querySelector('.view-file-btn');
@@ -3363,20 +3371,13 @@
             // 清空所有文件
             qualificationFiles = {};
 
-            // 重置所有文件输入
-            document.querySelectorAll('.qual-file-input').forEach(input => {
-                input.value = '';
-            });
+            // 重新初始化标准资质项目（这会清空并重建所有资质项）
+            const container = document.getElementById('standardQualifications');
+            if (container) {
+                initializeStandardQualifications();
+            }
 
-            // 隐藏所有状态和按钮
-            document.querySelectorAll('.file-status').forEach(status => {
-                status.style.display = 'none';
-            });
-            document.querySelectorAll('.view-file-btn, .delete-file-btn').forEach(btn => {
-                btn.style.display = 'none';
-            });
-
-            // 移除所有自定义资质项 - 功能已移至商务应答页面
+            // 移除所有自定义资质项
             const customQualContainer = document.getElementById('customQualifications');
             if (customQualContainer) {
                 customQualContainer.innerHTML = '';
@@ -4050,6 +4051,9 @@
         // 初始化公司管理页面
         function initCompanyManagementPage() {
             loadCompanyListPage();
+            
+            // 初始化资质管理功能
+            initializeStandardQualifications();
             
             // 公司列表选择事件
             safeAddEventListener('companyListSelect', 'change', function() {
