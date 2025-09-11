@@ -46,7 +46,7 @@ def get_default_api_key():
     """获取默认API密钥"""
     try:
         # 从环境变量或配置文件获取
-        return os.getenv('DEFAULT_API_KEY', 'sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob')
+        return os.getenv('DEFAULT_API_KEY', '""')
     except Exception as e:
         logger.error(f"获取默认API密钥失败: {e}")
         return None

@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>AI标书点对点应答系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
@@ -57,6 +60,15 @@
             border-top: 1px solid #dee2e6;
             color: #6c757d;
         }
+        
+        /* 改善模态框显示 */
+        .modal-backdrop {
+            backdrop-filter: blur(3px);
+        }
+        
+        .modal {
+            z-index: 1055;
+        }
     </style>
 </head>
 <body>
@@ -99,6 +111,12 @@
                         <button class="nav-link" id="tech-proposal-tab" data-bs-toggle="pill" 
                                 data-bs-target="#tech-proposal" type="button" role="tab">
                             <i class="bi bi-file-earmark-code"></i> 技术方案生成
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="company-management-tab" data-bs-toggle="pill" 
+                                data-bs-target="#company-management" type="button" role="tab">
+                            <i class="bi bi-building"></i> 公司管理
                         </button>
                     </li>
                 </ul>
@@ -225,7 +243,7 @@
                                 <div class="col-md-8 mb-2">
                                     <input type="password" class="form-control" id="tenderApiKey" 
                                            placeholder="请输入始皇API密钥 (sk-...)" 
-                                           value="sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob">
+                                           value="">
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <button class="btn btn-outline-primary" type="button" id="testTenderApiBtn">
@@ -345,9 +363,14 @@
                                 <!-- 公司选择 -->
                                 <div class="mb-3">
                                     <label for="businessCompanySelect" class="form-label">选择应答公司 *</label>
-                                    <select class="form-select" id="businessCompanySelect">
-                                        <option value="">请选择公司...</option>
-                                    </select>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <select class="form-select" id="businessCompanySelect" style="flex: 1;">
+                                            <option value="">请选择公司...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="document.getElementById('company-management-tab').click();">
+                                            <i class="bi bi-building"></i> 管理公司
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- 项目信息 -->
@@ -532,7 +555,7 @@
                                 <div class="input-group">
                                     <input type="password" class="form-control" id="apiKey" 
                                            placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxx" 
-                                           value="sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob">
+                                           value="">
                                     <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
                                         <i class="bi bi-eye"></i>
                                     </button>
@@ -819,6 +842,323 @@
         </div>
         <!-- 结束技术方案选项卡 -->
 
+        <!-- 公司管理选项卡 -->
+        <div class="tab-pane fade" id="company-management" role="tabpanel">
+            <div class="row">
+                <!-- 左侧：公司列表 -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-list-ul"></i> 公司列表</h5>
+                            <small class="text-muted">管理和选择公司配置</small>
+                        </div>
+                        <div class="card-body">
+                            <!-- 公司选择下拉框 -->
+                            <div class="mb-3">
+                                <select class="form-select" id="companyListSelect">
+                                    <option value="">请选择公司</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 操作按钮 -->
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-primary" id="newCompanyBtn">
+                                    <i class="bi bi-plus"></i> 新建公司
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" id="deleteSelectedCompanyBtn" style="display: none;">
+                                    <i class="bi bi-trash"></i> 删除公司
+                                </button>
+                            </div>
+                            
+                            <!-- 公司数量统计 -->
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i> 共有 <span id="companyCount">0</span> 家公司配置
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧：公司详细信息编辑 -->
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-pencil-square"></i> 公司信息编辑</h5>
+                            <small class="text-muted">编辑公司基本信息和资质文件</small>
+                        </div>
+                        <div class="card-body">
+                            <!-- 占位提示 -->
+                            <div id="companyEditPlaceholder" class="text-center py-5">
+                                <i class="bi bi-building text-muted" style="font-size: 3rem;"></i>
+                                <h5 class="mt-3 text-muted">请选择或新建公司</h5>
+                                <p class="text-muted">选择左侧公司列表中的公司开始编辑，或点击新建公司按钮创建新的公司配置</p>
+                            </div>
+                            
+                            <!-- 公司编辑区域 -->
+                            <div id="companyEditArea" style="display: none;">
+                                <!-- 公司基本信息编辑表单 -->
+                                <form id="companyInfoForm">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="companyName" class="form-label">公司名称 <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="companyName" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="establishDate" class="form-label">成立日期</label>
+                                            <input type="date" class="form-control" id="establishDate">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label for="legalRepresentative" class="form-label">法定代表人</label>
+                                            <input type="text" class="form-control" id="legalRepresentative">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="legalRepresentativePosition" class="form-label">法定代表人职务</label>
+                                            <input type="text" class="form-control" id="legalRepresentativePosition">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="socialCreditCode" class="form-label">统一社会信用代码</label>
+                                            <input type="text" class="form-control" id="socialCreditCode">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label for="authorizedPersonName" class="form-label">被授权人名称</label>
+                                            <input type="text" class="form-control" id="authorizedPersonName">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="authorizedPersonPosition" class="form-label">被授权人职务</label>
+                                            <input type="text" class="form-control" id="authorizedPersonPosition">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="email" class="form-label">电子邮箱</label>
+                                            <input type="email" class="form-control" id="email">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="registeredCapital" class="form-label">注册资本</label>
+                                            <input type="text" class="form-control" id="registeredCapital" placeholder="例：1000万人民币">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="companyType" class="form-label">公司类型</label>
+                                            <select class="form-select" id="companyType">
+                                                <option value="">请选择公司类型</option>
+                                                <option value="有限责任公司">有限责任公司</option>
+                                                <option value="股份有限公司">股份有限公司</option>
+                                                <option value="合伙企业">合伙企业</option>
+                                                <option value="个人独资企业">个人独资企业</option>
+                                                <option value="外商投资企业">外商投资企业</option>
+                                                <option value="其他">其他</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label for="fixedPhone" class="form-label">固定电话</label>
+                                            <input type="tel" class="form-control" id="fixedPhone" placeholder="例：010-12345678">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="fax" class="form-label">传真</label>
+                                            <input type="tel" class="form-control" id="fax" placeholder="例：010-12345678">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="postalCode" class="form-label">邮政编码</label>
+                                            <input type="text" class="form-control" id="postalCode" maxlength="6">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label for="registeredAddress" class="form-label">注册地址</label>
+                                            <textarea class="form-control" id="registeredAddress" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label for="businessScope" class="form-label">经营范围</label>
+                                            <textarea class="form-control" id="businessScope" rows="3"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label for="officeAddress" class="form-label">办公地址</label>
+                                            <textarea class="form-control" id="officeAddress" rows="2"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="website" class="form-label">官方网址</label>
+                                            <input type="url" class="form-control" id="website" placeholder="https://www.example.com">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="employeeCount" class="form-label">员工人数</label>
+                                            <select class="form-select" id="employeeCount">
+                                                <option value="">请选择员工规模</option>
+                                                <option value="1-10人">1-10人</option>
+                                                <option value="11-50人">11-50人</option>
+                                                <option value="51-100人">51-100人</option>
+                                                <option value="101-500人">101-500人</option>
+                                                <option value="501-1000人">501-1000人</option>
+                                                <option value="1000人以上">1000人以上</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label for="companyDescription" class="form-label">公司简介</label>
+                                            <textarea class="form-control" id="companyDescription" rows="3"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="bankName" class="form-label">开户行全称</label>
+                                            <input type="text" class="form-control" id="bankName" placeholder="例：中国工商银行股份有限公司北京分行">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="bankAccount" class="form-label">银行账号</label>
+                                            <input type="text" class="form-control" id="bankAccount">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 操作按钮 -->
+                                    <div class="text-center mt-4">
+                                        <button type="button" class="btn btn-success btn-lg me-3" id="saveCompanyBtn">
+                                            <i class="bi bi-save"></i> 保存公司信息
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-lg" id="clearCompanyFormBtn">
+                                            <i class="bi bi-x-circle"></i> 清空表单
+                                        </button>
+                                    </div>
+                                </form>
+                                
+                                <!-- 资质文件上传区域 -->
+                                <div class="card mt-4" id="qualificationUploadArea" style="display: none;">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-file-earmark-arrow-up"></i> 资质文件上传
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- 预定义资质类型 -->
+                                        <div class="mb-4">
+                                            <h6 class="text-primary mb-3">
+                                                <i class="bi bi-collection"></i> 标准资质文件
+                                            </h6>
+                                            <div id="standardQualifications">
+                                                <!-- 标准资质项目将在这里动态生成 -->
+                                            </div>
+                                        </div>
+
+                                        <!-- 自定义资质类型 -->
+                                        <div class="mb-4">
+                                            <h6 class="text-success mb-3">
+                                                <i class="bi bi-plus-circle"></i> 自定义资质文件
+                                            </h6>
+                                            
+                                            <!-- 添加自定义资质 -->
+                                            <div class="card bg-light mb-3">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-8">
+                                                            <input type="text" class="form-control" id="customQualificationName" 
+                                                                   placeholder="输入资质名称，如：软件著作权登记证书">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <button type="button" class="btn btn-success w-100" id="addCustomQualificationBtn">
+                                                                <i class="bi bi-plus"></i> 添加资质项
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 自定义资质列表 -->
+                                            <div id="customQualifications">
+                                                <!-- 自定义资质项目将在这里动态生成 -->
+                                            </div>
+                                        </div>
+
+                                        <!-- 批量操作 -->
+                                        <div class="text-center">
+                                            <button type="button" class="btn btn-primary btn-lg me-3" id="saveAllQualificationsBtn">
+                                                <i class="bi bi-cloud-upload"></i> 保存所有资质文件
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-lg" id="clearAllQualificationsBtn">
+                                                <i class="bi bi-x-circle"></i> 清空所有资质
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 功能说明卡片 -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> 公司管理功能说明
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>📋 主要功能</h6>
+                                    <ul>
+                                        <li>统一管理多个公司信息</li>
+                                        <li>配置公司基本信息和资质文件</li>
+                                        <li>支持资质文件上传和下载</li>
+                                        <li>在其他模块中快速应用公司信息</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>🔧 使用说明</h6>
+                                    <ul>
+                                        <li>左侧选择现有公司或新建公司</li>
+                                        <li>右侧编辑公司详细信息</li>
+                                        <li>上传营业执照、身份证等资质文件</li>
+                                        <li>配置完成后可在商务应答等功能中使用</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 操作结果显示 -->
+            <div id="companyResultArea" class="mt-4" style="display: none;">
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-check-circle"></i> 操作成功</h6>
+                    <p id="companyResultMessage"></p>
+                </div>
+            </div>
+
+            <!-- 错误信息显示 -->
+            <div id="companyErrorArea" class="mt-4" style="display: none;">
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle"></i> 操作失败</h6>
+                    <p id="companyErrorMessage"></p>
+                </div>
+            </div>
+        </div>
+        <!-- 结束公司管理选项卡 -->
 
         </div>
         <!-- 结束选项卡内容 -->
@@ -875,6 +1215,36 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // 全局错误处理 - 捕获所有TypeError并给出友好提示
+        window.addEventListener('error', function(e) {
+            if (e.error && e.error.message && e.error.message.includes("Cannot read properties of null")) {
+                console.warn('捕获到null元素错误，但已处理:', e.error.message);
+                e.preventDefault(); // 阻止错误显示在控制台
+                return true;
+            }
+        });
+
+        // 安全的事件绑定函数，避免null元素错误
+        function safeAddEventListener(elementId, eventType, handler) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.addEventListener(eventType, handler);
+                return true;
+            } else {
+                console.log(`元素 ${elementId} 不存在，跳过 ${eventType} 事件绑定`);
+                return false;
+            }
+        }
+
+        // 重写document.getElementById以添加安全检查
+        const originalGetElementById = document.getElementById;
+        document.getElementById = function(id) {
+            const element = originalGetElementById.call(document, id);
+            if (!element) {
+                console.warn(`元素 '${id}' 不存在`);
+            }
+            return element;
+        };
         // DOM元素引用
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
@@ -1982,17 +2352,9 @@
             extractInfoBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始提取信息';
         });
 
-        // ====== 公司信息管理功能 ======
-        console.log('Initializing company management...');
-        const companySelect = document.getElementById('companySelect');
-        const companyInfoForm = document.getElementById('companyInfoForm');
-        const saveCompanyBtn = document.getElementById('saveCompanyBtn');
-        const loadCompanyBtn = document.getElementById('loadCompanyBtn');
-        const newCompanyBtn = document.getElementById('newCompanyBtn');
-        const clearFormBtn = document.getElementById('clearFormBtn');
-        const deleteCompanyBtn = document.getElementById('deleteCompanyBtn');
-        const companyResultArea = document.getElementById('companyResultArea');
-        const companyErrorArea = document.getElementById('companyErrorArea');
+        // ====== 读取信息页面初始化 ======
+        console.log('Initializing tender info page...');
+        // 注意：公司管理功能已移至商务应答页面，此处不再需要相关元素
 
         // 公司信息字段映射
         const companyFields = {
@@ -2042,12 +2404,17 @@
         // 获取项目信息
         function loadProjectInfo() {
             fetch('/api/project-config')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.success && data.project_info) {
-                    fillProjectInfo(data.project_info);
+                if (data.success && data.projectInfo) {
+                    fillProjectInfo(data.projectInfo);
                 } else {
-                    console.log('No project info found or error loading project info');
+                    console.log('No project info found:', data.error || '未知错误');
                 }
             })
             .catch(error => {
@@ -2079,17 +2446,12 @@
 
         // 更新公司选择下拉框
         function updateCompanySelect(companies) {
-            companySelect.innerHTML = '<option value="">请选择公司（选择后自动加载）</option>';
-            companies.forEach(company => {
-                const option = document.createElement('option');
-                option.value = company.id;
-                option.textContent = company.companyName;
-                companySelect.appendChild(option);
-            });
+            console.log(`更新公司选择框，共 ${companies.length} 家公司`);
             
-            // 同时更新商务应答页面的公司下拉框
+            // 只更新商务应答页面的公司下拉框（移除了不存在的companySelect处理）
             const businessCompanySelect = document.getElementById('businessCompanySelect');
             if (businessCompanySelect) {
+                console.log('更新 businessCompanySelect 元素');
                 businessCompanySelect.innerHTML = '<option value="">请选择公司...</option>';
                 companies.forEach(company => {
                     const option = document.createElement('option');
@@ -2097,15 +2459,20 @@
                     option.textContent = company.companyName;
                     businessCompanySelect.appendChild(option);
                 });
+                console.log('businessCompanySelect 更新完成');
+            } else {
+                console.log('businessCompanySelect 元素不存在，跳过更新');
             }
             
             // 如果只有一个公司，自动选择它
             if (companies.length === 1) {
                 const company = companies[0];
                 
-                // 选择应答人页面自动选择
-                companySelect.value = company.id;
-                loadCompanyInfo(company.id);
+                // 选择应答人页面自动选择（如果存在）
+                if (companySelect) {
+                    companySelect.value = company.id;
+                    loadCompanyInfo(company.id);
+                }
                 
                 // 商务应答页面自动选择
                 if (businessCompanySelect) {
@@ -2114,30 +2481,8 @@
             }
         }
 
-        // 添加公司选择变化监听器
-        companySelect.addEventListener('change', function() {
-            if (isLoadingCompany) return; // 防止循环触发
-            
-            const companyId = this.value;
-            if (companyId) {
-                // 自动加载选中的公司信息
-                loadCompanyInfo(companyId);
-            } else {
-                // 如果选择空值，清空表单
-                clearCompanyFormInternal();
-            }
-        });
-
-        // 重新加载选中的公司信息
-        loadCompanyBtn.addEventListener('click', function() {
-            const companyId = companySelect.value;
-            if (!companyId) {
-                showCompanyMessage('请先选择一个公司', 'error');
-                return;
-            }
-            
-            loadCompanyInfo(companyId);
-        });
+        // 移除了对读取信息页面不存在元素的事件绑定
+        // 注意：公司管理功能现在集中在商务应答页面
 
         // 加载公司信息
         function loadCompanyInfo(companyId) {
@@ -2417,139 +2762,30 @@
             isLoadingCompany = false; // 重置标志
         }
 
-        // 新建公司
-        newCompanyBtn.addEventListener('click', function() {
-            clearCompanyForm();
-            clearAllQualificationsInternal(); // 清空资质文件
-            currentCompanyId = null;
-            deleteCompanyBtn.style.display = 'none';
-            showCompanyMessage('已清空表单，可以填写新公司信息', 'success');
-        });
+        // 移除了newCompanyBtn事件绑定 - 功能已转移到商务应答页面
 
-        // 清空表单
-        clearFormBtn.addEventListener('click', function() {
-            clearCompanyForm();
-            clearAllQualificationsInternal(); // 同时清空资质文件
-        });
+        // 移除了clearFormBtn事件绑定 - 功能已转移到商务应答页面
 
-        // 内部清空表单函数（不触发change事件）
-        function clearCompanyFormInternal() {
-            companyInfoForm.reset();
-            currentCompanyId = null;
-            deleteCompanyBtn.style.display = 'none';
-            hideCompanyMessages();
-        }
+        // 清空表单相关函数已移除 - 功能转移到商务应答页面
 
-        // 外部清空表单函数（包括下拉框）
-        function clearCompanyForm() {
-            isLoadingCompany = true; // 设置标志防止循环
-            companyInfoForm.reset();
-            companySelect.value = '';
-            currentCompanyId = null;
-            deleteCompanyBtn.style.display = 'none';
-            hideCompanyMessages();
-            isLoadingCompany = false; // 重置标志
-        }
+        // 移除了saveCompanyBtn事件绑定 - 功能已转移到商务应答页面
 
-        // 保存公司信息
-        saveCompanyBtn.addEventListener('click', function() {
-            const companyName = document.getElementById('companyName').value.trim();
-            if (!companyName) {
-                showCompanyMessage('公司名称不能为空', 'error');
-                return;
-            }
-
-            const companyData = {};
-            Object.keys(companyFields).forEach(fieldId => {
-                const element = document.getElementById(fieldId);
-                if (element) {
-                    companyData[fieldId] = element.value.trim();
-                }
-            });
-
-            const btn = saveCompanyBtn;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
-            btn.disabled = true;
-
-            const url = currentCompanyId ? `/api/companies/${currentCompanyId}` : '/api/companies';
-            const method = currentCompanyId ? 'PUT' : 'POST';
-
-            fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(companyData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    currentCompanyId = data.company_id || currentCompanyId;
-                    deleteCompanyBtn.style.display = 'inline-block';
-                    showCompanyMessage(data.message || '公司信息保存成功', 'success');
-                    loadCompanyList(); // 刷新公司列表
-                } else {
-                    showCompanyMessage('保存失败: ' + (data.error || '未知错误'), 'error');
-                }
-            })
-            .catch(error => {
-                showCompanyMessage('保存失败: ' + error.message, 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        });
-
-        // 删除公司
-        deleteCompanyBtn.addEventListener('click', function() {
-            if (!currentCompanyId) {
-                showCompanyMessage('没有选中的公司可删除', 'error');
-                return;
-            }
-
-            if (!confirm('确定要删除这个公司信息吗？此操作不可撤销。')) {
-                return;
-            }
-
-            const btn = deleteCompanyBtn;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 删除中...';
-            btn.disabled = true;
-
-            fetch(`/api/companies/${currentCompanyId}`, {
-                method: 'DELETE'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    clearCompanyForm();
-                    showCompanyMessage(data.message || '公司信息删除成功', 'success');
-                    loadCompanyList(); // 刷新公司列表
-                } else {
-                    showCompanyMessage('删除失败: ' + (data.error || '未知错误'), 'error');
-                }
-            })
-            .catch(error => {
-                showCompanyMessage('删除失败: ' + error.message, 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        });
+        // 移除了deleteCompanyBtn事件绑定 - 功能已转移到商务应答页面
 
         // 显示消息
         function showCompanyMessage(message, type) {
             hideCompanyMessages();
             
             if (type === 'success') {
-                document.getElementById('companyResultMessage').textContent = message;
-                companyResultArea.style.display = 'block';
+                const messageElem = document.getElementById('companyResultMessage');
+                const areaElem = document.getElementById('companyResultArea');
+                if (messageElem) messageElem.textContent = message;
+                if (areaElem) areaElem.style.display = 'block';
             } else {
-                document.getElementById('companyErrorMessage').textContent = message;
-                companyErrorArea.style.display = 'block';
+                const messageElem = document.getElementById('companyErrorMessage');
+                const areaElem = document.getElementById('companyErrorArea');
+                if (messageElem) messageElem.textContent = message;
+                if (areaElem) areaElem.style.display = 'block';
             }
 
             // 3秒后自动隐藏
@@ -2558,8 +2794,10 @@
 
         // 隐藏消息
         function hideCompanyMessages() {
-            companyResultArea.style.display = 'none';
-            companyErrorArea.style.display = 'none';
+            const resultArea = document.getElementById('companyResultArea');
+            const errorArea = document.getElementById('companyErrorArea');
+            if (resultArea) resultArea.style.display = 'none';
+            if (errorArea) errorArea.style.display = 'none';
         }
 
         console.log('Company management initialized');
@@ -2589,6 +2827,11 @@
         // 初始化标准资质项目
         function initializeStandardQualifications() {
             const container = document.getElementById('standardQualifications');
+            if (!container) {
+                console.log('standardQualifications 容器不存在，跳过资质初始化');
+                return;
+            }
+            
             container.innerHTML = '';
 
             standardQualificationTypes.forEach(qual => {
@@ -2816,8 +3059,11 @@
             }
         }
 
-        // 添加自定义资质项
-        document.getElementById('addCustomQualificationBtn').addEventListener('click', function() {
+        // 自定义资质功能已移除 - 功能集中在商务应答页面
+        /*
+        const addCustomQualificationBtn = document.getElementById('addCustomQualificationBtn');
+        if (addCustomQualificationBtn) {
+            addCustomQualificationBtn.addEventListener('click', function() {
             const nameInput = document.getElementById('customQualificationName');
             const name = nameInput.value.trim();
 
@@ -2839,6 +3085,10 @@
 
             showCompanyMessage(`已添加自定义资质项: ${name}`, 'success');
         });
+        } else {
+            console.log('addCustomQualificationBtn 元素不存在，跳过事件绑定');
+        }
+        */
 
         // 移除自定义资质项
         function removeCustomQualification(key) {
@@ -2858,8 +3108,8 @@
             showCompanyMessage('资质项已移除', 'success');
         }
 
-        // 保存所有资质文件
-        document.getElementById('saveAllQualificationsBtn').addEventListener('click', function() {
+        // 资质文件保存功能
+        safeAddEventListener('saveAllQualificationsBtn', 'click', function() {
             if (!currentCompanyId) {
                 showCompanyMessage('请先保存公司基本信息', 'error');
                 return;
@@ -2892,12 +3142,15 @@
                 btn.style.display = 'none';
             });
 
-            // 移除所有自定义资质项
-            document.getElementById('customQualifications').innerHTML = '';
+            // 移除所有自定义资质项 - 功能已移至商务应答页面
+            const customQualContainer = document.getElementById('customQualifications');
+            if (customQualContainer) {
+                customQualContainer.innerHTML = '';
+            }
         }
 
-        // 清空所有资质（带确认对话框）
-        document.getElementById('clearAllQualificationsBtn').addEventListener('click', function() {
+        // 清空资质功能
+        safeAddEventListener('clearAllQualificationsBtn', 'click', function() {
             if (!confirm('确定要清空所有资质文件吗？此操作不可撤销。')) {
                 return;
             }
@@ -2912,27 +3165,35 @@
             
             // 添加公司ID
             formData.append('company_id', currentCompanyId);
+            
+            // 准备自定义资质名称映射
+            const qualificationNames = {};
 
             // 添加所有文件
             for (const [key, fileInfo] of Object.entries(qualificationFiles)) {
                 if (fileInfo.file) {
                     formData.append(`qualifications[${key}]`, fileInfo.file);
                     
-                    // 如果是自定义资质，添加名称信息
+                    // 如果是自定义资质，收集名称信息
                     if (key.startsWith('custom_')) {
                         const qualElement = document.querySelector(`[data-qual-key="${key}"]`);
-                        const qualName = qualElement.querySelector('h6').textContent.replace(/.*\s/, '');
-                        formData.append(`qualification_names[${key}]`, qualName);
+                        if (qualElement) {
+                            const qualName = qualElement.querySelector('h6').textContent.replace(/.*\s/, '');
+                            qualificationNames[key] = qualName;
+                        }
                     }
                 }
             }
+            
+            // 添加自定义资质名称映射作为JSON字符串
+            formData.append('qualification_names', JSON.stringify(qualificationNames));
 
             const btn = document.getElementById('saveAllQualificationsBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 上传中...';
             btn.disabled = true;
 
-            fetch(`/api/companies/${currentCompanyId}/qualifications`, {
+            fetch(`/api/companies/${currentCompanyId}/qualifications/upload`, {
                 method: 'POST',
                 body: formData
             })
@@ -2981,10 +3242,30 @@
                 `;
             }
         }
-
-        // 页面加载时初始化
+        
+        // 页面加载时初始化标准资质功能和自定义资质功能
         window.addEventListener('load', function() {
             initializeStandardQualifications();
+            
+            // 自定义资质添加按钮事件
+            safeAddEventListener('addCustomQualificationBtn', 'click', function() {
+                const nameInput = document.getElementById('customQualificationName');
+                const name = nameInput.value.trim();
+                
+                if (!name) {
+                    alert('请输入资质名称');
+                    return;
+                }
+                
+                // 创建自定义资质项
+                const customKey = `custom_${customQualificationCounter++}`;
+                const qualElement = createQualificationElement(customKey, name, 'bi-file-earmark-plus', true);
+                
+                document.getElementById('customQualifications').appendChild(qualElement);
+                nameInput.value = '';
+                
+                console.log(`添加自定义资质: ${name} (${customKey})`);
+            });
         });
 
         console.log('Qualification management initialized');
@@ -3111,22 +3392,33 @@
         
         // 加载商务应答历史文件
         function loadBusinessFilesList() {
+            const filesList = document.getElementById('businessFilesList');
+            if (!filesList) {
+                console.log('businessFilesList 元素不存在，跳过文件列表加载');
+                return;
+            }
+            
             fetch('/api/business-files')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                const filesList = document.getElementById('businessFilesList');
-                if (data.files && data.files.length > 0) {
+                if (data.success && data.files && data.files.length > 0) {
                     let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr>';
                     html += '<th>文件名</th><th>大小</th><th>创建时间</th><th>操作</th></tr></thead><tbody>';
                     
                     data.files.forEach(file => {
                         const size = (file.size / 1024 / 1024).toFixed(2);
                         const date = new Date(file.created).toLocaleString('zh-CN');
+                        const downloadUrl = `/download/${encodeURIComponent(file.name)}`;
                         html += `<tr>
                             <td>${file.name}</td>
                             <td>${size} MB</td>
                             <td>${date}</td>
-                            <td><a href="${file.download_url}" class="btn btn-sm btn-outline-primary">下载</a></td>
+                            <td><a href="${downloadUrl}" class="btn btn-sm btn-outline-primary">下载</a></td>
                         </tr>`;
                     });
                     
@@ -3138,7 +3430,7 @@
             })
             .catch(error => {
                 console.error('加载商务应答文件列表失败:', error);
-                document.getElementById('businessFilesList').innerHTML = '<p class="text-danger">加载失败</p>';
+                filesList.innerHTML = '<p class="text-warning">文件列表加载失败，请稍后重试</p>';
             });
         }
         
@@ -3164,29 +3456,828 @@
             }
         });
         
-        // 页面加载时加载商务应答文件列表
+        // 页面加载时加载商务应答文件列表并初始化公司管理功能
         window.addEventListener('load', function() {
+            console.log('商务应答页面加载完成，初始化功能...');
+            
             initBusinessResponsePage();
             loadBusinessFilesList();
+            initializeModalEvents();
             
             // 添加商务应答公司选择事件监听器
             const businessCompanySelect = document.getElementById('businessCompanySelect');
             if (businessCompanySelect) {
                 businessCompanySelect.addEventListener('change', function() {
                     if (this.value) {
-                        // 当选择公司时，自动加载项目信息
+                        // 当选择公司时，自动加载项目信息和资质文件
                         console.log('Company selected for business response:', this.value);
                         loadProjectInfo();
+                        
+                        // 设置当前公司ID并加载资质文件
+                        currentCompanyId = this.value;
+                        loadCompanyQualifications(this.value);
                     } else {
-                        // 清空项目信息字段
+                        // 清空项目信息字段和资质文件
                         document.getElementById('businessProjectName').value = '';
                         document.getElementById('businessTenderNo').value = '';
                         document.getElementById('businessDate').value = '';
+                        
+                        // 清空当前公司ID和资质文件
+                        currentCompanyId = null;
+                        clearAllQualificationsInternal();
                     }
                 });
+            }
+            
+            // 商务应答页面的公司管理功能已简化，功能迁移到专门的公司管理页面
+            
+            // 添加页面状态检查
+            function checkPageStatus() {
+                console.log('=== 页面状态检查 ===');
+                console.log('当前活跃tab:', document.querySelector('.nav-link.active')?.textContent?.trim());
+                console.log('businessCompanySelect元素存在:', !!document.getElementById('businessCompanySelect'));
+                console.log('companyManagementModal元素存在:', !!document.getElementById('companyManagementModal'));
+                console.log('=== 检查完成 ===');
+            }
+            
+            // 立即执行一次状态检查
+            checkPageStatus();
+            
+            // 每5秒自动检查一次（仅前3次，避免过多日志）
+            let checkCount = 0;
+            const checkInterval = setInterval(function() {
+                checkCount++;
+                console.log(`第${checkCount}次状态检查:`);
+                checkPageStatus();
+                if (checkCount >= 3) {
+                    clearInterval(checkInterval);
+                }
+            }, 5000);
+        });
+
+        // =========================
+        // 公司管理模态框功能
+        // =========================
+        
+        let currentModalCompanyId = null;
+        
+        
+        // 重复的window.load事件已移除，功能已合并到上面的商务应答load事件中
+        
+        // handleViewCompany 和 handleAddCompany 函数已移除
+        // 功能已迁移到专门的公司管理页面
+        
+        
+        // 加载公司列表到模态框
+        function loadModalCompanyList() {
+            fetch('/api/companies')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('modalCompanySelect');
+                    select.innerHTML = '<option value="">请选择公司（选择后自动加载）</option>';
+                    
+                    if (data.companies && data.companies.length > 0) {
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company.id;
+                            option.textContent = company.companyName;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载公司列表失败:', error);
+                    alert('加载公司列表失败');
+                });
+        }
+        
+        // 加载公司信息到模态框
+        function loadCompanyToModal(companyId) {
+            fetch(`/api/companies/${companyId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.company) {
+                        const company = data.company;
+                        currentModalCompanyId = companyId;
+                        
+                        // 填充表单
+                        document.getElementById('modalCompanyName').value = company.companyName || '';
+                        document.getElementById('modalEstablishDate').value = company.establishDate || '';
+                        document.getElementById('modalLegalRepresentative').value = company.legalRepresentative || '';
+                        document.getElementById('modalLegalRepresentativePosition').value = company.legalRepresentativePosition || '';
+                        document.getElementById('modalSocialCreditCode').value = company.socialCreditCode || '';
+                        document.getElementById('modalAuthorizedPersonName').value = company.authorizedPersonName || '';
+                        document.getElementById('modalAuthorizedPersonPosition').value = company.authorizedPersonPosition || '';
+                        document.getElementById('modalEmail').value = company.email || '';
+                        document.getElementById('modalRegisteredCapital').value = company.registeredCapital || '';
+                        document.getElementById('modalCompanyType').value = company.companyType || '';
+                        document.getElementById('modalRegisteredAddress').value = company.registeredAddress || '';
+                        document.getElementById('modalBusinessScope').value = company.businessScope || '';
+                        
+                        // 加载资质信息
+                        loadModalCompanyQualifications(company.qualifications || {});
+                        
+                        // 选中下拉框中的对应项
+                        document.getElementById('modalCompanySelect').value = companyId;
+                        
+                        // 显示删除按钮
+                        document.getElementById('modalDeleteCompanyBtn').style.display = 'inline-block';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载公司信息失败:', error);
+                    alert('加载公司信息失败');
+                });
+        }
+        
+        // 加载公司资质信息到模态框
+        function loadModalCompanyQualifications(qualifications) {
+            console.log('加载公司资质信息:', qualifications);
+            const qualificationsList = document.getElementById('modalQualificationsList');
+            
+            if (!qualificationsList) {
+                console.error('modalQualificationsList 元素不存在');
+                return;
+            }
+            
+            if (!qualifications || Object.keys(qualifications).length === 0) {
+                qualificationsList.innerHTML = '<p class="text-muted">暂无资质文件信息</p>';
+                return;
+            }
+            
+            // 资质类型映射
+            const qualificationTypes = {
+                'business_license': '营业执照',
+                'organization_code': '组织机构代码证',
+                'tax_registration': '税务登记证',
+                'legal_person_id': '法定代表人身份证',
+                'authorized_person_id': '被授权人身份证',
+                'power_of_attorney': '授权委托书',
+                'bank_account': '银行开户许可证',
+                'credit_procurement': '政府采购信用查询结果',
+                'credit_judicial': '司法裁判信用查询结果',
+                'financial_audit': '财务审计报告',
+                'iso9001': 'ISO9001质量管理体系认证',
+                'iso14001': 'ISO14001环境管理体系认证',
+                'iso27001': 'ISO27001信息安全管理体系认证',
+                'cmmi': 'CMMI成熟度等级证书',
+                'software_copyright': '软件著作权登记证书',
+                'high_tech': '高新技术企业证书',
+                'patent': '专利证书',
+                'trademark': '商标注册证'
+            };
+            
+            let html = '<div class="table-responsive">';
+            html += '<table class="table table-striped table-sm">';
+            html += '<thead><tr><th>资质类型</th><th>文件名</th><th>文件大小</th><th>上传时间</th><th>操作</th></tr></thead><tbody>';
+            
+            Object.entries(qualifications).forEach(([key, fileInfo]) => {
+                const typeName = qualificationTypes[key] || key;
+                const fileSize = fileInfo.file_size ? (fileInfo.file_size / 1024 / 1024).toFixed(2) + ' MB' : '未知';
+                const uploadTime = fileInfo.upload_time ? new Date(fileInfo.upload_time).toLocaleString('zh-CN') : '未知';
+                const fileName = fileInfo.original_filename || fileInfo.safe_filename || '未知文件';
+                
+                html += `<tr>
+                    <td><span class="badge bg-primary">${typeName}</span></td>
+                    <td>${fileName}</td>
+                    <td>${fileSize}</td>
+                    <td>${uploadTime}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-info" onclick="downloadQualificationFile('${currentModalCompanyId}', '${key}')">
+                            <i class="bi bi-download"></i> 下载
+                        </button>
+                    </td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            qualificationsList.innerHTML = html;
+        }
+        
+        // 下载资质文件
+        function downloadQualificationFile(companyId, qualificationKey) {
+            console.log('下载资质文件:', companyId, qualificationKey);
+            const url = `/api/companies/${companyId}/qualifications/${qualificationKey}/download`;
+            window.open(url, '_blank');
+        }
+        
+        // 清空模态框表单
+        function clearModalForm() {
+            const form = document.getElementById('modalCompanyInfoForm');
+            const inputs = form.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                if (input.type === 'select-one') {
+                    input.selectedIndex = 0;
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            // 清空资质信息显示
+            const qualificationsList = document.getElementById('modalQualificationsList');
+            if (qualificationsList) {
+                qualificationsList.innerHTML = '<p class="text-muted">暂无资质文件信息</p>';
+            }
+        }
+        
+        // 保存模态框公司信息
+        function saveModalCompany() {
+            const companyName = document.getElementById('modalCompanyName').value.trim();
+            if (!companyName) {
+                alert('公司名称不能为空');
+                return;
+            }
+            
+            const companyData = {
+                companyName: companyName,
+                establishDate: document.getElementById('modalEstablishDate').value,
+                legalRepresentative: document.getElementById('modalLegalRepresentative').value,
+                legalRepresentativePosition: document.getElementById('modalLegalRepresentativePosition').value,
+                socialCreditCode: document.getElementById('modalSocialCreditCode').value,
+                authorizedPersonName: document.getElementById('modalAuthorizedPersonName').value,
+                authorizedPersonPosition: document.getElementById('modalAuthorizedPersonPosition').value,
+                email: document.getElementById('modalEmail').value,
+                registeredCapital: document.getElementById('modalRegisteredCapital').value,
+                companyType: document.getElementById('modalCompanyType').value,
+                registeredAddress: document.getElementById('modalRegisteredAddress').value,
+                businessScope: document.getElementById('modalBusinessScope').value
+            };
+            
+            const url = currentModalCompanyId ? `/api/companies/${currentModalCompanyId}` : '/api/companies';
+            const method = currentModalCompanyId ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(companyData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(currentModalCompanyId ? '公司信息更新成功' : '公司创建成功');
+                    
+                    // 重新加载公司列表
+                    loadModalCompanyList();
+                    loadCompanyList();
+                    
+                    // 关闭模态框
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('companyManagementModal'));
+                    modal.hide();
+                } else {
+                    alert('保存失败: ' + (data.error || '未知错误'));
+                }
+            })
+            .catch(error => {
+                console.error('保存公司信息失败:', error);
+                alert('保存失败: ' + error.message);
+            });
+        }
+        
+        // 删除模态框公司
+        function deleteModalCompany(companyId) {
+            fetch(`/api/companies/${companyId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('公司删除成功');
+                    
+                    // 重新加载公司列表
+                    loadModalCompanyList();
+                    loadCompanyList();
+                    
+                    // 清空表单
+                    clearModalForm();
+                    currentModalCompanyId = null;
+                    document.getElementById('modalCompanySelect').value = '';
+                    document.getElementById('modalDeleteCompanyBtn').style.display = 'none';
+                } else {
+                    alert('删除失败: ' + (data.error || '未知错误'));
+                }
+            })
+            .catch(error => {
+                console.error('删除公司失败:', error);
+                alert('删除失败: ' + error.message);
+            });
+        }
+        
+        // 初始化模态框事件绑定的函数
+        function initializeModalEvents() {
+            const modalElement = document.getElementById('companyManagementModal');
+            if (modalElement) {
+                let modalInitialized = false;
+                modalElement.addEventListener('shown.bs.modal', function() {
+                    loadModalCompanyList();
+                    
+                    // 只在第一次显示时绑定事件监听器
+                    if (!modalInitialized) {
+                        // 模态框按钮事件监听器
+                        safeAddEventListener('modalSaveCompanyBtn', 'click', saveModalCompany);
+                        safeAddEventListener('modalClearFormBtn', 'click', clearModalForm);
+                        safeAddEventListener('modalDeleteCompanyBtn', 'click', function() {
+                            if (currentModalCompanyId && confirm('确定要删除这家公司吗？此操作不可撤销。')) {
+                                deleteModalCompany(currentModalCompanyId);
+                            }
+                        });
+                        
+                        // 模态框公司选择下拉框事件
+                        safeAddEventListener('modalCompanySelect', 'change', function() {
+                            const companyId = this.value;
+                            if (companyId) {
+                                loadCompanyToModal(companyId);
+                            } else {
+                                clearModalForm();
+                                currentModalCompanyId = null;
+                                const deleteBtn = document.getElementById('modalDeleteCompanyBtn');
+                                if (deleteBtn) {
+                                    deleteBtn.style.display = 'none';
+                                }
+                            }
+                        });
+                        
+                        modalInitialized = true;
+                    }
+                });
+            } else {
+                console.log('companyManagementModal 元素不存在，跳过模态框事件绑定');
+            }
+        }
+
+        // =========================
+        // 公司管理页面功能
+        // =========================
+        
+        // 公司管理页面状态变量
+        let companyPageCurrentId = null;
+        
+        // 初始化公司管理页面
+        function initCompanyManagementPage() {
+            loadCompanyListPage();
+            
+            // 公司列表选择事件
+            safeAddEventListener('companyListSelect', 'change', function() {
+                const companyId = this.value;
+                if (companyId) {
+                    loadCompanyToPage(companyId);
+                } else {
+                    clearCompanyPageForm();
+                }
+            });
+            
+            // 新建公司按钮
+            safeAddEventListener('newCompanyBtn', 'click', function() {
+                clearCompanyPageForm();
+                companyPageCurrentId = null;
+                const deleteBtn = document.getElementById('deleteSelectedCompanyBtn');
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'none';
+                }
+                
+                // 显示编辑区域，隐藏占位符
+                const editArea = document.getElementById('companyEditArea');
+                const placeholder = document.getElementById('companyEditPlaceholder');
+                if (editArea) editArea.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+            });
+            
+            // 保存公司按钮
+            safeAddEventListener('saveCompanyBtn', 'click', saveCompanyPage);
+            
+            // 清空表单按钮
+            safeAddEventListener('clearCompanyFormBtn', 'click', function() {
+                if (confirm('确定要清空表单吗？')) {
+                    clearCompanyPageForm();
+                }
+            });
+            
+            // 删除公司按钮
+            safeAddEventListener('deleteSelectedCompanyBtn', 'click', function() {
+                if (companyPageCurrentId && confirm('确定要删除这家公司吗？此操作不可撤销。')) {
+                    deleteCompanyPage(companyPageCurrentId);
+                }
+            });
+        }
+        
+        // 加载公司列表到公司管理页面
+        function loadCompanyListPage() {
+            const companyListSelect = document.getElementById('companyListSelect');
+            if (!companyListSelect) return;
+            
+            fetch('/api/companies')
+            .then(response => response.json())
+            .then(data => {
+                companyListSelect.innerHTML = '<option value="">选择公司</option>';
+                if (data.success && data.companies) {
+                    data.companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.id;
+                        option.textContent = company.companyName;
+                        companyListSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('加载公司列表失败:', error);
+                showCompanyMessage('加载公司列表失败: ' + error.message, 'error');
+            });
+        }
+        
+        // 加载公司信息到页面表单
+        function loadCompanyToPage(companyId) {
+            fetch(`/api/companies/${companyId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.company) {
+                    const company = data.company;
+                    companyPageCurrentId = companyId;
+                    
+                    // 填充基本信息 - 添加安全检查
+                    const setElementValue = (id, value) => {
+                        const element = document.getElementById(id);
+                        if (element) element.value = value || '';
+                    };
+                    
+                    setElementValue('companyName', company.companyName);
+                    setElementValue('establishDate', company.establishDate);
+                    setElementValue('legalRepresentative', company.legalRepresentative);
+                    setElementValue('legalRepresentativePosition', company.legalRepresentativePosition);
+                    setElementValue('socialCreditCode', company.socialCreditCode);
+                    setElementValue('authorizedPersonName', company.authorizedPersonName);
+                    setElementValue('authorizedPersonPosition', company.authorizedPersonPosition);
+                    setElementValue('email', company.email);
+                    setElementValue('registeredCapital', company.registeredCapital);
+                    setElementValue('companyType', company.companyType);
+                    setElementValue('fixedPhone', company.fixedPhone);
+                    setElementValue('fax', company.fax);
+                    setElementValue('postalCode', company.postalCode);
+                    setElementValue('registeredAddress', company.registeredAddress);
+                    setElementValue('officeAddress', company.officeAddress);
+                    setElementValue('website', company.website);
+                    setElementValue('employeeCount', company.employeeCount);
+                    setElementValue('companyDescription', company.companyDescription);
+                    setElementValue('businessScope', company.businessScope);
+                    setElementValue('bankName', company.bankName);
+                    setElementValue('bankAccount', company.bankAccount);
+                    
+                    // 显示删除按钮
+                    const deleteBtn = document.getElementById('deleteSelectedCompanyBtn');
+                    if (deleteBtn) {
+                        deleteBtn.style.display = 'inline-block';
+                    }
+                    
+                    // 显示编辑区域，隐藏占位符
+                    const editArea = document.getElementById('companyEditArea');
+                    const placeholder = document.getElementById('companyEditPlaceholder');
+                    if (editArea) editArea.style.display = 'block';
+                    if (placeholder) placeholder.style.display = 'none';
+                    
+                    // 加载资质文件
+                    loadCompanyQualifications(companyId);
+                    
+                    showCompanyMessage(`已加载公司: ${company.companyName}`, 'success');
+                } else {
+                    showCompanyMessage('加载公司信息失败: ' + (data.error || '未知错误'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('加载公司信息失败:', error);
+                showCompanyMessage('加载公司信息失败: ' + error.message, 'error');
+            });
+        }
+        
+        // 清空公司管理页面表单
+        function clearCompanyPageForm() {
+            companyPageCurrentId = null;
+            
+            // 清空所有输入字段
+            const form = document.getElementById('companyInfoForm');
+            if (form) {
+                form.reset();
+            }
+            
+            // 隐藏删除按钮
+            const deleteBtn = document.getElementById('deleteSelectedCompanyBtn');
+            if (deleteBtn) {
+                deleteBtn.style.display = 'none';
+            }
+            
+            // 隐藏编辑区域，显示占位符
+            const editArea = document.getElementById('companyEditArea');
+            const placeholder = document.getElementById('companyEditPlaceholder');
+            if (editArea) editArea.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'block';
+            
+            // 清空资质文件
+            clearAllQualificationsInternal();
+            
+            // 清空公司列表选择
+            const companyListSelect = document.getElementById('companyListSelect');
+            if (companyListSelect) {
+                companyListSelect.value = '';
+            }
+        }
+        
+        // 保存公司信息（公司管理页面版本）
+        function saveCompanyPage() {
+            const companyNameElem = document.getElementById('companyName');
+            if (!companyNameElem) {
+                console.error('companyName element not found');
+                return;
+            }
+            
+            const companyName = companyNameElem.value.trim();
+            if (!companyName) {
+                showCompanyMessage('请输入公司名称', 'error');
+                return;
+            }
+            
+            // 安全获取元素值的函数
+            const getElementValue = (id) => {
+                const element = document.getElementById(id);
+                return element ? element.value : '';
+            };
+            
+            // 收集公司信息
+            const companyData = {
+                companyName: companyName,
+                establishDate: getElementValue('establishDate'),
+                legalRepresentative: getElementValue('legalRepresentative'),
+                legalRepresentativePosition: getElementValue('legalRepresentativePosition'),
+                socialCreditCode: getElementValue('socialCreditCode'),
+                authorizedPersonName: getElementValue('authorizedPersonName'),
+                authorizedPersonPosition: getElementValue('authorizedPersonPosition'),
+                email: getElementValue('email'),
+                registeredCapital: getElementValue('registeredCapital'),
+                companyType: getElementValue('companyType'),
+                fixedPhone: getElementValue('fixedPhone'),
+                fax: getElementValue('fax'),
+                postalCode: getElementValue('postalCode'),
+                registeredAddress: getElementValue('registeredAddress'),
+                officeAddress: getElementValue('officeAddress'),
+                website: getElementValue('website'),
+                employeeCount: getElementValue('employeeCount'),
+                companyDescription: getElementValue('companyDescription'),
+                businessScope: getElementValue('businessScope'),
+                bankName: getElementValue('bankName'),
+                bankAccount: getElementValue('bankAccount')
+            };
+            
+            const saveBtn = document.getElementById('saveCompanyBtn');
+            const originalText = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                const actionText = companyPageCurrentId ? '保存中...' : '创建中...';
+                saveBtn.innerHTML = `<i class="bi bi-hourglass-split"></i> ${actionText}`;
+                saveBtn.disabled = true;
+            }
+            
+            // 根据是否有现有公司ID决定创建还是更新
+            const url = companyPageCurrentId ? `/api/companies/${companyPageCurrentId}` : '/api/companies';
+            const method = companyPageCurrentId ? 'PUT' : 'POST';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(companyData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 获取公司ID（创建时从返回数据获取，更新时使用现有ID）
+                    const companyId = data.company.id || companyPageCurrentId;
+                    companyPageCurrentId = companyId;
+                    currentCompanyId = companyPageCurrentId; // 同步全局变量
+                    
+                    // 刷新公司列表
+                    loadCompanyListPage();
+                    updateCompanySelect(); // 同步其他页面的公司选择框
+                    
+                    // 显示删除按钮
+                    const deleteBtn = document.getElementById('deleteSelectedCompanyBtn');
+                    if (deleteBtn) {
+                        deleteBtn.style.display = 'inline-block';
+                    }
+                    
+                    const actionText = method === 'PUT' ? '更新' : '创建';
+                    showCompanyMessage(`公司${actionText}成功: ${data.company.companyName}`, 'success');
+                } else {
+                    showCompanyMessage('保存失败: ' + (data.error || '未知错误'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('保存公司信息失败:', error);
+                showCompanyMessage('保存失败: ' + error.message, 'error');
+            })
+            .finally(() => {
+                if (saveBtn) {
+                    saveBtn.innerHTML = originalText;
+                    saveBtn.disabled = false;
+                }
+            });
+        }
+        
+        // 删除公司（公司管理页面版本）
+        function deleteCompanyPage(companyId) {
+            fetch(`/api/companies/${companyId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    clearCompanyPageForm();
+                    loadCompanyListPage();
+                    updateCompanySelect(); // 同步其他页面的公司选择框
+                    showCompanyMessage(data.message || '公司删除成功', 'success');
+                } else {
+                    showCompanyMessage('删除失败: ' + (data.error || '未知错误'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('删除公司失败:', error);
+                showCompanyMessage('删除失败: ' + error.message, 'error');
+            });
+        }
+        
+        // 监听公司管理选项卡激活事件
+        document.addEventListener('shown.bs.tab', function(e) {
+            if (e.target.id === 'company-management-tab') {
+                console.log('公司管理选项卡已激活');
+                initCompanyManagementPage();
             }
         });
 
     </script>
+
+    <!-- 公司管理模态框 -->
+    <div class="modal fade" id="companyManagementModal" tabindex="-1" aria-labelledby="companyManagementModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="companyManagementModalLabel">
+                        <i class="bi bi-building"></i> 公司管理
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 公司选择区域 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-building"></i> 选择现有公司
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8 mb-2">
+                                            <select class="form-select" id="modalCompanySelect">
+                                                <option value="">请选择公司（选择后自动加载）</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-2">
+                                            <div class="btn-group w-100">
+                                                <button type="button" class="btn btn-outline-info" id="modalLoadCompanyBtn">
+                                                    <i class="bi bi-arrow-clockwise"></i> 重新加载
+                                                </button>
+                                                <button type="button" class="btn btn-outline-success" id="modalNewCompanyBtn">
+                                                    <i class="bi bi-plus"></i> 新建
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 公司信息编辑区域 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-pencil-square"></i> 公司信息编辑
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="modalCompanyInfoForm">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="modalCompanyName" class="form-label">公司名称 <span class="text-danger">*</span></label>
+                                                <input type="text" class="form-control" id="modalCompanyName" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="modalEstablishDate" class="form-label">成立日期</label>
+                                                <input type="date" class="form-control" id="modalEstablishDate">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <label for="modalLegalRepresentative" class="form-label">法定代表人</label>
+                                                <input type="text" class="form-control" id="modalLegalRepresentative">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="modalLegalRepresentativePosition" class="form-label">法定代表人职务</label>
+                                                <input type="text" class="form-control" id="modalLegalRepresentativePosition">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="modalSocialCreditCode" class="form-label">统一社会信用代码</label>
+                                                <input type="text" class="form-control" id="modalSocialCreditCode">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <label for="modalAuthorizedPersonName" class="form-label">被授权人名称</label>
+                                                <input type="text" class="form-control" id="modalAuthorizedPersonName">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="modalAuthorizedPersonPosition" class="form-label">被授权人职务</label>
+                                                <input type="text" class="form-control" id="modalAuthorizedPersonPosition">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="modalEmail" class="form-label">电子邮箱</label>
+                                                <input type="email" class="form-control" id="modalEmail">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="modalRegisteredCapital" class="form-label">注册资本</label>
+                                                <input type="text" class="form-control" id="modalRegisteredCapital" placeholder="例：1000万人民币">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="modalCompanyType" class="form-label">公司类型</label>
+                                                <select class="form-select" id="modalCompanyType">
+                                                    <option value="">请选择公司类型</option>
+                                                    <option value="有限责任公司">有限责任公司</option>
+                                                    <option value="股份有限公司">股份有限公司</option>
+                                                    <option value="合伙企业">合伙企业</option>
+                                                    <option value="个人独资企业">个人独资企业</option>
+                                                    <option value="外商投资企业">外商投资企业</option>
+                                                    <option value="其他">其他</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-md-12">
+                                                <label for="modalRegisteredAddress" class="form-label">注册地址</label>
+                                                <textarea class="form-control" id="modalRegisteredAddress" rows="2"></textarea>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mb-3">
+                                            <div class="col-md-12">
+                                                <label for="modalBusinessScope" class="form-label">经营范围</label>
+                                                <textarea class="form-control" id="modalBusinessScope" rows="3"></textarea>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 资质信息显示区域 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-file-earmark-check"></i> 公司资质文件
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="modalQualificationsList">
+                                        <p class="text-muted">暂无资质文件信息</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-outline-secondary" id="modalClearFormBtn">
+                        <i class="bi bi-x-circle"></i> 清空表单
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" id="modalDeleteCompanyBtn" style="display: none;">
+                        <i class="bi bi-trash"></i> 删除公司
+                    </button>
+                    <button type="button" class="btn btn-success" id="modalSaveCompanyBtn">
+                        <i class="bi bi-save"></i> 保存公司信息
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

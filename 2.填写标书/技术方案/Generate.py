@@ -20,7 +20,7 @@ from docx.shared import Cm
 #--------------------------------需要调整的全局变量--------------------------------------------------
 
 # 设置始皇API配置
-SHIHUANG_API_KEY = "sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob"  # 请替换为您的实际API密钥
+SHIHUANG_API_KEY = """"  # 请替换为您的实际API密钥
 SHIHUANG_BASE_URL = "https://api.oaipro.com/v1" 
 SHIHUANG_MODEL = "gpt-4o-mini"  # 可选: gpt-3.5-turbo, gpt-4, gpt-4-0613, gpt-4-1106-preview 等
 

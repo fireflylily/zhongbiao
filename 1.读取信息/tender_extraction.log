@@ -497,3 +497,4 @@
 2025-09-10 11:39:44,353 - INFO - ======================================================================
 2025-09-10 11:39:44,354 - INFO - 清理临时文件: uploads/20250910_113930_tender_20250910_111836_tender_-.pdf
 2025-09-10 11:39:44,355 - INFO - 127.0.0.1 - - [10/Sep/2025 11:39:44] "POST /extract-tender-info HTTP/1.1" 200 -
+2025-09-11 09:21:09,681 - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/1.读取信息/read_info.py', reloading

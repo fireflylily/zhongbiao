@@ -87,4 +87,4 @@ WhaleStudio是一款通过拖拽式的实现调度和ETL功能，支持快速融
 始皇API
 调用地址：
 https://api.oaipro.com/v1/chat/completions
-sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob
+[已清理API密钥]

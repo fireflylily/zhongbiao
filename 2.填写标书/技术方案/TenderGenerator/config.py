@@ -2,7 +2,7 @@
 
 # ========== API配置 ==========
 # 始皇API配置（继承原有配置）
-SHIHUANG_API_KEY = "sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob"
+SHIHUANG_API_KEY = """"
 SHIHUANG_BASE_URL = "https://api.oaipro.com/v1"
 SHIHUANG_MODEL = "gpt-4o-mini"
 

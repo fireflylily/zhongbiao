@@ -32,7 +32,7 @@ class Config:
         """加载配置"""
         # API配置
         self.api_config = {
-            'api_key': os.getenv('DEFAULT_API_KEY', 'sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob'),
+            'api_key': os.getenv('DEFAULT_API_KEY', ''),
             'api_endpoint': os.getenv('API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
             'model_name': os.getenv('MODEL_NAME', 'gpt-5'),
             'max_tokens': int(os.getenv('MAX_TOKENS', '1000')),

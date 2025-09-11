@@ -4,3 +4,62 @@
 2025-09-10 12:40:37,257 - ai_tender_system.web_app - ERROR - 内部服务器错误: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
 2025-09-10 12:40:52,293 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-10 12:42:29,756 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 08:57:44,801 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 08:59:34,203 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 08:59:34,565 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:09:23,766 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 09:14:01,758 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:14:02,148 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:20:40,218 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:34:53,046 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:35:15,110 - ai_tender_system.web_app - INFO - 创建公司成功: 测试公司 (ID: 7f25b325)
+2025-09-11 09:35:27,702 - ai_tender_system.web_app - INFO - 删除公司成功: 7f25b325
+2025-09-11 09:56:50,552 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 13:15:17,044 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:26:15,060 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:26:15,493 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:31:23,058 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:31:23,359 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:33:33,850 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 13:36:27,482 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:37:37,805 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:37:48,213 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:38:22,847 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 查找资质文件: credit_procurement_20250902_082829.png for company 9ff023cf-ac90-48e3-8752-e7dc06301953
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 检查路径 1: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 检查路径 2: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 检查路径 3: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:54,488 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 查找资质文件: credit_procurement_20250902_082829.png for company 9ff023cf-ac90-48e3-8752-e7dc06301953
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 检查路径 1: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 检查路径 2: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 找到文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 下载资质文件: 未列入严重失信违法名单（黑名单）信息.png
+2025-09-11 13:39:31,261 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:42:26,588 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:42:30,434 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:51:07,947 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:59:37,889 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:59:40,542 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:59:51,634 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 14:00:10,129 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 14:54:13,716 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 14:54:14,056 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 15:05:01,298 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-11 15:05:48,796 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 15:05:48,799 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 15:06:43,500 - ai_tender_system.web_app - INFO - 创建公司成功: 测试公司 (ID: 7f25b325)
+2025-09-11 15:29:58,074 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 15:31:22,797 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 15:31:37,249 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 15:31:37,544 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 15:32:30,670 - ai_tender_system.web_app - INFO - 更新公司成功: 测试更新公司名称 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 16:18:01,202 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 16:18:03,708 - ai_tender_system.web_app - INFO - 获取公司 7f25b325 的资质文件列表，共 0 个
+2025-09-11 16:18:08,471 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-11 16:18:11,188 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 16:18:15,454 - ai_tender_system.web_app - INFO - 更新公司成功: 测试更新公司名称 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)

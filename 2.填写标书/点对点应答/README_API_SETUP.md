@@ -6,7 +6,7 @@
 
 ### 🔧 系统配置
 
-- **默认API密钥**: `sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob`
+- **默认API密钥**: `[已清理API密钥]`
 - **API端点**: `https://api.oaipro.com/v1/chat/completions`
 - **模型**: `gpt-5`
 

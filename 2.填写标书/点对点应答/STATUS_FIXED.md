@@ -8,7 +8,7 @@
 - **解决方案**：移除temperature参数，使用API的默认值
 
 ### 🔑 API密钥配置完成
-- **默认密钥**：`sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob`
+- **默认密钥**：`[已清理API密钥]`
 - **自动加载**：Web界面启动时自动填充API密钥
 - **用户体验**：无需手动输入，即开即用
 

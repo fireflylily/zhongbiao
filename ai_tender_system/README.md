@@ -64,17 +64,32 @@ python3 run.py
 
 ## 🔧 配置说明
 
-### API配置
+### ⚠️ 安全配置（重要）
 
-系统使用统一的API配置，支持环境变量覆盖：
+系统已移除所有硬编码的API密钥，现在需要通过环境变量或配置文件设置：
 
-```python
-# 环境变量配置
-export DEFAULT_API_KEY="your-api-key"
+#### 方法1：使用环境变量（推荐）
+```bash
+# 设置API密钥
+export DEFAULT_API_KEY="your-api-key-here"
 export API_ENDPOINT="https://api.oaipro.com/v1/chat/completions"
 export MODEL_NAME="gpt-5"
 export WEB_PORT="8082"
 ```
+
+#### 方法2：使用.env文件
+```bash
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑.env文件，填入你的API密钥
+# DEFAULT_API_KEY=your-api-key-here
+```
+
+**⚠️ 安全提醒**：
+- 请确保`.env`文件不要提交到Git
+- API密钥请妥善保管，不要在代码中硬编码
+- 建议定期更换API密钥
 
 ### 文件路径配置
 

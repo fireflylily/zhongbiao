@@ -9,7 +9,7 @@ import os
 # 默认API配置
 DEFAULT_API_CONFIG = {
     # 默认API密钥 - 可以通过环境变量覆盖
-    'api_key': os.getenv('DEFAULT_API_KEY', 'sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob'),
+    'api_key': os.getenv('DEFAULT_API_KEY', '""'),
     
     # API端点配置
     'api_endpoint': os.getenv('API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),

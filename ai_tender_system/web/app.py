@@ -8,6 +8,8 @@ AI标书系统统一Web应用
 import os
 import sys
 import tempfile
+import hashlib
+import time
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
 from flask_cors import CORS
@@ -508,6 +510,433 @@ def register_routes(app: Flask, config, logger):
             'success': False,
             'message': '技术方案生成功能正在迁移中'
         })
+    
+    # ===================
+    # 公司管理API
+    # ===================
+    
+    @app.route('/api/companies')
+    def list_companies():
+        """获取所有公司配置"""
+        try:
+            import json
+            
+            companies = []
+            company_configs_dir = config.get_path('config') / 'companies'
+            
+            if company_configs_dir.exists():
+                for filename in os.listdir(company_configs_dir):
+                    if filename.endswith('.json'):
+                        file_path = company_configs_dir / filename
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                company_data = json.load(f)
+                                companies.append({
+                                    'id': company_data.get('id', filename.replace('.json', '')),
+                                    'companyName': company_data.get('companyName', '未命名公司'),
+                                    'created_at': company_data.get('created_at', ''),
+                                    'updated_at': company_data.get('updated_at', '')
+                                })
+                        except Exception as e:
+                            logger.warning(f"读取公司配置文件失败 {filename}: {e}")
+            
+            companies.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+            return jsonify({'success': True, 'companies': companies})
+            
+        except Exception as e:
+            logger.error(f"获取公司列表失败: {e}")
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/companies/<company_id>')
+    def get_company(company_id):
+        """获取指定公司的详细信息"""
+        try:
+            import json
+            
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+            
+            if not company_file.exists():
+                return jsonify({'success': False, 'error': '公司不存在'}), 404
+                
+            with open(company_file, 'r', encoding='utf-8') as f:
+                company_data = json.load(f)
+                
+            return jsonify({'success': True, 'company': company_data})
+            
+        except Exception as e:
+            logger.error(f"获取公司信息失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/companies', methods=['POST'])
+    def create_company():
+        """创建新公司"""
+        try:
+            import json
+            from datetime import datetime
+            
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': '请提供公司信息'}), 400
+            
+            company_name = data.get('companyName', '').strip()
+            if not company_name:
+                return jsonify({'success': False, 'error': '公司名称不能为空'}), 400
+            
+            # 生成公司ID
+            company_id = hashlib.md5(company_name.encode('utf-8')).hexdigest()[:8]
+            
+            # 准备公司数据
+            company_data = {
+                'id': company_id,
+                'companyName': company_name,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }
+            
+            # 添加其他字段
+            for field in ['companyAddress', 'legalPerson', 'contactInfo', 'businessScope']:
+                if field in data:
+                    company_data[field] = data[field]
+            
+            # 确保目录存在
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_configs_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 保存公司信息
+            company_file = company_configs_dir / f'{company_id}.json'
+            with open(company_file, 'w', encoding='utf-8') as f:
+                json.dump(company_data, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"创建公司成功: {company_name} (ID: {company_id})")
+            return jsonify({'success': True, 'company': company_data})
+            
+        except Exception as e:
+            logger.error(f"创建公司失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/companies/<company_id>', methods=['PUT'])
+    def update_company(company_id):
+        """更新公司信息"""
+        try:
+            import json
+            from datetime import datetime
+            
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'error': '请提供公司信息'}), 400
+            
+            # 检查公司是否存在
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+            
+            if not company_file.exists():
+                return jsonify({'success': False, 'error': '公司不存在'}), 404
+            
+            # 读取现有公司数据
+            with open(company_file, 'r', encoding='utf-8') as f:
+                existing_company = json.load(f)
+            
+            # 更新字段
+            company_name = data.get('companyName', '').strip()
+            if company_name:
+                existing_company['companyName'] = company_name
+            
+            # 更新其他所有字段
+            field_mapping = {
+                'establishDate': 'establishDate',
+                'legalRepresentative': 'legalRepresentative',
+                'legalRepresentativePosition': 'legalRepresentativePosition',
+                'socialCreditCode': 'socialCreditCode',
+                'authorizedPersonName': 'authorizedPersonName',
+                'authorizedPersonPosition': 'authorizedPersonPosition',
+                'email': 'email',
+                'registeredCapital': 'registeredCapital',
+                'companyType': 'companyType',
+                'fixedPhone': 'fixedPhone',
+                'fax': 'fax',
+                'postalCode': 'postalCode',
+                'registeredAddress': 'registeredAddress',
+                'officeAddress': 'officeAddress',
+                'website': 'website',
+                'employeeCount': 'employeeCount',
+                'companyDescription': 'companyDescription',
+                'businessScope': 'businessScope',
+                'bankName': 'bankName',
+                'bankAccount': 'bankAccount'
+            }
+            
+            for field_name, data_key in field_mapping.items():
+                if data_key in data:
+                    existing_company[field_name] = data[data_key]
+            
+            # 更新时间戳
+            existing_company['updated_at'] = datetime.now().isoformat()
+            
+            # 保存更新后的公司信息
+            with open(company_file, 'w', encoding='utf-8') as f:
+                json.dump(existing_company, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"更新公司成功: {company_name or existing_company.get('companyName', '')} (ID: {company_id})")
+            return jsonify({'success': True, 'company': existing_company, 'message': '公司信息更新成功'})
+            
+        except Exception as e:
+            logger.error(f"更新公司失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/companies/<company_id>', methods=['DELETE'])
+    def delete_company(company_id):
+        """删除公司"""
+        try:
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+            
+            if not company_file.exists():
+                return jsonify({'success': False, 'error': '公司不存在'}), 404
+            
+            # 删除公司文件
+            company_file.unlink()
+            
+            logger.info(f"删除公司成功: {company_id}")
+            return jsonify({'success': True, 'message': '公司删除成功'})
+            
+        except Exception as e:
+            logger.error(f"删除公司失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/companies/<company_id>/qualifications')
+    def get_company_qualifications(company_id):
+        """获取公司资质文件列表"""
+        try:
+            import json
+            
+            # 获取公司信息
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+            
+            if not company_file.exists():
+                logger.error(f"公司文件不存在: {company_file}")
+                return jsonify({'success': False, 'error': '公司不存在'}), 404
+                
+            with open(company_file, 'r', encoding='utf-8') as f:
+                company_data = json.load(f)
+            
+            # 获取资质文件信息
+            qualifications = company_data.get('qualifications', {})
+            
+            logger.info(f"获取公司 {company_id} 的资质文件列表，共 {len(qualifications)} 个")
+            return jsonify({
+                'success': True, 
+                'qualifications': qualifications
+            })
+            
+        except Exception as e:
+            logger.error(f"获取公司资质文件失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/companies/<company_id>/qualifications/upload', methods=['POST'])
+    def upload_company_qualifications(company_id):
+        """上传公司资质文件"""
+        try:
+            import json
+            import shutil
+            from werkzeug.utils import secure_filename
+            
+            # 获取公司信息
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+            
+            if not company_file.exists():
+                return jsonify({'success': False, 'error': '公司不存在'}), 404
+                
+            with open(company_file, 'r', encoding='utf-8') as f:
+                company_data = json.load(f)
+            
+            # 创建资质文件目录
+            qualifications_dir = company_configs_dir / 'qualifications' / company_id
+            qualifications_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 处理上传的文件
+            uploaded_files = {}
+            qualification_names = request.form.get('qualification_names', '{}')
+            qualification_names = json.loads(qualification_names) if qualification_names else {}
+            
+            for key, file in request.files.items():
+                if key.startswith('qualifications[') and file.filename:
+                    # 提取资质键名
+                    qual_key = key.replace('qualifications[', '').replace(']', '')
+                    
+                    # 安全的文件名
+                    filename = secure_filename(file.filename)
+                    timestamp = int(time.time())
+                    safe_filename = f"{timestamp}_{filename}"
+                    
+                    # 保存文件
+                    file_path = qualifications_dir / safe_filename
+                    file.save(str(file_path))
+                    
+                    # 记录文件信息
+                    file_info = {
+                        'filename': filename,
+                        'safe_filename': safe_filename,
+                        'upload_time': timestamp,
+                        'size': file_path.stat().st_size
+                    }
+                    
+                    # 如果是自定义资质，添加名称
+                    if qual_key in qualification_names:
+                        file_info['custom_name'] = qualification_names[qual_key]
+                    
+                    uploaded_files[qual_key] = file_info
+            
+            # 更新公司信息中的资质文件记录
+            if 'qualifications' not in company_data:
+                company_data['qualifications'] = {}
+            
+            company_data['qualifications'].update(uploaded_files)
+            
+            # 保存公司信息
+            with open(company_file, 'w', encoding='utf-8') as f:
+                json.dump(company_data, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"公司 {company_id} 上传了 {len(uploaded_files)} 个资质文件")
+            return jsonify({
+                'success': True, 
+                'message': f'成功上传 {len(uploaded_files)} 个资质文件',
+                'uploaded_files': uploaded_files
+            })
+            
+        except Exception as e:
+            logger.error(f"上传公司资质文件失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/companies/<company_id>/qualifications/<qualification_key>/download')
+    def download_qualification_file(company_id, qualification_key):
+        """下载公司资质文件"""
+        try:
+            import json
+            
+            # 获取公司信息
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+            
+            if not company_file.exists():
+                return jsonify({'success': False, 'error': '公司不存在'}), 404
+                
+            with open(company_file, 'r', encoding='utf-8') as f:
+                company_data = json.load(f)
+            
+            # 检查资质文件信息
+            qualifications = company_data.get('qualifications', {})
+            if qualification_key not in qualifications:
+                return jsonify({'success': False, 'error': '资质文件不存在'}), 404
+            
+            qualification_info = qualifications[qualification_key]
+            
+            # 构建文件路径 - 检查多个可能的位置
+            safe_filename = qualification_info.get('safe_filename', '')
+            
+            possible_paths = [
+                # 新系统路径
+                config.get_path('config') / 'companies' / 'qualifications' / company_id / safe_filename,
+                # 项目根目录的qualifications路径  
+                Path(__file__).parent.parent.parent / 'qualifications' / company_id / safe_filename,
+                # 点对点应答模块的qualifications路径
+                Path(__file__).parent.parent.parent / '2.填写标书' / '点对点应答' / 'qualifications' / company_id / safe_filename
+            ]
+            
+            file_path = None
+            for path in possible_paths:
+                if path.exists():
+                    file_path = path
+                    break
+            
+            if not file_path or not file_path.exists():
+                return jsonify({'success': False, 'error': '资质文件不存在'}), 404
+            
+            # 返回文件
+            original_filename = qualification_info.get('original_filename', qualification_info.get('safe_filename', 'qualification_file'))
+            logger.info(f"下载资质文件: {original_filename}")
+            return send_file(str(file_path), as_attachment=True, download_name=original_filename)
+            
+        except Exception as e:
+            logger.error(f"下载资质文件失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ===================
+    # 商务文件管理API
+    # ===================
+    
+    @app.route('/api/business-files')
+    def list_business_files():
+        """获取商务应答文件列表"""
+        try:
+            import os
+            from datetime import datetime
+            
+            files = []
+            output_dir = config.get_path('output')
+            
+            if output_dir.exists():
+                for filename in os.listdir(output_dir):
+                    if filename.endswith(('.docx', '.doc', '.pdf')):
+                        file_path = output_dir / filename
+                        try:
+                            stat = file_path.stat()
+                            files.append({
+                                'name': filename,
+                                'size': stat.st_size,
+                                'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                                'path': str(file_path)
+                            })
+                        except Exception as e:
+                            logger.warning(f"读取文件信息失败 {filename}: {e}")
+            
+            files.sort(key=lambda x: x.get('modified', ''), reverse=True)
+            return jsonify({'success': True, 'files': files})
+            
+        except Exception as e:
+            logger.error(f"获取商务文件列表失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ===================
+    # 项目配置API
+    # ===================
+    
+    @app.route('/api/project-config')
+    def get_project_config():
+        """获取项目配置信息"""
+        try:
+            import configparser
+            
+            # 读取招标信息提取模块生成的配置文件
+            config_file = config.get_path('config') / 'tender_config.ini'
+            
+            if not config_file.exists():
+                return jsonify({'success': False, 'error': '项目配置文件不存在'})
+                
+            ini_config = configparser.ConfigParser(interpolation=None)
+            ini_config.read(config_file, encoding='utf-8')
+            
+            # 提取项目信息
+            project_info = {}
+            if ini_config.has_section('PROJECT_INFO'):
+                project_info = {
+                    'projectName': ini_config.get('PROJECT_INFO', 'project_name', fallback=''),
+                    'projectNumber': ini_config.get('PROJECT_INFO', 'project_number', fallback=''),
+                    'tenderer': ini_config.get('PROJECT_INFO', 'tenderer', fallback=''),
+                    'agency': ini_config.get('PROJECT_INFO', 'agency', fallback=''),
+                    'biddingMethod': ini_config.get('PROJECT_INFO', 'bidding_method', fallback=''),
+                    'biddingLocation': ini_config.get('PROJECT_INFO', 'bidding_location', fallback=''),
+                    'biddingTime': ini_config.get('PROJECT_INFO', 'bidding_time', fallback=''),
+                }
+            
+            return jsonify({'success': True, 'projectInfo': project_info})
+            
+        except Exception as e:
+            logger.error(f"获取项目配置失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
     
     # ===================
     # 错误处理

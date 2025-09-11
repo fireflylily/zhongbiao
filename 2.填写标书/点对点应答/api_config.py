@@ -6,7 +6,7 @@
 
 # =========================== API配置 ===========================
 # 请在此处配置您的始皇API密钥
-SHIHUANG_API_KEY = "sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob"
+SHIHUANG_API_KEY = """"
 
 # API相关配置
 API_CONFIG = {

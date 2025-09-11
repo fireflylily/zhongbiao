@@ -31,7 +31,7 @@ class TenderInfoExtractor:
     
     def __init__(self, api_key: str = None):
         self.config_file = 'tender_config.ini'
-        self.api_key = api_key or "sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob"
+        self.api_key = api_key or """"
     
     def _timeout_regex_search(self, pattern: str, text: str, timeout: int = 5):
         """

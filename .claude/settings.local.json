@@ -17,7 +17,17 @@
       "Bash(lsof:*)",
       "WebFetch(domain:localhost)",
       "Bash(xargs rm:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(git fetch:*)",
+      "Bash(for:*)",
+      "Bash(do)",
+      "Bash(if [ -f \"$file\" ])",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(kill:*)",
+      "Bash(xargs kill:*)"
     ],
     "deny": [],
     "ask": []
