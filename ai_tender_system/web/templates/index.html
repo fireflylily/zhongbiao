@@ -214,7 +214,7 @@
                         </div>
                         <div class="card-body">
                             <div class="alert alert-danger mb-3">
-                                <p id="tenderErrorMessage"></p>
+                                <p id="tenderErrorAreaMessage"></p>
                             </div>
                             <div class="text-center">
                                 <button class="btn btn-outline-danger me-2" id="tenderRetryBtn2">
@@ -2064,86 +2064,95 @@
                     });
                 }
                 
-                // 第一步：提取基本信息
-                safeSetTextContent('stepMessage', '正在提取基本信息...');
+                // 步骤1：上传文件并处理
+                safeSetTextContent('stepMessage', '正在上传文件...');
                 if (progressBar) progressBar.style.width = '20%';
                 
-                const step1FormData = new FormData();
-                for (let pair of formData.entries()) {
-                    step1FormData.append(pair[0], pair[1]);
-                }
-                step1FormData.append('step', '1');
+                await new Promise(resolve => setTimeout(resolve, 500)); // 模拟延迟
                 
-                const step1Response = await fetch('/extract-tender-info-step', {
+                // 步骤2：提取基本信息
+                safeSetTextContent('stepMessage', '正在提取基本信息...');
+                if (progressBar) progressBar.style.width = '40%';
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // 步骤3：分析资质要求
+                safeSetTextContent('stepMessage', '正在分析资质要求...');
+                if (progressBar) progressBar.style.width = '70%';
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // 步骤4：提取技术评分
+                safeSetTextContent('stepMessage', '正在提取技术评分...');
+                if (progressBar) progressBar.style.width = '90%';
+                
+                // 发送请求到统一的API端点
+                const response = await fetch('/extract-tender-info', {
                     method: 'POST',
-                    body: step1FormData
+                    body: formData
                 });
-                const step1Data = await step1Response.json();
                 
-                if (!step1Data.success) {
-                    const errorMsg = step1Data.error && step1Data.error.message ? step1Data.error.message : 
-                                   (typeof step1Data.error === 'string' ? step1Data.error : '未知错误');
+                // 检查HTTP状态
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    // 使用ErrorHandler来格式化错误信息
+                    const errorMsg = ErrorHandler.formatErrorMessage(data.error || data.message || data);
                     throw new Error(errorMsg);
                 }
                 
-                // 显示基本信息
-                displayBasicInfo(step1Data.basic_info);
-                progressBar.style.width = '40%';
+                // 处理返回的数据
+                const result = data.data;
                 
-                // 第二步：提取资质要求  
-                safeSetTextContent('stepMessage', '正在提取资质要求...');
+                // 提取基本信息（招标相关的基本字段）
+                const basicInfo = {
+                    tenderer: result.tenderer,
+                    agency: result.agency,
+                    bidding_method: result.bidding_method,
+                    bidding_location: result.bidding_location,
+                    bidding_time: result.bidding_time,
+                    winner_count: result.winner_count,
+                    project_name: result.project_name,
+                    project_number: result.project_number
+                };
                 
-                const step2FormData = new FormData();
-                step2FormData.append('step', '2');
-                step2FormData.append('file_path', step1Data.file_path);
-                step2FormData.append('api_key', document.getElementById('tenderApiKey').value);
-                
-                const step2Response = await fetch('/extract-tender-info-step', {
-                    method: 'POST',
-                    body: step2FormData
-                });
-                const step2Data = await step2Response.json();
-                
-                if (!step2Data.success) {
-                    const errorMsg = step2Data.error && step2Data.error.message ? step2Data.error.message : 
-                                   (typeof step2Data.error === 'string' ? step2Data.error : '未知错误');
-                    throw new Error(errorMsg);
+                // 提取资质要求（以qualification_开头的字段）
+                const qualificationRequirements = {};
+                for (const [key, value] of Object.entries(result)) {
+                    if (key.startsWith('qualification_') || key.includes('requirements') || 
+                        ['business_license', 'taxpayer_qualification', 'performance_requirements', 
+                         'authorization_requirements', 'credit_china', 'commitment_letter', 
+                         'audit_report', 'social_security', 'labor_contract', 'other_requirements'].includes(key)) {
+                        qualificationRequirements[key] = value;
+                    }
                 }
                 
-                // 显示资质要求
-                displayQualificationRequirements(step2Data.qualification_requirements);
-                progressBar.style.width = '70%';
-                
-                // 第三步：提取技术评分
-                safeSetTextContent('stepMessage', '正在分析技术评分...');
-                
-                const step3FormData = new FormData();
-                step3FormData.append('step', '3');
-                step3FormData.append('file_path', step1Data.file_path);
-                step3FormData.append('api_key', document.getElementById('tenderApiKey').value);
-                
-                const step3Response = await fetch('/extract-tender-info-step', {
-                    method: 'POST',
-                    body: step3FormData
-                });
-                const step3Data = await step3Response.json();
-                
-                if (!step3Data.success) {
-                    const errorMsg = step3Data.error && step3Data.error.message ? step3Data.error.message : 
-                                   (typeof step3Data.error === 'string' ? step3Data.error : '未知错误');
-                    throw new Error(errorMsg);
+                // 提取技术评分（以technical_开头的字段或包含scoring的字段）
+                const technicalScoring = {};
+                for (const [key, value] of Object.entries(result)) {
+                    if (key.startsWith('technical_') || key.includes('scoring') || key.includes('score')) {
+                        technicalScoring[key] = value;
+                    }
                 }
                 
-                // 显示技术评分
-                displayTechnicalScoring(step3Data.technical_scoring);
-                progressBar.style.width = '100%';
+                // 显示提取结果
+                displayBasicInfo(basicInfo);
+                displayQualificationRequirements(qualificationRequirements);
+                displayTechnicalScoring(technicalScoring);
+                
+                // 完成
+                if (progressBar) progressBar.style.width = '100%';
                 safeSetTextContent('stepMessage', '所有信息提取完成！');
                 
                 // 清理定时器
                 clearTimeout(timeoutId);
                 clearInterval(progressInterval);
                 
-                tenderResultArea.style.display = 'block';
+                if (tenderResultArea) tenderResultArea.style.display = 'block';
                 
             } catch (error) {
                 throw error;
@@ -2187,7 +2196,7 @@
                 clearInterval(progressInterval);
                 
                 const errorMsg = ErrorHandler.handleAPIError(error, '提取失败');
-                ErrorHandler.displayError('tenderError', errorMsg);
+                ErrorHandler.displayError('tenderErrorArea', errorMsg);
             })
             .finally(() => {
                 setTimeout(() => {
@@ -2690,21 +2699,46 @@
                 }
                 
                 if (error && typeof error === 'object') {
-                    if (error.message) {
+                    // 尝试多种可能的错误消息字段
+                    if (error.message && typeof error.message === 'string') {
                         return error.message;
                     }
-                    if (error.error && error.error.message) {
-                        return error.error.message;
+                    if (error.error) {
+                        if (typeof error.error === 'string') {
+                            return error.error;
+                        }
+                        if (error.error.message && typeof error.error.message === 'string') {
+                            return error.error.message;
+                        }
                     }
-                    if (error.error && typeof error.error === 'string') {
-                        return error.error;
+                    if (error.msg && typeof error.msg === 'string') {
+                        return error.msg;
+                    }
+                    if (error.detail && typeof error.detail === 'string') {
+                        return error.detail;
+                    }
+                    
+                    // 如果是状态码错误，尝试构造描述性消息
+                    if (error.status) {
+                        return `HTTP ${error.status} 错误${error.statusText ? ': ' + error.statusText : ''}`;
+                    }
+                    
+                    // 最后尝试JSON序列化，但限制长度
+                    try {
+                        const jsonStr = JSON.stringify(error);
+                        return jsonStr.length > 200 ? '复杂错误对象（请查看控制台）' : jsonStr;
+                    } catch (e) {
+                        return '无法解析的错误对象';
                     }
                 }
                 
-                return '未知错误';
+                return error ? String(error) : '未知错误';
             }
             
             static handleAPIError(error, prefix = '操作失败') {
+                // 记录详细错误信息到控制台
+                console.error(`${prefix} - 详细错误:`, error);
+                
                 let errorMsg = `${prefix}: `;
                 
                 if (error.name === 'AbortError') {

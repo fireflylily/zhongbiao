@@ -105,8 +105,8 @@ class TenderInfoExtractor:
             'messages': [
                 {'role': 'user', 'content': prompt}
             ],
-            'max_tokens': self.max_tokens,
-            'temperature': 0.7
+            'max_completion_tokens': self.max_tokens,
+            'temperature': 1
         }
         
         for attempt in range(max_retries):

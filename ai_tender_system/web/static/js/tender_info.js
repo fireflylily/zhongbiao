@@ -60,6 +60,17 @@ function resetTenderForm() {
     tenderErrorArea.style.display = 'none';
     extractInfoBtn.disabled = true;
     
+    // 清空Tab内容
+    document.getElementById('basicInfoDisplay').innerHTML = '';
+    document.getElementById('qualificationDisplay').innerHTML = '';
+    document.getElementById('technicalScoringDisplay').innerHTML = '';
+    
+    // 重置为第一个Tab
+    const firstTab = document.getElementById('basic-info-tab');
+    if (firstTab) {
+        firstTab.click();
+    }
+    
     // 清理状态
     StateManager.remove(StateManager.KEYS.UPLOAD_FILES);
 }
@@ -67,80 +78,106 @@ function resetTenderForm() {
 async function performStepwiseExtraction(formData, progressBar, tenderResultArea, tenderErrorArea, progressInterval, timeoutId) {
     try {
         // 清空之前的结果容器
-        ['basicInfoContainer', 'qualificationContainer', 'technicalContainer'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.remove();
-        });
+        document.getElementById('basicInfoDisplay').innerHTML = '';
+        document.getElementById('qualificationDisplay').innerHTML = '';
+        document.getElementById('technicalScoringDisplay').innerHTML = '';
         
-        // 第一步：提取基本信息
-        document.getElementById('stepMessage').textContent = '正在提取基本信息...';
+        // 步骤1：上传文件并处理
+        document.getElementById('stepMessage').textContent = '正在上传文件...';
         progressBar.style.width = '20%';
         
-        const step1FormData = new FormData();
-        for (let pair of formData.entries()) {
-            step1FormData.append(pair[0], pair[1]);
-        }
-        step1FormData.append('step', '1');
+        await new Promise(resolve => setTimeout(resolve, 500)); // 模拟延迟
         
-        const step1Response = await fetch('/extract-tender-info-step', {
-            method: 'POST',
-            body: step1FormData
-        });
-        const step1Data = await step1Response.json();
-        
-        if (!step1Data.success) {
-            throw new Error(step1Data.error);
-        }
-        
-        // 显示基本信息
-        displayBasicInfo(step1Data.basic_info);
+        // 步骤2：提取基本信息
+        document.getElementById('stepMessage').textContent = '正在提取基本信息...';
         progressBar.style.width = '40%';
         
-        // 第二步：提取资质要求  
-        document.getElementById('stepMessage').textContent = '正在提取资质要求...';
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        const step2FormData = new FormData();
-        step2FormData.append('step', '2');
-        step2FormData.append('file_path', step1Data.file_path);
-        step2FormData.append('result_file', step1Data.result_file || '');
-        step2FormData.append('api_key', StateManager.getApiKey() || '');
-        
-        const step2Response = await fetch('/extract-tender-info-step', {
-            method: 'POST',
-            body: step2FormData
-        });
-        const step2Data = await step2Response.json();
-        
-        if (!step2Data.success) {
-            throw new Error(step2Data.error);
-        }
-        
-        // 显示资质要求
-        displayQualificationRequirements(step2Data.qualification_requirements);
+        // 步骤3：分析资质要求
+        document.getElementById('stepMessage').textContent = '正在分析资质要求...';
         progressBar.style.width = '70%';
         
-        // 第三步：提取技术评分
-        document.getElementById('stepMessage').textContent = '正在分析技术评分...';
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        const step3FormData = new FormData();
-        step3FormData.append('step', '3');
-        step3FormData.append('file_path', step1Data.file_path);
-        step3FormData.append('api_key', StateManager.getApiKey() || '');
+        // 步骤4：提取技术评分
+        document.getElementById('stepMessage').textContent = '正在提取技术评分...';
+        progressBar.style.width = '90%';
         
-        const step3Response = await fetch('/extract-tender-info-step', {
+        // 发送请求到统一的API端点
+        const response = await fetch('/extract-tender-info', {
             method: 'POST',
-            body: step3FormData
+            body: formData
         });
-        const step3Data = await step3Response.json();
         
-        if (!step3Data.success) {
-            throw new Error(step3Data.error);
+        // 检查HTTP状态
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        // 显示技术评分（如果存在）
-        const hasTechnicalScoring = displayTechnicalScoring(step3Data.technical_scoring);
+        const data = await response.json();
+        console.log('API响应数据:', data);
+        
+        if (!data.success) {
+            let errorMsg = '未知错误';
+            if (typeof data.error === 'string') {
+                errorMsg = data.error;
+            } else if (typeof data.message === 'string') {
+                errorMsg = data.message;
+            } else if (data.error && typeof data.error === 'object') {
+                errorMsg = data.error.message || JSON.stringify(data.error);
+            } else if (data.message && typeof data.message === 'object') {
+                errorMsg = data.message.message || JSON.stringify(data.message);
+            } else {
+                errorMsg = JSON.stringify(data);
+            }
+            console.error('API返回错误:', data);
+            throw new Error(errorMsg);
+        }
+        
+        // 处理返回的数据
+        const result = data.data;
+        
+        // 提取基本信息（招标相关的基本字段）
+        const basicInfo = {
+            tenderer: result.tenderer,
+            agency: result.agency,
+            bidding_method: result.bidding_method,
+            bidding_location: result.bidding_location,
+            bidding_time: result.bidding_time,
+            winner_count: result.winner_count,
+            project_name: result.project_name,
+            project_number: result.project_number
+        };
+        
+        // 提取资质要求（以qualification_开头的字段）
+        const qualificationRequirements = {};
+        for (const [key, value] of Object.entries(result)) {
+            if (key.startsWith('qualification_') || key.includes('requirements') || 
+                ['business_license', 'taxpayer_qualification', 'performance_requirements', 
+                 'authorization_requirements', 'credit_china', 'commitment_letter', 
+                 'audit_report', 'social_security', 'labor_contract', 'other_requirements'].includes(key)) {
+                qualificationRequirements[key] = value;
+            }
+        }
+        
+        // 提取技术评分（以technical_开头的字段或包含scoring的字段）
+        const technicalScoring = {};
+        for (const [key, value] of Object.entries(result)) {
+            if (key.startsWith('technical_') || key.includes('scoring') || key.includes('score')) {
+                technicalScoring[key] = value;
+            }
+        }
+        
+        // 显示提取结果
+        displayBasicInfo(basicInfo);
+        displayQualificationRequirements(qualificationRequirements);
+        const hasTechnicalScoring = displayTechnicalScoring(technicalScoring);
+        
+        // 完成
         progressBar.style.width = '100%';
-        document.getElementById('stepMessage').textContent = hasTechnicalScoring ? '所有信息提取完成！' : '信息提取完成（未检测到技术评分标准）！';
+        document.getElementById('stepMessage').textContent = hasTechnicalScoring ? 
+            '所有信息提取完成！' : '信息提取完成（未检测到技术评分标准）！';
         
         // 清理定时器
         clearTimeout(timeoutId);
@@ -151,7 +188,8 @@ async function performStepwiseExtraction(formData, progressBar, tenderResultArea
         // 保存提取结果
         StateManager.setPageContext({
             tenderInfoExtracted: true,
-            extractionComplete: true
+            extractionComplete: true,
+            extractedData: result
         });
         
     } catch (error) {
@@ -165,15 +203,14 @@ function submitTenderExtraction() {
         return;
     }
 
-    const apiKey = StateManager.getApiKey();
-    if (!apiKey) {
-        showNotification('请先配置API密钥', 'error');
-        return;
-    }
-
     const formData = new FormData();
     formData.append('file', tenderFileInput.files[0]);
-    formData.append('api_key', apiKey);
+    
+    // 尝试获取用户输入的API密钥，如果没有就让后端使用环境变量
+    const apiKeyInput = document.getElementById('tenderApiKey');
+    if (apiKeyInput && apiKeyInput.value.trim()) {
+        formData.append('api_key', apiKeyInput.value.trim());
+    }
 
     // 重置显示区域
     tenderResultArea.style.display = 'none';
@@ -209,12 +246,19 @@ function submitTenderExtraction() {
         
         if (error.name === 'AbortError') {
             errorMsg += '请求超时，文档过大或处理时间过长。建议：1) 检查网络连接 2) 尝试更小的文档 3) 点击重试';
-        } else if (error.message.includes('Failed to fetch')) {
+        } else if (error.message && error.message.includes('Failed to fetch')) {
             errorMsg += '网络连接失败，请检查网络状态后重试';
-        } else {
+        } else if (typeof error === 'string') {
+            errorMsg += error;
+        } else if (error.message && typeof error.message === 'string') {
             errorMsg += error.message;
+        } else if (error && typeof error === 'object') {
+            errorMsg += JSON.stringify(error);
+        } else {
+            errorMsg += '未知错误';
         }
         
+        console.error('提取错误详情:', error);
         document.getElementById('tenderErrorMessage').textContent = errorMsg;
         tenderErrorArea.style.display = 'block';
     })
@@ -271,10 +315,6 @@ function displayTenderInfo(tenderInfo) {
 }
 
 function displayBasicInfo(basicInfo) {
-    const container = document.createElement('div');
-    container.id = 'basicInfoContainer';
-    container.innerHTML = `<h5 class="text-primary mb-3"><i class="bi bi-info-circle"></i> 基本信息</h5>`;
-    
     let html = '<div class="row">';
     const fieldLabels = {
         'tenderer': '招标人',
@@ -308,16 +348,11 @@ function displayBasicInfo(basicInfo) {
         }
     }
     html += '</div>';
-    container.innerHTML += html;
     
-    document.getElementById('tenderInfoDisplay').appendChild(container);
+    document.getElementById('basicInfoDisplay').innerHTML = html;
 }
 
 function displayQualificationRequirements(qualificationRequirements) {
-    const container = document.createElement('div');
-    container.id = 'qualificationContainer';
-    container.innerHTML = `<hr><h5 class="text-warning mb-3 mt-4"><i class="bi bi-list-check"></i> 资质要求</h5>`;
-    
     const qualificationLabels = {
         'business_license': '营业执照',
         'taxpayer_qualification': '纳税人资格（增值税纳税人）',
@@ -357,9 +392,8 @@ function displayQualificationRequirements(qualificationRequirements) {
         }
     }
     html += '</div>';
-    container.innerHTML += html;
     
-    document.getElementById('tenderInfoDisplay').appendChild(container);
+    document.getElementById('qualificationDisplay').innerHTML = html;
 }
 
 function displayTechnicalScoring(technicalScoring) {
@@ -382,14 +416,17 @@ function displayTechnicalScoring(technicalScoring) {
     
     console.log('技术评分数据检查:', { technicalScoring, hasValidScoring });
     
-    // 如果没有有效的技术评分数据，直接返回false，不显示任何内容
+    // 如果没有有效的技术评分数据，显示提示信息
     if (!hasValidScoring) {
+        document.getElementById('technicalScoringDisplay').innerHTML = `
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i>
+                <h6>未检测到技术评分标准</h6>
+                <p class="mb-0 small">该招标文件可能不包含技术评分相关内容，或者评分标准格式特殊无法自动识别。</p>
+            </div>
+        `;
         return false;
     }
-    
-    const container = document.createElement('div');
-    container.id = 'technicalContainer';
-    container.innerHTML = `<hr><h5 class="text-info mb-3 mt-4"><i class="bi bi-award"></i> 技术评分标准</h5>`;
     
     let html = '<div class="row">';
     let itemsProcessed = 0;
@@ -468,7 +505,6 @@ function displayTechnicalScoring(technicalScoring) {
     console.log(`技术评分渲染完成，共处理 ${itemsProcessed} 个评分项`);
     
     html += '</div>';
-    container.innerHTML += html;
-    document.getElementById('tenderInfoDisplay').appendChild(container);
+    document.getElementById('technicalScoringDisplay').innerHTML = html;
     return true;
 }

@@ -160,7 +160,7 @@ def register_routes(app: Flask, config, logger):
             safe_config = {
                 'api_endpoint': api_config['api_endpoint'],
                 'model_name': api_config['model_name'],
-                'max_tokens': api_config['max_tokens'],
+                'max_completion_tokens': api_config['max_tokens'],
                 'has_api_key': bool(api_config.get('api_key'))
             }
             return jsonify({'success': True, 'config': safe_config})
@@ -283,7 +283,7 @@ def register_routes(app: Flask, config, logger):
             # 获取API密钥
             api_key = request.form.get('api_key') or config.get_default_api_key()
             if not api_key:
-                raise ValueError("API密钥未配置")
+                raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
             
             # 保存上传文件
             filename = safe_filename(file.filename)
@@ -318,16 +318,23 @@ def register_routes(app: Flask, config, logger):
             })
         
         try:
-            data = request.get_json()
-            step = data.get('step', '1')
-            file_path = data.get('file_path', '')
-            api_key = data.get('api_key') or config.get_default_api_key()
+            # 支持两种格式：JSON 和 FormData
+            if request.content_type and 'application/json' in request.content_type:
+                data = request.get_json()
+                step = data.get('step', '1')
+                file_path = data.get('file_path', '')
+                api_key = data.get('api_key') or config.get_default_api_key()
+            else:
+                # FormData 格式
+                step = request.form.get('step', '1')
+                file_path = request.form.get('file_path', '')
+                api_key = request.form.get('api_key') or config.get_default_api_key()
             
             if not file_path or not Path(file_path).exists():
                 raise ValueError("文件路径无效")
             
             if not api_key:
-                raise ValueError("API密钥未配置")
+                raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
             
             extractor = TenderInfoExtractor(api_key=api_key)
             
