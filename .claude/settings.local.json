@@ -32,7 +32,10 @@
       "Bash(git stash:*)",
       "Bash(copy .env.example .env)",
       "Bash(powershell:*)",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "Bash(netstat:*)",
+      "Bash(tasklist)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

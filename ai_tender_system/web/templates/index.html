@@ -69,6 +69,48 @@
         .modal {
             z-index: 1055;
         }
+        
+        /* 未保存状态指示器样式 */
+        .unsaved-indicator {
+            color: #dc3545;
+            font-weight: bold;
+            animation: pulse-indicator 2s infinite;
+            margin-left: 5px;
+        }
+        
+        @keyframes pulse-indicator {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.6;
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        /* 标签页改进样式 */
+        .nav-pills .nav-link {
+            position: relative;
+        }
+        
+        /* 引导提示样式 */
+        .guide-alert {
+            background: linear-gradient(45deg, #e3f2fd, #f3e5f5);
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .guide-alert .bi {
+            color: #2196f3;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -3660,7 +3702,7 @@
         // 资质文件保存功能
         safeAddEventListener('saveAllQualificationsBtn', 'click', function() {
             if (!currentCompanyId) {
-                showCompanyMessage('请先保存公司基本信息', 'error');
+                showCompanyGuideModal();
                 return;
             }
 
@@ -4667,6 +4709,80 @@
             InitializationManager.markReady();
             console.log('AI标书系统前端初始化完成');
         });
+
+        // 显示公司信息引导模态框
+        function showCompanyGuideModal() {
+            const modalHtml = `
+                <div class="modal fade" id="companyGuideModal" tabindex="-1" aria-labelledby="companyGuideModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="companyGuideModalLabel">
+                                    <i class="bi bi-info-circle text-primary"></i> 操作提示
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-lightbulb"></i>
+                                    <strong>需要先设置公司信息</strong>
+                                </div>
+                                <p>资质文件需要关联到特定的公司，请先完成以下步骤：</p>
+                                <ol class="mb-3">
+                                    <li>前往"公司管理"页面</li>
+                                    <li>选择已有公司或新建公司</li>
+                                    <li>填写并保存公司基本信息</li>
+                                    <li>然后返回此页面上传资质文件</li>
+                                </ol>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="button" class="btn btn-primary" onclick="navigateToCompanyManagement()">
+                                        <i class="bi bi-arrow-right"></i> 前往公司管理
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 移除已存在的模态框
+            const existingModal = document.getElementById('companyGuideModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 添加新的模态框
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 显示模态框
+            const modal = new bootstrap.Modal(document.getElementById('companyGuideModal'));
+            modal.show();
+            
+            // 模态框关闭后移除DOM元素
+            document.getElementById('companyGuideModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        }
+
+        // 导航到公司管理标签页
+        function navigateToCompanyManagement() {
+            // 关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('companyGuideModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // 切换到公司管理标签页
+            const companyTab = document.querySelector('#company-management-tab');
+            if (companyTab) {
+                const tab = new bootstrap.Tab(companyTab);
+                tab.show();
+            } else {
+                // 如果没有公司管理标签页，提示用户
+                alert('请在导航菜单中选择"公司管理"页面');
+            }
+        }
 
     </script>
 

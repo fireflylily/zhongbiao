@@ -10,6 +10,120 @@ let isLoadingCompany = false;
 let qualificationFiles = {};
 let customQualificationCounter = 0;
 
+// 数据状态跟踪系统
+const FormStateManager = {
+    // 状态存储
+    state: {
+        companyInfoDirty: false,
+        qualificationsDirty: false,
+        originalCompanyData: {},
+        originalQualificationData: {}
+    },
+
+    // 设置公司信息脏状态
+    setCompanyInfoDirty(dirty = true) {
+        this.state.companyInfoDirty = dirty;
+        this.updateTabIndicators();
+    },
+
+    // 设置资质信息脏状态  
+    setQualificationsDirty(dirty = true) {
+        this.state.qualificationsDirty = dirty;
+        this.updateTabIndicators();
+    },
+
+    // 更新标签页视觉指示器
+    updateTabIndicators() {
+        const companyTab = document.querySelector('a[href="#companyInfo"]');
+        const qualTab = document.querySelector('a[href="#qualifications"]');
+        
+        if (companyTab) {
+            if (this.state.companyInfoDirty) {
+                if (!companyTab.querySelector('.unsaved-indicator')) {
+                    companyTab.innerHTML += ' <span class="unsaved-indicator">●</span>';
+                }
+            } else {
+                const indicator = companyTab.querySelector('.unsaved-indicator');
+                if (indicator) indicator.remove();
+            }
+        }
+
+        if (qualTab) {
+            if (this.state.qualificationsDirty) {
+                if (!qualTab.querySelector('.unsaved-indicator')) {
+                    qualTab.innerHTML += ' <span class="unsaved-indicator">●</span>';
+                }
+            } else {
+                const indicator = qualTab.querySelector('.unsaved-indicator');
+                if (indicator) indicator.remove();
+            }
+        }
+    },
+
+    // 保存原始数据快照
+    saveCompanyDataSnapshot() {
+        if (companyInfoForm) {
+            const formData = new FormData(companyInfoForm);
+            this.state.originalCompanyData = {};
+            for (let [key, value] of formData.entries()) {
+                this.state.originalCompanyData[key] = value;
+            }
+        }
+    },
+
+    saveQualificationDataSnapshot() {
+        this.state.originalQualificationData = {...qualificationFiles};
+    },
+
+    // 检查数据是否有变化
+    hasCompanyInfoChanged() {
+        if (!companyInfoForm) return false;
+        
+        const formData = new FormData(companyInfoForm);
+        const currentData = {};
+        for (let [key, value] of formData.entries()) {
+            currentData[key] = value;
+        }
+
+        // 比较数据
+        const originalKeys = Object.keys(this.state.originalCompanyData);
+        const currentKeys = Object.keys(currentData);
+        
+        if (originalKeys.length !== currentKeys.length) return true;
+        
+        for (let key of originalKeys) {
+            if (this.state.originalCompanyData[key] !== currentData[key]) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    hasQualificationChanged() {
+        const originalKeys = Object.keys(this.state.originalQualificationData);
+        const currentKeys = Object.keys(qualificationFiles);
+        
+        if (originalKeys.length !== currentKeys.length) return true;
+        
+        for (let key of originalKeys) {
+            if (!qualificationFiles[key] || 
+                this.state.originalQualificationData[key].name !== qualificationFiles[key].name) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    // 重置所有状态
+    reset() {
+        this.state.companyInfoDirty = false;
+        this.state.qualificationsDirty = false;
+        this.state.originalCompanyData = {};
+        this.state.originalQualificationData = {};
+        this.updateTabIndicators();
+    }
+};
+
 // 公司信息字段映射
 const companyFields = {
     'companyName': '公司名称',
@@ -84,6 +198,12 @@ onPageReady(function() {
     document.getElementById('addCustomQualificationBtn')?.addEventListener('click', addCustomQualification);
     document.getElementById('saveAllQualificationsBtn')?.addEventListener('click', saveAllQualifications);
     document.getElementById('clearAllQualificationsBtn')?.addEventListener('click', clearAllQualifications);
+
+    // 初始化表单变化监听
+    initializeFormChangeListeners();
+    
+    // 初始化标签切换拦截
+    initializeTabSwitchInterception();
 
     // 从状态管理器恢复公司ID
     const savedCompanyId = StateManager.getCompanyId();
@@ -241,6 +361,10 @@ function saveCompany() {
             
             // 保存到状态管理器
             StateManager.setCompanyId(currentCompanyId);
+            
+            // 重置表单状态为干净状态
+            FormStateManager.setCompanyInfoDirty(false);
+            FormStateManager.saveCompanyDataSnapshot();
             
             showCompanyMessage(data.message || '公司信息保存成功', 'success');
             loadCompanyList(); // 刷新公司列表
@@ -546,8 +670,9 @@ function clearQualificationFileUI(key) {
 }
 
 function saveAllQualifications() {
+    // 检查是否有公司ID
     if (!currentCompanyId) {
-        showCompanyMessage('请先保存公司基本信息', 'error');
+        showCompanyGuideModal();
         return;
     }
 
@@ -592,6 +717,11 @@ function saveAllQualifications() {
                     qualificationFiles[key].uploaded = true;
                 }
             });
+            
+            // 重置资质文件状态为干净状态
+            FormStateManager.setQualificationsDirty(false);
+            FormStateManager.saveQualificationDataSnapshot();
+            
             showCompanyMessage(`成功上传 ${Object.keys(qualificationFiles).length} 个资质文件`, 'success');
         } else {
             showCompanyMessage('上传失败: ' + data.error, 'error');
@@ -656,4 +786,163 @@ function loadCompanyQualifications(companyId) {
         .catch(error => {
             console.warn('加载资质文件信息失败:', error);
         });
+}
+
+// 初始化表单变化监听
+function initializeFormChangeListeners() {
+    // 监听公司信息表单的变化
+    if (companyInfoForm) {
+        const formElements = companyInfoForm.querySelectorAll('input, textarea, select');
+        formElements.forEach(element => {
+            element.addEventListener('input', () => {
+                FormStateManager.setCompanyInfoDirty(true);
+            });
+            element.addEventListener('change', () => {
+                FormStateManager.setCompanyInfoDirty(true);
+            });
+        });
+        
+        // 保存初始状态快照
+        FormStateManager.saveCompanyDataSnapshot();
+    }
+
+    // 监听资质文件选择的变化
+    document.addEventListener('change', function(e) {
+        if (e.target.type === 'file' && e.target.id && e.target.id.endsWith('File')) {
+            FormStateManager.setQualificationsDirty(true);
+        }
+    });
+}
+
+// 初始化标签切换拦截机制
+function initializeTabSwitchInterception() {
+    // 获取所有标签页链接
+    const tabLinks = document.querySelectorAll('[data-bs-toggle="tab"]');
+    
+    tabLinks.forEach(tabLink => {
+        tabLink.addEventListener('show.bs.tab', function(e) {
+            // 获取当前活跃标签和目标标签
+            const activeTab = document.querySelector('.nav-link.active');
+            const targetTab = e.target.getAttribute('href');
+            
+            if (!activeTab) return true;
+            
+            const activeHref = activeTab.getAttribute('href');
+            let shouldPrevent = false;
+            let message = '';
+
+            // 检查是否有未保存的更改
+            if (activeHref === '#companyInfo' && FormStateManager.state.companyInfoDirty) {
+                if (FormStateManager.hasCompanyInfoChanged()) {
+                    shouldPrevent = true;
+                    message = '公司基本信息已修改但未保存，确定要离开吗？\n未保存的更改将丢失。';
+                }
+            } else if (activeHref === '#qualifications' && FormStateManager.state.qualificationsDirty) {
+                if (FormStateManager.hasQualificationChanged()) {
+                    shouldPrevent = true;
+                    message = '资质文件已选择但未保存，确定要离开吗？\n未保存的更改将丢失。';
+                }
+            }
+
+            // 如果有未保存更改，询问用户
+            if (shouldPrevent) {
+                e.preventDefault();
+                if (confirm(message)) {
+                    // 用户确认离开，重置脏状态并手动切换
+                    if (activeHref === '#companyInfo') {
+                        FormStateManager.setCompanyInfoDirty(false);
+                    } else if (activeHref === '#qualifications') {
+                        FormStateManager.setQualificationsDirty(false);
+                    }
+                    
+                    // 手动触发标签切换
+                    setTimeout(() => {
+                        const tab = new bootstrap.Tab(tabLink);
+                        tab.show();
+                    }, 10);
+                }
+                return false;
+            }
+            
+            return true;
+        });
+    });
+}
+
+// 显示公司信息引导模态框
+function showCompanyGuideModal() {
+    const modalHtml = `
+        <div class="modal fade" id="companyGuideModal" tabindex="-1" aria-labelledby="companyGuideModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="companyGuideModalLabel">
+                            <i class="bi bi-info-circle text-primary"></i> 操作提示
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>需要先设置公司信息</strong>
+                        </div>
+                        <p>资质文件需要关联到特定的公司，请先完成以下步骤：</p>
+                        <ol class="mb-3">
+                            <li>切换到"公司基本信息"标签页</li>
+                            <li>填写并保存公司基本信息</li>
+                            <li>然后返回此页面上传资质文件</li>
+                        </ol>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary" onclick="navigateToCompanyInfo()">
+                                <i class="bi bi-arrow-right"></i> 前往填写公司信息
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除已存在的模态框
+    const existingModal = document.getElementById('companyGuideModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 添加新的模态框
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('companyGuideModal'));
+    modal.show();
+    
+    // 模态框关闭后移除DOM元素
+    document.getElementById('companyGuideModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// 导航到公司信息标签页
+function navigateToCompanyInfo() {
+    // 关闭模态框
+    const modal = bootstrap.Modal.getInstance(document.getElementById('companyGuideModal'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    // 切换到公司信息标签页
+    const companyInfoTab = document.querySelector('a[href="#companyInfo"]');
+    if (companyInfoTab) {
+        const tab = new bootstrap.Tab(companyInfoTab);
+        tab.show();
+        
+        // 聚焦到公司名称输入框
+        setTimeout(() => {
+            const companyNameInput = document.getElementById('companyName');
+            if (companyNameInput) {
+                companyNameInput.focus();
+            }
+        }, 200);
+    }
 }
