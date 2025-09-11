@@ -130,9 +130,7 @@ class Config:
         if config_file is None:
             # 查找现有的配置文件
             possible_configs = [
-                self.config_dir / "tender_config.ini",
-                self.base_dir.parent / "1.读取信息" / "tender_config.ini",
-                self.base_dir.parent / "2.填写标书" / "点对点应答" / "tender_config.ini"
+                self.config_dir / "tender_config.ini"
             ]
             for config_path in possible_configs:
                 if config_path.exists():

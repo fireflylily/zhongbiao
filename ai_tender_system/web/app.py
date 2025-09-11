@@ -847,9 +847,7 @@ def register_routes(app: Flask, config, logger):
                 # 新系统路径
                 config.get_path('config') / 'companies' / 'qualifications' / company_id / safe_filename,
                 # 项目根目录的qualifications路径  
-                Path(__file__).parent.parent.parent / 'qualifications' / company_id / safe_filename,
-                # 点对点应答模块的qualifications路径
-                Path(__file__).parent.parent.parent / '2.填写标书' / '点对点应答' / 'qualifications' / company_id / safe_filename
+                Path(__file__).parent.parent.parent / 'qualifications' / company_id / safe_filename
             ]
             
             file_path = None

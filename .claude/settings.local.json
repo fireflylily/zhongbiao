@@ -35,7 +35,11 @@
       "Bash(del nul)",
       "Bash(netstat:*)",
       "Bash(tasklist)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(xcopy:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []

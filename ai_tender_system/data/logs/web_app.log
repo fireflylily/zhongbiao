@@ -63,3 +63,94 @@
 2025-09-11 16:18:08,471 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
 2025-09-11 16:18:11,188 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
 2025-09-11 16:18:15,454 - ai_tender_system.web_app - INFO - 更新公司成功: 测试更新公司名称 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 20:03:36,445 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:03:37,466 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:30:46,242 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:30:47,082 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:40:30,670 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:41:02,143 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:49:35,602 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:52:00,454 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 20:52:17,797 - ai_tender_system.web_app - INFO - 更新公司成功: 中国联合网络通信有限公司 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 20:53:04,363 - ai_tender_system.web_app - INFO - 公司 9ff023cf-ac90-48e3-8752-e7dc06301953 上传了 1 个资质文件
+2025-09-11 20:53:20,352 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:53:32,689 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-11 20:53:51,183 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 20:54:35,358 - ai_tender_system.web_app - INFO - 更新公司成功: 中国联合网络通信有限公司 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 20:54:43,951 - ai_tender_system.web_app - INFO - 公司 9ff023cf-ac90-48e3-8752-e7dc06301953 上传了 1 个资质文件
+2025-09-11 20:54:58,231 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 20:56:01,022 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:56:46,816 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 20:58:11,676 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:59:11,599 - ai_tender_system.web_app - ERROR - 招标信息提取失败: API密钥未配置
+2025-09-11 21:02:12,160 - ai_tender_system.web_app - ERROR - 招标信息提取失败: API密钥未配置
+2025-09-11 21:05:47,750 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:05:54,024 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:10:35,951 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:11:56,307 - ai_tender_system.web_app - INFO - 开始提取招标信息: 20250911_211156_-.pdf
+2025-09-11 21:12:05,260 - ai_tender_system.web_app - ERROR - 招标信息提取失败: 文档处理失败: 基本信息提取失败: API调用失败: 400 - {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: 5878e926-c09f-4323-800f-2843f0af7dd0)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-09-11 21:12:35,954 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:12:41,944 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:15:01,900 - ai_tender_system.web_app - INFO - 开始提取招标信息: 20250911_211501_-.pdf
+2025-09-11 21:15:12,146 - ai_tender_system.web_app - ERROR - 招标信息提取失败: 文档处理失败: 基本信息提取失败: API调用失败: 400 - {"error":{"message":"Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported. (request id: 082fdc0c-88e0-4856-a9b3-e7dfb026c544)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-09-11 21:15:42,361 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:16:17,213 - ai_tender_system.web_app - INFO - 开始提取招标信息: 20250911_211617_-.pdf
+2025-09-11 21:16:37,405 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-11 21:18:45,484 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:18:45,519 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:18:45,528 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:25:06,315 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:25:07,184 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:28:18,989 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:28:19,377 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:34:08,487 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:34:08,876 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:41:21,801 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:41:22,220 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:43:57,913 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:43:58,294 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:47:33,421 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:47:33,825 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:49:42,244 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:49:42,741 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:51:26,079 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:51:26,508 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:53:01,633 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:53:01,637 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:23:51,682 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 22:23:52,109 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 22:25:07,614 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:25:07,619 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:25:48,724 - ai_tender_system.web_app - INFO - 获取公司 7f25b325 的资质文件列表，共 0 个
+2025-09-11 22:25:48,728 - ai_tender_system.web_app - INFO - 获取公司 7f25b325 的资质文件列表，共 0 个
+2025-09-11 22:25:55,581 - ai_tender_system.web_app - INFO - 删除公司成功: 7f25b325
+2025-09-11 22:25:59,293 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:25:59,298 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:26:57,340 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:26:57,653 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:30:22,577 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:30:22,884 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:14:44,302 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:14:44,627 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:23:19,677 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:23:19,995 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:23:24,718 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:23:29,877 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:23:30,140 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:23:30,187 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:23:37,688 - ai_tender_system.web_app - INFO - 公司 9ff023cf-ac90-48e3-8752-e7dc06301953 上传了 0 个资质文件
+2025-09-12 04:28:31,724 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:47:20,592 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:47:25,873 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:25,879 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:45,895 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:46,215 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:46,535 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:58:33,187 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 04:58:34,176 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 04:59:30,126 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:59:57,898 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 05:11:18,449 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 05:11:18,605 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 05:11:42,975 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 05:11:43,093 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
