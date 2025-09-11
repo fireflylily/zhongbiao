@@ -17,18 +17,24 @@
   "bankAccount": "200003309221111116",
   "id": "9ff023cf-ac90-48e3-8752-e7dc06301953",
   "created_at": "2025-09-02T08:09:01.355261",
-  "updated_at": "2025-09-11T16:41:55.213073",
+  "updated_at": "2025-09-11T20:54:35.357528",
   "qualifications": {
     "credit_procurement": {
       "original_filename": "未列入严重失信违法名单（黑名单）信息.png",
       "safe_filename": "credit_procurement_20250902_082829.png",
       "file_size": 531958,
       "upload_time": "2025-09-02T08:28:29.022448"
+    },
+    "business_license": {
+      "filename": "-.pdf",
+      "safe_filename": "1757595283_-.pdf",
+      "upload_time": 1757595283,
+      "size": 942163
     }
   },
   "legalRepresentativePosition": "董事长",
   "authorizedPersonName": "",
   "authorizedPersonPosition": "",
-  "email": "",
-  "fax": ""
+  "email": "282616522@qq.com",
+  "fax": "010-66258899"
 }

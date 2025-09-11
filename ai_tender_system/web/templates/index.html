@@ -229,33 +229,6 @@
                 </div>
             </div>
 
-            <!-- API密钥配置 -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0">
-                                <i class="bi bi-key"></i> API密钥配置
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-8 mb-2">
-                                    <input type="password" class="form-control" id="tenderApiKey" 
-                                           placeholder="请输入始皇API密钥 (sk-...)" 
-                                           value="">
-                                </div>
-                                <div class="col-md-4 mb-2">
-                                    <button class="btn btn-outline-primary" type="button" id="testTenderApiBtn">
-                                        <i class="bi bi-wifi"></i> 测试连接
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="tenderApiStatus" class="api-status"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- 功能特点 -->
             <div class="row mb-5">
@@ -474,12 +447,12 @@
                     </div>
                     <div class="card-body">
                         <form id="uploadForm" enctype="multipart/form-data">
-                            <div class="upload-area" id="uploadArea">
+                            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click();">
                                 <i class="bi bi-cloud-upload text-primary" style="font-size: 3rem;"></i>
                                 <h4 class="mt-3">拖拽文档到这里或点击选择</h4>
                                 <p class="text-muted">支持 .docx 和 .doc 格式，最大 50MB</p>
                                 <input type="file" class="d-none" id="fileInput" name="file" accept=".docx,.doc">
-                                <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click();">
+                                <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">
                                     <i class="bi bi-folder2-open"></i> 选择文件
                                 </button>
                             </div>
@@ -541,54 +514,6 @@
             </div>
         </div>
 
-        <!-- API配置区域 -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5><i class="bi bi-gear"></i> API配置</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label for="apiKey" class="form-label">始皇API密钥</label>
-                                <div class="input-group">
-                                    <input type="password" class="form-control" id="apiKey" 
-                                           placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxx" 
-                                           value="">
-                                    <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                </div>
-                                <small class="form-text text-muted">
-                                    API密钥用于生成专业的技术应答，留空将使用默认模板
-                                </small>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">密钥管理</label>
-                                <div class="btn-group d-flex">
-                                    <button type="button" class="btn btn-outline-success btn-sm" id="saveApiBtn">
-                                        <i class="bi bi-save"></i> 保存
-                                    </button>
-                                    <button type="button" class="btn btn-outline-info btn-sm" id="loadApiBtn">
-                                        <i class="bi bi-upload"></i> 加载
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="manageApiBtn">
-                                        <i class="bi bi-gear"></i> 管理
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <button type="button" class="btn btn-outline-primary flex-fill" id="testApiBtn">
-                                    <i class="bi bi-wifi"></i> 测试连接
-                                </button>
-                            </div>
-                        </div>
-                        <div id="apiStatus" class="api-status"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
                 <!-- 功能特点 -->
         <div class="row mb-5">
@@ -647,11 +572,10 @@
                                 </ul>
                             </div>
                             <div class="col-md-6">
-                                <h6>🔧 API配置</h6>
+                                <h6>🔧 系统配置</h6>
                                 <ul>
-                                    <li>配置始皇API密钥以获得更专业的AI应答</li>
-                                    <li>不配置API密钥将使用内置应答模板</li>
-                                    <li>建议使用GPT-4o-mini模型获得最佳效果</li>
+                                    <li>使用GPT-4o-mini模型获得专业的应答效果</li>
+                                    <li>支持多种文档格式的智能处理</li>
                                 </ul>
                                 
                                 <h6>⚠️ 注意事项</h6>
@@ -683,12 +607,12 @@
                             <form id="techProposalForm" enctype="multipart/form-data">
                                 <div class="row mb-4">
                                     <div class="col-md-6">
-                                        <div class="upload-area tech-upload" data-type="tender">
+                                        <div class="upload-area tech-upload" data-type="tender" onclick="document.getElementById('techTenderFileInput').click();">
                                             <i class="bi bi-file-earmark-check text-primary" style="font-size: 2rem;"></i>
                                             <h5 class="mt-2">招标文件</h5>
                                             <p class="text-muted mb-3">上传招标文件或需求文档</p>
                                             <input type="file" class="d-none" id="techTenderFileInput" name="tender_file" accept=".docx,.doc,.pdf">
-                                            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('techTenderFileInput').click();">
+                                            <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); document.getElementById('techTenderFileInput').click();">
                                                 <i class="bi bi-folder2-open"></i> 选择招标文件
                                             </button>
                                             <div id="techTenderFileInfo" class="mt-2" style="display: none;">
@@ -697,12 +621,12 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6">
-                                        <div class="upload-area tech-upload" data-type="product">
+                                        <div class="upload-area tech-upload" data-type="product" onclick="document.getElementById('productFileInput').click();">
                                             <i class="bi bi-file-earmark-code text-info" style="font-size: 2rem;"></i>
                                             <h5 class="mt-2">产品文档</h5>
                                             <p class="text-muted mb-3">上传产品功能说明文档</p>
                                             <input type="file" class="d-none" id="productFileInput" name="product_file" accept=".docx,.doc,.pdf">
-                                            <button type="button" class="btn btn-info btn-sm" onclick="document.getElementById('productFileInput').click();">
+                                            <button type="button" class="btn btn-info btn-sm" onclick="event.stopPropagation(); document.getElementById('productFileInput').click();">
                                                 <i class="bi bi-folder2-open"></i> 选择产品文档
                                             </button>
                                             <div id="productFileInfo" class="mt-2" style="display: none;">
@@ -1263,12 +1187,13 @@
         const originalGetElementById = document.getElementById;
         document.getElementById = function(id) {
             const element = originalGetElementById.call(document, id);
-            if (!element) {
+            // 静默处理不存在的API相关元素
+            if (!element && !id.includes('Api') && !id.includes('api')) {
                 console.warn(`元素 '${id}' 不存在`);
             }
             return element;
         };
-        // DOM元素引用
+        // DOM元素引用 - 使用安全的元素获取方式
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
@@ -1279,10 +1204,13 @@
         const resultArea = document.getElementById('resultArea');
         const errorArea = document.getElementById('errorArea');
         const uploadForm = document.getElementById('uploadForm');
-        const apiKeyInput = document.getElementById('apiKey');
-        const toggleApiBtn = document.getElementById('toggleApiKey');
-        const saveApiBtn = document.getElementById('saveApiBtn');
-        const loadApiBtn = document.getElementById('loadApiBtn');
+        // API密钥现在通过环境变量自动配置
+        
+        // API密钥相关元素（为了保持兼容性，创建虚拟元素）
+        const apiKeyInput = { value: '', type: 'password' };
+        const toggleApiBtn = { addEventListener: () => {}, innerHTML: '' };
+        const saveApiBtn = { addEventListener: () => {} };
+        const loadApiBtn = { addEventListener: () => {} };
 
         // API密钥安全管理
         const API_STORAGE_KEY = 'ai_tender_api_key_encrypted';
@@ -1365,49 +1293,61 @@
         });
 
         // 管理API密钥备份
-        document.getElementById('manageApiBtn').addEventListener('click', function() {
-            document.getElementById('currentApiKey').value = apiKeyInput.value;
-            loadBackupList();
-            new bootstrap.Modal(document.getElementById('apiBackupModal')).show();
-        });
+        const manageApiBtn = document.getElementById('manageApiBtn');
+        if (manageApiBtn) {
+            manageApiBtn.addEventListener('click', function() {
+                const currentApiKey = document.getElementById('currentApiKey');
+                if (currentApiKey) {
+                    currentApiKey.value = apiKeyInput.value;
+                }
+                loadBackupList();
+                const apiBackupModal = document.getElementById('apiBackupModal');
+                if (apiBackupModal) {
+                    new bootstrap.Modal(apiBackupModal).show();
+                }
+            });
+        }
 
         // 备份当前密钥到服务器
-        document.getElementById('backupCurrentBtn').addEventListener('click', function() {
-            const apiKey = apiKeyInput.value.trim();
-            if (!apiKey) {
-                showNotification('请先输入API密钥', 'error');
-                return;
-            }
-            
-            const btn = this;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 备份中...';
-            btn.disabled = true;
-            
-            fetch('/api/save-key', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ api_key: apiKey })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    loadBackupList(); // 刷新备份列表
-                } else {
-                    showNotification(data.error, 'error');
+        const backupCurrentBtn = document.getElementById('backupCurrentBtn');
+        if (backupCurrentBtn) {
+            backupCurrentBtn.addEventListener('click', function() {
+                const apiKey = apiKeyInput.value.trim();
+                if (!apiKey) {
+                    showNotification('请先输入API密钥', 'error');
+                    return;
                 }
-            })
-            .catch(error => {
-                showNotification('备份失败: ' + error.message, 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                
+                const btn = this;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 备份中...';
+                btn.disabled = true;
+                
+                fetch('/api/save-key', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ api_key: apiKey })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        loadBackupList(); // 刷新备份列表
+                    } else {
+                        showNotification(data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('备份失败: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
             });
-        });
+        }
 
         // 加载备份列表
         function loadBackupList() {
@@ -1551,24 +1491,28 @@
         }
 
         // 拖拽上传
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
+        if (uploadArea) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+        }
 
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
         }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
-        });
+        if (uploadArea) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+            });
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
-        });
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+            });
 
-        uploadArea.addEventListener('drop', handleDrop, false);
+            uploadArea.addEventListener('drop', handleDrop, false);
+        }
 
         function handleDrop(e) {
             const dt = e.dataTransfer;
@@ -1579,7 +1523,9 @@
             }
         }
 
-        fileInput.addEventListener('change', handleFileSelect);
+        if (fileInput) {
+            fileInput.addEventListener('change', handleFileSelect);
+        }
 
         function handleFileSelect() {
             const file = fileInput.files[0];
@@ -1592,11 +1538,14 @@
         }
 
         // API测试
-        document.getElementById('testApiBtn').addEventListener('click', function() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const btn = this;
-            const originalText = btn.innerHTML;
-            const statusDiv = document.getElementById('apiStatus');
+        const testApiBtn = document.getElementById('testApiBtn');
+        if (testApiBtn) {
+            testApiBtn.addEventListener('click', function() {
+                const apiKeyElement = document.getElementById('apiKey');
+                const apiKey = apiKeyElement ? apiKeyElement.value.trim() : '';
+                const btn = this;
+                const originalText = btn.innerHTML;
+                const statusDiv = document.getElementById('apiStatus');
             
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 测试中...';
             btn.disabled = true;
@@ -1629,26 +1578,37 @@
                 btn.disabled = false;
             });
         });
+        }
 
         // 重试和重置功能
-        document.getElementById('retryBtn').addEventListener('click', function() {
-            uploadForm.dispatchEvent(new Event('submit'));
-        });
+        const retryBtn = document.getElementById('retryBtn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', function() {
+                if (uploadForm) {
+                    uploadForm.dispatchEvent(new Event('submit'));
+                }
+            });
+        }
 
-        document.getElementById('resetBtn').addEventListener('click', function() {
-            fileInput.value = '';
-            fileInfo.style.display = 'none';
-            resultArea.style.display = 'none';
-            errorArea.style.display = 'none';
-            processBtn.disabled = true;
-            processBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始处理';
-        });
+        const resetBtn = document.getElementById('resetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                if (fileInput) fileInput.value = '';
+                if (fileInfo) fileInfo.style.display = 'none';
+                if (resultArea) resultArea.style.display = 'none';
+                if (errorArea) errorArea.style.display = 'none';
+                if (processBtn) {
+                    processBtn.disabled = true;
+                    processBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始处理';
+                }
+            });
+        }
 
         // 表单提交处理函数
         function submitUpload() {
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-            formData.append('api_key', document.getElementById('apiKey').value.trim());
+            // API密钥通过环境变量自动获取，无需前端传递
         
             // 显示进度条
             progressBar.style.display = 'block';
@@ -1730,10 +1690,12 @@
         }
 
         // 表单提交事件
-        uploadForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitUpload();
-        });
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitUpload();
+            });
+        }
 
         // ================================
         // 技术方案相关功能
@@ -1749,42 +1711,54 @@
         const techErrorArea = document.getElementById('techErrorArea');
 
         // 技术方案文件选择处理
-        techTenderFileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                document.getElementById('techTenderFileName').textContent = file.name;
-                document.getElementById('techTenderFileInfo').style.display = 'block';
-                checkTechFormReady();
-            }
-        });
+        if (techTenderFileInput) {
+            techTenderFileInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const fileNameElement = document.getElementById('techTenderFileName');
+                    const fileInfoElement = document.getElementById('techTenderFileInfo');
+                    if (fileNameElement) fileNameElement.textContent = file.name;
+                    if (fileInfoElement) fileInfoElement.style.display = 'block';
+                    checkTechFormReady();
+                }
+            });
+        }
 
-        productFileInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                document.getElementById('productFileName').textContent = file.name;
-                document.getElementById('productFileInfo').style.display = 'block';
-                checkTechFormReady();
-            }
-        });
+        if (productFileInput) {
+            productFileInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const fileNameElement = document.getElementById('productFileName');
+                    const fileInfoElement = document.getElementById('productFileInfo');
+                    if (fileNameElement) fileNameElement.textContent = file.name;
+                    if (fileInfoElement) fileInfoElement.style.display = 'block';
+                    checkTechFormReady();
+                }
+            });
+        }
 
         function checkTechFormReady() {
-            const hasTenderFile = techTenderFileInput.files.length > 0;
-            const hasProductFile = productFileInput.files.length > 0;
-            generateProposalBtn.disabled = !(hasTenderFile && hasProductFile);
+            const hasTenderFile = techTenderFileInput && techTenderFileInput.files.length > 0;
+            const hasProductFile = productFileInput && productFileInput.files.length > 0;
+            if (generateProposalBtn) {
+                generateProposalBtn.disabled = !(hasTenderFile && hasProductFile);
+            }
         }
 
         // 技术方案表单提交
-        techProposalForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitTechProposal();
-        });
+        if (techProposalForm) {
+            techProposalForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitTechProposal();
+            });
+        }
 
         function submitTechProposal() {
             const formData = new FormData();
             formData.append('tender_file', techTenderFileInput.files[0]);
             formData.append('product_file', productFileInput.files[0]);
             formData.append('output_prefix', document.getElementById('outputPrefix').value.trim() || '技术方案');
-            formData.append('api_key', apiKeyInput.value.trim());
+            // API密钥通过环境变量自动获取
 
             // 显示进度条
             techProgressBar.style.display = 'block';
@@ -1912,20 +1886,32 @@
         }
 
         // 技术方案重试和重置功能
-        document.getElementById('techRetryBtn').addEventListener('click', function() {
-            submitTechProposal();
-        });
+        const techRetryBtn = document.getElementById('techRetryBtn');
+        if (techRetryBtn) {
+            techRetryBtn.addEventListener('click', function() {
+                submitTechProposal();
+            });
+        }
 
-        document.getElementById('techResetBtn').addEventListener('click', function() {
-            techTenderFileInput.value = '';
-            productFileInput.value = '';
-            document.getElementById('techTenderFileInfo').style.display = 'none';
-            document.getElementById('productFileInfo').style.display = 'none';
-            techResultArea.style.display = 'none';
-            techErrorArea.style.display = 'none';
-            generateProposalBtn.disabled = true;
-            generateProposalBtn.innerHTML = '<i class="bi bi-play-circle"></i> 生成技术方案';
-        });
+        const techResetBtn = document.getElementById('techResetBtn');
+        if (techResetBtn) {
+            techResetBtn.addEventListener('click', function() {
+                if (techTenderFileInput) techTenderFileInput.value = '';
+                if (productFileInput) productFileInput.value = '';
+                
+                const techTenderFileInfo = document.getElementById('techTenderFileInfo');
+                const productFileInfo = document.getElementById('productFileInfo');
+                
+                if (techTenderFileInfo) techTenderFileInfo.style.display = 'none';
+                if (productFileInfo) productFileInfo.style.display = 'none';
+                if (techResultArea) techResultArea.style.display = 'none';
+                if (techErrorArea) techErrorArea.style.display = 'none';
+                if (generateProposalBtn) {
+                    generateProposalBtn.disabled = true;
+                    generateProposalBtn.innerHTML = '<i class="bi bi-play-circle"></i> 生成技术方案';
+                }
+            });
+        }
 
         // ====== 招标信息提取功能 ======
         console.log('Initializing tender info extraction...');
@@ -1950,25 +1936,31 @@
         });
 
         // 上传区域点击事件
-        tenderUploadArea.addEventListener('click', () => {
-            console.log('Tender upload area clicked');
-            tenderFileInput.click();
-        });
+        if (tenderUploadArea && tenderFileInput) {
+            tenderUploadArea.addEventListener('click', () => {
+                console.log('Tender upload area clicked');
+                tenderFileInput.click();
+            });
+        }
 
         // 拖拽上传
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            tenderUploadArea.addEventListener(eventName, preventDefaults, false);
-        });
+        if (tenderUploadArea) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                tenderUploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+        }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            tenderUploadArea.addEventListener(eventName, () => tenderUploadArea.classList.add('dragover'), false);
-        });
+        if (tenderUploadArea) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                tenderUploadArea.addEventListener(eventName, () => tenderUploadArea.classList.add('dragover'), false);
+            });
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            tenderUploadArea.addEventListener(eventName, () => tenderUploadArea.classList.remove('dragover'), false);
-        });
+            ['dragleave', 'drop'].forEach(eventName => {
+                tenderUploadArea.addEventListener(eventName, () => tenderUploadArea.classList.remove('dragover'), false);
+            });
 
-        tenderUploadArea.addEventListener('drop', handleTenderDrop, false);
+            tenderUploadArea.addEventListener('drop', handleTenderDrop, false);
+        }
 
         function handleTenderDrop(e) {
             const dt = e.dataTransfer;
@@ -1979,7 +1971,9 @@
             }
         }
 
-        tenderFileInput.addEventListener('change', handleTenderFileSelect);
+        if (tenderFileInput) {
+            tenderFileInput.addEventListener('change', handleTenderFileSelect);
+        }
 
         function handleTenderFileSelect() {
             console.log('handleTenderFileSelect called');
@@ -1998,11 +1992,14 @@
         }
 
         // API测试
-        document.getElementById('testTenderApiBtn').addEventListener('click', function() {
-            const apiKey = document.getElementById('tenderApiKey').value.trim();
-            const btn = this;
-            const originalText = btn.innerHTML;
-            const statusDiv = document.getElementById('tenderApiStatus');
+        const testTenderApiBtn = document.getElementById('testTenderApiBtn');
+        if (testTenderApiBtn) {
+            testTenderApiBtn.addEventListener('click', function() {
+                const apiKeyElement = document.getElementById('tenderApiKey');
+                const apiKey = apiKeyElement ? apiKeyElement.value.trim() : '';
+                const btn = this;
+                const originalText = btn.innerHTML;
+                const statusDiv = document.getElementById('tenderApiStatus');
             
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 测试中...';
             btn.disabled = true;
@@ -2035,11 +2032,14 @@
                 btn.disabled = false;
             });
         });
+        }
 
         // 提取信息按钮事件
-        extractInfoBtn.addEventListener('click', function() {
-            submitTenderExtraction();
-        });
+        if (extractInfoBtn) {
+            extractInfoBtn.addEventListener('click', function() {
+                submitTenderExtraction();
+            });
+        }
 
         async function performStepwiseExtraction(formData, progressBar, tenderResultArea, tenderErrorArea, progressInterval, timeoutId) {
             try {
@@ -2427,6 +2427,8 @@
         window.addEventListener('load', function() {
             loadCompanyList();
             loadProjectInfo();
+            // 预先初始化公司管理页面，确保列表加载
+            initCompanyManagementPage();
         });
 
         // 获取公司列表
@@ -3815,19 +3817,24 @@
         // =========================
         
         // 商务应答文件上传处理
-        document.getElementById('businessTemplateFile').addEventListener('change', function() {
-            const fileName = this.files[0]?.name;
-            const fileNameDiv = document.getElementById('businessTemplateFileName');
-            if (fileName) {
-                fileNameDiv.innerHTML = `<div class="alert alert-info py-2"><i class="bi bi-file-earmark-word"></i> ${fileName}</div>`;
-            } else {
-                fileNameDiv.innerHTML = '';
-            }
-        });
+        const businessTemplateFile = document.getElementById('businessTemplateFile');
+        if (businessTemplateFile) {
+            businessTemplateFile.addEventListener('change', function() {
+                const fileName = this.files[0]?.name;
+                const fileNameDiv = document.getElementById('businessTemplateFileName');
+                if (fileName && fileNameDiv) {
+                    fileNameDiv.innerHTML = `<div class="alert alert-info py-2"><i class="bi bi-file-earmark-word"></i> ${fileName}</div>`;
+                } else if (fileNameDiv) {
+                    fileNameDiv.innerHTML = '';
+                }
+            });
+        }
         
         // 商务应答表单提交处理
-        document.getElementById('businessResponseForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        const businessResponseForm = document.getElementById('businessResponseForm');
+        if (businessResponseForm) {
+            businessResponseForm.addEventListener('submit', function(e) {
+                e.preventDefault();
             
             const templateFile = document.getElementById('businessTemplateFile').files[0];
             const companyId = document.getElementById('businessCompanySelect').value;
@@ -3917,7 +3924,8 @@
                 error.style.display = 'block';
                 console.error('商务应答处理失败:', err);
             });
-        });
+            });
+        }
         
         // 商务应答"下一步"按钮点击处理
         document.addEventListener('click', function(e) {

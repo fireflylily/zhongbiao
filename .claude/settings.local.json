@@ -28,7 +28,11 @@
       "Bash(done)",
       "Bash(kill:*)",
       "Bash(xargs kill:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git stash:*)",
+      "Bash(copy .env.example .env)",
+      "Bash(powershell:*)",
+      "Bash(del nul)"
     ],
     "deny": [],
     "ask": []
