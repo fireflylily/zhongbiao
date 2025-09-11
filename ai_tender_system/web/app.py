@@ -81,30 +81,6 @@ def register_routes(app: Flask, config, logger):
         """主页"""
         return render_template('index.html')
     
-    @app.route('/tender_info.html')
-    def tender_info():
-        """招标信息提取页面"""
-        return render_template('tender_info.html')
-    
-    @app.route('/company_selection.html')
-    def company_selection():
-        """公司选择页面"""
-        return render_template('company_selection.html')
-    
-    @app.route('/business_response.html')
-    def business_response():
-        """商务应答页面"""
-        return render_template('business_response.html')
-    
-    @app.route('/point_to_point.html')
-    def point_to_point():
-        """点对点应答页面"""
-        return render_template('point_to_point.html')
-    
-    @app.route('/tech_proposal.html')
-    def tech_proposal():
-        """技术方案页面"""
-        return render_template('tech_proposal.html')
     
     @app.route('/help.html')
     def help():

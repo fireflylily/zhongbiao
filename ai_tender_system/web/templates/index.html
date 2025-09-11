@@ -4953,5 +4953,162 @@
         </div>
     </div>
 
+    <!-- JavaScript文件引用 -->
+    <script src="{{ url_for('static', filename='js/state-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    
+    <script>
+        // 全局公司状态管理器
+        const GlobalCompanyManager = {
+            // 统一更新所有公司选择器
+            syncCompanySelectors(companyId) {
+                console.log('[GlobalCompanyManager] 同步公司选择器:', companyId);
+                
+                // 同步商务应答选择器
+                const businessSelect = document.getElementById('businessCompanySelect');
+                if (businessSelect) {
+                    businessSelect.value = companyId || '';
+                }
+                
+                // 同步公司管理选择器
+                const companySelect = document.getElementById('companyListSelect');
+                if (companySelect) {
+                    companySelect.value = companyId || '';
+                }
+                
+                // 更新StateManager
+                StateManager.setCompanyId(companyId);
+                
+                // 更新UI状态指示
+                this.updateCompanyStatusUI(companyId);
+            },
+            
+            // 更新公司状态UI显示
+            updateCompanyStatusUI(companyId) {
+                // 更新当前选中公司显示
+                const statusElements = document.querySelectorAll('.current-company-status');
+                statusElements.forEach(element => {
+                    if (companyId) {
+                        element.textContent = `当前公司: ${companyId}`;
+                        element.className = 'current-company-status text-success';
+                    } else {
+                        element.textContent = '请选择公司';
+                        element.className = 'current-company-status text-warning';
+                    }
+                });
+                
+                // 控制功能按钮状态
+                const needCompanyButtons = document.querySelectorAll('.requires-company');
+                needCompanyButtons.forEach(btn => {
+                    btn.disabled = !companyId;
+                });
+            },
+            
+            // 绑定公司选择器事件
+            bindCompanySelectors() {
+                // 绑定商务应答选择器
+                const businessSelect = document.getElementById('businessCompanySelect');
+                if (businessSelect) {
+                    businessSelect.addEventListener('change', (e) => {
+                        this.syncCompanySelectors(e.target.value);
+                    });
+                }
+                
+                // 绑定公司管理选择器
+                const companySelect = document.getElementById('companyListSelect');
+                if (companySelect) {
+                    companySelect.addEventListener('change', (e) => {
+                        this.syncCompanySelectors(e.target.value);
+                    });
+                }
+            },
+            
+            // 初始化
+            init() {
+                // 从StateManager恢复状态
+                const savedCompanyId = StateManager.getCompanyId();
+                if (savedCompanyId) {
+                    this.syncCompanySelectors(savedCompanyId);
+                }
+                
+                // 绑定事件
+                this.bindCompanySelectors();
+                
+                // 监听StateManager状态变化
+                StateManager.onStateChangeByKey('companyId', (newValue) => {
+                    this.updateCompanyStatusUI(newValue);
+                });
+                
+                console.log('[GlobalCompanyManager] 初始化完成');
+            }
+        };
+        
+        // 获取选定公司信息的统一接口
+        const getSelectedCompanyInfo = async () => {
+            const companyId = StateManager.getCompanyId();
+            if (!companyId) {
+                throw new Error('请先选择公司');
+            }
+            
+            try {
+                const response = await apiRequest(`/api/companies/${companyId}`, 'GET');
+                return response;
+            } catch (error) {
+                console.error('获取公司信息失败:', error);
+                throw error;
+            }
+        };
+        
+        // 页面初始化
+        onPageReady(function() {
+            // 初始化全局公司管理器
+            GlobalCompanyManager.init();
+            
+            // 加载公司列表
+            loadCompanyList();
+        });
+        
+        // 加载公司列表
+        async function loadCompanyList() {
+            try {
+                const companies = await apiRequest('/api/companies', 'GET');
+                
+                // 更新商务应答选择器
+                const businessSelect = document.getElementById('businessCompanySelect');
+                if (businessSelect) {
+                    businessSelect.innerHTML = '<option value="">请选择公司...</option>';
+                    companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.id;
+                        option.textContent = company.companyName;
+                        businessSelect.appendChild(option);
+                    });
+                }
+                
+                // 更新公司管理选择器
+                const companySelect = document.getElementById('companyListSelect');
+                if (companySelect) {
+                    companySelect.innerHTML = '<option value="">请选择公司</option>';
+                    companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.id;
+                        option.textContent = company.companyName;
+                        companySelect.appendChild(option);
+                    });
+                }
+                
+                // 恢复选中状态
+                const savedCompanyId = StateManager.getCompanyId();
+                if (savedCompanyId) {
+                    GlobalCompanyManager.syncCompanySelectors(savedCompanyId);
+                }
+                
+            } catch (error) {
+                console.error('加载公司列表失败:', error);
+                showNotification('加载公司列表失败: ' + error.message, 'error');
+            }
+        }
+    </script>
+
 </body>
 </html>

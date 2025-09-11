@@ -1066,3 +1066,8 @@ AttributeError: 'Config' object has no attribute 'get_config'. Did you mean: 'we
 2025-09-12 05:13:40,506 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:40] "GET /api/project-config HTTP/1.1" 200 -
 2025-09-12 05:13:40,511 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:40] "GET /api/companies HTTP/1.1" 200 -
 2025-09-12 05:13:40,517 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:40] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 05:15:08,410 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:15:08] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:22:21,410 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-12 05:22:21,477 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-12 05:22:21,534 - werkzeug - INFO -  * Restarting with stat
+2025-09-12 05:22:21,586 - werkzeug - INFO -  * Restarting with stat
