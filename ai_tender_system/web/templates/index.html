@@ -2043,15 +2043,30 @@
 
         async function performStepwiseExtraction(formData, progressBar, tenderResultArea, tenderErrorArea, progressInterval, timeoutId) {
             try {
-                // 清空之前的结果容器
-                ['basicInfoContainer', 'qualificationContainer', 'technicalContainer'].forEach(id => {
-                    const element = document.getElementById(id);
-                    if (element) element.remove();
-                });
+                // 确保容器管理器已初始化并清理之前的结果
+                if (!tenderContainerManager && tenderResultArea) {
+                    tenderContainerManager = new ContainerManager(tenderResultArea);
+                }
+                
+                if (tenderContainerManager) {
+                    tenderContainerManager.hideAllContainers();
+                } else {
+                    // 备用清理逻辑
+                    ['basicInfoContainer', 'qualificationContainer', 'technicalContainer'].forEach(id => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            element.style.display = 'none';
+                            const contentElement = element.querySelector('.card-body');
+                            if (contentElement) {
+                                contentElement.innerHTML = '';
+                            }
+                        }
+                    });
+                }
                 
                 // 第一步：提取基本信息
-                document.getElementById('stepMessage').textContent = '正在提取基本信息...';
-                progressBar.style.width = '20%';
+                safeSetTextContent('stepMessage', '正在提取基本信息...');
+                if (progressBar) progressBar.style.width = '20%';
                 
                 const step1FormData = new FormData();
                 for (let pair of formData.entries()) {
@@ -2066,7 +2081,9 @@
                 const step1Data = await step1Response.json();
                 
                 if (!step1Data.success) {
-                    throw new Error(step1Data.error);
+                    const errorMsg = step1Data.error && step1Data.error.message ? step1Data.error.message : 
+                                   (typeof step1Data.error === 'string' ? step1Data.error : '未知错误');
+                    throw new Error(errorMsg);
                 }
                 
                 // 显示基本信息
@@ -2074,7 +2091,7 @@
                 progressBar.style.width = '40%';
                 
                 // 第二步：提取资质要求  
-                document.getElementById('stepMessage').textContent = '正在提取资质要求...';
+                safeSetTextContent('stepMessage', '正在提取资质要求...');
                 
                 const step2FormData = new FormData();
                 step2FormData.append('step', '2');
@@ -2088,7 +2105,9 @@
                 const step2Data = await step2Response.json();
                 
                 if (!step2Data.success) {
-                    throw new Error(step2Data.error);
+                    const errorMsg = step2Data.error && step2Data.error.message ? step2Data.error.message : 
+                                   (typeof step2Data.error === 'string' ? step2Data.error : '未知错误');
+                    throw new Error(errorMsg);
                 }
                 
                 // 显示资质要求
@@ -2096,7 +2115,7 @@
                 progressBar.style.width = '70%';
                 
                 // 第三步：提取技术评分
-                document.getElementById('stepMessage').textContent = '正在分析技术评分...';
+                safeSetTextContent('stepMessage', '正在分析技术评分...');
                 
                 const step3FormData = new FormData();
                 step3FormData.append('step', '3');
@@ -2110,13 +2129,15 @@
                 const step3Data = await step3Response.json();
                 
                 if (!step3Data.success) {
-                    throw new Error(step3Data.error);
+                    const errorMsg = step3Data.error && step3Data.error.message ? step3Data.error.message : 
+                                   (typeof step3Data.error === 'string' ? step3Data.error : '未知错误');
+                    throw new Error(errorMsg);
                 }
                 
                 // 显示技术评分
                 displayTechnicalScoring(step3Data.technical_scoring);
                 progressBar.style.width = '100%';
-                document.getElementById('stepMessage').textContent = '所有信息提取完成！';
+                safeSetTextContent('stepMessage', '所有信息提取完成！');
                 
                 // 清理定时器
                 clearTimeout(timeoutId);
@@ -2164,18 +2185,9 @@
             .catch(error => {
                 clearTimeout(timeoutId);
                 clearInterval(progressInterval);
-                let errorMsg = '提取失败: ';
                 
-                if (error.name === 'AbortError') {
-                    errorMsg += '请求超时，文档过大或处理时间过长。建议：1) 检查网络连接 2) 尝试更小的文档 3) 点击重试';
-                } else if (error.message.includes('Failed to fetch')) {
-                    errorMsg += '网络连接失败，请检查网络状态后重试';
-                } else {
-                    errorMsg += error.message;
-                }
-                
-                document.getElementById('tenderErrorMessage').textContent = errorMsg;
-                tenderErrorArea.style.display = 'block';
+                const errorMsg = ErrorHandler.handleAPIError(error, '提取失败');
+                ErrorHandler.displayError('tenderError', errorMsg);
             })
             .finally(() => {
                 setTimeout(() => {
@@ -2566,26 +2578,253 @@
             });
         }
 
-        // 分步显示函数
-        function displayBasicInfo(basicInfo) {
-            const basicContainer = document.getElementById('basicInfoContainer');
-            if (!basicContainer) {
-                // 如果容器不存在，创建一个
-                const container = document.createElement('div');
-                container.id = 'basicInfoContainer';
-                container.className = 'card border-primary mb-3';
-                container.innerHTML = `
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0"><i class="bi bi-info-circle"></i> 基本信息</h6>
-                    </div>
-                    <div class="card-body" id="basicInfoContent">
-                    </div>
-                `;
-                tenderResultArea.appendChild(container);
-                tenderResultArea.style.display = 'block';
+        // 容器管理器类
+        class ContainerManager {
+            constructor(parentContainer) {
+                this.parentContainer = parentContainer;
+                this.containers = new Map();
             }
             
-            const content = document.getElementById('basicInfoContent');
+            // 安全获取或创建容器
+            getOrCreateContainer(id, config) {
+                let container = document.getElementById(id);
+                
+                if (!container && this.parentContainer) {
+                    container = this.createContainer(id, config);
+                    this.parentContainer.appendChild(container);
+                    this.parentContainer.style.display = 'block';
+                }
+                
+                if (container) {
+                    this.containers.set(id, container);
+                    container.style.display = 'block';
+                }
+                
+                return container;
+            }
+            
+            // 创建容器
+            createContainer(id, config) {
+                const container = document.createElement('div');
+                container.id = id;
+                container.className = config.className || 'card border-primary mb-3';
+                container.innerHTML = `
+                    <div class="card-header ${config.headerClass}">
+                        <h6 class="mb-0">${config.icon} ${config.title}</h6>
+                    </div>
+                    <div class="card-body" id="${config.contentId}">
+                    </div>
+                `;
+                return container;
+            }
+            
+            // 安全获取容器内容区域
+            getContentElement(containerId, contentId) {
+                const container = this.containers.get(containerId) || document.getElementById(containerId);
+                if (!container) {
+                    console.warn(`Container ${containerId} not found`);
+                    return null;
+                }
+                
+                return container.querySelector(`#${contentId}`) || container.querySelector('.card-body');
+            }
+            
+            // 隐藏所有容器
+            hideAllContainers() {
+                this.containers.forEach(container => {
+                    if (container) {
+                        container.style.display = 'none';
+                        const contentElement = container.querySelector('.card-body');
+                        if (contentElement) {
+                            contentElement.innerHTML = '';
+                        }
+                    }
+                });
+            }
+            
+            // 检查父容器是否存在
+            isParentAvailable() {
+                return this.parentContainer && document.contains(this.parentContainer);
+            }
+        }
+        
+        // 全局容器管理器实例
+        let tenderContainerManager;
+        
+        // 安全元素访问辅助函数
+        function safeGetElement(id, warn = true) {
+            const element = document.getElementById(id);
+            if (!element && warn) {
+                console.warn(`Element with id '${id}' not found`);
+            }
+            return element;
+        }
+        
+        function safeSetTextContent(id, text, defaultText = '') {
+            const element = safeGetElement(id, false);
+            if (element) {
+                element.textContent = text;
+                return true;
+            } else {
+                console.warn(`Cannot set text content for element '${id}': element not found`);
+                return false;
+            }
+        }
+        
+        function safeSetInnerHTML(id, html, defaultHTML = '') {
+            const element = safeGetElement(id, false);
+            if (element) {
+                element.innerHTML = html;
+                return true;
+            } else {
+                console.warn(`Cannot set innerHTML for element '${id}': element not found`);
+                return false;
+            }
+        }
+        
+        // 标准化错误处理
+        class ErrorHandler {
+            static formatErrorMessage(error) {
+                if (typeof error === 'string') {
+                    return error;
+                }
+                
+                if (error && typeof error === 'object') {
+                    if (error.message) {
+                        return error.message;
+                    }
+                    if (error.error && error.error.message) {
+                        return error.error.message;
+                    }
+                    if (error.error && typeof error.error === 'string') {
+                        return error.error;
+                    }
+                }
+                
+                return '未知错误';
+            }
+            
+            static handleAPIError(error, prefix = '操作失败') {
+                let errorMsg = `${prefix}: `;
+                
+                if (error.name === 'AbortError') {
+                    errorMsg += '请求超时，文档过大或处理时间过长。建议：1) 检查网络连接 2) 尝试更小的文档 3) 点击重试';
+                } else if (error.message && error.message.includes('Failed to fetch')) {
+                    errorMsg += '网络连接失败，请检查网络状态后重试';
+                } else {
+                    errorMsg += this.formatErrorMessage(error);
+                }
+                
+                return errorMsg;
+            }
+            
+            static displayError(containerId, message) {
+                const container = safeGetElement(containerId, false);
+                if (container) {
+                    container.style.display = 'block';
+                    safeSetTextContent(containerId + 'Message', message);
+                } else {
+                    console.error(`Error container ${containerId} not found. Error: ${message}`);
+                }
+            }
+            
+            static hideError(containerId) {
+                const container = safeGetElement(containerId, false);
+                if (container) {
+                    container.style.display = 'none';
+                }
+            }
+        }
+        
+        // 初始化管理器
+        class InitializationManager {
+            static isReady = false;
+            static readyCallbacks = [];
+            
+            static onReady(callback) {
+                if (this.isReady) {
+                    callback();
+                } else {
+                    this.readyCallbacks.push(callback);
+                }
+            }
+            
+            static markReady() {
+                this.isReady = true;
+                this.readyCallbacks.forEach(callback => {
+                    try {
+                        callback();
+                    } catch (error) {
+                        console.error('Error in ready callback:', error);
+                    }
+                });
+                this.readyCallbacks = [];
+            }
+            
+            static ensureDOMReady(callback) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', callback);
+                } else {
+                    callback();
+                }
+            }
+        }
+        
+        // 组件状态管理
+        const ComponentState = {
+            containerManager: null,
+            isInitialized: false,
+            
+            init() {
+                if (this.isInitialized) return;
+                
+                // 初始化全局容器管理器
+                const tenderResultArea = safeGetElement('tenderResultArea', false);
+                if (tenderResultArea) {
+                    this.containerManager = new ContainerManager(tenderResultArea);
+                    if (!window.tenderContainerManager) {
+                        window.tenderContainerManager = this.containerManager;
+                    }
+                }
+                
+                this.isInitialized = true;
+                console.log('Component state initialized');
+            },
+            
+            getContainerManager() {
+                if (!this.isInitialized) {
+                    this.init();
+                }
+                return this.containerManager || window.tenderContainerManager;
+            }
+        };
+        
+        // 分步显示函数
+        function displayBasicInfo(basicInfo) {
+            // 使用组件状态管理器获取容器管理器
+            const containerManager = ComponentState.getContainerManager();
+            
+            // 检查容器管理器是否可用
+            if (!containerManager || !containerManager.isParentAvailable()) {
+                console.warn('Container manager not available for basic info');
+                return;
+            }
+            
+            // 获取或创建基本信息容器
+            const container = containerManager.getOrCreateContainer('basicInfoContainer', {
+                className: 'card border-primary mb-3',
+                headerClass: 'bg-primary text-white',
+                icon: '<i class="bi bi-info-circle"></i>',
+                title: '基本信息',
+                contentId: 'basicInfoContent'
+            });
+            
+            if (!container) {
+                console.warn('Failed to create basicInfoContainer');
+                return;
+            }
+            
+            const content = containerManager.getContentElement('basicInfoContainer', 'basicInfoContent');
             let html = '<div class="row">';
             
             const fieldLabels = {
@@ -2610,26 +2849,40 @@
             }
             
             html += '</div>';
-            content.innerHTML = html;
+            if (content) {
+                content.innerHTML = html;
+            } else {
+                console.warn('basicInfoContent element not found');
+            }
         }
 
         function displayQualificationRequirements(qualRequirements) {
-            const qualContainer = document.getElementById('qualificationContainer');
-            if (!qualContainer) {
-                const container = document.createElement('div');
-                container.id = 'qualificationContainer';
-                container.className = 'card border-warning mb-3';
-                container.innerHTML = `
-                    <div class="card-header bg-warning">
-                        <h6 class="mb-0"><i class="bi bi-award"></i> 资质要求</h6>
-                    </div>
-                    <div class="card-body" id="qualificationContent">
-                    </div>
-                `;
-                tenderResultArea.appendChild(container);
+            // 确保容器管理器已初始化
+            if (!tenderContainerManager) {
+                tenderContainerManager = new ContainerManager(tenderResultArea);
             }
             
-            const content = document.getElementById('qualificationContent');
+            // 检查父容器是否可用
+            if (!tenderContainerManager.isParentAvailable()) {
+                console.warn('tenderResultArea not available for qualifications');
+                return;
+            }
+            
+            // 获取或创建资质要求容器
+            const container = tenderContainerManager.getOrCreateContainer('qualificationContainer', {
+                className: 'card border-warning mb-3',
+                headerClass: 'bg-warning',
+                icon: '<i class="bi bi-award"></i>',
+                title: '资质要求',
+                contentId: 'qualificationContent'
+            });
+            
+            if (!container) {
+                console.warn('Failed to create qualificationContainer');
+                return;
+            }
+            
+            const content = tenderContainerManager.getContentElement('qualificationContainer', 'qualificationContent');
             let html = '';
             
             for (const [key, info] of Object.entries(qualRequirements)) {
@@ -2650,26 +2903,40 @@
                 `;
             }
             
-            content.innerHTML = html;
+            if (content) {
+                content.innerHTML = html;
+            } else {
+                console.warn('qualificationContent element not found');
+            }
         }
 
         function displayTechnicalScoring(technicalScoring) {
-            const techContainer = document.getElementById('technicalContainer');
-            if (!techContainer) {
-                const container = document.createElement('div');
-                container.id = 'technicalContainer';
-                container.className = 'card border-info mb-3';
-                container.innerHTML = `
-                    <div class="card-header bg-info text-white">
-                        <h6 class="mb-0"><i class="bi bi-graph-up"></i> 技术评分</h6>
-                    </div>
-                    <div class="card-body" id="technicalContent">
-                    </div>
-                `;
-                tenderResultArea.appendChild(container);
+            // 确保容器管理器已初始化
+            if (!tenderContainerManager) {
+                tenderContainerManager = new ContainerManager(tenderResultArea);
             }
             
-            const content = document.getElementById('technicalContent');
+            // 检查父容器是否可用
+            if (!tenderContainerManager.isParentAvailable()) {
+                console.warn('tenderResultArea not available for technical scoring');
+                return;
+            }
+            
+            // 获取或创建技术评分容器
+            const container = tenderContainerManager.getOrCreateContainer('technicalContainer', {
+                className: 'card border-info mb-3',
+                headerClass: 'bg-info text-white',
+                icon: '<i class="bi bi-graph-up"></i>',
+                title: '技术评分',
+                contentId: 'technicalContent'
+            });
+            
+            if (!container) {
+                console.warn('Failed to create technicalContainer');
+                return;
+            }
+            
+            const content = tenderContainerManager.getContentElement('technicalContainer', 'technicalContent');
             const items = technicalScoring.technical_scoring_items || [];
             
             if (items.length > 0) {
@@ -2724,7 +2991,11 @@
                 `;
             }
             
-            content.innerHTML = html;
+            if (content) {
+                content.innerHTML = html;
+            } else {
+                console.warn('technicalContent element not found');
+            }
         }
 
         function getQualificationLabel(key) {
@@ -4346,6 +4617,13 @@
                 console.log('公司管理选项卡已激活');
                 initCompanyManagementPage();
             }
+        });
+
+        // DOM加载完成后初始化组件
+        InitializationManager.ensureDOMReady(() => {
+            ComponentState.init();
+            InitializationManager.markReady();
+            console.log('AI标书系统前端初始化完成');
         });
 
     </script>
