@@ -897,8 +897,28 @@
                             
                             <!-- 公司编辑区域 -->
                             <div id="companyEditArea" style="display: none;">
-                                <!-- 公司基本信息编辑表单 -->
-                                <form id="companyInfoForm">
+                                <!-- Tab导航 -->
+                                <ul class="nav nav-tabs mb-3" id="companyEditTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#basic-info" type="button" role="tab">
+                                            <i class="bi bi-building"></i> 基本信息
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="qualifications-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#qualifications" type="button" role="tab">
+                                            <i class="bi bi-award"></i> 资质管理
+                                        </button>
+                                    </li>
+                                </ul>
+                                
+                                <!-- Tab内容 -->
+                                <div class="tab-content" id="companyEditTabContent">
+                                    <!-- 基本信息Tab -->
+                                    <div class="tab-pane fade show active" id="basic-info" role="tabpanel">
+                                        <!-- 公司基本信息编辑表单 -->
+                                        <form id="companyInfoForm">
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <label for="companyName" class="form-label">公司名称 <span class="text-danger">*</span></label>
@@ -1032,19 +1052,21 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- 操作按钮 -->
-                                    <div class="text-center mt-4">
-                                        <button type="button" class="btn btn-success btn-lg me-3" id="saveCompanyBtn">
-                                            <i class="bi bi-save"></i> 保存公司信息
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-lg" id="clearCompanyFormBtn">
-                                            <i class="bi bi-x-circle"></i> 清空表单
-                                        </button>
+                                            <!-- 操作按钮 -->
+                                            <div class="text-center mt-4">
+                                                <button type="button" class="btn btn-success btn-lg me-3" id="saveCompanyBtn">
+                                                    <i class="bi bi-save"></i> 保存公司信息
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-lg" id="clearCompanyFormBtn">
+                                                    <i class="bi bi-x-circle"></i> 清空表单
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
-                                </form>
-                                
-                                <!-- 资质文件上传区域 -->
-                                <div class="card mt-4" id="qualificationUploadArea" style="display: none;">
+                                    <!-- 资质管理Tab -->
+                                    <div class="tab-pane fade" id="qualifications" role="tabpanel">
+                                        <!-- 资质文件管理区域 -->
+                                        <div id="qualificationUploadArea">
                                     <div class="card-header bg-warning text-dark">
                                         <h6 class="mb-0">
                                             <i class="bi bi-file-earmark-arrow-up"></i> 资质文件上传
@@ -1098,6 +1120,7 @@
                                             <button type="button" class="btn btn-outline-secondary btn-lg" id="clearAllQualificationsBtn">
                                                 <i class="bi bi-x-circle"></i> 清空所有资质
                                             </button>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2727,20 +2750,30 @@
             
             if (statusDiv && qualElement) {
                 const viewBtn = qualElement.querySelector('.view-file-btn');
+                const downloadBtn = qualElement.querySelector('.download-file-btn');
                 const deleteBtn = qualElement.querySelector('.delete-file-btn');
+                
+                // 获取文件类型图标和格式化大小
+                const fileTypeIcon = getFileTypeIcon('', qualInfo.original_filename);
+                const fileSizeText = formatFileSize(qualInfo.file_size);
                 
                 // 显示文件信息
                 statusDiv.innerHTML = `
-                    <small class="text-success">
-                        <i class="bi bi-cloud-check"></i> 已上传: ${qualInfo.original_filename} 
-                        (${(qualInfo.file_size / 1024).toFixed(1)} KB)
-                        <span class="badge bg-success">已保存</span>
-                    </small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="file-info">
+                            <small class="text-success">
+                                <i class="${fileTypeIcon}"></i> 已上传: ${qualInfo.original_filename} 
+                                (${fileSizeText})
+                                <span class="badge bg-success">已保存</span>
+                            </small>
+                        </div>
+                    </div>
                 `;
                 statusDiv.style.display = 'block';
                 
                 // 显示操作按钮
                 if (viewBtn) viewBtn.style.display = 'inline-block';
+                if (downloadBtn) downloadBtn.style.display = 'inline-block';
                 if (deleteBtn) deleteBtn.style.display = 'inline-block';
                 
                 // 记录文件信息用于显示（但不是本地文件）
@@ -2820,18 +2853,47 @@
 
         // 预定义资质类型
         const standardQualificationTypes = [
-            { key: 'business_license', name: '营业执照', icon: 'bi-building' },
-            { key: 'legal_id_front', name: '法人身份证_正面', icon: 'bi-person-badge' },
-            { key: 'legal_id_back', name: '法人身份证_反面', icon: 'bi-person-badge' },
-            { key: 'auth_id_front', name: '授权人身份证_正面', icon: 'bi-person-check' },
-            { key: 'auth_id_back', name: '授权人身份证_反面', icon: 'bi-person-check' },
-            { key: 'iso9001', name: '质量管理体系认证证书（ISO9001）', icon: 'bi-award' },
-            { key: 'iso20000', name: '信息技术管理体系认证证书（ISO20000）', icon: 'bi-award' },
-            { key: 'iso27001', name: '信息安全管理体系认证证书（ISO27001）', icon: 'bi-shield-check' },
-            { key: 'credit_dishonest', name: '信用中国_失信被执行人', icon: 'bi-exclamation-triangle' },
-            { key: 'credit_corruption', name: '信用中国_无贪污受贿', icon: 'bi-check-circle' },
-            { key: 'credit_tax', name: '信用中国_重大税收失信主体名单', icon: 'bi-receipt' },
-            { key: 'credit_procurement', name: '信用中国_政府采购严重违法失信记录名单', icon: 'bi-building' }
+            // 基本证件资质
+            { key: 'business_license', name: '营业执照', icon: 'bi-building', category: 'basic', required: true },
+            { key: 'legal_id_front', name: '法人身份证（正面）', icon: 'bi-person-badge', category: 'basic', required: true },
+            { key: 'legal_id_back', name: '法人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
+            { key: 'auth_id_front', name: '授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
+            { key: 'auth_id_back', name: '授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
+            { key: 'organization_code', name: '组织机构代码证', icon: 'bi-card-text', category: 'basic' },
+            
+            // 税务和财务资质
+            { key: 'tax_registration', name: '税务登记证', icon: 'bi-receipt', category: 'tax' },
+            { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', icon: 'bi-receipt', category: 'tax' },
+            { key: 'audit_report', name: '审计报告', icon: 'bi-file-earmark-text', category: 'financial' },
+            { key: 'financial_statement', name: '财务报表', icon: 'bi-graph-up', category: 'financial' },
+            
+            // ISO体系认证
+            { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
+            { key: 'iso14001', name: '环境管理体系认证（ISO14001）', icon: 'bi-tree', category: 'iso' },
+            { key: 'iso45001', name: '职业健康安全管理体系认证（ISO45001）', icon: 'bi-shield-check', category: 'iso' },
+            { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', icon: 'bi-gear', category: 'iso' },
+            { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
+            
+            // 行业资质
+            { key: 'construction_license', name: '建筑业企业资质证书', icon: 'bi-building', category: 'industry' },
+            { key: 'software_enterprise', name: '软件企业认定证书', icon: 'bi-code-slash', category: 'industry' },
+            { key: 'high_tech_enterprise', name: '高新技术企业证书', icon: 'bi-lightbulb', category: 'industry' },
+            { key: 'safety_production_license', name: '安全生产许可证', icon: 'bi-shield-check', category: 'industry' },
+            
+            // 信用资质
+            { key: 'credit_dishonest', name: '信用中国-失信被执行人查询结果', icon: 'bi-exclamation-triangle', category: 'credit' },
+            { key: 'credit_corruption', name: '信用中国-行贿犯罪档案查询结果', icon: 'bi-x-circle', category: 'credit' },
+            { key: 'credit_tax', name: '信用中国-重大税收违法案件查询结果', icon: 'bi-receipt', category: 'credit' },
+            { key: 'credit_procurement', name: '信用中国-政府采购严重违法失信查询结果', icon: 'bi-building', category: 'credit' },
+            
+            // 社保和员工
+            { key: 'social_security', name: '社会保险登记证', icon: 'bi-people', category: 'social' },
+            { key: 'employee_social_security', name: '员工社保缴费证明', icon: 'bi-person-check', category: 'social' },
+            
+            // 知识产权
+            { key: 'software_copyright', name: '软件著作权登记证书', icon: 'bi-c-circle', category: 'intellectual' },
+            { key: 'patent_certificate', name: '专利证书', icon: 'bi-lightbulb', category: 'intellectual' },
+            { key: 'trademark_certificate', name: '商标注册证', icon: 'bi-r-circle', category: 'intellectual' }
         ];
 
         let customQualificationCounter = 0;
@@ -2846,54 +2908,118 @@
             }
             
             container.innerHTML = '';
-
-            standardQualificationTypes.forEach(qual => {
-                const qualElement = createQualificationElement(qual.key, qual.name, qual.icon, false);
-                container.appendChild(qualElement);
+            
+            // 按分类组织资质
+            const categories = {
+                'basic': { name: '基本证件资质', icon: 'bi-card-text', color: 'primary' },
+                'tax': { name: '税务资质', icon: 'bi-receipt', color: 'success' },
+                'financial': { name: '财务资质', icon: 'bi-graph-up', color: 'info' },
+                'iso': { name: 'ISO体系认证', icon: 'bi-award', color: 'warning' },
+                'industry': { name: '行业资质', icon: 'bi-gear', color: 'secondary' },
+                'credit': { name: '信用资质', icon: 'bi-shield-check', color: 'danger' },
+                'social': { name: '社保资质', icon: 'bi-people', color: 'dark' },
+                'intellectual': { name: '知识产权', icon: 'bi-lightbulb', color: 'success' }
+            };
+            
+            // 按分类渲染资质项目
+            Object.keys(categories).forEach(categoryKey => {
+                const categoryQuals = standardQualificationTypes.filter(qual => qual.category === categoryKey);
+                if (categoryQuals.length > 0) {
+                    const categoryInfo = categories[categoryKey];
+                    
+                    // 创建分类标题
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'mb-4';
+                    categoryDiv.innerHTML = `
+                        <h6 class="text-${categoryInfo.color} mb-3 border-bottom pb-2">
+                            <i class="${categoryInfo.icon}"></i> ${categoryInfo.name}
+                            <small class="text-muted">(${categoryQuals.length}项)</small>
+                        </h6>
+                        <div class="category-qualifications"></div>
+                    `;
+                    
+                    const categoryQualContainer = categoryDiv.querySelector('.category-qualifications');
+                    
+                    // 添加该分类下的所有资质项目
+                    categoryQuals.forEach(qual => {
+                        const qualElement = createQualificationElement(qual.key, qual.name, qual.icon, false, qual.required);
+                        categoryQualContainer.appendChild(qualElement);
+                    });
+                    
+                    container.appendChild(categoryDiv);
+                }
             });
         }
 
         // 创建资质项目元素
-        function createQualificationElement(key, name, icon, isCustom) {
+        function createQualificationElement(key, name, icon, isCustom, required = false) {
             const div = document.createElement('div');
-            div.className = 'card mb-3 qualification-item';
+            div.className = 'card mb-3 qualification-item border-light shadow-sm';
             div.dataset.qualKey = key;
             
             div.innerHTML = `
                 <div class="card-body">
                     <div class="row align-items-center">
-                        <div class="col-md-4">
-                            <h6 class="mb-0">
-                                <i class="${icon} text-primary"></i> ${name}
+                        <div class="col-lg-3 col-md-12 mb-2 mb-lg-0">
+                            <h6 class="mb-0 d-flex align-items-center">
+                                <i class="${icon} text-primary me-2"></i> 
+                                <span class="text-truncate" title="${name}">${name}</span>
+                                ${required ? '<span class="text-danger ms-1" title="必填项">*</span>' : ''}
                             </h6>
                         </div>
-                        <div class="col-md-4">
-                            <input type="file" class="form-control form-control-sm qual-file-input" 
-                                   accept=".pdf,.jpg,.jpeg,.png,.docx,.doc" 
-                                   data-qual-key="${key}">
+                        <div class="col-lg-4 col-md-12 mb-2 mb-lg-0">
+                            <div class="upload-zone border-2 border-dashed rounded p-3 text-center" 
+                                 onclick="document.querySelector('[data-qual-key=&quot;${key}&quot;]').click()">
+                                <input type="file" class="form-control d-none qual-file-input" 
+                                       accept=".pdf,.jpg,.jpeg,.png,.docx,.doc" 
+                                       data-qual-key="${key}">
+                                <i class="bi bi-cloud-upload text-muted"></i>
+                                <small class="text-muted d-block">点击上传文件</small>
+                                <small class="text-muted">支持 PDF, 图片, Word</small>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="btn-group w-100">
-                                <button type="button" class="btn btn-sm btn-outline-info view-file-btn" 
-                                        style="display: none;" data-qual-key="${key}">
-                                    <i class="bi bi-eye"></i> 查看
+                        <div class="col-lg-5 col-md-12">
+                            <div class="d-flex gap-1 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary view-file-btn" 
+                                        style="display: none;" data-qual-key="${key}" title="预览文件">
+                                    <i class="bi bi-eye"></i> 预览
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success download-file-btn" 
+                                        style="display: none;" data-qual-key="${key}" title="下载文件">
+                                    <i class="bi bi-download"></i> 下载
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-danger delete-file-btn" 
-                                        style="display: none;" data-qual-key="${key}">
+                                        style="display: none;" data-qual-key="${key}" title="删除文件">
                                     <i class="bi bi-trash"></i> 删除
                                 </button>
                                 ${isCustom ? `
                                 <button type="button" class="btn btn-sm btn-outline-secondary remove-qual-btn" 
-                                        data-qual-key="${key}">
-                                    <i class="bi bi-x"></i> 移除
+                                        data-qual-key="${key}" title="移除此资质项">
+                                    <i class="bi bi-x-circle"></i> 移除项
                                 </button>` : ''}
                             </div>
                         </div>
                     </div>
-                    <div class="row mt-2">
+                    
+                    <!-- 文件状态和预览区域 -->
+                    <div class="row mt-3">
                         <div class="col-12">
-                            <div class="file-status" id="status-${key}" style="display: none;">
-                                <small class="text-muted">未上传文件</small>
+                            <div class="file-status bg-light rounded p-2" id="status-${key}" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="file-info">
+                                        <small class="text-muted">未上传文件</small>
+                                    </div>
+                                    <div class="file-progress" style="display: none;">
+                                        <div class="progress" style="width: 200px; height: 4px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 图片预览区域 -->
+                                <div class="file-preview mt-2" style="display: none;">
+                                    <img class="preview-image img-thumbnail" style="max-height: 120px; max-width: 200px;" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2921,6 +3047,14 @@
                     deleteQualificationFile(key);
                 });
             }
+            
+            // 绑定下载按钮事件
+            const downloadBtn = div.querySelector('.download-file-btn');
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', function() {
+                    downloadQualificationFile(key);
+                });
+            }
 
             // 绑定移除资质项按钮事件（仅自定义资质）
             const removeBtn = div.querySelector('.remove-qual-btn');
@@ -2939,6 +3073,7 @@
             const statusDiv = document.getElementById(`status-${key}`);
             const qualElement = fileInput.closest('.qualification-item');
             const viewBtn = qualElement.querySelector('.view-file-btn');
+            const downloadBtn = qualElement.querySelector('.download-file-btn');
             const deleteBtn = qualElement.querySelector('.delete-file-btn');
 
             if (file) {
@@ -2959,17 +3094,43 @@
                 };
 
                 // 更新状态显示
+                const fileTypeIcon = getFileTypeIcon(file.type, file.name);
+                const fileSizeText = formatFileSize(file.size);
+                
                 statusDiv.innerHTML = `
-                    <small class="text-info">
-                        <i class="bi bi-file-earmark"></i> 已选择: ${file.name} 
-                        (${(file.size / 1024).toFixed(1)} KB)
-                        <span class="badge bg-warning">待上传</span>
-                    </small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="file-info">
+                            <small class="text-info">
+                                <i class="${fileTypeIcon}"></i> 已选择: ${file.name} 
+                                (${fileSizeText})
+                                <span class="badge bg-warning">待上传</span>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="file-preview mt-2" style="display: none;">
+                        <img class="preview-image img-thumbnail" style="max-height: 120px; max-width: 200px;" />
+                    </div>
                 `;
+                
+                // 如果是图片文件，显示预览
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const previewContainer = statusDiv.querySelector('.file-preview');
+                        const previewImage = statusDiv.querySelector('.preview-image');
+                        if (previewImage && previewContainer) {
+                            previewImage.src = e.target.result;
+                            previewContainer.style.display = 'block';
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+                
                 statusDiv.style.display = 'block';
 
                 // 显示操作按钮
                 viewBtn.style.display = 'inline-block';
+                downloadBtn.style.display = 'inline-block';
                 deleteBtn.style.display = 'inline-block';
             } else {
                 // 清除文件信息
@@ -2978,6 +3139,30 @@
                 viewBtn.style.display = 'none';
                 deleteBtn.style.display = 'none';
             }
+        }
+        
+        // 辅助函数：获取文件类型图标
+        function getFileTypeIcon(fileType, fileName) {
+            if (fileType.startsWith('image/')) {
+                return 'bi bi-image text-primary';
+            } else if (fileType === 'application/pdf') {
+                return 'bi bi-filetype-pdf text-danger';
+            } else if (fileType.includes('word') || fileName.toLowerCase().endsWith('.docx') || fileName.toLowerCase().endsWith('.doc')) {
+                return 'bi bi-filetype-docx text-info';
+            } else if (fileType.includes('excel') || fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls')) {
+                return 'bi bi-filetype-xlsx text-success';
+            } else {
+                return 'bi bi-file-earmark text-secondary';
+            }
+        }
+        
+        // 辅助函数：格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
         // 查看文件
@@ -3003,6 +3188,42 @@
                 if (!newWindow) {
                     showCompanyMessage('无法打开文件预览，请检查浏览器弹窗设置', 'error');
                 }
+            } else {
+                showCompanyMessage('文件不可用', 'error');
+            }
+        }
+        
+        // 下载文件
+        function downloadQualificationFile(key) {
+            const fileInfo = qualificationFiles[key];
+            if (!fileInfo) {
+                showCompanyMessage('没有找到文件信息', 'error');
+                return;
+            }
+            
+            if (fileInfo.server_file) {
+                // 服务器上的文件，通过API下载
+                if (currentCompanyId) {
+                    const url = `/api/companies/${currentCompanyId}/qualifications/${key}/download`;
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileInfo.original_filename || 'download';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    showCompanyMessage('无法下载文件，公司信息缺失', 'error');
+                }
+            } else if (fileInfo.file) {
+                // 本地选择的文件，创建下载链接
+                const url = URL.createObjectURL(fileInfo.file);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileInfo.file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
             } else {
                 showCompanyMessage('文件不可用', 'error');
             }
