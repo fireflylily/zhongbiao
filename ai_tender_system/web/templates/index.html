@@ -2446,6 +2446,19 @@
 
         // 更新公司选择下拉框
         function updateCompanySelect(companies) {
+            // 如果没有传入companies参数，则重新加载公司列表
+            if (!companies) {
+                console.log('重新加载公司列表以更新下拉框');
+                loadCompanyList();
+                return;
+            }
+            
+            // 检查companies是否为数组
+            if (!Array.isArray(companies)) {
+                console.error('updateCompanySelect: companies parameter must be an array');
+                return;
+            }
+            
             console.log(`更新公司选择框，共 ${companies.length} 家公司`);
             
             // 只更新商务应答页面的公司下拉框（移除了不存在的companySelect处理）
