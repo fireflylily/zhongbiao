@@ -224,6 +224,8 @@ Frontend (Single Page App) ←→ Flask API ←→ Business Modules ←→ Exter
 - 文件字段名从 `file` 更改为 `template_file`
 - 公司信息通过 `company_id` 从JSON配置文件自动加载
 - 移除了手动输入的公司字段，改用统一公司管理
+- ⚡ **2025-09-12**: MCP方法调用修复 - `process_business_response()` 替代 `process_bidder_name()`
+- ⚡ **2025-09-12**: 智能日期处理恢复 - 激活完整的日期填充和重复清理功能
 
 - **响应示例**:
 ```json

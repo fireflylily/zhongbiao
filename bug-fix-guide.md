@@ -44,7 +44,40 @@
 - `ai_tender_system/web/app.py:425` - 公司名称字段映射
 - `ai_tender_system/web/app.py:430-450` - MCP处理器动态导入逻辑
 
-### 2. **公司信息统一管理问题**
+### 2. **文档编辑器日期重复填充问题** ⚡ **FIXED 2025-09-12**
+
+#### 📍 **TinyMCE编辑器中日期显示"2025年9月12日 年  月   日"重复现象**
+```
+问题现象: 文档编辑器中日期字段显示空白或出现重复格式
+根本原因: 后端调用了错误的MCP处理器方法，未激活智能日期处理逻辑
+```
+
+**影响范围**: 🔴 **CRITICAL** - 日期字段处理完全失效，出现重复字符  
+**根本原因**: 
+- 后端调用 `process_bidder_name()` 而非 `process_business_response()`
+- 智能日期处理逻辑 `_smart_date_replace()` 未被激活
+- 项目配置文件 `bidding_time` 字段为空
+- 日期清理模式未执行，导致重复现象
+
+**🔧 修复方案**:
+1. ✅ 更改后端方法调用：`process_bidder_name()` → `process_business_response()`
+2. ✅ 传递完整参数：包含 `company_data`, `project_name`, `tender_no`, `date_text`
+3. ✅ 更新项目配置：设置 `bidding_time = 2025年9月12日`
+4. ✅ 激活智能日期处理：恢复 `_process_company_info_fields()` 调用链
+5. ✅ 启用重复清理：激活占位符清理模式防止"年月日"重复
+
+**🔧 代码修改位置**:
+- `ai_tender_system/web/app.py:445-451` - 方法调用和参数传递修复
+- `data/configs/tender_config.ini:9` - 投标时间配置更新
+- MCP处理器逻辑激活：`_smart_date_replace()`, `_process_company_info_fields()`
+
+**📋 验证要点**:
+- TinyMCE编辑器中日期字段显示"2025年9月12日"
+- 不出现"2025年9月12日 年  月   日"重复现象
+- 日期占位符正确替换（支持10+种格式）
+- 智能清理逻辑正常工作
+
+### 3. **公司信息统一管理问题**
 
 #### 📍 **公司选择状态不同步**
 ```

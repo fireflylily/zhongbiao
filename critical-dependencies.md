@@ -30,13 +30,41 @@ AI标书智能生成系统采用前后端分离架构，包含Web前端、Python
 - ✅ 公司数据加载：从JSON配置文件直接读取
 - ✅ 字段映射：`name` → `companyName`
 - ✅ MCP处理器动态导入和路径配置
+- ⚡ **2025-09-12**: MCP方法调用修复：`process_bidder_name()` → `process_business_response()`
+- ⚡ **2025-09-12**: 日期处理参数传递：激活完整的`date_text`参数和智能日期清理
 
 **修改建议**:
 - 任何字段名修改需要同时更新前端表单
 - 公司数据结构变更需要同步更新所有引用
 - MCP处理器依赖变更需要验证导入路径
 
-#### 2. 统一配置管理 (`ai_tender_system/common/config.py`)
+#### 2. MCP智能日期处理器 (`2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced.py`) ⚡ **NEW CRITICAL 2025-09-12**
+**风险等级**: 🔴 **CRITICAL**  
+**影响范围**: 文档日期字段处理，避免重复现象  
+**修改风险**: 高 - 直接影响文档生成质量和格式
+
+**核心功能**:
+- `_smart_date_replace()` - 智能日期替换，避免"2025年9月12日 年  月   日"重复
+- `_process_company_info_fields()` - 完整的公司和项目信息处理
+- 多种日期占位符格式支持 (10+种格式)
+- 占位符清理模式 (第2188-2225行)
+
+**关键依赖**:
+- 项目配置文件 (`data/configs/tender_config.ini` - `bidding_time`字段)
+- 正确的方法调用：`process_business_response()` (非 `process_bidder_name()`)
+- 完整参数传递：`company_data`, `project_name`, `tender_no`, `date_text`
+
+**风险点**:
+- ❌ 调用错误方法会导致日期处理逻辑完全不执行
+- ❌ 参数缺失会导致字段处理失败
+- ❌ 配置文件日期字段为空会影响自动填充
+
+**修改建议**:
+- 修改MCP处理器方法时必须保持接口兼容性
+- 日期清理逻辑修改需要全面测试各种格式
+- 新增日期格式支持时要考虑向后兼容
+
+#### 3. 统一配置管理 (`ai_tender_system/common/config.py`)
 **风险等级**: 🔴 **CRITICAL**  
 **影响范围**: 整个系统  
 **修改风险**: 极高 - 任何配置错误都可能导致系统无法启动
