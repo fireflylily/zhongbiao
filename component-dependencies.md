@@ -71,6 +71,7 @@ Werkzeug
 # Document Processing
 PyPDF2              # PDF reading
 python-docx         # Word document processing
+beautifulsoup4      # HTML parsing for preview/edit functionality ⚡ NEW
 configparser        # INI file handling (built-in)
 
 # HTTP and API
@@ -341,7 +342,99 @@ Response to frontend
 - **Single Page Architecture**: All frontend functionality consolidated in index.html
 - **No Cross-Template Dependencies**: Each template is self-contained
 
-### External Service Dependencies
+### External Service Dependencies ⚡ **UPDATED 2025-09-12**
 - **LLM API Service** - Required for AI processing (configurable endpoint)
 - **File System Access** - Required for document processing and storage
 - **Network Access** - Required for API calls and external resources (Bootstrap CDN)
+- **🆕 TinyMCE CDN** - Required for document editing functionality (cloud.tinymce.com)
+
+## 🆕 **新增组件依赖分析** ⚡ **NEW 2025-09-12**
+
+### 文档预览与编辑系统依赖关系
+
+#### Frontend Dependencies
+```
+Document Preview & Edit System
+├── TinyMCE 6.x (CDN) - Rich text editor core
+│   ├── cloud.tinymce.com/6/tinymce.min.js
+│   ├── Plugins: advlist, autolink, lists, link, image, table, help, wordcount
+│   └── Toolbar: formatting, alignment, lists, tables, media
+├── Bootstrap 5 Modal - UI container
+│   ├── Modal backdrop and dialog structure
+│   ├── Responsive layout and mobile optimization
+│   └── Event handling for show/hide
+├── JavaScript Integration
+│   ├── WordEditor class (word-editor.js)
+│   ├── Modal management functions (inline in index.html)
+│   ├── Dual loading mechanism (API + file upload)
+│   └── Error handling and fallback mechanisms
+└── CSS Styling
+    ├── Bootstrap modal styles
+    ├── TinyMCE editor container
+    ├── Custom loading animations
+    └── Responsive preview layout
+```
+
+#### Backend Dependencies
+```
+Document Processing APIs
+├── Flask Routes (/api/document/preview, /api/editor/*)
+│   ├── Route registration in app.py
+│   ├── Request validation and error handling
+│   └── Response formatting (JSON/Binary)
+├── python-docx Integration
+│   ├── Document parsing and structure extraction
+│   ├── Paragraph, table, and list processing
+│   ├── Image and media handling
+│   └── Word document generation from HTML
+├── BeautifulSoup4 Integration
+│   ├── HTML parsing and cleanup
+│   ├── Tag structure validation
+│   ├── Content sanitization
+│   └── Format conversion utilities
+└── File System Operations
+    ├── Temporary file management
+    ├── Document caching mechanisms
+    ├── Safe filename handling
+    └── Path validation and security
+```
+
+#### Data Flow Dependencies
+```
+Preview/Edit Workflow
+User Action → Modal Trigger → TinyMCE Load → Document API → 
+python-docx Parse → BeautifulSoup Process → HTML Display → 
+User Edit → Content Validate → Document Generate → File Download
+
+Error Handling Chain:
+TinyMCE Fail → Pure HTML Preview → API Fail → File Download → 
+Complete Fail → Hide Feature
+```
+
+#### Critical Integration Points
+```
+Key Dependency Intersections:
+├── TinyMCE.init() ↔ WordEditor.constructor - Editor initialization
+├── Modal.show() ↔ Document.preview() - UI/API coordination  
+├── FormData ↔ /api/editor/load-document - File upload handling
+├── HTML Content ↔ python-docx.Document - Format conversion
+├── BeautifulSoup ↔ TinyMCE.getContent() - Content processing
+└── Error States ↔ Fallback Mechanisms - Graceful degradation
+```
+
+### 性能与可靠性考虑
+
+#### CDN依赖风险
+- **TinyMCE CDN失败**: 自动降级为纯HTML预览
+- **Bootstrap CDN失败**: 基础功能仍可用，UI样式降级
+- **网络连接问题**: 本地缓存机制和离线提示
+
+#### 内存与处理性能
+- **大文档处理**: 分块处理和进度指示
+- **编辑器实例管理**: 按需创建和销毁
+- **HTML内容缓存**: 避免重复转换
+
+#### 兼容性保证
+- **浏览器兼容**: 支持主流现代浏览器
+- **MIME类型检测**: 多层验证机制
+- **文档格式支持**: .docx优先，.doc备用

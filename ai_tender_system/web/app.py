@@ -441,11 +441,14 @@ def register_routes(app: Flask, config, logger):
                 output_filename = f"business_response_{company_id}_{filename}"
                 output_path = output_dir / output_filename
                 
-                # 使用MCP处理器的正确方法
-                result_stats = processor.process_bidder_name(
+                # 使用MCP处理器的完整商务应答处理方法，包含日期字段处理
+                result_stats = processor.process_business_response(
                     str(template_path),
                     str(output_path), 
-                    company_data.get('companyName', '')
+                    company_data,
+                    project_name,
+                    tender_no,
+                    date_text
                 )
                 
                 output_path = str(output_path)
@@ -498,6 +501,227 @@ def register_routes(app: Flask, config, logger):
         except Exception as e:
             logger.error(f"文档处理失败: {e}")
             return jsonify(format_error_response(e))
+    
+    # 文档预览和编辑API
+    @app.route('/api/document/preview/<filename>', methods=['GET'])
+    def preview_document(filename):
+        """预览文档内容（转换为HTML）"""
+        try:
+            from docx import Document
+            from markupsafe import Markup
+            
+            # 安全检查文件名（不添加时间戳，因为我们要查找现有文件）
+            filename = safe_filename(filename, timestamp=False)
+            file_path = config.get_path('output') / filename
+            
+            if not file_path.exists():
+                raise FileNotFoundError(f"文档不存在: {filename}")
+            
+            # 读取Word文档
+            doc = Document(str(file_path))
+            
+            # 转换为HTML
+            html_content = []
+            html_content.append('<div class="document-preview">')
+            
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    # 检查段落样式
+                    style_name = paragraph.style.name if paragraph.style else ''
+                    
+                    if 'Heading 1' in style_name:
+                        html_content.append(f'<h1>{paragraph.text}</h1>')
+                    elif 'Heading 2' in style_name:
+                        html_content.append(f'<h2>{paragraph.text}</h2>')
+                    elif 'Heading 3' in style_name:
+                        html_content.append(f'<h3>{paragraph.text}</h3>')
+                    else:
+                        html_content.append(f'<p>{paragraph.text}</p>')
+            
+            # 处理表格
+            for table in doc.tables:
+                html_content.append('<table class="table table-bordered">')
+                for row in table.rows:
+                    html_content.append('<tr>')
+                    for cell in row.cells:
+                        html_content.append(f'<td>{cell.text}</td>')
+                    html_content.append('</tr>')
+                html_content.append('</table>')
+            
+            html_content.append('</div>')
+            
+            return jsonify({
+                'success': True,
+                'html_content': Markup(''.join(html_content)),
+                'filename': filename
+            })
+            
+        except Exception as e:
+            logger.error(f"文档预览失败: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+    
+    @app.route('/api/editor/load-document', methods=['POST'])
+    def load_document_for_edit():
+        """加载文档用于编辑"""
+        try:
+            from docx import Document
+            from markupsafe import Markup
+            
+            if 'file' not in request.files:
+                raise ValueError("没有选择文件")
+            
+            file = request.files['file']
+            if file.filename == '':
+                raise ValueError("文件名为空")
+            
+            # 读取Word文档
+            doc = Document(file)
+            
+            # 转换为HTML格式用于编辑器
+            html_content = []
+            
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    style_name = paragraph.style.name if paragraph.style else ''
+                    
+                    if 'Heading 1' in style_name:
+                        html_content.append(f'<h1>{paragraph.text}</h1>')
+                    elif 'Heading 2' in style_name:
+                        html_content.append(f'<h2>{paragraph.text}</h2>')
+                    elif 'Heading 3' in style_name:
+                        html_content.append(f'<h3>{paragraph.text}</h3>')
+                    else:
+                        html_content.append(f'<p>{paragraph.text}</p>')
+            
+            # 处理表格
+            for table in doc.tables:
+                html_content.append('<table>')
+                for row in table.rows:
+                    html_content.append('<tr>')
+                    for cell in row.cells:
+                        html_content.append(f'<td>{cell.text}</td>')
+                    html_content.append('</tr>')
+                html_content.append('</table>')
+            
+            return jsonify({
+                'success': True,
+                'html_content': ''.join(html_content),
+                'original_filename': file.filename
+            })
+            
+        except Exception as e:
+            logger.error(f"文档加载失败: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+    
+    @app.route('/api/editor/save-document', methods=['POST'])
+    def save_edited_document():
+        """保存编辑后的文档"""
+        try:
+            from docx import Document
+            from bs4 import BeautifulSoup
+            import re
+            
+            data = request.get_json()
+            html_content = data.get('html_content', '')
+            filename = data.get('filename', 'document')
+            
+            if not html_content:
+                raise ValueError("文档内容为空")
+            
+            # 创建新文档
+            doc = Document()
+            
+            # 解析HTML内容
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # 处理各种HTML元素
+            for element in soup.find_all(['h1', 'h2', 'h3', 'p', 'table']):
+                if element.name == 'h1':
+                    doc.add_heading(element.get_text(), level=1)
+                elif element.name == 'h2':
+                    doc.add_heading(element.get_text(), level=2)
+                elif element.name == 'h3':
+                    doc.add_heading(element.get_text(), level=3)
+                elif element.name == 'p':
+                    text = element.get_text()
+                    if text.strip():
+                        doc.add_paragraph(text)
+                elif element.name == 'table':
+                    # 计算表格行列数
+                    rows = element.find_all('tr')
+                    if rows:
+                        cols = len(rows[0].find_all(['td', 'th']))
+                        table = doc.add_table(rows=len(rows), cols=cols)
+                        table.style = 'Table Grid'
+                        
+                        for i, row in enumerate(rows):
+                            cells = row.find_all(['td', 'th'])
+                            for j, cell in enumerate(cells):
+                                if j < cols:
+                                    table.cell(i, j).text = cell.get_text()
+            
+            # 保存文档
+            output_dir = ensure_dir(config.get_path('output'))
+            output_path = output_dir / f"{filename}.docx"
+            doc.save(str(output_path))
+            
+            # 返回文件供下载
+            return send_file(
+                str(output_path),
+                as_attachment=True,
+                download_name=f"{filename}.docx",
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            )
+            
+        except Exception as e:
+            logger.error(f"文档保存失败: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
+    
+    @app.route('/api/editor/upload-image', methods=['POST'])
+    def upload_editor_image():
+        """上传编辑器图片"""
+        try:
+            if 'image' not in request.files:
+                raise ValueError("没有选择图片")
+            
+            file = request.files['image']
+            if file.filename == '':
+                raise ValueError("文件名为空")
+            
+            # 检查文件类型
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
+            if not allowed_file(file.filename, allowed_extensions):
+                raise ValueError(f"不支持的图片格式")
+            
+            # 保存图片
+            filename = safe_filename(file.filename)
+            upload_dir = ensure_dir(config.get_path('upload') / 'images')
+            file_path = upload_dir / filename
+            file.save(str(file_path))
+            
+            # 返回图片URL
+            image_url = f'/static/uploads/images/{filename}'
+            
+            return jsonify({
+                'success': True,
+                'location': image_url
+            })
+            
+        except Exception as e:
+            logger.error(f"图片上传失败: {e}")
+            return jsonify({
+                'success': False,
+                'error': str(e)
+            })
     
     @app.route('/api/table/analyze', methods=['POST'])
     def analyze_table():

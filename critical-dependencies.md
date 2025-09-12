@@ -174,26 +174,34 @@ AI标书智能生成系统采用前后端分离架构，包含Web前端、Python
 - 监控API调用状态
 - 实现降级处理
 
-#### 2. CDN资源依赖
+#### 2. CDN资源依赖 ⚡ **UPDATED 2025-09-12**
 **风险等级**: 🟠 **HIGH**  
 **依赖服务**:
 - Bootstrap CSS/JS (cdn.jsdelivr.net)
 - Bootstrap Icons
-- TinyMCE编辑器
+- TinyMCE编辑器 ⭐ **新增依赖**
 - Mermaid图表库
 
 **风险因素**:
 - CDN服务中断
 - 网络访问限制
 - 版本兼容性问题
+- TinyMCE免费版本功能限制
+
+**新增TinyMCE依赖分析**:
+- **用途**: 文档预览和编辑功能
+- **版本**: CDN最新版本 (cloud.tinymce.com)
+- **风险**: 免费版本会显示API密钥警告
+- **影响**: 不影响核心功能，仅显示提示信息
 
 **缓解措施**:
 - 考虑本地化关键资源
 - 实现资源加载失败的降级方案
+- TinyMCE失败时提供纯HTML预览备选方案
 
 ### 🟡 **Python包依赖风险**
 
-#### 核心Python依赖
+#### 核心Python依赖 ⚡ **UPDATED 2025-09-12**
 ```
 flask>=2.0.0              # Web框架 - CRITICAL
 python-docx>=0.8.11       # Word文档处理 - HIGH  
@@ -201,6 +209,7 @@ requests>=2.25.0          # HTTP客户端 - CRITICAL
 werkzeug>=2.0.0          # WSGI工具 - HIGH
 openai==1.39.0           # AI API客户端 - HIGH
 pandas==1.3.5            # 数据处理 - MEDIUM
+beautifulsoup4>=4.9.0     # HTML解析 - HIGH ⭐ **新增依赖**
 ```
 
 **风险评估**:
@@ -208,6 +217,13 @@ pandas==1.3.5            # 数据处理 - MEDIUM
 - python-docx版本兼容性影响文档处理
 - requests安全漏洞可能影响API调用
 - openai库版本更新可能影响API调用接口
+- beautifulsoup4用于文档预览HTML转换，影响预览功能
+
+**新增依赖分析**:
+- **BeautifulSoup4**: 用于文档预览功能中Word转HTML的处理
+  - **风险**: 解析器兼容性和性能问题
+  - **影响**: 预览功能失效，不影响核心业务
+  - **缓解**: 提供纯文本预览备选方案
 
 ## 数据流依赖关系
 
@@ -300,6 +316,36 @@ Config → Logger → Processor → API → Result
 - 添加性能监控
 - 配置错误报警机制
 
+## 🆕 **新增组件依赖分析** ⚡ **NEW 2025-09-12**
+
+### 文档预览与编辑功能
+**风险等级**: 🟡 **MEDIUM**  
+**影响范围**: 商务应答后续操作  
+**修改风险**: 中 - 新增功能，不影响现有核心流程
+
+**新增依赖关系**:
+```
+文档处理 → Python-docx → HTML转换 → TinyMCE编辑 → 重新生成Word
+    ↓           ↓           ↓           ↓             ↓
+文件读取    文档解析    BeautifulSoup  前端编辑器     文档保存
+```
+
+**技术栈依赖**:
+- **后端**: Flask路由 + Python-docx + BeautifulSoup4
+- **前端**: TinyMCE CDN + Bootstrap Modal + JavaScript
+- **数据流**: Word文档 ↔ HTML ↔ 编辑器内容 ↔ Word文档
+
+**失效影响评估**:
+- TinyMCE加载失败: 降级为纯HTML预览，不影响核心功能
+- python-docx异常: Word转换失败，可提供文件下载备选
+- BeautifulSoup解析错误: 显示原始内容，用户体验下降但功能可用
+
+**监控点**:
+- CDN资源加载成功率
+- 文档转换处理时间
+- 编辑器初始化成功率
+- 文档保存成功率
+
 ## 应急处理方案
 
 ### 1. API服务中断
@@ -321,3 +367,9 @@ Config → Logger → Processor → API → Result
 - 使用默认配置启动
 - 提供配置诊断工具
 - 实现配置热重载机制
+
+### 5. 文档预览编辑功能失效 ⭐ **新增**
+- TinyMCE加载失败: 提供纯HTML预览
+- 文档转换失败: 显示原始文件下载链接
+- 编辑保存失败: 提供内容复制功能
+- 完全失效: 隐藏预览编辑按钮，保持核心功能

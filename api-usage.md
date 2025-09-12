@@ -209,9 +209,9 @@ Frontend (Single Page App) ←→ Flask API ←→ Business Modules ←→ Exter
 
 ### 6. 商务应答处理接口
 
-#### 6.1 处理商务应答 ⚡ **FIXED 2025-09-12**
+#### 6.1 处理商务应答 ⚡ **ENHANCED 2025-09-12**
 - **路径**: `POST /process-business-response`
-- **描述**: 基于公司信息和模板生成商务应答文档，使用MCP处理器自动填充投标人信息
+- **描述**: 基于公司信息和模板生成商务应答文档，使用MCP处理器自动填充投标人信息，支持预览和编辑功能
 - **请求参数** ⚡ **UPDATED**:
   - `template_file`: ✅ 商务应答模板文件 (.docx, .doc)
   - `company_id`: ✅ 公司ID（从已配置公司中选择）
@@ -242,6 +242,104 @@ Frontend (Single Page App) ←→ Flask API ←→ Business Modules ←→ Exter
     "tables_processed": 3,
     "fields_filled": 25,
     "images_inserted": 5
+  }
+}
+```
+
+## 🆕 **文档预览与编辑接口** ⚡ **NEW 2025-09-12**
+
+### 11. 文档预览编辑系统
+
+#### 11.1 文档预览
+- **路径**: `GET /api/document/preview/<filename>`
+- **描述**: 将Word文档转换为HTML格式进行预览
+- **响应示例**:
+```json
+{
+  "success": true,
+  "filename": "business_response_20240912.docx",
+  "html_content": "<html><body><h1>商务应答文档</h1>...</body></html>",
+  "metadata": {
+    "original_filename": "business_response_20240912.docx",
+    "file_size": 1048576,
+    "last_modified": "2024-09-12T10:30:00",
+    "conversion_time": "0.532s"
+  }
+}
+```
+
+**技术实现**:
+- 使用`python-docx`解析Word文档结构
+- 使用`BeautifulSoup4`处理HTML转换
+- 保留基本格式（标题、段落、表格、列表）
+- 自动处理图片和样式转换
+
+#### 11.2 编辑器文档加载
+- **路径**: `POST /api/editor/load-document`
+- **描述**: 加载Word文档到编辑器进行编辑
+- **请求参数**:
+  - `file`: Word文档文件 (multipart/form-data)
+- **响应示例**:
+```json
+{
+  "success": true,
+  "html_content": "<p>可编辑的HTML内容</p>",
+  "original_filename": "document.docx",
+  "supported_formats": [".docx", ".doc"],
+  "editor_config": {
+    "toolbar": "standard",
+    "plugins": ["table", "link", "image"],
+    "language": "zh_CN"
+  }
+}
+```
+
+**特殊功能**:
+- 双重MIME类型检测（扩展名+MIME类型）
+- 文件大小验证（最大10MB）
+- 错误时提供详细的失败原因
+- 支持拖拽和文件选择两种上传方式
+
+#### 11.3 编辑器文档保存
+- **路径**: `POST /api/editor/save-document`
+- **描述**: 将编辑器内容保存为Word文档
+- **请求体**:
+```json
+{
+  "html_content": "<p>编辑后的HTML内容</p>",
+  "filename": "edited_document",
+  "options": {
+    "include_styles": true,
+    "preserve_formatting": true
+  }
+}
+```
+
+- **响应**: Word文档的二进制流（直接下载）
+- **Content-Type**: `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+- **文件名**: 自动设置为 `{filename}.docx`
+
+**技术特点**:
+- HTML到Word的高保真转换
+- 支持表格、列表、图片等复杂格式
+- 自动清理和优化HTML内容
+- 错误处理和格式兼容性检查
+
+#### 11.4 编辑器图片上传
+- **路径**: `POST /api/editor/upload-image`
+- **描述**: 编辑器中的图片上传功能
+- **请求参数**:
+  - `image`: 图片文件 (multipart/form-data)
+- **响应示例**:
+```json
+{
+  "success": true,
+  "location": "/api/images/upload_20240912_001.jpg",
+  "filename": "upload_20240912_001.jpg",
+  "size": 245760,
+  "dimensions": {
+    "width": 800,
+    "height": 600
   }
 }
 ```
@@ -447,20 +545,39 @@ const getSelectedCompanyInfo = async () => {
 };
 ```
 
-### 7. word-editor.js - Word编辑器 (独立组件)
+### 7. word-editor.js - Word编辑器 (独立组件) ⚡ **ENHANCED 2025-09-12**
 
 **主要API调用**:
 - `/api/editor/load-document` - 加载Word文档
 - `/api/editor/save-document` - 保存为Word文档
 - `/api/editor/upload-image` - 图片上传
+- 🆕 `/api/document/preview/<filename>` - 文档预览API（新增集成）
 
 **特色功能**:
 - 集成TinyMCE富文本编辑器
 - Word文档导入导出
 - 图片粘贴上传（已增强错误处理）
 - 实时保存提示
+- 🆕 **双重文档加载机制** - API预览优先，文件上传备用
+- 🆕 **MIME类型兼容性** - 支持不同浏览器的Word文档检测
+- 🆕 **模态框集成** - 可嵌入Bootstrap模态框使用
 
-**独立性**: 此组件未集成到单页面应用，保持独立运行
+**使用方式**:
+```javascript
+// 集成到商务应答功能
+const wordEditor = new WordEditor('editor-container', {
+    height: 600,
+    placeholder: '请输入内容或加载文档...'
+});
+
+// 加载文档进行编辑
+await wordEditor.loadDocument(file);
+
+// 保存编辑内容
+await wordEditor.saveDocument('edited_document');
+```
+
+**独立性**: 此组件可独立运行，也已集成到单页面应用的预览编辑功能中
 
 ## 通用JavaScript工具库
 
@@ -699,5 +816,22 @@ graph TB
 - **错误修复**：修复公司列表加载和API密钥解密关键错误
 - **状态增强**：实现统一公司管理和跨组件状态同步
 - **代码精简**：移除5个独立JS文件（约87,000行代码），提高维护性
+- **🆕 功能增强**：新增文档预览编辑系统，完整的Word文档在线处理能力
+- **🆕 API扩展**：新增4个预览编辑相关的API端点，完善文档处理生态
 
-开发者可以基于这套API快速构建招标相关的应用功能，系统经过重构后提供了更好的扩展性和维护性。
+### 🆕 **新增API概览** ⚡ **NEW 2025-09-12**
+
+| API端点 | 方法 | 功能描述 | 集成位置 |
+|---------|------|----------|----------|
+| `/api/document/preview/<filename>` | GET | Word文档转HTML预览 | 商务应答结果 |
+| `/api/editor/load-document` | POST | 加载Word文档到编辑器 | TinyMCE编辑器 |
+| `/api/editor/save-document` | POST | 编辑器内容保存为Word | TinyMCE编辑器 |
+| `/api/editor/upload-image` | POST | 编辑器图片上传 | TinyMCE编辑器 |
+
+**技术特点**:
+- **双重加载机制**：API预览优先，文件上传备用，确保兼容性
+- **格式转换增强**：Word ↔ HTML双向转换，保留基本格式
+- **错误处理完备**：多层次降级方案，CDN失败时自动降级
+- **用户体验优化**：模态框界面，实时编辑，一键保存下载
+
+开发者可以基于这套API快速构建招标相关的应用功能，系统经过重构后提供了更好的扩展性和维护性，新增的预览编辑功能大幅提升了文档处理的用户体验。

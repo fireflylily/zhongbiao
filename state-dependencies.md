@@ -17,7 +17,7 @@ KEYS: {
 
 ## 各页面状态依赖关系 (Updated 2025-09-12 - Business Response Fixed)
 
-### 商务应答功能状态流 ⚡ **FIXED 2025-09-12**
+### 商务应答功能状态流 ⚡ **ENHANCED 2025-09-12**
 
 #### 前端状态管理
 ```javascript
@@ -49,11 +49,40 @@ def process_business_response():
     processor.company_name = company_data.get('companyName', '')
 ```
 
-#### 状态依赖链路
+#### 🆕 **预览与编辑状态流** ⭐ **NEW 2025-09-12**
+```javascript
+// 文档预览编辑状态管理
+const DocumentPreviewState = {
+    currentFilename: null,        // 当前预览的文件名
+    isEditMode: false,           // 是否处于编辑模式
+    hasUnsavedChanges: false,    // 是否有未保存的更改
+    editorInstance: null,        // TinyMCE编辑器实例
+    
+    // 状态转换
+    startPreview(filename) {
+        this.currentFilename = filename;
+        this.isEditMode = false;
+        this.hasUnsavedChanges = false;
+    },
+    
+    enterEditMode() {
+        this.isEditMode = true;
+        this.hasUnsavedChanges = false;
+    },
+    
+    markAsModified() {
+        this.hasUnsavedChanges = true;
+    }
+};
+```
+
+#### 状态依赖链路 (增强版)
 1. **前端表单收集** → `template_file`, `company_id`, `project_name`, etc.
 2. **后端接收验证** → 文件检查、公司数据加载
 3. **MCP处理器调用** → 文档处理、公司信息填充
 4. **结果返回** → 下载链接、处理统计
+5. **🆕 预览状态** → 文档转HTML、预览界面显示
+6. **🆕 编辑状态** → TinyMCE加载、内容编辑、保存处理
 
 ### 1. index.html - 单页面应用 (Main SPA Container)
 
@@ -359,3 +388,84 @@ if (effectiveCompanyId !== currentCompanyId) {
 - **common.js增强**: 改进API密钥解密，增加base64验证和自动清理
 - **错误处理增强**: 全面的异常捕获和用户友好提示
 - **响应格式修复**: 正确处理`/api/companies`响应格式
+- **🆕 预览编辑组件**: 新增TinyMCE编辑器和文档预览功能
+
+### 🆕 **新增状态管理组件** ⭐ **NEW 2025-09-12**
+
+#### DocumentPreviewState (文档预览状态管理器)
+```javascript
+// 文档预览编辑状态依赖关系
+const DocumentPreviewState = {
+    // 核心状态
+    currentFilename: null,     // 依赖：商务应答结果文件名
+    isEditMode: false,         // 依赖：用户操作（预览/编辑切换）
+    hasUnsavedChanges: false,  // 依赖：编辑器内容变化
+    editorInstance: null,      // 依赖：TinyMCE加载状态
+    
+    // 状态依赖链
+    dependencies: {
+        businessResult: '商务应答处理完成状态',
+        tinyMCELoaded: 'CDN资源加载状态',
+        modalVisible: 'Bootstrap模态框状态',
+        documentContent: '文档HTML内容状态'
+    }
+};
+```
+
+#### 新增API状态管理
+```javascript
+// 文档预览编辑API状态流
+PreviewEditAPIStates = {
+    '/api/document/preview/<filename>': {
+        input: '文件名',
+        output: 'HTML内容 + 元数据',
+        dependencies: ['python-docx', 'BeautifulSoup4']
+    },
+    '/api/editor/load-document': {
+        input: 'FormData文件',
+        output: 'HTML内容',
+        dependencies: ['WordEditor组件', 'MIME类型检测']
+    },
+    '/api/editor/save-document': {
+        input: 'HTML内容 + 文件名',
+        output: 'Word文档Blob',
+        dependencies: ['python-docx', 'HTML->Word转换']
+    }
+};
+```
+
+#### 状态生命周期管理
+```javascript
+// 预览编辑功能状态生命周期
+DocumentEditLifecycle = {
+    1: '商务应答完成' → '显示预览编辑按钮',
+    2: '点击预览' → '加载文档预览API' → '显示预览模态框',
+    3: '点击编辑' → '加载TinyMCE' → '获取文档内容' → '显示编辑器',
+    4: '编辑内容' → '标记未保存状态' → '启用保存按钮',
+    5: '保存文档' → '调用保存API' → '下载新文档' → '重置状态',
+    6: '关闭模态框' → '清理编辑器' → '重置所有状态'
+};
+```
+
+#### 错误状态处理
+```javascript
+// 预览编辑功能错误状态管理
+DocumentEditErrorStates = {
+    'TinyMCE加载失败': {
+        fallback: '纯HTML预览',
+        action: '隐藏编辑功能，保留预览'
+    },
+    '文档预览API失败': {
+        fallback: '文件下载链接',
+        action: '显示"直接下载"按钮'
+    },
+    '文档保存失败': {
+        fallback: '内容复制功能',
+        action: '提供复制HTML内容选项'
+    },
+    '模态框显示异常': {
+        fallback: '新窗口打开',
+        action: '在新标签页显示内容'
+    }
+};
+```

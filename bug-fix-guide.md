@@ -28,17 +28,21 @@
 - 前端发送字段名为 `template_file`，后端期望 `file`
 - 公司信息字段映射错误 (`name` vs `companyName`)
 - MCP处理器路径配置和导入问题
+- MCP处理器文件名包含空格和数字后缀，导致Python导入失败
 
 **🔧 修复方案**:
 1. ✅ 更新后端文件字段检查：`'file'` → `'template_file'`
 2. ✅ 修正公司数据加载：直接从JSON文件读取
 3. ✅ 更新字段映射：`company_data.get('name')` → `company_data.get('companyName')`
-4. ✅ 配置MCP处理器路径和导入
+4. ✅ 修复MCP处理器导入：使用importlib.util动态加载模块
+5. ✅ 修正MCP处理器路径：指向项目根目录
+6. ✅ 增强错误处理：防止"[object Object]"显示
 
 **🔧 代码修改位置**:
 - `ai_tender_system/web/app.py:375` - 文件字段名修复
 - `ai_tender_system/web/app.py:395-403` - 公司数据加载逻辑
 - `ai_tender_system/web/app.py:425` - 公司名称字段映射
+- `ai_tender_system/web/app.py:430-450` - MCP处理器动态导入逻辑
 
 ### 2. **公司信息统一管理问题**
 
@@ -671,5 +675,66 @@ function decryptApiKey(encrypted) {
 - ✅ **统一管理**: 状态管理要有统一的访问接口
 - ✅ **自动修复**: 系统要能自动清理和恢复损坏数据
 - ✅ **影响最小**: 修复时优先考虑对现有功能的影响
+
+## 🆕 **预览与编辑功能问题** ⚡ **NEW FEATURE 2025-09-12**
+
+### 📍 **商务应答文档预览与编辑功能**
+```
+新增功能: 商务应答处理完成后支持文档预览和编辑
+组件集成: TinyMCE富文本编辑器 + Bootstrap模态框
+技术栈: Python-docx + BeautifulSoup + JavaScript
+```
+
+**影响范围**: 🟢 **ENHANCEMENT** - 用户体验显著改善  
+**新增功能**: 
+- 文档预览：Word文档转HTML在线预览
+- 在线编辑：TinyMCE富文本编辑器支持
+- 保存下载：编辑后重新生成Word文档
+- 文件管理：支持多种文档格式处理
+
+**🔧 实现方案**:
+1. ✅ 添加文档预览API端点：`/api/document/preview/<filename>`
+2. ✅ 添加编辑器加载API：`/api/editor/load-document`
+3. ✅ 添加文档保存API：`/api/editor/save-document`
+4. ✅ 集成TinyMCE编辑器：CDN方式加载，配置中文化
+5. ✅ 实现模态框界面：Bootstrap模态框展示预览和编辑
+6. ✅ 双重加载机制：API预览+文件加载确保兼容性
+
+**🔧 新增代码位置**:
+- `ai_tender_system/web/app.py:680-750` - 文档预览编辑API端点
+- `ai_tender_system/web/templates/index.html:1200-1400` - 预览编辑界面
+- `ai_tender_system/web/static/js/word-editor.js` - WordEditor组件集成
+- `ai_tender_system/web/templates/index.html:2800-3200` - JavaScript功能实现
+
+**🔧 技术特点**:
+```javascript
+// 双重文档加载机制
+async function loadDocumentForEdit() {
+    try {
+        // 方案1: API预览加载
+        const preview = await fetch(`/api/document/preview/${filename}`);
+        if (preview.ok) {
+            const data = await preview.json();
+            return data.html_content;
+        }
+    } catch (error) {
+        console.warn('API预览加载失败，尝试文件上传方式');
+    }
+    
+    // 方案2: 文件上传加载 (备用)
+    const formData = new FormData();
+    formData.append('file', file);
+    const result = await wordEditor.loadDocument(file);
+    return result.html_content;
+}
+```
+
+**⚠️ 已知问题与解决方案**:
+1. **MIME类型检测问题**: 某些浏览器无法正确识别Word文档MIME类型
+   - 解决：双重验证机制（文件扩展名+MIME类型）
+2. **TinyMCE API密钥警告**: 免费版本会显示API密钥提示
+   - 解决：使用免费版本，忽略警告（不影响功能）
+3. **文档格式兼容性**: 复杂Word格式转换可能丢失样式
+   - 解决：保持基础格式，支持常用样式转换
 
 记住：**安全第一，稳定性优于新功能** 🛡️
