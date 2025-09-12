@@ -218,7 +218,7 @@ All modules import get_config()
 Runtime configuration access
 ```
 
-### State Management Flow (Updated 2025-09-12 - Unified Architecture)
+### State Management Flow (Updated 2025-09-12 - Unified Architecture with Fixes)
 ```
 StateManager (Enhanced Global State)
     ├── validateCompanyState() - State consistency validation
@@ -226,21 +226,26 @@ StateManager (Enhanced Global State)
     ├── syncAllPages() - Force state synchronization
     └── onStateChangeByKey() - Targeted event listeners
     ↓
-GlobalCompanyManager (New Unified Layer)
+GlobalCompanyManager (Enhanced Unified Layer)
     ├── syncCompanySelectors() - Sync all company dropdowns
+    ├── displaySelectedCompany() - Show current selection status [NEW]
+    ├── loadSelectedCompanyData() - Auto-load company information [NEW]  
     ├── updateCompanyStatusUI() - Update UI state indicators
     ├── bindCompanySelectors() - Bind all selector events
-    └── init() - Initialize unified state management
+    ├── getCurrentCompanyInfo() - Fixed API response parsing [FIXED]
+    └── init() - Initialize with duplicate prevention [ENHANCED]
     ↓
 All Feature Components (Within index.html)
-    ├── Business Response Processing
-    ├── Company Management  
+    ├── Business Response Processing - Shows "当前选中：公司名称" [ENHANCED]
+    ├── Company Management - Auto-fills form and qualifications [ENHANCED]
     ├── Point-to-Point Response
     ├── Technical Proposal Generation
     └── Tender Information Extraction
     ↓
 Unified Company Information Access
-    └── getSelectedCompanyInfo() - Single API for all features
+    ├── getSelectedCompanyInfo() - Single API for all features
+    ├── loadCompanyToPage() - Correct form filling function [FIXED]
+    └── fillCompanyForm() - Enhanced with debugging [ENHANCED]
 ```
 
 ### Logging Flow
