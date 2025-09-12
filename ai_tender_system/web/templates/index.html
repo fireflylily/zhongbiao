@@ -4013,14 +4013,17 @@
                     // 刷新文件列表
                     loadBusinessFilesList();
                 } else {
-                    // 显示错误信息
-                    document.getElementById('businessErrorMessage').textContent = data.error || '处理失败';
+                    // 使用ErrorHandler处理错误信息，防止显示[object Object]
+                    const errorMsg = ErrorHandler.formatErrorMessage(data.error || data.message || data) || '处理失败';
+                    document.getElementById('businessErrorMessage').textContent = errorMsg;
                     error.style.display = 'block';
                 }
             })
             .catch(err => {
                 progress.style.display = 'none';
-                document.getElementById('businessErrorMessage').textContent = '网络错误：' + err.message;
+                // 使用ErrorHandler处理网络错误
+                const errorMsg = ErrorHandler.handleAPIError(err, '商务应答处理失败');
+                document.getElementById('businessErrorMessage').textContent = errorMsg;
                 error.style.display = 'block';
                 console.error('商务应答处理失败:', err);
             });

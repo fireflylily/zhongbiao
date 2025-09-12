@@ -4,21 +4,27 @@
 
 本文档详细记录了AI智慧标书系统的API架构、接口规范和使用方式。系统采用Flask后端 + HTML/JavaScript前端架构，提供完整的招标文档处理、公司管理、商务应答等功能。
 
-## 系统架构 (Updated 2025-09-12 - Single Page Architecture)
+## 系统架构 (Updated 2025-09-12 - Single Page Architecture ✅)
 
 ```
 Frontend (Single Page App) ←→ Flask API ←→ Business Modules ←→ External APIs
          ↓                        ↓              ↓              ↓
-- index.html (Integrated)    - Flask Routes  - TenderExtractor  - LLM APIs
-  ├── Tender Info Extract   - API Endpoints  - P2P Processor    - File Processing  
-  ├── Company Management    - Static Routes  - Doc Processor    - Image Upload
-  ├── Business Response     - Error Handling                    
-  ├── Point-to-Point        - Fixed Response Format Issues
-  └── Technical Proposal                                        
-- common.js (Utilities)                                         
-- state-manager.js (Enhanced)                                   
-- word-editor.js (Standalone)                                   
+- index.html (Tabs-based)    - Flask Routes  - TenderExtractor  - LLM APIs
+  ├── 招标信息提取 (Tab)    - API Endpoints  - P2P Processor    - File Processing  
+  ├── 商务应答 (Tab) ✅      - Static Routes  - MCP Processor ✅  - Image Upload
+  ├── 点对点应答 (Tab)       - Error Handling - Doc Processor    
+  ├── 技术方案生成 (Tab)     ✅ Fixed Issues                     
+  └── 公司管理 (Tab)                                            
+- js/common.js                                                  
+- js/state-manager.js                                           
+- GlobalCompanyManager (Inline)                                 
 ```
+
+**架构特点**:
+- ✅ Bootstrap标签页单页面应用
+- ✅ 统一状态管理 (StateManager + GlobalCompanyManager)
+- ✅ 公司信息跨标签页同步
+- ✅ MCP处理器集成完成
 
 ## 后端API接口详细规范
 
@@ -203,15 +209,22 @@ Frontend (Single Page App) ←→ Flask API ←→ Business Modules ←→ Exter
 
 ### 6. 商务应答处理接口
 
-#### 6.1 处理商务应答
+#### 6.1 处理商务应答 ⚡ **FIXED 2025-09-12**
 - **路径**: `POST /process-business-response`
-- **描述**: 基于公司信息和模板生成商务应答文档
-- **请求参数**:
-  - `file`: 商务应答模板文件
-  - `company_name`: 公司名称
-  - `company_address`: 公司地址
-  - `legal_person`: 法定代表人
-  - `contact_info`: 联系信息
+- **描述**: 基于公司信息和模板生成商务应答文档，使用MCP处理器自动填充投标人信息
+- **请求参数** ⚡ **UPDATED**:
+  - `template_file`: ✅ 商务应答模板文件 (.docx, .doc)
+  - `company_id`: ✅ 公司ID（从已配置公司中选择）
+  - `project_name`: 项目名称
+  - `tender_no`: 招标编号  
+  - `date_text`: 日期信息
+  - `use_mcp`: 是否使用MCP处理器（默认true）
+
+**⚠️ 重要变更**:
+- 文件字段名从 `file` 更改为 `template_file`
+- 公司信息通过 `company_id` 从JSON配置文件自动加载
+- 移除了手动输入的公司字段，改用统一公司管理
+
 - **响应示例**:
 ```json
 {

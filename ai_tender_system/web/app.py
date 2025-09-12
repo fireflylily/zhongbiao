@@ -372,21 +372,35 @@ def register_routes(app: Flask, config, logger):
         
         try:
             # 获取上传的文件
-            if 'file' not in request.files:
+            if 'template_file' not in request.files:
                 raise ValueError("没有选择模板文件")
             
-            file = request.files['file']
+            file = request.files['template_file']
             if file.filename == '':
                 raise ValueError("文件名为空")
             
             # 获取表单数据
             data = request.form.to_dict()
-            company_data = {
-                'name': data.get('company_name', ''),
-                'address': data.get('company_address', ''),
-                'legal_person': data.get('legal_person', ''),
-                'contact': data.get('contact_info', '')
-            }
+            company_id = data.get('company_id', '')
+            project_name = data.get('project_name', '')
+            tender_no = data.get('tender_no', '')
+            date_text = data.get('date_text', '')
+            use_mcp = data.get('use_mcp', 'false').lower() == 'true'
+            
+            # 验证必填字段
+            if not company_id:
+                raise ValueError("请选择应答公司")
+            
+            # 获取公司信息
+            import json
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+            
+            if not company_file.exists():
+                raise ValueError(f"未找到公司信息: {company_id}")
+                
+            with open(company_file, 'r', encoding='utf-8') as f:
+                company_data = json.load(f)
             
             # 保存模板文件
             filename = safe_filename(file.filename)
@@ -396,12 +410,61 @@ def register_routes(app: Flask, config, logger):
             
             logger.info(f"开始处理商务应答: {filename}")
             
-            # 处理商务应答
-            processor = PointToPointProcessor()
-            result = processor.process_business_response(
-                template_file=str(template_path),
-                company_data=company_data
-            )
+            # 使用MCP处理器处理商务应答
+            if use_mcp:
+                # 导入MCP处理器
+                import sys
+                import importlib.util
+                
+                # MCP处理器在项目根目录，需要向上一级
+                project_root = config.get_path('root').parent
+                mcp_path = project_root / '2.填写标书' / '点对点应答'
+                mcp_file = mcp_path / 'mcp_bidder_name_processor_enhanced 2.py'
+                
+                # 使用importlib导入文件名包含空格的模块
+                spec = importlib.util.spec_from_file_location("mcp_processor", mcp_file)
+                mcp_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mcp_module)
+                
+                MCPBidderNameProcessor = mcp_module.MCPBidderNameProcessor
+                
+                processor = MCPBidderNameProcessor()
+                # 设置公司信息
+                processor.company_name = company_data.get('companyName', '')
+                processor.company_info = company_data
+                processor.project_name = project_name
+                processor.tender_no = tender_no
+                processor.date_text = date_text
+                
+                # 处理文档 - 生成输出文件路径
+                output_dir = ensure_dir(config.get_path('output'))
+                output_filename = f"business_response_{company_id}_{filename}"
+                output_path = output_dir / output_filename
+                
+                # 使用MCP处理器的正确方法
+                result_stats = processor.process_bidder_name(
+                    str(template_path),
+                    str(output_path), 
+                    company_data.get('companyName', '')
+                )
+                
+                output_path = str(output_path)
+                
+                # 构建结果
+                result = {
+                    'success': True,
+                    'message': '商务应答处理完成',
+                    'output_file': output_path,
+                    'download_url': f'/download/{os.path.basename(output_path)}',
+                    'stats': result_stats  # 使用MCP处理器返回的实际统计信息
+                }
+            else:
+                # 使用原有处理器
+                processor = PointToPointProcessor()
+                result = processor.process_business_response(
+                    template_file=str(template_path),
+                    company_data=company_data
+                )
             
             logger.info("商务应答处理完成")
             return jsonify(result)

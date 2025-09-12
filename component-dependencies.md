@@ -8,10 +8,11 @@
 ai_tender_system/
 ├── run.py
 │   └── web.app import main
-├── web/app.py (Central Hub)
+├── web/app.py (Central Hub) ⚡ **UPDATED 2025-09-12**
 │   ├── common import (get_config, setup_logging, get_module_logger, exceptions, utils)
 │   ├── modules.tender_info.extractor import TenderInfoExtractor
 │   ├── modules.point_to_point.processor import (PointToPointProcessor, DocumentProcessor, TableProcessor)
+│   ├── ✅ 2.填写标书.点对点应答.mcp_bidder_name_processor_enhanced import MCPBidderNameProcessor (Dynamic import)
 │   ├── flask import (Flask, request, jsonify, render_template, send_file, send_from_directory)
 │   ├── flask_cors import CORS
 │   └── werkzeug.utils import secure_filename
@@ -139,6 +140,47 @@ REMOVED MODULES (Integrated into index.html):
 
 <!-- Optional standalone utilities -->
 <script src="js/word-editor.js"></script> <!-- Only when needed -->
+```
+
+## Critical Component Dependencies ⚡ **UPDATED 2025-09-12**
+
+### Business Response Processing Chain
+
+#### Frontend Dependencies
+```
+businessResponseForm (index.html)
+├── FormData() - 表单数据收集
+├── template_file - 模板文件上传
+├── company_id - 公司ID (从GlobalCompanyManager获取)
+├── project_name, tender_no, date_text - 项目信息
+└── fetch('/process-business-response') - API调用
+```
+
+#### Backend Dependencies
+```
+process_business_response() (app.py:364-451)
+├── config.get_path('config') - 配置路径获取
+├── company_configs_dir / f'{company_id}.json' - 公司配置文件
+├── config.get_path('root') / '2.填写标书' / '点对点应答' - MCP处理器路径
+├── mcp_bidder_name_processor_enhanced.MCPBidderNameProcessor - 动态导入
+└── processor.process_document(template_path) - 文档处理
+```
+
+#### Critical File Dependencies
+```
+Key Files Modified/Referenced:
+├── ai_tender_system/web/app.py:375 - 文件字段名检查
+├── ai_tender_system/web/app.py:395-403 - 公司数据加载
+├── ai_tender_system/web/app.py:425 - 公司名称字段映射
+├── data/configs/companies/*.json - 公司配置文件结构
+└── 2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced.py - MCP处理器
+```
+
+#### Data Flow
+```
+Frontend Form → FormData → POST /process-business-response → 
+Company JSON Load → MCP Processor → Document Processing → 
+Result Response → Frontend Display
 ```
 
 ## HTML Template Relationships

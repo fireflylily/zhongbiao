@@ -15,13 +15,51 @@ KEYS: {
 }
 ```
 
-## 各页面状态依赖关系 (Updated 2025-09-12 - Single Page Architecture)
+## 各页面状态依赖关系 (Updated 2025-09-12 - Business Response Fixed)
+
+### 商务应答功能状态流 ⚡ **FIXED 2025-09-12**
+
+#### 前端状态管理
+```javascript
+// 商务应答表单状态
+businessResponseForm.addEventListener('submit', function(e) {
+    const formData = new FormData();
+    formData.append('template_file', templateFile);  // ✅ 修复：正确字段名
+    formData.append('company_id', companyId);        // ✅ 修复：正确字段映射
+    formData.append('project_name', projectName);
+    formData.append('tender_no', tenderNo);
+    formData.append('date_text', dateText);
+    formData.append('use_mcp', 'true');              // ✅ 启用MCP处理器
+});
+```
+
+#### 后端状态处理
+```python
+# ai_tender_system/web/app.py:process_business_response
+def process_business_response():
+    # ✅ 修复：正确的文件字段检查
+    if 'template_file' not in request.files:
+        raise ValueError("没有选择模板文件")
+    
+    # ✅ 修复：直接从JSON文件加载公司数据
+    company_configs_dir = config.get_path('config') / 'companies'
+    company_file = company_configs_dir / f'{company_id}.json'
+    
+    # ✅ 修复：正确的公司名称字段映射
+    processor.company_name = company_data.get('companyName', '')
+```
+
+#### 状态依赖链路
+1. **前端表单收集** → `template_file`, `company_id`, `project_name`, etc.
+2. **后端接收验证** → 文件检查、公司数据加载
+3. **MCP处理器调用** → 文档处理、公司信息填充
+4. **结果返回** → 下载链接、处理统计
 
 ### 1. index.html - 单页面应用 (Main SPA Container)
 
 **核心组件状态管理**:
 
-#### A. GlobalCompanyManager (新增全局公司管理器)
+#### A. GlobalCompanyManager (全局公司管理器)
 ```javascript
 const GlobalCompanyManager = {
     // 统一更新所有公司选择器

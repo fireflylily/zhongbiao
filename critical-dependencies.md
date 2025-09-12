@@ -8,7 +8,35 @@ AI标书智能生成系统采用前后端分离架构，包含Web前端、Python
 
 ### 🔴 **高风险核心组件** - 系统关键路径，修改需谨慎
 
-#### 1. 统一配置管理 (`ai_tender_system/common/config.py`)
+#### 1. 商务应答处理器 (`ai_tender_system/web/app.py` - process_business_response) ⚡ **UPDATED 2025-09-12**
+**风险等级**: 🔴 **CRITICAL**  
+**影响范围**: 商务应答核心功能  
+**修改风险**: 高 - 直接影响商务应答处理流程
+
+**核心功能**:
+- 模板文件上传和验证
+- 公司信息加载和验证 
+- MCP处理器集成 (mcp_bidder_name_processor_enhanced)
+- 文档生成和结果返回
+
+**关键依赖**:
+- 公司配置文件 (`data/configs/companies/*.json`)
+- MCP处理器 (`2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced.py`)
+- 文件上传路径配置
+- 前端表单字段映射 (`template_file`, `company_id`, `project_name`, 等)
+
+**最近修复**:
+- ✅ 文件字段名映射：`'file'` → `'template_file'`
+- ✅ 公司数据加载：从JSON配置文件直接读取
+- ✅ 字段映射：`name` → `companyName`
+- ✅ MCP处理器动态导入和路径配置
+
+**修改建议**:
+- 任何字段名修改需要同时更新前端表单
+- 公司数据结构变更需要同步更新所有引用
+- MCP处理器依赖变更需要验证导入路径
+
+#### 2. 统一配置管理 (`ai_tender_system/common/config.py`)
 **风险等级**: 🔴 **CRITICAL**  
 **影响范围**: 整个系统  
 **修改风险**: 极高 - 任何配置错误都可能导致系统无法启动
