@@ -6,25 +6,37 @@
 
  1. 供应商名称处理（支持4种规则）
       - 替换规则：（供应商名称）→（公司名）
-      - 填空规则：供应商名称：___ → 
-    供应商名称：公司名
+      - 填空规则：供应商名称：___ → 供应商名称：公司名
       - 组合规则：（供应商名称、地址）→（公司
     名、地址）
       - 变体处理：公司名称、应答人名称、供应
     商名称（盖章）等
-    2. 其他信息字段（仅填空规则）
-      - 电话、邮箱、地址、邮编、传真
+2. 其他信息字段（仅填空规则）
+      - 电话、邮箱、地址、邮编、传真、采购人
       - 支持标签变体（邮箱/电子邮件）
       - 支持格式变化（冒号、空格、占位符）
-    3. 例外处理
+3. 例外处理
       - 跳过"签字"相关字段
       - 智能日期处理
       - 识别并跳过采购人/招标人信息
-    4. 格式保持
+ 4. 格式保持
       - 继承第一个字符的格式
       - 保持原有文档样式
+5. 一个段落多字段的处理方式
+        使用累计积累方式，把所有需要处理的字段
+6.替换规则
+6.1 （）规则：供应商名称、采购人、项目名称、项目编号及同意标签。
+6.2 致： 规则：采购人及同义标签。
+6.3 组合规则：（项目名称、项目编号）
 
-    采购人、项目名称、项目编号、日期信息从 项目信息配置文件中读取
+7.填空规则
+7.1 电话、邮箱、地址、邮编、传真、采购人（不支持电子邮箱，电子邮件，因为与邮箱和邮件重复了）
+7.2 供应商名称、项目名称、项目编号
+7.3 支持格式变化（冒号、空格、占位符）
+        
+
+
+8.采购人、项目名称、项目编号、日期信息从 项目信息配置文件中读取
     公司信息从公司的配置文件中读取。
     授权代表的姓名即 公司信息中的被授权人的姓名
 
@@ -57,7 +69,7 @@ class InfoFiller:
         
         # 其他字段的变体映射
         self.field_variants = {
-            'email': ['电子邮件', '电子邮箱', '邮箱', 'email', 'Email', 'E-mail'],
+            'email': ['邮箱', '邮件', 'email', 'Email', 'E-mail', 'E-Mail'],
             'phone': ['电话', '联系电话', '固定电话', '电话号码', '联系方式'],
             'fax': ['传真', '传真号码', '传真号', 'fax', 'Fax'],
             'address': ['地址', '注册地址', '办公地址', '联系地址', '通讯地址', '供应商地址', '公司地址'],
@@ -105,6 +117,12 @@ class InfoFiller:
         # 合并所有信息
         all_info = {**company_info, **project_info}
         
+        # 文档级别验证：记录处理前状态
+        total_paragraphs = len([p for p in doc.paragraphs if p.text.strip()])
+        total_tables = len(doc.tables)
+        self.logger.info(f"📊 开始处理文档: {total_paragraphs} 个非空段落, {total_tables} 个表格")
+        self.logger.debug(f"📊 可用信息键: {list(all_info.keys())}")
+        
         # 处理所有段落
         for paragraph in doc.paragraphs:
             if paragraph.text.strip():
@@ -130,6 +148,30 @@ class InfoFiller:
         
         # 后处理：清理多余的占位符
         self._post_process(doc)
+        
+        # 文档级别验证：处理完成后的验证
+        self.logger.info(f"📊 文档处理完成统计: {stats}")
+        
+        # 详细验证处理结果
+        if stats['total_replacements'] > 0:
+            self.logger.info(f"✅ 成功处理了 {stats['total_replacements']} 个字段")
+            if stats['replacement_rules'] > 0:
+                self.logger.info(f"  - 替换规则: {stats['replacement_rules']} 个")
+            if stats['fill_rules'] > 0:
+                self.logger.info(f"  - 填空规则: {stats['fill_rules']} 个")
+            if stats['combination_rules'] > 0:
+                self.logger.info(f"  - 组合规则: {stats['combination_rules']} 个")
+        else:
+            self.logger.warning(f"⚠️  文档处理完成，但未处理任何字段！")
+        
+        if stats['skipped_fields'] > 0:
+            self.logger.info(f"⏭️  跳过 {stats['skipped_fields']} 个字段")
+        
+        # 记录一些具体段落内容用于调试
+        self.logger.debug(f"📄 文档处理后段落预览:")
+        for i, paragraph in enumerate(doc.paragraphs[:5]):  # 只记录前5个段落
+            if paragraph.text.strip():
+                self.logger.debug(f"  段落{i+1}: '{paragraph.text[:100]}{'...' if len(paragraph.text) > 100 else ''}'")
         
         self.logger.info(f"信息填写完成: {stats}")
         return stats
@@ -253,7 +295,12 @@ class InfoFiller:
             for variant in variants:
                 pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
                 if re.search(pattern, new_text):
-                    value = info.get(field_key, '')
+                    # 特殊处理地址字段，支持多种地址类型的fallback
+                    if field_key == 'address':
+                        value = info.get('address', '') or info.get('registeredAddress', '') or info.get('officeAddress', '')
+                    else:
+                        value = info.get(field_key, '')
+                    
                     if value:
                         replacement = f"（{value}）"
                         new_text = re.sub(pattern, replacement, new_text)
@@ -269,76 +316,200 @@ class InfoFiller:
     
     def _try_fill_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
         """
-        尝试填空规则
-        如：供应商名称：______ → 供应商名称：公司名
+        尝试填空规则 - 改为累积处理模式，支持同一段落多字段
+        如：地址：___ 邮编：___ → 地址：xxx 邮编：yyy
         """
         text = paragraph.text
+        new_text = text
+        fill_count = 0
+        
+        # 详细日志：记录段落处理开始
+        self.logger.debug(f"🔍 开始处理段落: '{text[:100]}{'...' if len(text) > 100 else ''}'")
+        self.logger.debug(f"📏 段落全文长度: {len(text)} 字符")
         
         # 处理供应商名称类的填空
         for variant in self.company_name_variants:
-            # 多种填空格式
+            self.logger.debug(f"🔎 检查供应商名称变体: '{variant}'")
+            
+            # 检查字段是否存在于文本中
+            if variant not in new_text:
+                self.logger.debug(f"❌ 字段 '{variant}' 不在段落文本中，跳过")
+                continue
+                
+            self.logger.debug(f"✅ 找到字段 '{variant}'，开始模式匹配")
+            
             patterns = [
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',  # 冒号后跟下划线或空格
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',  # 冒号后跟下划线，以句号结束
                 rf'{re.escape(variant)}\s+[_\s]+$',  # 空格后跟下划线
+                rf'{re.escape(variant)}(?=\s+)',  # 字段名后跟空格（插入式填空）
             ]
             
-            for pattern in patterns:
-                if re.search(pattern, text):
+            for i, pattern in enumerate(patterns, 1):
+                self.logger.debug(f"🔍 尝试模式{i}: {pattern}")
+                match = re.search(pattern, new_text)
+                if match:
+                    self.logger.info(f"✅ 模式{i}匹配成功: '{match.group()}'")
                     company_name = info.get('companyName', '')
+                    self.logger.debug(f"📝 准备填入公司名称: '{company_name}'")
+                    
                     if company_name:
-                        # 保持原有格式，只替换占位符部分
-                        new_text = re.sub(r'[_\s]+', company_name, text)
-                        self._update_paragraph_text(paragraph, new_text)
+                        original_text = new_text
+                        
+                        # 根据匹配的模式选择不同的替换策略
+                        if i == 4:  # 第4个模式：插入式填空
+                            self.logger.debug(f"🔄 使用插入式替换策略")
+                            # 在字段名后直接插入内容，保持空格布局
+                            insert_pattern = rf'{re.escape(variant)}(?=\s+)'
+                            new_text = re.sub(insert_pattern, f'{variant}{company_name}', new_text)
+                        else:  # 前3个模式：标准替换
+                            self.logger.debug(f"🔄 使用标准替换策略")
+                            # 更精确的替换：只替换匹配字段后面的下划线
+                            replace_pattern = rf'({re.escape(variant)}\s*[:：]\s*)(_+)'
+                            new_text = re.sub(replace_pattern, rf'\1{company_name}', new_text)
+                        
+                        self.logger.info(f"🔄 替换前: '{original_text}'")
+                        self.logger.info(f"🔄 替换后: '{new_text}'")
                         self.logger.info(f"填空规则: {variant} 填入 {company_name}")
-                        return True
+                        fill_count += 1
+                        break  # 找到一个模式就跳出内层循环
+                    else:
+                        self.logger.warning(f"⚠️  公司名称为空，跳过填写")
+                else:
+                    self.logger.debug(f"❌ 模式{i}不匹配")
         
         # 处理采购人信息的填空
         for variant in self.purchaser_variants:
+            # 检查字段是否存在于文本中
+            if variant not in new_text:
+                continue
+                
             patterns = [
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',
                 rf'{re.escape(variant)}\s+[_\s]+$',
+                rf'致\s*[:：]\s*{re.escape(variant)}\s*$',  # 支持"致：采购人"格式
             ]
             
             for pattern in patterns:
-                if re.search(pattern, text):
+                if re.search(pattern, new_text):
                     purchaser_name = info.get('purchaserName', '') or info.get('projectOwner', '')
                     if purchaser_name:
-                        new_text = re.sub(r'[_\s]+', purchaser_name, text)
-                        self._update_paragraph_text(paragraph, new_text)
+                        # 特殊处理"致：采购人"格式
+                        if '致' in pattern:
+                            replace_pattern = rf'(致\s*[:：]\s*){re.escape(variant)}\s*$'
+                            new_text = re.sub(replace_pattern, rf'\1{purchaser_name}', new_text)
+                        else:
+                            # 标准格式：只替换匹配字段后面的下划线
+                            replace_pattern = rf'({re.escape(variant)}\s*[:：]\s*)(_+)'
+                            new_text = re.sub(replace_pattern, rf'\1{purchaser_name}', new_text)
                         self.logger.info(f"填空规则: {variant} 填入 {purchaser_name}")
-                        return True
+                        fill_count += 1
+                        break
         
-        # 处理其他字段的填空
+        # 处理其他字段的填空（包括地址、邮编、电话、邮箱等）
         for field_key, variants in self.field_variants.items():
+            self.logger.debug(f"🔎 处理字段类型: {field_key}")
+            
             for variant in variants:
+                self.logger.debug(f"🔍 检查字段变体: '{variant}' (类型: {field_key})")
+                
+                # 检查字段是否存在于文本中
+                if variant not in new_text:
+                    self.logger.debug(f"❌ 字段 '{variant}' 不在段落文本中，跳过")
+                    continue
+                    
+                self.logger.debug(f"✅ 找到字段 '{variant}'，开始模式匹配")
+                
                 patterns = [
+                    rf'{re.escape(variant)}\s*[:：]\s*_+',  # 多字段支持：地址：___ 邮编：___
+                    rf'{re.escape(variant)}\s*[:：]\s*$',    # 无下划线支持：电子邮箱：
                     rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',
                     rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',
                     rf'{re.escape(variant)}\s+[_\s]+$',
+                    rf'{re.escape(variant)}(?=\s+)',  # 字段名后跟空格（插入式填空）
                 ]
                 
-                for pattern in patterns:
-                    if re.search(pattern, text):
-                        value = info.get(field_key, '')
+                for i, pattern in enumerate(patterns, 1):
+                    self.logger.debug(f"🔍 尝试模式{i}: {pattern}")
+                    match = re.search(pattern, new_text)
+                    if match:
+                        self.logger.info(f"✅ 模式{i}匹配成功: '{match.group()}'")
+                        # 特殊处理地址字段，支持多种地址类型的fallback
+                        if field_key == 'address':
+                            value = info.get('address', '') or info.get('registeredAddress', '') or info.get('officeAddress', '')
+                            self.logger.debug(f"📝 地址字段值获取: {value}")
+                        # 特殊处理电话字段，支持多种电话类型的fallback
+                        elif field_key == 'phone':
+                            value = info.get('phone', '') or info.get('fixedPhone', '') or info.get('contactPhone', '')
+                            self.logger.debug(f"📝 电话字段值获取: {value}")
+                        else:
+                            value = info.get(field_key, '')
+                            self.logger.debug(f"📝 字段 {field_key} 值获取: {value}")
+                        
                         if value:
-                            new_text = re.sub(r'[_\s]+', value, text)
-                            self._update_paragraph_text(paragraph, new_text)
+                            original_text = new_text
+                            self.logger.debug(f"🔄 开始执行精确替换，原文: '{original_text}'")
+                            
+                            # 根据匹配的模式选择不同的替换策略
+                            if i == 6:  # 第6个模式：插入式填空
+                                self.logger.debug(f"🔄 使用插入式替换策略")
+                                # 在字段名后直接插入内容，保持空格布局
+                                insert_pattern = rf'{re.escape(variant)}(?=\s+)'
+                                new_text = re.sub(insert_pattern, f'{variant}{value}', new_text)
+                            else:  # 前5个模式：标准替换
+                                self.logger.debug(f"🔄 使用标准替换策略")
+                                # 精确替换：分别处理多字段、单字段和无下划线情况
+                                # 模式1：多字段格式 "字段：___ 其他字段："
+                                multi_field_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>\s+[^\s_]+[:：])'
+                                # 模式2：单字段格式 "字段：___" (到行尾或句号)  
+                                single_field_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>$|[。\.])'
+                                # 模式3：无下划线格式 "字段：" (直接在行尾)
+                                no_underscore_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<suffix>$)'
+                                
+                                if re.search(multi_field_pattern, new_text):
+                                    self.logger.debug(f"🔄 使用多字段模式替换")
+                                    new_text = re.sub(multi_field_pattern, rf'\g<prefix>{value}\g<suffix>', new_text)
+                                elif re.search(single_field_pattern, new_text):
+                                    self.logger.debug(f"🔄 使用单字段模式替换")
+                                    new_text = re.sub(single_field_pattern, rf'\g<prefix>{value}\g<suffix>', new_text)
+                                elif re.search(no_underscore_pattern, new_text):
+                                    self.logger.debug(f"🔄 使用无下划线模式替换")
+                                    new_text = re.sub(no_underscore_pattern, rf'\g<prefix>{value}', new_text)
+                                else:
+                                    self.logger.debug(f"🔄 使用备用简单模式替换")
+                                    simple_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)'
+                                    new_text = re.sub(simple_pattern, rf'\g<prefix>{value}', new_text)
+                            
+                            self.logger.info(f"🔄 替换前: '{original_text}'")
+                            self.logger.info(f"🔄 替换后: '{new_text}'")
                             self.logger.info(f"填空规则: {variant} 填入 {value}")
-                            return True
+                            fill_count += 1
+                            break  # 找到一个模式就跳出内层循环
+                        else:
+                            self.logger.warning(f"⚠️  字段 '{variant}' 的值为空，跳过填写")
+                    else:
+                        self.logger.debug(f"❌ 模式{i}不匹配")
         
         # 特殊处理日期
         date_pattern = r'日\s*期\s*[:：]?\s*[_\s]*年[_\s]*月[_\s]*日'
-        if re.search(date_pattern, text):
+        if re.search(date_pattern, new_text):
             date_text = info.get('date', '')
             if date_text:
                 # 格式化日期
                 formatted_date = self._format_date(date_text)
-                new_text = re.sub(date_pattern, f'日期：{formatted_date}', text)
-                self._update_paragraph_text(paragraph, new_text)
+                new_text = re.sub(date_pattern, f'日期：{formatted_date}', new_text)
                 self.logger.info(f"日期填空: {formatted_date}")
-                return True
+                fill_count += 1
+        
+        # 如果有任何填充，更新段落文本
+        if fill_count > 0:
+            self.logger.info(f"📊 段落处理完成，共填充 {fill_count} 个字段")
+            self.logger.debug(f"🔄 最终文本: '{new_text}'")
+            self._update_paragraph_text(paragraph, new_text)
+            return True
+        else:
+            self.logger.debug(f"📊 段落处理完成，未找到任何可填充字段")
         
         return False
     
@@ -381,8 +552,15 @@ class InfoFiller:
     
     def _update_paragraph_text(self, paragraph: Paragraph, new_text: str):
         """更新段落文本，保持格式"""
+        # 记录更新前的状态
+        original_text = paragraph.text
+        self.logger.debug(f"📝 开始更新段落文本")
+        self.logger.debug(f"📝 更新前文本: '{original_text}'")
+        self.logger.debug(f"📝 目标文本: '{new_text}'")
+        
         # 保存第一个run的格式
         if paragraph.runs:
+            self.logger.debug(f"📝 段落有 {len(paragraph.runs)} 个runs，保持格式")
             first_run = paragraph.runs[0]
             # 保存格式属性
             font = first_run.font
@@ -392,8 +570,11 @@ class InfoFiller:
             font_size = font.size
             font_name = font.name
             
+            self.logger.debug(f"📝 保存的格式: bold={bold}, italic={italic}, size={font_size}, name={font_name}")
+            
             # 清空段落
             paragraph.clear()
+            self.logger.debug(f"📝 段落已清空")
             
             # 添加新文本并恢复格式
             new_run = paragraph.add_run(new_text)
@@ -407,9 +588,21 @@ class InfoFiller:
                 new_run.font.size = font_size
             if font_name:
                 new_run.font.name = font_name
+            
+            self.logger.debug(f"📝 新文本已添加并恢复格式")
         else:
             # 如果没有runs，直接设置文本
+            self.logger.debug(f"📝 段落无runs，直接设置文本")
             paragraph.text = new_text
+        
+        # 验证更新结果
+        actual_new_text = paragraph.text
+        if actual_new_text == new_text:
+            self.logger.info(f"✅ 段落更新成功: '{original_text}' → '{actual_new_text}'")
+        elif actual_new_text == original_text:
+            self.logger.error(f"❌ 段落更新失败: 文本没有变化，仍为 '{original_text}'")
+        else:
+            self.logger.warning(f"⚠️  段落更新异常: 期望 '{new_text}'，实际为 '{actual_new_text}'")
     
     def _post_process(self, doc: Document):
         """后处理：清理多余的占位符和格式"""
