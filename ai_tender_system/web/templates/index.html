@@ -9,6 +9,8 @@
     <title>AI标书点对点应答系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- TinyMCE Editor -->
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <style>
         .upload-area {
             border: 2px dashed #007bff;
@@ -434,10 +436,16 @@
                             <div class="alert alert-success mt-3" id="businessResult" style="display: none;">
                                 <h6>处理完成！</h6>
                                 <p id="businessResultMessage"></p>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2 flex-wrap">
                                     <a href="#" id="businessDownloadLink" class="btn btn-primary">
                                         <i class="bi bi-download"></i> 下载文件
                                     </a>
+                                    <button type="button" class="btn btn-success" id="businessPreviewBtn" onclick="previewBusinessDocument()">
+                                        <i class="bi bi-eye"></i> 预览文档
+                                    </button>
+                                    <button type="button" class="btn btn-warning" id="businessEditBtn" onclick="editBusinessDocument()">
+                                        <i class="bi bi-pencil-square"></i> 编辑文档
+                                    </button>
                                     <button type="button" class="btn btn-outline-primary" id="businessNextStepBtn">
                                         <i class="bi bi-arrow-right"></i> 下一步：点对点应答
                                     </button>
@@ -2531,8 +2539,18 @@
                 tenderNoField.value = projectInfo.projectNumber;
             }
             
-            if (dateField && projectInfo.currentDate) {
-                dateField.value = projectInfo.currentDate;
+            // 优先使用投标时间，如果没有则使用当前日期
+            if (dateField) {
+                if (projectInfo.biddingTime && projectInfo.biddingTime.trim() !== '') {
+                    dateField.value = projectInfo.biddingTime;
+                } else {
+                    // 如果没有投标时间，生成默认日期格式
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    dateField.value = `${year}年${month}月${day}日`;
+                }
             }
             
             console.log('Project info loaded:', projectInfo);
@@ -3984,7 +4002,8 @@
                 progress.style.display = 'none';
                 
                 if (data.success) {
-                    // 显示成功结果
+                    // 隐藏错误提示，显示成功结果
+                    error.style.display = 'none';
                     document.getElementById('businessResultMessage').textContent = data.message;
                     document.getElementById('businessDownloadLink').href = data.download_url;
                     result.style.display = 'block';
@@ -4030,6 +4049,243 @@
             });
         }
         
+        // 文档预览和编辑功能
+        let currentDocumentPath = null; // 存储当前文档路径
+        let wordEditor = null; // WordEditor实例
+        
+        // 预览商务应答文档
+        function previewBusinessDocument() {
+            const downloadLink = document.getElementById('businessDownloadLink');
+            if (!downloadLink || !downloadLink.href) {
+                showNotification('没有可预览的文档', 'warning');
+                return;
+            }
+            
+            // 从下载链接获取文件路径
+            const url = new URL(downloadLink.href, window.location.href);
+            const filename = url.pathname.split('/').pop();
+            currentDocumentPath = filename;
+            
+            // 显示加载状态
+            const previewContent = document.getElementById('documentPreviewContent');
+            previewContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">正在加载文档...</p></div>';
+            
+            // 显示预览模态框
+            const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
+            previewModal.show();
+            
+            // 调用API获取文档内容
+            fetch(`/api/document/preview/${filename}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        previewContent.innerHTML = data.html_content || '<p>文档内容为空</p>';
+                    } else {
+                        previewContent.innerHTML = `<div class="alert alert-danger">预览失败: ${data.error || '未知错误'}</div>`;
+                    }
+                })
+                .catch(error => {
+                    previewContent.innerHTML = `<div class="alert alert-danger">预览失败: ${error.message}</div>`;
+                });
+        }
+        
+        // 编辑商务应答文档
+        function editBusinessDocument() {
+            const downloadLink = document.getElementById('businessDownloadLink');
+            if (!downloadLink || !downloadLink.href) {
+                showNotification('没有可编辑的文档', 'warning');
+                return;
+            }
+            
+            // 初始化编辑器（如果还没有初始化）
+            if (!wordEditor) {
+                wordEditor = new WordEditor('documentEditor', {
+                    height: 500,
+                    placeholder: '请点击"读取文档"加载商务应答文档内容...'
+                });
+            }
+            
+            // 显示编辑模态框
+            const editModal = new bootstrap.Modal(document.getElementById('documentEditModal'));
+            editModal.show();
+            
+            // 自动加载文档
+            setTimeout(() => {
+                loadDocumentToEditor();
+            }, 500);
+        }
+        
+        // 切换到编辑模式
+        function switchToEditMode() {
+            // 关闭预览模态框
+            const previewModal = bootstrap.Modal.getInstance(document.getElementById('documentPreviewModal'));
+            if (previewModal) {
+                previewModal.hide();
+            }
+            
+            // 打开编辑模态框
+            setTimeout(() => {
+                editBusinessDocument();
+            }, 300);
+        }
+        
+        // 预览历史文档
+        function previewHistoricalDocument(filename) {
+            if (!filename) {
+                showNotification('文件名不能为空', 'warning');
+                return;
+            }
+            
+            // 设置当前文档路径（用于编辑功能）
+            currentDocumentPath = filename;
+            
+            // 构建文档预览URL
+            const previewUrl = `/api/document/preview/${encodeURIComponent(filename)}`;
+            
+            fetch(previewUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 处理JSON响应
+                let htmlContent = '';
+                if (data.success && data.html_content) {
+                    htmlContent = data.html_content;
+                } else if (data.html_content) {
+                    htmlContent = data.html_content;
+                } else {
+                    throw new Error(data.message || '预览内容为空');
+                }
+                
+                // 显示预览内容
+                const previewContent = document.getElementById('documentPreviewContent');
+                if (previewContent) {
+                    previewContent.innerHTML = htmlContent;
+                }
+                
+                // 显示预览模态框
+                const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
+                previewModal.show();
+                
+                showNotification('历史文档预览加载成功', 'success');
+            })
+            .catch(error => {
+                console.error('历史文档预览失败:', error);
+                showNotification(`历史文档预览失败: ${error.message}`, 'error');
+                
+                // 降级处理：提供直接下载链接
+                const downloadUrl = `/download/${encodeURIComponent(filename)}`;
+                showNotification(`预览失败，可以<a href="${downloadUrl}" target="_blank">直接下载文档</a>`, 'warning', 5000);
+            });
+        }
+        
+        // 加载文档到编辑器
+        function loadDocumentToEditor() {
+            if (!currentDocumentPath) {
+                showNotification('没有可加载的文档', 'warning');
+                return;
+            }
+            
+            if (!wordEditor) {
+                showNotification('编辑器未初始化', 'error');
+                return;
+            }
+            
+            // 方案1：通过预览API获取HTML内容直接加载到编辑器
+            fetch(`/api/document/preview/${currentDocumentPath}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.html_content) {
+                        wordEditor.setContent(data.html_content);
+                        showNotification('文档内容加载成功', 'success');
+                    } else {
+                        throw new Error(data.error || '无法获取文档内容');
+                    }
+                })
+                .catch(error => {
+                    console.error('Document loading error:', error);
+                    showNotification('文档加载失败: ' + error.message, 'error');
+                    
+                    // 方案2：如果预览失败，尝试原始文件加载
+                    tryLoadOriginalFile();
+                });
+        }
+        
+        // 尝试加载原始文件的备用方案
+        function tryLoadOriginalFile() {
+            if (!currentDocumentPath || !wordEditor) return;
+            
+            fetch(`/download/${currentDocumentPath}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // 确保正确的MIME类型
+                    const mimeType = currentDocumentPath.endsWith('.docx') 
+                        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                        : 'application/msword';
+                    
+                    const file = new File([blob], currentDocumentPath, { 
+                        type: mimeType 
+                    });
+                    
+                    return wordEditor.loadDocument(file);
+                })
+                .then(() => {
+                    showNotification('文档加载成功', 'success');
+                })
+                .catch(error => {
+                    console.error('Fallback document loading error:', error);
+                    showNotification('文档加载失败: ' + error.message, 'error');
+                });
+        }
+        
+        // 保存编辑的文档
+        function saveEditedDocument() {
+            if (!wordEditor) {
+                showNotification('编辑器未初始化', 'error');
+                return;
+            }
+            
+            const filename = currentDocumentPath ? currentDocumentPath.replace('.docx', '_edited') : 'edited_document';
+            wordEditor.saveDocument(filename)
+                .then(() => {
+                    showNotification('文档保存成功', 'success');
+                })
+                .catch(error => {
+                    showNotification('文档保存失败: ' + error.message, 'error');
+                });
+        }
+        
+        // 保存并下载
+        function saveAndDownload() {
+            saveEditedDocument();
+        }
+        
+        // 清空编辑器
+        function clearEditor() {
+            if (!wordEditor) {
+                showNotification('编辑器未初始化', 'error');
+                return;
+            }
+            
+            if (confirm('确定要清空编辑器内容吗？')) {
+                wordEditor.clearContent();
+                showNotification('编辑器已清空', 'info');
+            }
+        }
+        
         // 商务应答"下一步"按钮点击处理
         document.addEventListener('click', function(e) {
             if (e.target && e.target.id === 'businessNextStepBtn') {
@@ -4065,11 +4321,15 @@
                         const size = (file.size / 1024 / 1024).toFixed(2);
                         const date = new Date(file.created).toLocaleString('zh-CN');
                         const downloadUrl = `/download/${encodeURIComponent(file.name)}`;
+                        const previewBtn = `<button class="btn btn-sm btn-outline-info me-2" onclick="previewHistoricalDocument('${file.name}')">预览文档</button>`;
                         html += `<tr>
                             <td>${file.name}</td>
                             <td>${size} MB</td>
                             <td>${date}</td>
-                            <td><a href="${downloadUrl}" class="btn btn-sm btn-outline-primary">下载</a></td>
+                            <td>
+                                ${previewBtn}
+                                <a href="${downloadUrl}" class="btn btn-sm btn-outline-primary">下载</a>
+                            </td>
                         </tr>`;
                     });
                     
@@ -4869,6 +5129,67 @@
 
     </script>
 
+    <!-- 文档预览模态框 -->
+    <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentPreviewModalLabel">
+                        <i class="bi bi-eye"></i> 文档预览
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="documentPreviewContent" style="min-height: 500px; padding: 20px; background: white;">
+                        <!-- 预览内容将在这里显示 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-warning" onclick="switchToEditMode()">
+                        <i class="bi bi-pencil-square"></i> 编辑文档
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文档编辑模态框 -->
+    <div class="modal fade" id="documentEditModal" tabindex="-1" aria-labelledby="documentEditModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentEditModalLabel">
+                        <i class="bi bi-pencil-square"></i> 文档编辑器
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary" onclick="loadDocumentToEditor()">
+                                <i class="bi bi-folder-open"></i> 读取文档
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="saveEditedDocument()">
+                                <i class="bi bi-save"></i> 保存文档
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="clearEditor()">
+                                <i class="bi bi-trash"></i> 清空内容
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="documentEditor" style="width: 100%; min-height: 500px;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAndDownload()">
+                        <i class="bi bi-download"></i> 保存并下载
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 公司管理模态框 -->
     <div class="modal fade" id="companyManagementModal" tabindex="-1" aria-labelledby="companyManagementModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -5039,6 +5360,7 @@
     <!-- JavaScript文件引用 -->
     <script src="{{ url_for('static', filename='js/state-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/word-editor.js') }}"></script>
     
     <script>
         // 全局公司状态管理器

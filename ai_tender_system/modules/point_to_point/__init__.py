@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-点对点应答模块
+技术需求点对点回复模块
+用于处理招标文件中的技术需求，生成对应的技术响应
 """
 
 try:
-    from .processor import PointToPointProcessor, DocumentProcessor, TableProcessor
-    POINT_TO_POINT_AVAILABLE = True
+    from .tech_responder import TechResponder
+    TECH_RESPONDER_AVAILABLE = True
 except ImportError as e:
-    print(f"点对点应答模块导入失败: {e}")
-    POINT_TO_POINT_AVAILABLE = False
+    print(f"技术需求回复模块导入失败: {e}")
+    TECH_RESPONDER_AVAILABLE = False
 
-__all__ = ['PointToPointProcessor', 'DocumentProcessor', 'TableProcessor', 'POINT_TO_POINT_AVAILABLE']
+__all__ = ['TechResponder', 'TECH_RESPONDER_AVAILABLE']

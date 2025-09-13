@@ -125,9 +125,15 @@ class WordEditor {
             throw new Error('请选择文件');
         }
         
-        // 检查文件类型
+        // 检查文件类型 - 优先检查文件扩展名，因为某些浏览器可能不正确设置MIME类型
+        const fileName = file.name.toLowerCase();
+        const allowedExtensions = ['.docx', '.doc'];
+        const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+        
         const allowedTypes = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
-        if (!allowedTypes.includes(file.type)) {
+        const hasValidType = allowedTypes.includes(file.type);
+        
+        if (!hasValidExtension && !hasValidType) {
             throw new Error('只支持 .docx 和 .doc 格式的Word文档');
         }
         

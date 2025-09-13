@@ -34,12 +34,23 @@ except ImportError as e:
     print(f"招标信息提取模块加载失败: {e}")
     TENDER_INFO_AVAILABLE = False
 
+# 商务应答模块（原点对点应答）
 try:
-    from modules.point_to_point.processor import PointToPointProcessor, DocumentProcessor, TableProcessor
-    POINT_TO_POINT_AVAILABLE = True
+    from modules.business_response.processor import BusinessResponseProcessor, PointToPointProcessor
+    BUSINESS_RESPONSE_AVAILABLE = True
+    POINT_TO_POINT_AVAILABLE = True  # 保持向后兼容
 except ImportError as e:
-    print(f"点对点应答模块加载失败: {e}")
+    print(f"商务应答模块加载失败: {e}")
+    BUSINESS_RESPONSE_AVAILABLE = False
     POINT_TO_POINT_AVAILABLE = False
+
+# 技术需求回复模块
+try:
+    from modules.point_to_point.tech_responder import TechResponder
+    TECH_RESPONDER_AVAILABLE = True
+except ImportError as e:
+    print(f"技术需求回复模块加载失败: {e}")
+    TECH_RESPONDER_AVAILABLE = False
 
 def create_app() -> Flask:
     """创建Flask应用"""
@@ -124,7 +135,9 @@ def register_routes(app: Flask, config, logger):
             'version': '2.0.0',
             'timestamp': datetime.now().isoformat(),
             'tender_info_available': TENDER_INFO_AVAILABLE,
-            'point_to_point_available': POINT_TO_POINT_AVAILABLE
+            'business_response_available': BUSINESS_RESPONSE_AVAILABLE,
+            'point_to_point_available': POINT_TO_POINT_AVAILABLE,  # 向后兼容
+            'tech_responder_available': TECH_RESPONDER_AVAILABLE
         })
     
     @app.route('/api/config')
@@ -364,10 +377,10 @@ def register_routes(app: Flask, config, logger):
     @app.route('/process-business-response', methods=['POST'])
     def process_business_response():
         """处理商务应答"""
-        if not POINT_TO_POINT_AVAILABLE:
+        if not BUSINESS_RESPONSE_AVAILABLE:
             return jsonify({
                 'success': False,
-                'message': '点对点应答模块不可用'
+                'message': '商务应答模块不可用'
             })
         
         try:
@@ -410,36 +423,25 @@ def register_routes(app: Flask, config, logger):
             
             logger.info(f"开始处理商务应答: {filename}")
             
+            # 公共的输出文件路径设置（移到外面，两个分支都需要）
+            output_dir = ensure_dir(config.get_path('output'))
+            output_filename = f"business_response_{company_id}_{filename}"
+            output_path = output_dir / output_filename
+            
+            logger.info(f"公司数据验证:")
+            logger.info(f"  - 公司名称: {company_data.get('companyName', 'N/A')}")
+            logger.info(f"  - 联系电话: {company_data.get('fixedPhone', 'N/A')}")
+            logger.info(f"  - 电子邮件: {company_data.get('email', 'N/A')}")
+            logger.info(f"  - 公司地址: {company_data.get('address', 'N/A')}")
+            logger.info(f"  - 传真号码: {company_data.get('fax', 'N/A')}")
+            logger.info(f"  - 项目名称: {project_name}")
+            logger.info(f"  - 招标编号: {tender_no}")
+            logger.info(f"  - 日期文本: {date_text}")
+            
             # 使用MCP处理器处理商务应答
             if use_mcp:
-                # 导入MCP处理器
-                import sys
-                import importlib.util
-                
-                # MCP处理器在项目根目录，需要向上一级
-                project_root = config.get_path('root').parent
-                mcp_path = project_root / '2.填写标书' / '点对点应答'
-                mcp_file = mcp_path / 'mcp_bidder_name_processor_enhanced 2.py'
-                
-                # 使用importlib导入文件名包含空格的模块
-                spec = importlib.util.spec_from_file_location("mcp_processor", mcp_file)
-                mcp_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mcp_module)
-                
-                MCPBidderNameProcessor = mcp_module.MCPBidderNameProcessor
-                
-                processor = MCPBidderNameProcessor()
-                # 设置公司信息
-                processor.company_name = company_data.get('companyName', '')
-                processor.company_info = company_data
-                processor.project_name = project_name
-                processor.tender_no = tender_no
-                processor.date_text = date_text
-                
-                # 处理文档 - 生成输出文件路径
-                output_dir = ensure_dir(config.get_path('output'))
-                output_filename = f"business_response_{company_id}_{filename}"
-                output_path = output_dir / output_filename
+                # 使用新架构的商务应答处理器
+                processor = BusinessResponseProcessor()
                 
                 # 使用MCP处理器的完整商务应答处理方法，包含日期字段处理
                 result_stats = processor.process_business_response(
@@ -453,21 +455,53 @@ def register_routes(app: Flask, config, logger):
                 
                 output_path = str(output_path)
                 
-                # 构建结果
-                result = {
-                    'success': True,
-                    'message': '商务应答处理完成',
-                    'output_file': output_path,
-                    'download_url': f'/download/{os.path.basename(output_path)}',
-                    'stats': result_stats  # 使用MCP处理器返回的实际统计信息
-                }
+                # 检查处理结果并构建响应
+                if result_stats.get('success'):
+                    logger.info(f"新架构处理器执行成功: {result_stats.get('message', '无消息')}")
+                    logger.info(f"处理统计: {result_stats.get('stats', {})}")
+                    
+                    # 构建成功结果
+                    result = {
+                        'success': True,
+                        'message': result_stats.get('message', '商务应答处理完成'),
+                        'output_file': output_path,
+                        'download_url': f'/download/{os.path.basename(output_path)}',
+                        'stats': result_stats.get('stats', {})
+                    }
+                else:
+                    logger.error(f"新架构处理器执行失败: {result_stats.get('error', '未知错误')}")
+                    result = {
+                        'success': False,
+                        'error': result_stats.get('error', '处理失败'),
+                        'message': result_stats.get('message', '商务应答处理失败')
+                    }
             else:
-                # 使用原有处理器
-                processor = PointToPointProcessor()
-                result = processor.process_business_response(
-                    template_file=str(template_path),
-                    company_data=company_data
+                # 使用向后兼容的处理器（实际上还是新的BusinessResponseProcessor）
+                processor = PointToPointProcessor()  # 这是BusinessResponseProcessor的别名
+                result_stats = processor.process_business_response(
+                    str(template_path),
+                    str(output_path),
+                    company_data,
+                    project_name,
+                    tender_no,
+                    date_text
                 )
+                
+                # 统一返回格式处理
+                if result_stats.get('success'):
+                    result = {
+                        'success': True,
+                        'message': result_stats.get('message', '商务应答处理完成'),
+                        'output_file': str(output_path),
+                        'download_url': f'/download/{os.path.basename(output_path)}',
+                        'stats': result_stats.get('summary', {})
+                    }
+                else:
+                    result = {
+                        'success': False,
+                        'error': result_stats.get('error', '处理失败'),
+                        'message': result_stats.get('message', '商务应答处理失败')
+                    }
             
             logger.info("商务应答处理完成")
             return jsonify(result)
@@ -478,8 +512,8 @@ def register_routes(app: Flask, config, logger):
     
     @app.route('/api/document/process', methods=['POST'])
     def process_document():
-        """处理文档"""
-        if not POINT_TO_POINT_AVAILABLE:
+        """处理文档 - 通用接口"""
+        if not BUSINESS_RESPONSE_AVAILABLE:
             return jsonify({
                 'success': False,
                 'message': '文档处理模块不可用'
@@ -493,13 +527,112 @@ def register_routes(app: Flask, config, logger):
             if not file_path:
                 raise ValueError("文件路径不能为空")
             
-            processor = DocumentProcessor()
-            result = processor.process_document(file_path, options)
+            # 这是一个通用接口，根据选项决定使用哪个处理器
+            doc_type = options.get('type', 'business_response')
+            
+            if doc_type == 'tech_requirements' and TECH_RESPONDER_AVAILABLE:
+                result = {
+                    'success': True,
+                    'message': '技术需求处理功能可用，请使用 /process-tech-requirements 接口',
+                    'redirect': '/process-tech-requirements'
+                }
+            else:
+                result = {
+                    'success': True,
+                    'message': '商务应答处理功能可用，请使用 /process-business-response 接口',
+                    'redirect': '/process-business-response'
+                }
             
             return jsonify(result)
             
         except Exception as e:
             logger.error(f"文档处理失败: {e}")
+            return jsonify(format_error_response(e))
+    
+    # ===================
+    # 技术需求回复路由
+    # ===================
+    
+    @app.route('/process-tech-requirements', methods=['POST'])
+    def process_tech_requirements():
+        """处理技术需求回复"""
+        if not TECH_RESPONDER_AVAILABLE:
+            return jsonify({
+                'success': False,
+                'message': '技术需求回复模块不可用'
+            })
+        
+        try:
+            # 获取上传的文件
+            if 'requirements_file' not in request.files:
+                raise ValueError("没有选择需求文件")
+            
+            file = request.files['requirements_file']
+            if file.filename == '':
+                raise ValueError("文件名为空")
+            
+            # 获取表单数据
+            data = request.form.to_dict()
+            company_id = data.get('company_id', '')
+            response_strategy = data.get('response_strategy', 'comprehensive')
+            
+            # 验证必填字段
+            if not company_id:
+                raise ValueError("请选择应答公司")
+            
+            # 保存上传的文件
+            filename = safe_filename(file.filename)
+            upload_dir = ensure_dir(config.get_path('upload'))
+            requirements_path = upload_dir / filename
+            file.save(str(requirements_path))
+            
+            # 加载公司数据
+            company_data = config.load_company_data(company_id)
+            if not company_data:
+                raise ValueError(f"未找到公司数据: {company_id}")
+            
+            logger.info(f"开始处理技术需求: {filename}")
+            
+            # 创建技术需求回复处理器
+            responder = TechResponder()
+            
+            # 生成输出文件路径
+            output_dir = ensure_dir(config.get_path('output'))
+            output_filename = f"tech_response_{company_id}_{filename}"
+            output_path = output_dir / output_filename
+            
+            # 处理技术需求
+            result_stats = responder.process_tech_requirements(
+                str(requirements_path),
+                str(output_path),
+                company_data,
+                response_strategy
+            )
+            
+            if result_stats.get('success'):
+                logger.info(f"技术需求处理成功: {result_stats.get('message')}")
+                result = {
+                    'success': True,
+                    'message': result_stats.get('message', '技术需求处理完成'),
+                    'output_file': str(output_path),
+                    'download_url': f'/download/{os.path.basename(output_path)}',
+                    'stats': {
+                        'requirements_count': result_stats.get('requirements_count', 0),
+                        'responses_count': result_stats.get('responses_count', 0)
+                    }
+                }
+            else:
+                logger.error(f"技术需求处理失败: {result_stats.get('error')}")
+                result = {
+                    'success': False,
+                    'error': result_stats.get('error', '处理失败'),
+                    'message': result_stats.get('message', '技术需求处理失败')
+                }
+            
+            return jsonify(result)
+            
+        except Exception as e:
+            logger.error(f"技术需求处理异常: {e}")
             return jsonify(format_error_response(e))
     
     # 文档预览和编辑API
@@ -508,7 +641,7 @@ def register_routes(app: Flask, config, logger):
         """预览文档内容（转换为HTML）"""
         try:
             from docx import Document
-            from markupsafe import Markup
+            import html
             
             # 安全检查文件名（不添加时间戳，因为我们要查找现有文件）
             filename = safe_filename(filename, timestamp=False)
@@ -528,15 +661,16 @@ def register_routes(app: Flask, config, logger):
                 if paragraph.text.strip():
                     # 检查段落样式
                     style_name = paragraph.style.name if paragraph.style else ''
+                    text = html.escape(paragraph.text)
                     
                     if 'Heading 1' in style_name:
-                        html_content.append(f'<h1>{paragraph.text}</h1>')
+                        html_content.append(f'<h1>{text}</h1>')
                     elif 'Heading 2' in style_name:
-                        html_content.append(f'<h2>{paragraph.text}</h2>')
+                        html_content.append(f'<h2>{text}</h2>')
                     elif 'Heading 3' in style_name:
-                        html_content.append(f'<h3>{paragraph.text}</h3>')
+                        html_content.append(f'<h3>{text}</h3>')
                     else:
-                        html_content.append(f'<p>{paragraph.text}</p>')
+                        html_content.append(f'<p>{text}</p>')
             
             # 处理表格
             for table in doc.tables:
@@ -544,7 +678,8 @@ def register_routes(app: Flask, config, logger):
                 for row in table.rows:
                     html_content.append('<tr>')
                     for cell in row.cells:
-                        html_content.append(f'<td>{cell.text}</td>')
+                        cell_text = html.escape(cell.text)
+                        html_content.append(f'<td>{cell_text}</td>')
                     html_content.append('</tr>')
                 html_content.append('</table>')
             
@@ -552,7 +687,7 @@ def register_routes(app: Flask, config, logger):
             
             return jsonify({
                 'success': True,
-                'html_content': Markup(''.join(html_content)),
+                'html_content': ''.join(html_content),
                 'filename': filename
             })
             
