@@ -11,11 +11,6 @@
     名、地址）
       - 变体处理：公司名称、应答人名称、供应
     商名称（盖章）等
-2. 其他信息字段（仅填空规则）
-      - 电话、邮箱、地址、邮编、传真、成立时间、经营范围、采购人
-      - 支持标签变体（邮箱/电子邮件、成立时间/成立日期）
-      - 支持格式变化（冒号、空格、占位符）
-
 3. 例外处理
       - 跳过"签字"相关字段
       - 识别并跳过采购人/招标人信息
@@ -548,9 +543,15 @@ class InfoFiller:
                             replace_pattern = rf'(致\s*[:：]\s*){re.escape(variant)}\s*$'
                             new_text = re.sub(replace_pattern, rf'\1{purchaser_name}', new_text)
                         else:
-                            # 标准格式：只替换匹配字段后面的下划线
-                            replace_pattern = rf'({re.escape(variant)}\s*[:：]\s*)(_+)'
-                            new_text = re.sub(replace_pattern, rf'\1{purchaser_name}', new_text)
+                            # 检查是否是纯空格情况
+                            if re.search(rf'{re.escape(variant)}\s*[:：]\s*\s+$', new_text):
+                                # 纯空格替换策略
+                                replace_pattern = rf'({re.escape(variant)}\s*[:：])\s+$'
+                                new_text = re.sub(replace_pattern, rf'\g<1>{purchaser_name}', new_text)
+                            else:
+                                # 标准格式：只替换匹配字段后面的下划线
+                                replace_pattern = rf'({re.escape(variant)}\s*[:：]\s*)(_+)'
+                                new_text = re.sub(replace_pattern, rf'\g<1>{purchaser_name}', new_text)
                         self.logger.info(f"填空规则: {variant} 填入 {purchaser_name}")
                         fill_count += 1
                         break
@@ -592,7 +593,19 @@ class InfoFiller:
                             self.logger.debug(f"🔄 开始执行精确替换，原文: '{original_text}'")
                             
                             # 根据匹配的模式选择不同的替换策略
-                            if i == 5:  # 第5个模式：插入式填空
+                            if i == 2:  # 第2个模式：无下划线支持，包含纯空格处理
+                                # 检查是否是纯空格情况
+                                if re.search(rf'{re.escape(variant)}\s*[:：]\s*\s+$', new_text):
+                                    self.logger.debug(f"🔄 使用纯空格替换策略")
+                                    # 替换冒号后的所有空格，保留冒号和字段名
+                                    space_pattern = rf'({re.escape(variant)}\s*[:：])\s+$'
+                                    new_text = re.sub(space_pattern, rf'\g<1>{value}', new_text)
+                                else:
+                                    self.logger.debug(f"🔄 使用无下划线模式替换")
+                                    # 处理直接结尾的情况：字段：
+                                    no_underscore_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<suffix>$)'
+                                    new_text = re.sub(no_underscore_pattern, rf'\g<prefix>{value}', new_text)
+                            elif i == 5:  # 第5个模式：插入式填空
                                 self.logger.debug(f"🔄 使用插入式替换策略")
                                 # 在字段名后直接插入内容，保持空格布局
                                 insert_pattern = rf'{re.escape(variant)}(?=\s+)'

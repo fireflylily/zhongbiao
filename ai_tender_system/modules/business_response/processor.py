@@ -148,7 +148,7 @@ class BusinessResponseProcessor:
         self.table_processor = TableProcessor()
         self.image_handler = ImageHandler()
         
-        self.logger.info("商务应答处理器初始化完成")
+        self.logger.info("🔧 [新架构-BusinessResponseProcessor] 商务应答处理器初始化完成")
     
     def process_business_response(self, 
                                  input_file: str, 
@@ -176,12 +176,12 @@ class BusinessResponseProcessor:
             dict: 处理结果
         """
         try:
-            self.logger.info(f"开始处理商务应答文档")
-            self.logger.info(f"输入文件: {input_file}")
-            self.logger.info(f"输出文件: {output_file}")
-            self.logger.info(f"公司名称: {company_info.get('companyName', 'N/A')}")
-            self.logger.info(f"项目名称: {project_name}")
-            self.logger.info(f"招标编号: {tender_no}")
+            self.logger.info(f"🚀 [新架构-BusinessResponseProcessor] 开始处理商务应答文档")
+            self.logger.info(f"📁 [新架构-BusinessResponseProcessor] 输入文件: {input_file}")
+            self.logger.info(f"💾 [新架构-BusinessResponseProcessor] 输出文件: {output_file}")
+            self.logger.info(f"🏢 [新架构-BusinessResponseProcessor] 公司名称: {company_info.get('companyName', 'N/A')}")
+            self.logger.info(f"📋 [新架构-BusinessResponseProcessor] 项目名称: {project_name}")
+            self.logger.info(f"🔢 [新架构-BusinessResponseProcessor] 招标编号: {tender_no}")
             self.logger.info(f"日期文本: {date_text}")
             # 从项目配置文件读取项目信息
             project_config = self._load_project_config()
@@ -219,8 +219,9 @@ class BusinessResponseProcessor:
             }
             
             # 第1步：信息填写（核心功能）
-            self.logger.info("第1步：执行信息填写")
+            self.logger.info("🔥 [新架构-BusinessResponseProcessor] 第1步：执行信息填写")
             info_stats = self.info_filler.fill_info(doc, company_info, project_info)
+            self.logger.info(f"✅ [新架构-BusinessResponseProcessor] 信息填写完成，统计: {info_stats}")
             
             # 第2步：表格处理
             self.logger.info("第2步：执行表格处理")
