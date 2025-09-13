@@ -463,3 +463,269 @@
 2025-09-13 08:56:21,268 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-13 08:56:38,172 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-13 08:57:27,874 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 09:00:08,443 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_090008_-.docx
+2025-09-13 09:00:08,444 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 09:00:08,445 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 09:00:08,445 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 09:00:08,446 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 09:00:08,446 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 09:00:08,446 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 09:00:08,446 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 09:00:08,446 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 09:00:08,447 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 09:00:08,502 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-13 09:00:08,502 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 09:00:08,502 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 09:08:59,658 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 09:09:01,086 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 09:11:04,205 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 09:15:23,263 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_091523_-.docx
+2025-09-13 09:15:23,263 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 09:15:23,264 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 09:15:23,361 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-13 09:15:23,361 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 09:15:23,361 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 10:46:37,476 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_104637_-.docx
+2025-09-13 10:46:37,477 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 10:46:37,477 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 10:46:37,477 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 10:46:37,477 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 10:46:37,477 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 10:46:37,478 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 10:46:37,478 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 10:46:37,478 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 10:46:37,478 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 10:46:37,518 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-13 10:46:37,518 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 10:46:37,518 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 10:50:57,907 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250913_104637_-.docx
+2025-09-13 10:52:00,110 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_105200_-.docx
+2025-09-13 10:52:00,111 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 10:52:00,111 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 10:52:00,111 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 10:52:00,111 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 10:52:00,112 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 10:52:00,112 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 10:52:00,112 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 10:52:00,112 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 10:52:00,112 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 10:52:00,150 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-13 10:52:00,150 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 10:52:00,150 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 10:52:52,597 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 10:53:11,335 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 10:53:31,072 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 10:53:39,554 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 10:53:47,035 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:02:39,464 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:04:16,781 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:04:25,315 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:04:34,899 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:06:43,771 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:06:56,333 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:07:20,176 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:08:05,493 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:08:31,291 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:09:39,994 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:11:30,504 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:12:24,921 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_111224_-.docx
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 11:12:24,922 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 11:12:24,955 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-13 11:12:24,955 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 11:12:24,955 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 11:23:36,530 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:24:23,120 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:24:38,894 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:25:21,362 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_112521_-.docx
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 11:25:21,363 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 11:25:21,364 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 11:25:21,400 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-13 11:25:21,400 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 11:25:21,401 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 11:25:33,784 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_112533_docx
+2025-09-13 11:25:33,785 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 11:25:33,785 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 11:25:33,787 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 11:25:33,787 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 11:25:33,787 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 11:25:33,788 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 11:25:33,788 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 11:25:33,788 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 11:25:33,789 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 11:25:33,886 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了3个信息字段
+2025-09-13 11:25:33,886 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 11:25:33,886 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 11:32:59,263 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:33:00,683 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:33:46,157 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:40:05,181 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:40:29,228 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:44:29,692 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:44:31,094 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:45:48,134 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:45:59,848 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:47:00,555 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:47:49,018 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:48:27,310 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:49:10,709 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:49:20,467 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:49:53,762 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:49:59,348 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:50:34,573 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 11:52:29,233 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250913_112521_-.docx
+2025-09-13 11:52:51,252 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250913_112533_docx
+2025-09-13 11:59:35,725 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_115935_docx
+2025-09-13 11:59:35,726 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 11:59:35,726 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 11:59:35,727 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 11:59:35,727 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 11:59:35,727 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 11:59:35,727 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 11:59:35,727 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 11:59:35,727 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 11:59:35,727 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 11:59:35,803 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了4个信息字段
+2025-09-13 11:59:35,803 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 11:59:35,803 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 12:11:05,905 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:11:22,711 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:11:47,670 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:12:02,442 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:12:24,349 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:12:38,127 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:13:13,334 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:21:43,820 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:21:55,548 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:38:14,686 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:38:28,457 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:38:58,563 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:39:20,447 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 12:40:34,783 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_124034_docx
+2025-09-13 12:40:34,784 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 12:40:34,784 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 12:40:34,784 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 12:40:34,784 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 12:40:34,785 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 12:40:34,785 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 12:40:34,786 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 12:40:34,787 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 12:40:34,788 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 12:40:34,864 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了4个信息字段
+2025-09-13 12:40:34,864 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 12:40:34,864 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 12:41:25,835 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 13:49:53,556 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 13:50:18,866 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 13:50:31,662 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 13:50:43,369 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 13:51:20,725 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 13:53:46,779 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_135346_docx
+2025-09-13 13:53:46,781 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 13:53:46,781 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 13:53:46,781 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 13:53:46,781 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 13:53:46,781 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 13:53:46,782 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 13:53:46,782 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 13:53:46,782 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 13:53:46,782 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 13:53:46,829 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了4个信息字段
+2025-09-13 13:53:46,831 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 13:53:46,831 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 14:21:56,616 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 14:22:27,218 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_142227_-.docx
+2025-09-13 14:22:27,219 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 14:22:27,219 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 14:22:27,219 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 14:22:27,220 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 14:22:27,220 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 14:22:27,220 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 14:22:27,220 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 14:22:27,220 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 14:22:27,220 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 14:22:27,257 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-13 14:22:27,258 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 14:22:27,258 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 14:22:43,754 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_142243_docx
+2025-09-13 14:22:43,755 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 14:22:43,755 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 14:22:43,755 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 14:22:43,756 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 14:22:43,756 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 14:22:43,756 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 14:22:43,756 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 14:22:43,756 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 14:22:43,756 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 14:22:43,812 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了4个信息字段
+2025-09-13 14:22:43,813 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 14:22:43,813 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 14:24:16,325 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 14:24:21,904 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 14:25:52,130 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_142552_docx
+2025-09-13 14:25:52,130 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 14:25:52,131 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 14:25:52,195 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了4个信息字段
+2025-09-13 14:25:52,195 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 14:25:52,195 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 16:39:12,869 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 16:39:35,105 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 16:42:20,595 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 16:43:02,213 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 16:49:56,882 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 16:50:18,915 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 16:50:43,023 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 16:54:51,811 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_165451_docx
+2025-09-13 16:54:51,823 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 16:54:51,825 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 16:54:51,825 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 16:54:51,825 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 16:54:51,826 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 16:54:51,826 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 16:54:51,826 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 16:54:51,826 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 16:54:51,826 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 16:54:51,878 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了5个信息字段
+2025-09-13 16:54:51,878 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 16:54:51,878 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 16:55:17,929 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_165517_docx
+2025-09-13 16:55:17,932 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 16:55:17,938 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 16:55:17,943 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 16:55:17,943 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 16:55:17,943 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 16:55:17,943 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 16:55:17,943 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 16:55:17,944 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 16:55:17,944 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 16:55:17,975 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了3个信息字段
+2025-09-13 16:55:17,975 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 16:55:17,975 - ai_tender_system.web_app - INFO - 商务应答处理完成

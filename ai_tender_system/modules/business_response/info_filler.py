@@ -213,14 +213,18 @@ class InfoFiller:
     
     def _should_skip(self, text: str) -> bool:
         """检查是否应该跳过该文本"""
-        # 检查是否包含采购人/招标人等关键词
+        # 检查是否包含采购人/招标人等关键词（使用更精确的匹配）
         for keyword in self.skip_keywords:
-            if keyword in text:
+            # 避免误判：排除"签字代表"等合法词汇  
+            if keyword in text and "签字代表" not in text:
                 return True
         
-        # 检查是否包含签字相关词
+        # 检查是否包含签字相关词（避免误判签字代表等合法词汇）
         for keyword in self.signature_keywords:
             if keyword in text:
+                # 排除合法的描述性词汇
+                if keyword == '签字' and ('签字代表' in text or '经正式授权' in text):
+                    continue
                 return True
         
         return False
@@ -289,6 +293,37 @@ class InfoFiller:
                     new_text = re.sub(pattern, replacement, new_text)
                     self.logger.info(f"替换规则: {variant} → {purchaser_name}")
                     replacement_count += 1
+        
+        # 处理项目信息（项目名称、项目编号）
+        # 项目名称处理
+        for variant in ['项目名称', '采购项目名称', '招标项目名称']:
+            pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
+            if re.search(pattern, new_text):
+                self.logger.debug(f"🔎 检查项目名称变体: '{variant}'")
+                # 获取项目名称（固定键名）
+                project_name = info.get('projectName', '')
+                if project_name:
+                    replacement = f"（{project_name}）"
+                    new_text = re.sub(pattern, replacement, new_text)
+                    self.logger.info(f"替换规则: {variant} → {project_name}")
+                    replacement_count += 1
+                else:
+                    self.logger.warning(f"⚠️ 项目名称数据为空，跳过字段 '{variant}'")
+        
+        # 项目编号处理  
+        for variant in ['项目编号', '采购编号', '招标编号', '项目号']:
+            pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
+            if re.search(pattern, new_text):
+                self.logger.debug(f"🔎 检查项目编号变体: '{variant}'")
+                # 获取项目编号（固定键名）
+                project_number = info.get('projectNumber', '')
+                if project_number:
+                    replacement = f"（{project_number}）"
+                    new_text = re.sub(pattern, replacement, new_text)
+                    self.logger.info(f"替换规则: {variant} → {project_number}")
+                    replacement_count += 1
+                else:
+                    self.logger.warning(f"⚠️ 项目编号数据为空，跳过字段 '{variant}'")
         
         # 处理其他字段
         for field_key, variants in self.field_variants.items():
@@ -439,9 +474,9 @@ class InfoFiller:
                         if field_key == 'address':
                             value = info.get('address', '') or info.get('registeredAddress', '') or info.get('officeAddress', '')
                             self.logger.debug(f"📝 地址字段值获取: {value}")
-                        # 特殊处理电话字段，支持多种电话类型的fallback
+                        # 特殊处理电话字段（Web传入的是fixedPhone）
                         elif field_key == 'phone':
-                            value = info.get('phone', '') or info.get('fixedPhone', '') or info.get('contactPhone', '')
+                            value = info.get('fixedPhone', '') or info.get('phone', '')
                             self.logger.debug(f"📝 电话字段值获取: {value}")
                         else:
                             value = info.get(field_key, '')
