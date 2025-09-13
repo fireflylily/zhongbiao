@@ -15,9 +15,9 @@
       - 电话、邮箱、地址、邮编、传真、成立时间、经营范围、采购人
       - 支持标签变体（邮箱/电子邮件、成立时间/成立日期）
       - 支持格式变化（冒号、空格、占位符）
+
 3. 例外处理
       - 跳过"签字"相关字段
-      - 智能日期处理
       - 识别并跳过采购人/招标人信息
  4. 格式保持
       - 继承第一个字符的格式
@@ -30,10 +30,24 @@
 6.3 组合规则：（项目名称、项目编号）
 
 7.填空规则
-7.1 电话、邮箱、地址、邮编、传真、成立时间、经营范围、采购人（不支持电子邮箱，电子邮件，因为与邮箱和邮件重复了）
+7.1 电话、邮箱、地址、邮编、传真、成立时间、经营范围、采购人（不支持电子邮箱，电子邮件，因为与邮箱和邮件重复了），日期，日+空格+期
 7.2 供应商名称、项目名称、项目编号
 7.3 支持格式变化（冒号、空格、占位符、冒号+空格）
-        
+        模式匹配 (6种模式):
+  - 模式1: {variant}\s*[:：]\s*_+ - 多字段支持：地址：___ 邮编：___
+  - 模式2: {variant}\s*[:：]\s*$ - 无下划线支持：电子邮箱：
+  - 模式3: {variant}\s*[:：]\s*[_\s]*$
+  - 模式4: {variant}\s*[:：]\s*[_\s]+[。\.]
+  - 模式5: {variant}(?=\s+(?!.*_)) - 插入式填空
+  - 模式6: {variant}\s+[_\s]+$
+
+  替换策略 (4种复杂策略):
+  - 模式5: 插入式替换
+  - 其他模式: 精确模式替换
+    - multi_field_pattern: 多字段格式处理
+    - single_field_pattern: 单字段格式处理
+    - no_underscore_pattern: 无下划线格式处理
+    - 备用简单模式  
 
 
 8.采购人、项目名称、项目编号、日期信息从 项目信息配置文件中读取
@@ -43,10 +57,10 @@
 """
 
 import re
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any
 from docx import Document
 from docx.text.paragraph import Paragraph
-from docx.table import Table, _Cell
+from docx.table import Table
 
 # 导入公共模块
 import sys
@@ -94,6 +108,31 @@ class InfoFiller:
         
         # 需要跳过的签字相关词
         self.signature_keywords = ['签字', '签名', '签章', '盖章处']
+
+        # 统一字段映射配置 - 定义字段名与数据源的映射关系
+        self.field_mapping_rules = {
+            # 公司信息字段 (直接映射)
+            'companyName': ['companyName'],
+            'email': ['email'],
+            'fax': ['fax'],
+            'postalCode': ['postalCode'],
+            'establishDate': ['establishDate'],
+            'businessScope': ['businessScope'],
+            'legalRepresentative': ['legalRepresentative'],
+            'authorizedPersonName': ['authorizedPersonName'],
+
+            # 公司信息字段 (多源映射 - 按优先级顺序)
+            'address': ['address', 'registeredAddress', 'officeAddress'],
+            'phone': ['fixedPhone', 'phone'],
+
+            # 项目信息字段 (直接映射)
+            'projectName': ['projectName'],
+            'projectNumber': ['projectNumber'],
+            'date': ['date'],
+
+            # 项目信息字段 (多源映射)
+            'purchaserName': ['purchaserName', 'projectOwner']
+        }
         
     def fill_info(self, doc: Document, company_info: Dict[str, Any], 
                   project_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -117,8 +156,8 @@ class InfoFiller:
             'none': 0  # 添加对未处理段落的统计
         }
         
-        # 合并所有信息
-        all_info = {**company_info, **project_info}
+        # 创建统一的字段映射（替代简单合并）
+        all_info = self._create_unified_field_mapping(company_info, project_info)
         
         # 文档级别验证：记录处理前状态
         total_paragraphs = len([p for p in doc.paragraphs if p.text.strip()])
@@ -178,7 +217,56 @@ class InfoFiller:
         
         self.logger.info(f"信息填写完成: {stats}")
         return stats
-    
+
+    def _create_unified_field_mapping(self, company_info: Dict[str, Any],
+                                    project_info: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        创建统一的字段映射表
+
+        Args:
+            company_info: 公司信息字典
+            project_info: 项目信息字典
+
+        Returns:
+            统一的字段映射字典，所有字段都映射到标准化的值
+        """
+        # 合并原始数据
+        raw_data = {**company_info, **project_info}
+        unified_mapping = {}
+
+        self.logger.debug(f"🔧 开始创建统一字段映射")
+        self.logger.debug(f"🔧 原始数据键: {list(raw_data.keys())}")
+
+        # 遍历所有映射规则
+        for target_field, source_fields in self.field_mapping_rules.items():
+            value = None
+
+            # 按优先级顺序查找值 (第一个非空值)
+            for source_field in source_fields:
+                if source_field in raw_data:
+                    candidate_value = raw_data[source_field]
+                    if candidate_value and str(candidate_value).strip():  # 非空且非空白
+                        value = candidate_value
+                        self.logger.debug(f"🔧 字段映射: {target_field} ← {source_field} = '{value}'")
+                        break
+
+            # 存储映射结果 (即使是None也要存储，避免KeyError)
+            unified_mapping[target_field] = value or ''
+
+            if not value:
+                self.logger.debug(f"⚠️ 字段映射: {target_field} ← 无有效数据源 (尝试了 {source_fields})")
+
+        # 添加其他未配置映射规则的字段 (直接透传)
+        for key, value in raw_data.items():
+            if key not in unified_mapping:
+                unified_mapping[key] = value
+                self.logger.debug(f"🔧 直接映射: {key} = '{value}'")
+
+        self.logger.info(f"🔧 统一字段映射完成: {len(unified_mapping)} 个字段")
+        self.logger.debug(f"🔧 映射结果预览: {list(unified_mapping.keys())}")
+
+        return unified_mapping
+
     def _process_paragraph(self, paragraph: Paragraph, info: Dict[str, Any]) -> Dict[str, Any]:
         """处理单个段落"""
         result = {'count': 0, 'type': 'none'}
@@ -243,7 +331,7 @@ class InfoFiller:
         pattern1 = r'[（(]\s*供应商名称\s*[、，]\s*地址\s*[）)]'
         if re.search(pattern1, text):
             company_name = info.get('companyName', '')
-            address = info.get('address', '') or info.get('registeredAddress', '')
+            address = info.get('address', '')
             if company_name and address:
                 replacement = f"（{company_name}、{address}）"
                 new_text = re.sub(pattern1, replacement, text)
@@ -290,7 +378,7 @@ class InfoFiller:
         for variant in self.purchaser_variants:
             pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
             if re.search(pattern, new_text):
-                purchaser_name = info.get('purchaserName', '') or info.get('projectOwner', '')
+                purchaser_name = info.get('purchaserName', '')
                 if purchaser_name:
                     replacement = f"（{purchaser_name}）"
                     new_text = re.sub(pattern, replacement, new_text)
@@ -333,11 +421,8 @@ class InfoFiller:
             for variant in variants:
                 pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
                 if re.search(pattern, new_text):
-                    # 特殊处理地址字段，支持多种地址类型的fallback
-                    if field_key == 'address':
-                        value = info.get('address', '') or info.get('registeredAddress', '') or info.get('officeAddress', '')
-                    else:
-                        value = info.get(field_key, '')
+                    # 直接获取字段值（统一映射已处理多源映射）
+                    value = info.get(field_key, '')
                     
                     if value:
                         replacement = f"（{value}）"
@@ -377,6 +462,8 @@ class InfoFiller:
             self.logger.debug(f"✅ 找到字段 '{variant}'，开始模式匹配")
             
             patterns = [
+                rf'{re.escape(variant)}\s*[:：]\s*_+',  # 冒号后跟下划线
+                rf'{re.escape(variant)}\s*[:：]\s*\s+$',  # 冒号后跟空格到行尾
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',  # 冒号后跟下划线或空格
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',  # 冒号后跟下划线，以句号结束
                 rf'{re.escape(variant)}(?=\s+(?!.*_))',  # 字段名后跟空格（插入式填空，不含下划线）
@@ -395,16 +482,39 @@ class InfoFiller:
                         original_text = new_text
                         
                         # 根据匹配的模式选择不同的替换策略
-                        if i == 3:  # 第3个模式：插入式填空
+                        if i == 2:  # 第2个模式：纯空格替换
+                            self.logger.debug(f"🔄 使用纯空格替换策略")
+                            # 替换冒号后的所有空格，保留冒号
+                            space_pattern = rf'({re.escape(variant)}\s*[:：])\s*\s+$'
+                            new_text = re.sub(space_pattern, rf'\1{company_name}', new_text)
+                        elif i == 5:  # 第5个模式：插入式填空
                             self.logger.debug(f"🔄 使用插入式替换策略")
                             # 在字段名后直接插入内容，保持空格布局
                             insert_pattern = rf'{re.escape(variant)}(?=\s+)'
                             new_text = re.sub(insert_pattern, f'{variant}{company_name}', new_text)
                         else:  # 其他模式：标准替换
                             self.logger.debug(f"🔄 使用标准替换策略")
-                            # 更精确的替换：只替换匹配字段后面的下划线
-                            replace_pattern = rf'({re.escape(variant)}\s*[:：]\s*)(_+)'
-                            new_text = re.sub(replace_pattern, rf'\1{company_name}', new_text)
+                            # 使用与其他字段相同的精确替换逻辑（支持no_underscore_pattern）
+                            # 模式1：多字段格式 "字段：___ 其他字段："
+                            multi_field_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>\s+[^\s_]+[:：])'
+                            # 模式2：单字段格式 "字段：___" (到行尾或句号)
+                            single_field_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>$|[。\.])'
+                            # 模式3：无下划线格式 "字段：" (直接在行尾)
+                            no_underscore_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<suffix>$)'
+
+                            if re.search(multi_field_pattern, new_text):
+                                self.logger.debug(f"🔄 使用多字段模式替换")
+                                new_text = re.sub(multi_field_pattern, rf'\g<prefix>{company_name}\g<suffix>', new_text)
+                            elif re.search(single_field_pattern, new_text):
+                                self.logger.debug(f"🔄 使用单字段模式替换")
+                                new_text = re.sub(single_field_pattern, rf'\g<prefix>{company_name}\g<suffix>', new_text)
+                            elif re.search(no_underscore_pattern, new_text):
+                                self.logger.debug(f"🔄 使用无下划线模式替换")
+                                new_text = re.sub(no_underscore_pattern, rf'\g<prefix>{company_name}', new_text)
+                            else:
+                                self.logger.debug(f"🔄 使用备用简单模式替换")
+                                simple_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)'
+                                new_text = re.sub(simple_pattern, rf'\g<prefix>{company_name}', new_text)
                         
                         self.logger.info(f"🔄 替换前: '{original_text}'")
                         self.logger.info(f"🔄 替换后: '{new_text}'")
@@ -431,7 +541,7 @@ class InfoFiller:
             
             for pattern in patterns:
                 if re.search(pattern, new_text):
-                    purchaser_name = info.get('purchaserName', '') or info.get('projectOwner', '')
+                    purchaser_name = info.get('purchaserName', '')
                     if purchaser_name:
                         # 特殊处理"致：采购人"格式
                         if '致' in pattern:
@@ -473,17 +583,9 @@ class InfoFiller:
                     match = re.search(pattern, new_text)
                     if match:
                         self.logger.info(f"✅ 模式{i}匹配成功: '{match.group()}'")
-                        # 特殊处理地址字段，支持多种地址类型的fallback
-                        if field_key == 'address':
-                            value = info.get('address', '') or info.get('registeredAddress', '') or info.get('officeAddress', '')
-                            self.logger.debug(f"📝 地址字段值获取: {value}")
-                        # 特殊处理电话字段（Web传入的是fixedPhone）
-                        elif field_key == 'phone':
-                            value = info.get('fixedPhone', '') or info.get('phone', '')
-                            self.logger.debug(f"📝 电话字段值获取: {value}")
-                        else:
-                            value = info.get(field_key, '')
-                            self.logger.debug(f"📝 字段 {field_key} 值获取: {value}")
+                        # 直接获取字段值（统一映射已处理多源映射）
+                        value = info.get(field_key, '')
+                        self.logger.debug(f"📝 字段 {field_key} 值获取: {value}")
                         
                         if value:
                             original_text = new_text
