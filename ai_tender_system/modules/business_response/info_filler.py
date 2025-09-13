@@ -24,6 +24,10 @@
       - 继承第一个字符的格式
       - 保持原有文档样式
 
+    采购人、项目名称、项目编号、日期信息从 项目信息配置文件中读取
+    公司信息从公司的配置文件中读取。
+    授权代表的姓名即 公司信息中的被授权人的姓名
+
 """
 
 import re
@@ -140,17 +144,28 @@ class InfoFiller:
             self.logger.debug(f"跳过段落: {para_text[:50]}")
             return {'count': 0, 'type': 'skipped'}
         
+        processed = False
+        final_type = 'none'
+        
         # 1. 尝试组合替换规则
         if self._try_combination_rule(paragraph, info):
-            return {'count': 1, 'type': 'combination_rules'}
+            processed = True
+            final_type = 'combination_rules'
         
-        # 2. 尝试单字段替换规则
+        # 2. 尝试单字段替换规则（即使组合规则已处理，也要尝试）
         if self._try_replacement_rule(paragraph, info):
-            return {'count': 1, 'type': 'replacement_rules'}
+            processed = True
+            # 如果已经有组合规则，保持组合规则类型，否则设为替换规则
+            if final_type == 'none':
+                final_type = 'replacement_rules'
         
-        # 3. 尝试填空规则
-        if self._try_fill_rule(paragraph, info):
-            return {'count': 1, 'type': 'fill_rules'}
+        # 3. 尝试填空规则（仅在前两个都没有处理时才尝试）
+        if not processed and self._try_fill_rule(paragraph, info):
+            processed = True
+            final_type = 'fill_rules'
+        
+        if processed:
+            return {'count': 1, 'type': final_type}
         
         return result
     
