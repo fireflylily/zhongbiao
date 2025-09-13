@@ -39,7 +39,14 @@
       "Bash(grep:*)",
       "Bash(node:*)",
       "Bash(xcopy:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(xargs cat:*)",
+      "Bash(mv:*)",
+      "Bash(xargs:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(cd:*)",
+      "Bash(gtimeout:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

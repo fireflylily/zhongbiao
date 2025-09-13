@@ -154,3 +154,312 @@
 2025-09-12 05:11:18,605 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-12 05:11:42,975 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-12 05:11:43,093 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 08:55:36,485 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 08:55:39,299 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 09:00:03,114 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 09:00:03,367 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 09:00:23,114 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 09:00:23,123 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 09:15:20,739 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 09:15:20,751 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 09:58:31,230 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:04:23,065 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:04:23,071 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:04:30,623 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 10:04:30,629 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 10:04:34,455 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:04:34,460 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:11:18,275 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:11:18,286 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:33:39,470 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:33:47,830 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:33:51,042 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:33:51,044 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:33:51,052 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:33:51,054 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:33:59,609 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:35:01,429 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:35:11,076 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:39:25,891 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:39:34,558 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:42:48,677 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:42:59,866 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:49:33,194 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:49:46,871 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 10:49:46,877 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 10:49:46,924 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 10:50:22,757 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 10:50:49,387 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-12 10:50:53,568 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-12 11:03:17,363 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-12 11:04:05,818 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 11:04:53,956 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 11:06:24,599 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 11:07:31,941 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 11:13:24,995 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_111324_docx
+2025-09-12 11:13:24,998 - ai_tender_system.web_app - ERROR - 商务应答处理失败: No module named 'mcp_bidder_name_processor_enhanced'
+2025-09-12 11:13:26,405 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_111326_docx
+2025-09-12 11:13:26,405 - ai_tender_system.web_app - ERROR - 商务应答处理失败: No module named 'mcp_bidder_name_processor_enhanced'
+2025-09-12 11:20:42,766 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:30:53,628 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 13:30:55,553 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_133055_docx
+2025-09-12 13:30:55,553 - ai_tender_system.web_app - ERROR - 商务应答处理失败: [Errno 2] No such file or directory: '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced 2.py'
+2025-09-12 13:33:19,140 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_133319_-.docx
+2025-09-12 13:33:19,143 - ai_tender_system.web_app - ERROR - 商务应答处理失败: [Errno 2] No such file or directory: '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced 2.py'
+2025-09-12 13:40:12,170 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_134012_docx
+2025-09-12 13:40:12,171 - ai_tender_system.web_app - ERROR - 商务应答处理失败: [Errno 2] No such file or directory: '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced 2.py'
+2025-09-12 13:40:15,155 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_134015_docx
+2025-09-12 13:40:15,155 - ai_tender_system.web_app - ERROR - 商务应答处理失败: [Errno 2] No such file or directory: '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced 2.py'
+2025-09-12 13:43:37,121 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_134337_docx
+2025-09-12 13:43:37,122 - ai_tender_system.web_app - ERROR - 商务应答处理失败: [Errno 2] No such file or directory: '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/mcp_bidder_name_processor_enhanced 2.py'
+2025-09-12 13:50:52,068 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:53:31,327 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:54:34,853 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:54:35,024 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:58:03,568 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_135803_test_template.txt
+2025-09-12 13:58:03,623 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 'MCPBidderNameProcessor' object has no attribute 'process_document'
+2025-09-12 13:58:25,904 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:58:34,244 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:58:52,382 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 13:59:15,162 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_135915_Template.docx
+2025-09-12 13:59:15,262 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 13:59:28,950 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_135915_Template.docx
+2025-09-12 14:01:12,397 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 未找到公司信息: invalid-company-id
+2025-09-12 14:01:56,517 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_140156_docx
+2025-09-12 14:01:56,552 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 14:01:58,691 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_140156_docx
+2025-09-12 14:06:53,500 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 14:08:41,436 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 14:11:44,190 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 14:12:26,737 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 14:12:43,962 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 20250912_141243_business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_135915_Template.docx
+2025-09-12 14:13:16,608 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 20250912_141316_business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_135915_Template.docx
+2025-09-12 14:14:02,096 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 14:14:23,585 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_141423_Template.docx
+2025-09-12 14:14:23,627 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 14:15:28,189 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_141528_docx
+2025-09-12 14:15:28,216 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 14:15:34,717 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_141528_docx
+2025-09-12 14:16:42,421 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_141642_docx
+2025-09-12 14:16:42,439 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 14:16:48,385 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_141642_docx
+2025-09-12 14:16:57,729 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_141642_docx
+2025-09-12 14:19:11,171 - ai_tender_system.web_app - INFO - 文件下载: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250912_141642_docx
+2025-09-12 14:46:37,045 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_144637_docx
+2025-09-12 14:46:37,074 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 14:53:59,043 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 14:55:39,697 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_145539_-.docx
+2025-09-12 14:55:39,789 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 15:13:21,300 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_151321_-.docx
+2025-09-12 15:13:21,373 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 15:14:02,928 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 15:14:16,333 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 15:14:26,717 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 15:14:33,048 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 15:17:09,838 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_151709_docx
+2025-09-12 15:17:09,893 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 16:19:54,576 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_161954_-.docx
+2025-09-12 16:19:54,631 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 16:28:33,614 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_162833_-.docx
+2025-09-12 16:28:33,655 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 17:46:39,372 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_174639_-.docx
+2025-09-12 17:46:39,423 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 20:26:20,695 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_202620_-.docx
+2025-09-12 20:26:20,777 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 20:57:09,513 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_205709_-.docx
+2025-09-12 20:57:09,577 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 21:25:20,138 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_212520_-.docx
+2025-09-12 21:25:20,201 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 21:42:09,120 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:42:09,304 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:43:57,209 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:44:24,010 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:44:57,999 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:45:57,135 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_214557_-.docx
+2025-09-12 21:45:57,136 - ai_tender_system.web_app - INFO - 使用新架构处理器，公司数据验证:
+2025-09-12 21:45:57,136 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-12 21:45:57,137 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-12 21:45:57,137 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-12 21:45:57,137 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-12 21:45:57,137 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-12 21:45:57,137 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-12 21:45:57,137 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-12 21:45:57,137 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-12 21:45:57,164 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 商务应答文档处理完成，处理了4个字段
+2025-09-12 21:45:57,164 - ai_tender_system.web_app - INFO - 处理统计: {'total_replacements': 4, 'patterns_found': ['供应商名称', '地址', '电话', '日期(日期格式)'], 'info_fields_processed': 3}
+2025-09-12 21:45:57,164 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 21:47:21,625 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:47:35,269 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:47:52,091 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:50:15,726 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:50:22,292 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:51:22,594 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:51:29,128 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 21:52:50,812 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 22:00:51,575 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250912_220051_-.docx
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO - 使用新架构处理器，公司数据验证:
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-12 22:00:51,590 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-12 22:00:51,591 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-12 22:00:51,735 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 商务应答文档处理完成，处理了4个字段
+2025-09-12 22:00:51,735 - ai_tender_system.web_app - INFO - 处理统计: {'total_replacements': 4, 'patterns_found': ['供应商名称', '地址', '电话', '日期(日期格式)'], 'info_fields_processed': 3}
+2025-09-12 22:00:51,735 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-12 22:02:17,382 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 22:03:11,611 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 22:04:25,069 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 00:07:37,330 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 04:31:51,352 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_043151_-.docx
+2025-09-13 04:31:51,353 - ai_tender_system.web_app - INFO - 使用新架构处理器，公司数据验证:
+2025-09-13 04:31:51,353 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 04:31:51,353 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 04:31:51,353 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 04:31:51,353 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 04:31:51,353 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 04:31:51,353 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 04:31:51,354 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 04:31:51,354 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 04:31:51,423 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 商务应答文档处理完成，处理了4个字段
+2025-09-13 04:31:51,423 - ai_tender_system.web_app - INFO - 处理统计: {'total_replacements': 4, 'patterns_found': ['供应商名称', '地址(表格式)', '电话', '日期(日期格式)'], 'info_fields_processed': 3}
+2025-09-13 04:31:51,423 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 07:43:00,404 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:43:10,841 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:54:38,526 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:54:38,713 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:54:48,489 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_075448_-.docx
+2025-09-13 07:54:48,492 - ai_tender_system.web_app - INFO - 使用新架构处理器，公司数据验证:
+2025-09-13 07:54:48,492 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 07:54:48,492 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 07:54:48,492 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 07:54:48,492 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 07:54:48,493 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 07:54:48,493 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 07:54:48,493 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 07:54:48,493 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 07:54:48,543 - ai_tender_system.web_app - ERROR - 新架构处理器执行失败: 处理失败: 'none'
+2025-09-13 07:54:48,543 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 07:55:49,670 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:56:10,446 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:56:17,260 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:56:17,263 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-13 07:56:47,674 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:56:56,770 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:56:56,774 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-13 07:56:56,774 - ai_tender_system.web_app - ERROR - 技术需求处理异常: 没有选择需求文件
+2025-09-13 07:57:06,365 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:57:43,262 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 07:58:31,840 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_075831_-.docx
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 07:58:31,841 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 07:58:31,842 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 07:58:31,868 - ai_tender_system.web_app - ERROR - 新架构处理器执行失败: 处理失败: 'none'
+2025-09-13 07:58:31,868 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 08:00:27,912 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:00:37,489 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:01:11,258 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:01:25,206 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_080125_test.docx
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 项目名称: 测试项目名称
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 招标编号: TEST-2025-001
+2025-09-13 08:01:25,226 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月13日
+2025-09-13 08:01:25,247 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了1个信息字段
+2025-09-13 08:01:25,247 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 08:01:25,247 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 08:02:11,010 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_080211_-.docx
+2025-09-13 08:02:11,011 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 08:02:11,011 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 08:02:11,011 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 08:02:11,011 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 08:02:11,012 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 08:02:11,012 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 08:02:11,012 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 08:02:11,012 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 08:02:11,012 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 08:02:11,056 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了5个信息字段
+2025-09-13 08:02:11,056 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 08:02:11,056 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 08:10:27,771 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:10:40,424 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:10:58,132 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:11:31,713 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_081131_-.docx
+2025-09-13 08:11:31,713 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 08:11:31,713 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 08:11:31,713 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 08:11:31,713 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 08:11:31,713 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 08:11:31,714 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 08:11:31,714 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 08:11:31,714 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 08:11:31,714 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 08:11:31,753 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了5个信息字段
+2025-09-13 08:11:31,753 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 08:11:31,753 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 08:12:14,422 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_081214_-.docx
+2025-09-13 08:12:14,423 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 08:12:14,423 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 08:12:14,424 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 08:12:14,424 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 08:12:14,424 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 08:12:14,424 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 08:12:14,424 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 08:12:14,424 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 08:12:14,425 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 08:12:14,450 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了5个信息字段
+2025-09-13 08:12:14,450 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 08:12:14,450 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 08:31:40,064 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:32:12,508 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:32:47,932 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:32:56,645 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:33:20,725 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:34:41,927 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:36:17,802 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_083617_-.docx
+2025-09-13 08:36:17,802 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 08:36:17,802 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 08:36:17,804 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 08:36:17,804 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 08:36:17,805 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 08:36:17,805 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 08:36:17,805 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 08:36:17,805 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 08:36:17,805 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 08:36:17,863 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了5个信息字段
+2025-09-13 08:36:17,864 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 08:36:17,864 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 08:40:31,751 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250913_084031_-.docx
+2025-09-13 08:40:31,751 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-13 08:40:31,751 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-13 08:40:31,751 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-13 08:40:31,751 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-13 08:40:31,751 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-13 08:40:31,751 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-13 08:40:31,752 - ai_tender_system.web_app - INFO -   - 项目名称: 哈银消金2025年-2027年运营商数据采购项目
+2025-09-13 08:40:31,752 - ai_tender_system.web_app - INFO -   - 招标编号: GXTC-C-251590031
+2025-09-13 08:40:31,752 - ai_tender_system.web_app - INFO -   - 日期文本: 2025年9月12日
+2025-09-13 08:40:31,778 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了5个信息字段
+2025-09-13 08:40:31,778 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-13 08:40:31,778 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-13 08:50:15,008 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:50:28,753 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:51:29,452 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:54:51,011 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:56:01,168 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:56:21,268 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:56:38,172 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-13 08:57:27,874 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
