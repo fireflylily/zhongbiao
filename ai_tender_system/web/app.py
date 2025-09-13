@@ -425,8 +425,18 @@ def register_routes(app: Flask, config, logger):
             
             # 公共的输出文件路径设置（移到外面，两个分支都需要）
             output_dir = ensure_dir(config.get_path('output'))
-            output_filename = f"business_response_{company_id}_{filename}"
+
+            # 确保输出文件名格式正确，重新处理filename以确保有正确的扩展名
+            # filename 可能已经被 safe_filename 处理过，但需要确保输出文件名格式正确
+            base_name, ext = os.path.splitext(filename)
+            if not ext or ext.lower() not in ['.docx', '.doc']:
+                ext = '.docx'  # 确保有正确的扩展名
+
+            output_filename = f"business_response_{company_id}_{base_name}{ext}"
             output_path = output_dir / output_filename
+
+            logger.info(f"📁 输出文件路径: {output_path}")
+            logger.info(f"📁 输出文件名: {output_filename}")
             
             logger.info(f"公司数据验证:")
             logger.info(f"  - 公司名称: {company_data.get('companyName', 'N/A')}")
@@ -643,12 +653,21 @@ def register_routes(app: Flask, config, logger):
             from docx import Document
             import html
             
-            # 安全检查文件名（不添加时间戳，因为我们要查找现有文件）
-            filename = safe_filename(filename, timestamp=False)
+            # 直接查找文件，不对filename进行二次处理，避免破坏已有的文件名
             file_path = config.get_path('output') / filename
-            
+
             if not file_path.exists():
-                raise FileNotFoundError(f"文档不存在: {filename}")
+                # 如果直接查找失败，尝试在输出目录中查找匹配的文件
+                output_dir = config.get_path('output')
+                matching_files = [f for f in output_dir.iterdir() if f.name.endswith(filename) or filename in f.name]
+
+                if matching_files:
+                    file_path = matching_files[0]  # 使用第一个匹配的文件
+                    logger.info(f"找到匹配文件: {file_path}")
+                else:
+                    raise FileNotFoundError(f"文档不存在: {filename}")
+
+            logger.info(f"预览文档: {file_path}")
             
             # 读取Word文档
             doc = Document(str(file_path))

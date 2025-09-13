@@ -26,15 +26,49 @@ def generate_file_hash(file_path: Union[str, Path]) -> str:
     return hash_md5.hexdigest()
 
 def safe_filename(filename: str, timestamp: bool = True) -> str:
-    """生成安全的文件名"""
-    # 使用werkzeug的secure_filename确保安全
-    safe_name = secure_filename(filename)
-    
+    """生成安全的文件名
+
+    改进版本：更好地处理中文文件名，保护扩展名
+    """
+    import re
+    import unicodedata
+
+    # 先保存原始扩展名
+    original_name, original_ext = os.path.splitext(filename)
+
+    # 如果原始扩展名为空，尝试从文件名末尾提取
+    if not original_ext and '.' in filename:
+        parts = filename.rsplit('.', 1)
+        if len(parts) == 2 and len(parts[1]) <= 5:  # 常见扩展名长度限制
+            original_name, original_ext = parts[0], '.' + parts[1]
+
+    # 对文件名主体进行清理，保持中文字符
+    if original_name:
+        # 移除或替换不安全的字符，但保留中文
+        cleaned_name = re.sub(r'[<>:"/\\|?*]', '_', original_name)  # 替换文件系统不允许的字符
+        cleaned_name = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', cleaned_name)  # 移除控制字符
+        cleaned_name = re.sub(r'[，、。；：！？（）【】《》""''　]', '_', cleaned_name)  # 替换中文标点
+        cleaned_name = re.sub(r'_+', '_', cleaned_name)  # 合并多个下划线
+        cleaned_name = cleaned_name.strip('_')  # 移除首尾下划线
+
+        # 如果清理后名称为空或过短，使用默认名称
+        if not cleaned_name or len(cleaned_name) < 1:
+            cleaned_name = 'document'
+    else:
+        cleaned_name = 'document'
+
+    # 确保扩展名正确
+    if not original_ext:
+        original_ext = '.docx'  # 默认扩展名
+
+    # 构建安全的文件名
+    safe_name = cleaned_name + original_ext
+
     if timestamp:
         # 添加时间戳避免冲突
         name, ext = os.path.splitext(safe_name)
         safe_name = f"{generate_timestamp()}_{name}{ext}"
-    
+
     return safe_name
 
 def allowed_file(filename: str, allowed_extensions: set) -> bool:
