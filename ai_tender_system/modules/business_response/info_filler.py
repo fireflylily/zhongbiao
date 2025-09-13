@@ -59,6 +59,7 @@ class InfoFiller:
             'address': ['地址', '注册地址', '办公地址', '联系地址', '通讯地址', '供应商地址', '公司地址'],
             'postalCode': ['邮政编码', '邮编', '邮码'],
             'legalRepresentative': ['法定代表人', '法人代表', '法人'],
+            'authorizedPersonName': ['供应商代表姓名', '授权代表姓名', '代表姓名', '授权代表'],
             'projectName': ['项目名称', '采购项目名称', '招标项目名称'],
             'projectNumber': ['项目编号', '采购编号', '招标编号', '项目号']
         }
@@ -204,45 +205,50 @@ class InfoFiller:
         """
         尝试单字段替换规则
         如：（供应商名称）→（公司名）、（采购人）→（项目采购人）
+        支持单段落中的多个字段替换
         """
         text = paragraph.text
+        new_text = text
+        replacement_count = 0
         
         # 处理供应商名称类
         for variant in self.company_name_variants:
             pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-            if re.search(pattern, text):
+            if re.search(pattern, new_text):
                 company_name = info.get('companyName', '')
                 if company_name:
                     replacement = f"（{company_name}）"
-                    new_text = re.sub(pattern, replacement, text)
-                    self._update_paragraph_text(paragraph, new_text)
+                    new_text = re.sub(pattern, replacement, new_text)
                     self.logger.info(f"替换规则: {variant} → {company_name}")
-                    return True
+                    replacement_count += 1
         
         # 处理采购人信息
         for variant in self.purchaser_variants:
             pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-            if re.search(pattern, text):
+            if re.search(pattern, new_text):
                 purchaser_name = info.get('purchaserName', '') or info.get('projectOwner', '')
                 if purchaser_name:
                     replacement = f"（{purchaser_name}）"
-                    new_text = re.sub(pattern, replacement, text)
-                    self._update_paragraph_text(paragraph, new_text)
+                    new_text = re.sub(pattern, replacement, new_text)
                     self.logger.info(f"替换规则: {variant} → {purchaser_name}")
-                    return True
+                    replacement_count += 1
         
         # 处理其他字段
         for field_key, variants in self.field_variants.items():
             for variant in variants:
                 pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-                if re.search(pattern, text):
+                if re.search(pattern, new_text):
                     value = info.get(field_key, '')
                     if value:
                         replacement = f"（{value}）"
-                        new_text = re.sub(pattern, replacement, text)
-                        self._update_paragraph_text(paragraph, new_text)
+                        new_text = re.sub(pattern, replacement, new_text)
                         self.logger.info(f"替换规则: {variant} → {value}")
-                        return True
+                        replacement_count += 1
+        
+        # 如果有替换，更新段落文本
+        if replacement_count > 0:
+            self._update_paragraph_text(paragraph, new_text)
+            return True
         
         return False
     

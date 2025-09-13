@@ -50,6 +50,7 @@ class BusinessResponseProcessor:
                                  project_name: str = "",
                                  tender_no: str = "", 
                                  date_text: str = "",
+                                 purchaser_name: str = "",
                                  image_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         处理商务应答文档 - 主处理方法
@@ -61,6 +62,7 @@ class BusinessResponseProcessor:
             project_name: 项目名称
             tender_no: 招标编号
             date_text: 日期文本
+            purchaser_name: 采购人名称
             image_config: 图片配置（可选）
             
         Returns:
@@ -74,6 +76,7 @@ class BusinessResponseProcessor:
             self.logger.info(f"项目名称: {project_name}")
             self.logger.info(f"招标编号: {tender_no}")
             self.logger.info(f"日期文本: {date_text}")
+            self.logger.info(f"采购人名称: {purchaser_name}")
             
             # 复制输入文件到输出文件
             shutil.copy2(input_file, output_file)
@@ -85,7 +88,9 @@ class BusinessResponseProcessor:
             project_info = {
                 'projectName': project_name,
                 'projectNumber': tender_no,
-                'date': date_text
+                'date': date_text,
+                'purchaserName': purchaser_name,
+                'projectOwner': purchaser_name  # 作为fallback
             }
             
             # 第1步：信息填写（核心功能）
