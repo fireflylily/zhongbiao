@@ -63,11 +63,14 @@ class InfoFiller:
             'projectNumber': ['项目编号', '采购编号', '招标编号', '项目号']
         }
         
-        # 需要跳过的关键词（采购人/招标人信息）
+        # 需要跳过的关键词（招标人信息，但不包括采购人）
         self.skip_keywords = [
-            '采购人', '招标人', '甲方', '代理', '招标代理',
+            '招标人', '甲方', '代理', '招标代理',
             '采购代理', '业主', '发包人', '委托人'
         ]
+        
+        # 采购人信息字段（使用项目信息填充）
+        self.purchaser_variants = ['采购人', '采购人名称', '采购单位']
         
         # 需要跳过的签字相关词
         self.signature_keywords = ['签字', '签名', '签章', '盖章处']
@@ -200,7 +203,7 @@ class InfoFiller:
     def _try_replacement_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
         """
         尝试单字段替换规则
-        如：（供应商名称）→（公司名）
+        如：（供应商名称）→（公司名）、（采购人）→（项目采购人）
         """
         text = paragraph.text
         
@@ -214,6 +217,18 @@ class InfoFiller:
                     new_text = re.sub(pattern, replacement, text)
                     self._update_paragraph_text(paragraph, new_text)
                     self.logger.info(f"替换规则: {variant} → {company_name}")
+                    return True
+        
+        # 处理采购人信息
+        for variant in self.purchaser_variants:
+            pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
+            if re.search(pattern, text):
+                purchaser_name = info.get('purchaserName', '') or info.get('projectOwner', '')
+                if purchaser_name:
+                    replacement = f"（{purchaser_name}）"
+                    new_text = re.sub(pattern, replacement, text)
+                    self._update_paragraph_text(paragraph, new_text)
+                    self.logger.info(f"替换规则: {variant} → {purchaser_name}")
                     return True
         
         # 处理其他字段
@@ -255,6 +270,23 @@ class InfoFiller:
                         new_text = re.sub(r'[_\s]+', company_name, text)
                         self._update_paragraph_text(paragraph, new_text)
                         self.logger.info(f"填空规则: {variant} 填入 {company_name}")
+                        return True
+        
+        # 处理采购人信息的填空
+        for variant in self.purchaser_variants:
+            patterns = [
+                rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',
+                rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',
+                rf'{re.escape(variant)}\s+[_\s]+$',
+            ]
+            
+            for pattern in patterns:
+                if re.search(pattern, text):
+                    purchaser_name = info.get('purchaserName', '') or info.get('projectOwner', '')
+                    if purchaser_name:
+                        new_text = re.sub(r'[_\s]+', purchaser_name, text)
+                        self._update_paragraph_text(paragraph, new_text)
+                        self.logger.info(f"填空规则: {variant} 填入 {purchaser_name}")
                         return True
         
         # 处理其他字段的填空
