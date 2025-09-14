@@ -71,9 +71,20 @@ class InfoFiller:
         
         # 供应商名称的变体
         self.company_name_variants = [
-            '供应商名称', '供应商全称', '投标人名称', '公司名称', 
-            '单位名称', '应答人名称', '供应商名称（盖章）', 
-            '供应商名称（公章）', '公司名称（盖章）', '投标人（盖章）'
+            '供应商名称', '供应商全称', '投标人名称', '公司名称',
+            '单位名称', '应答人名称', '供应商名称（盖章）',
+            '供应商名称（公章）', '公司名称（盖章）', '投标人名称（盖章）',
+            '投标人名称（公章）', '单位名称（盖章）', '单位名称（公章）'
+        ]
+
+        # 供应商名称的扩展匹配模式（支持带公章、盖章的变体）
+        self.company_name_extended_patterns = [
+            r'供应商名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',  # 供应商名称（加盖公章）
+            r'供应商全称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
+            r'投标人名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',  # 投标人名称（公章）
+            r'公司名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
+            r'单位名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
+            r'应答人名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
         ]
         
         # 其他字段的变体映射
@@ -445,16 +456,25 @@ class InfoFiller:
         self.logger.debug(f"🔍 开始处理段落: '{text[:100]}{'...' if len(text) > 100 else ''}'")
         self.logger.debug(f"📏 段落全文长度: {len(text)} 字符")
         
-        # 处理供应商名称类的填空
-        for variant in self.company_name_variants:
-            self.logger.debug(f"🔎 检查供应商名称变体: '{variant}'")
-            
-            # 检查字段是否存在于文本中
-            if variant not in new_text:
-                self.logger.debug(f"❌ 字段 '{variant}' 不在段落文本中，跳过")
-                continue
-                
-            self.logger.debug(f"✅ 找到字段 '{variant}'，开始模式匹配")
+        # 处理供应商名称类的填空 - 使用扩展模式匹配
+        self.logger.debug(f"🔍 开始扩展模式匹配:")
+        matched_variant = None
+
+        # 优先使用扩展模式进行匹配
+        for pattern in self.company_name_extended_patterns:
+            self.logger.debug(f"🔍 尝试扩展模式: {pattern}")
+            match = re.search(pattern, new_text)
+            if match:
+                matched_variant = match.group()
+                self.logger.debug(f"✅ 扩展模式匹配成功: '{matched_variant}'")
+                break
+            else:
+                self.logger.debug(f"❌ 扩展模式不匹配")
+
+        # 如果扩展模式匹配成功，使用匹配到的完整变体进行处理
+        if matched_variant:
+            variant = matched_variant
+            self.logger.debug(f"🎯 使用扩展匹配的变体: '{variant}'")
             
             patterns = [
                 rf'{re.escape(variant)}\s*[:：]\s*_+',  # 冒号后跟下划线
@@ -520,7 +540,88 @@ class InfoFiller:
                         self.logger.warning(f"⚠️  公司名称为空，跳过填写")
                 else:
                     self.logger.debug(f"❌ 模式{i}不匹配")
-        
+        else:
+            # 扩展模式匹配失败，使用传统的变体列表处理
+            self.logger.debug(f"🔄 扩展模式匹配失败，尝试传统变体处理")
+
+            for variant in self.company_name_variants:
+                self.logger.debug(f"🔎 检查供应商名称变体: '{variant}'")
+
+                # 检查字段是否存在于文本中
+                if variant not in new_text:
+                    self.logger.debug(f"❌ 字段 '{variant}' 不在段落文本中，跳过")
+                    continue
+
+                self.logger.debug(f"✅ 找到字段 '{variant}'，开始模式匹配")
+
+                patterns = [
+                    rf'{re.escape(variant)}\s*[:：]\s*_+',  # 冒号后跟下划线
+                    rf'{re.escape(variant)}\s*[:：]\s+$',  # 冒号后跟空格到行尾（修复重复\s问题）
+                    rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',  # 冒号后跟下划线或空格
+                    rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',  # 冒号后跟下划线，以句号结束
+                    rf'{re.escape(variant)}(?=\s+(?!.*_))',  # 字段名后跟空格（插入式填空，不含下划线）
+                    rf'{re.escape(variant)}\s+[_\s]+$',  # 空格后跟下划线
+                ]
+
+                for i, pattern in enumerate(patterns, 1):
+                    self.logger.debug(f"🔍 尝试传统模式{i}: {pattern}")
+                    match = re.search(pattern, new_text)
+                    if match:
+                        self.logger.info(f"✅ 传统模式{i}匹配成功: '{match.group()}'")
+                        company_name = info.get('companyName', '')
+                        self.logger.debug(f"📝 准备填入公司名称: '{company_name}'")
+
+                        if company_name:
+                            original_text = new_text
+
+                            # 根据匹配的模式选择不同的替换策略
+                            if i == 2:  # 第2个模式：纯空格替换
+                                self.logger.debug(f"🔄 使用纯空格替换策略")
+                                # 替换冒号后的所有空格，保留冒号
+                                space_pattern = rf'({re.escape(variant)}\s*[:：])\s+$'
+                                new_text = re.sub(space_pattern, rf'\1{company_name}', new_text)
+                            elif i == 5:  # 第5个模式：插入式填空
+                                self.logger.debug(f"🔄 使用插入式替换策略")
+                                # 在字段名后直接插入内容，保持空格布局
+                                insert_pattern = rf'{re.escape(variant)}(?=\s+)'
+                                new_text = re.sub(insert_pattern, f'{variant}{company_name}', new_text)
+                            else:  # 其他模式：标准替换
+                                self.logger.debug(f"🔄 使用标准替换策略")
+                                # 多字段格式处理
+                                multi_field_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>\s+[^\s_]+[:：])'
+                                # 单字段格式处理
+                                single_field_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>$|[。\.])'
+                                # 无下划线格式处理
+                                no_underscore_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<suffix>$)'
+
+                                if re.search(multi_field_pattern, new_text):
+                                    self.logger.debug(f"🔄 使用多字段模式替换")
+                                    new_text = re.sub(multi_field_pattern, rf'\g<prefix>{company_name}\g<suffix>', new_text)
+                                elif re.search(single_field_pattern, new_text):
+                                    self.logger.debug(f"🔄 使用单字段模式替换")
+                                    new_text = re.sub(single_field_pattern, rf'\g<prefix>{company_name}\g<suffix>', new_text)
+                                elif re.search(no_underscore_pattern, new_text):
+                                    self.logger.debug(f"🔄 使用无下划线模式替换")
+                                    new_text = re.sub(no_underscore_pattern, rf'\g<prefix>{company_name}', new_text)
+                                else:
+                                    self.logger.debug(f"🔄 使用备用简单模式替换")
+                                    simple_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)'
+                                    new_text = re.sub(simple_pattern, rf'\g<prefix>{company_name}', new_text)
+
+                            self.logger.info(f"🔄 替换前: '{original_text}'")
+                            self.logger.info(f"🔄 替换后: '{new_text}'")
+                            self.logger.info(f"填空规则: {variant} 填入 {company_name}")
+                            fill_count += 1
+                            break  # 找到一个模式就跳出内层循环
+                        else:
+                            self.logger.warning(f"⚠️  公司名称为空，跳过填写")
+                    else:
+                        self.logger.debug(f"❌ 传统模式{i}不匹配")
+
+                # 如果找到匹配的变体，跳出外层循环
+                if fill_count > 0:
+                    break
+
         # 处理采购人信息的填空
         for variant in self.purchaser_variants:
             # 检查字段是否存在于文本中

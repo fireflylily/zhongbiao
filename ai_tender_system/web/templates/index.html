@@ -4321,7 +4321,7 @@
                         const size = (file.size / 1024 / 1024).toFixed(2);
                         const date = new Date(file.created).toLocaleString('zh-CN');
                         const downloadUrl = `/download/${encodeURIComponent(file.name)}`;
-                        const previewBtn = `<button class="btn btn-sm btn-outline-info me-2" onclick="previewHistoricalDocument('${file.name}')">预览文档</button>`;
+                        const previewBtn = `<button class="btn btn-sm btn-outline-info me-2" onclick="previewHistoricalDocument('${file.name}')">预览</button>`;
                         html += `<tr>
                             <td>${file.name}</td>
                             <td>${size} MB</td>
