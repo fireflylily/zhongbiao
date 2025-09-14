@@ -1223,7 +1223,7 @@ class InfoFiller:
         return True
 
     def _smart_run_redistribution(self, paragraph: Paragraph, target_runs, old_pattern: str, new_text: str, template_run) -> bool:
-        """智能文本重分布 - 增强格式隔离"""
+        """智能文本重分布 - 保持格式边界"""
         try:
             full_text = paragraph.text
             new_full_text = re.sub(old_pattern, new_text, full_text)
@@ -1231,80 +1231,20 @@ class InfoFiller:
             if full_text == new_full_text:
                 return False
 
-            # 🔧 新增：分析替换内容的格式需求
-            replacement_needs_clean_format = self._is_business_content(new_text)
-
-            if replacement_needs_clean_format:
-                # 🔧 为业务内容创建清洁格式的run
-                self.logger.debug(f"🔧 检测到业务内容，使用格式隔离: '{new_text[:20]}...'")
-                first_run = target_runs[0][0]
-                # 只复制基本格式，排除装饰性格式
-                self._copy_basic_format_only(first_run, new_text)
-            else:
-                # 保持原有逻辑用于非业务内容
-                self.logger.debug(f"🔧 非业务内容，保持原有格式继承: '{new_text[:20]}...'")
-                first_run = target_runs[0][0]
-                first_run.text = new_text
+            # 简化策略：将替换后的文本放在第一个相关run中，清空其他相关runs
+            first_run = target_runs[0][0]
+            first_run.text = new_text
 
             # 清空其他相关runs的文本但保持run存在
             for run_info in target_runs[1:]:
                 run_info[0].text = ''
 
-            self.logger.debug(f"✅ 智能重分布完成，使用格式隔离: {replacement_needs_clean_format}")
+            self.logger.debug(f"✅ 智能重分布完成")
             return True
 
         except Exception as e:
             self.logger.error(f"❌ 智能重分布失败: {e}")
             return False
-
-    def _is_business_content(self, text: str) -> bool:
-        """判断是否为业务内容(公司名称等)，需要清洁格式"""
-        if not text or not isinstance(text, str):
-            return False
-
-        # 业务内容指示符
-        business_indicators = [
-            '有限公司', '股份有限公司', '集团', '公司',
-            '@',  # 邮箱
-            'www.', 'http', '.com', '.cn',  # 网站
-            '010-', '021-', '020-',  # 电话号码格式
-            '北京市', '上海市', '广州市', '深圳市',  # 地址
-        ]
-
-        text_lower = text.lower()
-        is_business = any(indicator in text or indicator in text_lower for indicator in business_indicators)
-
-        if is_business:
-            self.logger.debug(f"🔍 识别为业务内容: '{text[:30]}...'")
-
-        return is_business
-
-    def _copy_basic_format_only(self, source_run, new_text: str):
-        """只复制基本格式，排除装饰性格式"""
-        try:
-            # 设置新文本
-            source_run.text = new_text
-
-            # 🔧 格式隔离：清除装饰性格式
-            if hasattr(source_run.font, 'underline'):
-                source_run.font.underline = False  # 清除下划线
-                self.logger.debug(f"🔧 清除下划线格式: '{new_text[:20]}...'")
-
-            if hasattr(source_run.font, 'strike'):
-                source_run.font.strike = False  # 清除删除线
-
-            if hasattr(source_run.font, 'double_strike'):
-                source_run.font.double_strike = False  # 清除双删除线
-
-            # 保留基本格式（字体名称、大小等）
-            # 这些格式通常是文档整体风格的一部分，应该保持
-
-            self.logger.debug(f"✅ 格式隔离完成，保留基本格式，清除装饰格式")
-
-        except Exception as e:
-            self.logger.error(f"❌ 格式复制失败: {e}")
-            # 失败时至少设置文本
-            source_run.text = new_text
 
     def _analyze_target_format(self, paragraph: Paragraph, old_pattern: str):
         """分析目标区域格式特征"""
