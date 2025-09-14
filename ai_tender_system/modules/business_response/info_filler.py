@@ -1231,31 +1231,111 @@ class InfoFiller:
             if full_text == new_full_text:
                 return False
 
-            # 🔧 新增：分析替换内容的格式需求
-            replacement_needs_clean_format = self._is_business_content(new_text)
+            # 🔧 智能拆分替换文本，对不同部分应用不同格式策略
+            self.logger.debug(f"🔧 开始智能格式隔离处理: '{new_text}'")
 
-            if replacement_needs_clean_format:
-                # 🔧 为业务内容创建清洁格式的run
-                self.logger.debug(f"🔧 检测到业务内容，使用格式隔离: '{new_text[:20]}...'")
-                first_run = target_runs[0][0]
-                # 只复制基本格式，排除装饰性格式
-                self._copy_basic_format_only(first_run, new_text)
-            else:
-                # 保持原有逻辑用于非业务内容
-                self.logger.debug(f"🔧 非业务内容，保持原有格式继承: '{new_text[:20]}...'")
-                first_run = target_runs[0][0]
-                first_run.text = new_text
-
-            # 清空其他相关runs的文本但保持run存在
-            for run_info in target_runs[1:]:
+            # 清空所有目标runs的文本
+            for run_info in target_runs:
                 run_info[0].text = ''
 
-            self.logger.debug(f"✅ 智能重分布完成，使用格式隔离: {replacement_needs_clean_format}")
+            # 智能拆分文本并创建相应的runs
+            self._create_segmented_runs(paragraph, target_runs[0][0], new_text)
+
+            self.logger.debug(f"✅ 智能重分布完成，采用分段格式策略")
             return True
 
         except Exception as e:
             self.logger.error(f"❌ 智能重分布失败: {e}")
             return False
+
+    def _create_segmented_runs(self, paragraph, template_run, text: str):
+        """智能拆分文本并创建带有合适格式的runs"""
+        # 使用正则表达式分离业务内容和普通文本
+        import re
+
+        # 匹配模式：
+        # 1. 公司名称（包含关键词的内容）
+        # 2. 人名（中文名字）
+        # 3. 括号内容（字段标识）
+        # 4. 其他普通文本
+
+        segments = []
+        current_pos = 0
+
+        # 定义各种内容的匹配模式
+        patterns = [
+            (r'（[^）]*(?:有限公司|股份有限公司|集团|公司)[^）]*）', 'company'),  # 公司名称
+            (r'（[^）]*@[^）]*）', 'email'),  # 邮箱
+            (r'（[^）]*www\.[^）]*）', 'website'),  # 网站
+            (r'（[\u4e00-\u9fa5]{2,4}）', 'person'),  # 中文人名
+            (r'（[^）]+）', 'field'),  # 其他括号字段
+        ]
+
+        while current_pos < len(text):
+            # 找到最近的匹配
+            next_match = None
+            next_pos = len(text)
+            match_type = None
+
+            for pattern, ptype in patterns:
+                match = re.search(pattern, text[current_pos:])
+                if match and current_pos + match.start() < next_pos:
+                    next_match = match
+                    next_pos = current_pos + match.start()
+                    match_type = ptype
+
+            if next_match:
+                # 添加匹配前的普通文本
+                if next_pos > current_pos:
+                    segments.append((text[current_pos:next_pos], 'normal'))
+
+                # 添加匹配的内容
+                match_text = text[next_pos:next_pos + len(next_match.group())]
+                segments.append((match_text, match_type))
+                current_pos = next_pos + len(next_match.group())
+            else:
+                # 添加剩余的普通文本
+                segments.append((text[current_pos:], 'normal'))
+                break
+
+        self.logger.debug(f"🔧 文本分段结果: {[(seg[1], seg[0][:20] + ('...' if len(seg[0]) > 20 else '')) for seg in segments]}")
+
+        # 为第一个段落设置文本，后续段落添加新的runs
+        first_segment = True
+        for segment_text, segment_type in segments:
+            if not segment_text.strip():  # 跳过空白段落
+                continue
+
+            if first_segment:
+                # 使用原有run
+                run = template_run
+                first_segment = False
+            else:
+                # 创建新run
+                run = paragraph.add_run()
+                # 复制基本格式
+                if template_run.font.name:
+                    run.font.name = template_run.font.name
+                if template_run.font.size:
+                    run.font.size = template_run.font.size
+
+            # 根据内容类型设置格式
+            if segment_type in ['company', 'email', 'website', 'person']:
+                # 业务内容：清洁格式，去除装饰性格式
+                self.logger.debug(f"🔧 业务内容段落，使用清洁格式: '{segment_text[:15]}...'")
+                run.text = segment_text
+                # 不设置下划线等装饰性格式
+                run.font.underline = None
+                run.font.strike = None
+            else:
+                # 普通文本：继承模板格式
+                self.logger.debug(f"🔧 普通文本段落，继承模板格式: '{segment_text[:15]}...'")
+                run.text = segment_text
+                # 继承模板的格式（包括装饰性格式）
+                if template_run.font.underline:
+                    run.font.underline = template_run.font.underline
+                if template_run.font.strike:
+                    run.font.strike = template_run.font.strike
 
     def _is_business_content(self, text: str) -> bool:
         """判断是否为业务内容(公司名称等)，需要清洁格式"""
