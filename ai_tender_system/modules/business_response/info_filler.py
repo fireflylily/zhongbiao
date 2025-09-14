@@ -4,6 +4,10 @@
 信息填写模块 - 处理项目和公司信息的填写
 实现六大规则：替换规则、填空规则、组合规则、变体处理、例外处理、后处理
 
+输出文件目录："/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/outputs/"
+  
+  上传文件目录："/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/uploads/"
+
 ⏺ 基于代码分析，这是一个AI标书系统的信息填写模块。以下是现有的
   字段映射、填写规则和替换规则的详细展示：
 
@@ -1234,12 +1238,15 @@ class InfoFiller:
             # 🔧 智能拆分替换文本，对不同部分应用不同格式策略
             self.logger.debug(f"🔧 开始智能格式隔离处理: '{new_text}'")
 
+            # 🔧 关键修复：在清空runs之前保存原始格式映射
+            original_run_mapping = self._build_original_run_mapping(paragraph, target_runs)
+
             # 清空所有目标runs的文本
             for run_info in target_runs:
                 run_info[0].text = ''
 
             # 智能拆分文本并创建相应的runs
-            self._create_segmented_runs(paragraph, target_runs[0][0], new_text)
+            self._create_segmented_runs_with_mapping(paragraph, target_runs, new_text, original_run_mapping)
 
             self.logger.debug(f"✅ 智能重分布完成，采用分段格式策略")
             return True
@@ -1248,17 +1255,15 @@ class InfoFiller:
             self.logger.error(f"❌ 智能重分布失败: {e}")
             return False
 
-    def _create_segmented_runs(self, paragraph, template_run, text: str):
-        """智能拆分文本并创建带有合适格式的runs"""
-        # 使用正则表达式分离业务内容和普通文本
+    def _create_segmented_runs_with_mapping(self, paragraph, target_runs, text: str, original_run_mapping):
+        """智能拆分文本并创建带有合适格式的runs - 使用预建映射"""
         import re
 
-        # 匹配模式：
-        # 1. 公司名称（包含关键词的内容）
-        # 2. 人名（中文名字）
-        # 3. 括号内容（字段标识）
-        # 4. 其他普通文本
+        self.logger.info(f"🔧 使用预建映射处理文本分段，映射数量: {len(original_run_mapping)}")
+        for mapping in original_run_mapping:
+            self.logger.info(f"🗺️  映射: '{mapping['text']}' -> 字体: {mapping['run'].font.name}")
 
+        # 分段处理
         segments = []
         current_pos = 0
 
@@ -1300,42 +1305,102 @@ class InfoFiller:
 
         self.logger.debug(f"🔧 文本分段结果: {[(seg[1], seg[0][:20] + ('...' if len(seg[0]) > 20 else '')) for seg in segments]}")
 
-        # 为第一个段落设置文本，后续段落添加新的runs
+        # 🔧 智能分配Run并设置精确格式
         first_segment = True
+        current_text_pos = 0
+
         for segment_text, segment_type in segments:
             if not segment_text.strip():  # 跳过空白段落
                 continue
 
+            # 🔧 关键改进：为每个段落找到对应的原始Run作为格式模板
+            segment_template_run = self._find_best_template_run(
+                original_run_mapping, current_text_pos, len(segment_text), segment_text
+            )
+
             if first_segment:
                 # 使用原有run
-                run = template_run
+                run = target_runs[0][0] if target_runs else paragraph.runs[0]
                 first_segment = False
             else:
-                # 创建新run
+                # 创建新run并使用增强的字体复制
                 run = paragraph.add_run()
-                # 复制基本格式
-                if template_run.font.name:
-                    run.font.name = template_run.font.name
-                if template_run.font.size:
-                    run.font.size = template_run.font.size
+
+            # 🔧 关键修复：所有Run都需要应用增强的字体复制
+            if segment_template_run:
+                self.logger.debug(f"🔧 为分段'{segment_text[:10]}...'应用模板字体: {segment_template_run.font.name}")
+                self._copy_font_format_enhanced(segment_template_run, run)
+            else:
+                self.logger.warning(f"⚠️  未找到模板Run，分段'{segment_text[:10]}...'将使用默认字体")
 
             # 根据内容类型设置格式
             if segment_type in ['company', 'email', 'website', 'person']:
                 # 业务内容：清洁格式，去除装饰性格式
                 self.logger.debug(f"🔧 业务内容段落，使用清洁格式: '{segment_text[:15]}...'")
                 run.text = segment_text
-                # 不设置下划线等装饰性格式
+                # 清除装饰性格式但保留基础字体
                 run.font.underline = None
                 run.font.strike = None
             else:
-                # 普通文本：继承模板格式
-                self.logger.debug(f"🔧 普通文本段落，继承模板格式: '{segment_text[:15]}...'")
+                # 普通文本：精确继承原始格式（包括装饰性格式）
+                self.logger.debug(f"🔧 普通文本段落，精确继承格式: '{segment_text[:15]}...'")
                 run.text = segment_text
-                # 继承模板的格式（包括装饰性格式）
-                if template_run.font.underline:
-                    run.font.underline = template_run.font.underline
-                if template_run.font.strike:
-                    run.font.strike = template_run.font.strike
+                # 保留装饰性格式
+                if segment_template_run and segment_template_run.font.underline:
+                    run.font.underline = segment_template_run.font.underline
+                if segment_template_run and segment_template_run.font.strike:
+                    run.font.strike = segment_template_run.font.strike
+
+            current_text_pos += len(segment_text)
+
+    def _build_original_run_mapping(self, paragraph, target_runs):
+        """建立原始文本位置到Run的映射"""
+        mapping = []
+        current_pos = 0
+
+        for run in paragraph.runs:
+            run_length = len(run.text)
+            if run_length > 0:
+                font_name = run.font.name or '默认'
+                mapping.append({
+                    'run': run,
+                    'start': current_pos,
+                    'end': current_pos + run_length,
+                    'text': run.text
+                })
+                self.logger.debug(f"🗺️  映射Run: '{run.text}' ({font_name}) -> 位置 {current_pos}-{current_pos + run_length}")
+            current_pos += run_length
+
+        self.logger.debug(f"🗺️  建立了 {len(mapping)} 个Run映射")
+        return mapping
+
+    def _find_best_template_run(self, run_mapping, text_pos, text_length, text_content):
+        """为指定文本段落找到最佳的格式模板Run"""
+        self.logger.debug(f"🔍 寻找模板Run: 文本='{text_content}', 位置={text_pos}, 可用映射={len(run_mapping)}")
+
+        # 尝试找到包含相似内容的原始Run（更宽松的匹配）
+        for mapping in run_mapping:
+            # 检查核心关键词匹配
+            if '授权' in text_content and '授权' in mapping['text']:
+                self.logger.debug(f"🎯 找到授权关键词匹配: '{mapping['text']}' 用于 '{text_content}'")
+                return mapping['run']
+            elif text_content.strip() in mapping['text']:
+                self.logger.debug(f"🎯 找到精确匹配的模板Run: '{mapping['text'][:20]}...' 用于 '{text_content[:20]}...'")
+                return mapping['run']
+
+        # 如果没有精确匹配，使用位置最接近的Run
+        for mapping in run_mapping:
+            if mapping['start'] <= text_pos < mapping['end']:
+                self.logger.debug(f"🎯 使用位置匹配的模板Run: '{mapping['text'][:20]}...' 用于 '{text_content[:20]}...'")
+                return mapping['run']
+
+        # 兜底：使用第一个Run
+        if run_mapping:
+            self.logger.debug(f"🎯 使用兜底模板Run: '{run_mapping[0]['text'][:20]}...' 用于 '{text_content[:20]}...'")
+            return run_mapping[0]['run']
+
+        self.logger.warning(f"⚠️  无法找到任何模板Run用于: '{text_content}'")
+        return None
 
     def _is_business_content(self, text: str) -> bool:
         """判断是否为业务内容(公司名称等)，需要清洁格式"""
@@ -1385,6 +1450,69 @@ class InfoFiller:
             self.logger.error(f"❌ 格式复制失败: {e}")
             # 失败时至少设置文本
             source_run.text = new_text
+
+    def _copy_font_format_enhanced(self, source_run, target_run):
+        """增强的字体格式复制 - 移植自旧方法"""
+        try:
+            if hasattr(source_run, 'font') and hasattr(target_run, 'font'):
+                source_font = source_run.font
+                target_font = target_run.font
+
+                # 记录原始字体信息
+                self.logger.debug(f"🔧 源字体信息: 名称={source_font.name}, 大小={source_font.size}, 粗体={source_font.bold}")
+
+                # 复制字体名称 - 多层次获取机制
+                if source_font.name:
+                    target_font.name = source_font.name
+                    self.logger.debug(f"✅ 设置目标字体名称为: {source_font.name}")
+                else:
+                    # 如果字体名称为空，尝试从段落样式获取
+                    para_style = source_run._parent.style if hasattr(source_run, '_parent') else None
+                    if para_style and hasattr(para_style.font, 'name') and para_style.font.name:
+                        target_font.name = para_style.font.name
+                        self.logger.debug(f"✅ 从段落样式设置字体名称为: {para_style.font.name}")
+
+                # 复制字体大小
+                if source_font.size:
+                    target_font.size = source_font.size
+                elif hasattr(source_run, '_parent'):
+                    # 尝试从段落样式获取
+                    para_style = source_run._parent.style
+                    if para_style and hasattr(para_style.font, 'size') and para_style.font.size:
+                        target_font.size = para_style.font.size
+
+                # 复制其他格式属性
+                if source_font.bold is not None:
+                    target_font.bold = source_font.bold
+                if source_font.italic is not None:
+                    target_font.italic = source_font.italic
+
+                # 复制字体颜色
+                if source_font.color and hasattr(source_font.color, 'rgb'):
+                    if source_font.color.rgb:
+                        target_font.color.rgb = source_font.color.rgb
+
+                # 验证复制结果
+                self.logger.debug(f"✅ 目标字体设置后: 名称={target_font.name}, 大小={target_font.size}, 粗体={target_font.bold}")
+
+        except Exception as e:
+            self.logger.error(f"❌ 复制字体格式失败: {e}")
+
+    def _extract_run_format(self, run):
+        """提取run的格式信息 - 移植自旧方法"""
+        try:
+            return {
+                'font_name': run.font.name,
+                'font_size': run.font.size,
+                'font_bold': run.font.bold,
+                'font_italic': run.font.italic,
+                'font_underline': run.font.underline,
+                'font_strike': run.font.strike,
+                'font_color': run.font.color.rgb if run.font.color and hasattr(run.font.color, 'rgb') else None
+            }
+        except Exception as e:
+            self.logger.error(f"❌ 提取格式信息失败: {e}")
+            return {}
 
     def _analyze_target_format(self, paragraph: Paragraph, old_pattern: str):
         """分析目标区域格式特征"""
