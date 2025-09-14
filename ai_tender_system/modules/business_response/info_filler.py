@@ -483,6 +483,7 @@ class InfoFiller:
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',  # 冒号后跟下划线，以句号结束
                 rf'{re.escape(variant)}(?=\s+(?!.*_))',  # 字段名后跟空格（插入式填空，不含下划线）
                 rf'{re.escape(variant)}\s+[_\s]+$',  # 空格后跟下划线
+                rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[（(][^）)]*章[^）)]*[）)]',  # 公章格式：供应商名称：___（加盖公章）
             ]
             
             for i, pattern in enumerate(patterns, 1):
@@ -507,6 +508,11 @@ class InfoFiller:
                             # 在字段名后直接插入内容，保持空格布局
                             insert_pattern = rf'{re.escape(variant)}(?=\s+)'
                             new_text = re.sub(insert_pattern, f'{variant}{company_name}', new_text)
+                        elif i == 7:  # 第7个模式：公章格式
+                            self.logger.debug(f"🔄 使用公章格式替换策略")
+                            # 精确替换空格/下划线部分，保留公章括号
+                            stamp_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<spaces>[_\s]+)(?P<stamp>[（(][^）)]*章[^）)]*[）)])'
+                            new_text = re.sub(stamp_pattern, rf'\g<prefix>{company_name}\g<stamp>', new_text)
                         else:  # 其他模式：标准替换
                             self.logger.debug(f"🔄 使用标准替换策略")
                             # 使用与其他字段相同的精确替换逻辑（支持no_underscore_pattern）
@@ -561,6 +567,7 @@ class InfoFiller:
                     rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',  # 冒号后跟下划线，以句号结束
                     rf'{re.escape(variant)}(?=\s+(?!.*_))',  # 字段名后跟空格（插入式填空，不含下划线）
                     rf'{re.escape(variant)}\s+[_\s]+$',  # 空格后跟下划线
+                    rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[（(][^）)]*章[^）)]*[）)]',  # 公章格式：供应商名称：___（加盖公章）
                 ]
 
                 for i, pattern in enumerate(patterns, 1):
@@ -585,6 +592,11 @@ class InfoFiller:
                                 # 在字段名后直接插入内容，保持空格布局
                                 insert_pattern = rf'{re.escape(variant)}(?=\s+)'
                                 new_text = re.sub(insert_pattern, f'{variant}{company_name}', new_text)
+                            elif i == 7:  # 第7个模式：公章格式
+                                self.logger.debug(f"🔄 使用公章格式替换策略")
+                                # 精确替换空格/下划线部分，保留公章括号
+                                stamp_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<spaces>[_\s]+)(?P<stamp>[（(][^）)]*章[^）)]*[）)])'
+                                new_text = re.sub(stamp_pattern, rf'\g<prefix>{company_name}\g<stamp>', new_text)
                             else:  # 其他模式：标准替换
                                 self.logger.debug(f"🔄 使用标准替换策略")
                                 # 多字段格式处理
@@ -678,6 +690,7 @@ class InfoFiller:
                     rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',
                     rf'{re.escape(variant)}(?=\s+(?!.*_))',  # 字段名后跟空格（插入式填空，不含下划线）
                     rf'{re.escape(variant)}\s+[_\s]+$',  # 空格后跟下划线
+                    rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[（(][^）)]*章[^）)]*[）)]',  # 公章格式：供应商名称：___（加盖公章）
                 ]
                 
                 for i, pattern in enumerate(patterns, 1):
@@ -711,6 +724,11 @@ class InfoFiller:
                                 # 在字段名后直接插入内容，保持空格布局
                                 insert_pattern = rf'{re.escape(variant)}(?=\s+)'
                                 new_text = re.sub(insert_pattern, f'{variant}{value}', new_text)
+                            elif i == 7:  # 第7个模式：公章格式
+                                self.logger.debug(f"🔄 使用公章格式替换策略")
+                                # 精确替换空格/下划线部分，保留公章括号
+                                stamp_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<spaces>[_\s]+)(?P<stamp>[（(][^）)]*章[^）)]*[）)])'
+                                new_text = re.sub(stamp_pattern, rf'\g<prefix>{value}\g<stamp>', new_text)
                             else:  # 其他模式：标准替换
                                 self.logger.debug(f"🔄 使用标准替换策略")
                                 # 精确替换：分别处理多字段、单字段和无下划线情况
@@ -745,6 +763,44 @@ class InfoFiller:
                     else:
                         self.logger.debug(f"❌ 模式{i}不匹配")
         
+        # 处理文档末尾的"年月日"格式（独立规则）
+        date_end_patterns = [
+            r'(\s+)年(\s+)月(\s+)日(\s*)$',  # 末尾格式：空格+年+空格+月+空格+日
+            r'(\n\s*)年(\s+)月(\s+)日(\s*)$', # 换行+空格+年月日格式
+            r'(\s+)年(\s+)月(\s+)日',        # 通用格式：空格+年+空格+月+空格+日
+        ]
+
+        for i, pattern in enumerate(date_end_patterns, 1):
+            self.logger.debug(f"🔍 尝试年月日模式{i}: {pattern}")
+            match = re.search(pattern, new_text)
+            if match:
+                self.logger.info(f"✅ 年月日模式{i}匹配成功: '{match.group()}'")
+                date_value = info.get('date', '')
+                self.logger.debug(f"📝 准备填入日期: '{date_value}'")
+
+                if date_value:
+                    original_text = new_text
+                    formatted_date = self._format_date(date_value)
+                    self.logger.debug(f"📅 格式化后的日期: '{formatted_date}'")
+
+                    # 根据模式类型进行不同的替换策略
+                    if i == 2:  # 换行+空格+年月日格式
+                        # 保留换行符，只替换年月日部分
+                        new_text = re.sub(pattern, rf'\n{formatted_date}', new_text)
+                    else:
+                        # 标准替换：整个匹配的年月日模式为完整日期
+                        new_text = re.sub(pattern, formatted_date, new_text)
+
+                    self.logger.info(f"🔄 替换前: '{original_text}'")
+                    self.logger.info(f"🔄 替换后: '{new_text}'")
+                    self.logger.info(f"日期填空: {formatted_date}")
+                    fill_count += 1
+                    break
+                else:
+                    self.logger.warning(f"⚠️  日期值为空，跳过年月日格式填写")
+            else:
+                self.logger.debug(f"❌ 年月日模式{i}不匹配")
+
         # 如果有任何填充，更新段落文本
         if fill_count > 0:
             self.logger.info(f"📊 段落处理完成，共填充 {fill_count} 个字段")
@@ -753,7 +809,7 @@ class InfoFiller:
             return True
         else:
             self.logger.debug(f"📊 段落处理完成，未找到任何可填充字段")
-        
+
         return False
     
     def _process_table(self, table: Table, info: Dict[str, Any]) -> Dict[str, Any]:
