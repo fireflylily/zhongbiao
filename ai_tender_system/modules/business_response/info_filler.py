@@ -4,26 +4,124 @@
 信息填写模块 - 处理项目和公司信息的填写
 实现六大规则：替换规则、填空规则、组合规则、变体处理、例外处理、后处理
 
- 1. 供应商名称处理（支持4种规则）
-      - 替换规则：（供应商名称）→（公司名）
-      - 填空规则：供应商名称：___ → 供应商名称：公司名
-      - 组合规则：（供应商名称、地址）→（公司
-    名、地址）
-      - 变体处理：公司名称、应答人名称、供应
-    商名称（盖章）等
-3. 例外处理
-      - 跳过"签字"相关字段
-      - 识别并跳过采购人/招标人信息
- 4. 格式保持
-      - 继承第一个字符的格式
-      - 保持原有文档样式
-5. 一个段落多字段的处理方式
-        使用累计积累方式，把所有需要处理的字段
-6.替换规则
-6.1 （）规则：供应商名称、采购人、项目名称、项目编号及同意标签。
-6.2 致： 规则：采购人及同义标签。
-6.3 组合规则：（项目名称、项目编号）
+⏺ 基于代码分析，这是一个AI标书系统的信息填写模块。以下是现有的
+  字段映射、填写规则和替换规则的详细展示：
 
+  🗺️ 字段映射 (field_mapping_rules)
+
+  公司信息字段（直接映射）
+
+  - companyName: 公司名称
+  - email: 邮箱
+  - fax: 传真
+  - postalCode: 邮政编码
+  - establishDate: 成立时间
+  - businessScope: 经营范围
+  - legalRepresentative: 法定代表人
+  - authorizedPersonName: 被授权人姓名
+
+  公司信息字段（多源映射 - 按优先级顺序）
+
+  - address: ['address', 'registeredAddress', 'officeAddress']
+  - phone: ['fixedPhone', 'phone']
+
+  职位字段（智能映射 - 需上下文识别）
+
+  - authorizedPersonPosition: 被授权人职务
+  - legalRepresentativePosition: 法定代表人职位
+
+  项目信息字段
+
+  - projectName: 项目名称
+  - projectNumber: 项目编号
+  - date: 日期
+  - purchaserName: 采购人名称
+
+  🔄 替换规则
+
+  1. 括号替换规则（6种类型）
+
+  - 供应商名称类：（供应商名称）→（公司名）
+    - 支持12种变体：供应商名称、供应商全称、投标人名称、公司名
+  称、单位名称、应答人名称
+    - 包含公章变体：如（供应商名称（盖章））
+  - 采购人类：（采购人）→（项目采购人）
+  - 项目信息类：（项目名称）→（具体项目名）、（项目编号）→（具
+  体编号）
+  - 其他字段类：电话、邮箱、地址、传真等
+
+  2. 组合替换规则（2种）
+
+  - （供应商名称、地址）→（公司名、地址）
+  - （项目名称、项目编号）→（项目名、编号）
+  - 🆕 职位、职称 → 智能职位信息组合
+  - 🆕 姓名、职位 → 智能人员信息组合
+
+  3. 致谓替换规则
+
+  - 致：采购人 → 致：具体采购人名称
+
+  ✏️ 填空规则
+
+  支持的6种模式匹配
+
+  1. 模式1: 字段名：___ - 多字段支持
+  2. 模式2: 字段名： - 无下划线支持
+  3. 模式3: 字段名：___ - 混合空格下划线
+  4. 模式4: 字段名：___. - 以句号结束
+  5. 模式5: 字段名  - 插入式填空（无下划线）
+  6. 模式6: 字段名 ___ - 空格后跟下划线
+
+  支持的4种替换策略
+
+  1. 插入式替换：直接在字段名后插入内容
+  2. 精确模式替换：
+    - 多字段格式处理
+    - 单字段格式处理
+    - 无下划线格式处理
+    - 备用简单模式
+  3. 纯空格替换：处理只有空格无下划线的情况
+  4. 公章格式替换：供应商名称：___（加盖公章）
+
+  特殊处理
+
+  - 年月日格式：支持文档末尾的年 月 日格式填充
+  - 职位智能识别：根据上下文区分被授权人职务和法定代表人职位
+  - 扩展模式匹配：支持带公章、盖章的复杂变体
+
+  🎯 字段变体映射
+
+  供应商名称变体（12种）
+
+  ['供应商名称', '供应商全称', '投标人名称', '公司名称', 
+  '单位名称', '应答人名称', '供应商名称（盖章）',
+  '供应商名称（公章）', '公司名称（盖章）',
+  '投标人名称（盖章）', '投标人名称（公章）',
+  '单位名称（盖章）', '单位名称（公章）']
+
+  其他字段变体
+
+  - 邮箱: 8种变体（邮箱、邮件、电子邮件、电子邮箱、email等）
+  - 电话: 5种变体（电话、联系电话、固定电话等）
+  - 传真: 4种变体
+  - 地址: 6种变体
+  - 日期: 6种变体（日期、日 期、日  期等）
+
+  ⚠️ 跳过规则
+
+  跳过关键词
+
+  - 招标人信息：['招标人', '甲方', '代理', '招标代理', 
+  '采购代理', '业主', '发包人', '委托人']
+  - 签字相关：['签字', '签名', '签章', '盖章处']
+
+  例外处理
+
+  - 保留"签字代表"等合法词汇
+  - 区分采购人（需要填充）和招标人（需要跳过）
+
+  这个系统实现了非常全面的文档信息填写功能，支持多种格式、多种
+  规则，并具备智能识别和错误处理能力。
 7.填空规则
 7.1 电话、邮箱、地址、邮编、传真、成立时间、经营范围、采购人（不支持电子邮箱，电子邮件，因为与邮箱和邮件重复了），日期，日+空格+期
 7.2 供应商名称、项目名称、项目编号
@@ -98,6 +196,7 @@ class InfoFiller:
             'businessScope': ['经营范围', '业务范围', '经营项目'],
             'legalRepresentative': ['法定代表人', '法人代表', '法人'],
             'authorizedPersonName': ['供应商代表姓名', '授权代表姓名', '代表姓名', '授权代表'],
+            'position': ['职务', '职位', '职称'],
             'projectName': ['项目名称', '采购项目名称', '招标项目名称'],
             'projectNumber': ['项目编号', '采购编号', '招标编号', '项目号'],
             'date': ['日期', '日 期', '日  期', '日   期', '日    期', '日     期']
@@ -130,6 +229,10 @@ class InfoFiller:
             # 公司信息字段 (多源映射 - 按优先级顺序)
             'address': ['address', 'registeredAddress', 'officeAddress'],
             'phone': ['fixedPhone', 'phone'],
+
+            # 职位字段 (智能映射 - 需要上下文识别)
+            'authorizedPersonPosition': ['authorizedPersonPosition'],
+            'legalRepresentativePosition': ['legalRepresentativePosition'],
 
             # 项目信息字段 (直接映射)
             'projectName': ['projectName'],
@@ -325,7 +428,78 @@ class InfoFiller:
                 return True
         
         return False
-    
+
+    def _detect_position_context(self, paragraph_text: str) -> str:
+        """
+        检测段落中的职位上下文，区分被授权人职务和法定代表人职位
+
+        Args:
+            paragraph_text: 段落文本
+
+        Returns:
+            'authorized_person': 被授权人上下文
+            'legal_representative': 法定代表人上下文（默认）
+        """
+        try:
+            if not paragraph_text or not isinstance(paragraph_text, str):
+                self.logger.warning(f"⚠️  职位上下文检测：无效的段落文本输入")
+                return 'legal_representative'
+
+            text = paragraph_text.strip()
+            if not text:
+                self.logger.warning(f"⚠️  职位上下文检测：段落文本为空")
+                return 'legal_representative'
+
+            # 被授权人上下文关键字模式 (增强版)
+            authorized_person_patterns = [
+                r'授权.*?代表.*?[职位务称]',          # "授权代表职务"
+                r'为我方.*?授权.*?代表',             # "为我方授权代表"
+                r'为我方代表.*?[职位务称]',           # "为我方代表职务"
+                r'参加.*?代表.*?[职位务称]',          # "参加投标代表职务"
+                r'授权.*?[（(].*?[）)].*?[职位务称]',   # "授权（张三）职务"
+                r'被授权.*?[职位务称]',              # "被授权人职务"
+                r'商务代表.*?[职位务称]',             # "商务代表职务"
+                r'授权.*?[（(].*?姓名.*?职[位务称]',   # "授权（姓名、职位）"
+                r'为我方.*?授权.*?[（(].*?职[位务称]', # "为我方授权（职位、职称）"
+            ]
+
+            # 法定代表人上下文关键字模式
+            legal_representative_patterns = [
+                r'法定代表人.*?职位',           # "法定代表人职位"
+                r'法人.*?职位',                # "法人职位"
+                r'系.*?法定代表人.*?职位',      # "系我公司法定代表人职位"
+                r'公司.*?法定代表人.*?职位',    # "公司法定代表人职位"
+            ]
+
+            self.logger.debug(f"🔍 检测职位上下文: '{text[:100]}{'...' if len(text) > 100 else ''}'")
+
+            # 检查被授权人上下文
+            try:
+                for pattern in authorized_person_patterns:
+                    if re.search(pattern, text):
+                        self.logger.info(f"✅ 识别为被授权人上下文: '{pattern}' 匹配")
+                        return 'authorized_person'
+            except re.error as e:
+                self.logger.error(f"❌ 被授权人模式匹配正则表达式错误: {e}")
+
+            # 检查法定代表人上下文
+            try:
+                for pattern in legal_representative_patterns:
+                    if re.search(pattern, text):
+                        self.logger.info(f"✅ 识别为法定代表人上下文: '{pattern}' 匹配")
+                        return 'legal_representative'
+            except re.error as e:
+                self.logger.error(f"❌ 法定代表人模式匹配正则表达式错误: {e}")
+
+            # 默认情况：如果没有明确上下文，使用法定代表人
+            self.logger.debug(f"📝 未找到明确上下文，默认使用法定代表人职位")
+            return 'legal_representative'
+
+        except Exception as e:
+            self.logger.error(f"❌ 职位上下文检测发生异常: {e}")
+            self.logger.debug(f"📝 异常情况下默认使用法定代表人职位")
+            return 'legal_representative'
+
     def _try_combination_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
         """
         尝试组合替换规则
@@ -356,7 +530,104 @@ class InfoFiller:
                 self._update_paragraph_text(paragraph, new_text)
                 self.logger.info(f"组合替换: 项目名称、项目编号")
                 return True
-        
+
+        # 组合模式3：（职位、职称）智能替换规则
+        pattern3 = r'[（(]\s*职[位务称]\s*[、，]\s*职[位务称]\s*[）)]'
+        if re.search(pattern3, text):
+            self.logger.debug(f"🎯 检测到职位组合模式: '{text[:50]}...'")
+
+            try:
+                # 智能识别上下文
+                context = self._detect_position_context(text)
+                self.logger.debug(f"🧠 上下文识别结果: {context}")
+
+                # 根据上下文选择数据源
+                if context == 'authorized_person':
+                    position = info.get('authorizedPersonPosition', '')
+                    if position:
+                        self.logger.debug(f"📝 选择被授权人职务: '{position}'")
+                    else:
+                        self.logger.warning(f"⚠️ 被授权人职务为空，尝试法定代表人职位")
+                        position = info.get('legalRepresentativePosition', '')
+                        if position:
+                            self.logger.info(f"📝 回退使用法定代表人职位: '{position}'")
+                else:  # legal_representative
+                    position = info.get('legalRepresentativePosition', '')
+                    if position:
+                        self.logger.debug(f"📝 选择法定代表人职位: '{position}'")
+                    else:
+                        self.logger.warning(f"⚠️ 法定代表人职位为空，尝试被授权人职务")
+                        position = info.get('authorizedPersonPosition', '')
+                        if position:
+                            self.logger.info(f"📝 回退使用被授权人职务: '{position}'")
+
+                if position:
+                    replacement = f"（{position}、{position}）"
+                    new_text = re.sub(pattern3, replacement, text)
+                    self._update_paragraph_text(paragraph, new_text)
+                    self.logger.info(f"智能职位组合替换: （职位、职称） → （{position}、{position}）")
+                    return True
+                else:
+                    self.logger.warning(f"⚠️ 所有职位数据源都为空，跳过处理")
+
+            except Exception as e:
+                self.logger.error(f"❌ 职位组合替换发生异常: {e}")
+                # 异常情况下不影响其他规则处理
+
+        # 组合模式4：（姓名、职位）智能替换规则
+        pattern4 = r'[（(]\s*姓名\s*[、，]\s*职[位务称]\s*[）)]'
+        if re.search(pattern4, text):
+            self.logger.debug(f"🎯 检测到姓名职位组合模式: '{text[:50]}...'")
+
+            try:
+                # 智能识别上下文
+                context = self._detect_position_context(text)
+                self.logger.debug(f"🧠 上下文识别结果: {context}")
+
+                # 根据上下文选择数据源
+                if context == 'authorized_person':
+                    name = info.get('authorizedPersonName', '')
+                    position = info.get('authorizedPersonPosition', '')
+                    self.logger.debug(f"📝 选择被授权人数据: 姓名='{name}', 职务='{position}'")
+
+                    # 数据回退机制
+                    if not name or not position:
+                        self.logger.warning(f"⚠️ 被授权人数据不完整，尝试法定代表人数据")
+                        name = info.get('legalRepresentative', '') if not name else name
+                        position = info.get('legalRepresentativePosition', '') if not position else position
+                        if name or position:
+                            self.logger.info(f"📝 回退使用法定代表人数据: 姓名='{name}', 职位='{position}'")
+                else:  # legal_representative
+                    name = info.get('legalRepresentative', '')
+                    position = info.get('legalRepresentativePosition', '')
+                    self.logger.debug(f"📝 选择法定代表人数据: 姓名='{name}', 职位='{position}'")
+
+                    # 数据回退机制
+                    if not name or not position:
+                        self.logger.warning(f"⚠️ 法定代表人数据不完整，尝试被授权人数据")
+                        name = info.get('authorizedPersonName', '') if not name else name
+                        position = info.get('authorizedPersonPosition', '') if not position else position
+                        if name or position:
+                            self.logger.info(f"📝 回退使用被授权人数据: 姓名='{name}', 职务='{position}'")
+
+                if name and position:
+                    replacement = f"（{name}、{position}）"
+                    new_text = re.sub(pattern4, replacement, text)
+                    self._update_paragraph_text(paragraph, new_text)
+                    self.logger.info(f"智能姓名职位组合替换: （姓名、职位） → （{name}、{position}）")
+                    return True
+                else:
+                    missing_fields = []
+                    if not name:
+                        missing_fields.append('姓名')
+                    if not position:
+                        missing_fields.append('职位')
+                    self.logger.warning(f"⚠️ 缺少必要数据字段: {', '.join(missing_fields)}，跳过处理")
+
+            except Exception as e:
+                self.logger.error(f"❌ 姓名职位组合替换发生异常: {e}")
+                # 异常情况下不影响其他规则处理
+
         return False
     
     def _try_replacement_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
@@ -698,8 +969,39 @@ class InfoFiller:
                     match = re.search(pattern, new_text)
                     if match:
                         self.logger.info(f"✅ 模式{i}匹配成功: '{match.group()}'")
-                        # 直接获取字段值（统一映射已处理多源映射）
-                        value = info.get(field_key, '')
+
+                        # 职位字段的智能处理
+                        if field_key == 'position':
+                            try:
+                                self.logger.info(f"🧠 检测到职位字段，启动智能上下文识别")
+                                context_type = self._detect_position_context(text)
+
+                                if context_type == 'authorized_person':
+                                    value = info.get('authorizedPersonPosition', '')
+                                    if value:
+                                        self.logger.info(f"📝 选择被授权人职务: '{value}'")
+                                    else:
+                                        self.logger.warning(f"⚠️  被授权人职务数据为空，尝试使用法定代表人职位")
+                                        value = info.get('legalRepresentativePosition', '')
+                                        self.logger.info(f"📝 回退使用法定代表人职位: '{value}'")
+                                else:  # legal_representative
+                                    value = info.get('legalRepresentativePosition', '')
+                                    if value:
+                                        self.logger.info(f"📝 选择法定代表人职位: '{value}'")
+                                    else:
+                                        self.logger.warning(f"⚠️  法定代表人职位数据为空，尝试使用被授权人职务")
+                                        value = info.get('authorizedPersonPosition', '')
+                                        self.logger.info(f"📝 回退使用被授权人职务: '{value}'")
+
+                            except Exception as e:
+                                self.logger.error(f"❌ 智能职位处理发生异常: {e}")
+                                # 异常情况下使用默认处理方式
+                                value = info.get('legalRepresentativePosition', '') or info.get('authorizedPersonPosition', '')
+                                self.logger.info(f"📝 异常处理：使用默认职位数据: '{value}'")
+                        else:
+                            # 其他字段的常规处理 - 直接获取字段值（统一映射已处理多源映射）
+                            value = info.get(field_key, '')
+
                         self.logger.debug(f"📝 字段 {field_key} 值获取: {value}")
                         
                         if value:
