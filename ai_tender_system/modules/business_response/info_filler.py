@@ -1462,54 +1462,7 @@ class InfoFiller:
         self.logger.warning(f"⚠️  无法找到任何模板Run用于: '{text_content}'")
         return None
 
-    def _is_business_content(self, text: str) -> bool:
-        """判断是否为业务内容(公司名称等)，需要清洁格式"""
-        if not text or not isinstance(text, str):
-            return False
 
-        # 业务内容指示符
-        business_indicators = [
-            '有限公司', '股份有限公司', '集团', '公司',
-            '@',  # 邮箱
-            'www.', 'http', '.com', '.cn',  # 网站
-            '010-', '021-', '020-',  # 电话号码格式
-            '北京市', '上海市', '广州市', '深圳市',  # 地址
-        ]
-
-        text_lower = text.lower()
-        is_business = any(indicator in text or indicator in text_lower for indicator in business_indicators)
-
-        if is_business:
-            self.logger.debug(f"🔍 识别为业务内容: '{text[:30]}...'")
-
-        return is_business
-
-    def _copy_basic_format_only(self, source_run, new_text: str):
-        """只复制基本格式，排除装饰性格式"""
-        try:
-            # 设置新文本
-            source_run.text = new_text
-
-            # 🔧 格式隔离：清除装饰性格式
-            if hasattr(source_run.font, 'underline'):
-                source_run.font.underline = False  # 清除下划线
-                self.logger.debug(f"🔧 清除下划线格式: '{new_text[:20]}...'")
-
-            if hasattr(source_run.font, 'strike'):
-                source_run.font.strike = False  # 清除删除线
-
-            if hasattr(source_run.font, 'double_strike'):
-                source_run.font.double_strike = False  # 清除双删除线
-
-            # 保留基本格式（字体名称、大小等）
-            # 这些格式通常是文档整体风格的一部分，应该保持
-
-            self.logger.debug(f"✅ 格式隔离完成，保留基本格式，清除装饰格式")
-
-        except Exception as e:
-            self.logger.error(f"❌ 格式复制失败: {e}")
-            # 失败时至少设置文本
-            source_run.text = new_text
 
     def _copy_font_format_enhanced(self, source_run, target_run):
         """增强的字体格式复制 - 移植自旧方法"""
@@ -1558,21 +1511,6 @@ class InfoFiller:
         except Exception as e:
             self.logger.error(f"❌ 复制字体格式失败: {e}")
 
-    def _extract_run_format(self, run):
-        """提取run的格式信息 - 移植自旧方法"""
-        try:
-            return {
-                'font_name': run.font.name,
-                'font_size': run.font.size,
-                'font_bold': run.font.bold,
-                'font_italic': run.font.italic,
-                'font_underline': run.font.underline,
-                'font_strike': run.font.strike,
-                'font_color': run.font.color.rgb if run.font.color and hasattr(run.font.color, 'rgb') else None
-            }
-        except Exception as e:
-            self.logger.error(f"❌ 提取格式信息失败: {e}")
-            return {}
 
     def _analyze_target_format(self, paragraph: Paragraph, old_pattern: str):
         """分析目标区域格式特征"""
