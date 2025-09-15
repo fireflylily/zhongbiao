@@ -46,7 +46,8 @@
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(cd:*)",
       "Bash(gtimeout:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
