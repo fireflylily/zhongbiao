@@ -127,22 +127,54 @@
      │   - 验证技术需求回复                    │
      │   - 确保格式保持完整                    │
      │                                         │
-     │ 预期效果：                              │
+     │ 🎯 预期效果（复用优化版）：             │
      │                                         │
-     │ - 代码结构清晰，每个模块200行以内       │
-     │ - 功能独立，便于维护和测试              │
-     │ - 恢复丢失的技术需求回复功能            │
-     │ - 保持原有的格式处理能力                │
-     │ - 提高字段识别准确率到95%+  
+     │ 📈 代码质量提升                         │
+     │ - 每个模块控制在200-400行 ✅             │
+     │ - 代码复用率提升40-50% ⭐                │
+     │ - 功能独立，便于维护和测试 ✅           │
+     │                                         │
+     │ 🛠️ 架构优化成果                        │
+     │ - utils.py作为复用核心，避免重复实现    │
+     │ - format_cleaner.py专业化格式处理      │
+     │ - info_filler.py精简至400行以内        │
+     │ - 模块间清晰的依赖关系                  │
+     │                                         │
+     │ 📊 性能与准确率                         │
+     │ - 保持原有的格式处理能力 ✅             │
+     │ - 提高字段识别准确率到95%+              │
+     │                                         │
+     │ 📋 复用关系图                           │
+     │                                         │
+     │          utils.py (共享核心)           │
+     │              ↙    ↘                   │
+     │    info_filler.py  table_processor.py  │
+     │              ↓            ↓            │
+     │       format_cleaner.py   ↓            │
+     │              ↘            ↓            │
+     │                processor.py (协调器)   │
+     │                     ↓                  │
+     │              image_handler.py          │
+     │                                         │
+     │ 🎉 完成标志：回归原始完美模块化设计     │
 
      
 """
 
 try:
     from .processor import BusinessResponseProcessor, PointToPointProcessor
-    from .info_filler import InfoFiller
+    from .info_filler import InfoFiller, BusinessInfoFiller  # 向后兼容别名
     from .table_processor import TableProcessor  
     from .image_handler import ImageHandler
+    from .utils import (
+        FieldMapper, PatternMatcher, WordDocumentUtils, 
+        SmartFieldDetector, TextUtils, FormatPreserver,
+        PlaceholderProcessor, BusinessResponseConstants
+    )
+    from .format_cleaner import (
+        FormatCleaner, DateFormatProcessor, DecorativeFormatOptimizer,
+        WhitespaceNormalizer, DocumentBeautifier
+    )
     BUSINESS_RESPONSE_AVAILABLE = True
     POINT_TO_POINT_AVAILABLE = True  # 向后兼容
 except ImportError as e:
@@ -151,11 +183,32 @@ except ImportError as e:
     POINT_TO_POINT_AVAILABLE = False
 
 __all__ = [
+    # 主要处理器
     'BusinessResponseProcessor', 
     'PointToPointProcessor',  # 向后兼容
     'InfoFiller',
+    'BusinessInfoFiller',  # 向后兼容别名
     'TableProcessor',
     'ImageHandler',
+    
+    # 复用工具模块
+    'FieldMapper', 
+    'PatternMatcher', 
+    'WordDocumentUtils',
+    'SmartFieldDetector', 
+    'TextUtils',
+    'FormatPreserver',
+    'PlaceholderProcessor',
+    
+    # 格式处理模块
+    'FormatCleaner',
+    'DateFormatProcessor',
+    'DecorativeFormatOptimizer',
+    'WhitespaceNormalizer',
+    'DocumentBeautifier',
+    
+    # 常量和状态
+    'BusinessResponseConstants',
     'BUSINESS_RESPONSE_AVAILABLE',
     'POINT_TO_POINT_AVAILABLE'  # 向后兼容
 ]
