@@ -1053,8 +1053,8 @@ class InfoFiller:
             self.logger.debug("段落无runs，跳过处理")
             return False
 
-        self.logger.debug(f"🎯 精确替换: 模式='{pattern}', 替换为='{replacement}'")
-        self.logger.debug(f"  原文: '{paragraph.text}'")
+        self.logger.info(f"🎯 精确替换开始: 模式='{pattern}', 替换为='{replacement}'")
+        self.logger.info(f"📄 原文: '{paragraph.text}'")
 
         # 构建字符映射
         full_text, runs, char_to_run_map = self.build_paragraph_text_map(paragraph)
@@ -1095,7 +1095,7 @@ class InfoFiller:
             else:
                 final_replacement = replacement
 
-            self.logger.debug(f"  执行替换: '{match['text']}' -> '{final_replacement}' at {match['start']}-{match['end']}")
+            self.logger.info(f"✅ 替换执行: '{match['text']}' → '{final_replacement}' at {match['start']}-{match['end']}")
 
             if self.apply_replacement_to_runs(runs, char_to_run_map, match, final_replacement):
                 replacement_count += 1
@@ -1569,9 +1569,7 @@ class InfoFiller:
            - 多字段：地址：___ 邮编：___ → 地址：北京... 邮编：100010
            - 单字段：电话：___________ → 电话：010-63271000
            - 无下划线：电子邮箱： → 电子邮箱：lvhe@smartsteps.com
-           - 备用简单：供应商名称：___ → 供应商名称：智慧足迹...
-        3. 纯空格替换：传真：       → 传真：010-63271001
-        4. 公章格式替换：供应商名称：___（公章） → 供应商名称：智慧足迹...（公章）
+           - 备用简单：供应商名称：___ → 供应商名称：智慧足迹...（公章）
 
         Args:
             paragraph: 目标段落
@@ -1588,6 +1586,12 @@ class InfoFiller:
         field_variants = field_info.get('field_variants', [])
         field_name = field_info.get('field_name', 'unknown_field')
 
+        # 预检查：判断是否值得尝试处理这个段落
+        if not self._should_try_field_in_paragraph(original_text, field_variants):
+            self.logger.debug(f"🚫 预检查跳过: 字段='{field_name}', 段落='{original_text[:50]}{'...' if len(original_text) > 50 else ''}'")
+            return False
+
+        self.logger.debug(f"✅ 预检查通过: 字段='{field_name}', 段落='{original_text[:50]}{'...' if len(original_text) > 50 else ''}'")
         self.logger.debug(f"🔄 统一替换开始: 字段='{field_name}', 替换='{replacement_text}'")
         self.logger.debug(f"🔄 原始文本: '{original_text}'")
         self.logger.debug(f"🔄 字段变体: {field_variants}")
@@ -1625,44 +1629,118 @@ class InfoFiller:
         self.logger.warning(f"⚠️ 统一替换失败: '{field_name}'")
         return False
 
-    def _try_insert_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
-        """策略1：插入式替换 - 直接在字段名后插入内容"""
-        # 检查是否匹配插入式模式：字段名后面跟空格但不跟冒号
-        insert_pattern = rf'{re.escape(variant)}(?=\s+)(?![:：])'
-        if not re.search(insert_pattern, paragraph.text):
+    def _should_try_field_in_paragraph(self, paragraph_text: str, field_variants: list) -> bool:
+        """
+        预检查段落是否可能包含相关字段
+
+        Args:
+            paragraph_text: 段落文本
+            field_variants: 字段变体列表
+
+        Returns:
+            bool: 是否值得尝试处理这个段落
+        """
+        # 注意：不要strip()，因为需要保留空格来检测空格格式
+        text = paragraph_text
+
+        # 第1步：空段落检查
+        if not text or not text.strip():
             return False
 
-        self.logger.debug(f"🔄 使用插入式替换策略")
+        # 第2步：字段相关性检查
+        contains_field = any(variant in text for variant in field_variants)
+        if not contains_field:
+            return False
+
+        # 第3步：格式标识符检查
+        field_indicators = [
+            r'[:：]',           # 冒号格式：地址：、电话：
+            r'[（(].*[）)]',     # 括号格式：（地址）、（公章）
+            r'_+',              # 下划线格式：___
+            r'\s{3,}',          # 多空格格式：传真：
+        ]
+
+        has_format = any(re.search(indicator, text) for indicator in field_indicators)
+        if not has_format:
+            return False
+
+        return True
+
+    def _try_insert_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
+        """策略1：插入式替换 - 直接在字段名后插入内容"""
+        # 快速检查：只有字段名后直接跟冒号才拒绝
+        if re.search(rf'{re.escape(variant)}\s*[:：]', paragraph.text):
+            # 如果字段名后直接跟冒号，不是插入式格式
+            return False
+
+        # 检查是否匹配插入式模式：字段名后面跟空格但不跟冒号
+        insert_pattern = rf'{re.escape(variant)}(?=\s+)(?![:：])'
+        match = re.search(insert_pattern, paragraph.text)
+        if not match:
+            return False
+
+        # 增强日志输出
+        self.logger.info(f"🎯 策略1(插入式)匹配成功 - 字段: {variant}")
+        self.logger.info(f"📝 匹配模式: {insert_pattern}")
+        self.logger.info(f"✅ 匹配内容: '{match.group()}'")
+
         replacement = f'{variant}{replacement_text}'
         return self.precise_replace(paragraph, insert_pattern, replacement)
 
     def _try_stamp_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
         """策略2：公章格式替换 - 保留公章括号"""
-        stamp_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<spaces>[_\s]+)(?P<stamp>[（(][^）)]*章[^）)]*[）)])'
-        if not re.search(stamp_pattern, paragraph.text):
+        # 快速检查：如果段落中没有"章"字，不可能是公章格式
+        if '章' not in paragraph.text:
             return False
 
-        self.logger.debug(f"🔄 使用公章格式替换策略")
+        stamp_pattern = rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<spaces>[_\s]+)(?P<stamp>[（(][^）)]*章[^）)]*[）)])'
+        match = re.search(stamp_pattern, paragraph.text)
+        if not match:
+            return False
+
+        # 增强日志输出
+        self.logger.info(f"🎯 策略2(公章格式)匹配成功 - 字段: {variant}")
+        self.logger.info(f"📝 匹配模式: {stamp_pattern}")
+        self.logger.info(f"✅ 匹配内容: '{match.group()}'")
+
         replacement = rf'\g<prefix>{replacement_text}\g<stamp>'
         return self.precise_replace(paragraph, stamp_pattern, replacement)
 
     def _try_space_only_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
         """策略3：纯空格替换 - 处理只有空格无下划线的情况"""
-        space_pattern = rf'({re.escape(variant)}\s*[:：])\s+$'
-        if not re.search(space_pattern, paragraph.text):
+        # 快速检查：必须包含冒号并且以空格结尾
+        if not re.search(r'[:：]\s+$', paragraph.text):
             return False
 
-        self.logger.debug(f"🔄 使用纯空格替换策略")
+        space_pattern = rf'({re.escape(variant)}\s*[:：])\s+$'
+        match = re.search(space_pattern, paragraph.text)
+        if not match:
+            return False
+
+        # 增强日志输出
+        self.logger.info(f"🎯 策略3(纯空格)匹配成功 - 字段: {variant}")
+        self.logger.info(f"📝 匹配模式: {space_pattern}")
+        self.logger.info(f"✅ 匹配内容: '{match.group()}'")
+
         replacement = rf'\g<1>{replacement_text}'
         return self.precise_replace(paragraph, space_pattern, replacement)
 
     def _try_bracket_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
         """策略4：括号格式替换 - 处理（字段名）→（替换值）格式"""
-        bracket_pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-        if not re.search(bracket_pattern, paragraph.text):
+        # 快速检查：如果段落中根本没有括号，直接返回
+        if '（' not in paragraph.text and '(' not in paragraph.text:
             return False
 
-        self.logger.debug(f"🔄 使用括号格式替换策略")
+        bracket_pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
+        match = re.search(bracket_pattern, paragraph.text)
+        if not match:
+            return False
+
+        # 增强日志输出
+        self.logger.info(f"🎯 策略4(括号格式)匹配成功 - 字段: {variant}")
+        self.logger.info(f"📝 匹配模式: {bracket_pattern}")
+        self.logger.info(f"✅ 匹配内容: '{match.group()}'")
+
         replacement = f"（{replacement_text}）"
         return self.precise_replace(paragraph, bracket_pattern, replacement)
 
@@ -1672,19 +1750,19 @@ class InfoFiller:
 
         # 精确模式子策略列表
         precise_patterns = [
-            # 子策略1：多字段格式处理 - 地址：___ 邮编：___
+            # 子策略1：多字段格式处理 - 地址：___ 邮编：___（保留后续字段）
             (rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>\s+[^\s_]+[:：])',
              rf'\g<prefix>{replacement_text}\g<suffix>'),
 
-            # 子策略2：单字段格式处理 - 电话：___________
+            # 子策略2：单字段末尾格式 - 电话：___________（清理所有下划线）
             (rf'({re.escape(variant)}\s*[:：]\s*)_+\s*$',
              rf'\g<1>{replacement_text}'),
 
-            # 子策略3：无下划线格式处理 - 电子邮箱：
+            # 子策略3：无下划线格式 - 电子邮箱：（直接添加内容）
             (rf'({re.escape(variant)}\s*[:：])\s*$',
              rf'\g<1>{replacement_text}'),
 
-            # 子策略4：备用简单模式 - 供应商名称：___
+            # 子策略4：通用下划线格式 - 供应商名称：___（清理下划线和空格）
             (rf'({re.escape(variant)}\s*[:：]\s*)[_\s]+',
              rf'\g<1>{replacement_text}')
         ]
@@ -1692,7 +1770,12 @@ class InfoFiller:
         # 依次尝试每个精确子策略
         for i, (pattern, replacement) in enumerate(precise_patterns, 1):
             if re.search(pattern, paragraph.text):
-                self.logger.debug(f"🎯 使用精确子策略{i}")
+                # 提升到INFO级别，并增加详细信息
+                self.logger.info(f"🎯 精确子策略{i}匹配成功 - 模式: {pattern}")
+                self.logger.info(f"📝 替换模式: {replacement}")
+                match_obj = re.search(pattern, paragraph.text)
+                if match_obj:
+                    self.logger.info(f"✅ 匹配内容: '{match_obj.group()}'")
                 if self.precise_replace(paragraph, pattern, replacement):
                     return True
 
