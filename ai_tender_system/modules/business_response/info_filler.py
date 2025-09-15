@@ -120,14 +120,14 @@
 
   跳过关键词
 
-  - 招标人信息：['招标人', '甲方', '代理', '招标代理', 
-  '采购代理', '业主', '发包人', '委托人']
+  - 代理机构信息：['代理', '招标代理', '采购代理',
+  '业主', '发包人', '委托人']
   - 签字相关：['签字', '签名', '签章', '盖章处']
 
   例外处理
 
   - 保留"签字代表"等合法词汇
-  - 区分采购人（需要填充）和招标人（需要跳过）
+  - 统一处理采购人和招标人字段（均使用项目信息填充）
 
   这个系统实现了非常全面的文档信息填写功能，支持多种格式、多种
   规则，并具备智能识别和错误处理能力。
@@ -211,14 +211,17 @@ class InfoFiller:
             'date': ['日期', '日 期', '日  期', '日   期', '日    期', '日     期']
         }
         
-        # 需要跳过的关键词（招标人信息，但不包括采购人）
+        # 需要跳过的关键词（代理机构等，采购人和招标人统一处理）
         self.skip_keywords = [
-            '招标人', '甲方', '代理', '招标代理',
-            '采购代理', '业主', '发包人', '委托人'
+            '代理', '招标代理', '采购代理',
+            '业主', '发包人', '委托人'
         ]
         
-        # 采购人信息字段（使用项目信息填充）
-        self.purchaser_variants = ['采购人', '采购人名称', '采购单位']
+        # 采购人信息字段（使用项目信息填充，统一处理采购人和招标人）
+        self.purchaser_variants = [
+            '采购人', '采购人名称', '采购单位',
+            '招标人', '招标人名称', '甲方', '甲方名称'
+        ]
         
         # 需要跳过的签字相关词
         self.signature_keywords = ['签字', '签名', '签章', '盖章处']
@@ -422,7 +425,7 @@ class InfoFiller:
     
     def _should_skip(self, text: str) -> bool:
         """检查是否应该跳过该文本"""
-        # 检查是否包含采购人/招标人等关键词（使用更精确的匹配）
+        # 检查是否包含代理机构等需要跳过的关键词
         for keyword in self.skip_keywords:
             # 避免误判：排除"签字代表"等合法词汇  
             if keyword in text and "签字代表" not in text:
@@ -641,33 +644,29 @@ class InfoFiller:
     
     def _try_replacement_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
         """
-        尝试单字段替换规则
+        尝试单字段替换规则 - 使用精确格式保护引擎
         如：（供应商名称）→（公司名）、（采购人）→（项目采购人）
-        支持单段落中的多个字段替换
+        支持单段落中的多个字段替换，完美保持原始格式
         """
-        text = paragraph.text
-        new_text = text
         replacement_count = 0
-        
+
         # 处理供应商名称类
         for variant in self.company_name_variants:
             pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-            if re.search(pattern, new_text):
-                company_name = info.get('companyName', '')
-                if company_name:
-                    replacement = f"（{company_name}）"
-                    new_text = re.sub(pattern, replacement, new_text)
+            company_name = info.get('companyName', '')
+            if company_name:
+                replacement = f"（{company_name}）"
+                if self.precise_replace(paragraph, pattern, replacement):
                     self.logger.info(f"替换规则: {variant} → {company_name}")
                     replacement_count += 1
-        
+
         # 处理采购人信息
         for variant in self.purchaser_variants:
             pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-            if re.search(pattern, new_text):
-                purchaser_name = info.get('purchaserName', '')
-                if purchaser_name:
-                    replacement = f"（{purchaser_name}）"
-                    new_text = re.sub(pattern, replacement, new_text)
+            purchaser_name = info.get('purchaserName', '')
+            if purchaser_name:
+                replacement = f"（{purchaser_name}）"
+                if self.precise_replace(paragraph, pattern, replacement):
                     self.logger.info(f"替换规则: {variant} → {purchaser_name}")
                     replacement_count += 1
         
@@ -675,61 +674,45 @@ class InfoFiller:
         # 项目名称处理
         for variant in ['项目名称', '采购项目名称', '招标项目名称']:
             pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-            if re.search(pattern, new_text):
-                self.logger.debug(f"🔎 检查项目名称变体: '{variant}'")
-                # 获取项目名称（固定键名）
-                project_name = info.get('projectName', '')
-                if project_name:
-                    replacement = f"（{project_name}）"
-                    new_text = re.sub(pattern, replacement, new_text)
+            self.logger.debug(f"🔎 检查项目名称变体: '{variant}'")
+            # 获取项目名称（固定键名）
+            project_name = info.get('projectName', '')
+            if project_name:
+                replacement = f"（{project_name}）"
+                if self.precise_replace(paragraph, pattern, replacement):
                     self.logger.info(f"替换规则: {variant} → {project_name}")
                     replacement_count += 1
-                else:
-                    self.logger.warning(f"⚠️ 项目名称数据为空，跳过字段 '{variant}'")
-        
-        # 项目编号处理  
+            else:
+                self.logger.warning(f"⚠️ 项目名称数据为空，跳过字段 '{variant}'")
+
+        # 项目编号处理
         for variant in ['项目编号', '采购编号', '招标编号', '项目号']:
             pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-            if re.search(pattern, new_text):
-                self.logger.debug(f"🔎 检查项目编号变体: '{variant}'")
-                # 获取项目编号（固定键名）
-                project_number = info.get('projectNumber', '')
-                if project_number:
-                    replacement = f"（{project_number}）"
-                    new_text = re.sub(pattern, replacement, new_text)
+            self.logger.debug(f"🔎 检查项目编号变体: '{variant}'")
+            # 获取项目编号（固定键名）
+            project_number = info.get('projectNumber', '')
+            if project_number:
+                replacement = f"（{project_number}）"
+                if self.precise_replace(paragraph, pattern, replacement):
                     self.logger.info(f"替换规则: {variant} → {project_number}")
                     replacement_count += 1
-                else:
-                    self.logger.warning(f"⚠️ 项目编号数据为空，跳过字段 '{variant}'")
-        
+            else:
+                self.logger.warning(f"⚠️ 项目编号数据为空，跳过字段 '{variant}'")
+
         # 处理其他字段
         for field_key, variants in self.field_variants.items():
             for variant in variants:
                 pattern = rf'[（(]\s*{re.escape(variant)}\s*[）)]'
-                if re.search(pattern, new_text):
-                    # 直接获取字段值（统一映射已处理多源映射）
-                    value = info.get(field_key, '')
-                    
-                    if value:
-                        replacement = f"（{value}）"
-                        new_text = re.sub(pattern, replacement, new_text)
+                # 直接获取字段值（统一映射已处理多源映射）
+                value = info.get(field_key, '')
+
+                if value:
+                    replacement = f"（{value}）"
+                    if self.precise_replace(paragraph, pattern, replacement):
                         self.logger.info(f"替换规则: {variant} → {value}")
                         replacement_count += 1
-        
-        # 如果有替换，使用精确格式处理引擎更新段落文本
-        if replacement_count > 0:
-            # 创建整个段落的替换模式
-            original_text = paragraph.text
-            if original_text.strip() != new_text.strip():
-                escaped_original = re.escape(original_text.strip())
-                if self.precise_replace(paragraph, escaped_original, new_text.strip()):
-                    return True
-                else:
-                    # 如果精确替换失败，使用后备方案
-                    self._update_paragraph_text_preserving_format(paragraph, new_text)
-                    return True
 
-        return False
+        return replacement_count > 0
     
     def _try_fill_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
         """
