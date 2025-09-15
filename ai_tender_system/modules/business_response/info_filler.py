@@ -4,6 +4,11 @@
 信息填写模块 - 处理项目和公司信息的填写
 实现六大规则：替换规则、填空规则、组合规则、变体处理、例外处理、后处理
 
+🎯 新特性: 精确格式处理引擎
+- 字符级精确映射，完美保持原文档格式
+- 跨Run智能处理，支持复杂文档结构
+- 零格式破坏，保持字体、样式、对齐等所有属性
+
 输出文件目录："/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/outputs/"
   
   上传文件目录："/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/uploads/"
@@ -301,8 +306,8 @@ class InfoFiller:
             stats['total_replacements'] += result['count']
             stats['fill_rules'] += result['count']
         
-        # 后处理：清理多余的占位符
-        self._post_process(doc)
+        # 后处理：清理多余的占位符 (暂时禁用以保持精确格式)
+        # self._post_process(doc)  # 暂时禁用美化机制
         
         # 文档级别验证：处理完成后的验证
         self.logger.info(f"📊 文档处理完成统计: {stats}")
@@ -518,8 +523,8 @@ class InfoFiller:
             address = info.get('address', '')
             if company_name and address:
                 replacement = f"（{company_name}、{address}）"
-                # 使用天然Run替换引擎进行组合替换
-                if self.natural_run_replace(paragraph, pattern1, replacement):
+                # 使用精确格式处理引擎进行组合替换
+                if self.precise_replace(paragraph, pattern1, replacement):
                     self.logger.info(f"组合替换: 供应商名称、地址")
                     return True
         
@@ -530,8 +535,8 @@ class InfoFiller:
             project_number = info.get('projectNumber', '')
             if project_name and project_number:
                 replacement = f"（{project_name}、{project_number}）"
-                # 使用天然Run替换引擎进行组合替换
-                if self.natural_run_replace(paragraph, pattern2, replacement):
+                # 使用精确格式处理引擎进行组合替换
+                if self.precise_replace(paragraph, pattern2, replacement):
                     self.logger.info(f"组合替换: 项目名称、项目编号")
                     return True
 
@@ -567,8 +572,8 @@ class InfoFiller:
 
                 if position:
                     replacement = f"（{position}、{position}）"
-                    # 使用天然Run替换引擎进行智能职位组合替换
-                    if self.natural_run_replace(paragraph, pattern3, replacement):
+                    # 使用精确格式处理引擎进行智能职位组合替换
+                    if self.precise_replace(paragraph, pattern3, replacement):
                         self.logger.info(f"智能职位组合替换: （职位、职称） → （{position}、{position}）")
                         return True
                 else:
@@ -616,8 +621,8 @@ class InfoFiller:
 
                 if name and position:
                     replacement = f"（{name}、{position}）"
-                    # 使用天然Run替换引擎进行智能姓名职位组合替换
-                    if self.natural_run_replace(paragraph, pattern4, replacement):
+                    # 使用精确格式处理引擎进行智能姓名职位组合替换
+                    if self.precise_replace(paragraph, pattern4, replacement):
                         self.logger.info(f"智能姓名职位组合替换: （姓名、职位） → （{name}、{position}）")
                         return True
                 else:
@@ -711,16 +716,16 @@ class InfoFiller:
                         self.logger.info(f"替换规则: {variant} → {value}")
                         replacement_count += 1
         
-        # 如果有替换，使用天然Run替换引擎更新段落文本
+        # 如果有替换，使用精确格式处理引擎更新段落文本
         if replacement_count > 0:
             # 创建整个段落的替换模式
             original_text = paragraph.text
             if original_text.strip() != new_text.strip():
                 escaped_original = re.escape(original_text.strip())
-                if self.natural_run_replace(paragraph, escaped_original, new_text.strip()):
+                if self.precise_replace(paragraph, escaped_original, new_text.strip()):
                     return True
                 else:
-                    # 如果天然替换失败，使用后备方案
+                    # 如果精确替换失败，使用后备方案
                     self._update_paragraph_text_preserving_format(paragraph, new_text)
                     return True
 
@@ -909,10 +914,10 @@ class InfoFiller:
 
                         # 特殊处理"致：采购人"格式
                         if '致' in pattern:
-                            # 对于"致：采购人"格式，直接使用天然Run替换
+                            # 对于"致：采购人"格式，直接使用精确格式处理
                             replace_pattern = rf'(致\s*[:：]\s*){re.escape(variant)}\s*$'
                             replacement = rf'\1{purchaser_name}'
-                            replacement_made = self.natural_run_replace(paragraph, replace_pattern, replacement)
+                            replacement_made = self.precise_replace(paragraph, replace_pattern, replacement)
                         else:
                             # 其他格式使用统一替换接口
                             replacement_made = self.unified_text_replace(paragraph, field_info, purchaser_name)
@@ -1050,11 +1055,11 @@ class InfoFiller:
             self.logger.info(f"📊 段落处理完成，共填充 {fill_count} 个字段")
             self.logger.debug(f"🔄 最终文本: '{new_text}'")
 
-            # 使用天然Run替换更新最终结果
+            # 使用精确格式处理更新最终结果
             original_text = paragraph.text
             if original_text.strip() != new_text.strip():
                 escaped_original = re.escape(original_text.strip())
-                if self.natural_run_replace(paragraph, escaped_original, new_text.strip()):
+                if self.precise_replace(paragraph, escaped_original, new_text.strip()):
                     return True
                 else:
                     # 后备方案：使用格式保护方法
@@ -1104,8 +1109,169 @@ class InfoFiller:
         return date_str
     
     # _update_paragraph_with_run_replacement 方法已删除
-    # 现在统一使用 natural_run_replace() 天然Run替换引擎
+    # 现在统一使用 precise_replace() 精确格式处理引擎
 
+    # ===== 精确格式处理引擎 (移植自run_test.py) =====
+    def build_paragraph_text_map(self, paragraph: Paragraph):
+        """
+        构建段落的文本到Run映射
+        返回：文本内容、Run列表、每个字符对应的Run索引
+        """
+        full_text = ""
+        runs = []
+        char_to_run_map = []
+
+        for run_idx, run in enumerate(paragraph.runs):
+            run_text = run.text
+            runs.append(run)
+
+            # 记录每个字符属于哪个run
+            for _ in range(len(run_text)):
+                char_to_run_map.append(run_idx)
+
+            full_text += run_text
+
+        return full_text, runs, char_to_run_map
+
+    def apply_replacement_to_runs(self, runs, char_to_run_map, match, replacement_text):
+        """
+        将替换应用到涉及的Run中，保持格式
+        """
+        start_pos = match['start']
+        end_pos = match['end']
+
+        # 找出涉及的Run范围
+        if start_pos >= len(char_to_run_map) or end_pos > len(char_to_run_map):
+            self.logger.warning(f"警告：匹配位置超出范围，跳过 {match['text']}")
+            return False
+
+        start_run_idx = char_to_run_map[start_pos]
+        end_run_idx = char_to_run_map[end_pos - 1] if end_pos > 0 else start_run_idx
+
+        self.logger.debug(f"  匹配范围：Run {start_run_idx} 到 Run {end_run_idx}")
+
+        # 计算在每个Run中的相对位置
+        run_modifications = {}
+
+        # 构建每个Run的字符偏移映射
+        run_char_offsets = {}
+        current_offset = 0
+        for i, run in enumerate(runs):
+            run_char_offsets[i] = current_offset
+            current_offset += len(run.text)
+
+        # 计算需要修改的Run及其新内容
+        for run_idx in range(start_run_idx, end_run_idx + 1):
+            if run_idx >= len(runs):
+                continue
+
+            run = runs[run_idx]
+            run_start_in_full = run_char_offsets[run_idx]
+            run_end_in_full = run_start_in_full + len(run.text)
+
+            # 计算这个Run中需要替换的部分
+            replace_start_in_run = max(0, start_pos - run_start_in_full)
+            replace_end_in_run = min(len(run.text), end_pos - run_start_in_full)
+
+            old_run_text = run.text
+
+            if run_idx == start_run_idx and run_idx == end_run_idx:
+                # 替换完全在一个Run内
+                new_run_text = (old_run_text[:replace_start_in_run] +
+                              replacement_text +
+                              old_run_text[replace_end_in_run:])
+            elif run_idx == start_run_idx:
+                # 开始Run：保留前缀，加上替换文本
+                new_run_text = old_run_text[:replace_start_in_run] + replacement_text
+            elif run_idx == end_run_idx:
+                # 结束Run：只保留后缀
+                new_run_text = old_run_text[replace_end_in_run:]
+            else:
+                # 中间Run：完全清空
+                new_run_text = ""
+
+            run_modifications[run_idx] = new_run_text
+            self.logger.debug(f"    Run {run_idx}: '{old_run_text}' -> '{new_run_text}'")
+
+        # 应用修改
+        for run_idx, new_text in run_modifications.items():
+            runs[run_idx].text = new_text
+
+        return True
+
+    def find_cross_run_matches(self, full_text, pattern):
+        """
+        在完整文本中查找匹配，可能跨越多个Run
+        """
+        matches = []
+        for match in re.finditer(pattern, full_text):
+            matches.append({
+                'start': match.start(),
+                'end': match.end(),
+                'text': match.group(),
+                'pattern': pattern
+            })
+        return matches
+
+    def precise_replace(self, paragraph: Paragraph, pattern: str, replacement: str) -> bool:
+        """
+        精确替换接口 - 替代natural_run_replace，完美保持格式
+
+        Args:
+            paragraph: 目标段落
+            pattern: 要替换的正则模式
+            replacement: 替换的新文本
+        Returns:
+            bool: 替换是否成功
+        """
+        if not paragraph.runs:
+            self.logger.debug("段落无runs，跳过处理")
+            return False
+
+        self.logger.debug(f"🎯 精确替换: 模式='{pattern}', 替换为='{replacement}'")
+        self.logger.debug(f"  原文: '{paragraph.text}'")
+
+        # 构建字符映射
+        full_text, runs, char_to_run_map = self.build_paragraph_text_map(paragraph)
+
+        if not full_text:
+            return False
+
+        self.logger.debug(f"  Run结构: {len(runs)} 个runs，总长度 {len(full_text)} 字符")
+        for i, run in enumerate(runs):
+            self.logger.debug(f"    Run {i}: '{run.text}' (长度: {len(run.text)})")
+
+        # 查找匹配
+        matches = self.find_cross_run_matches(full_text, pattern)
+
+        if not matches:
+            self.logger.debug("  未找到匹配项")
+            return False
+
+        self.logger.debug(f"  找到 {len(matches)} 个匹配项")
+
+        # 按位置排序（从后往前处理，避免位置偏移问题）
+        matches.sort(key=lambda x: x['start'], reverse=True)
+
+        replacement_count = 0
+
+        # 执行替换
+        for match in matches:
+            self.logger.debug(f"  执行替换: '{match['text']}' -> '{replacement}' at {match['start']}-{match['end']}")
+
+            if self.apply_replacement_to_runs(runs, char_to_run_map, match, replacement):
+                replacement_count += 1
+                # 重新构建映射，因为文本已经改变
+                full_text, runs, char_to_run_map = self.build_paragraph_text_map(paragraph)
+            else:
+                self.logger.warning(f"  替换失败: {match['text']}")
+
+        if replacement_count > 0:
+            self.logger.debug(f"  最终结果: '{paragraph.text}'")
+            self.logger.info(f"🎯 精确替换完成: 成功替换 {replacement_count} 个匹配项")
+
+        return replacement_count > 0
+    # ===== 精确格式处理引擎结束 =====
 
     def natural_run_replace(self, paragraph: Paragraph, old_pattern: str, new_text: str, strategy_type="auto"):
         """
@@ -1540,7 +1706,7 @@ class InfoFiller:
         """
         格式保护的段落文本更新方法 - 后备方案
 
-        注意：优先使用 natural_run_replace() 天然Run替换引擎
+        注意：优先使用 precise_replace() 精确格式处理引擎
         此方法主要作为复杂情况下的后备方案
         """
         if not paragraph.runs:
@@ -1626,7 +1792,7 @@ class InfoFiller:
 
         self.logger.debug(f"🔄 使用插入式替换策略")
         replacement = f'{variant}{replacement_text}'
-        return self.natural_run_replace(paragraph, insert_pattern, replacement)
+        return self.precise_replace(paragraph, insert_pattern, replacement)
 
     def _try_stamp_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
         """策略2：公章格式替换 - 保留公章括号"""
@@ -1636,7 +1802,7 @@ class InfoFiller:
 
         self.logger.debug(f"🔄 使用公章格式替换策略")
         replacement = rf'\g<prefix>{replacement_text}\g<stamp>'
-        return self.natural_run_replace(paragraph, stamp_pattern, replacement)
+        return self.precise_replace(paragraph, stamp_pattern, replacement)
 
     def _try_space_only_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
         """策略3：纯空格替换 - 处理只有空格无下划线的情况"""
@@ -1646,7 +1812,7 @@ class InfoFiller:
 
         self.logger.debug(f"🔄 使用纯空格替换策略")
         replacement = rf'\g<1>{replacement_text}'
-        return self.natural_run_replace(paragraph, space_pattern, replacement)
+        return self.precise_replace(paragraph, space_pattern, replacement)
 
     def _try_precise_strategies(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
         """策略4：精确模式替换 - 4个子策略"""
@@ -1675,13 +1841,16 @@ class InfoFiller:
         for i, (pattern, replacement) in enumerate(precise_patterns, 1):
             if re.search(pattern, paragraph.text):
                 self.logger.debug(f"🎯 使用精确子策略{i}")
-                if self.natural_run_replace(paragraph, pattern, replacement):
+                if self.precise_replace(paragraph, pattern, replacement):
                     return True
 
         return False
 
     def _post_process(self, doc: Document):
-        """后处理：清理多余的占位符和格式（保护已填充内容）"""
+        """
+        后处理：清理多余的占位符和格式（保护已填充内容）
+        注意：当前已禁用此方法以保持完美的格式控制
+        """
         for paragraph in doc.paragraphs:
             text = paragraph.text
             original_text = text
@@ -1725,8 +1894,8 @@ class InfoFiller:
             text = re.sub(r'(\d{4}年\d{1,2}月\d{1,2}日)\s*年\s*月\s*日', r'\1', text)
 
             if text != original_text:
-                # 使用天然Run替换进行后处理清理
+                # 使用精确格式处理进行后处理清理
                 escaped_original = re.escape(original_text.strip())
-                if not self.natural_run_replace(paragraph, escaped_original, text.strip()):
+                if not self.precise_replace(paragraph, escaped_original, text.strip()):
                     # 后备方案：使用格式保护方法
                     self._update_paragraph_text_preserving_format(paragraph, text.strip())
