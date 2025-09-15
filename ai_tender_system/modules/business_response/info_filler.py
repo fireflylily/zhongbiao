@@ -504,12 +504,10 @@ class InfoFiller:
                 self.logger.error(f"❌ 法定代表人模式匹配正则表达式错误: {e}")
 
             # 默认情况：如果没有明确上下文，使用法定代表人
-            self.logger.debug(f"📝 未找到明确上下文，默认使用法定代表人职位")
             return 'legal_representative'
 
         except Exception as e:
             self.logger.error(f"❌ 职位上下文检测发生异常: {e}")
-            self.logger.debug(f"📝 异常情况下默认使用法定代表人职位")
             return 'legal_representative'
 
     def _try_combination_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
@@ -557,7 +555,6 @@ class InfoFiller:
                 if context == 'authorized_person':
                     position = info.get('authorizedPersonPosition', '')
                     if position:
-                        self.logger.debug(f"📝 选择被授权人职务: '{position}'")
                     else:
                         self.logger.warning(f"⚠️ 被授权人职务为空，尝试法定代表人职位")
                         position = info.get('legalRepresentativePosition', '')
@@ -566,7 +563,6 @@ class InfoFiller:
                 else:  # legal_representative
                     position = info.get('legalRepresentativePosition', '')
                     if position:
-                        self.logger.debug(f"📝 选择法定代表人职位: '{position}'")
                     else:
                         self.logger.warning(f"⚠️ 法定代表人职位为空，尝试被授权人职务")
                         position = info.get('authorizedPersonPosition', '')
@@ -600,7 +596,6 @@ class InfoFiller:
                 if context == 'authorized_person':
                     name = info.get('authorizedPersonName', '')
                     position = info.get('authorizedPersonPosition', '')
-                    self.logger.debug(f"📝 选择被授权人数据: 姓名='{name}', 职务='{position}'")
 
                     # 数据回退机制
                     if not name or not position:
@@ -612,7 +607,6 @@ class InfoFiller:
                 else:  # legal_representative
                     name = info.get('legalRepresentative', '')
                     position = info.get('legalRepresentativePosition', '')
-                    self.logger.debug(f"📝 选择法定代表人数据: 姓名='{name}', 职位='{position}'")
 
                     # 数据回退机制
                     if not name or not position:
@@ -748,9 +742,7 @@ class InfoFiller:
                 self.logger.debug(f"🔍 尝试模式{i}: {pattern}")
                 match = re.search(pattern, paragraph.text)
                 if match:
-                    self.logger.info(f"✅ 模式{i}匹配成功: '{match.group()}'")
                     company_name = info.get('companyName', '')
-                    self.logger.debug(f"📝 准备填入公司名称: '{company_name}'")
                     
                     if company_name:
                         # 使用统一替换接口处理供应商名称
@@ -832,21 +824,18 @@ class InfoFiller:
                 ]
                 
                 for i, pattern in enumerate(patterns, 1):
-                    self.logger.debug(f"🔍 尝试模式{i}: {pattern}")
                     match = re.search(pattern, paragraph.text)
                     if match:
-                        self.logger.info(f"✅ 模式{i}匹配成功: '{match.group()}'")
-
+    
                         # 职位字段的智能处理
                         if field_key == 'position':
                             try:
-                                self.logger.info(f"🧠 检测到职位字段，启动智能上下文识别")
-                                context_type = self._detect_position_context(text)
+                                context_type = self._detect_position_context(paragraph.text)
 
                                 if context_type == 'authorized_person':
                                     value = info.get('authorizedPersonPosition', '')
                                     if value:
-                                        self.logger.info(f"📝 选择被授权人职务: '{value}'")
+                                        pass
                                     else:
                                         self.logger.warning(f"⚠️  被授权人职务数据为空，尝试使用法定代表人职位")
                                         value = info.get('legalRepresentativePosition', '')
@@ -1070,10 +1059,9 @@ class InfoFiller:
         matches = self.find_cross_run_matches(full_text, pattern)
 
         if not matches:
-            self.logger.debug("  未找到匹配项")
             return False
 
-        self.logger.debug(f"  找到 {len(matches)} 个匹配项")
+        # 只在成功替换时记录日志
 
         # 按位置排序（从后往前处理，避免位置偏移问题）
         matches.sort(key=lambda x: x['start'], reverse=True)

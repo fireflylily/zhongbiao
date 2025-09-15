@@ -187,7 +187,9 @@ class PreciseWordFiller:
             # 收集所有匹配
             for pattern, replacement, pattern_type in patterns:
                 matches = self.find_cross_run_matches(full_text, pattern)
-                self.log(f"    模式 '{pattern_type}' ({pattern}): 找到 {len(matches)} 个匹配")
+                # 只在找到匹配时输出日志
+                if matches:
+                    self.log(f"    模式 '{pattern_type}': 找到 {len(matches)} 个匹配")
                 for match in matches:
                     match['replacement'] = replacement
                     match['field_name'] = field_name
@@ -200,7 +202,7 @@ class PreciseWordFiller:
         
         # 执行替换
         for match in all_matches:
-            self.log(f"  执行替换: {match['pattern_type']} - '{match['text']}' -> '{match['replacement']}'")
+            self.log(f"  ✅ 替换: {match['field_name']} → {match['replacement']}")
             
             if self.apply_replacement_to_runs(runs, char_to_run_map, match, match['replacement']):
                 replacement_count += 1
@@ -309,7 +311,7 @@ class PreciseWordFiller:
         if not matches:
             return False
 
-        self.log(f"  找到 {len(matches)} 个匹配项")
+        self.log(f"  ✅ 找到 {len(matches)} 个匹配项")
 
         # 按位置排序（从后往前处理）
         matches.sort(key=lambda x: x['start'], reverse=True)
