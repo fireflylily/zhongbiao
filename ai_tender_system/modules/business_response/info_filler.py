@@ -1945,7 +1945,10 @@ class InfoFiller:
                 self.logger.debug(f"🏷️ 发现需要格式清理的段落: '{paragraph.text[:30]}...'")
                 self._clean_decorative_formats_only(paragraph)
 
-        # 第二步：原有的文本清理逻辑
+        # 第二步：处理年月日格式填充
+        self._process_date_format_filling(doc)
+
+        # 第三步：原有的文本清理逻辑
         for paragraph in doc.paragraphs:
             text = paragraph.text
             original_text = text
@@ -1985,12 +1988,8 @@ class InfoFiller:
             # 标准化冒号
             text = re.sub(r':', '：', text)
 
-            # 去除多余的年月日标识
-            # 修复：处理实际的残留模式如"2025年9月12日年_____月_____日"
-            text = re.sub(r'(\d{4}年\d{1,2}月\d{1,2}日)年[_\s]*月[_\s]*日', r'\1', text)
-            
-            # 处理重复日期如"2025年9月12日 2025年9月12日"
-            text = re.sub(r'(\d{4}年\d{1,2}月\d{1,2}日)\s+(\d{4}年\d{1,2}月\d{1,2}日)', r'\1', text)
+            # 去除多余的年月日标识和重复内容
+            text = self._clean_date_redundancy_and_placeholders(text)
 
             if text != original_text:
                 # 使用精确格式处理进行后处理清理
@@ -1998,3 +1997,165 @@ class InfoFiller:
                 if not self.precise_replace(paragraph, escaped_original, text.strip()):
                     # 后备方案：使用格式保护方法
                     self._update_paragraph_text_preserving_format(paragraph, text.strip())
+
+    def _process_date_format_filling(self, doc: Document):
+        """
+        处理年月日格式填充
+        识别和填充"    年    月    日"等各种空格分隔的年月日格式
+        """
+        self.logger.debug("📅 开始处理年月日格式填充")
+        
+        # 获取日期值
+        date_value = self.info.get('date', '')
+        if not date_value:
+            self.logger.debug("⚠️ 日期值为空，跳过年月日格式填充")
+            return
+        
+        # 格式化日期
+        formatted_date = self._format_date(date_value)
+        if not formatted_date:
+            self.logger.warning("⚠️ 日期格式化失败，跳过年月日格式填充")
+            return
+            
+        self.logger.debug(f"📅 准备填充的日期值: '{formatted_date}'")
+        
+        # 定义年月日格式匹配模式
+        date_end_patterns = [
+            r'^\s{2,}年\s{2,}月\s{2,}日$',      # 空格分隔的年月日格式（独立行）
+            r'(\s+)年(\s+)月(\s+)日(\s*)$',      # 末尾格式：空格+年+空格+月+空格+日
+            r'(\n\s*)年(\s+)月(\s+)日(\s*)$',    # 换行+空格+年月日格式
+            r'(\s+)年(\s+)月(\s+)日',           # 通用格式：空格+年+空格+月+空格+日
+        ]
+        
+        processed_count = 0
+        
+        for paragraph in doc.paragraphs:
+            text = paragraph.text
+            if not text or not text.strip():
+                continue
+                
+            # 检查是否匹配年月日格式
+            for i, pattern in enumerate(date_end_patterns, 1):
+                match = re.search(pattern, text)
+                if match:
+                    self.logger.info(f"✅ 年月日模式{i}匹配成功: '{match.group()}' 在段落: '{text[:50]}...'")
+                    
+                    # 构建新文本
+                    if i == 1:  # 独立的空格年月日格式
+                        # 直接替换整个匹配内容
+                        new_text = re.sub(pattern, formatted_date, text)
+                    elif i == 3:  # 换行+空格+年月日格式
+                        # 保留换行符，只替换年月日部分
+                        new_text = re.sub(pattern, rf'\1{formatted_date}', text)
+                    else:
+                        # 标准替换：整个匹配的年月日模式为完整日期
+                        new_text = re.sub(pattern, formatted_date, text)
+                    
+                    if new_text != text:
+                        # 使用精确格式处理进行替换
+                        escaped_original = re.escape(text.strip())
+                        if self.precise_replace(paragraph, escaped_original, new_text.strip()):
+                            self.logger.info(f"🔄 年月日格式填充成功: '{text}' -> '{new_text}'")
+                            processed_count += 1
+                        else:
+                            # 后备方案：使用格式保护方法
+                            self._update_paragraph_text_preserving_format(paragraph, new_text.strip())
+                            self.logger.info(f"🔄 年月日格式填充成功(后备): '{text}' -> '{new_text}'")
+                            processed_count += 1
+                        
+                        # 找到一个匹配后，跳出模式循环
+                        break
+        
+        if processed_count > 0:
+            self.logger.info(f"📊 年月日格式填充完成，共处理 {processed_count} 个段落")
+        else:
+            self.logger.debug("📊 未发现需要填充的年月日格式")
+
+    def _clean_date_redundancy_and_placeholders(self, text: str) -> str:
+        """
+        清理日期相关的重复内容和占位符残留
+        处理各种"年月日"重复模式和占位符
+        """
+        original_text = text
+        
+        # 第一组：处理直接重复的年月日字符
+        redundant_patterns = [
+            r'(\d+年\d+月\d+日)年',              # 2015年12月18日年
+            r'(\d+年\d+月\d+日)月',              # 2015年12月18日月  
+            r'(\d+年\d+月\d+日)日',              # 2015年12月18日日
+            r'(\d+年\d+月\d+日)年\s*月',         # 2015年12月18日年月
+            r'(\d+年\d+月\d+日)年\s*月\s*日',    # 2015年12月18日年月日
+            r'(\d+年\d+月\d+日)月\s*日',         # 2015年12月18日月日
+        ]
+        
+        for pattern in redundant_patterns:
+            if re.search(pattern, text):
+                old_text = text
+                text = re.sub(pattern, r'\1', text)
+                self.logger.debug(f"清理重复字符: '{old_text}' -> '{text}'")
+        
+        # 第二组：处理带空格的重复模式
+        spaced_redundant_patterns = [
+            r'(\d+年\d+月\d+日)\s+年',           # 2015年12月18日 年
+            r'(\d+年\d+月\d+日)\s+月',           # 2015年12月18日 月
+            r'(\d+年\d+月\d+日)\s+日',           # 2015年12月18日 日
+            r'(\d+年\d+月\d+日)\s+年\s*月',      # 2015年12月18日 年月
+            r'(\d+年\d+月\d+日)\s+年\s*月\s*日', # 2015年12月18日 年月日
+            r'(\d+年\d+月\d+日)\s+月\s*日',      # 2015年12月18日 月日
+            r'(\d+年\d+月\d+日)\s*年\s*月\s*日', # 2015年12月18日年月日（任意空格）
+            r'(\d+年\d+月\d+日)\s+月\s+日',      # 2015年12月18日  月  日
+            r'(\d+年\d+月\d+日)\s+年\s+月',      # 2015年12月18日  年  月
+        ]
+        
+        for pattern in spaced_redundant_patterns:
+            if re.search(pattern, text):
+                old_text = text
+                text = re.sub(pattern, r'\1', text)
+                self.logger.debug(f"清理空格重复: '{old_text}' -> '{text}'")
+        
+        # 第三组：处理占位符残留
+        placeholder_cleanup_patterns = [
+            # 清理日期后的下划线占位符
+            r'(\d+年\d+月\d+日)_+月_+日',        # 2025年09月07日_____月_____日
+            r'(\d+年\d+月\d+日)_+月',            # 2025年09月07日_____月
+            r'(\d+年\d+月\d+日)_+日',            # 2025年09月07日_____日
+            r'(\d+年\d+月\d+日)_+年_+月_+日',    # 2025年09月07日_____年_____月_____日
+            r'(\d+年\d+月\d+日)_+年_+月',        # 2025年09月07日_____年_____月
+            r'(\d+年\d+月\d+日)_+年',            # 2025年09月07日_____年
+            
+            # 清理空格和下划线混合的情况
+            r'(\d+年\d+月\d+日)[\s_]+月[\s_]*日', # 2025年09月07日 ___月___日
+            r'(\d+年\d+月\d+日)[\s_]+年[\s_]*月[\s_]*日', # 带空格的混合情况
+            
+            # 清理横线形式的占位符
+            r'(\d+年\d+月\d+日)-+',              # 2025年09月07日--------
+            r'(\d+年\d+月\d+日)[\s-]+$',         # 2025年09月07日 ---- (行末)
+            r'(\d+年\d+月\d+日)_+$',             # 2025年09月07日_____ (行末)
+            
+            # 清理日期后的任意组合占位符（更通用的模式）
+            r'(\d+年\d+月\d+日)[\s_-]+.*?$',     # 日期后任意占位符到行末
+        ]
+        
+        for pattern in placeholder_cleanup_patterns:
+            if re.search(pattern, text):
+                old_text = text
+                text = re.sub(pattern, r'\1', text)
+                self.logger.debug(f"清理占位符残留: '{old_text}' -> '{text}'")
+        
+        # 第四组：处理重复日期
+        duplicate_date_patterns = [
+            r'(\d{4}年\d{1,2}月\d{1,2}日)\s+(\d{4}年\d{1,2}月\d{1,2}日)',  # 2025年9月12日 2025年9月12日
+            r'(\d{4}年\d{1,2}月\d{1,2}日)年[_\s]*月[_\s]*日',              # 2025年9月12日年_____月_____日
+        ]
+        
+        for pattern in duplicate_date_patterns:
+            if re.search(pattern, text):
+                old_text = text
+                text = re.sub(pattern, r'\1', text)
+                self.logger.debug(f"清理重复日期: '{old_text}' -> '{text}'")
+        
+        # 如果有清理操作，记录日志
+        if text != original_text:
+            self.logger.info(f"📅 日期清理完成: '{original_text}' -> '{text}'")
+        
+        return text
