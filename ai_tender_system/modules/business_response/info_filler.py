@@ -4,11 +4,6 @@
 信息填写模块 - 处理项目和公司信息的填写
 实现六大规则：替换规则、填空规则、组合规则、变体处理、例外处理、后处理
 
-🎯 新特性: 精确格式处理引擎
-- 字符级精确映射，完美保持原文档格式
-- 跨Run智能处理，支持复杂文档结构
-- 零格式破坏，保持字体、样式、对齐等所有属性
-
 输出文件目录："/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/outputs/"
   
   上传文件目录："/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/uploads/"
@@ -137,11 +132,11 @@
 7.3 支持格式变化（冒号、空格、占位符、冒号+空格）
         模式匹配 (6种模式):
   - 模式1: {variant}\\s*[:：]\\s*_+ - 多字段支持：地址：___ 邮编：___
-  - 模式2: {variant}\s*[:：]\s*$ - 无下划线支持：电子邮箱：
-  - 模式3: {variant}\s*[:：]\s*[_\s]*$
-  - 模式4: {variant}\s*[:：]\s*[_\s]+[。\.]
-  - 模式5: {variant}(?=\s+(?!.*_)) - 插入式填空
-  - 模式6: {variant}\s+[_\s]+$
+  - 模式2: {variant}\\s*[:：]\\s*$ - 无下划线支持：电子邮箱：
+  - 模式3: {variant}\\s*[:：]\\s*[_\\s]*$
+  - 模式4: {variant}\\s*[:：]\\s*[_\\s]+[。\\.]
+  - 模式5: {variant}(?=\\s+(?!.*_)) - 插入式填空
+  - 模式6: {variant}\\s+[_\\s]+$
 
   替换策略 (4种复杂策略):
   - 模式5: 插入式替换
@@ -155,6 +150,75 @@
 8.采购人、项目名称、项目编号、日期信息从 项目信息配置文件中读取
     公司信息从公司的配置文件中读取。
     授权代表的姓名即 公司信息中的被授权人的姓名
+
+    
+  各策略对下划线/空格的处理分析
+
+  策略1：插入式填空 ❌ 不清理
+
+  # 匹配：传真(?=\s+)(?![:：])
+  # 替换：传真 → 传真010-63271000
+  # 结果：传真010-63271000                    
+  - 不清理下划线字符
+  - 不清理空格
+  - 保留所有原始空格结构
+
+  策略2：公章格式替换 ✅ 部分清理
+
+  # 匹配：(?P<prefix>供应商名称\s*[:：]\s*)(?P<spaces>[_\s]+)(?P<stamp>[（(][^）)]*章[^）)]*[）)])
+  # 替换：\g<prefix>{replacement_text}\g<stamp>
+  # 结果：供应商名称：智慧足迹（加盖公章）
+  - 清理中间的下划线和空格 [_\s]+
+  - 保留公章括号部分
+
+  策略3：纯空格替换 ✅ 清理空格
+
+  # 匹配：(电子邮箱\s*[:：])\s+$
+  # 替换：\g<1>{replacement_text}
+  # 结果：电子邮箱：contact@company.com
+  - 没有下划线字符要清理
+  - 清理行尾空格 \s+$
+
+  策略4：括号格式替换 ✅ 完全替换
+
+  # 匹配：[（(]\s*供应商名称\s*[）)]
+  # 替换：（{replacement_text}）
+  # 结果：（智慧足迹数据科技有限公司）
+  - 没有下划线字符
+  - 完全替换括号内容
+
+  策略5：精确模式替换 ✅ 混合处理
+
+  子策略1：多字段 ❌ 不清理后续
+
+  # 匹配：(?P<prefix>地址\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>\s+邮编[:：])
+  # 替换：\g<prefix>{replacement_text}\g<suffix>
+  # 结果：地址：北京市朝阳区 邮编：
+  - 清理当前字段的下划线
+  - 保留后续字段空格
+
+  子策略2：单字段末尾 ✅ 完全清理
+
+  # 匹配：(电话\s*[:：]\s*)_+\s*$
+  # 替换：\g<1>{replacement_text}
+  # 结果：电话：010-63271000
+  - 清理所有下划线 _+
+  - 清理末尾空格 \s*$
+
+  子策略3：无下划线 ❌ 不清理
+
+  # 匹配：(电子邮箱\s*[:：])\s*$
+  # 替换：\g<1>{replacement_text}
+  # 结果：电子邮箱：contact@company.com
+  - 没有下划线字符
+  - 清理少量空格 \s*$
+
+  子策略4：通用下划线 ✅ 完全清理
+
+  # 匹配：(供应商名称\s*[:：]\s*)[_\s]+
+  # 替换：\g<1>{replacement_text}
+  # 结果：供应商名称：智慧足迹
+  - 清理下划线和空格 [_\s]+
 
 """
 
@@ -309,8 +373,8 @@ class InfoFiller:
             stats['total_replacements'] += result['count']
             stats['fill_rules'] += result['count']
         
-        # 后处理：清理多余的占位符 (暂时禁用以保持精确格式)
-        # self._post_process(doc)  # 暂时禁用美化机制
+        # 后处理：清理多余的占位符和装饰性格式
+        self._post_process(doc)  # 启用美化和格式清理机制
         
         # 文档级别验证：处理完成后的验证
         self.logger.info(f"📊 文档处理完成统计: {stats}")
@@ -555,6 +619,7 @@ class InfoFiller:
                 if context == 'authorized_person':
                     position = info.get('authorizedPersonPosition', '')
                     if position:
+                        self.logger.info(f"📝 使用被授权人职务: '{position}'")
                     else:
                         self.logger.warning(f"⚠️ 被授权人职务为空，尝试法定代表人职位")
                         position = info.get('legalRepresentativePosition', '')
@@ -563,6 +628,7 @@ class InfoFiller:
                 else:  # legal_representative
                     position = info.get('legalRepresentativePosition', '')
                     if position:
+                        self.logger.info(f"📝 使用法定代表人职位: '{position}'")
                     else:
                         self.logger.warning(f"⚠️ 法定代表人职位为空，尝试被授权人职务")
                         position = info.get('authorizedPersonPosition', '')
@@ -1042,24 +1108,25 @@ class InfoFiller:
             self.logger.debug("段落无runs，跳过处理")
             return False
 
-        self.logger.info(f"🎯 精确替换开始: 模式='{pattern}', 替换为='{replacement}'")
-        self.logger.info(f"📄 原文: '{paragraph.text}'")
-
         # 构建字符映射
         full_text, runs, char_to_run_map = self.build_paragraph_text_map(paragraph)
 
         if not full_text:
             return False
 
-        self.logger.debug(f"  Run结构: {len(runs)} 个runs，总长度 {len(full_text)} 字符")
-        for i, run in enumerate(runs):
-            self.logger.debug(f"    Run {i}: '{run.text}' (长度: {len(run.text)})")
-
         # 查找匹配
         matches = self.find_cross_run_matches(full_text, pattern)
 
         if not matches:
             return False
+
+        # 只在找到匹配时才输出详细日志
+        self.logger.info(f"🎯 精确替换开始: 模式='{pattern}', 替换为='{replacement}'")
+        self.logger.info(f"📄 原文: '{paragraph.text}'")
+
+        self.logger.debug(f"  Run结构: {len(runs)} 个runs，总长度 {len(full_text)} 字符")
+        for i, run in enumerate(runs):
+            self.logger.debug(f"    Run {i}: '{run.text}' (长度: {len(run.text)})")
 
         # 只在成功替换时记录日志
 
@@ -1070,8 +1137,8 @@ class InfoFiller:
 
         # 执行替换
         for match in matches:
-            # 处理regex组替换（如\g<1>等）
-            if '\\g<' in replacement:
+            # 处理regex组替换（支持\g<1>和\1格式）
+            if '\\g<' in replacement or '\\1' in replacement or '\\2' in replacement:
                 # 创建正则匹配对象来进行组替换
                 match_obj = re.search(pattern, match['text'])
                 if match_obj:
@@ -1673,7 +1740,14 @@ class InfoFiller:
         self.logger.info(f"✅ 匹配内容: '{match.group()}'")
 
         replacement = f'{variant}{replacement_text}'
-        return self.precise_replace(paragraph, insert_pattern, replacement)
+        success = self.precise_replace(paragraph, insert_pattern, replacement)
+
+        if success:
+            # 新增：标记此段落需要后续格式清理
+            self._mark_paragraph_for_format_cleanup(paragraph, variant, replacement_text)
+            self.logger.debug(f"🏷️ 标记段落需要格式清理: {variant}")
+
+        return success
 
     def _try_stamp_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
         """策略2：公章格式替换 - 保留公章括号"""
@@ -1769,11 +1843,108 @@ class InfoFiller:
 
         return False
 
+    def _mark_paragraph_for_format_cleanup(self, paragraph, field_name: str, content: str):
+        """标记段落需要后续格式清理"""
+        try:
+            # 在段落对象上添加清理标记（临时属性）
+            if not hasattr(paragraph, '_format_cleanup_needed'):
+                paragraph._format_cleanup_needed = []
+
+            paragraph._format_cleanup_needed.append({
+                'field_name': field_name,
+                'content': content
+            })
+
+            self.logger.debug(f"🏷️ 段落格式清理标记已添加: {field_name} -> {content[:20]}...")
+
+        except Exception as e:
+            self.logger.error(f"❌ 添加格式清理标记失败: {e}")
+
+    def _clean_decorative_formats_only(self, paragraph):
+        """只清理装饰性格式，完全保留文本结构"""
+        try:
+            cleanup_info = getattr(paragraph, '_format_cleanup_needed', [])
+
+            for run in paragraph.runs:
+                should_clean = False
+
+                # 方法1：检查是否包含我们标记的填充内容
+                for info in cleanup_info:
+                    if info['content'] in run.text:
+                        should_clean = True
+                        self.logger.debug(f"🏷️ 发现标记的填充内容: '{info['content']}'")
+                        break
+
+                # 方法2：检查是否包含典型填充内容模式
+                if not should_clean:
+                    should_clean = self._is_filled_content_run(run)
+
+                # 方法3：对于插入式策略，清理所有后续空格的装饰格式
+                if not should_clean and len(run.text.strip()) == 0:
+                    # 如果是纯空格run，且段落包含填充内容，则清理装饰格式
+                    paragraph_text = paragraph.text
+                    if any(pattern in paragraph_text for pattern in ['010-', '@', 'www.', '有限公司']):
+                        should_clean = True
+                        self.logger.debug(f"🧹 清理填充内容后的空格装饰格式")
+
+                if should_clean:
+                    # 清理装饰格式
+                    if hasattr(run.font, 'underline') and run.font.underline:
+                        run.font.underline = False
+                        self.logger.debug(f"🔧 清除下划线格式: '{run.text[:15]}...'")
+
+                    if hasattr(run.font, 'strike') and run.font.strike:
+                        run.font.strike = False
+                        self.logger.debug(f"🔧 清除删除线格式: '{run.text[:15]}...'")
+
+            # 清理临时标记
+            if hasattr(paragraph, '_format_cleanup_needed'):
+                delattr(paragraph, '_format_cleanup_needed')
+
+        except Exception as e:
+            self.logger.error(f"❌ 装饰性格式清理失败: {e}")
+
+    def _is_filled_content_run(self, run) -> bool:
+        """判断run是否包含已填充的内容"""
+        try:
+            run_text = run.text
+            if not run_text:
+                return False
+
+            # 检查是否包含典型的填充内容模式
+            filled_patterns = [
+                r'\d{3,4}-\d{7,8}',  # 电话号码
+                r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',  # 邮箱
+                r'\d{6}',  # 邮编
+                r'www\.',  # 网站
+                r'有限公司|股份|集团|科技',  # 公司名称特征
+            ]
+
+            for pattern in filled_patterns:
+                if re.search(pattern, run_text):
+                    return True
+
+            return False
+
+        except Exception as e:
+            self.logger.error(f"❌ 判断填充内容失败: {e}")
+            return False
+
     def _post_process(self, doc: Document):
         """
-        后处理：清理多余的占位符和格式（保护已填充内容）
-        注意：当前已禁用此方法以保持完美的格式控制
+        后处理：清理多余的占位符和装饰性格式（保护已填充内容）
+        新增：专门处理插入式策略的格式清理需求
         """
+        # 第一步：处理标记的格式清理
+        self.logger.debug("🧹 开始后处理：格式清理和美化")
+
+        for paragraph in doc.paragraphs:
+            # 检查是否有格式清理标记
+            if hasattr(paragraph, '_format_cleanup_needed'):
+                self.logger.debug(f"🏷️ 发现需要格式清理的段落: '{paragraph.text[:30]}...'")
+                self._clean_decorative_formats_only(paragraph)
+
+        # 第二步：原有的文本清理逻辑
         for paragraph in doc.paragraphs:
             text = paragraph.text
             original_text = text
