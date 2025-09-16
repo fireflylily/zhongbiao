@@ -1550,14 +1550,28 @@ class InfoFiller:
         return True
 
     def _try_insert_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
-        """策略1：插入式替换 - 直接在字段名后插入内容"""
+        """策略1：插入式替换 - 直接在字段名后插入内容并智能清理空格"""
         # 快速检查：只有字段名后直接跟冒号才拒绝
         if re.search(rf'{re.escape(variant)}\s*[:：]', paragraph.text):
             # 如果字段名后直接跟冒号，不是插入式格式
             return False
 
-        # 检查是否匹配插入式模式：字段名后面跟空格但不跟冒号
-        insert_pattern = rf'{re.escape(variant)}(?=\s+)(?![:：])'
+        # 智能判断字段位置，决定匹配模式和替换策略
+        if re.search(rf'{re.escape(variant)}\s*$', paragraph.text):
+            # 情况1：字段在段落末尾，不保留空格
+            insert_pattern = rf'{re.escape(variant)}\s*$'
+            replacement = f'{variant}{replacement_text}'
+            self.logger.debug(f"📍 策略1检测到末尾模式: {variant}")
+        elif re.search(rf'{re.escape(variant)}\s+', paragraph.text):
+            # 情况2：字段在中间，匹配所有空格，替换后保留一个空格
+            insert_pattern = rf'{re.escape(variant)}\s+'
+            replacement = f'{variant}{replacement_text} '
+            self.logger.debug(f"📍 策略1检测到中间模式: {variant}")
+        else:
+            # 没有匹配到插入式模式
+            return False
+
+        # 验证模式是否匹配
         match = re.search(insert_pattern, paragraph.text)
         if not match:
             return False
@@ -1566,14 +1580,14 @@ class InfoFiller:
         self.logger.info(f"🎯 策略1(插入式)匹配成功 - 字段: {variant}")
         self.logger.info(f"📝 匹配模式: {insert_pattern}")
         self.logger.info(f"✅ 匹配内容: '{match.group()}'")
+        self.logger.info(f"🔄 替换为: '{replacement}'")
 
-        replacement = f'{variant}{replacement_text}'
+        # 执行精确替换
         success = self.precise_replace(paragraph, insert_pattern, replacement)
 
         if success:
-            # 新增：标记此段落需要后续格式清理
-            self._mark_paragraph_for_format_cleanup(paragraph, variant, replacement_text)
-            self.logger.debug(f"🏷️ 标记段落需要格式清理: {variant}")
+            self.logger.info(f"✨ 策略1替换成功，空格已智能处理")
+            # 不再需要标记格式清理，因为已在替换时处理
 
         return success
 
