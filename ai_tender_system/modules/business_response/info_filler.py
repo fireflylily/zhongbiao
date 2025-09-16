@@ -454,9 +454,11 @@ class InfoFiller:
         """
         尝试组合替换规则
         如：（供应商名称、地址）→（公司名、地址）
+        支持同一段落中的多个组合规则
         """
         text = paragraph.text
-        
+        any_replaced = False
+
         # 组合模式1：供应商名称、地址
         pattern1 = r'[（(]\s*供应商名称\s*[、，]\s*地址\s*[）)]'
         if re.search(pattern1, text):
@@ -467,8 +469,9 @@ class InfoFiller:
                 # 使用精确格式处理引擎进行组合替换
                 if self.precise_replace(paragraph, pattern1, replacement):
                     self.logger.info(f"组合替换: 供应商名称、地址")
-                    return True
-        
+                    any_replaced = True
+                    text = paragraph.text  # 更新text以便后续匹配
+
         # 组合模式2：项目名称、项目编号
         pattern2 = r'[（(]\s*项目名称\s*[、，]\s*项目编号\s*[）)]'
         if re.search(pattern2, text):
@@ -479,7 +482,8 @@ class InfoFiller:
                 # 使用精确格式处理引擎进行组合替换
                 if self.precise_replace(paragraph, pattern2, replacement):
                     self.logger.info(f"组合替换: 项目名称、项目编号")
-                    return True
+                    any_replaced = True
+                    text = paragraph.text  # 更新text以便后续匹配
 
         # 组合模式3：（职位、职称）智能替换规则
         pattern3 = r'[（(]\s*职(?:位|务|称)\s*[、，]\s*职(?:位|务|称)\s*[）)]'
@@ -525,7 +529,8 @@ class InfoFiller:
                     # 使用精确格式处理引擎进行智能职位组合替换
                     if self.precise_replace(paragraph, pattern3, replacement):
                         self.logger.info(f"智能职位组合替换: （职位、职称） → （{position}、{position}）")
-                        return True
+                        any_replaced = True
+                        text = paragraph.text  # 更新text以便后续匹配
                 else:
                     self.logger.warning(f"⚠️ 所有职位数据源都为空，跳过处理")
 
@@ -572,7 +577,7 @@ class InfoFiller:
                     # 使用精确格式处理引擎进行智能姓名职位组合替换
                     if self.precise_replace(paragraph, pattern4, replacement):
                         self.logger.info(f"智能姓名职位组合替换: （姓名、职位） → （{name}、{position}）")
-                        return True
+                        any_replaced = True
                 else:
                     missing_fields = []
                     if not name:
@@ -585,7 +590,7 @@ class InfoFiller:
                 self.logger.error(f"❌ 姓名职位组合替换发生异常: {e}")
                 # 异常情况下不影响其他规则处理
 
-        return False
+        return any_replaced
     
     def _try_replacement_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
         """
