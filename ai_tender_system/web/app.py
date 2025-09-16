@@ -261,26 +261,30 @@ def register_routes(app: Flask, config, logger):
             })
         
         try:
+            logger.info(f"一次性API调用 - Content-Type: {request.content_type}")
+            logger.info(f"一次性API调用 - Form keys: {list(request.form.keys())}")
+            logger.info(f"一次性API调用 - Files keys: {list(request.files.keys())}")
+
             # 获取上传的文件
             if 'file' not in request.files:
                 raise ValueError("没有选择文件")
-            
+
             file = request.files['file']
             if file.filename == '':
                 raise ValueError("文件名为空")
-            
+
             # 获取API密钥
             api_key = request.form.get('api_key') or config.get_default_api_key()
             if not api_key:
                 raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
-            
+
             # 保存上传文件
             filename = safe_filename(file.filename)
             upload_dir = ensure_dir(config.get_path('upload'))
             file_path = upload_dir / filename
             file.save(str(file_path))
-            
-            logger.info(f"开始提取招标信息: {filename}")
+
+            logger.info(f"一次性API - 开始提取招标信息: {filename}")
             
             # 执行信息提取
             extractor = TenderInfoExtractor(api_key=api_key)
@@ -305,26 +309,48 @@ def register_routes(app: Flask, config, logger):
                 'success': False,
                 'message': '招标信息提取模块不可用'
             })
-        
+
         try:
+            logger.info(f"分步API调用 - Content-Type: {request.content_type}")
+            logger.info(f"分步API调用 - Form keys: {list(request.form.keys())}")
+            logger.info(f"分步API调用 - Files keys: {list(request.files.keys())}")
+
             # 支持两种格式：JSON 和 FormData
             if request.content_type and 'application/json' in request.content_type:
                 data = request.get_json()
                 step = data.get('step', '1')
                 file_path = data.get('file_path', '')
                 api_key = data.get('api_key') or config.get_default_api_key()
+                logger.info(f"分步API - JSON格式, step: {step}, file_path: {file_path}")
             else:
-                # FormData 格式
+                # FormData 格式 - 支持文件上传
                 step = request.form.get('step', '1')
                 file_path = request.form.get('file_path', '')
                 api_key = request.form.get('api_key') or config.get_default_api_key()
-            
+                logger.info(f"分步API - FormData格式, step: {step}, file_path: {file_path}")
+
+                # 如果没有file_path但有文件上传，处理文件上传
+                if not file_path and 'file' in request.files:
+                    file = request.files['file']
+                    if file.filename != '':
+                        # 保存上传文件
+                        filename = safe_filename(file.filename)
+                        upload_dir = ensure_dir(config.get_path('upload'))
+                        file_path = upload_dir / filename
+                        file.save(str(file_path))
+                        file_path = str(file_path)
+                        logger.info(f"分步处理：文件已上传到 {file_path}")
+                    else:
+                        logger.warning("分步API - 文件名为空")
+                else:
+                    logger.info(f"分步API - 没有文件上传，使用现有file_path: {file_path}")
+
             if not file_path or not Path(file_path).exists():
-                raise ValueError("文件路径无效")
-            
+                raise ValueError("文件路径无效或文件不存在")
+
             if not api_key:
                 raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
-            
+
             extractor = TenderInfoExtractor(api_key=api_key)
             
             if step == '1':

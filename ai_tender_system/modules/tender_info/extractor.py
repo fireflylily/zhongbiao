@@ -3,6 +3,53 @@
 """
 招标信息提取器 - 重构版本
 从招标文档中提取项目信息、资质要求和技术评分标准
+
+功能：从招标文档中提取项目信息、资质要求和技术评分标准
+
+  🔧 核心功能模块
+
+  1. 文档读取支持
+    - PDF 文件 (使用 PyPDF2)
+    - Word 文档 (使用 python-docx)
+    - 纯文本文件 (支持 UTF-8 和 GBK 编码)
+  2. LLM API 调用
+    - 使用 Bearer Token 认证
+    - 支持重试机制和指数退避
+    - 超时控制和错误处理
+  3. 信息提取功能
+    - extract_basic_info(): 提取项目基本信息
+    - extract_qualification_requirements(): 提取资质要求
+    - extract_technical_scoring(): 提取技术评分标准
+  4. 安全正则表达式
+    - 带超时的正则表达式搜索，防止灾难性回溯
+    - 支持大小写忽略模式
+
+  📊 提取的数据类型
+
+  基本信息：
+  - 项目名称、编号
+  - 招标人、代理机构
+  - 采购方式、开标地点时间
+  - 中标人数量
+
+  资质要求：
+  - 营业执照、纳税资格
+  - 业绩要求、授权书
+  - 信用查询、承诺书
+  - 审计报告、社保劳动合同等
+
+  技术评分：
+  - 评分项目名称和分值
+  - 评分标准描述
+  - 来源位置信息
+
+  🔒 错误处理
+
+  - 自定义异常类型：TenderInfoExtractionError、APIError、FileProcessingError
+  - 完整的日志记录系统
+  - 配置文件保存功能
+
+  这个模块为"读取信息"页面的后端处理提供了完整的文档分析和信息提取能力。
 """
 
 import requests
@@ -421,14 +468,12 @@ class TenderInfoExtractor:
             
             # 提取各项信息
             basic_info = self.extract_basic_info(text)
-            qualification_info = self.extract_qualification_requirements(text)
-            scoring_info = self.extract_technical_scoring(text)
+            # qualification_info = self.extract_qualification_requirements(text)  # 暂时屏蔽
+            # scoring_info = self.extract_technical_scoring(text)  # 暂时屏蔽
             
-            # 合并结果
+            # 合并结果 - 只包含基本信息
             result = {
                 **basic_info,
-                **qualification_info,
-                **scoring_info,
                 'extraction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'file_path': str(file_path)
             }

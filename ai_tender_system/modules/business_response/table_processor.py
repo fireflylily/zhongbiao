@@ -15,37 +15,20 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import get_module_logger
 
+# 导入统一字段映射模块
+from .field_mapping import get_field_mapping
+
 class TableProcessor:
     """表格处理器"""
     
     def __init__(self):
         self.logger = get_module_logger("table_processor")
-        
-        # 表格中的关键字段映射
-        self.table_field_mapping = {
-            '供应商名称': 'companyName',
-            '投标人名称': 'companyName',
-            '公司名称': 'companyName',
-            '法定代表人': 'legalRepresentative',
-            '注册资本': 'registeredCapital',
-            '成立日期': 'establishDate',
-            '统一社会信用代码': 'socialCreditCode',
-            '注册地址': 'registeredAddress',
-            '联系地址': 'address',
-            '联系人': 'contactPerson',
-            '联系电话': 'phone',
-            '电子邮箱': 'email',
-            '传真': 'fax',
-            '开户银行': 'bankName',
-            '银行账号': 'bankAccount',
-            '税号': 'taxNumber',
-            '资质等级': 'qualification',
-            '项目名称': 'projectName',
-            '项目编号': 'projectNumber',
-            '投标报价': 'bidPrice',
-            '交货期': 'deliveryTime',
-            '质保期': 'warrantyPeriod'
-        }
+
+        # 获取统一字段映射实例
+        self.field_mapping = get_field_mapping()
+
+        # 使用统一的表格字段映射
+        self.table_field_mapping = self.field_mapping.get_table_mapping()
     
     def process_tables(self, doc: Document, company_info: Dict[str, Any], 
                        project_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -66,8 +49,8 @@ class TableProcessor:
             'fields_matched': []
         }
         
-        # 合并所有信息
-        all_info = {**company_info, **project_info}
+        # 使用统一映射创建字段映射表
+        all_info = self.field_mapping.create_unified_mapping(company_info, project_info)
         
         for table_idx, table in enumerate(doc.tables):
             self.logger.info(f"处理表格 #{table_idx + 1}")

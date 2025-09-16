@@ -1292,21 +1292,21 @@
         window.addEventListener('load', function() {
             const defaultKey = '{{ default_api_key }}';
             const saved = localStorage.getItem(API_STORAGE_KEY);
-            
+
             if (saved) {
                 const decrypted = decryptApiKey(saved);
                 if (decrypted) {
                     apiKeyInput.value = decrypted;
-                    document.getElementById('tenderApiKey').value = decrypted;
+                    // document.getElementById('tenderApiKey').value = decrypted;  // API密钥从环境变量获取
                     showNotification('已加载保存的API密钥', 'success');
                     return;
                 }
             }
-            
+
             // 如果没有保存的密钥，使用默认密钥
             if (defaultKey && defaultKey !== 'None') {
                 apiKeyInput.value = defaultKey;
-                document.getElementById('tenderApiKey').value = defaultKey;
+                // document.getElementById('tenderApiKey').value = defaultKey;  // API密钥从环境变量获取
                 showNotification('已加载默认API密钥', 'info');
             }
         });
@@ -2046,48 +2046,7 @@
             }
         }
 
-        // API测试
-        const testTenderApiBtn = document.getElementById('testTenderApiBtn');
-        if (testTenderApiBtn) {
-            testTenderApiBtn.addEventListener('click', function() {
-                const apiKeyElement = document.getElementById('tenderApiKey');
-                const apiKey = apiKeyElement ? apiKeyElement.value.trim() : '';
-                const btn = this;
-                const originalText = btn.innerHTML;
-                const statusDiv = document.getElementById('tenderApiStatus');
-            
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 测试中...';
-            btn.disabled = true;
-            
-            fetch('/api/test', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ api_key: apiKey })
-            })
-            .then(response => response.json())
-            .then(data => {
-                statusDiv.style.display = 'block';
-                if (data.success) {
-                    statusDiv.className = 'api-status success';
-                    statusDiv.innerHTML = `<i class="bi bi-check-circle"></i> ${data.message} (模型: ${data.model})`;
-                } else {
-                    statusDiv.className = 'api-status error';
-                    statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> ${data.message}`;
-                }
-            })
-            .catch(error => {
-                statusDiv.style.display = 'block';
-                statusDiv.className = 'api-status error';
-                statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> 连接失败: ${error.message}`;
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        });
-        }
+        // API测试功能已移除 - 使用环境变量API密钥
 
         // 提取信息按钮事件
         if (extractInfoBtn) {
@@ -2217,7 +2176,7 @@
         function submitTenderExtraction() {
             const formData = new FormData();
             formData.append('file', tenderFileInput.files[0]);
-            formData.append('api_key', document.getElementById('tenderApiKey').value);
+            // API密钥从环境变量获取，无需传递
 
             // 重置显示区域
             tenderResultArea.style.display = 'none';
