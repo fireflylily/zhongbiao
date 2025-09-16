@@ -482,9 +482,18 @@ class InfoFiller:
                     return True
 
         # 组合模式3：（职位、职称）智能替换规则
-        pattern3 = r'[（(]\s*职[位务称]\s*[、，]\s*职[位务称]\s*[）)]'
+        pattern3 = r'[（(]\s*职(?:位|务|称)\s*[、，]\s*职(?:位|务|称)\s*[）)]'
+
+        # 添加调试日志
+        self.logger.debug(f"🔍 检查职位组合模式，段落: '{text[:100]}...'")
+        match_result = re.search(pattern3, text)
+        if match_result:
+            self.logger.info(f"🎯 检测到职位组合模式匹配: '{match_result.group()}' 在段落: '{text[:50]}...'")
+        else:
+            self.logger.debug(f"❌ 职位组合模式未匹配，段落: '{text[:50]}...'")
+
         if re.search(pattern3, text):
-            self.logger.debug(f"🎯 检测到职位组合模式: '{text[:50]}...'")
+            self.logger.info(f"🎯 进入职位组合模式处理: '{text[:50]}...'")
 
             try:
                 # 智能识别上下文
