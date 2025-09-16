@@ -331,7 +331,7 @@ class TenderInfoExtractor:
 }}
 """
             
-            #response = self.llm_callback(prompt, "基本信息提取")
+            response = self.llm_callback(prompt, "基本信息提取")
             
             # 解析JSON响应
             try:
@@ -468,15 +468,12 @@ class TenderInfoExtractor:
             
             # 提取各项信息
             basic_info = self.extract_basic_info(text)
-            qualification_info = self.extract_qualification_requirements(text)
+            # qualification_info = self.extract_qualification_requirements(text)  # 暂时屏蔽
+            # scoring_info = self.extract_technical_scoring(text)  # 暂时屏蔽
             
-            # scoring_info = self.extract_technical_scoring(text)
-            
-            # 合并结果
+            # 合并结果 - 只包含基本信息
             result = {
                 **basic_info,
-                **qualification_info,
-                **scoring_info,
                 'extraction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'file_path': str(file_path)
             }
