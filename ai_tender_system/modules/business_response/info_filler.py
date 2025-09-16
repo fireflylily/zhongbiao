@@ -235,90 +235,25 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import get_module_logger
 
+# 导入统一字段映射模块
+from .field_mapping import get_field_mapping
+
 class InfoFiller:
     """信息填写处理器"""
     
     def __init__(self):
         self.logger = get_module_logger("info_filler")
-        
-        # 供应商名称的变体
-        self.company_name_variants = [
-            '供应商名称', '供应商全称', '投标人名称', '公司名称',
-            '单位名称', '应答人名称', '供应商名称（盖章）',
-            '供应商名称（公章）', '公司名称（盖章）', '投标人名称（盖章）',
-            '投标人名称（公章）', '单位名称（盖章）', '单位名称（公章）'
-        ]
 
-        # 供应商名称的扩展匹配模式（支持带公章、盖章的变体）
-        self.company_name_extended_patterns = [
-            r'供应商名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',  # 供应商名称（加盖公章）
-            r'供应商全称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
-            r'投标人名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',  # 投标人名称（公章）
-            r'公司名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
-            r'单位名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
-            r'应答人名称(?:\s*[（(][^）)]*[公盖]章[^）)]*[）)])?',
-        ]
-        
-        # 其他字段的变体映射
-        self.field_variants = {
-            'email': ['邮箱', '邮件', '电子邮件', '电子邮箱', 'email', 'Email', 'E-mail', 'E-Mail'],
-            'phone': ['电话', '联系电话', '固定电话', '电话号码', '联系方式'],
-            'fax': ['传真', '传真号码', '传真号', 'fax', 'Fax'],
-            'address': ['地址', '注册地址', '办公地址', '联系地址', '通讯地址', '供应商地址', '公司地址'],
-            'postalCode': ['邮政编码', '邮编', '邮码'],
-            'establishDate': ['成立时间', '成立日期', '注册时间', '注册日期'],
-            'businessScope': ['经营范围', '业务范围', '经营项目'],
-            'legalRepresentative': ['法定代表人', '法人代表', '法人'],
-            'authorizedPersonName': ['供应商代表姓名', '授权代表姓名', '代表姓名', '授权代表'],
-            'position': ['职务', '职位', '职称'],
-            'projectName': ['项目名称', '采购项目名称', '招标项目名称'],
-            'projectNumber': ['项目编号', '采购编号', '招标编号', '项目号'],
-            'date': ['日期', '日 期', '日  期', '日   期', '日    期', '日     期']
-        }
-        
-        # 需要跳过的关键词（代理机构等，采购人和招标人统一处理）
-        self.skip_keywords = [
-            '代理', '招标代理', '采购代理',
-            '业主', '发包人', '委托人'
-        ]
-        
-        # 采购人信息字段（使用项目信息填充，统一处理采购人和招标人）
-        self.purchaser_variants = [
-            '采购人', '采购人名称', '采购单位',
-            '招标人', '招标人名称', '甲方', '甲方名称'
-        ]
-        
-        # 需要跳过的签字相关词
-        self.signature_keywords = ['签字', '签名', '签章', '盖章处']
+        # 获取统一字段映射实例
+        self.field_mapping = get_field_mapping()
 
-        # 统一字段映射配置 - 定义字段名与数据源的映射关系
-        self.field_mapping_rules = {
-            # 公司信息字段 (直接映射)
-            'companyName': ['companyName'],
-            'email': ['email'],
-            'fax': ['fax'],
-            'postalCode': ['postalCode'],
-            'establishDate': ['establishDate'],
-            'businessScope': ['businessScope'],
-            'legalRepresentative': ['legalRepresentative'],
-            'authorizedPersonName': ['authorizedPersonName'],
-
-            # 公司信息字段 (多源映射 - 按优先级顺序)
-            'address': ['address', 'registeredAddress', 'officeAddress'],
-            'phone': ['fixedPhone', 'phone'],
-
-            # 职位字段 (智能映射 - 需要上下文识别)
-            'authorizedPersonPosition': ['authorizedPersonPosition'],
-            'legalRepresentativePosition': ['legalRepresentativePosition'],
-
-            # 项目信息字段 (直接映射)
-            'projectName': ['projectName'],
-            'projectNumber': ['projectNumber'],
-            'date': ['date'],
-
-            # 项目信息字段 (多源映射)
-            'purchaserName': ['purchaserName', 'projectOwner']
-        }
+        # 使用统一的配置
+        self.company_name_variants = self.field_mapping.company_name_variants
+        self.company_name_extended_patterns = self.field_mapping.company_name_extended_patterns
+        self.field_variants = self.field_mapping.field_variants
+        self.skip_keywords = self.field_mapping.skip_keywords
+        self.purchaser_variants = self.field_mapping.purchaser_variants
+        self.signature_keywords = self.field_mapping.signature_keywords
         
     def fill_info(self, doc: Document, company_info: Dict[str, Any], 
                   project_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -342,8 +277,8 @@ class InfoFiller:
             'none': 0  # 添加对未处理段落的统计
         }
         
-        # 创建统一的字段映射（替代简单合并）
-        all_info = self._create_unified_field_mapping(company_info, project_info)
+        # 创建统一的字段映射（使用统一映射模块）
+        all_info = self.field_mapping.create_unified_mapping(company_info, project_info)
         
         # 文档级别验证：记录处理前状态
         total_paragraphs = len([p for p in doc.paragraphs if p.text.strip()])
@@ -375,7 +310,7 @@ class InfoFiller:
             stats['fill_rules'] += result['count']
         
         # 后处理：清理多余的占位符和装饰性格式
-        self._post_process(doc)  # 启用美化和格式清理机制
+        self._post_process(doc, all_info)  # 启用美化和格式清理机制，传入all_info
         
         # 文档级别验证：处理完成后的验证
         self.logger.info(f"📊 文档处理完成统计: {stats}")
@@ -404,54 +339,7 @@ class InfoFiller:
         self.logger.info(f"信息填写完成: {stats}")
         return stats
 
-    def _create_unified_field_mapping(self, company_info: Dict[str, Any],
-                                    project_info: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        创建统一的字段映射表
-
-        Args:
-            company_info: 公司信息字典
-            project_info: 项目信息字典
-
-        Returns:
-            统一的字段映射字典，所有字段都映射到标准化的值
-        """
-        # 合并原始数据
-        raw_data = {**company_info, **project_info}
-        unified_mapping = {}
-
-        self.logger.debug(f"🔧 开始创建统一字段映射")
-        self.logger.debug(f"🔧 原始数据键: {list(raw_data.keys())}")
-
-        # 遍历所有映射规则
-        for target_field, source_fields in self.field_mapping_rules.items():
-            value = None
-
-            # 按优先级顺序查找值 (第一个非空值)
-            for source_field in source_fields:
-                if source_field in raw_data:
-                    candidate_value = raw_data[source_field]
-                    if candidate_value and str(candidate_value).strip():  # 非空且非空白
-                        value = candidate_value
-                        self.logger.debug(f"🔧 字段映射: {target_field} ← {source_field} = '{value}'")
-                        break
-
-            # 存储映射结果 (即使是None也要存储，避免KeyError)
-            unified_mapping[target_field] = value or ''
-
-            if not value:
-                self.logger.debug(f"⚠️ 字段映射: {target_field} ← 无有效数据源 (尝试了 {source_fields})")
-
-        # 添加其他未配置映射规则的字段 (直接透传)
-        for key, value in raw_data.items():
-            if key not in unified_mapping:
-                unified_mapping[key] = value
-                self.logger.debug(f"🔧 直接映射: {key} = '{value}'")
-
-        self.logger.info(f"🔧 统一字段映射完成: {len(unified_mapping)} 个字段")
-        self.logger.debug(f"🔧 映射结果预览: {list(unified_mapping.keys())}")
-
-        return unified_mapping
+    # _create_unified_field_mapping 方法已移至 field_mapping.py 模块
 
     def _process_paragraph(self, paragraph: Paragraph, info: Dict[str, Any]) -> Dict[str, Any]:
         """处理单个段落"""
@@ -490,21 +378,8 @@ class InfoFiller:
     
     def _should_skip(self, text: str) -> bool:
         """检查是否应该跳过该文本"""
-        # 检查是否包含代理机构等需要跳过的关键词
-        for keyword in self.skip_keywords:
-            # 避免误判：排除"签字代表"等合法词汇  
-            if keyword in text and "签字代表" not in text:
-                return True
-        
-        # 检查是否包含签字相关词（避免误判签字代表等合法词汇）
-        for keyword in self.signature_keywords:
-            if keyword in text:
-                # 排除合法的描述性词汇
-                if keyword == '签字' and ('签字代表' in text or '经正式授权' in text):
-                    continue
-                return True
-        
-        return False
+        # 使用统一的跳过判断逻辑
+        return self.field_mapping.is_skip_field(text)
 
     def _detect_position_context(self, paragraph_text: str) -> str:
         """
@@ -1869,10 +1744,14 @@ class InfoFiller:
             self.logger.error(f"❌ 判断填充内容失败: {e}")
             return False
 
-    def _post_process(self, doc: Document):
+    def _post_process(self, doc: Document, info: Dict[str, Any]):
         """
         后处理：清理多余的占位符和装饰性格式（保护已填充内容）
         新增：专门处理插入式策略的格式清理需求
+
+        Args:
+            doc: Word文档对象
+            info: 包含所有字段信息的字典
         """
         # 第一步：处理标记的格式清理
         self.logger.debug("🧹 开始后处理：格式清理和美化")
@@ -1884,7 +1763,7 @@ class InfoFiller:
                 self._clean_decorative_formats_only(paragraph)
 
         # 第二步：处理年月日格式填充
-        self._process_date_format_filling(doc)
+        self._process_date_format_filling(doc, info)
 
         # 第三步：原有的文本清理逻辑
         for paragraph in doc.paragraphs:
@@ -1936,15 +1815,19 @@ class InfoFiller:
                     # 后备方案：使用格式保护方法
                     self._update_paragraph_text_preserving_format(paragraph, text.strip())
 
-    def _process_date_format_filling(self, doc: Document):
+    def _process_date_format_filling(self, doc: Document, info: Dict[str, Any]):
         """
         处理年月日格式填充
         识别和填充"    年    月    日"等各种空格分隔的年月日格式
+
+        Args:
+            doc: Word文档对象
+            info: 包含所有字段信息的字典
         """
         self.logger.debug("📅 开始处理年月日格式填充")
         
         # 获取日期值
-        date_value = self.info.get('date', '')
+        date_value = info.get('date', '')
         if not date_value:
             self.logger.debug("⚠️ 日期值为空，跳过年月日格式填充")
             return

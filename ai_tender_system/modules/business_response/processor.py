@@ -396,21 +396,17 @@ class BusinessResponseProcessor:
     
     def get_supported_fields(self) -> Dict[str, List[str]]:
         """获取支持的字段列表"""
-        return {
-            'company_fields': [
-                'companyName', 'address', 'registeredAddress', 'officeAddress',
-                'phone', 'fixedPhone', 'email', 'fax', 'postalCode',
-                'legalRepresentative', 'socialCreditCode', 'registeredCapital',
-                'establishDate', 'bankName', 'bankAccount', 'taxNumber'
-            ],
-            'project_fields': [
-                'projectName', 'projectNumber', 'date', 'bidPrice',
-                'deliveryTime', 'warrantyPeriod'
-            ],
-            'image_fields': [
-                'seal_path', 'license_path', 'qualification_paths'
-            ]
-        }
+        # 从统一字段映射模块获取字段列表
+        from .field_mapping import get_field_mapping
+        field_mapping = get_field_mapping()
+        supported = field_mapping.get_all_supported_fields()
+
+        # 添加图片字段（这个不在field_mapping中）
+        supported['image_fields'] = [
+            'seal_path', 'license_path', 'qualification_paths'
+        ]
+
+        return supported
 
 
 # 保持向后兼容性
