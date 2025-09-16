@@ -331,7 +331,7 @@ class TenderInfoExtractor:
 }}
 """
             
-            response = self.llm_callback(prompt, "基本信息提取")
+            #response = self.llm_callback(prompt, "基本信息提取")
             
             # 解析JSON响应
             try:

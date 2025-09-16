@@ -47,7 +47,8 @@
       "Bash(cd:*)",
       "Bash(gtimeout:*)",
       "Bash(git rm:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
