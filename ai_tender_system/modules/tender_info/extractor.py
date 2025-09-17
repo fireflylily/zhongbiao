@@ -353,59 +353,116 @@ class TenderInfoExtractor:
             raise TenderInfoExtractionError(f"基本信息提取失败: {str(e)}")
     
     def extract_qualification_requirements(self, text: str) -> Dict[str, Any]:
-        """提取资质要求"""
+        """基于关键字匹配的资质要求提取"""
         try:
-            self.logger.info("开始提取资质要求")
-            
-            prompt = f"""
-请从以下招标文档中提取资质要求信息，以JSON格式返回：
+            self.logger.info("开始提取资质要求（关键字匹配）")
 
-文档内容：
-{text[:4000]}...
+            # 定义资质关键字词典
+            qualification_keywords = {
+                'business_license': [
+                    '营业执照', '企业法人营业执照', '工商营业执照', '统一社会信用代码',
+                    '营业执照副本', '企业营业执照', '法人营业执照'
+                ],
+                'taxpayer_qualification': [
+                    '一般纳税人', '增值税纳税人', '纳税资格', '纳税人资格',
+                    '增值税专用发票', '纳税人资格认定', '税务登记'
+                ],
+                'iso9001': [
+                    'ISO9001', 'ISO 9001', '质量管理体系认证', '质量管理体系',
+                    'ISO9001认证', '质量体系认证'
+                ],
+                'iso14001': [
+                    'ISO14001', 'ISO 14001', '环境管理体系认证', '环境管理体系',
+                    'ISO14001认证', '环境体系认证'
+                ],
+                'iso27001': [
+                    'ISO27001', 'ISO 27001', '信息安全管理体系认证', '信息安全管理体系',
+                    'ISO27001认证', '信息安全体系认证'
+                ],
+                'credit_china': [
+                    '信用中国', '政府采购信用', '失信被执行人', '信用查询',
+                    '黑名单', '信用记录', '诚信记录', '信用状况'
+                ],
+                'authorization_requirements': [
+                    '法定代表人', '授权委托书', '授权书', '被授权人',
+                    '授权代表', '委托代理人', '授权人'
+                ],
+                'audit_report': [
+                    '审计报告', '财务审计', '年度审计', '审计证明',
+                    '会计师事务所', '注册会计师审计'
+                ],
+                'social_security': [
+                    '社会保险', '社保证明', '社保缴费', '社会保险登记证',
+                    '社保登记', '社会保险费'
+                ],
+                'performance_requirements': [
+                    '业绩要求', '类似项目', '成功案例', '项目经验',
+                    '业绩证明', '合同业绩', '项目业绩'
+                ],
+                'commitment_letter': [
+                    '承诺书', '承诺函', '声明函', '保证书',
+                    '诚信承诺', '质量承诺'
+                ],
+                'labor_contract': [
+                    '劳动合同', '用工合同', '聘用合同', '劳务合同',
+                    '员工合同', '用工协议'
+                ]
+            }
 
-请识别并提取以下资质要求（如果文档中提到）：
-1. business_license_required: 是否需要营业执照 (true/false)
-2. business_license_description: 营业执照要求描述
-3. taxpayer_qualification_required: 是否需要纳税人资格证明 (true/false)
-4. taxpayer_qualification_description: 纳税人资格要求描述
-5. performance_requirements_required: 是否需要业绩要求 (true/false)
-6. performance_requirements_description: 业绩要求描述
-7. authorization_requirements_required: 是否需要授权书 (true/false)
-8. authorization_requirements_description: 授权要求描述
-9. credit_china_required: 是否需要信用中国查询 (true/false)
-10. credit_china_description: 信用查询要求描述
-11. commitment_letter_required: 是否需要承诺书 (true/false)
-12. commitment_letter_description: 承诺书要求描述
-13. audit_report_required: 是否需要审计报告 (true/false)
-14. audit_report_description: 审计报告要求描述
-15. social_security_required: 是否需要社保证明 (true/false)
-16. social_security_description: 社保要求描述
-17. labor_contract_required: 是否需要劳动合同 (true/false)
-18. labor_contract_description: 劳动合同要求描述
-19. other_requirements_required: 是否有其他要求 (true/false)
-20. other_requirements_description: 其他要求描述
+            result = {}
+            text_lower = text.lower()
 
-请严格按照JSON格式返回。
-"""
-            
-            response = self.llm_callback(prompt, "资质要求提取")
-            
-            try:
-                json_start = response.find('{')
-                json_end = response.rfind('}') + 1
-                json_str = response[json_start:json_end]
-                
-                qualification_info = json.loads(json_str)
-                self.logger.info("资质要求提取成功")
-                return qualification_info
-                
-            except json.JSONDecodeError as e:
-                self.logger.error(f"解析资质要求JSON失败: {e}")
-                return {}
-                
+            # 对每种资质类型进行关键字匹配
+            for qual_type, keywords in qualification_keywords.items():
+                matched = False
+                matched_keyword = None
+                context = ""
+
+                # 检查是否匹配任一关键字
+                for keyword in keywords:
+                    if keyword.lower() in text_lower:
+                        matched = True
+                        matched_keyword = keyword
+                        # 提取关键字周围的上下文
+                        context = self._extract_context_for_qualification(text, keyword)
+                        break
+
+                result[f"{qual_type}_required"] = matched
+                result[f"{qual_type}_description"] = context if matched else ""
+
+                if matched:
+                    self.logger.info(f"资质匹配成功: {qual_type} - 关键字: {matched_keyword}")
+
+            self.logger.info(f"资质要求提取完成，匹配到 {sum(1 for k, v in result.items() if k.endswith('_required') and v)} 个资质要求")
+            return result
+
         except Exception as e:
             self.logger.error(f"提取资质要求失败: {e}")
             return {}
+
+    def _extract_context_for_qualification(self, text: str, keyword: str) -> str:
+        """提取资质要求关键字的上下文描述"""
+        try:
+            keyword_pos = text.lower().find(keyword.lower())
+            if keyword_pos == -1:
+                return ""
+
+            # 提取关键字前后的文本作为上下文
+            start = max(0, keyword_pos - 100)
+            end = min(len(text), keyword_pos + len(keyword) + 200)
+            context = text[start:end].strip()
+
+            # 尝试提取完整的句子
+            sentences = re.split(r'[。；;]', context)
+            for sentence in sentences:
+                if keyword.lower() in sentence.lower():
+                    return sentence.strip()
+
+            return context[:150] + "..." if len(context) > 150 else context
+
+        except Exception as e:
+            self.logger.warning(f"提取上下文失败: {e}")
+            return keyword
     
     def extract_technical_scoring(self, text: str) -> Dict[str, Any]:
         """提取技术评分标准"""
@@ -468,12 +525,13 @@ class TenderInfoExtractor:
             
             # 提取各项信息
             basic_info = self.extract_basic_info(text)
-            # qualification_info = self.extract_qualification_requirements(text)  # 暂时屏蔽
+            qualification_info = self.extract_qualification_requirements(text)
             # scoring_info = self.extract_technical_scoring(text)  # 暂时屏蔽
-            
-            # 合并结果 - 只包含基本信息
+
+            # 合并结果 - 包含基本信息和资质要求
             result = {
                 **basic_info,
+                **qualification_info,
                 'extraction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'file_path': str(file_path)
             }

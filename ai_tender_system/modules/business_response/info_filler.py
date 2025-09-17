@@ -1667,13 +1667,24 @@ class InfoFiller:
         return True
 
     def _try_insert_strategy(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
-        """策略1：插入式替换 - 直接在字段名后插入内容"""
-        # 快速检查：只有字段名后直接跟冒号才拒绝
+        """
+        策略1：插入式替换 - 直接在字段名后插入内容
+
+        适用场景：处理"供应商名称       "这种格式，在字段名后直接插入内容
+        例如：'供应商名称       ' → '供应商名称智慧足迹数据科技有限公司'
+
+        特点：
+        - 不处理带冒号的格式（如"供应商名称：___"）
+        - 只处理字段名后跟空格的情况
+        - 保持原有的空格结构，可能需要后续空格清理
+        """
+        # 快速检查：排除带冒号的格式，这些应该由其他策略处理
         if re.search(rf'{re.escape(variant)}\s*[:：]', paragraph.text):
-            # 如果字段名后直接跟冒号，不是插入式格式
+            # 如果字段名后直接跟冒号，不是插入式格式（如"供应商名称：___"）
             return False
 
-        # 检查是否匹配插入式模式：字段名后面跟空格但不跟冒号
+        # 匹配插入式模式：字段名后面跟空格但不跟冒号
+        # 使用正向先行断言(?=\s+)确保后面有空格，负向先行断言(?![:：])确保不跟冒号
         insert_pattern = rf'{re.escape(variant)}(?=\s+)(?![:：])'
         match = re.search(insert_pattern, paragraph.text)
         if not match:
@@ -1684,11 +1695,13 @@ class InfoFiller:
         self.logger.info(f"📝 匹配模式: {insert_pattern}")
         self.logger.info(f"✅ 匹配内容: '{match.group()}'")
 
+        # 构造替换文本：直接在字段名后添加内容
         replacement = f'{variant}{replacement_text}'
         success = self.precise_replace(paragraph, insert_pattern, replacement)
 
         if success:
-            # 新增：标记此段落需要后续格式清理
+            # 标记此段落需要后续格式清理（主要是空格处理）
+            # 因为插入式替换可能会产生多余的空格，需要在后处理阶段清理
             self._mark_paragraph_for_format_cleanup(paragraph, variant, replacement_text)
             self.logger.debug(f"🏷️ 标记段落需要格式清理: {variant}")
 

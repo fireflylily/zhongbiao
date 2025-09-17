@@ -2943,48 +2943,186 @@
             if (!tenderContainerManager) {
                 tenderContainerManager = new ContainerManager(tenderResultArea);
             }
-            
+
             // 检查父容器是否可用
             if (!tenderContainerManager.isParentAvailable()) {
                 console.warn('tenderResultArea not available for qualifications');
                 return;
             }
-            
+
             // 获取或创建资质要求容器
             const container = tenderContainerManager.getOrCreateContainer('qualificationContainer', {
                 className: 'card border-warning mb-3',
                 headerClass: 'bg-warning',
                 icon: '<i class="bi bi-award"></i>',
-                title: '资质要求',
+                title: '资质要求分析',
                 contentId: 'qualificationContent'
             });
-            
+
             if (!container) {
                 console.warn('Failed to create qualificationContainer');
                 return;
             }
-            
+
             const content = tenderContainerManager.getContentElement('qualificationContainer', 'qualificationContent');
-            let html = '';
-            
-            for (const [key, info] of Object.entries(qualRequirements)) {
-                const required = info.required ? '需要提供' : '不需要提供';
-                const description = info.description || '无具体说明';
-                const statusClass = info.required ? 'text-success' : 'text-secondary';
-                
+
+            // 资质字段映射表：将公司管理资质映射到关键字匹配字段
+            const qualificationMapping = {
+                // 基本证件资质
+                'business_license': 'business_license_required',
+                'legal_id_front': 'business_license_required', // 法人身份证通常与营业执照一起要求
+                'legal_id_back': 'business_license_required',
+                'auth_id_front': 'authorization_requirements_required',
+                'auth_id_back': 'authorization_requirements_required',
+
+                // ISO体系认证 - 现在有专门的字段匹配
+                'iso9001': 'iso9001_required',
+                'iso14001': 'iso14001_required',
+                'iso27001': 'iso27001_required',
+                'iso45001': 'iso14001_required', // ISO45001映射到环境管理体系（相关体系）
+                'iso20000': 'iso27001_required', // ISO20000映射到信息安全管理体系（相关体系）
+
+                // 信用资质
+                'credit_procurement': 'credit_china_required',
+                'credit_judicial': 'credit_china_required',
+
+                // 税务资质
+                'taxpayer_certificate': 'taxpayer_qualification_required',
+
+                // 财务资质
+                'audit_report': 'audit_report_required',
+                'financial_audit': 'audit_report_required',
+                'financial_statement': 'audit_report_required',
+
+                // 社保资质
+                'social_security': 'social_security_required',
+                'employee_social_security': 'social_security_required',
+
+                // 知识产权和行业资质 - 暂时映射到承诺书（通常需要特殊说明）
+                'software_copyright': 'commitment_letter_required',
+                'patent_certificate': 'commitment_letter_required',
+                'high_tech': 'commitment_letter_required',
+                'software_enterprise': 'commitment_letter_required',
+
+                // 其他资质
+                'bank_account': 'business_license_required' // 银行开户许可证通常与营业执照一起要求
+            };
+
+            // 使用公司管理中的资质分类和顺序
+            const categories = {
+                'basic': { name: '基本证件资质', icon: 'bi-card-text', color: 'primary' },
+                'iso': { name: 'ISO体系认证', icon: 'bi-award', color: 'warning' },
+                'credit': { name: '信用资质', icon: 'bi-shield-check', color: 'danger' },
+                'tax': { name: '税务资质', icon: 'bi-receipt', color: 'success' },
+                'financial': { name: '财务资质', icon: 'bi-graph-up', color: 'info' },
+                'industry': { name: '行业资质', icon: 'bi-gear', color: 'secondary' },
+                'social': { name: '社保资质', icon: 'bi-people', color: 'dark' },
+                'intellectual': { name: '知识产权', icon: 'bi-lightbulb', color: 'success' }
+            };
+
+            // 使用与公司管理相同的资质列表
+            const standardQualificationTypes = [
+                // 基本证件资质
+                { key: 'business_license', name: '营业执照', category: 'basic', required: true },
+                { key: 'legal_id_front', name: '法人身份证（正面）', category: 'basic', required: true },
+                { key: 'legal_id_back', name: '法人身份证（反面）', category: 'basic', required: true },
+                { key: 'auth_id_front', name: '授权人身份证（正面）', category: 'basic' },
+                { key: 'auth_id_back', name: '授权人身份证（反面）', category: 'basic' },
+
+                // ISO体系认证
+                { key: 'iso9001', name: '质量管理体系认证（ISO9001）', category: 'iso' },
+                { key: 'iso14001', name: '环境管理体系认证（ISO14001）', category: 'iso' },
+                { key: 'iso45001', name: '职业健康安全管理体系认证（ISO45001）', category: 'iso' },
+                { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', category: 'iso' },
+                { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', category: 'iso' },
+
+                // 信用资质
+                { key: 'credit_procurement', name: '政府采购信用查询结果', category: 'credit' },
+                { key: 'credit_judicial', name: '司法裁判信用查询结果', category: 'credit' },
+
+                // 税务资质
+                { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', category: 'tax' },
+
+                // 财务资质
+                { key: 'audit_report', name: '审计报告', category: 'financial' },
+                { key: 'financial_statement', name: '财务报表', category: 'financial' },
+
+                // 社保资质
+                { key: 'social_security', name: '社会保险登记证', category: 'social' },
+                { key: 'employee_social_security', name: '员工社保缴费证明', category: 'social' },
+
+                // 知识产权
+                { key: 'software_copyright', name: '软件著作权登记证书', category: 'intellectual' },
+                { key: 'patent_certificate', name: '专利证书', category: 'intellectual' },
+
+                // 行业资质
+                { key: 'high_tech', name: '高新技术企业证书', category: 'industry' },
+                { key: 'software_enterprise', name: '软件企业认定证书', category: 'industry' }
+            ];
+
+            let html = '<div class="row">';
+            let columnIndex = 0;
+
+            // 按分类显示资质要求，两列布局
+            Object.keys(categories).forEach(categoryKey => {
+                const categoryQuals = standardQualificationTypes.filter(qual => qual.category === categoryKey);
+                if (categoryQuals.length === 0) return;
+
+                const categoryInfo = categories[categoryKey];
+
+                // 每两个分类一行
+                if (columnIndex % 2 === 0 && columnIndex > 0) {
+                    html += '</div><div class="row">';
+                }
+
                 html += `
-                    <div class="mb-3 p-2 border-start border-3 ${info.required ? 'border-success' : 'border-secondary'}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <strong>${getQualificationLabel(key)}</strong>
-                            <span class="badge ${info.required ? 'bg-success' : 'bg-secondary'}">${required}</span>
-                        </div>
-                        <div class="mt-1">
-                            <small class="text-muted">${description}</small>
-                        </div>
-                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="h-100">
+                            <h6 class="text-${categoryInfo.color} mb-3 border-bottom pb-2">
+                                <i class="${categoryInfo.icon}"></i> ${categoryInfo.name}
+                            </h6>
                 `;
-            }
-            
+
+                categoryQuals.forEach(qual => {
+                    // 通过映射表查找对应的招标要求字段
+                    const mappedField = qualificationMapping[qual.key];
+                    let required = false;
+                    let description = '未在招标文档中明确要求';
+
+                    if (mappedField && qualRequirements.hasOwnProperty(mappedField)) {
+                        required = qualRequirements[mappedField] === true || qualRequirements[mappedField] === 'true';
+                        // 查找对应的描述字段
+                        const descField = mappedField.replace('_required', '_description');
+                        if (qualRequirements[descField]) {
+                            description = qualRequirements[descField];
+                        } else if (required) {
+                            description = '招标文档要求提供此资质';
+                        }
+                    }
+
+                    const statusText = required ? '是' : '否';
+                    const statusClass = required ? 'bg-success' : 'bg-secondary';
+                    const borderClass = required ? 'border-success' : 'border-secondary';
+
+                    html += `
+                        <div class="mb-2 p-2 border-start border-3 ${borderClass}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <strong class="fs-6">${qual.name}</strong>
+                                <span class="badge ${statusClass}">${statusText}</span>
+                            </div>
+                            <div class="mt-1">
+                                <small class="text-muted">${description.length > 50 ? description.substring(0, 50) + '...' : description}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div></div>';
+                columnIndex++;
+            });
+
+            html += '</div>';
+
             if (content) {
                 content.innerHTML = html;
             } else {
@@ -3231,20 +3369,18 @@
             { key: 'legal_id_back', name: '法人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
             { key: 'auth_id_front', name: '授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
             { key: 'auth_id_back', name: '授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
-            { key: 'organization_code', name: '组织机构代码证', icon: 'bi-card-text', category: 'basic' },
-            
-            // 税务和财务资质
-            { key: 'tax_registration', name: '税务登记证', icon: 'bi-receipt', category: 'tax' },
-            { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', icon: 'bi-receipt', category: 'tax' },
-            { key: 'audit_report', name: '审计报告', icon: 'bi-file-earmark-text', category: 'financial' },
-            { key: 'financial_statement', name: '财务报表', icon: 'bi-graph-up', category: 'financial' },
-            
+
             // ISO体系认证
             { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
             { key: 'iso14001', name: '环境管理体系认证（ISO14001）', icon: 'bi-tree', category: 'iso' },
             { key: 'iso45001', name: '职业健康安全管理体系认证（ISO45001）', icon: 'bi-shield-check', category: 'iso' },
             { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', icon: 'bi-gear', category: 'iso' },
             { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
+
+            // 税务和财务资质
+            { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', icon: 'bi-receipt', category: 'tax' },
+            { key: 'audit_report', name: '审计报告', icon: 'bi-file-earmark-text', category: 'financial' },
+            { key: 'financial_statement', name: '财务报表', icon: 'bi-graph-up', category: 'financial' },
             
             // 行业资质
             { key: 'construction_license', name: '建筑业企业资质证书', icon: 'bi-building', category: 'industry' },
@@ -3284,11 +3420,11 @@
             // 按分类组织资质
             const categories = {
                 'basic': { name: '基本证件资质', icon: 'bi-card-text', color: 'primary' },
+                'iso': { name: 'ISO体系认证', icon: 'bi-award', color: 'warning' },
+                'credit': { name: '信用资质', icon: 'bi-shield-check', color: 'danger' },
                 'tax': { name: '税务资质', icon: 'bi-receipt', color: 'success' },
                 'financial': { name: '财务资质', icon: 'bi-graph-up', color: 'info' },
-                'iso': { name: 'ISO体系认证', icon: 'bi-award', color: 'warning' },
                 'industry': { name: '行业资质', icon: 'bi-gear', color: 'secondary' },
-                'credit': { name: '信用资质', icon: 'bi-shield-check', color: 'danger' },
                 'social': { name: '社保资质', icon: 'bi-people', color: 'dark' },
                 'intellectual': { name: '知识产权', icon: 'bi-lightbulb', color: 'success' }
             };
@@ -4486,8 +4622,6 @@
             // 资质类型映射
             const qualificationTypes = {
                 'business_license': '营业执照',
-                'organization_code': '组织机构代码证',
-                'tax_registration': '税务登记证',
                 'legal_person_id': '法定代表人身份证',
                 'authorized_person_id': '被授权人身份证',
                 'power_of_attorney': '授权委托书',
