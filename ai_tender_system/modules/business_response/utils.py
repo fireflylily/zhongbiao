@@ -747,33 +747,53 @@ class SmartFieldDetector:
     @classmethod
     def should_try_field_in_paragraph(cls, paragraph_text: str, field_variants: list) -> bool:
         """
-        判断是否应该在段落中尝试某个字段的匹配
-        
+        预检查段落是否可能包含相关字段（原始版本逻辑）
+
         Args:
             paragraph_text: 段落文本
             field_variants: 字段变体列表
-            
+
         Returns:
-            bool: 是否应该尝试匹配
+            bool: 是否值得尝试处理这个段落
         """
-        if not paragraph_text.strip():
+        import logging
+        logger = logging.getLogger("ai_tender_system.business_response")
+
+        # 注意：不要strip()，因为需要保留空格来检测空格格式
+        text = paragraph_text
+
+        # 第1步：空段落检查
+        if not text or not text.strip():
             return False
-            
-        text_lower = paragraph_text.lower()
-        
-        # 检查是否包含任何字段变体
-        for variant in field_variants:
-            if variant.lower() in text_lower:
-                return True
-                
-        # 检查是否包含相关格式（冒号、括号等）
-        if re.search(r'[：:]\s*[_\s]*', paragraph_text):
-            return True
-            
-        if re.search(r'[（(][^）)]*[）)]', paragraph_text):
-            return True
-            
-        return False
+
+        # 第2步：字段相关性检查 - 必须包含字段变体
+        contains_field = any(variant in text for variant in field_variants)
+        if not contains_field:
+            return False
+
+        # 第3步：格式标识符检查 - 放宽检查条件以支持更多格式
+        field_indicators = [
+            r'[:：]',           # 冒号格式：地址：、电话：
+            r'[（(].*[）)]',     # 括号格式：（地址）、（公章）
+            r'_+',              # 下划线格式：___
+            r'\s{3,}',          # 多空格格式：传真
+            r'致\s*[：:]',       # 致：格式
+            r'[。，,\.]',        # 标点符号格式
+            r'\d',              # 包含数字
+            r'[年月日]',         # 日期格式
+        ]
+        has_format = any(re.search(indicator, text) for indicator in field_indicators)
+
+        # 放宽条件：如果段落较短且包含字段名，也允许处理
+        is_short_with_field = len(text.strip()) < 100 and contains_field
+
+        if not has_format and not is_short_with_field:
+            logger.debug(f"❌ [SmartFieldDetector] 段落无格式标识符且非短段落: '{text[:50]}...'")
+            return False
+
+        # 简化的调试信息
+        logger.debug(f"✅ [SmartFieldDetector] 段落通过检查: 包含字段变体且有格式标识符 - '{text[:50]}...'")
+        return True
 
 # 导出主要类和函数
 __all__ = [

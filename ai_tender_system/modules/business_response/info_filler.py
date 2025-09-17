@@ -329,23 +329,77 @@ class InfoFiller:
             return 'legal_representative'
 
     def _try_combination_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
-        """尝试应用组合替换规则"""
+        """尝试应用组合替换规则 - 参考备份版本的独立模式检查"""
         text = paragraph.text
-        
-        # 组合规则模式
-        combination_patterns = [
-            # (供应商名称、地址)
-            (r'[（(]\s*(?:供应商名称|公司名称|单位名称)[、，]\s*(?:地址|联系地址)\s*[）)]',
-             ['companyName', 'address']),
-            # (项目名称、项目编号)
-            (r'[（(]\s*(?:项目名称|工程名称)[、，]\s*(?:项目编号|招标编号)\s*[）)]',
-             ['projectName', 'projectNumber']),
-            # (联系电话、邮箱)
-            (r'[（(]\s*(?:联系电话|电话)[、，]\s*(?:邮箱|电子邮件)\s*[）)]',
-             ['phone', 'email'])
-        ]
+        processed_any = False
 
-        # 智能职位组合处理 - 支持上下文识别
+        # 组合模式1：供应商名称、地址
+        pattern1 = r'[（(]\s*(?:供应商名称|公司名称|单位名称)\s*[、，]\s*(?:地址|联系地址)\s*[）)]'
+        if re.search(pattern1, text):
+            self.logger.debug(f"🎯 检测到供应商名称地址组合模式: '{text[:50]}...'")
+            company_name = info.get('公司名称', '')
+            address = info.get('地址', '')
+            self.logger.debug(f"📊 字段数据: 公司名称='{company_name}', 地址='{address}'")
+
+            if company_name and address:
+                replacement = f"（{company_name}、{address}）"
+                success = WordDocumentUtils.precise_replace(paragraph, pattern1, replacement, self.logger)
+                if success:
+                    self.logger.info(f"🔄 组合规则替换成功: 供应商名称、地址 -> {replacement}")
+                    processed_any = True
+            else:
+                missing_fields = []
+                if not company_name:
+                    missing_fields.append('公司名称')
+                if not address:
+                    missing_fields.append('地址')
+                self.logger.warning(f"⚠️ 供应商名称地址组合缺少字段: {', '.join(missing_fields)}")
+
+        # 组合模式2：项目名称、项目编号
+        pattern2 = r'[（(]\s*(?:项目名称|工程名称)\s*[、，]\s*(?:项目编号|招标编号|采购编号)\s*[）)]'
+        if re.search(pattern2, text):
+            self.logger.debug(f"🎯 检测到项目名称编号组合模式: '{text[:50]}...'")
+            project_name = info.get('项目名称', '')
+            project_number = info.get('项目编号', '')
+            self.logger.debug(f"📊 字段数据: 项目名称='{project_name}', 项目编号='{project_number}'")
+
+            if project_name and project_number:
+                replacement = f"（{project_name}、{project_number}）"
+                success = WordDocumentUtils.precise_replace(paragraph, pattern2, replacement, self.logger)
+                if success:
+                    self.logger.info(f"🔄 组合规则替换成功: 项目名称、项目编号 -> {replacement}")
+                    processed_any = True
+            else:
+                missing_fields = []
+                if not project_name:
+                    missing_fields.append('项目名称')
+                if not project_number:
+                    missing_fields.append('项目编号')
+                self.logger.warning(f"⚠️ 项目名称编号组合缺少字段: {', '.join(missing_fields)}")
+
+        # 组合模式3：联系电话、邮箱
+        pattern3 = r'[（(]\s*(?:联系电话|电话)\s*[、，]\s*(?:邮箱|电子邮件)\s*[）)]'
+        if re.search(pattern3, text):
+            self.logger.debug(f"🎯 检测到电话邮箱组合模式: '{text[:50]}...'")
+            phone = info.get('电话', '')
+            email = info.get('邮箱', '')
+            self.logger.debug(f"📊 字段数据: 电话='{phone}', 邮箱='{email}'")
+
+            if phone and email:
+                replacement = f"（{phone}、{email}）"
+                success = WordDocumentUtils.precise_replace(paragraph, pattern3, replacement, self.logger)
+                if success:
+                    self.logger.info(f"🔄 组合规则替换成功: 联系电话、邮箱 -> {replacement}")
+                    processed_any = True
+            else:
+                missing_fields = []
+                if not phone:
+                    missing_fields.append('电话')
+                if not email:
+                    missing_fields.append('邮箱')
+                self.logger.warning(f"⚠️ 电话邮箱组合缺少字段: {', '.join(missing_fields)}")
+
+        # 组合模式4：职位、职称 - 智能上下文识别
         position_pattern = r'[（(]\s*职[位务称]\s*[、，]\s*职[位务称]\s*[）)]'
         if re.search(position_pattern, text):
             self.logger.debug(f"🎯 检测到职位组合模式: '{text[:50]}...'")
@@ -377,17 +431,17 @@ class InfoFiller:
 
                 if position:
                     replacement = f"（{position}、{position}）"
-                    # 使用精确格式处理引擎进行智能职位组合替换
-                    if WordDocumentUtils.precise_replace(paragraph, position_pattern, replacement, self.logger):
+                    success = WordDocumentUtils.precise_replace(paragraph, position_pattern, replacement, self.logger)
+                    if success:
                         self.logger.info(f"智能职位组合替换: （职位、职称） → （{position}、{position}）")
-                        return True
+                        processed_any = True
                 else:
                     self.logger.warning(f"⚠️ 所有职位数据源都为空，跳过处理")
 
             except Exception as e:
                 self.logger.error(f"❌ 职位组合替换发生异常: {e}")
 
-        # 智能姓名职位组合处理
+        # 组合模式5：姓名、职位 - 智能上下文识别
         name_position_pattern = r'[（(]\s*姓名\s*[、，]\s*职[位务称]\s*[）)]'
         if re.search(name_position_pattern, text):
             self.logger.debug(f"🎯 检测到姓名职位组合模式: '{text[:50]}...'")
@@ -427,60 +481,32 @@ class InfoFiller:
 
                 if name and position:
                     replacement = f"（{name}、{position}）"
-                    if WordDocumentUtils.precise_replace(paragraph, name_position_pattern, replacement, self.logger):
+                    success = WordDocumentUtils.precise_replace(paragraph, name_position_pattern, replacement, self.logger)
+                    if success:
                         self.logger.info(f"智能姓名职位组合替换: （姓名、职位） → （{name}、{position}）")
-                        return True
+                        processed_any = True
                 else:
                     self.logger.warning(f"⚠️ 姓名或职位数据为空: 姓名={name}, 职位={position}")
 
             except Exception as e:
                 self.logger.error(f"❌ 姓名职位组合替换发生异常: {e}")
-        
-        # 处理所有组合模式，而不是处理一个就返回
-        processed_any = False
-
-        for pattern, field_keys in combination_patterns:
-            if re.search(pattern, text):
-                # 构建替换文本
-                replacement_parts = []
-
-                # 直接映射字段
-                field_mapping = {
-                    'companyName': '公司名称',
-                    'address': '地址',
-                    'projectName': '项目名称',
-                    'projectNumber': '项目编号',
-                    'phone': '电话',
-                    'email': '邮箱'
-                }
-
-                for field_key in field_keys:
-                    field_name = field_mapping.get(field_key)
-                    if field_name and field_name in info:
-                        replacement_parts.append(info[field_name])
-
-                if replacement_parts:
-                    replacement_text = f"（{', '.join(replacement_parts)}）"
-                    success = WordDocumentUtils.precise_replace(paragraph, pattern, replacement_text, self.logger)
-                    if success:
-                        self.logger.info(f"🔄 组合规则替换成功: {pattern[:30]}... -> {replacement_text}")
-                        processed_any = True
 
         return processed_any
     
     def _try_replacement_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
-        """尝试应用括号替换规则"""
+        """尝试应用括号替换规则 - 累积处理模式"""
         text = paragraph.text
-        
+        replacement_count = 0
+
         # 括号替换规则
         for field_name, value in info.items():
             if not value:
                 continue
-                
+
             # 获取字段变体 - 直接使用字段名进行映射
             field_mapping = {
                 '公司名称': self.field_variants['companyName'],
-                '邮箱': self.field_variants['email'], 
+                '邮箱': self.field_variants['email'],
                 '电话': self.field_variants['phone'],
                 '传真': self.field_variants['fax'],
                 '地址': self.field_variants['address'],
@@ -491,27 +517,28 @@ class InfoFiller:
                 '项目编号': self.field_variants['projectNumber']
             }
             field_variants = field_mapping.get(field_name, [])
-            
+
             if not field_variants:
                 continue
-                
+
             # 构建括号匹配模式
             variants_pattern = '|'.join(re.escape(variant) for variant in field_variants)
             bracket_pattern = f'[（(]\\s*(?:{variants_pattern})\\s*[）)]'
-            
+
             if re.search(bracket_pattern, text):
                 replacement_text = f'（{value}）'
                 success = WordDocumentUtils.precise_replace(paragraph, bracket_pattern, replacement_text, self.logger)
                 if success:
                     self.logger.info(f"🔄 括号替换成功: {field_name} -> {value}")
-                    return True
-        
-        return False
+                    replacement_count += 1
+
+        return replacement_count > 0
     
     def _try_fill_rule(self, paragraph: Paragraph, info: Dict[str, Any]) -> bool:
-        """尝试应用填空规则"""
+        """尝试应用填空规则 - 累积处理模式"""
         text = paragraph.text
-        
+        fill_count = 0
+
         # 填空规则处理
         for field_name, value in info.items():
             if not value:
@@ -519,11 +546,11 @@ class InfoFiller:
                 continue
 
             self.logger.info(f"🔍 [调试] 尝试填空字段: {field_name} = {value}")
-                
+
             # 获取字段变体 - 直接使用字段名进行映射
             field_mapping = {
                 '公司名称': self.field_variants['companyName'],
-                '邮箱': self.field_variants['email'], 
+                '邮箱': self.field_variants['email'],
                 '电话': self.field_variants['phone'],
                 '传真': self.field_variants['fax'],
                 '地址': self.field_variants['address'],
@@ -534,45 +561,66 @@ class InfoFiller:
                 '项目编号': self.field_variants['projectNumber']
             }
             field_variants = field_mapping.get(field_name, [])
-            
+
             if not field_variants:
                 continue
-            
+
             # 检查是否应该在此段落中尝试该字段
             if not SmartFieldDetector.should_try_field_in_paragraph(text, field_variants):
                 self.logger.info(f"🔍 [调试] 跳过字段 {field_name} 在段落: {text[:50]}...")
                 continue
-            
+
             # 尝试各种填空策略
+            field_processed = False
             for variant in field_variants:
+                if field_processed:
+                    break  # 该字段已处理成功，尝试下一个字段
+
                 self.logger.info(f"🔍 [调试] 尝试字段变体: {variant} 在段落: {paragraph.text[:50]}...")
 
-                # 策略1：括号格式替换（优先级最高）
-                if self._try_bracket_strategy(paragraph, variant, value):
-                    self.logger.info(f"🔄 括号格式成功: {field_name} -> {value}")
-                    return True
-
-                # 策略2：插入式替换
+                # 策略1：插入式替换（按备份文件顺序）
                 if self._try_insert_strategy(paragraph, variant, value):
                     self.logger.info(f"🔄 插入式成功: {field_name} -> {value}")
-                    return True
+                    fill_count += 1
+                    field_processed = True
+                    continue
+
+                # 策略2：公章格式替换
+                if self._try_stamp_strategy(paragraph, variant, value):
+                    self.logger.info(f"🔄 公章格式成功: {field_name} -> {value}")
+                    fill_count += 1
+                    field_processed = True
+                    continue
 
                 # 策略3：纯空格替换
                 if self._try_space_only_strategy(paragraph, variant, value):
                     self.logger.info(f"🔄 纯空格成功: {field_name} -> {value}")
-                    return True
+                    fill_count += 1
+                    field_processed = True
+                    continue
 
-                # 策略4：公章格式替换
-                if self._try_stamp_strategy(paragraph, variant, value):
-                    self.logger.info(f"🔄 公章格式成功: {field_name} -> {value}")
-                    return True
+                # 策略4：括号格式替换
+                if self._try_bracket_strategy(paragraph, variant, value):
+                    self.logger.info(f"🔄 括号格式成功: {field_name} -> {value}")
+                    fill_count += 1
+                    field_processed = True
+                    continue
 
-                # 策略5：传统填空模式（保留原有逻辑）
+                # 策略5：精确模式替换（新增）
+                if self._try_precise_strategies(paragraph, variant, value):
+                    self.logger.info(f"🔄 精确模式成功: {field_name} -> {value}")
+                    fill_count += 1
+                    field_processed = True
+                    continue
+
+                # 策略6：传统填空模式（保留原有逻辑）
                 if self._try_fill_patterns(paragraph, variant, value):
                     self.logger.info(f"🔄 填空规则成功: {field_name} -> {value}")
-                    return True
-        
-        return False
+                    fill_count += 1
+                    field_processed = True
+                    continue
+
+        return fill_count > 0
     
     def _try_fill_patterns(self, paragraph: Paragraph, field_variant: str, value: str) -> bool:
         """尝试各种填空模式"""
@@ -639,7 +687,14 @@ class InfoFiller:
 
         self.logger.info(f"🎯 策略2(插入式)匹配成功 - 字段: {variant}")
         replacement = f'{variant} {value}'
-        return WordDocumentUtils.precise_replace(paragraph, insert_pattern, replacement, self.logger)
+        success = WordDocumentUtils.precise_replace(paragraph, insert_pattern, replacement, self.logger)
+
+        if success:
+            # 标记此段落需要后续格式清理
+            self._mark_paragraph_for_format_cleanup(paragraph, variant, value)
+            self.logger.debug(f"🏷️ 标记段落需要格式清理: {variant}")
+
+        return success
 
     def _try_space_only_strategy(self, paragraph: Paragraph, variant: str, value: str) -> bool:
         """策略3：纯空格替换 - 处理只有空格无下划线的情况"""
@@ -671,6 +726,43 @@ class InfoFiller:
         replacement = rf'\g<prefix>{value}\g<stamp>'
         return WordDocumentUtils.precise_replace(paragraph, stamp_pattern, replacement, self.logger)
 
+    def _try_precise_strategies(self, paragraph: Paragraph, variant: str, replacement_text: str) -> bool:
+        """策略5：精确模式替换 - 4个子策略"""
+        self.logger.debug(f"🔄 使用精确模式替换策略")
+
+        # 精确模式子策略列表
+        precise_patterns = [
+            # 子策略1：多字段格式处理 - 地址：___ 邮编：___（保留后续字段）
+            (rf'(?P<prefix>{re.escape(variant)}\s*[:：]\s*)(?P<underscores>_+)(?P<suffix>\s+[^\s_]+[:：])',
+             rf'\g<prefix>{replacement_text}\g<suffix>'),
+
+            # 子策略2：单字段末尾格式 - 电话：___________（清理所有下划线）
+            (rf'({re.escape(variant)}\s*[:：]\s*)_+\s*$',
+             rf'\g<1>{replacement_text}'),
+
+            # 子策略3：无下划线格式 - 电子邮箱：（直接添加内容）
+            (rf'({re.escape(variant)}\s*[:：])\s*$',
+             rf'\g<1>{replacement_text}'),
+
+            # 子策略4：通用下划线格式 - 供应商名称：___（清理下划线和空格）
+            (rf'({re.escape(variant)}\s*[:：]\s*)[_\s]+',
+             rf'\g<1>{replacement_text}')
+        ]
+
+        # 依次尝试每个精确子策略
+        for i, (pattern, replacement) in enumerate(precise_patterns, 1):
+            if re.search(pattern, paragraph.text):
+                # 提升到INFO级别，并增加详细信息
+                self.logger.info(f"🎯 精确子策略{i}匹配成功 - 模式: {pattern}")
+                self.logger.info(f"📝 替换模式: {replacement}")
+                match_obj = re.search(pattern, paragraph.text)
+                if match_obj:
+                    self.logger.info(f"✅ 匹配内容: '{match_obj.group()}'")
+                if WordDocumentUtils.precise_replace(paragraph, pattern, replacement, self.logger):
+                    return True
+
+        return False
+
     def _process_table(self, table: Table, info: Dict[str, Any]) -> Dict[str, Any]:
         """处理表格（简化版）"""
         stats = {'total_replacements': 0}
@@ -698,34 +790,92 @@ class InfoFiller:
                 doc, self.info['date'], WordDocumentUtils, self.logger
             )
     
-    def _clean_decorative_formats_only(self, paragraph):
-        """仅清理装饰性格式"""
-        original_text = paragraph.text
-        
-        # 检查是否包含填充内容
-        contains_filled_content = False
-        
-        # 检查公司信息
-        for value in self.info.values():
-            if value and str(value) in original_text:
-                contains_filled_content = True
-                break
-        
-        # 如果不包含填充内容，进行基础清理
-        if not contains_filled_content:
-            cleaned_text = self.format_cleaner.clean_text(original_text, {
-                'clean_dates': True,
-                'optimize_decorative': True,
-                'normalize_whitespace': True
+    def _mark_paragraph_for_format_cleanup(self, paragraph, field_name: str, content: str):
+        """标记段落需要后续格式清理"""
+        try:
+            # 在段落对象上添加清理标记（临时属性）
+            if not hasattr(paragraph, '_format_cleanup_needed'):
+                paragraph._format_cleanup_needed = []
+
+            paragraph._format_cleanup_needed.append({
+                'field_name': field_name,
+                'content': content
             })
-            
-            if cleaned_text != original_text:
-                # 使用精确格式处理进行后处理清理
-                escaped_original = re.escape(original_text.strip())
-                success = WordDocumentUtils.precise_replace(paragraph, escaped_original, cleaned_text.strip(), self.logger)
-                if not success:
-                    # 后备方案
-                    paragraph.text = cleaned_text.strip()
+
+            self.logger.debug(f"🏷️ 段落格式清理标记已添加: {field_name} -> {content[:20]}...")
+
+        except Exception as e:
+            self.logger.error(f"❌ 添加格式清理标记失败: {e}")
+
+    def _is_filled_content_run(self, run) -> bool:
+        """判断run是否包含已填充的内容"""
+        try:
+            run_text = run.text
+            if not run_text:
+                return False
+
+            # 检查是否包含典型的填充内容模式
+            filled_patterns = [
+                r'\d{3,4}-\d{7,8}',  # 电话号码
+                r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',  # 邮箱
+                r'\d{6}',  # 邮编
+                r'www\.',  # 网站
+                r'有限公司|股份|集团|科技',  # 公司名称特征
+            ]
+
+            for pattern in filled_patterns:
+                if re.search(pattern, run_text):
+                    return True
+
+            return False
+
+        except Exception as e:
+            self.logger.error(f"❌ 检查填充内容失败: {e}")
+            return False
+
+    def _clean_decorative_formats_only(self, paragraph):
+        """只清理装饰性格式，完全保留文本结构"""
+        try:
+            cleanup_info = getattr(paragraph, '_format_cleanup_needed', [])
+
+            for run in paragraph.runs:
+                should_clean = False
+
+                # 方法1：检查是否包含我们标记的填充内容
+                for info in cleanup_info:
+                    if info['content'] in run.text:
+                        should_clean = True
+                        self.logger.debug(f"🏷️ 发现标记的填充内容: '{info['content']}'")
+                        break
+
+                # 方法2：检查是否包含典型填充内容模式
+                if not should_clean:
+                    should_clean = self._is_filled_content_run(run)
+
+                # 方法3：对于插入式策略，清理所有后续空格的装饰格式
+                if not should_clean and len(run.text.strip()) == 0:
+                    # 如果是纯空格run，且段落包含填充内容，则清理装饰格式
+                    paragraph_text = paragraph.text
+                    if any(pattern in paragraph_text for pattern in ['010-', '@', 'www.', '有限公司']):
+                        should_clean = True
+                        self.logger.debug(f"🧹 清理填充内容后的空格装饰格式")
+
+                if should_clean:
+                    # 清理装饰格式
+                    if hasattr(run.font, 'underline') and run.font.underline:
+                        run.font.underline = False
+                        self.logger.debug(f"🔧 清除下划线格式: '{run.text[:15]}...'")
+
+                    if hasattr(run.font, 'strike') and run.font.strike:
+                        run.font.strike = False
+                        self.logger.debug(f"🔧 清除删除线格式: '{run.text[:15]}...'")
+
+            # 清理临时标记
+            if hasattr(paragraph, '_format_cleanup_needed'):
+                delattr(paragraph, '_format_cleanup_needed')
+
+        except Exception as e:
+            self.logger.error(f"❌ 装饰性格式清理失败: {e}")
 
 # 向后兼容
 class BusinessInfoFiller(InfoFiller):
