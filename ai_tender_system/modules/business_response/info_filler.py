@@ -289,7 +289,7 @@ class InfoFiller:
         ]
         
         # 需要跳过的签字相关词
-        self.signature_keywords = ['签字', '签名', '签章', '盖章处']
+        self.signature_keywords = ['签字', '签名', '签章', '盖章处', '盖章', '代表签', '负责人签', '法定代表人签']
 
         # 统一字段映射配置 - 定义字段名与数据源的映射关系
         self.field_mapping_rules = {
@@ -502,8 +502,8 @@ class InfoFiller:
         # 检查是否包含签字相关词（避免误判签字代表等合法词汇）
         for keyword in self.signature_keywords:
             if keyword in text:
-                # 排除合法的描述性词汇
-                if keyword == '签字' and ('签字代表' in text or '经正式授权' in text):
+                # 排除描述性词汇，但保护签字区域（即使是"签字代表"格式也需要保护下划线）
+                if keyword == '签字' and ('经正式授权' in text and '签字代表' not in text):
                     continue
                 return True
         
@@ -1896,6 +1896,11 @@ class InfoFiller:
         for paragraph in doc.paragraphs:
             text = paragraph.text
             original_text = text
+
+            # 应用例外处理规则：跳过签字相关段落，保护签字区域的下划线和空格
+            if self._should_skip(text):
+                self.logger.debug(f"🔒 跳过签字相关段落的后处理清理: '{text[:30]}...'")
+                continue
 
             # 检查是否包含已填充的内容（包含中文公司名称等）
             contains_filled_content = False
