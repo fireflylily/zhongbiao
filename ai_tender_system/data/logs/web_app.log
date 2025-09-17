@@ -1059,3 +1059,147 @@
 2025-09-17 20:45:31,150 - ai_tender_system.web_app - INFO - 预览文档: D:\749\AI编程\zhongbiao\ai_tender_system\data\outputs\business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250917_204529_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
 2025-09-17 20:54:38,001 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-17 20:55:45,700 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 20:56:30,077 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 21:00:09,356 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250917_210009_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
+2025-09-17 21:00:09,357 - ai_tender_system.web_app - INFO - 📁 输出文件路径: D:\749\AI编程\zhongbiao\ai_tender_system\data\outputs\business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250917_210009_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
+2025-09-17 21:00:09,358 - ai_tender_system.web_app - INFO - 📁 输出文件名: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250917_210009_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
+2025-09-17 21:00:09,358 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-17 21:00:09,358 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-17 21:00:09,358 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-17 21:00:09,359 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-17 21:00:09,359 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-17 21:00:09,359 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-17 21:00:09,359 - ai_tender_system.web_app - INFO -   - 项目名称: 元景大模型智能模型采购项目
+2025-09-17 21:00:09,360 - ai_tender_system.web_app - INFO -   - 招标编号: AI——001
+2025-09-17 21:00:09,360 - ai_tender_system.web_app - INFO -   - 日期文本: 2029年10月10日
+2025-09-17 21:00:09,658 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-09-17 21:00:09,659 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-17 21:00:09,659 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-17 21:00:10,979 - ai_tender_system.web_app - INFO - 预览文档: D:\749\AI编程\zhongbiao\ai_tender_system\data\outputs\business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250917_210009_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
+2025-09-17 21:29:02,369 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 21:32:22,453 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryt3h8uUVv6Y7WksNy
+2025-09-17 21:32:22,454 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 21:32:22,454 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 21:32:22,455 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_213222_商务偏离表.docx
+2025-09-17 21:32:26,631 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 21:41:04,813 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryOBLuLJWe8BO3A2N4
+2025-09-17 21:41:04,815 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 21:41:04,816 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 21:41:04,818 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_214104_哈银消金.docx
+2025-09-17 21:41:09,380 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 21:44:38,834 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundarypNfF89bG8TPUDrrs
+2025-09-17 21:44:38,835 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 21:44:38,835 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 21:44:38,837 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_214438_中邮保险手机号实名认证服务采购项目.docx
+2025-09-17 21:44:42,167 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 21:45:41,787 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundary1rxAVQjabrfe8MzS
+2025-09-17 21:45:41,788 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 21:45:41,788 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 21:45:41,791 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_214541_中邮保险-前附表.docx
+2025-09-17 21:45:45,348 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 21:46:46,352 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryp0frPX4q6rBB2ksG
+2025-09-17 21:46:46,353 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 21:46:46,353 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 21:46:46,354 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_214646_中邮保险-评分表.docx
+2025-09-17 21:46:48,956 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 21:50:56,422 - ai_tender_system.web_app - INFO - 开始处理商务应答: 20250917_215056_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
+2025-09-17 21:50:56,423 - ai_tender_system.web_app - INFO - 📁 输出文件路径: D:\749\AI编程\zhongbiao\ai_tender_system\data\outputs\business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250917_215056_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
+2025-09-17 21:50:56,423 - ai_tender_system.web_app - INFO - 📁 输出文件名: business_response_945150ca-68e1-4141-921b-fd4c48e07ebd_20250917_215056_采购人-供应商全称_供应商代表姓名_项目名称编号_地址_邮编_电话_邮箱_供应商名称_公章_日期.docx
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO -   - 项目名称: 元景大模型智能模型采购项目
+2025-09-17 21:50:56,424 - ai_tender_system.web_app - INFO -   - 招标编号: AI——001
+2025-09-17 21:50:56,425 - ai_tender_system.web_app - INFO -   - 日期文本: 2029年10月10日
+2025-09-17 21:50:56,622 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了5个信息字段
+2025-09-17 21:50:56,623 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-09-17 21:50:56,623 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-09-17 21:51:05,323 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 21:51:20,596 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 21:59:16,544 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 21:59:39,695 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 22:03:33,648 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 22:04:49,691 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 22:13:08,376 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundary6P0kh2Le1hIyjBEV
+2025-09-17 22:13:08,377 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:13:08,377 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:13:08,379 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_221308_中邮保险-评分表.docx
+2025-09-17 22:13:16,756 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:13:51,409 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryRAygCxmvFDTCEvPj
+2025-09-17 22:13:51,410 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:13:51,410 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:13:51,413 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_221351_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx
+2025-09-17 22:14:03,534 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:21:28,845 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 22:23:36,906 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryCADYpyAyX9gwBjse
+2025-09-17 22:23:36,908 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:23:36,909 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:23:36,911 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_222336_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx
+2025-09-17 22:23:41,105 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:26:57,817 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryHPlvHW8QgfBpB5Cz
+2025-09-17 22:26:57,820 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:26:57,820 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:26:57,822 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_222657_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx
+2025-09-17 22:27:04,057 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:30:38,825 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundarynDf4ub7xH7eYR8ZY
+2025-09-17 22:30:38,827 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:30:38,827 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:30:38,829 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_223038_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx
+2025-09-17 22:30:45,033 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:31:34,286 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryv2EPJAInOBfyMv6z
+2025-09-17 22:31:34,288 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:31:34,289 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:31:34,291 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_223134_中邮保险-评分表.docx
+2025-09-17 22:31:37,356 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:32:23,046 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 22:32:24,323 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 22:33:13,424 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryh0Zce8jiPIDnvRZ3
+2025-09-17 22:33:13,467 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:33:13,506 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:33:13,529 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_223313_中邮保险-评分表.docx
+2025-09-17 22:33:16,255 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:36:33,003 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryR3MZC7BUyJZHL3Kn
+2025-09-17 22:36:33,015 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:36:33,043 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:36:33,053 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_223633_评标办法-哈银消金.docx
+2025-09-17 22:36:36,292 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:37:07,791 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryLrn8qgnPoU77dTdW
+2025-09-17 22:37:07,793 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:37:07,793 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:37:07,794 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_223707_中邮保险-评分表.docx
+2025-09-17 22:37:11,997 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:39:19,379 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 22:41:37,009 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 22:45:46,096 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 22:45:46,281 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 22:46:10,404 - ai_tender_system.web_app - INFO - 成功读取招标配置文件，包含 3 个配置节
+2025-09-17 22:46:18,368 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 22:46:19,470 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 22:46:33,223 - ai_tender_system.web_app - INFO - 成功读取招标配置文件，包含 3 个配置节
+2025-09-17 22:46:52,226 - ai_tender_system.web_app - INFO - 成功读取招标配置文件，包含 3 个配置节
+2025-09-17 22:46:54,993 - ai_tender_system.web_app - INFO - 成功读取招标配置文件，包含 3 个配置节
+2025-09-17 22:47:10,631 - ai_tender_system.web_app - INFO - 成功读取招标配置文件，包含 3 个配置节
+2025-09-17 22:47:21,547 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryysDPhOTNdlMzczw7
+2025-09-17 22:47:21,550 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:47:21,550 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:47:21,553 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_224721_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx
+2025-09-17 22:47:26,223 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:48:49,651 - ai_tender_system.web_app - INFO - 成功读取招标配置文件，包含 3 个配置节
+2025-09-17 22:48:58,192 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundarytEbpZeAnXObwhUOj
+2025-09-17 22:48:58,194 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 22:48:58,194 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 22:48:58,196 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_224858_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx
+2025-09-17 22:49:01,838 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 22:49:01,848 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-17 23:20:13,601 - ai_tender_system.web_app - INFO - 成功读取招标配置文件，包含 3 个配置节
+2025-09-17 23:20:25,039 - ai_tender_system.web_app - INFO - 一次性API调用 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryG9fzxKDIeHle4Yry
+2025-09-17 23:20:25,043 - ai_tender_system.web_app - INFO - 一次性API调用 - Form keys: []
+2025-09-17 23:20:25,043 - ai_tender_system.web_app - INFO - 一次性API调用 - Files keys: ['file']
+2025-09-17 23:20:25,047 - ai_tender_system.web_app - INFO - 一次性API - 开始提取招标信息: 20250917_232025_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx
+2025-09-17 23:20:26,929 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 23:20:28,460 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-17 23:20:29,805 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-17 23:20:30,121 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
