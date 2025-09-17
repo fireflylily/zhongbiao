@@ -1381,9 +1381,58 @@ def register_routes(app: Flask, config, logger):
                 }
             
             return jsonify({'success': True, 'projectInfo': project_info})
-            
+
         except Exception as e:
             logger.error(f"获取项目配置失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-config')
+    def get_tender_config():
+        """获取完整的招标配置信息（包括基本信息、资质要求等）"""
+        try:
+            import configparser
+
+            # 读取招标信息提取模块生成的配置文件
+            config_file = config.get_path('config') / 'tender_config.ini'
+
+            if not config_file.exists():
+                return jsonify({'success': False, 'error': '招标配置文件不存在'})
+
+            ini_config = configparser.ConfigParser(interpolation=None)
+            ini_config.read(config_file, encoding='utf-8')
+
+            result = {'success': True, 'config': {}}
+
+            # 提取项目基本信息
+            if ini_config.has_section('PROJECT_INFO'):
+                project_info = {}
+                for key, value in ini_config.items('PROJECT_INFO'):
+                    project_info[key] = value
+                result['config']['project_info'] = project_info
+
+            # 提取资质要求信息
+            if ini_config.has_section('QUALIFICATION_REQUIREMENTS'):
+                qualification_requirements = {}
+                for key, value in ini_config.items('QUALIFICATION_REQUIREMENTS'):
+                    # 转换布尔值
+                    if value.lower() in ('true', 'false'):
+                        qualification_requirements[key] = value.lower() == 'true'
+                    else:
+                        qualification_requirements[key] = value
+                result['config']['qualification_requirements'] = qualification_requirements
+
+            # 提取技术评分信息
+            if ini_config.has_section('TECHNICAL_SCORING'):
+                technical_scoring = {}
+                for key, value in ini_config.items('TECHNICAL_SCORING'):
+                    technical_scoring[key] = value
+                result['config']['technical_scoring'] = technical_scoring
+
+            logger.info(f"成功读取招标配置文件，包含 {len(result['config'])} 个配置节")
+            return jsonify(result)
+
+        except Exception as e:
+            logger.error(f"获取招标配置失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
     
     # ===================

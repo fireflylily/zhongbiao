@@ -2938,6 +2938,27 @@
             }
         }
 
+        // 获取当前选中的公司ID
+        function getCurrentCompanyId() {
+            // 优先从StateManager获取
+            if (typeof StateManager !== 'undefined') {
+                return StateManager.getCompanyId();
+            }
+
+            // 备用方案：从全局变量获取
+            if (typeof currentCompanyId !== 'undefined' && currentCompanyId) {
+                return currentCompanyId;
+            }
+
+            // 最后备用方案：从页面选择器获取
+            const companySelect = document.getElementById('businessCompanySelect');
+            if (companySelect && companySelect.value) {
+                return companySelect.value;
+            }
+
+            return null;
+        }
+
         function displayQualificationRequirements(qualRequirements) {
             // 确保容器管理器已初始化
             if (!tenderContainerManager) {
@@ -2966,6 +2987,32 @@
 
             const content = tenderContainerManager.getContentElement('qualificationContainer', 'qualificationContent');
 
+            // 获取公司资质文件上传状态
+            let companyQualifications = {};
+            const currentCompanyId = getCurrentCompanyId();
+            if (currentCompanyId) {
+                fetch(`/api/companies/${currentCompanyId}/qualifications`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            companyQualifications = data.qualifications || {};
+                            // 重新渲染资质显示（包含上传状态）
+                            renderQualificationDisplay(qualRequirements, companyQualifications, content);
+                        }
+                    })
+                    .catch(error => {
+                        console.warn('获取公司资质文件失败:', error);
+                        // 即使获取失败，也显示基本的资质要求
+                        renderQualificationDisplay(qualRequirements, {}, content);
+                    });
+            } else {
+                // 没有选择公司时，只显示基本的资质要求
+                renderQualificationDisplay(qualRequirements, {}, content);
+            }
+        }
+
+        function renderQualificationDisplay(qualRequirements, companyQualifications, content) {
+
             // 资质字段映射表：将公司管理资质映射到关键字匹配字段
             const qualificationMapping = {
                 // 基本证件资质
@@ -2983,8 +3030,10 @@
                 'iso20000': 'iso27001_required', // ISO20000映射到信息安全管理体系（相关体系）
 
                 // 信用资质
+                'credit_dishonest': 'credit_china_required',
+                'credit_corruption': 'credit_china_required',
+                'credit_tax': 'credit_china_required',
                 'credit_procurement': 'credit_china_required',
-                'credit_judicial': 'credit_china_required',
 
                 // 税务资质
                 'taxpayer_certificate': 'taxpayer_qualification_required',
@@ -3036,9 +3085,11 @@
                 { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', category: 'iso' },
                 { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', category: 'iso' },
 
-                // 信用资质
-                { key: 'credit_procurement', name: '政府采购信用查询结果', category: 'credit' },
-                { key: 'credit_judicial', name: '司法裁判信用查询结果', category: 'credit' },
+                // 信用资质 - 使用与公司管理页面相同的名称
+                { key: 'credit_dishonest', name: '信用中国-失信被执行人查询结果', category: 'credit' },
+                { key: 'credit_corruption', name: '信用中国-行贿犯罪档案查询结果', category: 'credit' },
+                { key: 'credit_tax', name: '信用中国-重大税收违法案件查询结果', category: 'credit' },
+                { key: 'credit_procurement', name: '信用中国-政府采购严重违法失信查询结果', category: 'credit' },
 
                 // 税务资质
                 { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', category: 'tax' },
@@ -3104,11 +3155,24 @@
                     const statusClass = required ? 'bg-success' : 'bg-secondary';
                     const borderClass = required ? 'border-success' : 'border-secondary';
 
+                    // 检查公司是否已上传该资质文档
+                    const hasUploaded = companyQualifications && companyQualifications[qual.key];
+                    const uploadStatusIcon = hasUploaded ?
+                        '<i class="bi bi-check-circle-fill text-success ms-1" title="已上传"></i>' :
+                        '<i class="bi bi-x-circle text-secondary ms-1" title="未上传"></i>';
+                    const uploadStatusText = hasUploaded ? '已上传' : '未上传';
+
                     html += `
                         <div class="mb-2 p-2 border-start border-3 ${borderClass}">
                             <div class="d-flex justify-content-between align-items-start">
-                                <strong class="fs-6">${qual.name}</strong>
-                                <span class="badge ${statusClass}">${statusText}</span>
+                                <div class="d-flex align-items-center">
+                                    <strong class="fs-6">${qual.name}</strong>
+                                    ${uploadStatusIcon}
+                                </div>
+                                <div class="d-flex flex-column align-items-end">
+                                    <span class="badge ${statusClass}">${statusText}</span>
+                                    <small class="text-muted mt-1">${uploadStatusText}</small>
+                                </div>
                             </div>
                             <div class="mt-1">
                                 <small class="text-muted">${description.length > 50 ? description.substring(0, 50) + '...' : description}</small>
@@ -5745,8 +5809,40 @@
                 console.error('[页面初始化] 加载公司列表失败:', error);
             });
             
+            // 自动加载现有的投标信息配置
+            loadExistingTenderConfig();
+
             console.log('[页面初始化] 初始化完成');
         });
+
+        // 加载现有的投标信息配置
+        function loadExistingTenderConfig() {
+            fetch('/api/tender-config')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.config) {
+                        console.log('[自动加载] 发现现有投标信息配置，自动显示');
+
+                        // 显示项目基本信息
+                        if (data.config.project_info) {
+                            displayProjectInfo(data.config.project_info);
+                        }
+
+                        // 显示资质要求
+                        if (data.config.qualification_requirements) {
+                            displayQualificationRequirements(data.config.qualification_requirements);
+                        }
+
+                        // 显示技术评分（如果有）
+                        if (data.config.technical_scoring) {
+                            displayTechnicalScoring(data.config.technical_scoring);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.log('[自动加载] 没有发现现有投标信息配置或加载失败:', error);
+                });
+        }
         
         // 防止重复加载的标志
         let isLoadingCompanyList = false;
