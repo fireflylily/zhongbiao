@@ -1,0 +1,31 @@
+{
+  "patterns": {},
+  "boundaries": {},
+  "corrections": [],
+  "success_cases": [
+    {
+      "doc_path": "/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/uploads/20250918_101601_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx",
+      "project_name": "签订的手机号实名认证服务",
+      "doc_type": "竞争性磋商",
+      "sections_found": [
+        "公告",
+        "前附表",
+        "评分办法",
+        "响应文件格式"
+      ],
+      "timestamp": "2025-09-18T10:16:05.093112"
+    },
+    {
+      "doc_path": "/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/uploads/20250918_103737_中邮保险手机号实名认证服务采购项目竞争性磋商采购文件.docx",
+      "project_name": "签订的手机号实名认证服务",
+      "doc_type": "竞争性磋商",
+      "sections_found": [
+        "公告",
+        "前附表",
+        "评分办法",
+        "响应文件格式"
+      ],
+      "timestamp": "2025-09-18T10:37:39.406778"
+    }
+  ]
+}
