@@ -236,18 +236,13 @@ def register_routes(app: Flask, config, logger):
         try:
             output_dir = config.get_path('output')
             file_path = output_dir / filename
-
-            # 如果文件不在主输出目录，尝试在 extracted 子目录中查找
+            
             if not file_path.exists():
-                extracted_path = output_dir / 'extracted' / filename
-                if extracted_path.exists():
-                    file_path = extracted_path
-                else:
-                    raise FileNotFoundError(f"文件不存在: {filename}")
-
+                raise FileNotFoundError(f"文件不存在: {filename}")
+            
             logger.info(f"文件下载: {filename}")
             return send_file(str(file_path), as_attachment=True)
-
+            
         except Exception as e:
             logger.error(f"文件下载失败: {e}")
             return jsonify(format_error_response(e))
@@ -266,64 +261,35 @@ def register_routes(app: Flask, config, logger):
             })
         
         try:
-            logger.info(f"一次性API调用 - Content-Type: {request.content_type}")
-            logger.info(f"一次性API调用 - Form keys: {list(request.form.keys())}")
-            logger.info(f"一次性API调用 - Files keys: {list(request.files.keys())}")
-
             # 获取上传的文件
             if 'file' not in request.files:
                 raise ValueError("没有选择文件")
-
+            
             file = request.files['file']
             if file.filename == '':
                 raise ValueError("文件名为空")
-
+            
             # 获取API密钥
             api_key = request.form.get('api_key') or config.get_default_api_key()
             if not api_key:
                 raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
-
+            
             # 保存上传文件
             filename = safe_filename(file.filename)
             upload_dir = ensure_dir(config.get_path('upload'))
             file_path = upload_dir / filename
             file.save(str(file_path))
-
-            logger.info(f"一次性API - 开始提取招标信息: {filename}")
-
+            
+            logger.info(f"开始提取招标信息: {filename}")
+            
             # 执行信息提取
             extractor = TenderInfoExtractor(api_key=api_key)
             result = extractor.process_document(str(file_path))
-
-            # 处理拆分文件结果
-            split_documents = []
-            if 'split_result' in result and result['split_result'].get('success'):
-                split_info = result['split_result']
-                for file_path in split_info.get('output_files', []):
-                    file_name = Path(file_path).name
-                    # 提取文件信息
-                    try:
-                        file_size = Path(file_path).stat().st_size
-                        file_size_str = f"{file_size // 1024}KB" if file_size > 1024 else f"{file_size}B"
-                    except:
-                        file_size_str = "未知"
-
-                    # 从文件名中提取章节名称
-                    section_name = file_name.split('_')[0] if '_' in file_name else file_name
-
-                    split_documents.append({
-                        'name': section_name,
-                        'filename': file_name,
-                        'download_url': f'/download/{file_name}',
-                        'preview_url': f'/preview/{file_name}',
-                        'file_size': file_size_str
-                    })
-
+            
             logger.info("招标信息提取完成")
             return jsonify({
                 'success': True,
                 'data': result,
-                'split_documents': split_documents,
                 'message': '招标信息提取成功'
             })
             
@@ -339,48 +305,26 @@ def register_routes(app: Flask, config, logger):
                 'success': False,
                 'message': '招标信息提取模块不可用'
             })
-
+        
         try:
-            logger.info(f"分步API调用 - Content-Type: {request.content_type}")
-            logger.info(f"分步API调用 - Form keys: {list(request.form.keys())}")
-            logger.info(f"分步API调用 - Files keys: {list(request.files.keys())}")
-
             # 支持两种格式：JSON 和 FormData
             if request.content_type and 'application/json' in request.content_type:
                 data = request.get_json()
                 step = data.get('step', '1')
                 file_path = data.get('file_path', '')
                 api_key = data.get('api_key') or config.get_default_api_key()
-                logger.info(f"分步API - JSON格式, step: {step}, file_path: {file_path}")
             else:
-                # FormData 格式 - 支持文件上传
+                # FormData 格式
                 step = request.form.get('step', '1')
                 file_path = request.form.get('file_path', '')
                 api_key = request.form.get('api_key') or config.get_default_api_key()
-                logger.info(f"分步API - FormData格式, step: {step}, file_path: {file_path}")
-
-                # 如果没有file_path但有文件上传，处理文件上传
-                if not file_path and 'file' in request.files:
-                    file = request.files['file']
-                    if file.filename != '':
-                        # 保存上传文件
-                        filename = safe_filename(file.filename)
-                        upload_dir = ensure_dir(config.get_path('upload'))
-                        file_path = upload_dir / filename
-                        file.save(str(file_path))
-                        file_path = str(file_path)
-                        logger.info(f"分步处理：文件已上传到 {file_path}")
-                    else:
-                        logger.warning("分步API - 文件名为空")
-                else:
-                    logger.info(f"分步API - 没有文件上传，使用现有file_path: {file_path}")
-
+            
             if not file_path or not Path(file_path).exists():
-                raise ValueError("文件路径无效或文件不存在")
-
+                raise ValueError("文件路径无效")
+            
             if not api_key:
                 raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
-
+            
             extractor = TenderInfoExtractor(api_key=api_key)
             
             if step == '1':
@@ -481,18 +425,8 @@ def register_routes(app: Flask, config, logger):
             
             # 公共的输出文件路径设置（移到外面，两个分支都需要）
             output_dir = ensure_dir(config.get_path('output'))
-
-            # 确保输出文件名格式正确，重新处理filename以确保有正确的扩展名
-            # filename 可能已经被 safe_filename 处理过，但需要确保输出文件名格式正确
-            base_name, ext = os.path.splitext(filename)
-            if not ext or ext.lower() not in ['.docx', '.doc']:
-                ext = '.docx'  # 确保有正确的扩展名
-
-            output_filename = f"business_response_{company_id}_{base_name}{ext}"
+            output_filename = f"business_response_{company_id}_{filename}"
             output_path = output_dir / output_filename
-
-            logger.info(f"📁 输出文件路径: {output_path}")
-            logger.info(f"📁 输出文件名: {output_filename}")
             
             logger.info(f"公司数据验证:")
             logger.info(f"  - 公司名称: {company_data.get('companyName', 'N/A')}")
@@ -702,7 +636,6 @@ def register_routes(app: Flask, config, logger):
             return jsonify(format_error_response(e))
     
     # 文档预览和编辑API
-    @app.route('/preview/<filename>')
     @app.route('/api/document/preview/<filename>', methods=['GET'])
     def preview_document(filename):
         """预览文档内容（转换为HTML）"""
@@ -710,27 +643,12 @@ def register_routes(app: Flask, config, logger):
             from docx import Document
             import html
             
-            # 直接查找文件，不对filename进行二次处理，避免破坏已有的文件名
+            # 安全检查文件名（不添加时间戳，因为我们要查找现有文件）
+            filename = safe_filename(filename, timestamp=False)
             file_path = config.get_path('output') / filename
-
+            
             if not file_path.exists():
-                # 尝试在 extracted 子目录中查找
-                extracted_path = config.get_path('output') / 'extracted' / filename
-                if extracted_path.exists():
-                    file_path = extracted_path
-                    logger.info(f"在extracted目录找到文件: {file_path}")
-                else:
-                    # 如果还是找不到，尝试在输出目录中查找匹配的文件
-                    output_dir = config.get_path('output')
-                    matching_files = [f for f in output_dir.iterdir() if f.name.endswith(filename) or filename in f.name]
-
-                    if matching_files:
-                        file_path = matching_files[0]  # 使用第一个匹配的文件
-                        logger.info(f"找到匹配文件: {file_path}")
-                    else:
-                        raise FileNotFoundError(f"文档不存在: {filename}")
-
-            logger.info(f"预览文档: {file_path}")
+                raise FileNotFoundError(f"文档不存在: {filename}")
             
             # 读取Word文档
             doc = Document(str(file_path))
@@ -1418,58 +1336,9 @@ def register_routes(app: Flask, config, logger):
                 }
             
             return jsonify({'success': True, 'projectInfo': project_info})
-
+            
         except Exception as e:
             logger.error(f"获取项目配置失败: {e}")
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    @app.route('/api/tender-config')
-    def get_tender_config():
-        """获取完整的招标配置信息（包括基本信息、资质要求等）"""
-        try:
-            import configparser
-
-            # 读取招标信息提取模块生成的配置文件
-            config_file = config.get_path('config') / 'tender_config.ini'
-
-            if not config_file.exists():
-                return jsonify({'success': False, 'error': '招标配置文件不存在'})
-
-            ini_config = configparser.ConfigParser(interpolation=None)
-            ini_config.read(config_file, encoding='utf-8')
-
-            result = {'success': True, 'config': {}}
-
-            # 提取项目基本信息
-            if ini_config.has_section('PROJECT_INFO'):
-                project_info = {}
-                for key, value in ini_config.items('PROJECT_INFO'):
-                    project_info[key] = value
-                result['config']['project_info'] = project_info
-
-            # 提取资质要求信息
-            if ini_config.has_section('QUALIFICATION_REQUIREMENTS'):
-                qualification_requirements = {}
-                for key, value in ini_config.items('QUALIFICATION_REQUIREMENTS'):
-                    # 转换布尔值
-                    if value.lower() in ('true', 'false'):
-                        qualification_requirements[key] = value.lower() == 'true'
-                    else:
-                        qualification_requirements[key] = value
-                result['config']['qualification_requirements'] = qualification_requirements
-
-            # 提取技术评分信息
-            if ini_config.has_section('TECHNICAL_SCORING'):
-                technical_scoring = {}
-                for key, value in ini_config.items('TECHNICAL_SCORING'):
-                    technical_scoring[key] = value
-                result['config']['technical_scoring'] = technical_scoring
-
-            logger.info(f"成功读取招标配置文件，包含 {len(result['config'])} 个配置节")
-            return jsonify(result)
-
-        except Exception as e:
-            logger.error(f"获取招标配置失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
     
     # ===================

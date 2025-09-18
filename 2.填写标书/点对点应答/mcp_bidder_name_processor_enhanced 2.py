@@ -1701,201 +1701,10 @@ class MCPBidderNameProcessor:
                 'error': f'处理失败: {str(e)}'
             }
 
-    def _create_unified_field_config(self, company_info: dict, project_name: str, tender_no: str, date_text: str):
-        """
-        创建统一的字段处理配置 - 优化版
-        统一管理所有公司信息字段，支持表格式双字段布局处理
-        
-        Args:
-            company_info: 公司信息
-            project_name: 项目名称
-            tender_no: 招标编号
-            date_text: 日期文本
-            
-        Returns:
-            list: 统一的字段配置列表
-        """
-        return [
-            # 联系电话字段 - 统一处理各种电话相关字段
-            {
-                'field_names': ['电话', '联系电话', '固定电话', '电话号码', '联系方式'],
-                'value': company_info.get('fixedPhone', ''),
-                'display_name': '联系电话',
-                'field_type': 'contact',  # 字段类型：联系信息
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理', '联系人', '项目联系人', '业主'],
-                'formats': {
-                    'with_colon': True,      # 支持带冒号格式：电话：
-                    'without_colon': True,   # 支持不带冒号格式：电话
-                    'placeholder_types': ['underline', 'space', 'mixed'],  # 下划线、空格、混合占位符
-                    'table_layout': True     # 支持表格式布局
-                },
-                # 表格式双字段组合配置
-                'table_combinations': [
-                    {
-                        'partner_field': '电子邮件',
-                        'pattern': r'(电话|联系电话)(\s{8,})(电子邮件|电子邮箱|邮箱)',
-                        'description': '电话+邮件表格组合'
-                    }
-                ]
-            },
-            # 电子邮件字段 - 统一处理各种邮件相关字段
-            {
-                'field_names': ['电子邮件', '电子邮箱', '邮箱', 'email', 'Email'],
-                'value': company_info.get('email', '') or '未填写',
-                'display_name': '电子邮件',
-                'field_type': 'contact',  # 字段类型：联系信息
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理', '联系人', '项目联系人', '业主'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': True,
-                    'placeholder_types': ['underline', 'space', 'mixed'],
-                    'table_layout': True
-                },
-                # 表格式双字段组合配置
-                'table_combinations': [
-                    {
-                        'partner_field': '电话',
-                        'pattern': r'(电话|联系电话)(\s{8,})(电子邮件|电子邮箱|邮箱)',
-                        'description': '电话+邮件表格组合（作为第二字段）'
-                    }
-                ]
-            },
-            # 传真字段 - 统一处理各种传真相关字段
-            {
-                'field_names': ['传真', '传真号码', '传真号', 'fax', 'Fax'],
-                'value': company_info.get('fax', '') or '未填写',
-                'display_name': '传真',
-                'field_type': 'contact',  # 字段类型：联系信息
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理', '联系人', '项目联系人', '业主'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': True,
-                    'placeholder_types': ['underline', 'space', 'mixed'],
-                    'table_layout': True
-                },
-                # 表格式双字段组合配置
-                'table_combinations': [
-                    {
-                        'partner_field': '地址',
-                        'pattern': r'(地址|注册地址|办公地址|联系地址)(\s{8,})(传真)',
-                        'description': '地址+传真表格组合（作为第二字段）'
-                    }
-                ]
-            },
-            # 邮政编码字段
-            {
-                'field_names': ['邮政编码', '邮编', '邮码'],
-                'value': company_info.get('postalCode', ''),
-                'display_name': '邮政编码',
-                'field_type': 'basic_info',  # 字段类型：基本信息
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            },
-            # 统一社会信用代码字段
-            {
-                'field_names': ['统一社会信用代码', '社会信用代码', '信用代码', '统一信用代码'],
-                'value': company_info.get('socialCreditCode', ''),
-                'display_name': '统一社会信用代码',
-                'field_type': 'legal_info',  # 字段类型：法定信息
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            },
-            # 注册资本字段
-            {
-                'field_names': ['注册资本', '注册资金', '资本'],
-                'value': company_info.get('registeredCapital', ''),
-                'display_name': '注册资本',
-                'field_type': 'legal_info',  # 字段类型：法定信息
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            },
-            # 网站字段
-            {
-                'field_names': ['网站', '网址', '官网', '公司网站'],
-                'value': company_info.get('website', ''),
-                'display_name': '网站',
-                'field_type': 'contact',  # 字段类型：联系信息
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            },
-            # 开户银行字段
-            {
-                'field_names': ['开户银行', '银行名称', '开户行', '银行'],
-                'value': company_info.get('bankName', ''),
-                'display_name': '开户银行',
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            },
-            # 银行账号字段
-            {
-                'field_names': ['银行账号', '账号', '银行账户', '账户号'],
-                'value': company_info.get('bankAccount', ''),
-                'display_name': '银行账号',
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            },
-            # 经营范围字段
-            {
-                'field_names': ['经营范围', '营业范围', '业务范围', '主营业务'],
-                'value': company_info.get('businessScope', ''),
-                'display_name': '经营范围',
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            },
-            # 成立日期字段
-            {
-                'field_names': ['成立日期', '成立时间', '设立日期', '注册日期'],
-                'value': self._format_chinese_date(company_info.get('establishDate', '')),
-                'display_name': '成立日期',
-                'exclude_contexts': ['采购人', '招标人', '甲方', '代理'],
-                'formats': {
-                    'with_colon': True,
-                    'without_colon': False,
-                    'placeholder_types': ['underline', 'space'],
-                    'table_layout': False
-                }
-            }
-        ]
-
     def _process_company_info_fields(self, file_path: str, company_info: dict, 
                                    project_name: str, tender_no: str, date_text: str):
         """
-        使用统一框架处理公司信息字段
+        处理公司信息字段 - 修复重复填写问题
         
         Args:
             file_path: 文档路径
@@ -1909,737 +1718,365 @@ class MCPBidderNameProcessor:
         """
         try:
             doc = Document(file_path)
-            logger.info(f"开始处理公司信息字段（统一框架），文档共有 {len(doc.paragraphs)} 个段落")
+            logger.info(f"开始处理公司信息字段，文档共有 {len(doc.paragraphs)} 个段落")
             
             total_replacements = 0
             patterns_found = []
             processed_paragraphs = set()  # 记录已处理的段落，防止重复处理
             
-            # 获取统一的字段配置
-            field_configs = self._create_unified_field_config(company_info, project_name, tender_no, date_text)
+            # 定义字段映射关系
+            field_patterns = [
+                # 法定代表人 - 使用方案A的改进模式，特殊处理：如果包含"签字"则不填写
+                {
+                    'patterns': [r'(法定代表人.*?[:：])\s*(.*?)$', r'(法人代表.*?[:：])\s*(.*?)$', r'(法人.*?[:：])\s*(.*?)$'],
+                    'value': company_info.get('legalRepresentative', ''),
+                    'field_name': '法定代表人',
+                    'skip_if_contains': ['签字'],  # 如果原文包含"签字"则跳过填写
+                    'compact_format': True  # 标记使用紧凑格式
+                },
+                # 注册地址
+                {
+                    'patterns': [r'注册地址.*?[:：]\s*([_\s]*)', r'注册住所.*?[:：]\s*([_\s]*)', r'住所.*?[:：]\s*([_\s]*)'],
+                    'value': company_info.get('registeredAddress', ''),
+                    'field_name': '注册地址'
+                },
+                # 办公地址 - 简单分组匹配，直接替换占位符
+                {
+                    'patterns': [r'(办公地址[:：]\s*)([_\s]+)', r'(联系地址[:：]\s*)([_\s]+)'],
+                    'value': company_info.get('officeAddress', ''),
+                    'field_name': '办公地址',
+                    'compact_format': True,  # 使用紧凑格式
+                    'preserve_trailing': True  # 保留后续内容
+                },
+                # 统一社会信用代码
+                {
+                    'patterns': [r'统一社会信用代码.*?[:：]\s*([_\s]*)', r'社会信用代码.*?[:：]\s*([_\s]*)', r'信用代码.*?[:：]\s*([_\s]*)'],
+                    'value': company_info.get('socialCreditCode', ''),
+                    'field_name': '统一社会信用代码'
+                },
+                # 注册资本
+                {
+                    'patterns': [r'注册资本.*?[:：]\s*([_\s]*)', r'注册资金.*?[:：]\s*([_\s]*)'],
+                    'value': company_info.get('registeredCapital', ''),
+                    'field_name': '注册资本'
+                },
+                # 电话 - 支持表单式和表格式两种布局
+                {
+                    'patterns': [
+                        r'(电话[:：])(\s*[_\s]+)',                     # 表单式：电话：_____
+                        r'(联系电话[:：])(\s*[_\s]+)',                 # 表单式：联系电话：_____
+                        r'(固定电话[:：])(\s*[_\s]+)',                 # 表单式：固定电话：_____
+                        r'(电话)(\s{10,})(?=电子邮件|电子邮箱|邮箱)',    # 表格式：电话[大量空格]电子邮件
+                        r'(电话)(\s+)(?=\s*电子邮件|\s*电子邮箱|\s*邮箱)'  # 表格式：电话[空格]电子邮件
+                    ],
+                    'value': company_info.get('fixedPhone', ''),
+                    'field_name': '联系电话',
+                    'compact_format': True,  # 使用紧凑格式
+                    'preserve_trailing': True  # 保留后续内容
+                },
+                # 邮政编码
+                {
+                    'patterns': [r'(邮政编码[:：]\s*)([_\s]*)', r'(邮编[:：]\s*)([_\s]*)'],
+                    'value': company_info.get('postalCode', ''),
+                    'field_name': '邮政编码',
+                    'compact_format': True  # 使用紧凑格式，避免标签被误删
+                },
+                # 网站
+                {
+                    'patterns': [r'网站.*?[:：]\s*([_\s]*)', r'网址.*?[:：]\s*([_\s]*)', r'官网.*?[:：]\s*([_\s]*)'],
+                    'value': company_info.get('website', ''),
+                    'field_name': '网站'
+                },
+                # 开户银行
+                {
+                    'patterns': [r'开户银行.*?[:：]\s*([_\s]*)', r'银行名称.*?[:：]\s*([_\s]*)', r'开户行.*?[:：]\s*([_\s]*)'],
+                    'value': company_info.get('bankName', ''),
+                    'field_name': '开户银行'
+                },
+                # 银行账号
+                {
+                    'patterns': [r'银行账号.*?[:：]\s*([_\s]*)', r'账号.*?[:：]\s*([_\s]*)', r'银行账户.*?[:：]\s*([_\s]*)'],
+                    'value': company_info.get('bankAccount', ''),
+                    'field_name': '银行账号'
+                },
+                # 经营范围
+                {
+                    'patterns': [r'经营范围.*?[:：]\s*([_\s]+)', r'营业范围.*?[:：]\s*([_\s]+)', r'业务范围.*?[:：]\s*([_\s]+)'],
+                    'value': company_info.get('businessScope', ''),
+                    'field_name': '经营范围'
+                },
+                # 成立日期 - 使用方案A的改进模式
+                {
+                    'patterns': [r'(成立日期[:：])\s*(.*?)$', r'(成立时间[:：])\s*(.*?)$', r'(设立日期[:：])\s*(.*?)$'],
+                    'value': self._format_chinese_date(company_info.get('establishDate', '')),
+                    'field_name': '成立日期',
+                    'compact_format': True  # 标记使用紧凑格式
+                },
+                # 日期 - 支持多种格式
+                {
+                    'patterns': [
+                        r'(日\s+期)\s*[:：]\s*([_\s]*)',  # 日          期：_____ (日期中间有空格) - 优先匹配
+                        r'(时\s+间)\s*[:：]\s*([_\s]*)',  # 时          间：_____ (时间中间有空格) - 优先匹配
+                        r'^(日期)(\s{10,})$',  # 日期后跟多个空格（无冒号格式）- 修正：分别捕获标签和占位符
+                        r'^(时间)(\s{10,})$',  # 时间后跟多个空格（无冒号格式）- 修正：分别捕获标签和占位符
+                        r'日期.*?[:：]\s*([_\s]*)',  # 日期：_____ 或 日期：_____
+                        r'时间.*?[:：]\s*([_\s]*)',  # 时间：_____ 
+                        r'(日期)\s*[:：]\s*([_-]+)',  # 日期: _____ 或 日期: -----
+                        r'(日期)\s*[:：]\s*([_\s]*年[_\s]*月[_\s]*日)', # 日期：___年___月___日
+                        r'(日期\s*[:：])\s*(.*?)$',  # 日期: 后面任意内容到行末（修正组匹配）
+                        r'^(\s*)([_-]+年[_-]+月[_-]+日)(\s*)$',  # 独立的 ____年____月____日 格式
+                        r'([_-]+年[_-]+月[_-]+日)',  # 段落中的 ____年____月____日 格式
+                        r'(\s{2,}年\s{2,}月\s{2,}日)',  # 空格分隔的年月日格式：     年     月     日
+                    ],
+                    'value': date_text,
+                    'field_name': '日期'
+                },
+                # 采购人（招标人）- 从项目信息读取
+                {
+                    'patterns': [r'采购人.*?[:：]\s*([_\s]*)', r'招标人.*?[:：]\s*([_\s]*)', r'甲方.*?[:：]\s*([_\s]*)'],
+                    'value': self._get_project_info_field('tenderer'),
+                    'field_name': '采购人'
+                },
+                # 招标方式 - 从项目信息读取
+                {
+                    'patterns': [r'招标方式.*?[:：]\s*([_\s]*)', r'投标方式.*?[:：]\s*([_\s]*)', r'采购方式.*?[:：]\s*([_\s]*)'],
+                    'value': self._get_project_info_field('bidding_method'),
+                    'field_name': '招标方式'
+                },
+                # 招标代理 - 从项目信息读取
+                {
+                    'patterns': [r'招标代理.*?[:：]\s*([_\s]*)', r'代理机构.*?[:：]\s*([_\s]*)', r'招标代理机构.*?[:：]\s*([_\s]*)'],
+                    'value': self._get_project_info_field('agency'),
+                    'field_name': '招标代理'
+                },
+                # 地址字段 - 简单分组匹配，直接替换占位符
+                {
+                    'patterns': [r'(地址[:：]\s*)([_\s]+)', r'^(地址\s*)([_\s]+)'],
+                    'value': company_info.get('registeredAddress', ''),
+                    'field_name': '地址',
+                    'compact_format': True,  # 标记使用紧凑格式
+                    'preserve_trailing': True  # 保留后续内容（如传真标签）
+                },
+                # 传真字段 - 支持表单式和表格式两种布局
+                {
+                    'patterns': [
+                        r'(传真[:：]\s*)([_\s]*)',                      # 表单式：传真：_____
+                        r'(传真号码[:：]\s*)([_\s]*)',                  # 表单式：传真号码：_____
+                        r'(?<=地址)(\s{10,})(传真)',                    # 表格式：地址[大量空格]传真
+                        r'(?<=地址)(\s+)(传真)',                        # 表格式：地址[空格]传真
+                        r'(传真)(\s*)$',                               # 独立传真字段
+                        r'(传真)(\s+)(?=\S|$)'                         # 传真后跟其他内容
+                    ],
+                    'value': company_info.get('fax', '') or '未填写',
+                    'field_name': '传真',
+                    'compact_format': True  # 使用紧凑格式
+                },
+                # 电子邮件字段
+                {
+                    'patterns': [
+                        r'(电子邮件[:：]\s*)([_\s]+)',                     # 表单式：电子邮件：_____
+                        r'(电子邮件[:：]\s*)([_\s]*)',                     # 表单式：电子邮件：（可选占位符）
+                        r'(电子邮箱[:：]\s*)([_\s]+)',                     # 表单式：电子邮箱：_____
+                        r'(电子邮箱[:：]\s*)([_\s]*)',                     # 表单式：电子邮箱：（可选占位符）
+                        r'(电子邮箱[:：])(\s*)$',                          # 纯标签格式（行末）
+                        r'(邮箱[:：]\s*)([_\s]+)',                         # 表单式：邮箱：_____
+                        r'(邮箱[:：]\s*)([_\s]*)',                         # 表单式：邮箱：（可选占位符）
+                        r'(?<=电话)(\s{10,})(电子邮件)(\s*)',              # 表格式：电话[大量空格]电子邮件
+                        r'(?<=电话)(\s{2,})(电子邮件)(\s*)',               # 表格式：电话[空格]电子邮件
+                        r'(?<=电话)(\s{10,})(电子邮箱)(\s*)',              # 表格式：电话[大量空格]电子邮箱
+                        r'(?<=电话)(\s{2,})(电子邮箱)(\s*)',               # 表格式：电话[空格]电子邮箱
+                        r'(电子邮件)(\s*)$',                               # 独立电子邮件字段（行末）
+                        r'(电子邮箱)(\s*)$'                                # 独立电子邮箱字段（行末）
+                    ],
+                    'value': company_info.get('email', '') or '未填写',
+                    'field_name': '电子邮件',
+                    'compact_format': True  # 使用紧凑格式，替换而不是追加
+                }
+            ]
             
-            # 处理所有段落
+            # 处理每个段落
             for para_idx, paragraph in enumerate(doc.paragraphs):
-                if para_idx in processed_paragraphs:
+                para_text = paragraph.text
+                
+                if not para_text.strip() or para_idx in processed_paragraphs:
                     continue
+                
+                # 检查每个字段模式
+                # 特殊处理：如果段落包含多个字段（如地址和传真），需要处理所有字段
+                has_multiple_fields = ('地址' in para_text and '传真' in para_text) or \
+                                    ('电话' in para_text and ('电子邮件' in para_text or '电子邮箱' in para_text or '邮箱' in para_text)) or \
+                                    ('邮编' in para_text and '地址' in para_text) or \
+                                    ('电话' in para_text and '传真' in para_text)
+                
+                paragraph_modified = False  # 标记本段落是否已被修改
+                current_text = para_text  # 跟踪当前文本状态
+                
+                for field_info in field_patterns:
+                    # 如果不是多字段情况且段落已修改，跳过
+                    if not has_multiple_fields and paragraph_modified:
+                        break
+                        
+                    field_value = field_info['value']
+                    field_name = field_info['field_name']
+                    skip_keywords = field_info.get('skip_if_contains', [])  # 获取跳过关键词
                     
-                para_text = paragraph.text.strip()
-                if not para_text:
-                    continue
-                
-                logger.info(f"处理段落 #{para_idx}: '{para_text[:50]}...'")
-                
-                # 使用统一框架处理字段
-                for field_config in field_configs:
-                    result = self._process_unified_field(paragraph, para_text, field_config, para_idx)
-                    if result['modified']:
-                        total_replacements += result['replacements']
-                        patterns_found.extend(result['patterns'])
-                        processed_paragraphs.add(para_idx)
-                        break  # 一个段落只处理一个字段，避免冲突
+                    if not field_value:  # 跳过空值
+                        continue
+                    
+                    # 检查是否需要跳过（特殊处理逻辑）
+                    if skip_keywords:
+                        should_skip = any(keyword in para_text for keyword in skip_keywords)
+                        if should_skip:
+                            logger.info(f"段落 #{para_idx} {field_name}字段包含跳过关键词{skip_keywords}，不填写")
+                            continue
+                    
+                    # 检查所有模式
+                    for pattern_str in field_info['patterns']:
+                        pattern = re.compile(pattern_str, re.IGNORECASE)
+                        # 如果是多字段情况，使用更新后的文本
+                        search_text = current_text if has_multiple_fields and paragraph_modified else para_text
+                        match = pattern.search(search_text)
+                        
+                        if match:
+                            logger.info(f"段落 #{para_idx} 匹配{field_name}字段: '{para_text[:100]}...'")
+                            
+                            # 检查是否为联系信息字段，且已经包含有意义的内容（不是招标方要求填写的空字段）
+                            if field_name in ['联系电话', '电子邮件', '办公地址', '联系地址', '地址']:
+                                # 检查匹配的内容是否已经包含实际数据（非下划线和空格）
+                                captured_content = ""
+                                if len(match.groups()) >= 2:
+                                    captured_content = match.group(2) if match.group(2) else ""
+                                elif len(match.groups()) >= 1:
+                                    captured_content = match.group(1) if match.group(1) else ""
+                                
+                                # 特殊处理：如果捕获内容只是标签（如"邮箱"），不算作有意义内容
+                                meaningful_content = captured_content
+                                if field_name == '电子邮件' and captured_content in ['邮箱', '电子邮件']:
+                                    meaningful_content = ""
+                                
+                                # 如果捕获的内容包含非下划线非空格的字符，且不只是标签，说明已经有内容，跳过填写
+                                if meaningful_content and re.search(r'[^\s_]', meaningful_content):
+                                    logger.info(f"段落 #{para_idx} {field_name}字段已包含内容: '{meaningful_content.strip()}'，跳过填写")
+                                    continue
+                            
+                            # 检查是否是括号内容替换
+                            is_bracket_replace = field_info.get('bracket_replace', False)
+                            
+                            if is_bracket_replace and ('（' in pattern_str or '\\(' in pattern_str or '为\\s*' in pattern_str):
+                                # 括号内容替换：（项目名称） -> （实际项目名称）
+                                # 或者处理"为（xxx）项目"格式
+                                match_text = match.group(0)
+                                
+                                if '为' in pattern_str and '项目' in pattern_str:
+                                    # 特殊处理"为（xxx）项目"格式
+                                    new_text = re.sub(r'为\s*[\(（][^）)]*[\)）]\s*项目', f'为（{field_value}）项目', para_text, count=1)
+                                elif '（' in match_text:
+                                    new_text = re.sub(r'（[^）]*）', f'（{field_value}）', para_text, count=1)
+                                elif '(' in match_text:
+                                    new_text = re.sub(r'\([^)]*\)', f'（{field_value}）', para_text, count=1)
+                                else:
+                                    new_text = pattern.sub(lambda m: f"（{field_value}）", para_text, count=1)
+                                logger.info(f"括号内容替换: {match.group(0)} -> （{field_value}）")
+                            else:
+                                # 常规字段替换
+                                try:
+                                    # 使用正确的文本进行替换（多字段情况使用search_text）
+                                    replace_text = search_text if has_multiple_fields and paragraph_modified else para_text
+                                    
+                                    # 检查是否使用紧凑格式（方案A）
+                                    if field_info.get('compact_format', False):
+                                        preserve_trailing = field_info.get('preserve_trailing', False)
+                                        new_text = self._compact_format_replace(replace_text, match, field_value, field_name, preserve_trailing)
+                                    # 特殊处理成立日期字段，避免重复的"年月日"
+                                    elif field_name == '成立日期' and field_value:
+                                        new_text = self._smart_date_replace(replace_text, match, field_value)
+                                    # 优先处理无冒号日期格式（双捕获组：标签+占位符） - 调整到前面避免被其他条件拦截
+                                    elif len(match.groups()) == 2 and field_name == '日期' and match.group(1) in ['日期', '时间']:
+                                        # 保留标签，替换占位符：标签 + 日期值
+                                        label = match.group(1)  # 第1组：标签
+                                        # 第2组：占位符空格，直接替换为日期值
+                                        new_text = replace_text.replace(match.group(0), label + field_value, 1)
+                                        logger.info(f"无冒号日期格式替换: '{match.group(0)}' -> '{label + field_value}'")
+                                    # 特殊处理一般日期字段，也避免重复的"年月日"
+                                    elif field_name == '日期' and field_value and '年' in field_value and '月' in field_value and '日' in field_value:
+                                        new_text = self._smart_date_replace(replace_text, match, field_value)
+                                    else:
+                                        placeholder = match.group(1) if match.groups() else ""
+                                        if placeholder:  # 只有当有占位符时才替换
+                                            new_text = replace_text.replace(match.group(0), match.group(0).replace(placeholder, field_value, 1))
+                                        else:
+                                            # 如果没有占位符，在匹配的分隔符后添加字段值
+                                            new_text = pattern.sub(lambda m: m.group(0) + field_value, replace_text, count=1)
+                                except IndexError:
+                                    # 如果没有捕获组，直接替换整个匹配
+                                    new_text = pattern.sub(field_value, para_text, count=1)
+                            
+                            # 验证替换是否成功且避免重复填写
+                            compare_text = search_text if has_multiple_fields and paragraph_modified else para_text
+                            if new_text != compare_text and (new_text.count(field_value) == 1 or is_bracket_replace):
+                                # 使用更安全的方法替换文本，保持格式
+                                # 根据字段类型选择合适的替换方法
+                                if field_info.get('compact_format', False):
+                                    # 紧凑格式字段：使用专门的格式保持替换方法
+                                    preserve_trailing = field_info.get('preserve_trailing', False)
+                                    success = self._compact_format_paragraph_replace(paragraph, match, field_value, field_name, preserve_trailing)
+                                elif field_name == '成立日期':
+                                    # 成立日期字段：使用智能日期替换方法
+                                    success = self._smart_date_paragraph_replace(paragraph, compare_text, new_text, field_value)
+                                # 优先处理无冒号日期格式的段落替换 - 调整到前面避免被其他条件拦截
+                                elif len(match.groups()) == 2 and field_name == '日期' and match.group(1) in ['日期', '时间']:
+                                    # 无冒号日期格式的段落替换：保留标签，替换占位符
+                                    success = self._no_colon_date_paragraph_replace(paragraph, match, field_value)
+                                elif field_name == '日期' and field_value and '年' in field_value and '月' in field_value and '日' in field_value:
+                                    # 一般日期字段：如果包含"年月日"也使用智能日期替换方法
+                                    success = self._smart_date_paragraph_replace(paragraph, compare_text, new_text, field_value)
+                                else:
+                                    # 普通字段：使用标准替换方法
+                                    success = self._safe_replace_paragraph_text(paragraph, compare_text, new_text)
+                                
+                                if not success:
+                                    logger.warning(f"段落文本替换失败，跳过该字段")
+                                    continue
+                                
+                                logger.info(f"{field_name}字段填写完成: '{new_text[:100]}...'")
+                                total_replacements += 1
+                                patterns_found.append({
+                                    'field_name': field_name,
+                                    'original_text': para_text[:100] + ('...' if len(para_text) > 100 else ''),
+                                    'new_text': new_text[:100] + ('...' if len(new_text) > 100 else ''),
+                                    'paragraph_index': para_idx
+                                })
+                                
+                                # 更新当前文本（用于多字段处理）
+                                if has_multiple_fields:
+                                    current_text = paragraph.text  # 获取最新的段落文本
+                                    
+                                # 只有单字段情况才标记段落为已处理
+                                if not has_multiple_fields:
+                                    processed_paragraphs.add(para_idx)
+                                    
+                                paragraph_modified = True
+                                break  # 找到匹配就退出内层循环
             
-            # 后处理美化机制 - 统一清理和优化格式
-            beautified_paragraphs = self._post_process_beautification(doc, total_replacements)
-            
-            # 保存处理后的文档
+            # 保存文档
             doc.save(file_path)
+            logger.info(f"公司信息字段处理完成，共处理 {total_replacements} 个字段")
             
-            # 返回处理结果
             return {
                 'success': True,
-                'total_replacements': total_replacements,
-                'patterns_found': patterns_found,
-                'processed_paragraphs': len(processed_paragraphs),
-                'message': f'公司信息字段处理完成，共替换 {total_replacements} 处内容'
+                'stats': {
+                    'total_replacements': total_replacements,
+                    'info_fields_processed': total_replacements,
+                    'patterns_found': patterns_found
+                }
             }
             
         except Exception as e:
-            logger.error(f"处理公司信息字段失败: {e}")
+            logger.error(f"公司信息字段处理失败: {e}")
             return {
                 'success': False,
-                'error': f'处理失败: {str(e)}'
+                'error': f'字段处理失败: {str(e)}'
             }
-    
-    def _post_process_beautification(self, doc, total_replacements: int) -> int:
-        """
-        后处理美化机制 - 统一清理和优化格式
-        
-        Args:
-            doc: Word文档对象
-            total_replacements: 已完成的替换次数
-            
-        Returns:
-            int: 美化处理的段落数量
-        """
-        try:
-            beautified_count = 0
-            logger.info("开始后处理美化机制")
-            
-            for para_idx, paragraph in enumerate(doc.paragraphs):
-                para_text = paragraph.text.strip()
-                if not para_text:
-                    continue
-                
-                original_text = para_text
-                beautified_text = self._beautify_paragraph_text(para_text)
-                
-                # 如果文本有改动，进行美化替换
-                if beautified_text != original_text:
-                    success = self._safe_replace_paragraph_text(paragraph, original_text, beautified_text)
-                    if success:
-                        beautified_count += 1
-                        logger.info(f"段落 #{para_idx} 美化成功: '{original_text[:30]}...' -> '{beautified_text[:30]}...'")
-                    else:
-                        logger.warning(f"段落 #{para_idx} 美化失败")
-            
-            logger.info(f"后处理美化完成，处理了 {beautified_count} 个段落")
-            return beautified_count
-            
-        except Exception as e:
-            logger.error(f"后处理美化失败: {e}")
-            return 0
-    
-    def _beautify_paragraph_text(self, text: str) -> str:
-        """
-        美化段落文本 - 应用各种美化规则
-        
-        Args:
-            text: 原始文本
-            
-        Returns:
-            str: 美化后的文本
-        """
-        try:
-            import re
-            
-            beautified = text
-            
-            # 美化规则1: 清理多余的连续空格（保留表格对齐需要的空格）
-            beautified = self._clean_excessive_spaces(beautified)
-            
-            # 美化规则2: 标点符号统一化
-            beautified = self._normalize_punctuation(beautified)
-            
-            # 美化规则3: 清理冗余的占位符
-            beautified = self._clean_redundant_placeholders(beautified)
-            
-            # 美化规则4: 表格对齐优化
-            beautified = self._optimize_table_alignment(beautified)
-            
-            # 美化规则5: 中英文间距处理
-            beautified = self._handle_chinese_english_spacing(beautified)
-            
-            return beautified
-            
-        except Exception as e:
-            logger.error(f"文本美化失败: {e}")
-            return text
-    
-    def _clean_excessive_spaces(self, text: str) -> str:
-        """清理多余的连续空格，但保留表格对齐需要的空格"""
-        try:
-            import re
-            
-            # 检查是否为表格式布局（两个字段间有大量空格）
-            table_patterns = [
-                r'(电话|联系电话)[:：][^电子邮件]*\s{4,}(电子邮件|电子邮箱|邮箱)',
-                r'(地址|注册地址|办公地址)[:：][^传真]*\s{4,}(传真)',
-                r'(邮政编码|邮编)[:：][^网站]*\s{4,}(网站|网址)'
-            ]
-            
-            is_table_layout = any(re.search(pattern, text) for pattern in table_patterns)
-            
-            if is_table_layout:
-                # 表格式布局：保留对齐空格，但清理其他多余空格
-                logger.debug("检测到表格式布局，保留对齐空格")
-                # 只清理非对齐区域的多余空格
-                cleaned = re.sub(r'^(\s{2,})', ' ', text)  # 清理行首多余空格
-                cleaned = re.sub(r'(\s{2,})$', '', cleaned)  # 清理行尾多余空格
-                return cleaned
-            else:
-                # 普通文本：清理所有多余空格
-                cleaned = re.sub(r'\s{2,}', ' ', text)  # 将多个空格替换为单个空格
-                return cleaned.strip()
-                
-        except Exception as e:
-            logger.error(f"清理多余空格失败: {e}")
-            return text
-    
-    def _normalize_punctuation(self, text: str) -> str:
-        """标点符号统一化"""
-        try:
-            # 统一使用中文冒号
-            text = text.replace(':', '：')
-            
-            # 清理多余的标点符号
-            import re
-            text = re.sub(r'：{2,}', '：', text)  # 多个冒号合并为一个
-            text = re.sub(r'\.{2,}', '.', text)   # 多个句号合并为一个
-            text = re.sub(r'，{2,}', '，', text)   # 多个逗号合并为一个
-            
-            return text
-            
-        except Exception as e:
-            logger.error(f"标点符号统一化失败: {e}")
-            return text
-    
-    def _clean_redundant_placeholders(self, text: str) -> str:
-        """清理冗余的占位符"""
-        try:
-            import re
-            
-            # 清理孤立的下划线占位符
-            text = re.sub(r'^_+$', '', text)  # 整行都是下划线
-            text = re.sub(r'^_{1,3}$', '', text)  # 少量下划线
-            
-            # 清理已填写字段后的多余下划线
-            text = re.sub(r'([:：][\w\d\-@\.]+)_+', r'\1', text)  # 字段后的下划线
-            
-            # 清理多余的破折号
-            text = re.sub(r'[—]{3,}', '', text)  # 多个破折号
-            text = re.sub(r'[-]{4,}', '', text)   # 多个连字符
-            
-            return text
-            
-        except Exception as e:
-            logger.error(f"清理占位符失败: {e}")
-            return text
-    
-    def _optimize_table_alignment(self, text: str) -> str:
-        """表格对齐优化"""
-        try:
-            import re
-            
-            # 优化表格式布局的对齐
-            # 模式：字段1：值1     字段2：值2
-            table_match = re.search(r'([\w\u4e00-\u9fff]+[:：][\w\d\-@\.\u4e00-\u9fff]+)(\s{2,})([\w\u4e00-\u9fff]+[:：][\w\d\-@\.\u4e00-\u9fff]*)', text)
-            
-            if table_match:
-                field1_part = table_match.group(1)
-                spaces = table_match.group(2)
-                field2_part = table_match.group(3)
-                
-                # 计算最优空格数：确保总长度合理且对齐美观
-                optimal_spaces = max(4, min(20, len(spaces)))  # 4-20个空格之间
-                
-                optimized_text = f"{field1_part}{' ' * optimal_spaces}{field2_part}"
-                text = text.replace(table_match.group(0), optimized_text)
-                
-                logger.debug(f"表格对齐优化: {len(spaces)}空格 -> {optimal_spaces}空格")
-            
-            return text
-            
-        except Exception as e:
-            logger.error(f"表格对齐优化失败: {e}")
-            return text
-    
-    def _handle_chinese_english_spacing(self, text: str) -> str:
-        """中英文间距处理"""
-        try:
-            import re
-            
-            # 在中文和英文数字之间添加适当的空格（如果需要的话）
-            # 这里采用保守策略，只处理明显需要空格的情况
-            
-            # 中文和邮箱之间
-            text = re.sub(r'([\u4e00-\u9fff])([a-zA-Z0-9]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', r'\1 \2', text)
-            
-            # 中文和网址之间
-            text = re.sub(r'([\u4e00-\u9fff])(http[s]?://[^\s]+)', r'\1 \2', text)
-            text = re.sub(r'([\u4e00-\u9fff])(www\.[^\s]+)', r'\1 \2', text)
-            
-            return text
-            
-        except Exception as e:
-            logger.error(f"中英文间距处理失败: {e}")
-            return text
-    
-    def _process_unified_field(self, paragraph, para_text: str, field_config: dict, para_idx: int):
-        """
-        使用统一框架处理单个字段
-        
-        Args:
-            paragraph: Word文档段落对象
-            para_text: 段落文本
-            field_config: 字段配置
-            para_idx: 段落索引
-            
-        Returns:
-            dict: 处理结果 {'modified': bool, 'replacements': int, 'patterns': list}
-        """
-        field_names = field_config['field_names']
-        field_value = field_config['value']
-        display_name = field_config['display_name']
-        exclude_contexts = field_config['exclude_contexts']
-        formats = field_config['formats']
-        
-        if not field_value:
-            return {'modified': False, 'replacements': 0, 'patterns': []}
-        
-        # 检查是否为采购人信息，如果是则跳过
-        if self._is_purchaser_info(para_text, exclude_contexts):
-            logger.info(f"段落 #{para_idx} 检测到采购人信息，跳过 {display_name} 字段填写")
-            return {'modified': False, 'replacements': 0, 'patterns': []}
-        
-        # 检查字段是否已填写
-        if self._field_already_filled(para_text, field_names):
-            logger.info(f"段落 #{para_idx} {display_name} 字段已填写，跳过")
-            return {'modified': False, 'replacements': 0, 'patterns': []}
-        
-        # 生成匹配模式
-        patterns = self._generate_field_patterns(field_names, formats)
-        
-        # 尝试匹配和替换
-        for pattern_info in patterns:
-            match = pattern_info['regex'].search(para_text)
-            if match:
-                logger.info(f"段落 #{para_idx} 匹配 {display_name} 字段模式: {pattern_info['description']}")
-                
-                # 使用run级别格式保持进行替换
-                success = self._replace_with_format_preservation(
-                    paragraph, pattern_info['regex'], field_value, display_name, pattern_info
-                )
-                
-                if success:
-                    return {
-                        'modified': True, 
-                        'replacements': 1, 
-                        'patterns': [f"{display_name}: {pattern_info['description']}"]
-                    }
-        
-        return {'modified': False, 'replacements': 0, 'patterns': []}
-    
-    def _is_purchaser_info(self, text: str, exclude_contexts: list) -> bool:
-        """
-        增强版采购人信息识别 - 更准确地识别各种采购人信息格式
-        
-        Args:
-            text: 要检查的文本
-            exclude_contexts: 排除的关键词列表
-            
-        Returns:
-            bool: True表示是采购人信息，应跳过填写
-        """
-        if not text:
-            return False
-            
-        # 1. 直接关键词检查（最高优先级）
-        for context in exclude_contexts:
-            if context in text:
-                logger.info(f"检测到排除关键词 '{context}'，判定为采购人信息")
-                return True
-        
-        # 2. 语义上下文分析 - 检查更多采购方相关词汇
-        purchaser_indicators = [
-            '采购人', '招标人', '甲方', '发包方', '发包人', '业主方', '业主',
-            '招标方', '采购单位', '发标方', '委托人', '委托方',
-            '项目建设单位', '建设方', '建设单位', '项目单位',
-            '代理机构', '招标代理', '代理公司', '咨询公司',
-            '联系人', '项目联系人', '业务联系人', '技术联系人',
-            '询问人', '质疑联系人', '投诉联系人'
-        ]
-        
-        for indicator in purchaser_indicators:
-            if indicator in text:
-                logger.info(f"检测到采购方指示词 '{indicator}'，判定为采购人信息")
-                return True
-        
-        # 3. 格式特征识别
-        # 3.1 方括号/书名号格式（采购人预填信息的常见格式）
-        bracket_patterns = [
-            r'【[^】]*】',      # 【方括号】
-            r'〖[^〗]*〗',      # 〖方括号〗  
-            r'［[^］]*］',      # ［方括号］
-            r'《[^》]*》',      # 《书名号》
-            r'〈[^〉]*〉'       # 〈书名号〉
-        ]
-        
-        for pattern in bracket_patterns:
-            if re.search(pattern, text):
-                logger.info(f"检测到特殊标记格式，判定为采购人信息")
-                return True
-        
-        # 3.2 "项目"相关的描述性文本（通常是采购人填写的项目信息）
-        project_context_patterns = [
-            r'项目名称[:：][^投标人|^供应商]',
-            r'招标项目[:：]',
-            r'采购项目[:：]',
-            r'建设项目[:：]',
-            r'工程项目[:：]'
-        ]
-        
-        for pattern in project_context_patterns:
-            if re.search(pattern, text):
-                logger.info(f"检测到项目描述文本，判定为采购人信息")
-                return True
-        
-        # 4. 已填写内容识别（具体联系信息通常是采购人的）
-        # 4.1 电话号码模式（更准确的匹配）
-        phone_patterns = [
-            r'\d{3,4}[-\s]?\d{7,8}',           # 标准电话：010-12345678
-            r'\d{3,4}\s?\d{7,8}',              # 无连字符：010 12345678
-            r'\(\d{3,4}\)\s?\d{7,8}',          # 括号格式：(010) 12345678
-            r'\+86[-\s]?\d{3,4}[-\s]?\d{7,8}'  # 国际格式：+86-010-12345678
-        ]
-        
-        for pattern in phone_patterns:
-            if re.search(pattern, text):
-                logger.info("检测到具体电话号码，判定为采购人信息")
-                return True
-        
-        # 4.2 邮箱地址模式
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        if re.search(email_pattern, text):
-            logger.info("检测到具体邮箱地址，判定为采购人信息")
-            return True
-        
-        # 4.3 网址模式
-        url_patterns = [
-            r'http[s]?://[^\s]+',
-            r'www\.[^\s]+',
-            r'[a-zA-Z0-9-]+\.(com|cn|org|gov|net)[^\s]*'
-        ]
-        
-        for pattern in url_patterns:
-            if re.search(pattern, text):
-                logger.info("检测到网址信息，判定为采购人信息")
-                return True
-        
-        # 5. 地址信息特征（详细地址通常是采购人的）
-        detailed_address_patterns = [
-            r'[省市区县][^供应商|^投标人].*?[路街道巷弄号]',  # 完整地址格式
-            r'\d{6}',                                      # 邮政编码
-            r'[A-Z]\d+号',                                # 楼号格式：A1号
-            r'\d+[层楼]',                                  # 楼层：3楼、5层
-        ]
-        
-        for pattern in detailed_address_patterns:
-            if re.search(pattern, text):
-                # 额外检查：如果同时包含"供应商"或"投标人"，则可能不是采购人地址
-                if not any(word in text for word in ['供应商', '投标人', '乙方']):
-                    logger.info("检测到详细地址信息且无投标人标识，判定为采购人信息")
-                    return True
-        
-        # 6. 时间信息（招标时间、开标时间等通常是采购人填写的）
-        time_context_patterns = [
-            r'开标时间[:：]',
-            r'截止时间[:：]',
-            r'递交时间[:：]',
-            r'开标地点[:：]',
-            r'现场踏勘[:：]',
-            r'答疑时间[:：]'
-        ]
-        
-        for pattern in time_context_patterns:
-            if re.search(pattern, text):
-                logger.info("检测到招标时间信息，判定为采购人信息")
-                return True
-        
-        # 7. 表格标题和表头识别（招标文件中的表格通常是采购人预制的）
-        table_header_patterns = [
-            r'表\d+[-\.:]',              # 表1-1: 或 表1.1:
-            r'附件\d+[:：]',            # 附件1：
-            r'项目\s*编号[:：]',        # 项目编号：
-            r'合同\s*编号[:：]',        # 合同编号：
-            r'标段\s*[编号]*[:：]',     # 标段编号：
-            r'评标\s*标准[:：]',        # 评标标准：
-            r'技术\s*要求[:：]',        # 技术要求：
-            r'商务\s*要求[:：]'         # 商务要求：
-        ]
-        
-        for pattern in table_header_patterns:
-            if re.search(pattern, text):
-                logger.info("检测到表格标题/表头信息，判定为采购人预制内容")
-                return True
-        
-        # 8. 说明性文字识别（招标文件中的说明通常是采购人撰写的）
-        instruction_patterns = [
-            r'说明[:：]',
-            r'注[:：]',
-            r'备注[:：]',
-            r'填写说明[:：]',
-            r'投标须知[:：]',
-            r'特别提醒[:：]',
-            r'重要提示[:：]',
-            r'温馨提示[:：]'
-        ]
-        
-        for pattern in instruction_patterns:
-            if re.search(pattern, text):
-                logger.info("检测到说明性文字，判定为采购人信息")
-                return True
-        
-        # 9. 政府采购相关标识
-        gov_procurement_patterns = [
-            r'政府采购',
-            r'财政资金',
-            r'预算单位',
-            r'集中采购',
-            r'分散采购',
-            r'采购计划',
-            r'政采云',
-            r'公共资源交易中心'
-        ]
-        
-        for pattern in gov_procurement_patterns:
-            if pattern in text:
-                logger.info(f"检测到政府采购标识 '{pattern}'，判定为采购人信息")
-                return True
-        
-        # 10. 反向检查：如果明确包含投标人相关词汇，则不是采购人信息
-        bidder_indicators = ['供应商', '投标人', '承包商', '乙方', '服务商', '厂商', '制造商']
-        has_bidder_context = any(indicator in text for indicator in bidder_indicators)
-        
-        if has_bidder_context:
-            logger.info(f"检测到投标人相关词汇，确认为投标人信息区域")
-            return False
-        
-        # 11. 综合权重评估（新增功能）
-        purchaser_score = self._calculate_purchaser_probability_score(text, exclude_contexts)
-        if purchaser_score > 0.7:  # 阈值可调整
-            logger.info(f"综合评估得分 {purchaser_score:.2f} 超过阈值，判定为采购人信息")
-            return True
-        
-        return False
-    
-    def _calculate_purchaser_probability_score(self, text: str, exclude_contexts: list) -> float:
-        """
-        计算文本为采购人信息的概率得分 - 综合多个因素进行权重评估
-        
-        Args:
-            text: 要评估的文本
-            exclude_contexts: 排除的关键词列表
-            
-        Returns:
-            float: 概率得分 (0.0 - 1.0)，越高越可能是采购人信息
-        """
-        try:
-            import re
-            score = 0.0
-            
-            # 权重1: 关键词匹配 (权重: 0.4)
-            keyword_indicators = [
-                ('采购人', 0.3), ('招标人', 0.3), ('甲方', 0.2), ('业主', 0.2),
-                ('代理机构', 0.25), ('联系人', 0.15), ('项目单位', 0.2)
-            ]
-            
-            for keyword, weight in keyword_indicators:
-                if keyword in text:
-                    score += weight * 0.4
-            
-            # 权重2: 格式特征 (权重: 0.3)
-            format_patterns = [
-                (r'【[^】]*】', 0.3),        # 方括号格式
-                (r'《[^》]*》', 0.2),        # 书名号格式
-                (r'项目名称[:：]', 0.25),    # 项目描述
-                (r'开标时间[:：]', 0.2),     # 招标时间信息
-                (r'表\d+[-\.:]', 0.15)      # 表格标题
-            ]
-            
-            for pattern, weight in format_patterns:
-                if re.search(pattern, text):
-                    score += weight * 0.3
-            
-            # 权重3: 具体信息内容 (权重: 0.2)
-            if re.search(r'\d{3,4}[-\s]?\d{7,8}', text):  # 电话号码
-                score += 0.2 * 0.2
-            if re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text):  # 邮箱
-                score += 0.15 * 0.2
-            if re.search(r'http[s]?://[^\s]+', text):  # 网址
-                score += 0.1 * 0.2
-            
-            # 权重4: 排除关键词 (权重: 0.1)
-            for context in exclude_contexts:
-                if context in text:
-                    score += 0.1
-            
-            # 反向调整：投标人相关词汇降低得分
-            bidder_keywords = ['供应商', '投标人', '乙方', '服务商']
-            for keyword in bidder_keywords:
-                if keyword in text:
-                    score -= 0.3  # 显著降低得分
-            
-            # 确保得分在合理范围内
-            score = max(0.0, min(1.0, score))
-            
-            logger.debug(f"采购人概率评估: '{text[:50]}...' -> 得分: {score:.3f}")
-            return score
-            
-        except Exception as e:
-            logger.error(f"概率评估计算失败: {e}")
-            return 0.0
-    
-    def _field_already_filled(self, text: str, field_names: list) -> bool:
-        """
-        检查字段是否已经填写了有意义的内容
-        
-        Args:
-            text: 文本内容
-            field_names: 字段名称列表
-            
-        Returns:
-            bool: True表示已填写，应跳过
-        """
-        # 检查是否只包含占位符（下划线、空格）
-        for field_name in field_names:
-            if field_name in text:
-                # 找到字段后的内容
-                pattern = rf'{re.escape(field_name)}[:：]?\s*(.+)'
-                match = re.search(pattern, text)
-                if match:
-                    content = match.group(1).strip()
-                    # 如果内容不只是占位符（下划线、空格），说明已填写
-                    if content and re.search(r'[^\s_-]', content):
-                        return True
-        return False
-    
-    def _generate_field_patterns(self, field_names: list, formats: dict) -> list:
-        """
-        根据字段名称和格式配置生成正则表达式模式
-        
-        Args:
-            field_names: 字段名称列表
-            formats: 格式配置字典
-            
-        Returns:
-            list: 包含正则表达式和描述的列表
-        """
-        patterns = []
-        
-        for field_name in field_names:
-            # 表单式格式（带冒号）
-            if formats.get('with_colon'):
-                for placeholder_type in formats.get('placeholder_types', ['space']):
-                    if placeholder_type == 'underline':
-                        pattern = rf'({re.escape(field_name)}[:：]\s*)([_]+)'
-                        description = f'{field_name}（带冒号+下划线）'
-                    elif placeholder_type == 'space':
-                        pattern = rf'({re.escape(field_name)}[:：]\s*)(\s{{2,}})'
-                        description = f'{field_name}（带冒号+空格）'
-                    elif placeholder_type == 'mixed':
-                        pattern = rf'({re.escape(field_name)}[:：]\s*)([_\s]+)'
-                        description = f'{field_name}（带冒号+混合占位符）'
-                    
-                    patterns.append({
-                        'regex': re.compile(pattern),
-                        'description': description,
-                        'type': 'form_with_colon'
-                    })
-            
-            # 无冒号格式
-            if formats.get('without_colon'):
-                for placeholder_type in formats.get('placeholder_types', ['space']):
-                    if placeholder_type == 'space':
-                        pattern = rf'({re.escape(field_name)})(\s{{3,}})(?=\S|$)'
-                        description = f'{field_name}（无冒号+空格）'
-                    elif placeholder_type == 'underline':
-                        pattern = rf'({re.escape(field_name)})([_]+)'
-                        description = f'{field_name}（无冒号+下划线）'
-                    
-                    patterns.append({
-                        'regex': re.compile(pattern),
-                        'description': description,
-                        'type': 'form_without_colon'
-                    })
-            
-            # 表格式布局
-            if formats.get('table_layout'):
-                # 字段后跟其他字段的情况
-                other_fields = ['电话', '电子邮件', '电子邮箱', '邮箱', '传真', '地址']
-                for other_field in other_fields:
-                    if other_field != field_name:
-                        pattern = rf'({re.escape(field_name)})(\s{{2,}})(?={re.escape(other_field)})'
-                        description = f'{field_name}（表格式+{other_field}）'
-                        patterns.append({
-                            'regex': re.compile(pattern),
-                            'description': description,
-                            'type': 'table_layout'
-                        })
-            
-            # 行末格式
-            pattern = rf'({re.escape(field_name)})(\s*)$'
-            description = f'{field_name}（行末）'
-            patterns.append({
-                'regex': re.compile(pattern),
-                'description': description,
-                'type': 'line_end'
-            })
-        
-        return patterns
-    
-    def _replace_with_format_preservation(self, paragraph, pattern_regex, field_value: str, 
-                                        field_name: str, pattern_info: dict) -> bool:
-        """
-        使用run级别格式保持进行字段替换
-        集成现有的智能文本替换机制，确保格式完全保持
-        
-        Args:
-            paragraph: Word段落对象
-            pattern_regex: 正则表达式模式
-            field_value: 要填入的值
-            field_name: 字段名称
-            pattern_info: 模式信息
-            
-        Returns:
-            bool: 替换是否成功
-        """
-        try:
-            para_text = paragraph.text
-            match = pattern_regex.search(para_text)
-            if not match:
-                return False
-            
-            old_text = match.group(0)
-            
-            # 根据模式类型决定替换策略
-            if pattern_info['type'] == 'form_with_colon':
-                # 表单式带冒号：电话：_____ -> 电话：010-63271000
-                if len(match.groups()) >= 2:
-                    label_part = match.group(1)  # 电话：
-                    replacement = f"{label_part}{field_value}"
-                else:
-                    replacement = f"{old_text}：{field_value}"
-                    
-            elif pattern_info['type'] == 'form_without_colon':
-                # 表单式无冒号：电话     -> 电话：010-63271000
-                if len(match.groups()) >= 1:
-                    label_part = match.group(1)  # 电话
-                    replacement = f"{label_part}：{field_value}"
-                else:
-                    replacement = f"{old_text}：{field_value}"
-                    
-            elif pattern_info['type'] == 'table_layout':
-                # 表格式：电话     电子邮件 -> 电话：010-63271000     电子邮件
-                if len(match.groups()) >= 2:
-                    label_part = match.group(1)  # 电话
-                    space_part = match.group(2)  # 空格
-                    # 保留后续内容
-                    remaining_text = para_text[match.end():]
-                    replacement = f"{label_part}：{field_value}{space_part}{remaining_text}".rstrip()
-                    # 对于表格式，需要替换整个段落文本
-                    old_text = para_text
-                else:
-                    replacement = f"{match.group(1)}：{field_value}"
-                    
-            elif pattern_info['type'] == 'line_end':
-                # 行末式：电话 -> 电话：010-63271000
-                if len(match.groups()) >= 1:
-                    label_part = match.group(1)  # 电话
-                    replacement = f"{label_part}：{field_value}"
-                else:
-                    replacement = f"{old_text}：{field_value}"
-            else:
-                # 默认处理
-                replacement = f"{old_text}：{field_value}"
-            
-            # 使用现有的智能文本替换方法，这个方法已经实现了完整的run级别格式保持
-            logger.info(f"字段 {field_name} 替换: '{old_text}' -> '{replacement}'")
-            return self.smart_text_replace(paragraph, old_text, replacement)
-            
-        except Exception as e:
-            logger.error(f"格式保持替换失败 ({field_name}): {e}")
-            return False
-
 
     def _compact_format_replace(self, para_text: str, match, field_value: str, field_name: str, preserve_trailing: bool = False) -> str:
         """
@@ -2713,17 +2150,11 @@ class MCPBidderNameProcessor:
             return False
 
     def _handle_table_layout_replace(self, para_text: str, match, field_value: str, field_name: str) -> str:
-        """处理表格式布局的字段替换 - 优化版"""
+        """处理表格式布局的字段替换"""
         try:
             import re
             logger.info(f"处理表格式布局: 字段={field_name}, 原文本='{para_text}'")
             
-            # 先尝试智能双字段处理
-            dual_field_result = self._handle_dual_field_table_layout(para_text, field_name, field_value)
-            if dual_field_result != para_text:
-                return dual_field_result
-            
-            # 如果双字段处理没有生效，降级到原有单字段逻辑
             if field_name == '联系电话':
                 # 处理 "电话                                  电子邮件" 格式
                 # 替换为 "电话：010-63271000                    电子邮件"
@@ -2768,185 +2199,6 @@ class MCPBidderNameProcessor:
         except Exception as e:
             logger.error(f"表格式布局处理失败: {e}")
             return para_text
-
-    def _handle_dual_field_table_layout(self, para_text: str, current_field: str, field_value: str) -> str:
-        """
-        智能双字段表格布局处理 - 一次性处理同行的两个字段
-        解决问题：电话                    电子邮件 -> 电话：010-63271000                    电子邮件：xxx@xxx.com
-        
-        Args:
-            para_text: 段落文本
-            current_field: 当前正在处理的字段
-            field_value: 字段值
-            
-        Returns:
-            str: 处理后的文本（如果未处理则返回原文本）
-        """
-        try:
-            import re
-            
-            # 定义双字段组合模式
-            dual_field_patterns = [
-                # 电话 + 电子邮件组合
-                {
-                    'pattern': r'(电话|联系电话)(\s{8,})(电子邮件|电子邮箱|邮箱)',
-                    'field1': '电话',
-                    'field2': '电子邮件',
-                    'description': '电话+邮件表格组合'
-                },
-                # 地址 + 传真组合
-                {
-                    'pattern': r'(地址|注册地址|办公地址|联系地址)(\s{8,})(传真)',
-                    'field1': '地址',
-                    'field2': '传真',
-                    'description': '地址+传真表格组合'
-                },
-                # 邮编 + 网站组合（可选）
-                {
-                    'pattern': r'(邮政编码|邮编)(\s{8,})(网站|网址|官网)',
-                    'field1': '邮编',
-                    'field2': '网站',
-                    'description': '邮编+网站表格组合'
-                }
-            ]
-            
-            for pattern_info in dual_field_patterns:
-                match = re.search(pattern_info['pattern'], para_text)
-                if match:
-                    logger.info(f"检测到双字段模式: {pattern_info['description']}")
-                    
-                    # 提取匹配组件
-                    field1_label = match.group(1)  # 第一个字段标签
-                    middle_spaces = match.group(2)  # 中间的空格
-                    field2_label = match.group(3)  # 第二个字段标签
-                    
-                    # 获取两个字段的值
-                    field1_value, field2_value = self._get_dual_field_values(
-                        pattern_info['field1'], pattern_info['field2'], field_value, current_field
-                    )
-                    
-                    if field1_value and field2_value:
-                        # 计算适合的间距，保持美观对齐
-                        optimal_spacing = self._calculate_optimal_spacing(
-                            field1_label, field1_value, field2_label, middle_spaces
-                        )
-                        
-                        # 构建替换结果
-                        new_text = f"{field1_label}：{field1_value}{optimal_spacing}{field2_label}：{field2_value}"
-                        
-                        logger.info(f"双字段表格处理成功: '{para_text}' -> '{new_text}'")
-                        return new_text
-                    
-                    # 如果只有一个字段有值，则只处理一个
-                    elif field1_value and pattern_info['field1'] in self._normalize_field_name(current_field):
-                        optimal_spacing = self._calculate_optimal_spacing(
-                            field1_label, field1_value, field2_label, middle_spaces
-                        )
-                        new_text = f"{field1_label}：{field1_value}{optimal_spacing}{field2_label}"
-                        logger.info(f"双字段单一处理: '{para_text}' -> '{new_text}'")
-                        return new_text
-                    
-                    elif field2_value and pattern_info['field2'] in self._normalize_field_name(current_field):
-                        optimal_spacing = self._calculate_optimal_spacing(
-                            field1_label, field2_value, field2_label, middle_spaces  # 注意这里用field2_value计算间距
-                        )
-                        new_text = f"{field1_label}{optimal_spacing}{field2_label}：{field2_value}"
-                        logger.info(f"双字段单一处理(第二字段): '{para_text}' -> '{new_text}'")
-                        return new_text
-            
-            return para_text  # 未找到双字段模式，返回原文本
-            
-        except Exception as e:
-            logger.error(f"双字段表格处理失败: {e}")
-            return para_text
-    
-    def _get_dual_field_values(self, field1_type: str, field2_type: str, current_value: str, current_field: str) -> tuple:
-        """获取双字段的值"""
-        try:
-            # 这里需要通过self.company_info获取对应的字段值
-            # 暂时使用简化逻辑，后续可以优化
-            field1_value = ""
-            field2_value = ""
-            
-            # 根据字段类型获取值
-            if field1_type == '电话':
-                field1_value = getattr(self, 'company_info', {}).get('fixedPhone', '')
-            elif field1_type == '地址':
-                field1_value = getattr(self, 'company_info', {}).get('address', '')
-            elif field1_type == '邮编':
-                field1_value = getattr(self, 'company_info', {}).get('postalCode', '')
-            
-            if field2_type == '电子邮件':
-                field2_value = getattr(self, 'company_info', {}).get('email', '') or '未填写'
-            elif field2_type == '传真':
-                field2_value = getattr(self, 'company_info', {}).get('fax', '') or '未填写'
-            elif field2_type == '网站':
-                field2_value = getattr(self, 'company_info', {}).get('website', '')
-            
-            # 如果当前正在处理的字段匹配，使用传入的值
-            current_normalized = self._normalize_field_name(current_field)
-            if field1_type in current_normalized:
-                field1_value = current_value
-            elif field2_type in current_normalized:
-                field2_value = current_value
-            
-            return field1_value, field2_value
-            
-        except Exception as e:
-            logger.error(f"获取双字段值失败: {e}")
-            return "", ""
-    
-    def _calculate_optimal_spacing(self, field1_label: str, field1_value: str, field2_label: str, original_spaces: str) -> str:
-        """计算最优的字段间距，保持美观对齐"""
-        try:
-            # 计算原始空格数
-            original_space_count = len(original_spaces)
-            
-            # 计算第一个字段填入后的长度变化
-            # 原始: 电话 (2个字符)
-            # 填入后: 电话：010-63271000 (约13个字符)
-            field1_original_length = len(field1_label)
-            field1_new_length = len(f"{field1_label}：{field1_value}")
-            length_increase = field1_new_length - field1_original_length
-            
-            # 计算调整后的空格数，保持整体对齐
-            # 最少保留 4 个空格，最多不超过原有空格数
-            optimal_space_count = max(4, original_space_count - length_increase)
-            optimal_space_count = min(optimal_space_count, original_space_count)
-            
-            logger.info(
-                f"空格计算: 原始={original_space_count}, 长度增加={length_increase}, 最优={optimal_space_count}"
-            )
-            
-            return ' ' * optimal_space_count
-            
-        except Exception as e:
-            logger.error(f"计算最优间距失败: {e}")
-            # 错误情况下返回默认间距
-            return '    '  # 4个空格
-    
-    def _normalize_field_name(self, field_name: str) -> list:
-        """将字段名称标准化为可识别的形式"""
-        try:
-            # 定义字段名称映射
-            field_mapping = {
-                '联系电话': ['电话', '联系电话', '固定电话', '电话号码', '联系方式'],
-                '电子邮件': ['电子邮件', '电子邮箱', '邮箱', 'email', 'Email'],
-                '传真': ['传真', '传真号码', '传真号', 'fax', 'Fax'],
-                '地址': ['地址', '注册地址', '办公地址', '联系地址'],
-                '邮编': ['邮政编码', '邮编', '邮码'],
-                '网站': ['网站', '网址', '官网', '公司网站']
-            }
-            
-            for standard_name, variants in field_mapping.items():
-                if field_name in variants:
-                    return variants
-            
-            return [field_name]  # 如果找不到映射，返回原名称
-            
-        except Exception as e:
-            logger.error(f"字段名称标准化失败: {e}")
-            return [field_name]
 
     def _smart_date_replace(self, para_text: str, match, date_value: str) -> str:
         """

@@ -3,53 +3,6 @@
 """
 招标信息提取器 - 重构版本
 从招标文档中提取项目信息、资质要求和技术评分标准
-
-功能：从招标文档中提取项目信息、资质要求和技术评分标准
-
-  🔧 核心功能模块
-
-  1. 文档读取支持
-    - PDF 文件 (使用 PyPDF2)
-    - Word 文档 (使用 python-docx)
-    - 纯文本文件 (支持 UTF-8 和 GBK 编码)
-  2. LLM API 调用
-    - 使用 Bearer Token 认证
-    - 支持重试机制和指数退避
-    - 超时控制和错误处理
-  3. 信息提取功能
-    - extract_basic_info(): 提取项目基本信息
-    - extract_qualification_requirements(): 提取资质要求
-    - extract_technical_scoring(): 提取技术评分标准
-  4. 安全正则表达式
-    - 带超时的正则表达式搜索，防止灾难性回溯
-    - 支持大小写忽略模式
-
-  📊 提取的数据类型
-
-  基本信息：
-  - 项目名称、编号
-  - 招标人、代理机构
-  - 采购方式、开标地点时间
-  - 中标人数量
-
-  资质要求：
-  - 营业执照、纳税资格
-  - 业绩要求、授权书
-  - 信用查询、承诺书
-  - 审计报告、社保劳动合同等
-
-  技术评分：
-  - 评分项目名称和分值
-  - 评分标准描述
-  - 来源位置信息
-
-  🔒 错误处理
-
-  - 自定义异常类型：TenderInfoExtractionError、APIError、FileProcessingError
-  - 完整的日志记录系统
-  - 配置文件保存功能
-
-  这个模块为"读取信息"页面的后端处理提供了完整的文档分析和信息提取能力。
 """
 
 import requests
@@ -65,17 +18,9 @@ from typing import Dict, Optional, List, Any
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import (
-    get_config, get_module_logger,
+    get_config, get_module_logger, 
     TenderInfoExtractionError, APIError, FileProcessingError
 )
-
-# 导入文档拆分模块
-try:
-    from .document_splitter import extract_bidding_document
-    DOCUMENT_SPLITTER_AVAILABLE = True
-except ImportError as e:
-    print(f"文档拆分模块加载失败: {e}")
-    DOCUMENT_SPLITTER_AVAILABLE = False
 
 class TenderInfoExtractor:
     """招标信息提取器"""
@@ -361,116 +306,59 @@ class TenderInfoExtractor:
             raise TenderInfoExtractionError(f"基本信息提取失败: {str(e)}")
     
     def extract_qualification_requirements(self, text: str) -> Dict[str, Any]:
-        """基于关键字匹配的资质要求提取"""
+        """提取资质要求"""
         try:
-            self.logger.info("开始提取资质要求（关键字匹配）")
+            self.logger.info("开始提取资质要求")
+            
+            prompt = f"""
+请从以下招标文档中提取资质要求信息，以JSON格式返回：
 
-            # 定义资质关键字词典
-            qualification_keywords = {
-                'business_license': [
-                    '营业执照', '企业法人营业执照', '工商营业执照', '统一社会信用代码',
-                    '营业执照副本', '企业营业执照', '法人营业执照'
-                ],
-                'taxpayer_qualification': [
-                    '一般纳税人', '增值税纳税人', '纳税资格', '纳税人资格',
-                    '增值税专用发票', '纳税人资格认定', '税务登记'
-                ],
-                'iso9001': [
-                    'ISO9001', 'ISO 9001', '质量管理体系认证', '质量管理体系',
-                    'ISO9001认证', '质量体系认证'
-                ],
-                'iso14001': [
-                    'ISO14001', 'ISO 14001', '环境管理体系认证', '环境管理体系',
-                    'ISO14001认证', '环境体系认证'
-                ],
-                'iso27001': [
-                    'ISO27001', 'ISO 27001', '信息安全管理体系认证', '信息安全管理体系',
-                    'ISO27001认证', '信息安全体系认证'
-                ],
-                'credit_china': [
-                    '信用中国', '政府采购信用', '失信被执行人', '信用查询',
-                    '黑名单', '信用记录', '诚信记录', '信用状况'
-                ],
-                'authorization_requirements': [
-                    '法定代表人', '授权委托书', '授权书', '被授权人',
-                    '授权代表', '委托代理人', '授权人'
-                ],
-                'audit_report': [
-                    '审计报告', '财务审计', '年度审计', '审计证明',
-                    '会计师事务所', '注册会计师审计'
-                ],
-                'social_security': [
-                    '社会保险', '社保证明', '社保缴费', '社会保险登记证',
-                    '社保登记', '社会保险费'
-                ],
-                'performance_requirements': [
-                    '业绩要求', '类似项目', '成功案例', '项目经验',
-                    '业绩证明', '合同业绩', '项目业绩'
-                ],
-                'commitment_letter': [
-                    '承诺书', '承诺函', '声明函', '保证书',
-                    '诚信承诺', '质量承诺'
-                ],
-                'labor_contract': [
-                    '劳动合同', '用工合同', '聘用合同', '劳务合同',
-                    '员工合同', '用工协议'
-                ]
-            }
+文档内容：
+{text[:4000]}...
 
-            result = {}
-            text_lower = text.lower()
+请识别并提取以下资质要求（如果文档中提到）：
+1. business_license_required: 是否需要营业执照 (true/false)
+2. business_license_description: 营业执照要求描述
+3. taxpayer_qualification_required: 是否需要纳税人资格证明 (true/false)
+4. taxpayer_qualification_description: 纳税人资格要求描述
+5. performance_requirements_required: 是否需要业绩要求 (true/false)
+6. performance_requirements_description: 业绩要求描述
+7. authorization_requirements_required: 是否需要授权书 (true/false)
+8. authorization_requirements_description: 授权要求描述
+9. credit_china_required: 是否需要信用中国查询 (true/false)
+10. credit_china_description: 信用查询要求描述
+11. commitment_letter_required: 是否需要承诺书 (true/false)
+12. commitment_letter_description: 承诺书要求描述
+13. audit_report_required: 是否需要审计报告 (true/false)
+14. audit_report_description: 审计报告要求描述
+15. social_security_required: 是否需要社保证明 (true/false)
+16. social_security_description: 社保要求描述
+17. labor_contract_required: 是否需要劳动合同 (true/false)
+18. labor_contract_description: 劳动合同要求描述
+19. other_requirements_required: 是否有其他要求 (true/false)
+20. other_requirements_description: 其他要求描述
 
-            # 对每种资质类型进行关键字匹配
-            for qual_type, keywords in qualification_keywords.items():
-                matched = False
-                matched_keyword = None
-                context = ""
-
-                # 检查是否匹配任一关键字
-                for keyword in keywords:
-                    if keyword.lower() in text_lower:
-                        matched = True
-                        matched_keyword = keyword
-                        # 提取关键字周围的上下文
-                        context = self._extract_context_for_qualification(text, keyword)
-                        break
-
-                result[f"{qual_type}_required"] = matched
-                result[f"{qual_type}_description"] = context if matched else ""
-
-                if matched:
-                    self.logger.info(f"资质匹配成功: {qual_type} - 关键字: {matched_keyword}")
-
-            self.logger.info(f"资质要求提取完成，匹配到 {sum(1 for k, v in result.items() if k.endswith('_required') and v)} 个资质要求")
-            return result
-
+请严格按照JSON格式返回。
+"""
+            
+            response = self.llm_callback(prompt, "资质要求提取")
+            
+            try:
+                json_start = response.find('{')
+                json_end = response.rfind('}') + 1
+                json_str = response[json_start:json_end]
+                
+                qualification_info = json.loads(json_str)
+                self.logger.info("资质要求提取成功")
+                return qualification_info
+                
+            except json.JSONDecodeError as e:
+                self.logger.error(f"解析资质要求JSON失败: {e}")
+                return {}
+                
         except Exception as e:
             self.logger.error(f"提取资质要求失败: {e}")
             return {}
-
-    def _extract_context_for_qualification(self, text: str, keyword: str) -> str:
-        """提取资质要求关键字的上下文描述"""
-        try:
-            keyword_pos = text.lower().find(keyword.lower())
-            if keyword_pos == -1:
-                return ""
-
-            # 提取关键字前后的文本作为上下文
-            start = max(0, keyword_pos - 100)
-            end = min(len(text), keyword_pos + len(keyword) + 200)
-            context = text[start:end].strip()
-
-            # 尝试提取完整的句子
-            sentences = re.split(r'[。；;]', context)
-            for sentence in sentences:
-                if keyword.lower() in sentence.lower():
-                    return sentence.strip()
-
-            return context[:150] + "..." if len(context) > 150 else context
-
-        except Exception as e:
-            self.logger.warning(f"提取上下文失败: {e}")
-            return keyword
     
     def extract_technical_scoring(self, text: str) -> Dict[str, Any]:
         """提取技术评分标准"""
@@ -523,71 +411,34 @@ class TenderInfoExtractor:
             self.logger.error(f"提取技术评分标准失败: {e}")
             return {}
     
-    def split_document(self, file_path: str) -> Dict[str, Any]:
-        """拆分招标文档"""
-        try:
-            if not DOCUMENT_SPLITTER_AVAILABLE:
-                self.logger.warning("文档拆分模块不可用，跳过拆分步骤")
-                return {'success': False, 'error': '文档拆分模块不可用'}
-
-            self.logger.info(f"开始拆分文档: {file_path}")
-
-            # 设置输出目录
-            output_dir = self.config.get_path('output') / 'extracted'
-
-            # 调用文档拆分功能
-            result = extract_bidding_document(file_path, str(output_dir))
-
-            if result.success:
-                self.logger.info(f"文档拆分成功，生成 {len(result.output_files)} 个文件")
-                split_info = {
-                    'success': True,
-                    'project_name': result.project_name,
-                    'doc_type': result.doc_type.value,
-                    'sections': list(result.sections.keys()),
-                    'output_files': result.output_files,
-                    'processing_time': result.processing_time
-                }
-                return split_info
-            else:
-                self.logger.error(f"文档拆分失败: {result.errors}")
-                return {'success': False, 'errors': result.errors}
-
-        except Exception as e:
-            self.logger.error(f"文档拆分过程出错: {e}")
-            return {'success': False, 'error': str(e)}
-
     def process_document(self, file_path: str) -> Dict[str, Any]:
         """处理完整文档提取"""
         try:
             self.logger.info(f"开始处理文档: {file_path}")
-
-            # 1. 先进行文档拆分
-            split_result = self.split_document(file_path)
-
-            # 2. 读取文档
+            
+            # 读取文档
             text = self.read_document(file_path)
-
-            # 3. 提取各项信息
+            
+            # 提取各项信息
             basic_info = self.extract_basic_info(text)
             qualification_info = self.extract_qualification_requirements(text)
-            # scoring_info = self.extract_technical_scoring(text)  # 暂时屏蔽
-
-            # 4. 合并结果 - 包含基本信息、资质要求和拆分结果
+            scoring_info = self.extract_technical_scoring(text)
+            
+            # 合并结果
             result = {
                 **basic_info,
                 **qualification_info,
+                **scoring_info,
                 'extraction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'file_path': str(file_path),
-                'split_result': split_result
+                'file_path': str(file_path)
             }
-
-            # 5. 保存到配置文件
+            
+            # 保存到配置文件
             self.save_to_config(result)
-
+            
             self.logger.info("文档处理完成")
             return result
-
+            
         except Exception as e:
             self.logger.error(f"文档处理失败: {e}")
             raise TenderInfoExtractionError(f"文档处理失败: {str(e)}")

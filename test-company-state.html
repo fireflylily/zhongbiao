@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司状态管理测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .result { margin: 10px 0; padding: 10px; background: #f5f5f5; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        button { margin: 5px; padding: 10px 15px; }
+    </style>
+</head>
+<body>
+    <h1>公司状态管理测试页面</h1>
+    
+    <div class="test-section">
+        <h3>1. StateManager测试</h3>
+        <button onclick="testSetCompany()">设置测试公司</button>
+        <button onclick="testGetCompany()">获取公司状态</button>
+        <button onclick="testClearCompany()">清空公司状态</button>
+        <div id="stateResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. 状态同步测试</h3>
+        <button onclick="testStateSync()">测试状态同步</button>
+        <button onclick="testStateValidation()">测试状态验证</button>
+        <div id="syncResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. 资质保存逻辑测试</h3>
+        <button onclick="testQualificationSave()">模拟资质保存检查</button>
+        <div id="qualResult" class="result"></div>
+    </div>
+
+    <!-- 引入必要的脚本 -->
+    <script src="web页面/js/state-manager.js"></script>
+    <script>
+        // 模拟company_selection.js中的变量和函数
+        let currentCompanyId = null;
+        
+        // 状态一致性验证函数（从修改后的代码复制）
+        function validateCompanyState() {
+            const stateCompanyId = StateManager.getCompanyId();
+            const localCompanyId = currentCompanyId;
+            
+            if (stateCompanyId !== localCompanyId) {
+                console.warn('[状态验证] 状态不一致:', {
+                    stateCompanyId,
+                    localCompanyId,
+                    action: '同步到StateManager状态'
+                });
+                
+                currentCompanyId = stateCompanyId;
+                return stateCompanyId;
+            }
+            
+            return stateCompanyId;
+        }
+        
+        // 模拟资质保存逻辑（从修改后的代码复制）
+        function mockSaveAllQualifications() {
+            const stateCompanyId = StateManager.getCompanyId();
+            const effectiveCompanyId = stateCompanyId || currentCompanyId;
+            
+            console.log('[资质保存] 状态检查:', {
+                stateCompanyId,
+                currentCompanyId,
+                effectiveCompanyId
+            });
+            
+            if (!effectiveCompanyId) {
+                return { success: false, message: '请先选择公司信息' };
+            }
+            
+            if (effectiveCompanyId !== currentCompanyId) {
+                currentCompanyId = effectiveCompanyId;
+                console.log('[资质保存] 同步本地公司状态:', effectiveCompanyId);
+            }
+            
+            return { success: true, companyId: effectiveCompanyId };
+        }
+        
+        // 测试函数
+        function testSetCompany() {
+            const testCompanyId = 'test-company-' + Date.now();
+            StateManager.setCompanyId(testCompanyId);
+            currentCompanyId = testCompanyId;
+            
+            document.getElementById('stateResult').innerHTML = 
+                `<div class="success">✅ 设置公司ID: ${testCompanyId}</div>`;
+        }
+        
+        function testGetCompany() {
+            const companyId = StateManager.getCompanyId();
+            const result = companyId ? 
+                `<div class="success">✅ 获取到公司ID: ${companyId}</div>` :
+                `<div class="error">❌ 未获取到公司ID</div>`;
+            
+            document.getElementById('stateResult').innerHTML = result;
+        }
+        
+        function testClearCompany() {
+            StateManager.setCompanyId('');
+            currentCompanyId = null;
+            
+            document.getElementById('stateResult').innerHTML = 
+                `<div class="success">✅ 已清空公司状态</div>`;
+        }
+        
+        function testStateSync() {
+            // 模拟状态不同步的情况
+            StateManager.setCompanyId('state-company-123');
+            currentCompanyId = 'local-company-456';
+            
+            const result1 = `<div>设置前: StateManager=${StateManager.getCompanyId()}, Local=${currentCompanyId}</div>`;
+            
+            // 执行状态验证
+            const validatedId = validateCompanyState();
+            
+            const result2 = `<div>验证后: StateManager=${StateManager.getCompanyId()}, Local=${currentCompanyId}</div>`;
+            const success = StateManager.getCompanyId() === currentCompanyId;
+            
+            document.getElementById('syncResult').innerHTML = 
+                result1 + result2 + 
+                `<div class="${success ? 'success' : 'error'}">${success ? '✅' : '❌'} 状态同步${success ? '成功' : '失败'}</div>`;
+        }
+        
+        function testStateValidation() {
+            // 测试正常情况
+            const testId = 'validation-test-' + Date.now();
+            StateManager.setCompanyId(testId);
+            currentCompanyId = testId;
+            
+            const validated = validateCompanyState();
+            const success = validated === testId;
+            
+            document.getElementById('syncResult').innerHTML = 
+                `<div class="${success ? 'success' : 'error'}">
+                    ${success ? '✅' : '❌'} 状态验证${success ? '通过' : '失败'}: ${validated}
+                </div>`;
+        }
+        
+        function testQualificationSave() {
+            // 测试场景1: 有StateManager状态，无本地状态
+            StateManager.setCompanyId('state-only-company');
+            currentCompanyId = null;
+            
+            const result1 = mockSaveAllQualifications();
+            
+            // 测试场景2: 无任何状态
+            StateManager.setCompanyId('');
+            currentCompanyId = null;
+            
+            const result2 = mockSaveAllQualifications();
+            
+            // 测试场景3: 正常状态
+            StateManager.setCompanyId('normal-company');
+            currentCompanyId = 'normal-company';
+            
+            const result3 = mockSaveAllQualifications();
+            
+            document.getElementById('qualResult').innerHTML = 
+                `<div>场景1 (仅StateManager有状态): ${result1.success ? '✅ ' + result1.companyId : '❌ ' + result1.message}</div>
+                 <div>场景2 (无状态): ${result2.success ? '✅ ' + result2.companyId : '❌ ' + result2.message}</div>
+                 <div>场景3 (正常状态): ${result3.success ? '✅ ' + result3.companyId : '❌ ' + result3.message}</div>`;
+        }
+        
+        // 页面加载时显示当前状态
+        window.onload = function() {
+            console.log('测试页面加载完成');
+            console.log('StateManager可用:', typeof StateManager !== 'undefined');
+        };
+    </script>
+</body>
+</html>

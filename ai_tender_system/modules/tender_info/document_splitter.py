@@ -356,82 +356,166 @@ class BiddingDocumentExtractor:
         return para_level > 0 and para_level <= reference_level
 
     def _extract_document_elements(self, start_index: int, end_index: int) -> List[Any]:
-        """提取文档元素（段落和表格）"""
+        """提取文档元素（段落和表格）按原文顺序"""
         content = []
 
-        # 获取文档中的所有元素（段落和表格）
-        document_elements = []
-        for element in self.current_doc.element.body:
-            if element.tag.endswith('p'):  # 段落
-                # 查找对应的段落对象
-                for i, para in enumerate(self.current_doc.paragraphs):
-                    if para._element == element:
-                        document_elements.append((i, 'paragraph', para))
-                        break
-            elif element.tag.endswith('tbl'):  # 表格
-                # 查找对应的表格对象
-                for table in self.current_doc.tables:
-                    if table._element == element:
-                        document_elements.append((-1, 'table', table))
-                        break
+        logger.info(f"提取范围: 段落 {start_index} 到 {end_index}")
 
-        # 按照段落索引范围提取内容
-        for element_index, element_type, element_obj in document_elements:
-            if element_type == 'paragraph':
-                if start_index <= element_index <= end_index:
-                    content.append(element_obj)
-            elif element_type == 'table':
-                # 对于表格，检查它是否在指定范围内
-                # 简化处理：如果表格在范围内的段落之间，就包含它
+        try:
+            # 方法一：尝试按XML元素顺序提取
+            document_elements = []
+
+            # 获取所有body中的元素
+            for idx, element in enumerate(self.current_doc.element.body):
+                if element.tag.endswith('p'):  # 段落
+                    # 查找对应的段落对象
+                    for i, para in enumerate(self.current_doc.paragraphs):
+                        if para._element == element:
+                            document_elements.append((idx, i, 'paragraph', para))
+                            break
+                elif element.tag.endswith('tbl'):  # 表格
+                    # 查找对应的表格对象
+                    for table in self.current_doc.tables:
+                        if table._element == element:
+                            document_elements.append((idx, -1, 'table', table))
+                            break
+
+            # 按段落范围过滤元素
+            filtered_elements = []
+            for xml_idx, para_idx, element_type, element_obj in document_elements:
+                if element_type == 'paragraph':
+                    if start_index <= para_idx <= end_index:
+                        filtered_elements.append((xml_idx, para_idx, element_type, element_obj))
+                elif element_type == 'table':
+                    # 对于表格，检查它是否在段落范围附近
+                    # 查找表格前后的段落索引
+                    prev_para_idx = None
+                    next_para_idx = None
+
+                    # 查找表格前面最近的段落
+                    for check_xml_idx, check_para_idx, check_type, _ in document_elements:
+                        if check_type == 'paragraph' and check_xml_idx < xml_idx:
+                            prev_para_idx = check_para_idx
+
+                    # 查找表格后面最近的段落
+                    for check_xml_idx, check_para_idx, check_type, _ in document_elements:
+                        if check_type == 'paragraph' and check_xml_idx > xml_idx:
+                            next_para_idx = check_para_idx
+                            break
+
+                    # 判断表格是否在范围内
+                    table_in_range = False
+                    if prev_para_idx is not None and next_para_idx is not None:
+                        # 表格在两个段落之间
+                        if start_index <= prev_para_idx <= end_index or start_index <= next_para_idx <= end_index:
+                            table_in_range = True
+                    elif prev_para_idx is not None:
+                        # 表格在最后一个段落之后
+                        if start_index <= prev_para_idx <= end_index:
+                            table_in_range = True
+                    elif next_para_idx is not None:
+                        # 表格在第一个段落之前
+                        if start_index <= next_para_idx <= end_index:
+                            table_in_range = True
+
+                    if table_in_range:
+                        filtered_elements.append((xml_idx, -1, element_type, element_obj))
+
+            # 按XML顺序排序并提取内容
+            filtered_elements.sort(key=lambda x: x[0])  # 按xml_idx排序
+
+            for xml_idx, para_idx, element_type, element_obj in filtered_elements:
                 content.append(element_obj)
+                logger.info(f"添加{element_type}: XML位置={xml_idx}, 段落位置={para_idx}")
 
-        # 如果无法获取复杂元素，就只提取段落
-        if not content:
+        except Exception as e:
+            logger.warning(f"复杂元素提取失败: {e}，回退到简单模式")
+            # 如果复杂方法失败，回退到只提取段落
+            content = []
             for i in range(start_index, min(end_index + 1, len(self.current_doc.paragraphs))):
                 content.append(self.current_doc.paragraphs[i])
 
+        logger.info(f"最终提取到 {len(content)} 个元素")
         return content
 
     def _extract_single_section(self, section_name: str, rules: Dict) -> Optional[SectionInfo]:
         """提取单个章节"""
+        logger.info(f"开始提取章节: {section_name}")
+
         # 查找章节开始位置
         start_index = None
         start_para = None
+        matched_pattern = None
+
         for pattern in rules["patterns"]:
             for i, para in enumerate(self.current_doc.paragraphs):
                 if re.search(pattern, para.text, re.IGNORECASE):
                     start_index = i
                     start_para = para
+                    matched_pattern = pattern
+                    logger.info(f"找到章节 '{section_name}' 开始: 段落{i}, 模式='{pattern}', 内容='{para.text[:50]}...'")
                     break
             if start_index is not None:
                 break
 
         if start_index is None:
+            logger.warning(f"未找到章节 '{section_name}' 的开始位置")
             return None
 
         # 获取起始章节的标题级别
         start_level = self._get_paragraph_heading_level(start_para)
+        logger.info(f"章节 '{section_name}' 起始级别: {start_level}")
 
-        # 使用同级别边界检测来查找章节结束位置
+        # 使用改进的边界检测来查找章节结束位置
         end_index = len(self.current_doc.paragraphs) - 1
+        end_reason = "文档结束"
 
-        # 从起始位置的下一个段落开始查找
-        for i in range(start_index + 1, len(self.current_doc.paragraphs)):
-            para = self.current_doc.paragraphs[i]
-
-            # 如果找到同级别或更高级别的标题，则结束
-            if self._is_same_or_higher_level_heading(para, start_level):
-                end_index = i - 1
+        # 策略一：先尝试使用原有的end_markers进行粗略定位
+        rough_end_index = len(self.current_doc.paragraphs) - 1
+        for pattern in rules.get("end_markers", []):
+            for i in range(start_index + 1, len(self.current_doc.paragraphs)):
+                para = self.current_doc.paragraphs[i]
+                if re.search(pattern, para.text, re.IGNORECASE):
+                    rough_end_index = i - 1
+                    logger.info(f"找到粗略边界: '{pattern}' 在段落{i}")
+                    break
+            if rough_end_index < len(self.current_doc.paragraphs) - 1:
                 break
 
-            # 备用策略：如果没有明确的标题级别，使用原来的end_markers
-            if start_level == 0:  # 如果无法确定起始级别
-                for pattern in rules.get("end_markers", []):
-                    if re.search(pattern, para.text, re.IGNORECASE):
+        # 策略二：在粗略边界内查找精确的同级别边界
+        if start_level > 0:  # 只有在有明确级别时才使用同级别检测
+            # 从起始位置往后查找，但不超过粗略边界
+            search_end = min(rough_end_index + 50, len(self.current_doc.paragraphs) - 1)  # 给予一些缓冲
+
+            found_boundary = False
+            for i in range(start_index + 5, search_end):  # 跳过前5个段落，避免立即停止
+                para = self.current_doc.paragraphs[i]
+                para_level = self._get_paragraph_heading_level(para)
+
+                # 只有在找到明确的同级别或更高级别标题时才停止
+                if para_level > 0 and para_level <= start_level:
+                    # 额外检查：确保这是一个真正的章节标题，而不是内容中的小标题
+                    if (
+                        re.match(r'^第[\u4e00-\u9fff\d]+章', para.text) or  # 第X章
+                        re.match(r'^\d+\.', para.text) or  # 数字编号
+                        any(marker in para.text for marker in ["附件", "合同", "技术规范"])  # 其他重要标记
+                    ):
                         end_index = i - 1
+                        end_reason = f"遇到同级别标题: '{para.text[:30]}...'"
+                        found_boundary = True
+                        logger.info(f"章节 '{section_name}' 结束于段落{end_index}, 原因: {end_reason}")
                         break
-                if end_index < len(self.current_doc.paragraphs) - 1:
-                    break
+
+            # 如果没有找到同级别边界，使用粗略边界
+            if not found_boundary:
+                end_index = rough_end_index
+                end_reason = f"使用粗略边界：没有找到明确的同级别标题"
+        else:
+            # 如果无法确定起始级别，直接使用粗略边界
+            end_index = rough_end_index
+            end_reason = f"使用粗略边界：无法确定起始级别"
+
+        logger.info(f"章节 '{section_name}' 提取范围: 段落{start_index}-{end_index} ({end_index-start_index+1}个段落)")
 
         # 提取内容（包括段落和表格）
         content = self._extract_document_elements(start_index, end_index)
@@ -461,57 +545,71 @@ class BiddingDocumentExtractor:
             # 创建新文档并保持格式
             new_doc = Document()
 
-            # 更全面的内容复制，包括段落和表格
-            for element in section_info.content:
+            # 按原文顺序复制内容，包括段落和表格
+            logger.info(f"正在生成文件 '{section_name}', 包含 {len(section_info.content)} 个元素")
+
+            for idx, element in enumerate(section_info.content):
                 try:
-                    # 处理段落
-                    if hasattr(element, 'text') and hasattr(element, '_element') and element._element.tag.endswith('p'):
-                        new_para = new_doc.add_paragraph(element.text)
-                        # 复制段落格式
-                        if hasattr(element, 'alignment') and element.alignment:
-                            new_para.alignment = element.alignment
-                        if hasattr(element, 'style') and element.style:
-                            try:
-                                new_para.style = element.style
-                            except:
-                                pass  # 如果样式不存在，忽略
+                    element_type = "unknown"
 
-                        # 复制字体格式
-                        if hasattr(element, 'runs'):
-                            for i, run in enumerate(element.runs):
-                                if i < len(new_para.runs):
-                                    try:
-                                        if hasattr(run, 'bold') and run.bold:
-                                            new_para.runs[i].bold = True
-                                        if hasattr(run, 'italic') and run.italic:
-                                            new_para.runs[i].italic = True
-                                    except:
-                                        pass
-                    # 处理表格
-                    elif hasattr(element, '_element') and element._element.tag.endswith('tbl'):
-                        # 复制表格
-                        table = element
-                        new_table = new_doc.add_table(rows=len(table.rows), cols=len(table.columns))
-
-                        for i, row in enumerate(table.rows):
-                            for j, cell in enumerate(row.cells):
+                    # 判断元素类型并处理
+                    if hasattr(element, '_element'):
+                        if element._element.tag.endswith('p'):  # 段落
+                            element_type = "paragraph"
+                            text = element.text.strip()
+                            if text:  # 只添加非空段落
+                                new_para = new_doc.add_paragraph(text)
+                                # 复制基本格式
                                 try:
-                                    new_table.rows[i].cells[j].text = cell.text
+                                    if hasattr(element, 'alignment') and element.alignment:
+                                        new_para.alignment = element.alignment
+                                    if hasattr(element, 'style') and element.style:
+                                        new_para.style = element.style
                                 except:
-                                    pass
+                                    pass  # 格式应用失败不影响内容
+
+                                logger.debug(f"添加段落: '{text[:30]}...'")
+                            else:
+                                logger.debug(f"跳过空段落")
+
+                        elif element._element.tag.endswith('tbl'):  # 表格
+                            element_type = "table"
+                            table = element
+                            if len(table.rows) > 0 and len(table.columns) > 0:
+                                new_table = new_doc.add_table(rows=len(table.rows), cols=len(table.columns))
+
+                                # 复制表格内容
+                                for i, row in enumerate(table.rows):
+                                    for j, cell in enumerate(row.cells):
+                                        try:
+                                            cell_text = cell.text.strip()
+                                            if cell_text:
+                                                new_table.rows[i].cells[j].text = cell_text
+                                        except Exception as cell_error:
+                                            logger.warning(f"复制表格单元格失败: {cell_error}")
+
+                                logger.debug(f"添加表格: {len(table.rows)}行 x {len(table.columns)}列")
+                            else:
+                                logger.warning(f"跳过空表格")
                     else:
-                        # 如果不是段落或表格，就简单添加文本
+                        # 如果无法识别元素类型，尝试获取文本
+                        element_type = "fallback"
                         text = getattr(element, 'text', str(element))
                         if text and text.strip():
-                            new_doc.add_paragraph(text)
+                            new_doc.add_paragraph(text.strip())
+                            logger.debug(f"添加备用文本: '{text[:30]}...'")
+
+                    logger.debug(f"元素 {idx+1}/{len(section_info.content)}: {element_type}")
+
                 except Exception as e:
-                    # 如果出现错误，就简单添加文本
-                    logger.warning(f"复制元素时出错: {e}")
+                    # 如果出现错误，尝试简单文本提取
+                    logger.warning(f"处理元素 {idx+1} 时出错: {e}")
                     try:
                         text = getattr(element, 'text', str(element))
                         if text and text.strip():
-                            new_doc.add_paragraph(text)
+                            new_doc.add_paragraph(text.strip())
                     except:
+                        logger.error(f"元素 {idx+1} 完全无法处理")
                         pass
 
             # 保存文档

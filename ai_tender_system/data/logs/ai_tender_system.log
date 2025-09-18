@@ -1,4 +1,1073 @@
-2025-09-17 20:03:45,060 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
-2025-09-17 20:03:45,088 - werkzeug - WARNING -  * Debugger is active!
-2025-09-17 20:03:45,090 - werkzeug - INFO -  * Debugger PIN: 367-750-518
-2025-09-17 20:04:38,597 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\modules\\business_response\\info_filler.py', reloading
+2025-09-10 12:34:18,077 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:40:18,259 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:40:37,253 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:40:37,256 - web.app - ERROR - Exception on /api/health [GET]
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask_cors/extension.py", line 176, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+                                                ~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py", line 141, in health_check
+    'timestamp': config.get_config().get('timestamp', 'unknown')
+                 ^^^^^^^^^^^^^^^^^
+AttributeError: 'Config' object has no attribute 'get_config'. Did you mean: 'web_config'?
+2025-09-10 12:40:37,257 - ai_tender_system.web_app - ERROR - 内部服务器错误: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2025-09-10 12:40:52,293 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-10 12:42:29,756 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 08:57:44,801 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 08:59:34,203 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 08:59:34,414 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.32.124:8082
+2025-09-11 08:59:34,414 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 08:59:34,415 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 08:59:34,565 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 08:59:34,580 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 08:59:34,594 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 08:59:50,713 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 08:59:50] "GET /api/health HTTP/1.1" 200 -
+2025-09-11 08:59:56,049 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 08:59:56] "GET /api/get-default-api-key HTTP/1.1" 200 -
+2025-09-11 09:00:00,498 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:00:00] "GET /api/config HTTP/1.1" 200 -
+2025-09-11 09:00:08,592 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:00:08] "HEAD / HTTP/1.1" 200 -
+2025-09-11 09:00:13,845 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:00:13] "HEAD /system_status.html HTTP/1.1" 200 -
+2025-09-11 09:03:02,263 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:03:02] "GET / HTTP/1.1" 200 -
+2025-09-11 09:03:03,920 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:03:03] "[33mGET /api/companies HTTP/1.1[0m" 404 -
+2025-09-11 09:03:03,943 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:03:03] "[33mGET /api/project-config HTTP/1.1[0m" 404 -
+2025-09-11 09:03:03,998 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:03:03] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-09-11 09:09:23,766 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 09:09:23,770 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:09:23] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 09:14:01,758 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:14:02,020 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.32.124:8082
+2025-09-11 09:14:02,020 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 09:14:02,021 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 09:14:02,148 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:14:02,162 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 09:14:02,171 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 09:14:09,341 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:09] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:14:13,520 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:13] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:14:17,999 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:17] "GET / HTTP/1.1" 200 -
+2025-09-11 09:14:28,303 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:28] "GET / HTTP/1.1" 200 -
+2025-09-11 09:14:29,811 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:29] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:14:29,815 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:29] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:14:44,512 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:44] "GET / HTTP/1.1" 200 -
+2025-09-11 09:14:45,162 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:45] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:14:45,164 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:14:45] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:20:39,790 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/common/config.py', reloading
+2025-09-11 09:20:39,871 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 09:20:40,218 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:20:40,259 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 09:20:40,276 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 09:24:01,022 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:24:01] "GET /api/health HTTP/1.1" 200 -
+2025-09-11 09:24:05,462 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:24:05] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:24:08,582 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:24:08] "GET /api/config HTTP/1.1" 200 -
+2025-09-11 09:24:12,148 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:24:12] "GET / HTTP/1.1" 200 -
+2025-09-11 09:34:52,686 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 09:34:52,773 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 09:34:53,046 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 09:34:53,076 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 09:34:53,088 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 09:35:09,659 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:35:09] "GET /api/health HTTP/1.1" 200 -
+2025-09-11 09:35:15,110 - ai_tender_system.web_app - INFO - 创建公司成功: 测试公司 (ID: 7f25b325)
+2025-09-11 09:35:15,110 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:35:15] "POST /api/companies HTTP/1.1" 200 -
+2025-09-11 09:35:19,220 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:35:19] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:35:23,717 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:35:23] "GET /api/companies/7f25b325 HTTP/1.1" 200 -
+2025-09-11 09:35:27,702 - ai_tender_system.web_app - INFO - 删除公司成功: 7f25b325
+2025-09-11 09:35:27,703 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:35:27] "DELETE /api/companies/7f25b325 HTTP/1.1" 200 -
+2025-09-11 09:35:33,541 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:35:33] "GET / HTTP/1.1" 200 -
+2025-09-11 09:44:00,973 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:44:00] "GET / HTTP/1.1" 200 -
+2025-09-11 09:44:02,847 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:44:02] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:44:02,850 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:44:02] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:46:58,782 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:46:58] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:55:15,127 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:55:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:56:29,499 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:56:29] "GET / HTTP/1.1" 200 -
+2025-09-11 09:56:30,518 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:56:30] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:56:30,519 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:56:30] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:56:39,843 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:56:39] "GET / HTTP/1.1" 200 -
+2025-09-11 09:56:40,394 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:56:40] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:56:40,398 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:56:40] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:56:50,552 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 09:56:50,555 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:56:50] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 09:57:11,088 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:57:11] "GET / HTTP/1.1" 200 -
+2025-09-11 09:57:11,669 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:57:11] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:57:11,670 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:57:11] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:57:13,663 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:57:13] "GET / HTTP/1.1" 200 -
+2025-09-11 09:57:14,234 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:57:14] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:57:14,234 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:57:14] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 09:59:16,276 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:59:16] "GET / HTTP/1.1" 200 -
+2025-09-11 09:59:37,363 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:59:37] "GET / HTTP/1.1" 200 -
+2025-09-11 09:59:38,802 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:59:38] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 09:59:38,804 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 09:59:38] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:01:21,325 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:01:21] "GET / HTTP/1.1" 200 -
+2025-09-11 10:05:30,862 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:05:30] "GET / HTTP/1.1" 200 -
+2025-09-11 10:05:32,916 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:05:32] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:05:32,917 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:05:32] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:15:33,200 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:15:33] "GET / HTTP/1.1" 200 -
+2025-09-11 10:15:34,754 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:15:34] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:15:34,758 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:15:34] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:15:53,983 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:15:53] "GET / HTTP/1.1" 200 -
+2025-09-11 10:15:54,542 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:15:54] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:15:54,543 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:15:54] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:17:12,616 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:17:12] "GET / HTTP/1.1" 200 -
+2025-09-11 10:17:13,385 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:17:13] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:17:13,387 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:17:13] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:17:17,012 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:17:17] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 10:22:49,835 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:22:49] "GET / HTTP/1.1" 200 -
+2025-09-11 10:22:51,212 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:22:51] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:22:51,218 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:22:51] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:22:54,815 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:22:54] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 10:28:33,409 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:28:33] "GET / HTTP/1.1" 200 -
+2025-09-11 10:28:34,849 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:28:34] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:28:34,852 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:28:34] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:28:39,643 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:28:39] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 10:56:59,278 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:56:59] "GET / HTTP/1.1" 200 -
+2025-09-11 10:56:59,365 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:56:59] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 10:57:01,886 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:57:01] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:57:01,887 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:57:01] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:59:02,678 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:02] "GET / HTTP/1.1" 200 -
+2025-09-11 10:59:02,742 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:02] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 10:59:04,446 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:04] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:59:04,450 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:04] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 10:59:07,221 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:07] "GET / HTTP/1.1" 200 -
+2025-09-11 10:59:07,272 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:07] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 10:59:08,925 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:08] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 10:59:08,928 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 10:59:08] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:04:44,776 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:44] "GET / HTTP/1.1" 200 -
+2025-09-11 11:04:44,846 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:44] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:04:46,551 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:46] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:04:46,562 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:46] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:04:50,666 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:50] "GET / HTTP/1.1" 200 -
+2025-09-11 11:04:50,713 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:50] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:04:52,370 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:52] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:04:52,387 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:04:52] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:12:57,437 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:12:57] "GET / HTTP/1.1" 200 -
+2025-09-11 11:12:58,911 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:12:58] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:12:58,918 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:12:58] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:13:04,056 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:13:04] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:20:53,573 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:20:53] "GET / HTTP/1.1" 200 -
+2025-09-11 11:20:53,618 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:20:53] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:20:55,990 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:20:55] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:20:55,996 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:20:55] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:21:00,634 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:21:00] "GET / HTTP/1.1" 200 -
+2025-09-11 11:21:00,663 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:21:00] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:21:02,318 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:21:02] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:21:02,324 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:21:02] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:22:42,591 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:42] "GET / HTTP/1.1" 200 -
+2025-09-11 11:22:42,671 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:42] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:22:44,546 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:44] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:22:44,551 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:44] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:22:48,763 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:48] "GET / HTTP/1.1" 200 -
+2025-09-11 11:22:48,824 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:48] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:22:50,537 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:50] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:22:50,550 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:22:50] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:27:25,878 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:25] "GET / HTTP/1.1" 200 -
+2025-09-11 11:27:25,923 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:25] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:27:27,664 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:27] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:27:27,665 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:27] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:27:30,716 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:30] "GET / HTTP/1.1" 200 -
+2025-09-11 11:27:30,750 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:30] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:27:32,435 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:32] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:27:32,439 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:27:32] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:29:31,846 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:31] "GET / HTTP/1.1" 200 -
+2025-09-11 11:29:31,907 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:31] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:29:33,655 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:33] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 11:29:33,657 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:33] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:29:37,712 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:37] "GET / HTTP/1.1" 200 -
+2025-09-11 11:29:37,738 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:37] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 11:29:39,396 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:39] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 11:29:39,397 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 11:29:39] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 12:13:52,805 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:13:52] "GET / HTTP/1.1" 200 -
+2025-09-11 12:13:52,883 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:13:52] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 12:13:55,672 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:13:55] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 12:13:55,680 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:13:55] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 12:18:34,859 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:34] "GET / HTTP/1.1" 200 -
+2025-09-11 12:18:34,949 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:34] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 12:18:36,734 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:36] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 12:18:36,737 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:36] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 12:18:45,934 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:45] "GET / HTTP/1.1" 200 -
+2025-09-11 12:18:46,001 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:46] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 12:18:47,934 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:47] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 12:18:47,961 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:18:47] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 12:23:38,250 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:23:38] "GET / HTTP/1.1" 200 -
+2025-09-11 12:23:38,320 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:23:38] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 12:23:39,923 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:23:39] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 12:23:39,928 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:23:39] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 12:34:51,929 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:34:51] "GET / HTTP/1.1" 200 -
+2025-09-11 12:34:52,029 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:34:52] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 12:34:55,984 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:34:55] "GET / HTTP/1.1" 200 -
+2025-09-11 12:34:56,029 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:34:56] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 12:34:57,801 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:34:57] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 12:34:57,802 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 12:34:57] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:11:41,675 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:11:41] "GET / HTTP/1.1" 200 -
+2025-09-11 13:11:41,819 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:11:41] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:11:44,290 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:11:44] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:11:44,290 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:11:44] "[33mGET /api/business-files HTTP/1.1[0m" 404 -
+2025-09-11 13:11:44,291 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:11:44] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:15:17,044 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:26:15,060 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:26:15,337 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.32.124:8082
+2025-09-11 13:26:15,337 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 13:26:15,342 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:26:15,493 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:26:15,509 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:26:15,532 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:26:37,278 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:26:37] "GET / HTTP/1.1" 200 -
+2025-09-11 13:26:37,372 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:26:37] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:26:39,955 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:26:39] "[33mGET /api/business-files HTTP/1.1[0m" 404 -
+2025-09-11 13:26:39,957 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:26:39] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:26:39,958 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:26:39] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:31:23,058 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:31:23,226 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.32.124:8082
+2025-09-11 13:31:23,226 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 13:31:23,226 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:31:23,359 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:31:23,372 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:31:23,381 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:31:34,561 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:31:34] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 13:31:40,920 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:31:40] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:31:46,856 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:31:46] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:32:05,657 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:32:05] "GET / HTTP/1.1" 200 -
+2025-09-11 13:32:05,740 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:32:05] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:32:08,067 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:32:08] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 13:32:08,072 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:32:08] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:32:08,076 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:32:08] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:32:16,112 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:32:16] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:32:16,421 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:32:16] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 13:33:33,850 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 13:33:33,851 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:33:33] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 13:34:40,097 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:34:40] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 13:36:26,848 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:36:26,951 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:36:27,482 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:36:27,602 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:36:27,619 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:36:56,827 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:36:56] "[33mHEAD /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications/credit_procurement/download HTTP/1.1[0m" 404 -
+2025-09-11 13:37:37,308 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:37:37,431 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:37:37,805 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:37:37,846 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:37:37,860 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:37:47,975 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:37:48,012 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:37:48,213 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:37:48,235 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:37:48,243 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:37:56,636 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:37:56] "[33mHEAD /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications/credit_procurement/download HTTP/1.1[0m" 404 -
+2025-09-11 13:38:22,579 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:38:22,635 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:38:22,847 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:38:22,869 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:38:22,877 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 查找资质文件: credit_procurement_20250902_082829.png for company 9ff023cf-ac90-48e3-8752-e7dc06301953
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 检查路径 1: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 检查路径 2: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 检查路径 3: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/2.填写标书/点对点应答/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:38:30,928 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:38:30] "[33mGET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications/credit_procurement/download HTTP/1.1[0m" 404 -
+2025-09-11 13:38:54,176 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:38:54,244 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:38:54,488 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:38:54,511 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:38:54,520 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 查找资质文件: credit_procurement_20250902_082829.png for company 9ff023cf-ac90-48e3-8752-e7dc06301953
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 检查路径 1: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 文件不存在: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/data/configs/companies/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 检查路径 2: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 找到文件: /Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/qualifications/9ff023cf-ac90-48e3-8752-e7dc06301953/credit_procurement_20250902_082829.png
+2025-09-11 13:39:03,350 - ai_tender_system.web_app - INFO - 下载资质文件: 未列入严重失信违法名单（黑名单）信息.png
+2025-09-11 13:39:03,354 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:39:03] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications/credit_procurement/download HTTP/1.1" 200 -
+2025-09-11 13:39:27,248 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:39:27] "GET / HTTP/1.1" 200 -
+2025-09-11 13:39:27,330 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:39:27] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:39:29,932 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:39:29] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 13:39:29,935 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:39:29] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:39:29,937 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:39:29] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:39:30,949 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:39:30,996 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:39:31,261 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:39:31,287 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:39:31,306 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:40:36,291 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:40:36] "GET / HTTP/1.1" 200 -
+2025-09-11 13:40:36,364 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:40:36] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:40:38,004 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:40:38] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:40:38,008 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:40:38] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 13:40:38,010 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:40:38] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:40:54,120 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:40:54] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:40:54,595 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:40:54] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 13:42:26,588 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:42:26,590 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:42:26] "POST /process-business-response HTTP/1.1" 200 -
+2025-09-11 13:42:30,434 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:42:30,434 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:42:30] "POST /process-business-response HTTP/1.1" 200 -
+2025-09-11 13:45:59,147 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:45:59] "GET / HTTP/1.1" 200 -
+2025-09-11 13:45:59,234 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:45:59] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:46:01,221 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:46:01] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:46:01,229 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:46:01] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:46:01,226 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:46:01] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 13:46:16,904 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:46:16] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:46:17,196 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:46:17] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 13:51:07,223 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:51:07,378 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:51:07,947 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:51:08,117 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:51:08,133 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 13:51:46,791 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:51:46] "GET / HTTP/1.1" 200 -
+2025-09-11 13:51:46,988 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:51:46] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:51:49,450 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:51:49] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 13:51:49,452 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:51:49] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:51:49,452 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:51:49] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:54:18,865 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:18] "GET / HTTP/1.1" 200 -
+2025-09-11 13:54:18,942 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:18] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 13:54:20,703 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:20] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 13:54:20,775 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:20] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:54:20,777 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:20] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:54:28,175 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:28] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:54:43,358 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:43] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 13:54:43,606 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:43] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 13:54:44,069 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:54:44] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:56:02,617 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:56:02] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 13:56:09,440 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:56:09] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 13:56:16,226 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:56:16] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 13:56:26,728 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:56:26] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 13:56:30,923 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:56:30] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 13:59:37,889 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:59:37,892 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:59:37] "POST /process-business-response HTTP/1.1" 200 -
+2025-09-11 13:59:40,542 - ai_tender_system.web_app - ERROR - 商务应答处理失败: 没有选择模板文件
+2025-09-11 13:59:40,543 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 13:59:40] "POST /process-business-response HTTP/1.1" 200 -
+2025-09-11 13:59:51,277 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 13:59:51,348 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 13:59:51,634 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 13:59:51,661 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 13:59:51,679 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 14:00:09,883 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 14:00:09,920 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 14:00:10,129 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 14:00:10,150 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 14:00:10,160 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 14:02:18,302 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:02:18] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 14:02:18,747 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:02:18] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:02:21,494 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:02:21] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 14:02:24,279 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:02:24] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 14:02:30,138 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:02:30] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 14:03:11,333 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:03:11] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 14:04:45,877 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:04:45] "GET / HTTP/1.1" 200 -
+2025-09-11 14:04:47,888 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:04:47] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 14:04:47,889 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:04:47] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 14:04:47,891 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:04:47] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:22:55,947 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:22:55] "GET / HTTP/1.1" 200 -
+2025-09-11 14:22:58,098 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:22:58] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 14:22:58,098 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:22:58] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 14:22:58,098 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:22:58] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:22:59,350 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:22:59] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:23:11,766 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:23:11] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 14:23:14,060 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:23:14] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:23:21,595 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:23:21] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 14:44:16,564 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:44:16] "GET / HTTP/1.1" 200 -
+2025-09-11 14:44:19,998 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:44:19] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 14:44:20,040 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:44:20] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 14:44:20,041 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:44:20] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:44:21,094 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:44:21] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:44:23,501 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:44:23] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 14:44:30,069 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:44:30] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 14:54:13,716 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 14:54:13,891 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.32.124:8082
+2025-09-11 14:54:13,891 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 14:54:13,893 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 14:54:14,056 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 14:54:14,070 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 14:54:14,080 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 14:55:47,684 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:55:47] "GET / HTTP/1.1" 200 -
+2025-09-11 14:55:47,842 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:55:47] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 14:55:50,184 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:55:50] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 14:55:50,202 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:55:50] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 14:55:50,203 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:55:50] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 14:55:51,608 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 14:55:51] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:01:22,909 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:01:22] "GET / HTTP/1.1" 200 -
+2025-09-11 15:01:23,004 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:01:23] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 15:01:24,886 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:01:24] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 15:01:24,886 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:01:24] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 15:01:24,887 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:01:24] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:01:27,198 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:01:27] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:01:58,676 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:01:58] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 15:02:46,665 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:02:46] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:03:07,591 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:03:07] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 15:04:56,535 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:04:56] "GET / HTTP/1.1" 200 -
+2025-09-11 15:04:58,041 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:04:58] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 15:04:58,043 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:04:58] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 15:04:58,052 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:04:58] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:04:59,299 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:04:59] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:05:01,292 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:01] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 15:05:01,298 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-11 15:05:01,299 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:01] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-11 15:05:12,388 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:12] "[31m[1mPUT /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1[0m" 405 -
+2025-09-11 15:05:25,579 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:25] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:05:48,783 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:48] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 15:05:48,785 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:48] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 15:05:48,796 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 15:05:48,797 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:48] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 15:05:48,799 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 15:05:48,799 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:48] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 15:05:50,486 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:50] "[31m[1mPUT /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1[0m" 405 -
+2025-09-11 15:05:53,193 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:53] "[31m[1mPUT /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1[0m" 405 -
+2025-09-11 15:05:57,046 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:05:57] "[31m[1mPUT /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1[0m" 405 -
+2025-09-11 15:06:07,865 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:06:07] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 15:06:43,500 - ai_tender_system.web_app - INFO - 创建公司成功: 测试公司 (ID: 7f25b325)
+2025-09-11 15:06:43,501 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:06:43] "POST /api/companies HTTP/1.1" 200 -
+2025-09-11 15:06:51,191 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:06:51] "[31m[1mPOST /api/companies/7f25b325 HTTP/1.1[0m" 405 -
+2025-09-11 15:29:48,654 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:48] "GET / HTTP/1.1" 200 -
+2025-09-11 15:29:48,755 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:48] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 15:29:50,951 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:50] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 15:29:50,965 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:50] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 15:29:50,970 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:50] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:29:55,152 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:55] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 15:29:58,063 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:58] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 15:29:58,074 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 15:29:58,075 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:29:58] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 15:31:22,408 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Library/Mobile Documents/com~apple~CloudDocs/Work/智慧足迹2025/05投标项目/AI标书/程序/ai_tender_system/web/app.py', reloading
+2025-09-11 15:31:22,513 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 15:31:22,797 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 15:31:22,823 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 15:31:22,833 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 15:31:37,249 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 15:31:37,402 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.32.124:8082
+2025-09-11 15:31:37,402 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 15:31:37,403 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 15:31:37,544 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 15:31:37,559 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 15:31:37,583 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-11 15:32:30,670 - ai_tender_system.web_app - INFO - 更新公司成功: 测试更新公司名称 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 15:32:30,677 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:32:30] "PUT /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 15:50:07,228 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 15:50:07] "GET / HTTP/1.1" 200 -
+2025-09-11 16:17:55,202 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:17:55] "GET / HTTP/1.1" 200 -
+2025-09-11 16:17:55,987 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:17:55] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 16:17:55,989 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:17:55] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 16:17:55,992 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:17:55] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 16:17:57,735 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:17:57] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 16:18:01,197 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:01] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 16:18:01,202 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 16:18:01,202 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:01] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 16:18:03,694 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:03] "GET /api/companies/7f25b325 HTTP/1.1" 200 -
+2025-09-11 16:18:03,708 - ai_tender_system.web_app - INFO - 获取公司 7f25b325 的资质文件列表，共 0 个
+2025-09-11 16:18:03,708 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:03] "GET /api/companies/7f25b325/qualifications HTTP/1.1" 200 -
+2025-09-11 16:18:08,463 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:08] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 16:18:08,471 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-11 16:18:08,472 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:08] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-11 16:18:11,160 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:11] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 16:18:11,188 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 16:18:11,188 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:11] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 16:18:15,454 - ai_tender_system.web_app - INFO - 更新公司成功: 测试更新公司名称 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 16:18:15,454 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:15] "PUT /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 16:18:15,475 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 16:18:37,989 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 16:18:37] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 20:03:36,445 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:03:36,554 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 20:03:36,554 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 20:03:36,556 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 20:03:37,466 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:03:37,491 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 20:03:37,500 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 20:30:46,242 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:30:46,302 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 20:30:46,302 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 20:30:46,303 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 20:30:47,082 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:30:47,112 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 20:30:47,115 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 20:31:03,281 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:31:03] "GET / HTTP/1.1" 200 -
+2025-09-11 20:31:06,284 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:31:06] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:31:06,285 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:31:06] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:31:06,287 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:31:06] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:31:06,436 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:31:06] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-09-11 20:40:30,670 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:40:30,671 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:40:30] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 20:41:02,143 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:41:02,144 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:41:02] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 20:47:37,613 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:47:37] "GET / HTTP/1.1" 200 -
+2025-09-11 20:47:40,816 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:47:40] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:47:40,823 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:47:40] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:47:40,828 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:47:40] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:48:01,531 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:48:01] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:48:03,324 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:48:03] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:49:26,735 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:26] "GET / HTTP/1.1" 200 -
+2025-09-11 20:49:28,091 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:28] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:49:28,092 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:28] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:49:28,100 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:28] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:49:30,078 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:30] "GET / HTTP/1.1" 200 -
+2025-09-11 20:49:30,902 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:30] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:49:30,914 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:30] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:49:30,918 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:30] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:49:35,602 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:49:35,604 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:35] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 20:49:55,601 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:49:55] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 20:51:58,410 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:51:58] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:52:00,442 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:52:00] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 20:52:00,454 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 1 个
+2025-09-11 20:52:00,455 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:52:00] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 20:52:17,797 - ai_tender_system.web_app - INFO - 更新公司成功: 中国联合网络通信有限公司 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 20:52:17,798 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:52:17] "PUT /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 20:52:17,834 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:52:17] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:52:17,844 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:52:17] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:53:04,363 - ai_tender_system.web_app - INFO - 公司 9ff023cf-ac90-48e3-8752-e7dc06301953 上传了 1 个资质文件
+2025-09-11 20:53:04,367 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:04] "POST /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications/upload HTTP/1.1" 200 -
+2025-09-11 20:53:12,915 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:12] "GET / HTTP/1.1" 200 -
+2025-09-11 20:53:15,713 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:15] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:53:15,714 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:53:15,727 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:15] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:53:20,352 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:53:20,355 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:20] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 20:53:29,431 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:29] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:53:32,680 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:32] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-11 20:53:32,689 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-11 20:53:32,690 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:32] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-11 20:53:51,160 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:51] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 20:53:51,183 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 20:53:51,185 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:53:51] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 20:54:35,358 - ai_tender_system.web_app - INFO - 更新公司成功: 中国联合网络通信有限公司 (ID: 9ff023cf-ac90-48e3-8752-e7dc06301953)
+2025-09-11 20:54:35,360 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:35] "PUT /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 20:54:35,402 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:35] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:54:35,407 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:35] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:54:43,951 - ai_tender_system.web_app - INFO - 公司 9ff023cf-ac90-48e3-8752-e7dc06301953 上传了 1 个资质文件
+2025-09-11 20:54:43,952 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:43] "POST /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications/upload HTTP/1.1" 200 -
+2025-09-11 20:54:52,453 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:52] "GET / HTTP/1.1" 200 -
+2025-09-11 20:54:54,650 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:54] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:54:54,651 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:54] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:54:54,659 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:54] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:54:56,089 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:56] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:54:58,214 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:58] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 20:54:58,231 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 20:54:58,232 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:54:58] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 20:55:55,717 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:55:55] "GET / HTTP/1.1" 200 -
+2025-09-11 20:55:56,572 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:55:56] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:55:56,574 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:55:56] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:55:56,578 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:55:56] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:56:01,022 - ai_tender_system.web_app - ERROR - 分步招标信息提取失败: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-09-11 20:56:01,023 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:56:01] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-11 20:56:11,965 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:56:11] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 20:56:43,469 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:56:43] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:56:46,799 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:56:46] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 20:56:46,816 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 20:56:46,818 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:56:46] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 20:58:10,491 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-11 20:58:10,649 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 20:58:11,676 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 20:58:11,716 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 20:58:11,719 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 20:59:04,494 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:59:04] "GET / HTTP/1.1" 200 -
+2025-09-11 20:59:07,312 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:59:07] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 20:59:07,319 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:59:07] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 20:59:07,324 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:59:07] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 20:59:11,599 - ai_tender_system.web_app - ERROR - 招标信息提取失败: API密钥未配置
+2025-09-11 20:59:11,601 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 20:59:11] "POST /extract-tender-info HTTP/1.1" 200 -
+2025-09-11 21:01:41,059 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:01:41] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:02:05,629 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:02:05] "GET / HTTP/1.1" 200 -
+2025-09-11 21:02:06,507 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:02:06] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 21:02:06,508 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:02:06] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:02:06,515 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:02:06] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 21:02:12,160 - ai_tender_system.web_app - ERROR - 招标信息提取失败: API密钥未配置
+2025-09-11 21:02:12,162 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:02:12] "POST /extract-tender-info HTTP/1.1" 200 -
+2025-09-11 21:05:46,835 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-11 21:05:46,920 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:05:47,750 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:05:47,778 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:05:47,781 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:05:52,953 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-11 21:05:53,048 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:05:54,024 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:05:54,071 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:05:54,074 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:10:35,043 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\common\\config.py', reloading
+2025-09-11 21:10:35,098 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:10:35,951 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:10:35,982 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:10:35,985 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:11:48,059 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:11:48] "GET / HTTP/1.1" 200 -
+2025-09-11 21:11:50,885 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:11:50] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 21:11:50,888 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:11:50] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:11:50,890 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:11:50] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 21:11:56,307 - ai_tender_system.web_app - INFO - 开始提取招标信息: 20250911_211156_-.pdf
+2025-09-11 21:11:56,310 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成
+2025-09-11 21:11:56,311 - ai_tender_system.tender_info - INFO - 开始处理文档: D:\749\AI编程\zhongbiao\ai_tender_system\data\uploads\20250911_211156_-.pdf
+2025-09-11 21:11:59,791 - ai_tender_system.tender_info - INFO - PDF文件读取成功，共73页
+2025-09-11 21:11:59,792 - ai_tender_system.tender_info - INFO - 开始提取基本项目信息
+2025-09-11 21:11:59,793 - ai_tender_system.tender_info - INFO - LLM API调用 - 基本信息提取 (尝试 1/3)
+2025-09-11 21:12:00,615 - ai_tender_system.tender_info - ERROR - API调用失败: 400 - {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: 3d198ee5-70c9-4360-a795-fb397dc5dbd6)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-09-11 21:12:01,624 - ai_tender_system.tender_info - INFO - LLM API调用 - 基本信息提取 (尝试 2/3)
+2025-09-11 21:12:02,459 - ai_tender_system.tender_info - ERROR - API调用失败: 400 - {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: defa24f6-ebfa-4550-b188-40b9ca581b27)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-09-11 21:12:04,461 - ai_tender_system.tender_info - INFO - LLM API调用 - 基本信息提取 (尝试 3/3)
+2025-09-11 21:12:05,258 - ai_tender_system.tender_info - ERROR - API调用失败: 400 - {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: 5878e926-c09f-4323-800f-2843f0af7dd0)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-09-11 21:12:05,259 - ai_tender_system.tender_info - ERROR - 提取基本信息失败: API调用失败: 400 - {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: 5878e926-c09f-4323-800f-2843f0af7dd0)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-09-11 21:12:05,259 - ai_tender_system.tender_info - ERROR - 文档处理失败: 基本信息提取失败: API调用失败: 400 - {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: 5878e926-c09f-4323-800f-2843f0af7dd0)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-09-11 21:12:05,260 - ai_tender_system.web_app - ERROR - 招标信息提取失败: 文档处理失败: 基本信息提取失败: API调用失败: 400 - {"error":{"message":"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead. (request id: 5878e926-c09f-4323-800f-2843f0af7dd0)","type":"invalid_request_error","param":"max_tokens","code":"unsupported_parameter"},"status_code":400,"LocalError":false}
+2025-09-11 21:12:05,263 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:12:05] "POST /extract-tender-info HTTP/1.1" 200 -
+2025-09-11 21:12:34,885 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\modules\\tender_info\\extractor.py', reloading
+2025-09-11 21:12:35,005 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:12:35,954 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:12:35,986 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:12:35,990 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:12:41,061 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-11 21:12:41,152 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:12:41,944 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:12:41,974 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:12:41,976 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:14:55,473 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:14:55] "GET / HTTP/1.1" 200 -
+2025-09-11 21:14:56,884 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:14:56] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:14:56,887 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:14:56] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 21:14:56,896 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:14:56] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 21:15:01,900 - ai_tender_system.web_app - INFO - 开始提取招标信息: 20250911_211501_-.pdf
+2025-09-11 21:15:01,904 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成
+2025-09-11 21:15:01,906 - ai_tender_system.tender_info - INFO - 开始处理文档: D:\749\AI编程\zhongbiao\ai_tender_system\data\uploads\20250911_211501_-.pdf
+2025-09-11 21:15:04,949 - ai_tender_system.tender_info - INFO - PDF文件读取成功，共73页
+2025-09-11 21:15:04,950 - ai_tender_system.tender_info - INFO - 开始提取基本项目信息
+2025-09-11 21:15:04,953 - ai_tender_system.tender_info - INFO - LLM API调用 - 基本信息提取 (尝试 1/3)
+2025-09-11 21:15:06,367 - ai_tender_system.tender_info - ERROR - API调用失败: 400 - {"error":{"message":"Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported. (request id: 09fcbf03-23e3-4a32-9834-677e5a610d41)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-09-11 21:15:07,369 - ai_tender_system.tender_info - INFO - LLM API调用 - 基本信息提取 (尝试 2/3)
+2025-09-11 21:15:09,315 - ai_tender_system.tender_info - ERROR - API调用失败: 400 - {"error":{"message":"Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported. (request id: 27281f80-13bc-4e19-875a-3807ebe7e8eb)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-09-11 21:15:11,317 - ai_tender_system.tender_info - INFO - LLM API调用 - 基本信息提取 (尝试 3/3)
+2025-09-11 21:15:12,142 - ai_tender_system.tender_info - ERROR - API调用失败: 400 - {"error":{"message":"Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported. (request id: 082fdc0c-88e0-4856-a9b3-e7dfb026c544)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-09-11 21:15:12,143 - ai_tender_system.tender_info - ERROR - 提取基本信息失败: API调用失败: 400 - {"error":{"message":"Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported. (request id: 082fdc0c-88e0-4856-a9b3-e7dfb026c544)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-09-11 21:15:12,145 - ai_tender_system.tender_info - ERROR - 文档处理失败: 基本信息提取失败: API调用失败: 400 - {"error":{"message":"Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported. (request id: 082fdc0c-88e0-4856-a9b3-e7dfb026c544)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-09-11 21:15:12,146 - ai_tender_system.web_app - ERROR - 招标信息提取失败: 文档处理失败: 基本信息提取失败: API调用失败: 400 - {"error":{"message":"Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported. (request id: 082fdc0c-88e0-4856-a9b3-e7dfb026c544)","type":"invalid_request_error","param":"temperature","code":"unsupported_value"},"status_code":400,"LocalError":false}
+2025-09-11 21:15:12,149 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:15:12] "POST /extract-tender-info HTTP/1.1" 200 -
+2025-09-11 21:15:41,351 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\modules\\tender_info\\extractor.py', reloading
+2025-09-11 21:15:41,459 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:15:42,361 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:15:42,396 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:15:42,400 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:16:11,770 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:16:11] "GET / HTTP/1.1" 200 -
+2025-09-11 21:16:13,134 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:16:13] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 21:16:13,135 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:16:13] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:16:13,141 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:16:13] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 21:16:17,213 - ai_tender_system.web_app - INFO - 开始提取招标信息: 20250911_211617_-.pdf
+2025-09-11 21:16:17,215 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成
+2025-09-11 21:16:17,216 - ai_tender_system.tender_info - INFO - 开始处理文档: D:\749\AI编程\zhongbiao\ai_tender_system\data\uploads\20250911_211617_-.pdf
+2025-09-11 21:16:20,522 - ai_tender_system.tender_info - INFO - PDF文件读取成功，共73页
+2025-09-11 21:16:20,523 - ai_tender_system.tender_info - INFO - 开始提取基本项目信息
+2025-09-11 21:16:20,524 - ai_tender_system.tender_info - INFO - LLM API调用 - 基本信息提取 (尝试 1/3)
+2025-09-11 21:16:26,658 - ai_tender_system.tender_info - INFO - LLM API调用成功 - 基本信息提取
+2025-09-11 21:16:26,659 - ai_tender_system.tender_info - INFO - 基本信息提取成功
+2025-09-11 21:16:26,660 - ai_tender_system.tender_info - INFO - 开始提取资质要求
+2025-09-11 21:16:26,660 - ai_tender_system.tender_info - INFO - LLM API调用 - 资质要求提取 (尝试 1/3)
+2025-09-11 21:16:35,251 - ai_tender_system.tender_info - INFO - LLM API调用成功 - 资质要求提取
+2025-09-11 21:16:35,252 - ai_tender_system.tender_info - INFO - 资质要求提取成功
+2025-09-11 21:16:35,253 - ai_tender_system.tender_info - INFO - 开始提取技术评分标准
+2025-09-11 21:16:35,253 - ai_tender_system.tender_info - INFO - LLM API调用 - 技术评分提取 (尝试 1/3)
+2025-09-11 21:16:37,400 - ai_tender_system.tender_info - INFO - LLM API调用成功 - 技术评分提取
+2025-09-11 21:16:37,402 - ai_tender_system.tender_info - INFO - 技术评分标准提取成功
+2025-09-11 21:16:37,404 - ai_tender_system.tender_info - INFO - 配置已保存到: D:\749\AI编程\zhongbiao\ai_tender_system\data\configs\tender_config.ini
+2025-09-11 21:16:37,404 - ai_tender_system.tender_info - INFO - 文档处理完成
+2025-09-11 21:16:37,405 - ai_tender_system.web_app - INFO - 招标信息提取完成
+2025-09-11 21:16:37,407 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:16:37] "POST /extract-tender-info HTTP/1.1" 200 -
+2025-09-11 21:17:43,590 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:17:43] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:17:48,660 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:17:48] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:18:41,510 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:18:41] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:18:45,473 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:18:45] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 21:18:45,483 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:18:45] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 21:18:45,484 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:18:45,485 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:18:45] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 21:18:45,492 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:18:45] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 21:18:45,519 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:18:45,522 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:18:45] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 21:18:45,528 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:18:45,531 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:18:45] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 21:21:51,279 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:21:51] "GET / HTTP/1.1" 200 -
+2025-09-11 21:22:01,490 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:22:01] "GET / HTTP/1.1" 200 -
+2025-09-11 21:23:26,410 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:23:26] "GET / HTTP/1.1" 200 -
+2025-09-11 21:24:33,631 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:24:33] "GET / HTTP/1.1" 200 -
+2025-09-11 21:24:51,841 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:24:51] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:25:06,315 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:25:06,361 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:25:06,361 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:25:06,362 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:25:07,184 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:25:07,228 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:25:07,232 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:27:23,190 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:27:23] "GET / HTTP/1.1" 200 -
+2025-09-11 21:27:23,224 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:27:23] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:28:18,989 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:28:19,010 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:28:19,010 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:28:19,011 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:28:19,377 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:28:19,392 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:28:19,394 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:28:33,813 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:28:33] "GET / HTTP/1.1" 200 -
+2025-09-11 21:28:50,917 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:28:50] "GET / HTTP/1.1" 200 -
+2025-09-11 21:29:50,790 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:29:50] "GET / HTTP/1.1" 200 -
+2025-09-11 21:29:56,881 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:29:56] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:31:29,146 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:31:29] "GET / HTTP/1.1" 200 -
+2025-09-11 21:31:29,273 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:31:29] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:34:08,487 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:34:08,508 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:34:08,508 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:34:08,509 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:34:08,876 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:34:08,890 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:34:08,892 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:36:23,890 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:36:23] "GET / HTTP/1.1" 200 -
+2025-09-11 21:36:23,917 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:36:23] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:41:21,801 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:41:21,825 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:41:21,826 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:41:21,827 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:41:22,220 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:41:22,235 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:41:22,237 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:41:38,789 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:41:38] "GET / HTTP/1.1" 200 -
+2025-09-11 21:42:55,912 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:42:55] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:43:57,913 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:43:57,934 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:43:57,934 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:43:57,934 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:43:58,294 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:43:58,308 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:43:58,310 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:44:15,787 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:44:15] "GET / HTTP/1.1" 200 -
+2025-09-11 21:44:15,866 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:44:15] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:47:33,421 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:47:33,444 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:47:33,444 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:47:33,445 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:47:33,825 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:47:33,842 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:47:33,843 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:48:45,799 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:48:45] "GET / HTTP/1.1" 200 -
+2025-09-11 21:48:45,823 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:48:45] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:49:42,244 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:49:42,271 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:49:42,271 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:49:42,272 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:49:42,741 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:49:42,758 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:49:42,761 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:50:19,825 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:50:19] "GET / HTTP/1.1" 200 -
+2025-09-11 21:50:19,846 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:50:19] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:50:21,292 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:50:21] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 21:50:21,293 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:50:21] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:50:21,298 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:50:21] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 21:50:21,299 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:50:21] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:51:26,079 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:51:26,101 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 21:51:26,102 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 21:51:26,103 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 21:51:26,508 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 21:51:26,525 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 21:51:26,527 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 21:52:32,928 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:52:32] "GET / HTTP/1.1" 200 -
+2025-09-11 21:52:32,957 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:52:32] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-11 21:52:34,255 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:52:34] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 21:52:34,256 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:52:34] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:52:34,258 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:52:34] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 21:52:34,263 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:52:34] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:52:59,836 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:52:59] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 21:53:01,618 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:53:01] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 21:53:01,621 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:53:01] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 21:53:01,633 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:53:01,634 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:53:01] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 21:53:01,637 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 21:53:01,638 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 21:53:01] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:23:51,682 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 22:23:51,707 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-11 22:23:51,707 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-11 22:23:51,708 - werkzeug - INFO -  * Restarting with stat
+2025-09-11 22:23:52,109 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-11 22:23:52,126 - werkzeug - WARNING -  * Debugger is active!
+2025-09-11 22:23:52,128 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-11 22:24:40,713 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:24:40] "GET / HTTP/1.1" 200 -
+2025-09-11 22:24:42,263 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:24:42] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:24:42,264 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:24:42] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 22:24:42,268 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:24:42] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:24:42,272 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:24:42] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 22:25:04,986 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:04] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:25:07,606 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:07] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:25:07,610 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:07] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:25:07,614 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:25:07,614 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:07] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:25:07,619 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:25:07,620 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:07] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:25:48,719 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:48] "GET /api/companies/7f25b325 HTTP/1.1" 200 -
+2025-09-11 22:25:48,721 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:48] "GET /api/companies/7f25b325 HTTP/1.1" 200 -
+2025-09-11 22:25:48,724 - ai_tender_system.web_app - INFO - 获取公司 7f25b325 的资质文件列表，共 0 个
+2025-09-11 22:25:48,725 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:48] "GET /api/companies/7f25b325/qualifications HTTP/1.1" 200 -
+2025-09-11 22:25:48,728 - ai_tender_system.web_app - INFO - 获取公司 7f25b325 的资质文件列表，共 0 个
+2025-09-11 22:25:48,728 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:48] "GET /api/companies/7f25b325/qualifications HTTP/1.1" 200 -
+2025-09-11 22:25:55,581 - ai_tender_system.web_app - INFO - 删除公司成功: 7f25b325
+2025-09-11 22:25:55,581 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:55] "DELETE /api/companies/7f25b325 HTTP/1.1" 200 -
+2025-09-11 22:25:57,175 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:57] "[33mDELETE /api/companies/7f25b325 HTTP/1.1[0m" 404 -
+2025-09-11 22:25:57,184 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:57] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:25:57,187 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:57] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:25:59,286 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:59] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:25:59,290 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:59] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:25:59,293 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:25:59,294 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:59] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:25:59,298 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:25:59,298 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:25:59] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:26:51,568 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:51] "GET / HTTP/1.1" 200 -
+2025-09-11 22:26:53,658 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:53] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 22:26:53,659 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:53] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:26:53,976 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:53] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 22:26:53,977 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:53] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:26:54,038 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:54] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-09-11 22:26:55,491 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:55] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:26:57,024 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:57] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:26:57,340 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:57] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:26:57,340 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:26:57,341 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:57] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:26:57,653 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:26:57,654 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:26:57] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:30:17,746 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:17] "GET / HTTP/1.1" 200 -
+2025-09-11 22:30:18,415 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:18] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-11 22:30:18,416 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:18] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:30:18,729 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:18] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-11 22:30:18,730 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:18] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:30:20,698 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:20] "GET /api/companies HTTP/1.1" 200 -
+2025-09-11 22:30:22,260 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:22] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:30:22,577 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:22] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-11 22:30:22,577 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:30:22,578 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:22] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-11 22:30:22,884 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-11 22:30:22,884 - werkzeug - INFO - 127.0.0.1 - - [11/Sep/2025 22:30:22] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:14:20,874 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:20] "GET / HTTP/1.1" 200 -
+2025-09-12 04:14:22,895 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:22] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:14:22,897 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:22] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:14:23,207 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:23] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:14:23,208 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:23] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:14:41,892 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:41] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:14:43,985 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:43] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-12 04:14:44,302 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:14:44,303 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:44] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-12 04:14:44,304 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:44] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:14:44,627 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:14:44,628 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:14:44] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:23:13,298 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:13] "GET / HTTP/1.1" 200 -
+2025-09-12 04:23:14,792 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:14] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:23:14,793 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:14] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:23:15,121 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:23:15,149 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:15] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:23:17,692 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:17] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:23:19,363 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:19] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-12 04:23:19,672 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:19] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-12 04:23:19,677 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:23:19,680 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:19] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:23:19,995 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:23:19,997 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:19] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:23:24,717 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:24] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:23:24,718 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:23:24,719 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:24] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:23:26,860 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:26] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:23:29,569 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:29] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:23:29,832 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:29] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:23:29,877 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:23:29,879 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:29] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:23:29,882 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:29] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:23:30,140 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:23:30,142 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:30] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:23:30,187 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:23:30,189 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:30] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:23:37,688 - ai_tender_system.web_app - INFO - 公司 9ff023cf-ac90-48e3-8752-e7dc06301953 上传了 0 个资质文件
+2025-09-12 04:23:37,691 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:23:37] "POST /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications/upload HTTP/1.1" 200 -
+2025-09-12 04:27:49,802 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:27:49] "GET / HTTP/1.1" 200 -
+2025-09-12 04:27:53,083 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:27:53] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:27:53,084 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:27:53] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:27:53,400 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:27:53] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:27:53,401 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:27:53] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:28:31,724 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:28:31,726 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:28:31] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:28:31,727 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:28:31] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:28:33,535 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:28:33] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:46:47,728 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:46:47] "GET / HTTP/1.1" 200 -
+2025-09-12 04:46:51,501 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:46:51] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:46:51,502 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:46:51] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:46:51,825 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:46:51] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:46:51,826 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:46:51] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:03,516 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:03] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:15,124 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:15] "GET / HTTP/1.1" 200 -
+2025-09-12 04:47:16,298 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:16] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:16,601 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:16] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:47:16,607 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:16] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:16,612 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:16] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:47:20,589 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:20] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:47:20,592 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:47:20,598 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:20] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:47:22,428 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:22] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:25,528 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:25] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:47:25,793 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:25] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:47:25,873 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:25,874 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:25] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:47:25,879 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:25,880 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:25] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:47:42,411 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:42] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:45,570 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:45] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:47:45,887 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:45] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:47:45,895 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:45,904 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:45] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:47:46,209 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:46] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd HTTP/1.1" 200 -
+2025-09-12 04:47:46,215 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:46,223 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:46] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:47:46,535 - ai_tender_system.web_app - INFO - 获取公司 945150ca-68e1-4141-921b-fd4c48e07ebd 的资质文件列表，共 10 个
+2025-09-12 04:47:46,537 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:46] "GET /api/companies/945150ca-68e1-4141-921b-fd4c48e07ebd/qualifications HTTP/1.1" 200 -
+2025-09-12 04:47:47,626 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:47] "GET / HTTP/1.1" 200 -
+2025-09-12 04:47:48,848 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:48] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:47:48,850 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:48] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:49,157 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:49] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:47:49,161 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:47:49] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:48:14,051 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:48:14] "GET / HTTP/1.1" 200 -
+2025-09-12 04:48:17,781 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:48:17] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:48:18,100 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:48:18] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:48:18,101 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:48:18] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:48:18,104 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:48:18] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:48:31,747 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:48:31] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:50:00,769 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:50:00] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-12 04:50:51,679 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:50:51] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-12 04:58:33,187 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 04:58:33,238 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8082
+ * Running on http://192.168.1.6:8082
+2025-09-12 04:58:33,238 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-12 04:58:33,240 - werkzeug - INFO -  * Restarting with stat
+2025-09-12 04:58:34,176 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 04:58:34,211 - werkzeug - WARNING -  * Debugger is active!
+2025-09-12 04:58:34,214 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-12 04:59:20,188 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:20] "GET / HTTP/1.1" 200 -
+2025-09-12 04:59:25,364 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:25] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:59:25,366 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:25] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:59:25,371 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:25] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:59:25,377 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:25] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 04:59:30,125 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:30] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:59:30,126 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:59:30,128 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:30] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:59:31,924 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:31] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:59:41,570 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:41] "GET /business_response.html HTTP/1.1" 200 -
+2025-09-12 04:59:41,812 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:41] "GET /js/state-manager.js HTTP/1.1" 200 -
+2025-09-12 04:59:41,824 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:41] "GET /js/common.js HTTP/1.1" 200 -
+2025-09-12 04:59:41,827 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:41] "GET /js/business_response.js HTTP/1.1" 200 -
+2025-09-12 04:59:45,065 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:45] "GET /api/get-default-api-key HTTP/1.1" 200 -
+2025-09-12 04:59:45,072 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:45] "GET /api/get-default-api-key HTTP/1.1" 200 -
+2025-09-12 04:59:46,747 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:46] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:59:46,749 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:46] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:59:50,694 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:50] "GET /point_to_point.html HTTP/1.1" 200 -
+2025-09-12 04:59:50,742 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:50] "[36mGET /js/state-manager.js HTTP/1.1[0m" 304 -
+2025-09-12 04:59:50,749 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:50] "[36mGET /js/common.js HTTP/1.1[0m" 304 -
+2025-09-12 04:59:50,751 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:50] "GET /js/point_to_point.js HTTP/1.1" 200 -
+2025-09-12 04:59:54,175 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:54] "GET /company_selection.html HTTP/1.1" 200 -
+2025-09-12 04:59:54,230 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:54] "[36mGET /js/state-manager.js HTTP/1.1[0m" 304 -
+2025-09-12 04:59:54,239 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:54] "[36mGET /js/common.js HTTP/1.1[0m" 304 -
+2025-09-12 04:59:54,242 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:54] "GET /js/company_selection.js HTTP/1.1" 200 -
+2025-09-12 04:59:54,843 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:54] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 04:59:54,844 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:54] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 04:59:57,823 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:57] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-12 04:59:57,898 - ai_tender_system.web_app - INFO - 获取公司 9ff023cf-ac90-48e3-8752-e7dc06301953 的资质文件列表，共 2 个
+2025-09-12 04:59:57,899 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:57] "GET /api/companies/9ff023cf-ac90-48e3-8752-e7dc06301953/qualifications HTTP/1.1" 200 -
+2025-09-12 04:59:59,413 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:59] "GET /tender_info.html HTTP/1.1" 200 -
+2025-09-12 04:59:59,474 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 04:59:59] "GET /static/js/tender_info.js?v=2025-09-10-v2.1 HTTP/1.1" 200 -
+2025-09-12 05:00:04,626 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:04] "GET /business_response.html HTTP/1.1" 200 -
+2025-09-12 05:00:04,679 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:04] "[36mGET /js/state-manager.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:04,688 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:04] "[36mGET /js/common.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:04,695 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:04] "[36mGET /js/business_response.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:05,199 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:05] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:00:05,202 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:05] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 05:00:09,866 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:09] "GET /point_to_point.html?companyId=9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-12 05:00:09,914 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:09] "[36mGET /js/state-manager.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:09,921 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:09] "[36mGET /js/common.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:09,925 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:09] "[36mGET /js/point_to_point.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:10,843 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:10] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:00:14,002 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:14] "GET /tech_proposal.html?companyId=9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1" 200 -
+2025-09-12 05:00:14,050 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:14] "GET /js/tech_proposal.js HTTP/1.1" 200 -
+2025-09-12 05:00:14,063 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:14] "[36mGET /js/state-manager.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:14,068 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:14] "[36mGET /js/common.js HTTP/1.1[0m" 304 -
+2025-09-12 05:00:14,570 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:00:14] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:01:14,620 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:01:14] "[33mGET /index.html?companyId=9ff023cf-ac90-48e3-8752-e7dc06301953 HTTP/1.1[0m" 404 -
+2025-09-12 05:01:21,618 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:01:21] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:11:17,225 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\common\\config.py', reloading
+2025-09-12 05:11:17,233 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\common\\config.py', reloading
+2025-09-12 05:11:17,351 - werkzeug - INFO -  * Restarting with stat
+2025-09-12 05:11:17,401 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\common\\config.py', reloading
+2025-09-12 05:11:17,531 - werkzeug - INFO -  * Restarting with stat
+2025-09-12 05:11:18,449 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 05:11:18,482 - werkzeug - WARNING -  * Debugger is active!
+2025-09-12 05:11:18,487 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-12 05:11:18,605 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 05:11:18,688 - werkzeug - WARNING -  * Debugger is active!
+2025-09-12 05:11:18,692 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-12 05:11:41,757 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-12 05:11:41,841 - werkzeug - INFO -  * Restarting with stat
+2025-09-12 05:11:41,975 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-12 05:11:42,076 - werkzeug - INFO -  * Restarting with stat
+2025-09-12 05:11:42,975 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 05:11:43,005 - werkzeug - WARNING -  * Debugger is active!
+2025-09-12 05:11:43,009 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-12 05:11:43,093 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-12 05:11:43,153 - werkzeug - WARNING -  * Debugger is active!
+2025-09-12 05:11:43,158 - werkzeug - INFO -  * Debugger PIN: 367-750-518
+2025-09-12 05:13:20,154 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:20] "GET / HTTP/1.1" 200 -
+2025-09-12 05:13:20,238 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:20] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-09-12 05:13:24,738 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:24] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:13:25,049 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:25] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 05:13:25,052 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:25] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 05:13:25,054 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:25] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:13:32,371 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:32] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:13:36,101 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:36] "GET / HTTP/1.1" 200 -
+2025-09-12 05:13:40,190 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:40] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:13:40,506 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:40] "GET /api/project-config HTTP/1.1" 200 -
+2025-09-12 05:13:40,511 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:40] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:13:40,517 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:13:40] "GET /api/business-files HTTP/1.1" 200 -
+2025-09-12 05:15:08,410 - werkzeug - INFO - 127.0.0.1 - - [12/Sep/2025 05:15:08] "GET /api/companies HTTP/1.1" 200 -
+2025-09-12 05:22:21,410 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-12 05:22:21,477 - werkzeug - INFO -  * Detected change in 'D:\\749\\AI编程\\zhongbiao\\ai_tender_system\\web\\app.py', reloading
+2025-09-12 05:22:21,534 - werkzeug - INFO -  * Restarting with stat
+2025-09-12 05:22:21,586 - werkzeug - INFO -  * Restarting with stat

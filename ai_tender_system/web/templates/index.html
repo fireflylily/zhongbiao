@@ -113,39 +113,6 @@
             color: #2196f3;
             margin-right: 8px;
         }
-
-        /* 拆分文件卡片样式 */
-        .split-document-card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-        }
-
-        .split-document-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-color: #007bff;
-        }
-
-        .split-document-title {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 8px;
-        }
-
-        .split-document-meta {
-            color: #6c757d;
-            font-size: 0.875rem;
-            margin-bottom: 10px;
-        }
-
-        .split-document-actions .btn {
-            margin-right: 8px;
-            margin-bottom: 5px;
-        }
     </style>
 </head>
 <body>
@@ -267,18 +234,6 @@
                             <div class="row" id="tenderInfoDisplay">
                                 <!-- 提取结果将在这里显示 -->
                             </div>
-
-                            <!-- 拆分文件显示区域 -->
-                            <div id="splitDocumentsArea" style="display: none;">
-                                <hr>
-                                <h6 class="mb-3">
-                                    <i class="bi bi-file-earmark-break"></i> 文档拆分结果
-                                </h6>
-                                <div class="row" id="splitDocumentsList">
-                                    <!-- 拆分文件将在这里显示 -->
-                                </div>
-                            </div>
-
                             <div class="text-center mt-3">
                                 <button class="btn btn-outline-success me-2" id="tenderRetryBtn">
                                     <i class="bi bi-arrow-clockwise"></i> 重新提取
@@ -1337,21 +1292,21 @@
         window.addEventListener('load', function() {
             const defaultKey = '{{ default_api_key }}';
             const saved = localStorage.getItem(API_STORAGE_KEY);
-
+            
             if (saved) {
                 const decrypted = decryptApiKey(saved);
                 if (decrypted) {
                     apiKeyInput.value = decrypted;
-                    // document.getElementById('tenderApiKey').value = decrypted;  // API密钥从环境变量获取
+                    document.getElementById('tenderApiKey').value = decrypted;
                     showNotification('已加载保存的API密钥', 'success');
                     return;
                 }
             }
-
+            
             // 如果没有保存的密钥，使用默认密钥
             if (defaultKey && defaultKey !== 'None') {
                 apiKeyInput.value = defaultKey;
-                // document.getElementById('tenderApiKey').value = defaultKey;  // API密钥从环境变量获取
+                document.getElementById('tenderApiKey').value = defaultKey;
                 showNotification('已加载默认API密钥', 'info');
             }
         });
@@ -2091,7 +2046,48 @@
             }
         }
 
-        // API测试功能已移除 - 使用环境变量API密钥
+        // API测试
+        const testTenderApiBtn = document.getElementById('testTenderApiBtn');
+        if (testTenderApiBtn) {
+            testTenderApiBtn.addEventListener('click', function() {
+                const apiKeyElement = document.getElementById('tenderApiKey');
+                const apiKey = apiKeyElement ? apiKeyElement.value.trim() : '';
+                const btn = this;
+                const originalText = btn.innerHTML;
+                const statusDiv = document.getElementById('tenderApiStatus');
+            
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 测试中...';
+            btn.disabled = true;
+            
+            fetch('/api/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ api_key: apiKey })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusDiv.style.display = 'block';
+                if (data.success) {
+                    statusDiv.className = 'api-status success';
+                    statusDiv.innerHTML = `<i class="bi bi-check-circle"></i> ${data.message} (模型: ${data.model})`;
+                } else {
+                    statusDiv.className = 'api-status error';
+                    statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> ${data.message}`;
+                }
+            })
+            .catch(error => {
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'api-status error';
+                statusDiv.innerHTML = `<i class="bi bi-x-circle"></i> 连接失败: ${error.message}`;
+            })
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        });
+        }
 
         // 提取信息按钮事件
         if (extractInfoBtn) {
@@ -2202,12 +2198,7 @@
                 displayBasicInfo(basicInfo);
                 displayQualificationRequirements(qualificationRequirements);
                 displayTechnicalScoring(technicalScoring);
-
-                // 显示拆分文件（如果有）
-                if (data.split_documents && data.split_documents.length > 0) {
-                    displaySplitDocuments(data.split_documents);
-                }
-
+                
                 // 完成
                 if (progressBar) progressBar.style.width = '100%';
                 safeSetTextContent('stepMessage', '所有信息提取完成！');
@@ -2226,7 +2217,7 @@
         function submitTenderExtraction() {
             const formData = new FormData();
             formData.append('file', tenderFileInput.files[0]);
-            // API密钥从环境变量获取，无需传递
+            formData.append('api_key', document.getElementById('tenderApiKey').value);
 
             // 重置显示区域
             tenderResultArea.style.display = 'none';
@@ -2433,106 +2424,6 @@
             tenderInfoDisplay.innerHTML = html;
         }
 
-        // 显示拆分文件
-        function displaySplitDocuments(splitDocuments) {
-            if (!splitDocuments || splitDocuments.length === 0) {
-                return;
-            }
-
-            const splitDocumentsArea = document.getElementById('splitDocumentsArea');
-            const splitDocumentsList = document.getElementById('splitDocumentsList');
-
-            let html = '';
-            splitDocuments.forEach((doc, index) => {
-                const iconClass = getDocumentIcon(doc.name);
-                html += `
-                    <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                        <div class="split-document-card">
-                            <div class="split-document-title">
-                                <i class="bi ${iconClass}"></i> ${doc.name}
-                            </div>
-                            <div class="split-document-meta">
-                                文件大小: ${doc.file_size}
-                            </div>
-                            <div class="split-document-actions">
-                                <button class="btn btn-sm btn-outline-primary" onclick="previewDocument('${doc.filename}')">
-                                    <i class="bi bi-eye"></i> 预览
-                                </button>
-                                <a href="${doc.download_url}" class="btn btn-sm btn-outline-success" download>
-                                    <i class="bi bi-download"></i> 下载
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            splitDocumentsList.innerHTML = html;
-            splitDocumentsArea.style.display = 'block';
-        }
-
-        // 根据文档名称获取图标
-        function getDocumentIcon(name) {
-            if (name.includes('公告')) return 'bi-megaphone';
-            if (name.includes('前附表')) return 'bi-table';
-            if (name.includes('评分') || name.includes('评标')) return 'bi-award';
-            if (name.includes('格式') || name.includes('响应')) return 'bi-file-text';
-            return 'bi-file-earmark-word';
-        }
-
-        // 预览文档
-        function previewDocument(filename) {
-            fetch(`/preview/${filename}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // 创建预览模态框
-                        const modal = document.createElement('div');
-                        modal.className = 'modal fade';
-                        modal.innerHTML = `
-                            <div class="modal-dialog modal-xl">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">
-                                            <i class="bi bi-eye"></i> 文档预览 - ${filename}
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="document-preview-content" style="max-height: 70vh; overflow-y: auto;">
-                                            ${data.html_content}
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <a href="/download/${filename}" class="btn btn-success" download>
-                                            <i class="bi bi-download"></i> 下载文档
-                                        </a>
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                            关闭
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                        document.body.appendChild(modal);
-                        const bsModal = new bootstrap.Modal(modal);
-                        bsModal.show();
-
-                        // 模态框关闭后删除元素
-                        modal.addEventListener('hidden.bs.modal', () => {
-                            modal.remove();
-                        });
-                    } else {
-                        alert('预览失败: ' + (data.error || '未知错误'));
-                    }
-                })
-                .catch(error => {
-                    console.error('预览失败:', error);
-                    alert('预览失败: ' + error.message);
-                });
-        }
-
         // 招标信息提取重试和重置功能
         document.getElementById('tenderRetryBtn').addEventListener('click', function() {
             submitTenderExtraction();
@@ -2547,7 +2438,6 @@
             tenderFileInfo.style.display = 'none';
             tenderResultArea.style.display = 'none';
             tenderErrorArea.style.display = 'none';
-            document.getElementById('splitDocumentsArea').style.display = 'none';
             extractInfoBtn.disabled = true;
             extractInfoBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始提取信息';
         });
@@ -2557,7 +2447,6 @@
             tenderFileInfo.style.display = 'none';
             tenderResultArea.style.display = 'none';
             tenderErrorArea.style.display = 'none';
-            document.getElementById('splitDocumentsArea').style.display = 'none';
             extractInfoBtn.disabled = true;
             extractInfoBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始提取信息';
         });
@@ -3090,255 +2979,53 @@
             }
         }
 
-        // 获取当前选中的公司ID
-        function getCurrentCompanyId() {
-            // 优先从StateManager获取
-            if (typeof StateManager !== 'undefined') {
-                return StateManager.getCompanyId();
-            }
-
-            // 备用方案：从全局变量获取
-            if (typeof currentCompanyId !== 'undefined' && currentCompanyId) {
-                return currentCompanyId;
-            }
-
-            // 最后备用方案：从页面选择器获取
-            const companySelect = document.getElementById('businessCompanySelect');
-            if (companySelect && companySelect.value) {
-                return companySelect.value;
-            }
-
-            return null;
-        }
-
         function displayQualificationRequirements(qualRequirements) {
             // 确保容器管理器已初始化
             if (!tenderContainerManager) {
                 tenderContainerManager = new ContainerManager(tenderResultArea);
             }
-
+            
             // 检查父容器是否可用
             if (!tenderContainerManager.isParentAvailable()) {
                 console.warn('tenderResultArea not available for qualifications');
                 return;
             }
-
+            
             // 获取或创建资质要求容器
             const container = tenderContainerManager.getOrCreateContainer('qualificationContainer', {
                 className: 'card border-warning mb-3',
                 headerClass: 'bg-warning',
                 icon: '<i class="bi bi-award"></i>',
-                title: '资质要求分析',
+                title: '资质要求',
                 contentId: 'qualificationContent'
             });
-
+            
             if (!container) {
                 console.warn('Failed to create qualificationContainer');
                 return;
             }
-
+            
             const content = tenderContainerManager.getContentElement('qualificationContainer', 'qualificationContent');
-
-            // 获取公司资质文件上传状态
-            let companyQualifications = {};
-            const currentCompanyId = getCurrentCompanyId();
-            if (currentCompanyId) {
-                fetch(`/api/companies/${currentCompanyId}/qualifications`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            companyQualifications = data.qualifications || {};
-                            // 重新渲染资质显示（包含上传状态）
-                            renderQualificationDisplay(qualRequirements, companyQualifications, content);
-                        }
-                    })
-                    .catch(error => {
-                        console.warn('获取公司资质文件失败:', error);
-                        // 即使获取失败，也显示基本的资质要求
-                        renderQualificationDisplay(qualRequirements, {}, content);
-                    });
-            } else {
-                // 没有选择公司时，只显示基本的资质要求
-                renderQualificationDisplay(qualRequirements, {}, content);
-            }
-        }
-
-        function renderQualificationDisplay(qualRequirements, companyQualifications, content) {
-
-            // 资质字段映射表：将公司管理资质映射到关键字匹配字段
-            const qualificationMapping = {
-                // 基本证件资质
-                'business_license': 'business_license_required',
-                'legal_id_front': 'business_license_required', // 法人身份证通常与营业执照一起要求
-                'legal_id_back': 'business_license_required',
-                'auth_id_front': 'authorization_requirements_required',
-                'auth_id_back': 'authorization_requirements_required',
-
-                // ISO体系认证 - 现在有专门的字段匹配
-                'iso9001': 'iso9001_required',
-                'iso14001': 'iso14001_required',
-                'iso27001': 'iso27001_required',
-                'iso45001': 'iso14001_required', // ISO45001映射到环境管理体系（相关体系）
-                'iso20000': 'iso27001_required', // ISO20000映射到信息安全管理体系（相关体系）
-
-                // 信用资质
-                'credit_dishonest': 'credit_china_required',
-                'credit_corruption': 'credit_china_required',
-                'credit_tax': 'credit_china_required',
-                'credit_procurement': 'credit_china_required',
-
-                // 税务资质
-                'taxpayer_certificate': 'taxpayer_qualification_required',
-
-                // 财务资质
-                'audit_report': 'audit_report_required',
-                'financial_audit': 'audit_report_required',
-                'financial_statement': 'audit_report_required',
-
-                // 社保资质
-                'social_security': 'social_security_required',
-                'employee_social_security': 'social_security_required',
-
-                // 知识产权和行业资质 - 暂时映射到承诺书（通常需要特殊说明）
-                'software_copyright': 'commitment_letter_required',
-                'patent_certificate': 'commitment_letter_required',
-                'high_tech': 'commitment_letter_required',
-                'software_enterprise': 'commitment_letter_required',
-
-                // 其他资质
-                'bank_account': 'business_license_required' // 银行开户许可证通常与营业执照一起要求
-            };
-
-            // 使用公司管理中的资质分类和顺序
-            const categories = {
-                'basic': { name: '基本证件资质', icon: 'bi-card-text', color: 'primary' },
-                'iso': { name: 'ISO体系认证', icon: 'bi-award', color: 'warning' },
-                'credit': { name: '信用资质', icon: 'bi-shield-check', color: 'danger' },
-                'tax': { name: '税务资质', icon: 'bi-receipt', color: 'success' },
-                'financial': { name: '财务资质', icon: 'bi-graph-up', color: 'info' },
-                'industry': { name: '行业资质', icon: 'bi-gear', color: 'secondary' },
-                'social': { name: '社保资质', icon: 'bi-people', color: 'dark' },
-                'intellectual': { name: '知识产权', icon: 'bi-lightbulb', color: 'success' }
-            };
-
-            // 使用与公司管理相同的资质列表
-            const standardQualificationTypes = [
-                // 基本证件资质
-                { key: 'business_license', name: '营业执照', category: 'basic', required: true },
-                { key: 'legal_id_front', name: '法人身份证（正面）', category: 'basic', required: true },
-                { key: 'legal_id_back', name: '法人身份证（反面）', category: 'basic', required: true },
-                { key: 'auth_id_front', name: '授权人身份证（正面）', category: 'basic' },
-                { key: 'auth_id_back', name: '授权人身份证（反面）', category: 'basic' },
-
-                // ISO体系认证
-                { key: 'iso9001', name: '质量管理体系认证（ISO9001）', category: 'iso' },
-                { key: 'iso14001', name: '环境管理体系认证（ISO14001）', category: 'iso' },
-                { key: 'iso45001', name: '职业健康安全管理体系认证（ISO45001）', category: 'iso' },
-                { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', category: 'iso' },
-                { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', category: 'iso' },
-
-                // 信用资质 - 使用与公司管理页面相同的名称
-                { key: 'credit_dishonest', name: '信用中国-失信被执行人查询结果', category: 'credit' },
-                { key: 'credit_corruption', name: '信用中国-行贿犯罪档案查询结果', category: 'credit' },
-                { key: 'credit_tax', name: '信用中国-重大税收违法案件查询结果', category: 'credit' },
-                { key: 'credit_procurement', name: '信用中国-政府采购严重违法失信查询结果', category: 'credit' },
-
-                // 税务资质
-                { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', category: 'tax' },
-
-                // 财务资质
-                { key: 'audit_report', name: '审计报告', category: 'financial' },
-                { key: 'financial_statement', name: '财务报表', category: 'financial' },
-
-                // 社保资质
-                { key: 'social_security', name: '社会保险登记证', category: 'social' },
-                { key: 'employee_social_security', name: '员工社保缴费证明', category: 'social' },
-
-                // 知识产权
-                { key: 'software_copyright', name: '软件著作权登记证书', category: 'intellectual' },
-                { key: 'patent_certificate', name: '专利证书', category: 'intellectual' },
-
-                // 行业资质
-                { key: 'high_tech', name: '高新技术企业证书', category: 'industry' },
-                { key: 'software_enterprise', name: '软件企业认定证书', category: 'industry' }
-            ];
-
-            let html = '<div class="row">';
-            let columnIndex = 0;
-
-            // 按分类显示资质要求，两列布局
-            Object.keys(categories).forEach(categoryKey => {
-                const categoryQuals = standardQualificationTypes.filter(qual => qual.category === categoryKey);
-                if (categoryQuals.length === 0) return;
-
-                const categoryInfo = categories[categoryKey];
-
-                // 每两个分类一行
-                if (columnIndex % 2 === 0 && columnIndex > 0) {
-                    html += '</div><div class="row">';
-                }
-
+            let html = '';
+            
+            for (const [key, info] of Object.entries(qualRequirements)) {
+                const required = info.required ? '需要提供' : '不需要提供';
+                const description = info.description || '无具体说明';
+                const statusClass = info.required ? 'text-success' : 'text-secondary';
+                
                 html += `
-                    <div class="col-md-6 mb-4">
-                        <div class="h-100">
-                            <h6 class="text-${categoryInfo.color} mb-3 border-bottom pb-2">
-                                <i class="${categoryInfo.icon}"></i> ${categoryInfo.name}
-                            </h6>
-                `;
-
-                categoryQuals.forEach(qual => {
-                    // 通过映射表查找对应的招标要求字段
-                    const mappedField = qualificationMapping[qual.key];
-                    let required = false;
-                    let description = '未在招标文档中明确要求';
-
-                    if (mappedField && qualRequirements.hasOwnProperty(mappedField)) {
-                        required = qualRequirements[mappedField] === true || qualRequirements[mappedField] === 'true';
-                        // 查找对应的描述字段
-                        const descField = mappedField.replace('_required', '_description');
-                        if (qualRequirements[descField]) {
-                            description = qualRequirements[descField];
-                        } else if (required) {
-                            description = '招标文档要求提供此资质';
-                        }
-                    }
-
-                    const statusText = required ? '是' : '否';
-                    const statusClass = required ? 'bg-success' : 'bg-secondary';
-                    const borderClass = required ? 'border-success' : 'border-secondary';
-
-                    // 检查公司是否已上传该资质文档
-                    const hasUploaded = companyQualifications && companyQualifications[qual.key];
-                    const uploadStatusIcon = hasUploaded ?
-                        '<i class="bi bi-check-circle-fill text-success ms-1" title="已上传"></i>' :
-                        '<i class="bi bi-x-circle text-secondary ms-1" title="未上传"></i>';
-                    const uploadStatusText = hasUploaded ? '已上传' : '未上传';
-
-                    html += `
-                        <div class="mb-2 p-2 border-start border-3 ${borderClass}">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="d-flex align-items-center">
-                                    <strong class="fs-6">${qual.name}</strong>
-                                    ${uploadStatusIcon}
-                                </div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="badge ${statusClass}">${statusText}</span>
-                                    <small class="text-muted mt-1">${uploadStatusText}</small>
-                                </div>
-                            </div>
-                            <div class="mt-1">
-                                <small class="text-muted">${description.length > 50 ? description.substring(0, 50) + '...' : description}</small>
-                            </div>
+                    <div class="mb-3 p-2 border-start border-3 ${info.required ? 'border-success' : 'border-secondary'}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong>${getQualificationLabel(key)}</strong>
+                            <span class="badge ${info.required ? 'bg-success' : 'bg-secondary'}">${required}</span>
                         </div>
-                    `;
-                });
-
-                html += '</div></div>';
-                columnIndex++;
-            });
-
-            html += '</div>';
-
+                        <div class="mt-1">
+                            <small class="text-muted">${description}</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
             if (content) {
                 content.innerHTML = html;
             } else {
@@ -3585,18 +3272,20 @@
             { key: 'legal_id_back', name: '法人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
             { key: 'auth_id_front', name: '授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
             { key: 'auth_id_back', name: '授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
-
+            { key: 'organization_code', name: '组织机构代码证', icon: 'bi-card-text', category: 'basic' },
+            
+            // 税务和财务资质
+            { key: 'tax_registration', name: '税务登记证', icon: 'bi-receipt', category: 'tax' },
+            { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', icon: 'bi-receipt', category: 'tax' },
+            { key: 'audit_report', name: '审计报告', icon: 'bi-file-earmark-text', category: 'financial' },
+            { key: 'financial_statement', name: '财务报表', icon: 'bi-graph-up', category: 'financial' },
+            
             // ISO体系认证
             { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
             { key: 'iso14001', name: '环境管理体系认证（ISO14001）', icon: 'bi-tree', category: 'iso' },
             { key: 'iso45001', name: '职业健康安全管理体系认证（ISO45001）', icon: 'bi-shield-check', category: 'iso' },
             { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', icon: 'bi-gear', category: 'iso' },
             { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
-
-            // 税务和财务资质
-            { key: 'taxpayer_certificate', name: '一般纳税人资格认定书', icon: 'bi-receipt', category: 'tax' },
-            { key: 'audit_report', name: '审计报告', icon: 'bi-file-earmark-text', category: 'financial' },
-            { key: 'financial_statement', name: '财务报表', icon: 'bi-graph-up', category: 'financial' },
             
             // 行业资质
             { key: 'construction_license', name: '建筑业企业资质证书', icon: 'bi-building', category: 'industry' },
@@ -3636,11 +3325,11 @@
             // 按分类组织资质
             const categories = {
                 'basic': { name: '基本证件资质', icon: 'bi-card-text', color: 'primary' },
-                'iso': { name: 'ISO体系认证', icon: 'bi-award', color: 'warning' },
-                'credit': { name: '信用资质', icon: 'bi-shield-check', color: 'danger' },
                 'tax': { name: '税务资质', icon: 'bi-receipt', color: 'success' },
                 'financial': { name: '财务资质', icon: 'bi-graph-up', color: 'info' },
+                'iso': { name: 'ISO体系认证', icon: 'bi-award', color: 'warning' },
                 'industry': { name: '行业资质', icon: 'bi-gear', color: 'secondary' },
+                'credit': { name: '信用资质', icon: 'bi-shield-check', color: 'danger' },
                 'social': { name: '社保资质', icon: 'bi-people', color: 'dark' },
                 'intellectual': { name: '知识产权', icon: 'bi-lightbulb', color: 'success' }
             };
@@ -4632,7 +4321,7 @@
                         const size = (file.size / 1024 / 1024).toFixed(2);
                         const date = new Date(file.created).toLocaleString('zh-CN');
                         const downloadUrl = `/download/${encodeURIComponent(file.name)}`;
-                        const previewBtn = `<button class="btn btn-sm btn-outline-info me-2" onclick="previewHistoricalDocument('${file.name}')">预览</button>`;
+                        const previewBtn = `<button class="btn btn-sm btn-outline-info me-2" onclick="previewHistoricalDocument('${file.name}')">预览文档</button>`;
                         html += `<tr>
                             <td>${file.name}</td>
                             <td>${size} MB</td>
@@ -4838,6 +4527,8 @@
             // 资质类型映射
             const qualificationTypes = {
                 'business_license': '营业执照',
+                'organization_code': '组织机构代码证',
+                'tax_registration': '税务登记证',
                 'legal_person_id': '法定代表人身份证',
                 'authorized_person_id': '被授权人身份证',
                 'power_of_attorney': '授权委托书',
@@ -5961,40 +5652,8 @@
                 console.error('[页面初始化] 加载公司列表失败:', error);
             });
             
-            // 自动加载现有的投标信息配置
-            loadExistingTenderConfig();
-
             console.log('[页面初始化] 初始化完成');
         });
-
-        // 加载现有的投标信息配置
-        function loadExistingTenderConfig() {
-            fetch('/api/tender-config')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.config) {
-                        console.log('[自动加载] 发现现有投标信息配置，自动显示');
-
-                        // 显示项目基本信息
-                        if (data.config.project_info) {
-                            displayProjectInfo(data.config.project_info);
-                        }
-
-                        // 显示资质要求
-                        if (data.config.qualification_requirements) {
-                            displayQualificationRequirements(data.config.qualification_requirements);
-                        }
-
-                        // 显示技术评分（如果有）
-                        if (data.config.technical_scoring) {
-                            displayTechnicalScoring(data.config.technical_scoring);
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.log('[自动加载] 没有发现现有投标信息配置或加载失败:', error);
-                });
-        }
         
         // 防止重复加载的标志
         let isLoadingCompanyList = false;
