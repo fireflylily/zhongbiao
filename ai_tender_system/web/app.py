@@ -236,13 +236,18 @@ def register_routes(app: Flask, config, logger):
         try:
             output_dir = config.get_path('output')
             file_path = output_dir / filename
-            
+
+            # 如果文件不在主输出目录，尝试在 extracted 子目录中查找
             if not file_path.exists():
-                raise FileNotFoundError(f"文件不存在: {filename}")
-            
+                extracted_path = output_dir / 'extracted' / filename
+                if extracted_path.exists():
+                    file_path = extracted_path
+                else:
+                    raise FileNotFoundError(f"文件不存在: {filename}")
+
             logger.info(f"文件下载: {filename}")
             return send_file(str(file_path), as_attachment=True)
-            
+
         except Exception as e:
             logger.error(f"文件下载失败: {e}")
             return jsonify(format_error_response(e))
@@ -285,15 +290,40 @@ def register_routes(app: Flask, config, logger):
             file.save(str(file_path))
 
             logger.info(f"一次性API - 开始提取招标信息: {filename}")
-            
+
             # 执行信息提取
             extractor = TenderInfoExtractor(api_key=api_key)
             result = extractor.process_document(str(file_path))
-            
+
+            # 处理拆分文件结果
+            split_documents = []
+            if 'split_result' in result and result['split_result'].get('success'):
+                split_info = result['split_result']
+                for file_path in split_info.get('output_files', []):
+                    file_name = Path(file_path).name
+                    # 提取文件信息
+                    try:
+                        file_size = Path(file_path).stat().st_size
+                        file_size_str = f"{file_size // 1024}KB" if file_size > 1024 else f"{file_size}B"
+                    except:
+                        file_size_str = "未知"
+
+                    # 从文件名中提取章节名称
+                    section_name = file_name.split('_')[0] if '_' in file_name else file_name
+
+                    split_documents.append({
+                        'name': section_name,
+                        'filename': file_name,
+                        'download_url': f'/download/{file_name}',
+                        'preview_url': f'/preview/{file_name}',
+                        'file_size': file_size_str
+                    })
+
             logger.info("招标信息提取完成")
             return jsonify({
                 'success': True,
                 'data': result,
+                'split_documents': split_documents,
                 'message': '招标信息提取成功'
             })
             
@@ -672,6 +702,7 @@ def register_routes(app: Flask, config, logger):
             return jsonify(format_error_response(e))
     
     # 文档预览和编辑API
+    @app.route('/preview/<filename>')
     @app.route('/api/document/preview/<filename>', methods=['GET'])
     def preview_document(filename):
         """预览文档内容（转换为HTML）"""
@@ -683,15 +714,21 @@ def register_routes(app: Flask, config, logger):
             file_path = config.get_path('output') / filename
 
             if not file_path.exists():
-                # 如果直接查找失败，尝试在输出目录中查找匹配的文件
-                output_dir = config.get_path('output')
-                matching_files = [f for f in output_dir.iterdir() if f.name.endswith(filename) or filename in f.name]
-
-                if matching_files:
-                    file_path = matching_files[0]  # 使用第一个匹配的文件
-                    logger.info(f"找到匹配文件: {file_path}")
+                # 尝试在 extracted 子目录中查找
+                extracted_path = config.get_path('output') / 'extracted' / filename
+                if extracted_path.exists():
+                    file_path = extracted_path
+                    logger.info(f"在extracted目录找到文件: {file_path}")
                 else:
-                    raise FileNotFoundError(f"文档不存在: {filename}")
+                    # 如果还是找不到，尝试在输出目录中查找匹配的文件
+                    output_dir = config.get_path('output')
+                    matching_files = [f for f in output_dir.iterdir() if f.name.endswith(filename) or filename in f.name]
+
+                    if matching_files:
+                        file_path = matching_files[0]  # 使用第一个匹配的文件
+                        logger.info(f"找到匹配文件: {file_path}")
+                    else:
+                        raise FileNotFoundError(f"文档不存在: {filename}")
 
             logger.info(f"预览文档: {file_path}")
             

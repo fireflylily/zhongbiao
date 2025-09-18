@@ -65,9 +65,17 @@ from typing import Dict, Optional, List, Any
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import (
-    get_config, get_module_logger, 
+    get_config, get_module_logger,
     TenderInfoExtractionError, APIError, FileProcessingError
 )
+
+# 导入文档拆分模块
+try:
+    from .document_splitter import extract_bidding_document
+    DOCUMENT_SPLITTER_AVAILABLE = True
+except ImportError as e:
+    print(f"文档拆分模块加载失败: {e}")
+    DOCUMENT_SPLITTER_AVAILABLE = False
 
 class TenderInfoExtractor:
     """招标信息提取器"""
@@ -515,33 +523,71 @@ class TenderInfoExtractor:
             self.logger.error(f"提取技术评分标准失败: {e}")
             return {}
     
+    def split_document(self, file_path: str) -> Dict[str, Any]:
+        """拆分招标文档"""
+        try:
+            if not DOCUMENT_SPLITTER_AVAILABLE:
+                self.logger.warning("文档拆分模块不可用，跳过拆分步骤")
+                return {'success': False, 'error': '文档拆分模块不可用'}
+
+            self.logger.info(f"开始拆分文档: {file_path}")
+
+            # 设置输出目录
+            output_dir = self.config.get_path('output') / 'extracted'
+
+            # 调用文档拆分功能
+            result = extract_bidding_document(file_path, str(output_dir))
+
+            if result.success:
+                self.logger.info(f"文档拆分成功，生成 {len(result.output_files)} 个文件")
+                split_info = {
+                    'success': True,
+                    'project_name': result.project_name,
+                    'doc_type': result.doc_type.value,
+                    'sections': list(result.sections.keys()),
+                    'output_files': result.output_files,
+                    'processing_time': result.processing_time
+                }
+                return split_info
+            else:
+                self.logger.error(f"文档拆分失败: {result.errors}")
+                return {'success': False, 'errors': result.errors}
+
+        except Exception as e:
+            self.logger.error(f"文档拆分过程出错: {e}")
+            return {'success': False, 'error': str(e)}
+
     def process_document(self, file_path: str) -> Dict[str, Any]:
         """处理完整文档提取"""
         try:
             self.logger.info(f"开始处理文档: {file_path}")
-            
-            # 读取文档
+
+            # 1. 先进行文档拆分
+            split_result = self.split_document(file_path)
+
+            # 2. 读取文档
             text = self.read_document(file_path)
-            
-            # 提取各项信息
+
+            # 3. 提取各项信息
             basic_info = self.extract_basic_info(text)
             qualification_info = self.extract_qualification_requirements(text)
             # scoring_info = self.extract_technical_scoring(text)  # 暂时屏蔽
 
-            # 合并结果 - 包含基本信息和资质要求
+            # 4. 合并结果 - 包含基本信息、资质要求和拆分结果
             result = {
                 **basic_info,
                 **qualification_info,
                 'extraction_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'file_path': str(file_path)
+                'file_path': str(file_path),
+                'split_result': split_result
             }
-            
-            # 保存到配置文件
+
+            # 5. 保存到配置文件
             self.save_to_config(result)
-            
+
             self.logger.info("文档处理完成")
             return result
-            
+
         except Exception as e:
             self.logger.error(f"文档处理失败: {e}")
             raise TenderInfoExtractionError(f"文档处理失败: {str(e)}")

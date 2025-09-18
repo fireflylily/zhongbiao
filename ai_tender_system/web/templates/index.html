@@ -113,6 +113,39 @@
             color: #2196f3;
             margin-right: 8px;
         }
+
+        /* 拆分文件卡片样式 */
+        .split-document-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        }
+
+        .split-document-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+
+        .split-document-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .split-document-meta {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-bottom: 10px;
+        }
+
+        .split-document-actions .btn {
+            margin-right: 8px;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -234,6 +267,18 @@
                             <div class="row" id="tenderInfoDisplay">
                                 <!-- 提取结果将在这里显示 -->
                             </div>
+
+                            <!-- 拆分文件显示区域 -->
+                            <div id="splitDocumentsArea" style="display: none;">
+                                <hr>
+                                <h6 class="mb-3">
+                                    <i class="bi bi-file-earmark-break"></i> 文档拆分结果
+                                </h6>
+                                <div class="row" id="splitDocumentsList">
+                                    <!-- 拆分文件将在这里显示 -->
+                                </div>
+                            </div>
+
                             <div class="text-center mt-3">
                                 <button class="btn btn-outline-success me-2" id="tenderRetryBtn">
                                     <i class="bi bi-arrow-clockwise"></i> 重新提取
@@ -2157,7 +2202,12 @@
                 displayBasicInfo(basicInfo);
                 displayQualificationRequirements(qualificationRequirements);
                 displayTechnicalScoring(technicalScoring);
-                
+
+                // 显示拆分文件（如果有）
+                if (data.split_documents && data.split_documents.length > 0) {
+                    displaySplitDocuments(data.split_documents);
+                }
+
                 // 完成
                 if (progressBar) progressBar.style.width = '100%';
                 safeSetTextContent('stepMessage', '所有信息提取完成！');
@@ -2383,6 +2433,106 @@
             tenderInfoDisplay.innerHTML = html;
         }
 
+        // 显示拆分文件
+        function displaySplitDocuments(splitDocuments) {
+            if (!splitDocuments || splitDocuments.length === 0) {
+                return;
+            }
+
+            const splitDocumentsArea = document.getElementById('splitDocumentsArea');
+            const splitDocumentsList = document.getElementById('splitDocumentsList');
+
+            let html = '';
+            splitDocuments.forEach((doc, index) => {
+                const iconClass = getDocumentIcon(doc.name);
+                html += `
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+                        <div class="split-document-card">
+                            <div class="split-document-title">
+                                <i class="bi ${iconClass}"></i> ${doc.name}
+                            </div>
+                            <div class="split-document-meta">
+                                文件大小: ${doc.file_size}
+                            </div>
+                            <div class="split-document-actions">
+                                <button class="btn btn-sm btn-outline-primary" onclick="previewDocument('${doc.filename}')">
+                                    <i class="bi bi-eye"></i> 预览
+                                </button>
+                                <a href="${doc.download_url}" class="btn btn-sm btn-outline-success" download>
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            splitDocumentsList.innerHTML = html;
+            splitDocumentsArea.style.display = 'block';
+        }
+
+        // 根据文档名称获取图标
+        function getDocumentIcon(name) {
+            if (name.includes('公告')) return 'bi-megaphone';
+            if (name.includes('前附表')) return 'bi-table';
+            if (name.includes('评分') || name.includes('评标')) return 'bi-award';
+            if (name.includes('格式') || name.includes('响应')) return 'bi-file-text';
+            return 'bi-file-earmark-word';
+        }
+
+        // 预览文档
+        function previewDocument(filename) {
+            fetch(`/preview/${filename}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 创建预览模态框
+                        const modal = document.createElement('div');
+                        modal.className = 'modal fade';
+                        modal.innerHTML = `
+                            <div class="modal-dialog modal-xl">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">
+                                            <i class="bi bi-eye"></i> 文档预览 - ${filename}
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="document-preview-content" style="max-height: 70vh; overflow-y: auto;">
+                                            ${data.html_content}
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <a href="/download/${filename}" class="btn btn-success" download>
+                                            <i class="bi bi-download"></i> 下载文档
+                                        </a>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            关闭
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        document.body.appendChild(modal);
+                        const bsModal = new bootstrap.Modal(modal);
+                        bsModal.show();
+
+                        // 模态框关闭后删除元素
+                        modal.addEventListener('hidden.bs.modal', () => {
+                            modal.remove();
+                        });
+                    } else {
+                        alert('预览失败: ' + (data.error || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('预览失败:', error);
+                    alert('预览失败: ' + error.message);
+                });
+        }
+
         // 招标信息提取重试和重置功能
         document.getElementById('tenderRetryBtn').addEventListener('click', function() {
             submitTenderExtraction();
@@ -2397,6 +2547,7 @@
             tenderFileInfo.style.display = 'none';
             tenderResultArea.style.display = 'none';
             tenderErrorArea.style.display = 'none';
+            document.getElementById('splitDocumentsArea').style.display = 'none';
             extractInfoBtn.disabled = true;
             extractInfoBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始提取信息';
         });
@@ -2406,6 +2557,7 @@
             tenderFileInfo.style.display = 'none';
             tenderResultArea.style.display = 'none';
             tenderErrorArea.style.display = 'none';
+            document.getElementById('splitDocumentsArea').style.display = 'none';
             extractInfoBtn.disabled = true;
             extractInfoBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始提取信息';
         });
