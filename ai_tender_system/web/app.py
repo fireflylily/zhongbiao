@@ -599,6 +599,13 @@ def register_routes(app: Flask, config, logger):
 
             logger.info(f"使用公司信息: {company_data.get('companyName', 'N/A')}")
 
+            # 获取配置参数
+            response_frequency = request.form.get('responseFrequency', 'every_paragraph')
+            response_mode = request.form.get('responseMode', 'simple')
+            ai_model = request.form.get('aiModel', 'gpt-4o-mini')
+
+            logger.info(f"配置参数 - 应答频次: {response_frequency}, 应答方式: {response_mode}, AI模型: {ai_model}")
+
             # 创建技术需求回复处理器
             responder = TechResponder()
 
@@ -612,7 +619,10 @@ def register_routes(app: Flask, config, logger):
                 str(file_path),
                 str(output_path),
                 company_data,
-                response_strategy='comprehensive'  # 使用综合策略
+                response_strategy='comprehensive',  # 使用综合策略
+                response_frequency=response_frequency,
+                response_mode=response_mode,
+                ai_model=ai_model
             )
 
             if result_stats.get('success'):

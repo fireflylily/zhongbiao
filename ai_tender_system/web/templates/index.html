@@ -538,6 +538,47 @@
             <!-- 点对点应答选项卡 -->
             <div class="tab-pane fade" id="point-to-point" role="tabpanel">
 
+        <!-- 应答配置区域 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-gear"></i> 应答配置</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- 应答频次 -->
+                            <div class="col-md-4">
+                                <label for="responseFrequency" class="form-label"><strong>应答频次：</strong></label>
+                                <select class="form-select" name="responseFrequency" id="responseFrequency">
+                                    <option value="every_paragraph" selected>每段应答</option>
+                                    <option value="major_headings">针对大标题条目应答</option>
+                                </select>
+                            </div>
+
+                            <!-- 应答方式 -->
+                            <div class="col-md-4">
+                                <label for="responseMode" class="form-label"><strong>应答方式：</strong></label>
+                                <select class="form-select" name="responseMode" id="responseMode">
+                                    <option value="ai" selected>AI模型应答</option>
+                                    <option value="simple">简单应答</option>
+                                </select>
+                            </div>
+
+                            <!-- AI模型选择 -->
+                            <div class="col-md-4" id="aiModelSelection">
+                                <label for="aiModel" class="form-label"><strong>选择AI模型：</strong></label>
+                                <select class="form-select" name="aiModel" id="aiModel">
+                                    <option value="gpt-4o-mini">GPT-4o-mini</option>
+                                    <option value="unicom-yuanjing" selected>联通元景大模型</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 文件上传区域 -->
         <div class="row">
             <div class="col-12">
@@ -556,7 +597,7 @@
                                     <i class="bi bi-folder2-open"></i> 选择文件
                                 </button>
                             </div>
-                            
+
                             <div id="fileInfo" class="mt-3" style="display: none;">
                                 <div class="alert alert-info">
                                     <i class="bi bi-file-earmark-text"></i>
@@ -564,7 +605,7 @@
                                     <span id="fileSize" class="text-muted ms-2"></span>
                                 </div>
                             </div>
-                            
+
                             <div class="mt-3">
                                 <button type="submit" class="btn btn-success btn-lg" id="processBtn" disabled>
                                     <i class="bi bi-play-circle"></i> 开始处理
@@ -1643,6 +1684,18 @@
             }
         }
 
+        // 处理应答方式选择变化
+        document.addEventListener('change', function(e) {
+            if (e.target.name === 'responseMode') {
+                const aiModelSelection = document.getElementById('aiModelSelection');
+                if (e.target.value === 'ai') {
+                    aiModelSelection.style.display = 'block';
+                } else {
+                    aiModelSelection.style.display = 'none';
+                }
+            }
+        });
+
         // API测试
         const testApiBtn = document.getElementById('testApiBtn');
         if (testApiBtn) {
@@ -1719,6 +1772,18 @@
             if (companyId) {
                 formData.append('companyId', companyId);
             }
+
+            // 收集点对点应答配置参数
+            const responseFrequency = document.getElementById('responseFrequency')?.value || 'every_paragraph';
+            const responseMode = document.getElementById('responseMode')?.value || 'simple';
+            const aiModel = document.getElementById('aiModel')?.value || 'gpt-4o-mini';
+
+            formData.append('responseFrequency', responseFrequency);
+            formData.append('responseMode', responseMode);
+            if (responseMode === 'ai') {
+                formData.append('aiModel', aiModel);
+            }
+
             // API密钥通过环境变量自动获取，无需前端传递
         
             // 显示进度条

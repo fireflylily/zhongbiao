@@ -42,28 +42,35 @@ class TechResponder:
                                  requirements_file: str,
                                  output_file: str,
                                  company_info: Dict[str, Any],
-                                 response_strategy: str = "comprehensive") -> Dict[str, Any]:
+                                 response_strategy: str = "comprehensive",
+                                 response_frequency: str = "every_paragraph",
+                                 response_mode: str = "simple",
+                                 ai_model: str = "gpt-4o-mini") -> Dict[str, Any]:
         """
         处理技术需求并生成回复文档
-        
+
         Args:
             requirements_file: 技术需求文档路径
             output_file: 输出文档路径
             company_info: 公司信息
             response_strategy: 回复策略 (comprehensive/concise/detailed)
-            
+            response_frequency: 应答频次 (every_paragraph/major_headings)
+            response_mode: 应答方式 (simple/ai)
+            ai_model: AI模型 (gpt-4o-mini/unicom-yuanjing)
+
         Returns:
             处理结果统计
         """
         try:
             self.logger.info(f"开始处理技术需求文档: {requirements_file}")
-            
+            self.logger.info(f"配置参数 - 应答频次: {response_frequency}, 应答方式: {response_mode}, AI模型: {ai_model}")
+
             # 第1步：提取技术需求
-            requirements = self._extract_requirements(requirements_file)
+            requirements = self._extract_requirements(requirements_file, response_frequency)
             self.logger.info(f"提取到{len(requirements)}个技术需求")
-            
+
             # 第2步：生成技术响应
-            responses = self._generate_responses(requirements, company_info, response_strategy)
+            responses = self._generate_responses(requirements, company_info, response_strategy, response_mode, ai_model)
             
             # 第3步：创建响应文档
             self._create_response_document(responses, output_file, company_info)
@@ -87,7 +94,7 @@ class TechResponder:
                 'message': '处理失败'
             }
     
-    def _extract_requirements(self, requirements_file: str) -> List[Dict[str, Any]]:
+    def _extract_requirements(self, requirements_file: str, response_frequency: str = "every_paragraph") -> List[Dict[str, Any]]:
         """从文档中提取技术需求"""
         requirements = []
         
@@ -108,6 +115,12 @@ class TechResponder:
                 
                 # 识别技术需求点
                 if self._is_requirement(text):
+                    # 根据应答频次过滤
+                    if response_frequency == "major_headings":
+                        # 只对大标题条目应答，跳过段落级别的需求
+                        if not self._is_major_heading(text):
+                            continue
+
                     requirement = {
                         'id': requirement_id,
                         'section': current_section,
@@ -204,9 +217,11 @@ class TechResponder:
         
         return requirements
     
-    def _generate_responses(self, requirements: List[Dict[str, Any]], 
+    def _generate_responses(self, requirements: List[Dict[str, Any]],
                           company_info: Dict[str, Any],
-                          strategy: str) -> List[Dict[str, Any]]:
+                          strategy: str,
+                          response_mode: str = "simple",
+                          ai_model: str = "gpt-4o-mini") -> List[Dict[str, Any]]:
         """生成技术响应"""
         responses = []
         
@@ -217,9 +232,9 @@ class TechResponder:
             response_template = self._get_response_template(requirement['type'])
             
             # 生成具体响应
-            if self.api_key:
+            if response_mode == "ai" and self.api_key:
                 # 使用AI生成响应
-                response_text = self._generate_ai_response(requirement, company_info, strategy)
+                response_text = self._generate_ai_response(requirement, company_info, strategy, ai_model)
             else:
                 # 使用模板生成响应
                 response_text = self._generate_template_response(requirement, response_template, company_info)
@@ -284,12 +299,56 @@ class TechResponder:
         }
         
         return templates.get(requirement_type, templates['general'])
-    
+
+    def _is_major_heading(self, text: str) -> bool:
+        """判断文本是否为大标题条目"""
+        # 大标题的特征：
+        # 1. 以数字开头（如 1. 2. 3.）
+        # 2. 以中文数字开头（如 一、二、三、）
+        # 3. 长度相对较短
+        # 4. 不包含详细描述性语言
+
+        # 检查是否以数字或中文数字开头
+        major_heading_patterns = [
+            r'^\d+[\.\uff0e]',  # 1. 2. 3.
+            r'^[一二三四五六七八九十]+[\u3001\uff0c]',  # 一、二、三、
+            r'^\(\d+\)',  # (1) (2) (3)
+            r'^\d+\)',  # 1) 2) 3)
+            r'^第[一二三四五六七八九十\d]+[章节条款项]',  # 第一章 第二节
+        ]
+
+        for pattern in major_heading_patterns:
+            if re.match(pattern, text):
+                return True
+
+        # 检查长度和内容特征
+        if len(text) <= 50 and not any(keyword in text for keyword in ['应', '须', '必须', '要求', '不得', '应当']):
+            return True
+
+        return False
+
+    def _get_model_config(self, ai_model: str) -> Dict[str, str]:
+        """获取指定AI模型的配置"""
+        # 使用配置系统获取模型配置
+        model_config = self.config.get_model_config(ai_model)
+
+        return {
+            'endpoint': model_config.get('api_endpoint', self.api_endpoint),
+            'api_key': model_config.get('api_key', self.api_key),
+            'model_name': model_config.get('model_name', ai_model),
+            'max_tokens': model_config.get('max_tokens', 500),
+            'timeout': model_config.get('timeout', 30)
+        }
+
     def _generate_ai_response(self, requirement: Dict[str, Any],
                             company_info: Dict[str, Any],
-                            strategy: str) -> str:
+                            strategy: str,
+                            ai_model: str = "gpt-4o-mini") -> str:
         """使用AI生成响应"""
         try:
+            # 根据选择的模型配置API参数
+            api_config = self._get_model_config(ai_model)
+
             prompt = f"""
 作为{company_info.get('companyName', '投标方')}的技术专家，请针对以下技术需求生成专业的响应：
 
@@ -306,15 +365,15 @@ class TechResponder:
 
 请生成响应：
             """
-            
+
             response = requests.post(
-                self.api_endpoint,
+                api_config['endpoint'],
                 headers={
-                    'Authorization': f'Bearer {self.api_key}',
+                    'Authorization': f'Bearer {api_config["api_key"]}',
                     'Content-Type': 'application/json'
                 },
                 json={
-                    'model': self.model_name,
+                    'model': api_config['model_name'],
                     'messages': [
                         {'role': 'system', 'content': '你是一个专业的技术方案撰写专家'},
                         {'role': 'user', 'content': prompt}

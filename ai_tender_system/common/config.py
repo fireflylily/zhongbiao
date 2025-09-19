@@ -57,6 +57,24 @@ class Config:
             'max_tokens': int(os.getenv('MAX_TOKENS', '1000')),
             'timeout': int(os.getenv('API_TIMEOUT', '30'))
         }
+
+        # 多模型配置
+        self.multi_model_config = {
+            'gpt-4o-mini': {
+                'api_key': os.getenv('OPENAI_API_KEY', os.getenv('DEFAULT_API_KEY', '')),
+                'api_endpoint': os.getenv('OPENAI_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
+                'model_name': 'gpt-4o-mini',
+                'max_tokens': int(os.getenv('OPENAI_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('OPENAI_TIMEOUT', '30'))
+            },
+            'unicom-yuanjing': {
+                'api_key': os.getenv('UNICOM_API_KEY', os.getenv('DEFAULT_API_KEY', '')),
+                'api_endpoint': os.getenv('UNICOM_API_ENDPOINT', 'https://api.unicom.com/v1/chat/completions'),
+                'model_name': 'yuanjing-pro',
+                'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30'))
+            }
+        }
         
         # Web配置
         self.web_config = {
@@ -101,7 +119,19 @@ class Config:
     def get_logging_config(self) -> Dict[str, Any]:
         """获取日志配置"""
         return self.logging_config.copy()
-    
+
+    def get_model_config(self, model_name: str) -> Dict[str, Any]:
+        """获取指定模型的配置"""
+        if model_name in self.multi_model_config:
+            return self.multi_model_config[model_name].copy()
+        else:
+            # 如果没有找到指定模型，返回默认配置
+            return self.api_config.copy()
+
+    def get_all_model_configs(self) -> Dict[str, Dict[str, Any]]:
+        """获取所有模型配置"""
+        return self.multi_model_config.copy()
+
     def get_default_api_key(self) -> str:
         """获取默认API密钥"""
         return self.api_config['api_key']
