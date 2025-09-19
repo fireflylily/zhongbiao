@@ -622,7 +622,8 @@ def register_routes(app: Flask, config, logger):
                 response_strategy='comprehensive',  # 使用综合策略
                 response_frequency=response_frequency,
                 response_mode=response_mode,
-                ai_model=ai_model
+                ai_model=ai_model,
+                output_mode="inline"  # 默认使用原地插入模式
             )
 
             if result_stats.get('success'):

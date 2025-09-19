@@ -27,14 +27,22 @@ def generate_file_hash(file_path: Union[str, Path]) -> str:
 
 def safe_filename(filename: str, timestamp: bool = True) -> str:
     """生成安全的文件名"""
-    # 使用werkzeug的secure_filename确保安全
-    safe_name = secure_filename(filename)
-    
+    # 先提取原始文件的扩展名
+    original_name, original_ext = os.path.splitext(filename)
+
+    # 使用werkzeug的secure_filename确保安全，但只处理文件名部分
+    safe_name_part = secure_filename(original_name)
+
+    # 如果secure_filename处理后为空（比如纯中文文件名），使用默认名称
+    if not safe_name_part:
+        safe_name_part = "document"
+
     if timestamp:
-        # 添加时间戳避免冲突
-        name, ext = os.path.splitext(safe_name)
-        safe_name = f"{generate_timestamp()}_{name}{ext}"
-    
+        # 添加时间戳避免冲突，保留原始扩展名
+        safe_name = f"{generate_timestamp()}_{safe_name_part}{original_ext}"
+    else:
+        safe_name = f"{safe_name_part}{original_ext}"
+
     return safe_name
 
 def allowed_file(filename: str, allowed_extensions: set) -> bool:

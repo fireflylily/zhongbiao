@@ -39,7 +39,13 @@
       "Bash(grep:*)",
       "Bash(node:*)",
       "Bash(xcopy:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "WebSearch",
+      "WebFetch(domain:maas-gz.ai-yuanjing.com)",
+      "Bash(cd:*)",
+      "WebFetch(domain:maas.ai-yuanjing.com)",
+      "Bash(pip3 install:*)"
     ],
     "deny": [],
     "ask": []
