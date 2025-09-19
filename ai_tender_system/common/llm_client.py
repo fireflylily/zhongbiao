@@ -46,7 +46,7 @@ class LLMClient:
         self.model_config = self.config.get_model_config(model_name)
 
         # 根据模型类型设置不同的配置
-        if model_name.startswith('unicom'):
+        if model_name.startswith('unicom') or model_name.startswith('yuanjing'):
             # 联通元景配置
             self.api_key = api_key or self.model_config.get('access_token', '')
             self.base_url = self.model_config.get('base_url', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')
@@ -87,7 +87,7 @@ class LLMClient:
         Raises:
             APIError: API调用失败
         """
-        if self.model_name.startswith('unicom'):
+        if self.model_name.startswith('unicom') or self.model_name.startswith('yuanjing'):
             try:
                 return self._call_unicom_yuanjing(
                     prompt, system_prompt, temperature, max_retries, purpose
@@ -476,11 +476,14 @@ class LLMClient:
             'actual_model_name': self.actual_model_name,
             'max_tokens': self.max_tokens,
             'timeout': self.timeout,
-            'has_api_key': bool(self.api_key)
+            'has_api_key': bool(self.api_key),
+            'display_name': self.model_config.get('display_name', self.model_name),
+            'description': self.model_config.get('description', ''),
+            'provider': self.model_config.get('provider', 'Unknown')
         }
 
         # 根据模型类型添加不同的端点信息
-        if self.model_name.startswith('unicom'):
+        if self.model_name.startswith('unicom') or self.model_name.startswith('yuanjing'):
             info['base_url'] = getattr(self, 'base_url', '')
             info['api_endpoint'] = f"{info['base_url']}/chat/completions"
         else:
@@ -515,6 +518,12 @@ def get_available_models() -> List[Dict[str, Any]]:
 
     models = []
     for model_name, model_config in all_configs.items():
+        # 检查API密钥 - 联通元景模型使用access_token，其他模型使用api_key
+        if model_name.startswith('unicom') or model_name.startswith('yuanjing'):
+            has_key = bool(model_config.get('access_token', ''))
+        else:
+            has_key = bool(model_config.get('api_key', ''))
+
         models.append({
             'name': model_name,
             'display_name': model_config.get('display_name', model_name),
@@ -522,7 +531,7 @@ def get_available_models() -> List[Dict[str, Any]]:
             'provider': model_config.get('provider', 'Unknown'),
             'model_name': model_config.get('model_name', model_name),
             'endpoint': model_config.get('api_endpoint', ''),
-            'has_api_key': bool(model_config.get('api_key', ''))
+            'has_api_key': has_key
         })
 
     return models

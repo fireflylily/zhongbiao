@@ -79,6 +79,68 @@ class Config:
                 'display_name': 'GPT-4o Mini',
                 'description': 'OpenAI GPT-4o Mini模型，快速且经济的AI助手'
             },
+            # 联通元景系列模型
+            'yuanjing-deepseek-v3': {
+                'access_token': os.getenv('ACCESS_TOKEN', ''),
+                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'model_name': 'deepseek-v3',
+                'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
+                'provider': 'China Unicom',
+                'display_name': '元景-DeepSeek-V3',
+                'description': '通用对话模型，平衡性能与速度，适合日常标书内容生成'
+            },
+            'yuanjing-qwen3-235b': {
+                'access_token': os.getenv('ACCESS_TOKEN', ''),
+                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'model_name': 'qwen3-235b-a22b',
+                'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
+                'provider': 'China Unicom',
+                'display_name': '元景-通义千问3-235B',
+                'description': '最大参数模型，文本生成质量最高，适合复杂商务文档和标书写作'
+            },
+            'yuanjing-glm-rumination': {
+                'access_token': os.getenv('ACCESS_TOKEN', ''),
+                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'model_name': 'glm-z1-rumination-32b-0414',
+                'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
+                'provider': 'China Unicom',
+                'display_name': '元景-智谱GLM思考版',
+                'description': '深度思考推理模型，逻辑严密，适合技术方案和解决方案论述'
+            },
+            'yuanjing-70b-chat': {
+                'access_token': os.getenv('ACCESS_TOKEN', ''),
+                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'model_name': 'yuanjing-70b-chat',
+                'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
+                'provider': 'China Unicom',
+                'display_name': '元景-70B对话版',
+                'description': '联通自研70B模型，可能针对政企场景优化，适合政府采购项目'
+            },
+            'yuanjing-ernie-300b': {
+                'access_token': os.getenv('ACCESS_TOKEN', ''),
+                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'model_name': 'ernie-4.5-300b-a47b',
+                'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
+                'provider': 'China Unicom',
+                'display_name': '元景-文心大模型4.5',
+                'description': '百度文心300B大模型，中文商务写作专长，政府采购语言风格优秀'
+            },
+            'yuanjing-deepseek-function': {
+                'access_token': os.getenv('ACCESS_TOKEN', ''),
+                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'model_name': 'deepseek-v3-functioncall',
+                'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
+                'provider': 'China Unicom',
+                'display_name': '元景-DeepSeek函数调用版',
+                'description': '结构化输出能力强，适合生成规范格式的标书内容和表格'
+            },
+            # 向后兼容性配置 - 保持原有模型名称可用
             'unicom-yuanjing': {
                 'access_token': os.getenv('ACCESS_TOKEN', ''),
                 'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
@@ -86,8 +148,8 @@ class Config:
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
                 'provider': 'China Unicom',
-                'display_name': '联通元景大模型',
-                'description': '中国联通元景大模型，基于官方OpenAI兼容接口，支持deepseek-v3等模型'
+                'display_name': '联通元景大模型 (兼容)',
+                'description': '向后兼容的联通元景模型，建议使用具体的元景-XXX模型获得更好体验'
             }
         }
         
