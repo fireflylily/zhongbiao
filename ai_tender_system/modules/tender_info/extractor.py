@@ -18,26 +18,30 @@ from typing import Dict, Optional, List, Any
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import (
-    get_config, get_module_logger, 
+    get_config, get_module_logger,
     TenderInfoExtractionError, APIError, FileProcessingError
 )
+from common.llm_client import create_llm_client
 
 class TenderInfoExtractor:
     """招标信息提取器"""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model_name: str = "gpt-4o-mini"):
         self.config = get_config()
         self.logger = get_module_logger("tender_info")
-        
-        # API配置
+
+        # 创建LLM客户端
+        self.llm_client = create_llm_client(model_name, api_key)
+
+        # 保持向后兼容性的配置
         api_config = self.config.get_api_config()
         self.api_key = api_key or api_config['api_key']
         self.api_endpoint = api_config['api_endpoint']
-        self.model_name = api_config['model_name']
+        self.model_name = model_name
         self.max_tokens = api_config['max_tokens']
         self.timeout = api_config['timeout']
-        
-        self.logger.info("招标信息提取器初始化完成")
+
+        self.logger.info(f"招标信息提取器初始化完成，使用模型: {model_name}")
     
     def _timeout_regex_search(self, pattern: str, text: str, timeout: int = 5):
         """带超时的正则表达式搜索，防止灾难性回溯"""
@@ -94,64 +98,17 @@ class TenderInfoExtractor:
         return result
     
     def llm_callback(self, prompt: str, purpose: str = "应答", max_retries: int = 3) -> str:
-        """调用LLM API"""
-        headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
-        
-        data = {
-            'model': self.model_name,
-            'messages': [
-                {'role': 'user', 'content': prompt}
-            ],
-            'max_completion_tokens': self.max_tokens,
-            'temperature': 1
-        }
-        
-        for attempt in range(max_retries):
-            try:
-                self.logger.info(f"LLM API调用 - {purpose} (尝试 {attempt + 1}/{max_retries})")
-                
-                response = requests.post(
-                    self.api_endpoint, 
-                    headers=headers, 
-                    json=data, 
-                    timeout=self.timeout
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    if 'choices' in result and len(result['choices']) > 0:
-                        content = result['choices'][0]['message']['content']
-                        self.logger.info(f"LLM API调用成功 - {purpose}")
-                        return content
-                    else:
-                        raise APIError(f"API响应格式异常: {result}")
-                else:
-                    error_msg = f"API调用失败: {response.status_code} - {response.text}"
-                    self.logger.error(error_msg)
-                    if attempt == max_retries - 1:
-                        raise APIError(error_msg)
-                        
-            except requests.exceptions.Timeout:
-                error_msg = f"API调用超时 - {purpose}"
-                self.logger.error(error_msg)
-                if attempt == max_retries - 1:
-                    raise APIError(error_msg)
-                    
-            except requests.exceptions.RequestException as e:
-                error_msg = f"API请求异常 - {purpose}: {str(e)}"
-                self.logger.error(error_msg)
-                if attempt == max_retries - 1:
-                    raise APIError(error_msg)
-            
-            # 重试前等待
-            if attempt < max_retries - 1:
-                import time
-                time.sleep(2 ** attempt)  # 指数退避
-        
-        raise APIError(f"LLM API调用失败 - {purpose} (已重试{max_retries}次)")
+        """调用LLM API - 使用统一的LLM客户端"""
+        try:
+            return self.llm_client.call(
+                prompt=prompt,
+                temperature=0.7,  # 使用稍低的温度以获得更一致的结果
+                max_retries=max_retries,
+                purpose=purpose
+            )
+        except Exception as e:
+            self.logger.error(f"LLM调用失败 - {purpose}: {str(e)}")
+            raise APIError(f"LLM调用失败 - {purpose}: {str(e)}")
     
     def read_document(self, file_path: str) -> str:
         """读取文档内容"""

@@ -13,18 +13,27 @@ from typing import Dict, Any, Optional
 # 加载 .env 文件（如果存在）
 def load_env_file():
     """加载 .env 文件中的环境变量"""
-    env_file = Path(__file__).parent.parent / '.env'
-    if env_file.exists():
-        with open(env_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    key = key.strip()
-                    value = value.strip()
-                    # 只在环境变量不存在时设置
-                    if key not in os.environ:
+    # 尝试多个可能的.env文件位置
+    possible_paths = [
+        Path(__file__).parent.parent / '.env',  # ai_tender_system/.env
+        Path(__file__).parent.parent.parent / '.env',  # 项目根目录/.env
+    ]
+
+    for env_file in possible_paths:
+        if env_file.exists():
+            print(f"加载环境变量文件: {env_file}")
+            with open(env_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        # 设置环境变量（覆盖现有值）
                         os.environ[key] = value
+            return
+
+    print("警告: 未找到.env文件")
 
 # 在模块加载时执行
 load_env_file()
@@ -65,14 +74,20 @@ class Config:
                 'api_endpoint': os.getenv('OPENAI_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
                 'model_name': 'gpt-4o-mini',
                 'max_tokens': int(os.getenv('OPENAI_MAX_TOKENS', '1000')),
-                'timeout': int(os.getenv('OPENAI_TIMEOUT', '30'))
+                'timeout': int(os.getenv('OPENAI_TIMEOUT', '30')),
+                'provider': 'OpenAI',
+                'display_name': 'GPT-4o Mini',
+                'description': 'OpenAI GPT-4o Mini模型，快速且经济的AI助手'
             },
             'unicom-yuanjing': {
-                'api_key': os.getenv('UNICOM_API_KEY', os.getenv('DEFAULT_API_KEY', '')),
-                'api_endpoint': os.getenv('UNICOM_API_ENDPOINT', 'https://api.unicom.com/v1/chat/completions'),
-                'model_name': 'yuanjing-pro',
+                'access_token': os.getenv('ACCESS_TOKEN', ''),
+                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'model_name': os.getenv('UNICOM_MODEL_NAME', 'deepseek-v3'),
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
-                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30'))
+                'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
+                'provider': 'China Unicom',
+                'display_name': '联通元景大模型',
+                'description': '中国联通元景大模型，基于官方OpenAI兼容接口，支持deepseek-v3等模型'
             }
         }
         

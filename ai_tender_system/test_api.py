@@ -44,13 +44,34 @@ def load_env():
     else:
         print("⚠️  未找到.env文件，使用系统环境变量")
 
-    return {
-        'api_key': os.getenv('DEFAULT_API_KEY', ''),
-        'api_endpoint': os.getenv('API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
-        'model_name': os.getenv('MODEL_NAME', 'gpt-5'),
-        'max_tokens': int(os.getenv('MAX_TOKENS', '1000')),
-        'timeout': int(os.getenv('API_TIMEOUT', '30'))
+    # 返回默认配置和所有模型配置
+    configs = {
+        'default': {
+            'api_key': os.getenv('DEFAULT_API_KEY', ''),
+            'api_endpoint': os.getenv('API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
+            'model_name': os.getenv('MODEL_NAME', 'gpt-5'),
+            'max_tokens': int(os.getenv('MAX_TOKENS', '1000')),
+            'timeout': int(os.getenv('API_TIMEOUT', '30'))
+        },
+        'gpt-4o-mini': {
+            'api_key': os.getenv('OPENAI_API_KEY', os.getenv('DEFAULT_API_KEY', '')),
+            'api_endpoint': os.getenv('OPENAI_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
+            'model_name': 'gpt-4o-mini',
+            'max_tokens': int(os.getenv('OPENAI_MAX_TOKENS', '1000')),
+            'timeout': int(os.getenv('OPENAI_TIMEOUT', '30'))
+        },
+        'unicom-yuanjing': {
+            'api_key': os.getenv('UNICOM_API_KEY', os.getenv('DEFAULT_API_KEY', '')),
+            'client_secret': os.getenv('UNICOM_CLIENT_SECRET', ''),
+            'api_endpoint': os.getenv('UNICOM_API_ENDPOINT', 'https://maas.ai-yuanjing.com/v1/chat/completions'),
+            'token_endpoint': os.getenv('UNICOM_TOKEN_ENDPOINT', 'https://maas.ai-yuanjing.com/oauth/token'),
+            'model_name': os.getenv('UNICOM_MODEL_NAME', 'yuanjing-pro'),
+            'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
+            'timeout': int(os.getenv('UNICOM_TIMEOUT', '30'))
+        }
     }
+
+    return configs
 
 def test_api_connection(config):
     """测试API连接和认证"""
@@ -260,35 +281,146 @@ def test_complex_query(config):
         print(f"\n❌ 测试失败: {e}")
         return False
 
+def test_llm_client(model_name, model_config):
+    """测试统一LLM客户端"""
+    print("\n" + "="*60)
+    print(f"🔬 测试统一LLM客户端 - {model_name}")
+    print("="*60)
+
+    try:
+        # 导入LLM客户端
+        from common.llm_client import create_llm_client
+
+        # 创建客户端
+        client = create_llm_client(model_name, model_config.get('api_key'))
+
+        # 显示模型信息
+        model_info = client.get_model_info()
+        print("\n📋 模型信息:")
+        for key, value in model_info.items():
+            if key == 'has_api_key':
+                print(f"  {key}: {'是' if value else '否'}")
+            else:
+                print(f"  {key}: {value}")
+
+        if not model_info['has_api_key']:
+            print(f"\n❌ 模型 {model_name} 未配置API密钥，跳过测试")
+            return False
+
+        # 验证配置
+        print(f"\n🚀 验证模型配置...")
+        validation_result = client.validate_config()
+
+        if validation_result['valid']:
+            print(f"✅ 配置验证成功！")
+            print(f"  测试响应: {validation_result.get('test_response', 'N/A')}")
+            return True
+        else:
+            print(f"❌ 配置验证失败: {validation_result.get('error', '未知错误')}")
+            return False
+
+    except ImportError as e:
+        print(f"❌ 导入LLM客户端失败: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ 测试LLM客户端失败: {e}")
+        import traceback
+        print(f"错误详情: {traceback.format_exc()}")
+        return False
+
+def test_all_models(configs):
+    """测试所有配置的模型"""
+    print("\n" + "="*60)
+    print("🔍 多模型测试")
+    print("="*60)
+
+    results = {}
+
+    # 测试每个模型（除了default）
+    for model_name, config in configs.items():
+        if model_name == 'default':
+            continue
+
+        print(f"\n--- 测试 {model_name} ---")
+
+        if not config.get('api_key'):
+            print(f"⚠️  模型 {model_name} 未配置API密钥，跳过测试")
+            results[model_name] = False
+            continue
+
+        try:
+            # 先尝试传统方式测试
+            legacy_result = test_api_connection(config)
+
+            # 然后测试统一客户端
+            client_result = test_llm_client(model_name, config)
+
+            results[model_name] = legacy_result and client_result
+
+        except Exception as e:
+            print(f"❌ 测试模型 {model_name} 时发生错误: {e}")
+            results[model_name] = False
+
+    return results
+
 def main():
     """主测试函数"""
-    print("\n" + "🤖 AI标书系统 - API测试工具 🤖".center(60))
+    print("\n" + "🤖 AI标书系统 - 多模型API测试工具 🤖".center(60))
     print(f"测试时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # 加载配置
-    config = load_env()
+    configs = load_env()
 
-    # 执行基础测试
-    basic_test = test_api_connection(config)
+    # 显示可用模型
+    print(f"\n📋 检测到 {len(configs)} 个配置:")
+    for model_name, config in configs.items():
+        api_key = config.get('api_key', '')
+        status = "✅ 已配置" if api_key else "❌ 未配置"
+        print(f"  {model_name}: {status}")
 
-    # 如果基础测试通过，执行高级测试
+    # 测试默认配置（向后兼容）
+    print(f"\n{'='*60}")
+    print("🔧 传统API测试 (向后兼容)")
+    print("="*60)
+
+    default_config = configs['default']
+    basic_test = test_api_connection(default_config)
+
     if basic_test:
-        complex_test = test_complex_query(config)
-
-        print("\n" + "="*60)
-        print("📊 测试总结")
-        print("="*60)
-        print(f"  ✅ 基础连接测试: {'通过' if basic_test else '失败'}")
-        print(f"  {'✅' if complex_test else '❌'} JSON提取测试: {'通过' if complex_test else '失败'}")
-
-        if basic_test and complex_test:
-            print("\n🎉 所有测试通过！API配置正确，可以正常使用。")
-        else:
-            print("\n⚠️  部分测试未通过，请检查上述错误信息。")
+        complex_test = test_complex_query(default_config)
     else:
-        print("\n❌ 基础测试失败，请先解决连接和认证问题。")
+        complex_test = False
 
+    # 测试所有模型
+    model_results = test_all_models(configs)
+
+    # 显示测试总结
     print("\n" + "="*60)
+    print("📊 测试总结")
+    print("="*60)
+
+    print("传统API测试:")
+    print(f"  ✅ 基础连接测试: {'通过' if basic_test else '失败'}")
+    print(f"  {'✅' if complex_test else '❌'} JSON提取测试: {'通过' if complex_test else '失败'}")
+
+    print("\n多模型测试:")
+    for model_name, success in model_results.items():
+        status = "✅ 通过" if success else "❌ 失败"
+        print(f"  {model_name}: {status}")
+
+    # 总体结论
+    all_passed = basic_test and complex_test and all(model_results.values())
+    some_passed = basic_test or any(model_results.values())
+
+    print(f"\n{'='*60}")
+    if all_passed:
+        print("🎉 所有测试通过！多模型配置正确，可以正常使用。")
+    elif some_passed:
+        print("⚠️  部分测试通过，建议检查失败的配置。")
+    else:
+        print("❌ 所有测试失败，请检查网络连接和API配置。")
+
+    print("="*60)
 
 if __name__ == "__main__":
     main()

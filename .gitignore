@@ -1,0 +1,20 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment files with sensitive data
+.env
+.env.local
+
+# Ignore log files
+*.log
+logs/
+
+# Ignore test files (optional, you may want to keep some)
+test_*.py
+debug_*.py
+*_test.py
+quick_test.py
+final_integration_test.py

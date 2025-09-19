@@ -567,11 +567,22 @@
 
                             <!-- AI模型选择 -->
                             <div class="col-md-4" id="aiModelSelection">
-                                <label for="aiModel" class="form-label"><strong>选择AI模型：</strong></label>
-                                <select class="form-select" name="aiModel" id="aiModel">
+                                <label for="aiModel" class="form-label">
+                                    <strong>选择AI模型：</strong>
+                                    <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="refreshModels()">
+                                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                                    </button>
+                                </label>
+                                <select class="form-select" name="aiModel" id="aiModel" onchange="onModelChange()">
                                     <option value="gpt-4o-mini">GPT-4o-mini</option>
                                     <option value="unicom-yuanjing" selected>联通元景大模型</option>
                                 </select>
+                                <div id="modelStatus" class="mt-2" style="display: none;">
+                                    <small class="text-muted">
+                                        <span id="modelStatusIcon"></span>
+                                        <span id="modelStatusText"></span>
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1828,10 +1839,17 @@
                     
                     // 设置下载按钮事件
                     const downloadBtn = document.getElementById('downloadBtn');
-                    downloadBtn.onclick = function(e) {
-                        e.preventDefault();
-                        downloadFile(data.download_url, data.filename);
-                    };
+                    if (data.download_url && data.filename) {
+                        downloadBtn.onclick = function(e) {
+                            e.preventDefault();
+                            downloadFile(data.download_url, data.filename);
+                        };
+                    } else {
+                        downloadBtn.onclick = function(e) {
+                            e.preventDefault();
+                            showNotification('下载链接无效', 'error');
+                        };
+                    }
                     
                     resultArea.style.display = 'block';
                 } else {
@@ -4528,6 +4546,12 @@
             }
 
             const downloadUrl = match[1];
+            // 检查下载URL是否为undefined或无效
+            if (!downloadUrl || downloadUrl === 'undefined' || downloadUrl.includes('undefined')) {
+                showNotification('文档链接无效，请重新处理点对点应答', 'error');
+                return;
+            }
+
             const filename = downloadUrl.split('/').pop();
             currentDocumentPath = filename;
 
@@ -4572,6 +4596,12 @@
             }
 
             const downloadUrl = match[1];
+            // 检查下载URL是否为undefined或无效
+            if (!downloadUrl || downloadUrl === 'undefined' || downloadUrl.includes('undefined')) {
+                showNotification('文档链接无效，请重新处理点对点应答', 'error');
+                return;
+            }
+
             const filename = downloadUrl.split('/').pop();
             currentDocumentPath = filename;
 
@@ -6309,6 +6339,161 @@
                 }
             }
         }
+
+        // ===================
+        // AI模型管理功能
+        // ===================
+
+        // 模型管理对象
+        const ModelManager = {
+            currentModels: [],
+            currentModel: 'unicom-yuanjing',
+
+            // 初始化模型管理
+            init() {
+                this.loadModels();
+                this.updateModelStatus();
+            },
+
+            // 加载可用模型列表
+            async loadModels() {
+                try {
+                    const response = await fetch('/api/models');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.currentModels = data.models;
+                        this.updateModelSelect();
+                        console.log(`加载了 ${data.count} 个AI模型`);
+                    } else {
+                        console.error('加载模型列表失败:', data.error);
+                        showNotification('加载模型列表失败', 'error');
+                    }
+                } catch (error) {
+                    console.error('获取模型列表失败:', error);
+                    showNotification('获取模型列表失败', 'error');
+                }
+            },
+
+            // 更新模型选择下拉框
+            updateModelSelect() {
+                const aiModelSelect = document.getElementById('aiModel');
+                if (!aiModelSelect) return;
+
+                // 保存当前选中的模型
+                const currentValue = aiModelSelect.value;
+
+                // 清空并重新填充选项
+                aiModelSelect.innerHTML = '';
+
+                this.currentModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = model.display_name || model.name;
+
+                    // 添加状态信息到选项文本
+                    if (model.status === 'no_api_key') {
+                        option.textContent += ' (未配置)';
+                        option.disabled = true;
+                    } else if (model.status === 'available') {
+                        option.textContent += ' ✓';
+                    }
+
+                    aiModelSelect.appendChild(option);
+                });
+
+                // 恢复之前选中的模型，如果不存在则选择第一个可用的
+                if (currentValue && Array.from(aiModelSelect.options).some(opt => opt.value === currentValue)) {
+                    aiModelSelect.value = currentValue;
+                } else {
+                    // 选择第一个可用的模型
+                    const availableOption = Array.from(aiModelSelect.options).find(opt => !opt.disabled);
+                    if (availableOption) {
+                        aiModelSelect.value = availableOption.value;
+                    }
+                }
+
+                this.updateModelStatus();
+            },
+
+            // 更新模型状态显示
+            updateModelStatus() {
+                const aiModelSelect = document.getElementById('aiModel');
+                const modelStatus = document.getElementById('modelStatus');
+                const statusIcon = document.getElementById('modelStatusIcon');
+                const statusText = document.getElementById('modelStatusText');
+
+                if (!aiModelSelect || !modelStatus) return;
+
+                const selectedModel = this.currentModels.find(m => m.name === aiModelSelect.value);
+
+                if (selectedModel) {
+                    modelStatus.style.display = 'block';
+
+                    if (selectedModel.status === 'available') {
+                        statusIcon.innerHTML = '<i class="bi bi-check-circle text-success"></i>';
+                        statusText.textContent = `${selectedModel.provider} - ${selectedModel.status_message}`;
+                        statusText.className = 'text-success';
+                    } else if (selectedModel.status === 'no_api_key') {
+                        statusIcon.innerHTML = '<i class="bi bi-exclamation-triangle text-warning"></i>';
+                        statusText.textContent = `${selectedModel.provider} - ${selectedModel.status_message}`;
+                        statusText.className = 'text-warning';
+                    } else {
+                        statusIcon.innerHTML = '<i class="bi bi-question-circle text-muted"></i>';
+                        statusText.textContent = `${selectedModel.provider} - 状态未知`;
+                        statusText.className = 'text-muted';
+                    }
+
+                    // 显示模型描述（如果有）
+                    if (selectedModel.description) {
+                        statusText.textContent += ` - ${selectedModel.description}`;
+                    }
+                } else {
+                    modelStatus.style.display = 'none';
+                }
+            },
+
+            // 验证模型配置
+            async validateModel(modelName) {
+                try {
+                    showNotification('正在验证模型配置...', 'info');
+
+                    const response = await fetch(`/api/models/${modelName}/validate`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+
+                    if (data.success && data.validation.valid) {
+                        showNotification(`模型 ${modelName} 配置验证成功`, 'success');
+                        return true;
+                    } else {
+                        const error = data.validation?.error || data.error || '验证失败';
+                        showNotification(`模型 ${modelName} 配置验证失败: ${error}`, 'error');
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('验证模型配置失败:', error);
+                    showNotification('验证模型配置失败', 'error');
+                    return false;
+                }
+            }
+        };
+
+        // 刷新模型列表
+        function refreshModels() {
+            ModelManager.loadModels();
+        }
+
+        // 模型选择变化事件
+        function onModelChange() {
+            ModelManager.currentModel = document.getElementById('aiModel').value;
+            ModelManager.updateModelStatus();
+        }
+
+        // 页面加载完成后初始化模型管理
+        document.addEventListener('DOMContentLoaded', function() {
+            ModelManager.init();
+        });
     </script>
 
 </body>

@@ -22,21 +22,25 @@ from common import (
     APIError, FileProcessingError,
     ensure_dir
 )
+from common.llm_client import create_llm_client
 
 class TechResponder:
     """技术需求回复处理器"""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model_name: str = "gpt-4o-mini"):
         self.config = get_config()
         self.logger = get_module_logger("tech_responder")
-        
-        # API配置
+
+        # 创建LLM客户端
+        self.llm_client = create_llm_client(model_name, api_key)
+
+        # 保持向后兼容性的配置
         api_config = self.config.get_api_config()
         self.api_key = api_key or api_config['api_key']
         self.api_endpoint = api_config.get('api_endpoint', 'https://api.openai.com/v1/chat/completions')
-        self.model_name = api_config.get('model_name', 'gpt-4')
-        
-        self.logger.info("技术需求回复处理器初始化完成")
+        self.model_name = model_name
+
+        self.logger.info(f"技术需求回复处理器初始化完成，使用模型: {model_name}")
     
     def process_tech_requirements(self,
                                  requirements_file: str,
@@ -344,10 +348,12 @@ class TechResponder:
                             company_info: Dict[str, Any],
                             strategy: str,
                             ai_model: str = "gpt-4o-mini") -> str:
-        """使用AI生成响应"""
+        """使用AI生成响应 - 使用统一的LLM客户端"""
         try:
-            # 根据选择的模型配置API参数
-            api_config = self._get_model_config(ai_model)
+            # 创建指定模型的LLM客户端
+            llm_client = create_llm_client(ai_model)
+
+            system_prompt = "你是一个专业的技术方案撰写专家，擅长为企业撰写技术响应文档。"
 
             prompt = f"""
 作为{company_info.get('companyName', '投标方')}的技术专家，请针对以下技术需求生成专业的响应：
@@ -366,34 +372,18 @@ class TechResponder:
 请生成响应：
             """
 
-            response = requests.post(
-                api_config['endpoint'],
-                headers={
-                    'Authorization': f'Bearer {api_config["api_key"]}',
-                    'Content-Type': 'application/json'
-                },
-                json={
-                    'model': api_config['model_name'],
-                    'messages': [
-                        {'role': 'system', 'content': '你是一个专业的技术方案撰写专家'},
-                        {'role': 'user', 'content': prompt}
-                    ],
-                    'temperature': 0.7,
-                    'max_tokens': 500
-                }
+            response_content = llm_client.call(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                temperature=0.7,
+                purpose=f"生成技术响应 - {requirement['type']}"
             )
-            
-            if response.status_code == 200:
-                result = response.json()
-                return result['choices'][0]['message']['content']
-            else:
-                self.logger.warning(f"AI响应失败，使用模板: {response.status_code}")
-                return self._generate_template_response(requirement, 
-                                                       self._get_response_template(requirement['type']),
-                                                       company_info)
-                
+
+            return response_content
+
         except Exception as e:
             self.logger.error(f"AI生成响应失败: {e}")
+            # 回退到模板响应
             return self._generate_template_response(requirement,
                                                    self._get_response_template(requirement['type']),
                                                    company_info)

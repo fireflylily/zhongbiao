@@ -753,8 +753,11 @@ def register_routes(app: Flask, config, logger):
             from docx import Document
             import html
             
-            # 安全检查文件名（不添加时间戳，因为我们要查找现有文件）
-            filename = safe_filename(filename, timestamp=False)
+            # 直接使用传入的文件名，因为这应该是从系统生成的安全文件名
+            # 只进行基本的安全检查，避免路径遍历攻击
+            if '..' in filename or '/' in filename or '\\' in filename:
+                raise ValueError("非法文件名")
+
             file_path = config.get_path('output') / filename
             
             if not file_path.exists():
@@ -1451,6 +1454,59 @@ def register_routes(app: Flask, config, logger):
             logger.error(f"获取项目配置失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
     
+    # ===================
+    # 模型管理API
+    # ===================
+
+    @app.route('/api/models', methods=['GET'])
+    def get_available_models():
+        """获取可用的AI模型列表"""
+        try:
+            from common.llm_client import get_available_models
+
+            models = get_available_models()
+
+            # 添加模型状态检查
+            for model in models:
+                try:
+                    # 这里可以添加模型可用性检查的逻辑
+                    model['status'] = 'available' if model['has_api_key'] else 'no_api_key'
+                    model['status_message'] = '已配置' if model['has_api_key'] else '未配置API密钥'
+                except:
+                    model['status'] = 'unknown'
+                    model['status_message'] = '状态未知'
+
+            logger.info(f"获取模型列表成功，共 {len(models)} 个模型")
+            return jsonify({
+                'success': True,
+                'models': models,
+                'count': len(models)
+            })
+
+        except Exception as e:
+            logger.error(f"获取模型列表失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/models/<model_name>/validate', methods=['POST'])
+    def validate_model_config(model_name):
+        """验证指定模型的配置"""
+        try:
+            from common.llm_client import create_llm_client
+
+            # 创建模型客户端并验证配置
+            client = create_llm_client(model_name)
+            validation_result = client.validate_config()
+
+            logger.info(f"模型 {model_name} 配置验证结果: {validation_result['valid']}")
+            return jsonify({
+                'success': True,
+                'validation': validation_result
+            })
+
+        except Exception as e:
+            logger.error(f"验证模型 {model_name} 配置失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
     # ===================
     # 错误处理
     # ===================
