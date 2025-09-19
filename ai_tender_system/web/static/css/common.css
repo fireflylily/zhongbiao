@@ -356,24 +356,25 @@ canvas {
     height: auto;
 }
 
-/* 上传区域美化 */
+/* 上传区域简化设计 */
 .upload-area {
-    border: 2px dashed var(--unicom-red);
-    border-radius: 15px;
-    background: linear-gradient(135deg, rgba(230, 0, 18, 0.02) 0%, rgba(230, 0, 18, 0.05) 100%);
-    transition: all 0.3s ease;
+    border: 1px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .upload-area:hover {
-    border-color: var(--unicom-red-dark);
-    background: linear-gradient(135deg, rgba(230, 0, 18, 0.05) 0%, rgba(230, 0, 18, 0.08) 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(230, 0, 18, 0.15);
+    border-color: var(--unicom-red);
+    background: #fff;
 }
 
 .upload-area.dragover {
     border-color: var(--success-color);
-    background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.1) 100%);
+    background: #f0f9f0;
 }
 
 /* 特性卡片美化 */
@@ -434,25 +435,6 @@ canvas {
     top: -2px;
     right: -8px;
     transform: scale(0.8);
-}
-.upload-area {
-    border: 2px dashed #007bff;
-    border-radius: 10px;
-    padding: 40px;
-    text-align: center;
-    background: #f8f9fa;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.upload-area:hover {
-    border-color: #0056b3;
-    background: #e9ecef;
-}
-
-.upload-area.dragover {
-    border-color: #28a745;
-    background: #d4edda;
 }
 
 .feature-card {
@@ -515,3 +497,4 @@ canvas {
     background-color: #f8f9fa;
     border-color: #adb5bd;
 }
+

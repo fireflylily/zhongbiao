@@ -308,27 +308,50 @@
             </button>
 
             <div class="navbar-brand d-flex align-items-center">
-                <!-- 中国联通真实Logo -->
-                <div class="logo-container me-3">
-                    <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- 中国联通官方Logo -->
+                <div class="unicom-logo me-3">
+                    <svg width="120" height="40" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
                         <defs>
-                            <radialGradient id="unicomGradient" cx="50%" cy="50%" r="50%">
+                            <linearGradient id="unicomKnotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#e60012;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#cc0000;stop-opacity:1" />
-                            </radialGradient>
+                                <stop offset="50%" style="stop-color:#d10000;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c00000;stop-opacity:1" />
+                            </linearGradient>
                         </defs>
-                        <!-- 中国联通标志性U形状 -->
-                        <path d="M15 25 Q15 15 25 15 L75 15 Q85 15 85 25 L85 60 Q85 75 70 75 L55 75 Q50 75 50 70 L50 45 Q50 40 55 40 L70 40 Q75 40 75 45 L75 55"
-                              fill="url(#unicomGradient)"
-                              stroke="none"
-                              stroke-width="0"/>
-                        <!-- 装饰性圆点 -->
-                        <circle cx="35" cy="65" r="3" fill="#e60012" opacity="0.8"/>
-                        <circle cx="42" cy="70" r="2" fill="#e60012" opacity="0.6"/>
-                        <circle cx="48" cy="73" r="1.5" fill="#e60012" opacity="0.4"/>
-                        <circle cx="28" cy="58" r="2.5" fill="#e60012" opacity="0.7"/>
-                        <circle cx="22" cy="68" r="2" fill="#e60012" opacity="0.5"/>
-                        <circle cx="38" cy="75" r="1" fill="#e60012" opacity="0.3"/>
+
+                        <!-- 中国联通结绳标志 -->
+                        <g transform="translate(5, 5)">
+                            <!-- 中心圆形 -->
+                            <circle cx="25" cy="25" r="4" fill="url(#unicomKnotGradient)"/>
+
+                            <!-- 左侧结绳 -->
+                            <path d="M10 15 Q5 10 10 5 Q15 10 20 5 Q25 10 20 15 Q15 20 20 25 Q25 20 20 15"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 右侧结绳 -->
+                            <path d="M30 15 Q35 10 40 15 Q35 20 40 25 Q35 30 30 25 Q25 20 30 15"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 上侧结绳 -->
+                            <path d="M15 10 Q10 5 15 0 Q20 5 25 0 Q30 5 25 10 Q20 15 25 20 Q30 15 25 10"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 下侧结绳 -->
+                            <path d="M15 40 Q10 45 15 50 Q20 45 25 50 Q30 45 25 40 Q20 35 25 30 Q30 35 25 40"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 装饰性连接线 -->
+                            <path d="M15 25 Q20 20 25 25 Q30 30 35 25 Q30 20 25 25 Q20 30 15 25"
+                                  fill="url(#unicomKnotGradient)" opacity="0.8" stroke="none"/>
+                        </g>
+
+                        <!-- 中国联通文字 -->
+                        <g transform="translate(60, 8)">
+                            <!-- 中国联通 -->
+                            <text x="0" y="18" fill="#333" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="16" font-weight="bold">中国联通</text>
+                            <!-- China Unicom -->
+                            <text x="0" y="35" fill="#666" font-family="Arial, sans-serif" font-size="11" font-weight="normal">China unicom</text>
+                        </g>
                     </svg>
                 </div>
 
@@ -379,7 +402,7 @@
                     <i class="bi bi-house me-2"></i>首页
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="tender-info-nav" data-bs-toggle="pill" data-bs-target="#tender-info">
-                    <i class="bi bi-search me-2"></i>读取信息
+                    <i class="bi bi-upload me-2"></i>上传标书
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="business-response-nav" data-bs-toggle="pill" data-bs-target="#business-response">
                     <i class="bi bi-briefcase me-2"></i>商务应答
@@ -523,7 +546,7 @@
                 </div>
             </div>
 
-            <!-- 读取信息选项卡 -->
+            <!-- 上传标书选项卡 -->
             <div class="tab-pane fade" id="tender-info" role="tabpanel">
 
             <!-- 文件上传区域 -->
@@ -543,10 +566,10 @@
                                 <p class="text-muted small">
                                     支持格式：Word文档 (.docx, .doc)、文本文件 (.txt)、PDF文件 (.pdf)
                                 </p>
-                                <input type="file" class="d-none" id="tenderFileInput" 
+                                <input type="file" class="d-none" id="tenderFileInput"
                                        accept=".docx,.doc,.txt,.pdf">
                             </div>
-                            
+
                             <!-- 文件信息显示 -->
                             <div class="mt-3" id="tenderFileInfo" style="display: none;">
                                 <div class="alert alert-info">
@@ -586,7 +609,7 @@
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="row" id="tenderInfoDisplay">
+                            <div id="tenderInfoDisplay">
                                 <!-- 提取结果将在这里显示 -->
                             </div>
 
@@ -719,7 +742,7 @@
                 </div>
             </div>
         </div>
-        <!-- 结束读取信息选项卡 -->
+        <!-- 结束上传标书选项卡 -->
 
 
         <!-- 商务应答选项卡 -->
@@ -728,7 +751,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-briefcase"></i> 商务应答处理</h5>
+                            <h6 class="mb-0"><i class="bi bi-briefcase"></i> 商务应答处理</h6>
                             <small class="text-muted">上传商务应答模板，按选择的公司信息填写投标人名称、项目信息并插入资质证明图片</small>
                         </div>
                         <div class="card-body">
@@ -866,7 +889,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5><i class="bi bi-gear"></i> 应答配置</h5>
+                        <h6 class="mb-0"><i class="bi bi-gear"></i> 应答配置</h6>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -1082,7 +1105,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-upload"></i> 技术方案生成</h5>
+                            <h6 class="mb-0"><i class="bi bi-upload"></i> 技术方案生成</h6>
                         </div>
                         <div class="card-body">
                             <form id="techProposalForm" enctype="multipart/form-data">
@@ -1139,7 +1162,7 @@
                             <!-- 结果区域 -->
                             <div id="techResultArea" class="mt-4" style="display: none;">
                                 <div class="alert alert-success">
-                                    <h5><i class="bi bi-check-circle"></i> 技术方案生成完成！</h5>
+                                    <h6 class="mb-0"><i class="bi bi-check-circle"></i> 技术方案生成完成！</h6>
                                     <p id="techResultMessage"></p>
                                     <div id="techDownloadArea" class="mt-3">
                                         <!-- 下载按钮将动态生成 -->
@@ -1203,7 +1226,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-question-circle"></i> 技术方案生成说明</h5>
+                            <h6 class="mb-0"><i class="bi bi-question-circle"></i> 技术方案生成说明</h6>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -1254,7 +1277,7 @@
                 <div class="col-md-4">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-list-ul"></i> 公司列表</h5>
+                            <h6 class="mb-0"><i class="bi bi-list-ul"></i> 公司列表</h6>
                             <small class="text-muted">管理和选择公司配置</small>
                         </div>
                         <div class="card-body">
@@ -1289,7 +1312,7 @@
                 <div class="col-md-8">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-pencil-square"></i> 公司信息编辑</h5>
+                            <h6 class="mb-0"><i class="bi bi-pencil-square"></i> 公司信息编辑</h6>
                             <small class="text-muted">编辑公司基本信息和资质文件</small>
                         </div>
                         <div class="card-body">
@@ -2969,7 +2992,7 @@
             extractInfoBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始提取信息';
         });
 
-        // ====== 读取信息页面初始化 ======
+        // ====== 上传标书页面初始化 ======
         console.log('Initializing tender info page...');
         // 注意：公司管理功能已移至商务应答页面，此处不再需要相关元素
 
@@ -3141,7 +3164,7 @@
             }
         }
 
-        // 移除了对读取信息页面不存在元素的事件绑定
+        // 移除了对上传标书页面不存在元素的事件绑定
         // 注意：公司管理功能现在集中在商务应答页面
 
         // 加载公司信息
@@ -6463,6 +6486,7 @@
 
             console.log('[页面初始化] 初始化完成');
         });
+
 
         // 加载现有的投标信息配置
         function loadExistingTenderConfig() {
