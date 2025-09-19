@@ -6,9 +6,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>AI标书点对点应答系统</title>
+    <title>元景AI智能标书生成平台</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js for modern charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
     <!-- TinyMCE Editor -->
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <style>
@@ -146,63 +148,383 @@
             margin-right: 8px;
             margin-bottom: 5px;
         }
+
+        /* 新侧边栏样式 - 立即生效 */
+        #sidebar-wrapper {
+            min-height: 100vh !important;
+            width: 280px !important;
+            background: #ffffff !important;
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08) !important;
+            border-right: 1px solid #f0f0f0 !important;
+        }
+
+        #sidebar-wrapper .sidebar-header {
+            background: #ffffff !important;
+            color: #333 !important;
+            border-bottom: 1px solid #f0f0f0 !important;
+            padding: 1.5rem 1.2rem !important;
+        }
+
+        #sidebar-wrapper .sidebar-header h6 {
+            color: #666 !important;
+            font-weight: 500 !important;
+            font-size: 0.85rem !important;
+            letter-spacing: 0.5px !important;
+            margin: 0 !important;
+            text-transform: uppercase !important;
+        }
+
+        #sidebar-wrapper .list-group-item {
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0.9rem 1.2rem !important;
+            transition: all 0.2s ease !important;
+            margin: 0 !important;
+            font-weight: 400 !important;
+            font-size: 0.9rem !important;
+            color: #666 !important;
+            background: transparent !important;
+            position: relative !important;
+            border-left: 3px solid transparent !important;
+        }
+
+        #sidebar-wrapper .list-group-item:hover {
+            background: #f8f9fa !important;
+            color: #333 !important;
+            border-left-color: #e0e0e0 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #sidebar-wrapper .list-group-item.active {
+            background: #e8f4ff !important;
+            color: #1976d2 !important;
+            border-left-color: #1976d2 !important;
+            font-weight: 500 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #sidebar-wrapper .list-group-item.active:hover {
+            background: #e3f2fd !important;
+        }
+
+        #sidebar-wrapper .list-group-item.active::before {
+            display: none !important;
+        }
+
+        #sidebar-wrapper .list-group-item i {
+            width: 16px !important;
+            text-align: center !important;
+            margin-right: 0.75rem !important;
+            font-size: 0.9rem !important;
+        }
+
+        /* 侧边栏切换按钮样式 - 参考元景平台 */
+        .sidebar-toggle-btn {
+            background: #ffffff !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 6px !important;
+            width: 40px !important;
+            height: 40px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #666 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: #f8f9fa !important;
+            border-color: #d0d0d0 !important;
+            color: #333 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12) !important;
+        }
+
+        .sidebar-toggle-btn:active {
+            background: #e9ecef !important;
+            transform: translateY(0) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+        }
+
+        .sidebar-toggle-btn i {
+            font-size: 18px !important;
+        }
+
+        /* 固定顶部导航栏 */
+        .navbar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1030 !important;
+            background: white !important;
+        }
+
+        /* 调整body的上边距，避免内容被导航栏遮挡 */
+        body {
+            padding-top: 70px !important;
+        }
+
+        /* 调整侧边栏的位置，从导航栏下方开始 */
+        #sidebar-wrapper {
+            position: fixed !important;
+            top: 70px !important;
+            left: 0 !important;
+            height: calc(100vh - 70px) !important;
+            min-height: auto !important;
+        }
+
+        /* 调整主内容区域，留出侧边栏空间 */
+        #page-content-wrapper {
+            margin-left: 280px !important;
+            width: calc(100% - 280px) !important;
+            min-height: calc(100vh - 70px) !important;
+        }
+
+        /* 移动端响应式调整 */
+        @media (max-width: 768px) {
+            #sidebar-wrapper {
+                margin-left: -280px !important;
+            }
+
+            #page-content-wrapper {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <!-- 页面标题 -->
-        <div class="row">
-            <div class="col-12">
-                <div class="text-center mb-5">
-                    <h1 class="display-4 text-primary">
-                        <i class="bi bi-robot"></i> AI标书智能生成系统
-                    </h1>
-                    <p class="lead text-muted">智能识别采购需求，自动生成专业应答和技术方案</p>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+        <div class="container-fluid">
+            <!-- 侧边栏切换按钮 -->
+            <button class="btn sidebar-toggle-btn me-3" type="button" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="navbar-brand d-flex align-items-center">
+                <!-- 中国联通真实Logo -->
+                <div class="logo-container me-3">
+                    <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="unicomGradient" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" style="stop-color:#e60012;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#cc0000;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                        <!-- 中国联通标志性U形状 -->
+                        <path d="M15 25 Q15 15 25 15 L75 15 Q85 15 85 25 L85 60 Q85 75 70 75 L55 75 Q50 75 50 70 L50 45 Q50 40 55 40 L70 40 Q75 40 75 45 L75 55"
+                              fill="url(#unicomGradient)"
+                              stroke="none"
+                              stroke-width="0"/>
+                        <!-- 装饰性圆点 -->
+                        <circle cx="35" cy="65" r="3" fill="#e60012" opacity="0.8"/>
+                        <circle cx="42" cy="70" r="2" fill="#e60012" opacity="0.6"/>
+                        <circle cx="48" cy="73" r="1.5" fill="#e60012" opacity="0.4"/>
+                        <circle cx="28" cy="58" r="2.5" fill="#e60012" opacity="0.7"/>
+                        <circle cx="22" cy="68" r="2" fill="#e60012" opacity="0.5"/>
+                        <circle cx="38" cy="75" r="1" fill="#e60012" opacity="0.3"/>
+                    </svg>
+                </div>
+
+                <div class="brand-text ms-2">
+                    <h4 class="mb-0 brand-title">元景AI智能标书生成平台</h4>
+                    <small class="text-muted brand-subtitle">Powered by China Unicom</small>
                 </div>
             </div>
-        </div>
 
-        <!-- 功能选项卡 -->
-        <div class="row">
-            <div class="col-12">
-                <ul class="nav nav-pills nav-justified mb-4" id="mainTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tender-info-tab" data-bs-toggle="pill" 
-                                data-bs-target="#tender-info" type="button" role="tab">
-                            <i class="bi bi-search"></i> 读取信息
-                        </button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link text-muted" href="#" title="通知">
+                            <i class="bi bi-bell"></i>
+                            <span class="badge bg-danger badge-sm">2</span>
+                        </a>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="business-response-tab" data-bs-toggle="pill" 
-                                data-bs-target="#business-response" type="button" role="tab">
-                            <i class="bi bi-briefcase"></i> 商务应答
-                        </button>
+                    <li class="nav-item">
+                        <a class="nav-link text-muted" href="#" title="设置">
+                            <i class="bi bi-gear"></i>
+                        </a>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="point-to-point-tab" data-bs-toggle="pill" 
-                                data-bs-target="#point-to-point" type="button" role="tab">
-                            <i class="bi bi-chat-dots"></i> 点对点应答
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tech-proposal-tab" data-bs-toggle="pill" 
-                                data-bs-target="#tech-proposal" type="button" role="tab">
-                            <i class="bi bi-file-earmark-code"></i> 技术方案生成
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="company-management-tab" data-bs-toggle="pill" 
-                                data-bs-target="#company-management" type="button" role="tab">
-                            <i class="bi bi-building"></i> 公司管理
-                        </button>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-muted" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> 用户
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>个人信息</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>系统设置</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>退出登录</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>
         </div>
+    </nav>
+
+    <!-- 主体布局 -->
+    <div class="d-flex" id="wrapper">
+        <!-- 侧边栏 -->
+        <div class="bg-light border-end" id="sidebar-wrapper">
+            <div class="list-group list-group-flush" style="padding-top: 1rem;">
+                <a href="#" class="list-group-item list-group-item-action active" id="home-nav" data-bs-toggle="pill" data-bs-target="#home">
+                    <i class="bi bi-house me-2"></i>首页
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="tender-info-nav" data-bs-toggle="pill" data-bs-target="#tender-info">
+                    <i class="bi bi-search me-2"></i>读取信息
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="business-response-nav" data-bs-toggle="pill" data-bs-target="#business-response">
+                    <i class="bi bi-briefcase me-2"></i>商务应答
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="point-to-point-nav" data-bs-toggle="pill" data-bs-target="#point-to-point">
+                    <i class="bi bi-chat-dots me-2"></i>点对点应答
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="tech-proposal-nav" data-bs-toggle="pill" data-bs-target="#tech-proposal">
+                    <i class="bi bi-file-earmark-code me-2"></i>技术方案生成
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="company-management-nav" data-bs-toggle="pill" data-bs-target="#company-management">
+                    <i class="bi bi-building me-2"></i>公司管理
+                </a>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div id="page-content-wrapper">
+            <div class="container-fluid p-4">
 
         <div class="tab-content" id="mainTabContent">
+            <!-- 首页选项卡 -->
+            <div class="tab-pane fade show active" id="home" role="tabpanel">
+                <!-- 系统统计面板 -->
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-bar-chart"></i> 系统统计
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-file-text" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">137</div>
+                                            <div class="stat-label">模型总数</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center" style="background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-cpu" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">0</div>
+                                            <div class="stat-label">我的模型</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center" style="background: linear-gradient(135deg, #ff6b35 0%, #f57c00 100%);">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-clock-history" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">0</div>
+                                            <div class="stat-label">调用次数</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">100%</div>
+                                            <div class="stat-label">成功率</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 图表区域 -->
+                                <div class="row mt-4">
+                                    <div class="col-lg-6 mb-4">
+                                        <h6 class="text-muted mb-3">模型使用趋势</h6>
+                                        <canvas id="usageChart" height="200"></canvas>
+                                    </div>
+                                    <div class="col-lg-6 mb-4">
+                                        <h6 class="text-muted mb-3">调用类型分布</h6>
+                                        <canvas id="typeChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快速操作面板 -->
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-search text-primary" style="font-size: 3rem;"></i>
+                                <h5 class="mt-3">智能提取</h5>
+                                <p class="text-muted">AI自动识别招标文件中的关键信息</p>
+                                <button class="btn btn-primary" onclick="switchToTab('tender-info')">
+                                    开始提取
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-briefcase text-success" style="font-size: 3rem;"></i>
+                                <h5 class="mt-3">商务应答</h5>
+                                <p class="text-muted">生成专业的商务应答文档</p>
+                                <button class="btn btn-success" onclick="switchToTab('business-response')">
+                                    立即生成
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-building text-warning" style="font-size: 3rem;"></i>
+                                <h5 class="mt-3">公司管理</h5>
+                                <p class="text-muted">管理公司信息和资质文件</p>
+                                <button class="btn btn-warning" onclick="switchToTab('company-management')">
+                                    管理公司
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 精简版权信息 -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="text-center py-3 border-top">
+                            <small class="text-muted">
+                                © 2025 元景AI智能标书生成平台 |
+                                <a href="/help.html" class="text-decoration-none text-muted">
+                                    <i class="bi bi-question-circle"></i> 帮助
+                                </a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 读取信息选项卡 -->
-            <div class="tab-pane fade show active" id="tender-info" role="tabpanel">
+            <div class="tab-pane fade" id="tender-info" role="tabpanel">
 
             <!-- 文件上传区域 -->
             <div class="row mb-4">
@@ -349,6 +671,7 @@
                     </div>
                 </div>
             </div>
+
 
             <!-- 功能说明 -->
             <div class="row mt-5">
@@ -1268,15 +1591,6 @@
         </div>
         <!-- 结束选项卡内容 -->
 
-        <!-- 页脚 -->
-        <div class="footer text-center">
-            <p>&copy; 2025 智慧足迹AI标书生成系统 | 专业 · 高效 · 智能</p>
-            <p>
-                <a href="/help.html" class="text-decoration-none">
-                    <i class="bi bi-question-circle"></i> 帮助中心
-                </a>
-            </p>
-        </div>
     </div>
 
     <!-- API密钥备份管理模态框 -->
@@ -4855,7 +5169,7 @@
         
         // 监听商务应答选项卡的显示事件
         document.addEventListener('shown.bs.tab', function(e) {
-            if (e.target.id === 'business-response-tab') {
+            if (e.target.id === 'business-response-nav') {
                 // 当切换到商务应答选项卡时，确保结果区域被隐藏
                 initBusinessResponsePage();
             }
@@ -6493,8 +6807,229 @@
         // 页面加载完成后初始化模型管理
         document.addEventListener('DOMContentLoaded', function() {
             ModelManager.init();
+
+            // 侧边栏切换功能
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar-wrapper');
+
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.toggle('show');
+                } else {
+                    // 桌面端侧边栏收缩
+                    if (sidebar.style.marginLeft === '-280px') {
+                        sidebar.style.marginLeft = '0';
+                    } else {
+                        sidebar.style.marginLeft = '-280px';
+                    }
+                }
+            });
+
+            // 移动端点击其他区域关闭侧边栏
+            document.addEventListener('click', function(e) {
+                const sidebar = document.getElementById('sidebar-wrapper');
+                const toggle = document.getElementById('sidebarToggle');
+
+                if (window.innerWidth <= 768 &&
+                    sidebar.classList.contains('show') &&
+                    !sidebar.contains(e.target) &&
+                    !toggle.contains(e.target)) {
+                    sidebar.classList.remove('show');
+                }
+            });
+
+            // 初始化统计图表
+            initCharts();
+
+            // 添加卡片悬停动画
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px) scale(1.02)';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // 添加按钮点击动画
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
         });
+
+        // 初始化图表函数
+        function initCharts() {
+            // 使用趋势图表
+            const usageCtx = document.getElementById('usageChart');
+            if (usageCtx) {
+                new Chart(usageCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                        datasets: [{
+                            label: '模型调用次数',
+                            data: [65, 59, 80, 81, 56, 95],
+                            borderColor: '#4fc3f7',
+                            backgroundColor: 'rgba(79, 195, 247, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 类型分布图表
+            const typeCtx = document.getElementById('typeChart');
+            if (typeCtx) {
+                new Chart(typeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['招标信息提取', '商务应答', '技术方案', '点对点应答'],
+                        datasets: [{
+                            data: [40, 25, 20, 15],
+                            backgroundColor: [
+                                '#4fc3f7',
+                                '#ff6b35',
+                                '#667eea',
+                                '#4caf50'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 加载状态管理
+        function showLoading(element, text = '加载中...') {
+            const loadingHTML = `
+                <div class="d-flex justify-content-center align-items-center p-4">
+                    <div class="spinner-border text-primary me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="text-muted">${text}</span>
+                </div>
+            `;
+            element.innerHTML = loadingHTML;
+        }
+
+        function hideLoading(element, content) {
+            element.innerHTML = content;
+        }
+
+        // 通知系统
+        function showNotification(message, type = 'info', duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+
+        // 数字动画效果
+        function animateValue(element, start, end, duration) {
+            const range = end - start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                element.textContent = current;
+                if (current === end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+
+        // 页面加载完成后启动数字动画
+        window.addEventListener('load', function() {
+            document.querySelectorAll('.stat-number').forEach(el => {
+                const finalValue = parseInt(el.textContent) || 0;
+                if (finalValue > 0) {
+                    el.textContent = '0';
+                    setTimeout(() => {
+                        animateValue(el, 0, finalValue, 1000);
+                    }, 500);
+                }
+            });
+        });
+
+        // 切换选项卡函数
+        function switchToTab(tabId) {
+            // 移除所有活跃状态
+            document.querySelectorAll('.list-group-item-action').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+
+            // 激活指定的导航项和选项卡
+            const navItem = document.querySelector(`[data-bs-target="#${tabId}"]`);
+            const tabPane = document.querySelector(`#${tabId}`);
+
+            if (navItem && tabPane) {
+                navItem.classList.add('active');
+                tabPane.classList.add('show', 'active');
+            }
+        }
     </script>
+
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
