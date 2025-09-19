@@ -583,9 +583,15 @@
                             <div class="alert alert-success">
                                 <h5><i class="bi bi-check-circle"></i> 处理完成！</h5>
                                 <p id="resultMessage"></p>
-                                <div class="mt-3">
-                                    <button id="downloadBtn" class="btn btn-primary me-2">
+                                <div class="d-flex gap-2 flex-wrap mt-3">
+                                    <button id="downloadBtn" class="btn btn-primary">
                                         <i class="bi bi-download"></i> 下载处理后的文档
+                                    </button>
+                                    <button type="button" class="btn btn-success" id="pointPreviewBtn" onclick="previewPointDocument()">
+                                        <i class="bi bi-eye"></i> 预览文档
+                                    </button>
+                                    <button type="button" class="btn btn-warning" id="pointEditBtn" onclick="editPointDocument()">
+                                        <i class="bi bi-pencil-square"></i> 编辑文档
                                     </button>
                                     <button id="viewFilesBtn" class="btn btn-outline-info">
                                         <i class="bi bi-file-earmark-text"></i> 查看所有文件
@@ -1708,6 +1714,11 @@
         function submitUpload() {
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
+            // 从StateManager获取当前公司ID
+            const companyId = StateManager.getCompanyId();
+            if (companyId) {
+                formData.append('companyId', companyId);
+            }
             // API密钥通过环境变量自动获取，无需前端传递
         
             // 显示进度条
@@ -1731,7 +1742,7 @@
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分钟超时
 
-            fetch('/upload', {
+            fetch('/process-point-to-point', {
                 method: 'POST',
                 body: formData,
                 signal: controller.signal
@@ -4428,11 +4439,93 @@
             if (previewModal) {
                 previewModal.hide();
             }
-            
+
             // 打开编辑模态框
             setTimeout(() => {
                 editBusinessDocument();
             }, 300);
+        }
+
+        // 点对点应答文档预览
+        function previewPointDocument() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (!downloadBtn || !downloadBtn.onclick) {
+                showNotification('没有可预览的文档', 'warning');
+                return;
+            }
+
+            // 获取文件路径
+            const onclickStr = downloadBtn.onclick.toString();
+            const match = onclickStr.match(/downloadFile\(['"]([^'"]+)['"]/);
+            if (!match) {
+                showNotification('无法获取文档路径', 'error');
+                return;
+            }
+
+            const downloadUrl = match[1];
+            const filename = downloadUrl.split('/').pop();
+            currentDocumentPath = filename;
+
+            // 显示加载状态
+            const previewContent = document.getElementById('documentPreviewContent');
+            previewContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">正在加载文档...</p></div>';
+
+            // 显示预览模态框
+            const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
+            previewModal.show();
+
+            // 调用API获取文档内容
+            fetch(`/api/document/preview/${filename}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        previewContent.innerHTML = data.html_content || '<p>文档内容为空</p>';
+                    } else {
+                        previewContent.innerHTML = `<div class="alert alert-danger">预览失败: ${data.error || '未知错误'}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('预览文档失败:', error);
+                    previewContent.innerHTML = `<div class="alert alert-danger">预览失败: ${error.message}</div>`;
+                });
+        }
+
+        // 点对点应答文档编辑
+        function editPointDocument() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (!downloadBtn || !downloadBtn.onclick) {
+                showNotification('没有可编辑的文档', 'warning');
+                return;
+            }
+
+            // 获取文件路径
+            const onclickStr = downloadBtn.onclick.toString();
+            const match = onclickStr.match(/downloadFile\(['"]([^'"]+)['"]/);
+            if (!match) {
+                showNotification('无法获取文档路径', 'error');
+                return;
+            }
+
+            const downloadUrl = match[1];
+            const filename = downloadUrl.split('/').pop();
+            currentDocumentPath = filename;
+
+            // 初始化编辑器（如果还没有初始化）
+            if (!wordEditor) {
+                wordEditor = new WordEditor('documentEditor', {
+                    height: 500,
+                    placeholder: '请点击"读取文档"加载点对点应答文档内容...'
+                });
+            }
+
+            // 显示编辑模态框
+            const editModal = new bootstrap.Modal(document.getElementById('documentEditModal'));
+            editModal.show();
+
+            // 自动加载文档
+            setTimeout(() => {
+                loadDocumentToEditor();
+            }, 500);
         }
         
         // 预览历史文档

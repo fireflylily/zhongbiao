@@ -549,6 +549,100 @@ def register_routes(app: Flask, config, logger):
             logger.error(f"文档处理失败: {e}")
             return jsonify(format_error_response(e))
     
+    @app.route('/process-point-to-point', methods=['POST'])
+    def process_point_to_point():
+        """处理点对点应答"""
+        if not TECH_RESPONDER_AVAILABLE:
+            return jsonify({
+                'success': False,
+                'message': '点对点应答模块不可用'
+            })
+
+        try:
+            # 获取上传的文件
+            if 'file' not in request.files:
+                raise ValueError("没有选择文件")
+
+            file = request.files['file']
+            if file.filename == '':
+                raise ValueError("文件名为空")
+
+            # 保存文件
+            filename = safe_filename(file.filename)
+            upload_dir = ensure_dir(config.get_path('upload'))
+            file_path = upload_dir / filename
+            file.save(str(file_path))
+
+            logger.info(f"开始处理点对点应答: {filename}")
+
+            # 获取公司ID参数
+            company_id = request.form.get('companyId')
+            if not company_id:
+                return jsonify({
+                    'success': False,
+                    'error': '缺少公司ID参数'
+                })
+
+            # 加载公司数据
+            import json
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+
+            if not company_file.exists():
+                return jsonify({
+                    'success': False,
+                    'error': f'未找到公司数据: {company_id}'
+                })
+
+            with open(company_file, 'r', encoding='utf-8') as f:
+                company_data = json.load(f)
+
+            logger.info(f"使用公司信息: {company_data.get('companyName', 'N/A')}")
+
+            # 创建技术需求回复处理器
+            responder = TechResponder()
+
+            # 生成输出文件路径
+            output_dir = ensure_dir(config.get_path('output'))
+            output_filename = f"point_to_point_{filename}"
+            output_path = output_dir / output_filename
+
+            # 处理技术需求文档
+            result_stats = responder.process_tech_requirements(
+                str(file_path),
+                str(output_path),
+                company_data,
+                response_strategy='comprehensive'  # 使用综合策略
+            )
+
+            if result_stats.get('success'):
+                logger.info(f"点对点应答处理成功: {result_stats.get('message')}")
+
+                # 生成下载URL
+                download_url = f'/download/{output_filename}'
+
+                return jsonify({
+                    'success': True,
+                    'message': result_stats.get('message', '点对点应答处理完成'),
+                    'download_url': download_url,
+                    'filename': output_filename,
+                    'stats': {
+                        'requirements_count': result_stats.get('requirements_count', 0),
+                        'responses_count': result_stats.get('responses_count', 0)
+                    }
+                })
+            else:
+                logger.error(f"点对点应答处理失败: {result_stats.get('error')}")
+                return jsonify({
+                    'success': False,
+                    'error': result_stats.get('error', '处理失败'),
+                    'message': result_stats.get('message', '点对点应答处理失败')
+                })
+
+        except Exception as e:
+            logger.error(f"点对点应答处理失败: {e}")
+            return jsonify(format_error_response(e))
+
     # ===================
     # 技术需求回复路由
     # ===================
@@ -587,9 +681,15 @@ def register_routes(app: Flask, config, logger):
             file.save(str(requirements_path))
             
             # 加载公司数据
-            company_data = config.load_company_data(company_id)
-            if not company_data:
+            import json
+            company_configs_dir = config.get_path('config') / 'companies'
+            company_file = company_configs_dir / f'{company_id}.json'
+
+            if not company_file.exists():
                 raise ValueError(f"未找到公司数据: {company_id}")
+
+            with open(company_file, 'r', encoding='utf-8') as f:
+                company_data = json.load(f)
             
             logger.info(f"开始处理技术需求: {filename}")
             
