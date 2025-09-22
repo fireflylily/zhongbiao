@@ -73,7 +73,15 @@ def create_app() -> Flask:
     
     # 启用CORS
     CORS(app)
-    
+
+    # 注册知识库API蓝图
+    try:
+        from modules.knowledge_base.api import knowledge_base_api
+        app.register_blueprint(knowledge_base_api.get_blueprint())
+        logger.info("知识库API模块注册成功")
+    except ImportError as e:
+        logger.warning(f"知识库API模块加载失败: {e}")
+
     # 注册路由
     register_routes(app, config, logger)
     
@@ -627,7 +635,8 @@ def register_routes(app: Flask, config, logger):
             # 使用新的内联回复处理方法
             result_stats = processor.process_inline_reply(
                 str(file_path),
-                str(output_path)
+                str(output_path),
+                response_mode
             )
 
             if result_stats.get('success'):
