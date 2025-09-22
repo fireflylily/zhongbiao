@@ -39,7 +39,8 @@
       "Bash(grep:*)",
       "Bash(node:*)",
       "Bash(xcopy:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
