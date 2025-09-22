@@ -314,6 +314,54 @@ class InlineReplyProcessor:
         except Exception as e:
             self.logger.warning(f"格式复制失败: {e}")
 
+    def copy_paragraph_format_except_line_spacing(self, source_para, target_para):
+        """
+        复制段落格式，但排除行距设置（专门为内联回复使用）
+
+        Args:
+            source_para: 源段落
+            target_para: 目标段落
+        """
+        try:
+            # 复制段落级别的格式（排除行距相关）
+            if source_para.paragraph_format.alignment is not None:
+                target_para.paragraph_format.alignment = source_para.paragraph_format.alignment
+
+            if source_para.paragraph_format.left_indent is not None:
+                target_para.paragraph_format.left_indent = source_para.paragraph_format.left_indent
+
+            if source_para.paragraph_format.right_indent is not None:
+                target_para.paragraph_format.right_indent = source_para.paragraph_format.right_indent
+
+            if source_para.paragraph_format.first_line_indent is not None:
+                target_para.paragraph_format.first_line_indent = source_para.paragraph_format.first_line_indent
+
+            # 复制段前段后间距，但不复制行距
+            if source_para.paragraph_format.space_before is not None:
+                target_para.paragraph_format.space_before = source_para.paragraph_format.space_before
+            if source_para.paragraph_format.space_after is not None:
+                target_para.paragraph_format.space_after = source_para.paragraph_format.space_after
+
+            # 复制字体格式（从源段落的第一个run）
+            if source_para.runs and target_para.runs:
+                source_run = source_para.runs[0]
+                target_run = target_para.runs[0]
+
+                # 复制字体属性
+                if source_run.font.name:
+                    target_run.font.name = source_run.font.name
+                if source_run.font.size:
+                    target_run.font.size = source_run.font.size
+                if source_run.font.bold is not None:
+                    target_run.font.bold = source_run.font.bold
+                if source_run.font.italic is not None:
+                    target_run.font.italic = source_run.font.italic
+                # 对于应答内容，始终设置为黑色字体
+                target_run.font.color.rgb = RGBColor(0, 0, 0)
+
+        except Exception as e:
+            self.logger.warning(f"格式复制（排除行距）失败: {e}")
+
     def add_paragraph_shading(self, paragraph, color):
         """
         给段落添加背景色底纹
@@ -357,33 +405,75 @@ class InlineReplyProcessor:
             return None
 
         try:
-            # 插入新段落
-            new_p = OxmlElement("w:p")
-            paragraph._p.addnext(new_p)
-            new_para = paragraph._parent.add_paragraph()
-            new_para._p = new_p
+            # 使用正确的方式插入新段落
+            # 获取段落的父元素（通常是body或table cell）
+            parent = paragraph._parent
 
-            if text:
+            # 找到当前段落在父元素中的位置
+            para_index = None
+            for i, p in enumerate(parent.paragraphs):
+                if p._p == paragraph._p:
+                    para_index = i
+                    break
+
+            if para_index is None:
+                self.logger.error("无法找到段落位置")
+                return None
+
+            # 尝试使用insert_paragraph_after方法（如果可用）
+            new_para = None
+            try:
+                if hasattr(parent, 'insert_paragraph_after'):
+                    new_para = parent.insert_paragraph_after(text or "", paragraph)
+            except Exception as e:
+                self.logger.debug(f"insert_paragraph_after方法不可用: {e}")
+
+            # 如果insert_paragraph_after不可用，使用备用方法
+            if new_para is None:
+                # 备用方法：直接在父容器中添加段落
+                new_para = parent.add_paragraph()
+                if text:
+                    new_para.text = text
+
+                # 手动调整段落位置（将新段落移动到目标段落后面）
+                try:
+                    # 获取所有段落的底层元素
+                    all_p_elements = parent.element.xpath('.//w:p', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
+                    target_p = paragraph._p
+                    new_p = new_para._p
+
+                    # 在目标段落后插入新段落
+                    target_p.addnext(new_p)
+                except Exception as move_error:
+                    self.logger.warning(f"段落位置调整失败: {move_error}")
+
+            # 设置样式
+            if style:
+                new_para.style = style
+
+            # 首先明确设置1.5倍行距（在添加文本和格式之前）
+            new_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+            new_para.paragraph_format.line_spacing = 1.5
+            self.logger.debug(f"初始行距设置: rule={new_para.paragraph_format.line_spacing_rule}, spacing={new_para.paragraph_format.line_spacing}")
+
+            # 如果需要添加文本且之前没有添加
+            if text and not new_para.text:
                 run = new_para.add_run(text)
                 # 设置字体为黑色
                 run.font.color.rgb = RGBColor(0, 0, 0)
 
-            if style:
-                new_para.style = style
+            # 复制源段落的部分格式（除了行距，因为我们要强制使用1.5倍）
+            self.copy_paragraph_format_except_line_spacing(paragraph, new_para)
 
-            # 复制源段落的格式（包括行距）
-            self.copy_paragraph_format(paragraph, new_para)
-            self.logger.debug(f"复制格式后行距: rule={new_para.paragraph_format.line_spacing_rule}, spacing={new_para.paragraph_format.line_spacing}")
+            # 再次确保行距设置（在格式复制之后）
+            new_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+            new_para.paragraph_format.line_spacing = 1.5
+            self.logger.debug(f"格式复制后重新设置行距: rule={new_para.paragraph_format.line_spacing_rule}, spacing={new_para.paragraph_format.line_spacing}")
 
             # 添加浅灰色底纹 RGB(217,217,217)
             self.add_paragraph_shading(new_para, RGBColor(217, 217, 217))
 
-            # 最后明确设置1.5倍行距（确保生效）
-            new_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
-            new_para.paragraph_format.line_spacing = 1.5
-            self.logger.debug(f"设置1.5倍行距后: rule={new_para.paragraph_format.line_spacing_rule}, spacing={new_para.paragraph_format.line_spacing}")
-
-            # 验证最终行距设置
+            # 最终验证行距设置
             final_rule = new_para.paragraph_format.line_spacing_rule
             final_spacing = new_para.paragraph_format.line_spacing
             self.logger.info(f"最终行距设置: rule={final_rule}({final_rule.name if hasattr(final_rule, 'name') else final_rule}), spacing={final_spacing}")
@@ -392,6 +482,8 @@ class InlineReplyProcessor:
 
         except Exception as e:
             self.logger.error(f"段落插入失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
             return None
 
     def process_document(self, input_file: str, output_file: Optional[str] = None, use_ai: bool = True) -> str:
