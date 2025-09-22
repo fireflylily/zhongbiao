@@ -333,8 +333,8 @@ class InlineReplyProcessor:
             if source_para.paragraph_format.right_indent is not None:
                 target_para.paragraph_format.right_indent = source_para.paragraph_format.right_indent
 
-            if source_para.paragraph_format.first_line_indent is not None:
-                target_para.paragraph_format.first_line_indent = source_para.paragraph_format.first_line_indent
+            # 统一设置应答段落的首行缩进为4个空格（约24磅）
+            target_para.paragraph_format.first_line_indent = Pt(24)
 
             # 复制段前段后间距，但不复制行距
             if source_para.paragraph_format.space_before is not None:
@@ -437,12 +437,9 @@ class InlineReplyProcessor:
 
                 # 手动调整段落位置（将新段落移动到目标段落后面）
                 try:
-                    # 获取所有段落的底层元素
-                    all_p_elements = parent.element.xpath('.//w:p', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
-                    target_p = paragraph._p
-                    new_p = new_para._p
-
-                    # 在目标段落后插入新段落
+                    # 使用正确的段落元素操作
+                    target_p = paragraph._element
+                    new_p = new_para._element
                     target_p.addnext(new_p)
                 except Exception as move_error:
                     self.logger.warning(f"段落位置调整失败: {move_error}")

@@ -142,7 +142,7 @@ class Config:
             },
             # 始皇API配置 - 支持内联回复功能
             'shihuang-gpt4o-mini': {
-                'api_key': os.getenv('SHIHUANG_API_KEY', 'sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob'),
+                'api_key': os.getenv('SHIHUANG_API_KEY', ''),
                 'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
                 'model_name': 'gpt-4o-mini',
                 'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '500')),
@@ -153,7 +153,7 @@ class Config:
                 'description': '高效快速的AI模型，专业点对点应答，支持灰色底纹标记'
             },
             'shihuang-gpt4': {
-                'api_key': os.getenv('SHIHUANG_API_KEY', 'sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob'),
+                'api_key': os.getenv('SHIHUANG_API_KEY', ''),
                 'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
                 'model_name': 'gpt-4',
                 'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '800')),
