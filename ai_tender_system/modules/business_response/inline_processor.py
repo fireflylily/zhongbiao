@@ -216,17 +216,23 @@ class InlineReplyProcessor:
 
         return "通用模板"
 
-    def generate_professional_response(self, requirement_text: str) -> str:
+    def generate_professional_response(self, requirement_text: str, use_ai: bool = True) -> str:
         """
         生成专业的技术应答
 
         Args:
             requirement_text: 需求文本
+            use_ai: 是否使用AI生成（False则使用简单模板）
 
         Returns:
             专业应答文本
         """
         req_type = self.classify_requirement_type(requirement_text)
+
+        # 如果不使用AI，直接返回模板应答
+        if not use_ai:
+            template = self.templates.get(req_type, self.templates["通用模板"])
+            return f"应答：满足。{template}。"
 
         # 使用点对点应答风格
         prompt = f"{self.PROMPT_TEMPLATES['point_to_point']}'{requirement_text}'"
@@ -276,6 +282,16 @@ class InlineReplyProcessor:
 
             if source_para.paragraph_format.first_line_indent is not None:
                 target_para.paragraph_format.first_line_indent = source_para.paragraph_format.first_line_indent
+
+            # 复制行距设置
+            if source_para.paragraph_format.line_spacing_rule is not None:
+                target_para.paragraph_format.line_spacing_rule = source_para.paragraph_format.line_spacing_rule
+            if source_para.paragraph_format.line_spacing is not None:
+                target_para.paragraph_format.line_spacing = source_para.paragraph_format.line_spacing
+            if source_para.paragraph_format.space_before is not None:
+                target_para.paragraph_format.space_before = source_para.paragraph_format.space_before
+            if source_para.paragraph_format.space_after is not None:
+                target_para.paragraph_format.space_after = source_para.paragraph_format.space_after
 
             # 复制字体格式（从源段落的第一个run）
             if source_para.runs:
@@ -355,15 +371,22 @@ class InlineReplyProcessor:
             if style:
                 new_para.style = style
 
-            # 复制源段落的格式
+            # 复制源段落的格式（包括行距）
             self.copy_paragraph_format(paragraph, new_para)
-
-            # 设置1.5倍行距
-            new_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
-            new_para.paragraph_format.line_spacing = 1.5
+            self.logger.debug(f"复制格式后行距: rule={new_para.paragraph_format.line_spacing_rule}, spacing={new_para.paragraph_format.line_spacing}")
 
             # 添加浅灰色底纹 RGB(217,217,217)
             self.add_paragraph_shading(new_para, RGBColor(217, 217, 217))
+
+            # 最后明确设置1.5倍行距（确保生效）
+            new_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+            new_para.paragraph_format.line_spacing = 1.5
+            self.logger.debug(f"设置1.5倍行距后: rule={new_para.paragraph_format.line_spacing_rule}, spacing={new_para.paragraph_format.line_spacing}")
+
+            # 验证最终行距设置
+            final_rule = new_para.paragraph_format.line_spacing_rule
+            final_spacing = new_para.paragraph_format.line_spacing
+            self.logger.info(f"最终行距设置: rule={final_rule}({final_rule.name if hasattr(final_rule, 'name') else final_rule}), spacing={final_spacing}")
 
             return new_para
 
@@ -371,13 +394,14 @@ class InlineReplyProcessor:
             self.logger.error(f"段落插入失败: {e}")
             return None
 
-    def process_document(self, input_file: str, output_file: Optional[str] = None) -> str:
+    def process_document(self, input_file: str, output_file: Optional[str] = None, use_ai: bool = True) -> str:
         """
         处理文档，插入内联回复
 
         Args:
             input_file: 输入文档路径
             output_file: 输出文档路径（可选）
+            use_ai: 是否使用AI生成应答（False则使用简单模板）
 
         Returns:
             处理后的文档路径
@@ -414,7 +438,7 @@ class InlineReplyProcessor:
                     self.logger.info(f"处理需求 {requirement_count}: {text[:60]}...")
 
                     # 生成专业应答
-                    response = self.generate_professional_response(text)
+                    response = self.generate_professional_response(text, use_ai)
 
                     # 在需求段落后插入应答（保持格式一致）
                     reply_para = self.insert_paragraph_after_with_format(para, response)
