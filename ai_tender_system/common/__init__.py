@@ -6,10 +6,11 @@ AI标书系统公共模块
 
 from .config import get_config, Config
 from .logger import setup_logging, get_module_logger
+from .llm_client import LLMClient
 from .exceptions import (
-    AITenderSystemError, ConfigurationError, APIError, 
+    AITenderSystemError, ConfigurationError, APIError,
     FileProcessingError, DocumentProcessingError,
-    TenderInfoExtractionError, BusinessResponseError, 
+    TenderInfoExtractionError, BusinessResponseError,
     TechProposalError, ValidationError,
     format_error_response, handle_api_error
 )
@@ -25,6 +26,8 @@ __all__ = [
     'get_config', 'Config',
     # 日志
     'setup_logging', 'get_module_logger',
+    # LLM客户端
+    'LLMClient',
     # 异常
     'AITenderSystemError', 'ConfigurationError', 'APIError',
     'FileProcessingError', 'DocumentProcessingError',

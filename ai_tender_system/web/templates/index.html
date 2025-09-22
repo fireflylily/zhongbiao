@@ -884,6 +884,22 @@
             <!-- 点对点应答选项卡 -->
             <div class="tab-pane fade" id="point-to-point" role="tabpanel">
 
+        <!-- 功能说明 -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>内联回复功能（原地插入应答）</h6>
+                    <p class="mb-2">该功能会在原文档中每个需求后<strong>直接插入应答</strong>，特点：</p>
+                    <ul class="mb-0 small">
+                        <li><strong>原地插入</strong>：应答紧跟在每个需求段落后面</li>
+                        <li><strong>灰色底纹标记</strong>：应答内容添加浅灰色背景（RGB 217,217,217），便于识别</li>
+                        <li><strong>格式完整保留</strong>：保持原文档的字体、样式、结构不变</li>
+                        <li><strong>专业提示词</strong>：使用三种专业模板（点对点/内容生成/标题简化）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- 应答配置区域 -->
         <div class="row mb-4">
             <div class="col-12">
@@ -920,8 +936,14 @@
                                     </button>
                                 </label>
                                 <select class="form-select" name="aiModel" id="aiModel" onchange="onModelChange()">
-                                    <option value="gpt-4o-mini">GPT-4o-mini</option>
-                                    <option value="unicom-yuanjing" selected>联通元景大模型</option>
+                                    <optgroup label="始皇API">
+                                        <option value="shihuang-gpt4o-mini" selected>始皇-GPT4o迷你版（快速高效）</option>
+                                        <option value="shihuang-gpt4">始皇-GPT4专业版（深度分析）</option>
+                                    </optgroup>
+                                    <optgroup label="联通元景">
+                                        <option value="yuanjing-deepseek-v3">元景-DeepSeek-V3</option>
+                                        <option value="yuanjing-qwen-235b">元景-通义千问235B</option>
+                                    </optgroup>
                                 </select>
                                 <div id="modelStatus" class="mt-2" style="display: none;">
                                     <small class="text-muted">
@@ -1012,6 +1034,22 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史文件列表 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-files"></i> 历史文件</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="pointHistoryFilesList">
+                            <p class="text-muted">正在加载历史文件...</p>
                         </div>
                     </div>
                 </div>
@@ -2177,6 +2215,10 @@
                     // 设置下载按钮事件
                     const downloadBtn = document.getElementById('downloadBtn');
                     if (data.download_url && data.filename) {
+                        // 存储下载信息到按钮的data属性
+                        downloadBtn.setAttribute('data-download-url', data.download_url);
+                        downloadBtn.setAttribute('data-filename', data.filename);
+
                         downloadBtn.onclick = function(e) {
                             e.preventDefault();
                             downloadFile(data.download_url, data.filename);
@@ -4869,23 +4911,15 @@
         // 点对点应答文档预览
         function previewPointDocument() {
             const downloadBtn = document.getElementById('downloadBtn');
-            if (!downloadBtn || !downloadBtn.onclick) {
+            if (!downloadBtn) {
                 showNotification('没有可预览的文档', 'warning');
                 return;
             }
 
-            // 获取文件路径
-            const onclickStr = downloadBtn.onclick.toString();
-            const match = onclickStr.match(/downloadFile\(['"]([^'"]+)['"]/);
-            if (!match) {
-                showNotification('无法获取文档路径', 'error');
-                return;
-            }
-
-            const downloadUrl = match[1];
-            // 检查下载URL是否为undefined或无效
-            if (!downloadUrl || downloadUrl === 'undefined' || downloadUrl.includes('undefined')) {
-                showNotification('文档链接无效，请重新处理点对点应答', 'error');
+            // 从data属性获取下载URL
+            const downloadUrl = downloadBtn.getAttribute('data-download-url');
+            if (!downloadUrl || downloadUrl === 'undefined') {
+                showNotification('无法获取文档路径，请重新处理内联回复', 'error');
                 return;
             }
 
@@ -4919,23 +4953,15 @@
         // 点对点应答文档编辑
         function editPointDocument() {
             const downloadBtn = document.getElementById('downloadBtn');
-            if (!downloadBtn || !downloadBtn.onclick) {
+            if (!downloadBtn) {
                 showNotification('没有可编辑的文档', 'warning');
                 return;
             }
 
-            // 获取文件路径
-            const onclickStr = downloadBtn.onclick.toString();
-            const match = onclickStr.match(/downloadFile\(['"]([^'"]+)['"]/);
-            if (!match) {
-                showNotification('无法获取文档路径', 'error');
-                return;
-            }
-
-            const downloadUrl = match[1];
-            // 检查下载URL是否为undefined或无效
-            if (!downloadUrl || downloadUrl === 'undefined' || downloadUrl.includes('undefined')) {
-                showNotification('文档链接无效，请重新处理点对点应答', 'error');
+            // 从data属性获取下载URL
+            const downloadUrl = downloadBtn.getAttribute('data-download-url');
+            if (!downloadUrl || downloadUrl === 'undefined') {
+                showNotification('无法获取文档路径，请重新处理内联回复', 'error');
                 return;
             }
 
@@ -5175,7 +5201,55 @@
                 filesList.innerHTML = '<p class="text-warning">文件列表加载失败，请稍后重试</p>';
             });
         }
-        
+
+        // 加载点对点应答历史文件
+        function loadPointToPointFilesList() {
+            const filesList = document.getElementById('pointHistoryFilesList');
+            if (!filesList) {
+                console.log('pointHistoryFilesList 元素不存在，跳过文件列表加载');
+                return;
+            }
+
+            fetch('/api/point-to-point-files')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.files && data.files.length > 0) {
+                    let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr>';
+                    html += '<th>文件名</th><th>大小</th><th>创建时间</th><th>操作</th></tr></thead><tbody>';
+
+                    data.files.forEach(file => {
+                        const size = (file.size / 1024 / 1024).toFixed(2);
+                        const date = new Date(file.created).toLocaleString('zh-CN');
+                        const downloadUrl = `/download/${encodeURIComponent(file.name)}`;
+                        const previewBtn = `<button class="btn btn-sm btn-outline-info me-2" onclick="previewHistoricalDocument('${file.name}')">预览</button>`;
+                        html += `<tr>
+                            <td>${file.name}</td>
+                            <td>${size} MB</td>
+                            <td>${date}</td>
+                            <td>
+                                ${previewBtn}
+                                <a href="${downloadUrl}" class="btn btn-sm btn-outline-primary">下载</a>
+                            </td>
+                        </tr>`;
+                    });
+
+                    html += '</tbody></table></div>';
+                    filesList.innerHTML = html;
+                } else {
+                    filesList.innerHTML = '<p class="text-muted">暂无历史文件</p>';
+                }
+            })
+            .catch(error => {
+                console.error('加载点对点应答文件列表失败:', error);
+                filesList.innerHTML = '<p class="text-warning">文件列表加载失败，请稍后重试</p>';
+            });
+        }
+
         // 页面加载时初始化商务应答页面
         function initBusinessResponsePage() {
             // 确保所有结果区域都被隐藏
@@ -5195,6 +5269,9 @@
             if (e.target.id === 'business-response-nav') {
                 // 当切换到商务应答选项卡时，确保结果区域被隐藏
                 initBusinessResponsePage();
+            } else if (e.target.id === 'point-to-point-nav') {
+                // 当切换到点对点应答选项卡时，加载历史文件
+                loadPointToPointFilesList();
             }
         });
         

@@ -140,6 +140,29 @@ class Config:
                 'display_name': '元景-DeepSeek函数调用版',
                 'description': '结构化输出能力强，适合生成规范格式的标书内容和表格'
             },
+            # 始皇API配置 - 支持内联回复功能
+            'shihuang-gpt4o-mini': {
+                'api_key': os.getenv('SHIHUANG_API_KEY', 'sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob'),
+                'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
+                'model_name': 'gpt-4o-mini',
+                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '500')),
+                'temperature': float(os.getenv('SHIHUANG_TEMPERATURE', '0.3')),
+                'timeout': int(os.getenv('SHIHUANG_TIMEOUT', '60')),
+                'provider': 'Shihuang',
+                'display_name': '始皇-GPT4o迷你版',
+                'description': '高效快速的AI模型，专业点对点应答，支持灰色底纹标记'
+            },
+            'shihuang-gpt4': {
+                'api_key': os.getenv('SHIHUANG_API_KEY', 'sk-4sYV1WXMcdGcLz9XEKWyntV58pSnhb4GXM6aMBfzWUic3pLfnwob'),
+                'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
+                'model_name': 'gpt-4',
+                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '800')),
+                'temperature': float(os.getenv('SHIHUANG_TEMPERATURE', '0.3')),
+                'timeout': int(os.getenv('SHIHUANG_TIMEOUT', '60')),
+                'provider': 'Shihuang',
+                'display_name': '始皇-GPT4专业版',
+                'description': '高级专业模型，适合复杂技术方案和深度内容生成'
+            },
             # 向后兼容性配置 - 保持原有模型名称可用
             'unicom-yuanjing': {
                 'access_token': os.getenv('ACCESS_TOKEN', ''),

@@ -51,6 +51,13 @@ class LLMClient:
             self.api_key = api_key or self.model_config.get('access_token', '')
             self.base_url = self.model_config.get('base_url', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')
             self.api_endpoint = f"{self.base_url}/chat/completions"
+        elif model_name.startswith('shihuang'):
+            # 始皇API配置 - OpenAI兼容格式
+            self.api_key = api_key or self.model_config.get('api_key', '')
+            self.api_endpoint = self.model_config.get('api_endpoint', 'https://api.oaipro.com/v1/chat/completions')
+            self.base_url = self.api_endpoint.rsplit('/chat/completions', 1)[0]
+            # 始皇API特殊参数
+            self.temperature = self.model_config.get('temperature', 0.3)
         else:
             # OpenAI兼容配置
             self.api_key = api_key or self.model_config.get('api_key', '')
@@ -102,6 +109,12 @@ class LLMClient:
                     )
                 else:
                     raise  # 对于其他错误，直接抛出
+        elif self.model_name.startswith('shihuang'):
+            # 始皇API使用OpenAI兼容格式，但使用配置的温度参数
+            actual_temperature = self.temperature if hasattr(self, 'temperature') else temperature
+            return self._call_openai_compatible(
+                prompt, system_prompt, actual_temperature, max_retries, purpose
+            )
         else:
             return self._call_openai_compatible(
                 prompt, system_prompt, temperature, max_retries, purpose

@@ -551,8 +551,8 @@ def register_routes(app: Flask, config, logger):
     
     @app.route('/process-point-to-point', methods=['POST'])
     def process_point_to_point():
-        """处理点对点应答"""
-        if not TECH_RESPONDER_AVAILABLE:
+        """处理点对点应答 - 使用内联回复功能（原地插入应答）"""
+        if not BUSINESS_RESPONSE_AVAILABLE:
             return jsonify({
                 'success': False,
                 'message': '点对点应答模块不可用'
@@ -602,51 +602,59 @@ def register_routes(app: Flask, config, logger):
             # 获取配置参数
             response_frequency = request.form.get('responseFrequency', 'every_paragraph')
             response_mode = request.form.get('responseMode', 'simple')
-            ai_model = request.form.get('aiModel', 'gpt-4o-mini')
+            ai_model = request.form.get('aiModel', 'shihuang-gpt4o-mini')
 
-            logger.info(f"配置参数 - 应答频次: {response_frequency}, 应答方式: {response_mode}, AI模型: {ai_model}")
+            # 根据模型选择映射到正确的模型名称
+            model_mapping = {
+                'gpt-4o-mini': 'shihuang-gpt4o-mini',
+                'gpt-4': 'shihuang-gpt4',
+                'deepseek-v3': 'yuanjing-deepseek-v3',
+                'qwen-235b': 'yuanjing-qwen-235b'
+            }
+            actual_model = model_mapping.get(ai_model, ai_model)
 
-            # 创建技术需求回复处理器
-            responder = TechResponder()
+            logger.info(f"配置参数 - 应答频次: {response_frequency}, 应答方式: {response_mode}, AI模型: {actual_model}")
+
+            # 创建商务应答处理器（使用内联回复功能）
+            processor = BusinessResponseProcessor(model_name=actual_model)
 
             # 生成输出文件路径
             output_dir = ensure_dir(config.get_path('output'))
-            output_filename = f"point_to_point_{filename}"
+            base_name = Path(filename).stem
+            output_filename = f"{base_name}-内联应答.docx"
             output_path = output_dir / output_filename
 
-            # 处理技术需求文档
-            result_stats = responder.process_tech_requirements(
+            # 使用新的内联回复处理方法
+            result_stats = processor.process_inline_reply(
                 str(file_path),
-                str(output_path),
-                company_data,
-                response_strategy='comprehensive',  # 使用综合策略
-                response_frequency=response_frequency,
-                response_mode=response_mode,
-                ai_model=ai_model
+                str(output_path)
             )
 
             if result_stats.get('success'):
-                logger.info(f"点对点应答处理成功: {result_stats.get('message')}")
+                logger.info(f"内联回复处理成功: {result_stats.get('message')}")
 
                 # 生成下载URL
                 download_url = f'/download/{output_filename}'
 
                 return jsonify({
                     'success': True,
-                    'message': result_stats.get('message', '点对点应答处理完成'),
+                    'message': '内联回复处理完成，应答已插入到原文档中（灰色底纹标记）',
                     'download_url': download_url,
                     'filename': output_filename,
+                    'model_used': actual_model,
+                    'features': result_stats.get('features', {}),
                     'stats': {
-                        'requirements_count': result_stats.get('requirements_count', 0),
-                        'responses_count': result_stats.get('responses_count', 0)
+                        'inline_reply': True,
+                        'gray_shading': True,
+                        'format_preserved': True
                     }
                 })
             else:
-                logger.error(f"点对点应答处理失败: {result_stats.get('error')}")
+                logger.error(f"内联回复处理失败: {result_stats.get('error')}")
                 return jsonify({
                     'success': False,
                     'error': result_stats.get('error', '处理失败'),
-                    'message': result_stats.get('message', '点对点应答处理失败')
+                    'message': result_stats.get('message', '内联回复处理失败')
                 })
 
         except Exception as e:
@@ -1414,6 +1422,40 @@ def register_routes(app: Flask, config, logger):
             
         except Exception as e:
             logger.error(f"获取商务文件列表失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/point-to-point-files')
+    def list_point_to_point_files():
+        """获取点对点应答文件列表"""
+        try:
+            import os
+            from datetime import datetime
+
+            files = []
+            output_dir = config.get_path('output')
+
+            if output_dir.exists():
+                for filename in os.listdir(output_dir):
+                    # 过滤点对点应答文件（通常包含特定关键词）
+                    if filename.endswith(('.docx', '.doc', '.pdf')) and any(keyword in filename.lower() for keyword in ['点对点', 'point', 'p2p', '应答', 'reply']):
+                        file_path = output_dir / filename
+                        try:
+                            stat = file_path.stat()
+                            files.append({
+                                'name': filename,
+                                'size': stat.st_size,
+                                'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                                'path': str(file_path)
+                            })
+                        except Exception as e:
+                            logger.warning(f"读取文件信息失败 {filename}: {e}")
+
+            files.sort(key=lambda x: x.get('modified', ''), reverse=True)
+            return jsonify({'success': True, 'files': files})
+
+        except Exception as e:
+            logger.error(f"获取点对点应答文件列表失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
     # ===================
