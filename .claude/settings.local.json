@@ -45,7 +45,8 @@
       "WebFetch(domain:maas-gz.ai-yuanjing.com)",
       "Bash(cd:*)",
       "WebFetch(domain:maas.ai-yuanjing.com)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(git merge:*)"
     ],
     "deny": [],
     "ask": []
