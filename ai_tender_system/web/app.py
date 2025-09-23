@@ -110,7 +110,17 @@ def register_routes(app: Flask, config, logger):
     def system_status():
         """系统状态页面"""
         return render_template('system_status.html')
-    
+
+    @app.route('/knowledge_base.html')
+    def knowledge_base_html():
+        """知识库管理页面（HTML路径）"""
+        return render_template('knowledge_base.html')
+
+    @app.route('/knowledge_base')
+    def knowledge_base():
+        """知识库管理页面"""
+        return render_template('knowledge_base.html')
+
     # ===================
     # 静态资源路由
     # ===================

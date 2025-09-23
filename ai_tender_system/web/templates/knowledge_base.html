@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业知识库管理 - AI标书系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/common.css" rel="stylesheet">
+    <style>
+        /* 导航栏样式统一 */
+        .sidebar-toggle-btn {
+            background: none;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .sidebar-toggle-btn:hover {
+            background-color: #f8f9fa;
+            border-color: #1976d2;
+            color: #1976d2;
+        }
+        .unicom-logo svg {
+            max-height: 40px;
+        }
+        .brand-text .brand-title {
+            color: #333;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+        .brand-text .brand-subtitle {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .dropdown-menu {
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+        }
+        .dropdown-item {
+            padding: 10px 16px;
+            transition: all 0.2s ease;
+        }
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            color: #1976d2;
+        }
+        .dropdown-item.active {
+            background-color: #1976d2;
+            color: white;
+        }
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        .kb-sidebar {
+            background-color: #f8f9fa;
+            min-height: calc(100vh - 100px);
+            padding: 20px;
+        }
+        .kb-content {
+            padding: 20px;
+        }
+        .tree-node {
+            cursor: pointer;
+            padding: 5px 10px;
+            margin: 2px 0;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .tree-node:hover {
+            background-color: #e9ecef;
+        }
+        .tree-node.active {
+            background-color: #1976d2;
+            color: white;
+            border-left: 3px solid #1565c0;
+        }
+        .tree-children {
+            margin-left: 20px;
+        }
+        .document-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .document-item {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+        .document-item:hover {
+            background-color: #f8f9fa;
+            border-color: #1976d2;
+        }
+        .privacy-badge {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        .privacy-1 { background-color: #28a745; color: white; }
+        .privacy-2 { background-color: #ffc107; color: black; }
+        .privacy-3 { background-color: #fd7e14; color: white; }
+        .privacy-4 { background-color: #dc3545; color: white; }
+        .upload-zone {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-zone:hover {
+            border-color: #1976d2;
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.1);
+        }
+        .upload-zone.dragover {
+            background-color: #e8f4ff;
+            border-color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+        <div class="container-fluid">
+            <button class="btn sidebar-toggle-btn me-3" type="button" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="navbar-brand d-flex align-items-center">
+                <!-- 中国联通官方Logo -->
+                <div class="unicom-logo me-3">
+                    <svg width="120" height="40" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="unicomKnotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#1976d2;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#1565c0;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#0d47a1;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <!-- 中国联通结绳标志 -->
+                        <g transform="translate(5, 5)">
+                            <path d="M25 5 C35 5, 45 15, 45 25 C45 35, 35 45, 25 45 C15 45, 5 35, 5 25"
+                                  fill="none" stroke="url(#unicomKnotGradient)" stroke-width="3"/>
+                            <path d="M25 15 C30 15, 35 20, 35 25 C35 30, 30 35, 25 35"
+                                  fill="none" stroke="url(#unicomKnotGradient)" stroke-width="2"/>
+                            <circle cx="20" cy="25" r="3" fill="url(#unicomKnotGradient)"/>
+                            <circle cx="30" cy="25" r="3" fill="url(#unicomKnotGradient)"/>
+                        </g>
+                        <!-- 中国联通文字 -->
+                        <g transform="translate(65, 20)">
+                            <text x="0" y="0" font-family="'Microsoft YaHei', sans-serif" font-size="16" font-weight="bold" fill="#1976d2">中国联通</text>
+                            <text x="0" y="18" font-family="'Microsoft YaHei', sans-serif" font-size="10" fill="#666">CHINA UNICOM</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="brand-text ms-2">
+                    <h6 class="brand-title mb-0">元景AI智能标书生成平台</h6>
+                    <small class="brand-subtitle text-muted">企业知识库管理</small>
+                </div>
+            </div>
+
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-grid-3x3-gap me-2"></i>
+                        应用菜单
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/"><i class="bi bi-house me-2"></i>标书生成</a></li>
+                        <li><a class="dropdown-item active" href="/knowledge_base"><i class="bi bi-collection me-2"></i>知识库管理</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>系统设置</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid" style="margin-top: 70px;">
+        <div class="row">
+            <!-- 左侧树形导航 -->
+            <div class="col-md-3 kb-sidebar">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">企业目录</h5>
+                    <button class="btn btn-sm btn-primary" onclick="showAddCompanyModal()">
+                        <i class="bi bi-plus-circle"></i> 新增
+                    </button>
+                </div>
+
+                <div id="companyTree">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧内容区 -->
+            <div class="col-md-9 kb-content">
+                <!-- 面包屑导航 -->
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb" id="breadcrumb">
+                        <li class="breadcrumb-item active">知识库管理</li>
+                    </ol>
+                </nav>
+
+                <!-- 主内容区 -->
+                <div id="mainContent">
+                    <!-- 默认显示欢迎页面 -->
+                    <div class="text-center py-5">
+                        <h3>欢迎使用企业知识库管理系统</h3>
+                        <p class="text-muted">请从左侧选择企业和产品，开始管理文档</p>
+
+                        <!-- 快速操作区 -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="alert alert-light border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <span class="me-3">需要生成标书？</span>
+                                        <a href="/" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-arrow-left me-2"></i>返回标书生成
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-5">
+                            <div class="col-md-4">
+                                <div class="card feature-card">
+                                    <div class="card-body">
+                                        <i class="bi bi-building fs-1 text-primary"></i>
+                                        <h5 class="mt-3">企业管理</h5>
+                                        <p class="text-muted">管理企业信息和资质</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card feature-card">
+                                    <div class="card-body">
+                                        <i class="bi bi-box-seam fs-1 text-success"></i>
+                                        <h5 class="mt-3">产品管理</h5>
+                                        <p class="text-muted">管理产品文档库</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card feature-card">
+                                    <div class="card-body">
+                                        <i class="bi bi-file-earmark-text fs-1 text-warning"></i>
+                                        <h5 class="mt-3">文档管理</h5>
+                                        <p class="text-muted">上传和分类文档</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加公司模态框 -->
+    <div class="modal fade" id="addCompanyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增企业</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addCompanyForm">
+                        <div class="mb-3">
+                            <label for="companyName" class="form-label">企业名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="companyName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="companyCode" class="form-label">企业代码</label>
+                            <input type="text" class="form-control" id="companyCode">
+                        </div>
+                        <div class="mb-3">
+                            <label for="industryType" class="form-label">行业类型</label>
+                            <select class="form-control" id="industryType">
+                                <option value="">请选择</option>
+                                <option value="telecommunications">电信通信</option>
+                                <option value="it_software">信息技术</option>
+                                <option value="manufacturing">制造业</option>
+                                <option value="finance">金融服务</option>
+                                <option value="healthcare">医疗健康</option>
+                                <option value="education">教育培训</option>
+                                <option value="government">政府机构</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="companyDesc" class="form-label">企业描述</label>
+                            <textarea class="form-control" id="companyDesc" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addCompany()">确定添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加产品模态框 -->
+    <div class="modal fade" id="addProductModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">新增产品</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addProductForm">
+                        <div class="mb-3">
+                            <label for="productName" class="form-label">产品名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="productName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="productCode" class="form-label">产品代码</label>
+                            <input type="text" class="form-control" id="productCode">
+                        </div>
+                        <div class="mb-3">
+                            <label for="productCategory" class="form-label">产品类别</label>
+                            <select class="form-control" id="productCategory">
+                                <option value="">请选择</option>
+                                <option value="communication">通信产品</option>
+                                <option value="cloud">云计算平台</option>
+                                <option value="bigdata">大数据平台</option>
+                                <option value="ai">人工智能</option>
+                                <option value="iot">物联网</option>
+                                <option value="security">网络安全</option>
+                                <option value="software">软件产品</option>
+                                <option value="hardware">硬件设备</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="productDesc" class="form-label">产品描述</label>
+                            <textarea class="form-control" id="productDesc" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="addProduct()">确定添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文档上传模态框 -->
+    <div class="modal fade" id="uploadDocumentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">上传文档</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                        <i class="bi bi-cloud-upload fs-1 text-primary"></i>
+                        <h5 class="mt-3">点击或拖拽文件到这里上传</h5>
+                        <p class="text-muted">支持 PDF、Word 文档</p>
+                        <input type="file" id="fileInput" style="display:none" accept=".pdf,.doc,.docx" multiple>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">隐私分级 <span class="text-danger">*</span></label>
+                        <select class="form-control" id="privacyLevel">
+                            <option value="1">公开 - 所有用户可访问</option>
+                            <option value="2">内部 - 内部用户可访问</option>
+                            <option value="3">机密 - 管理员可访问</option>
+                            <option value="4">绝密 - 超级管理员可访问</option>
+                        </select>
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="form-label">文档标签</label>
+                        <input type="text" class="form-control" id="documentTags" placeholder="输入标签，用逗号分隔">
+                    </div>
+
+                    <div id="fileList" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="uploadDocuments()">开始上传</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        let currentCompanyId = null;
+        let currentProductId = null;
+        let currentLibraryId = null;
+        let selectedFiles = [];
+
+        // 初始化
+        window.onload = function() {
+            loadCompanies();
+            setupUploadZone();
+        };
+
+        // 加载公司列表
+        async function loadCompanies() {
+            try {
+                const response = await axios.get('/api/knowledge_base/companies');
+                if (response.data.success) {
+                    renderCompanyTree(response.data.data);
+                }
+            } catch (error) {
+                console.error('加载公司列表失败:', error);
+                showAlert('加载公司列表失败', 'danger');
+            }
+        }
+
+        // 渲染公司树形结构
+        function renderCompanyTree(companies) {
+            const treeHtml = companies.map(company => {
+                return `
+                    <div class="company-node mb-2">
+                        <div class="tree-node d-flex justify-content-between align-items-center"
+                             onclick="selectCompany(${company.company_id}, '${company.company_name}')">
+                            <span>
+                                <i class="bi bi-building me-2"></i>
+                                ${company.company_name}
+                                <span class="badge bg-secondary ms-2">${company.product_count || 0}</span>
+                            </span>
+                            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showAddProductModal(${company.company_id})">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                        <div class="tree-children" id="products-${company.company_id}" style="display:none"></div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('companyTree').innerHTML = treeHtml || '<p class="text-muted">暂无企业数据</p>';
+        }
+
+        // 选择公司
+        async function selectCompany(companyId, companyName) {
+            currentCompanyId = companyId;
+            currentProductId = null;
+
+            // 更新活动状态
+            document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // 更新面包屑
+            updateBreadcrumb([
+                { name: '知识库管理', link: '#' },
+                { name: companyName, active: true }
+            ]);
+
+            // 加载公司详情和产品列表
+            try {
+                const response = await axios.get(`/api/knowledge_base/companies/${companyId}`);
+                if (response.data.success) {
+                    const company = response.data.data;
+                    renderCompanyDetail(company);
+
+                    // 加载产品列表
+                    if (company.products && company.products.length > 0) {
+                        renderProductList(companyId, company.products);
+                    }
+                }
+            } catch (error) {
+                console.error('加载公司详情失败:', error);
+                showAlert('加载公司详情失败', 'danger');
+            }
+        }
+
+        // 渲染公司详情
+        function renderCompanyDetail(company) {
+            const html = `
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">${company.company_name}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>企业代码：</strong>${company.company_code || '未设置'}</p>
+                                <p><strong>行业类型：</strong>${company.industry_type || '未设置'}</p>
+                                <p><strong>创建时间：</strong>${company.created_at || '未知'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>产品数量：</strong>${company.products ? company.products.length : 0} 个</p>
+                                <p><strong>文档总数：</strong>${company.stats ? company.stats.total_documents : 0} 份</p>
+                            </div>
+                        </div>
+                        ${company.description ? `<p class="mt-3">${company.description}</p>` : ''}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">产品列表</h6>
+                            <button class="btn btn-sm btn-success" onclick="showAddProductModal(${company.company_id})">
+                                <i class="bi bi-plus-circle"></i> 添加产品
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="productList"></div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('mainContent').innerHTML = html;
+        }
+
+        // 渲染产品列表
+        function renderProductList(companyId, products) {
+            const listHtml = products.map(product => `
+                <div class="document-item" onclick="selectProduct(${product.product_id}, '${product.product_name}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="bi bi-box-seam me-2"></i>
+                                ${product.product_name}
+                            </h6>
+                            <small class="text-muted">${product.product_category || '未分类'} | ${product.document_count || 0} 份文档</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showUploadModal(${product.product_id})">
+                                <i class="bi bi-upload"></i> 上传
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('productList').innerHTML = listHtml || '<p class="text-muted text-center">暂无产品</p>';
+
+            // 同时更新左侧树形结构
+            const productsContainer = document.getElementById(`products-${companyId}`);
+            if (productsContainer) {
+                const treeHtml = products.map(product => `
+                    <div class="tree-node ms-3" onclick="selectProduct(${product.product_id}, '${product.product_name}')">
+                        <i class="bi bi-box-seam me-2"></i>
+                        ${product.product_name}
+                        <span class="badge bg-info ms-2">${product.document_count || 0}</span>
+                    </div>
+                `).join('');
+                productsContainer.innerHTML = treeHtml;
+                productsContainer.style.display = 'block';
+            }
+        }
+
+        // 选择产品
+        async function selectProduct(productId, productName) {
+            currentProductId = productId;
+
+            // 更新面包屑
+            const companyName = document.querySelector('.tree-node.active')?.textContent.trim() || '未知企业';
+            updateBreadcrumb([
+                { name: '知识库管理', link: '#' },
+                { name: companyName, link: '#' },
+                { name: productName, active: true }
+            ]);
+
+            // 加载产品详情和文档列表
+            try {
+                const response = await axios.get(`/api/knowledge_base/products/${productId}`);
+                if (response.data.success) {
+                    renderProductDetail(response.data.data);
+                }
+            } catch (error) {
+                console.error('加载产品详情失败:', error);
+                showAlert('加载产品详情失败', 'danger');
+            }
+        }
+
+        // 渲染产品详情
+        function renderProductDetail(product) {
+            const html = `
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">${product.product_name}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>产品代码：</strong>${product.product_code || '未设置'}</p>
+                        <p><strong>产品类别：</strong>${product.product_category || '未分类'}</p>
+                        ${product.description ? `<p>${product.description}</p>` : ''}
+                    </div>
+                </div>
+
+                ${product.libraries ? product.libraries.map(library => `
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">${library.library_name}</h6>
+                                <button class="btn btn-sm btn-primary" onclick="showUploadModal(${product.product_id}, ${library.library_id})">
+                                    <i class="bi bi-upload"></i> 上传文档
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="document-list">
+                                ${library.documents && library.documents.length > 0 ?
+                                    library.documents.map(doc => renderDocument(doc)).join('') :
+                                    '<p class="text-muted text-center">暂无文档</p>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `).join('') : ''}
+            `;
+
+            document.getElementById('mainContent').innerHTML = html;
+        }
+
+        // 渲染文档项
+        function renderDocument(doc) {
+            const privacyColors = ['', 'privacy-1', 'privacy-2', 'privacy-3', 'privacy-4'];
+            const privacyNames = ['', '公开', '内部', '机密', '绝密'];
+
+            return `
+                <div class="document-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="bi bi-file-earmark-text me-2"></i>
+                                ${doc.original_filename}
+                            </h6>
+                            <small class="text-muted">
+                                ${(doc.file_size_mb || 0).toFixed(2)} MB |
+                                上传时间：${doc.upload_time || '未知'}
+                            </small>
+                            <span class="privacy-badge ${privacyColors[doc.privacy_classification || 1]} ms-2">
+                                ${privacyNames[doc.privacy_classification || 1]}
+                            </span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDocument(${doc.doc_id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 更新面包屑
+        function updateBreadcrumb(items) {
+            const html = items.map(item => {
+                if (item.active) {
+                    return `<li class="breadcrumb-item active">${item.name}</li>`;
+                } else {
+                    return `<li class="breadcrumb-item"><a href="${item.link || '#'}">${item.name}</a></li>`;
+                }
+            }).join('');
+
+            document.getElementById('breadcrumb').innerHTML = html;
+        }
+
+        // 显示添加公司模态框
+        function showAddCompanyModal() {
+            new bootstrap.Modal(document.getElementById('addCompanyModal')).show();
+        }
+
+        // 显示添加产品模态框
+        function showAddProductModal(companyId) {
+            currentCompanyId = companyId;
+            new bootstrap.Modal(document.getElementById('addProductModal')).show();
+        }
+
+        // 显示上传文档模态框
+        function showUploadModal(productId, libraryId) {
+            currentProductId = productId;
+            currentLibraryId = libraryId;
+            selectedFiles = [];
+            document.getElementById('fileList').innerHTML = '';
+            new bootstrap.Modal(document.getElementById('uploadDocumentModal')).show();
+        }
+
+        // 添加公司
+        async function addCompany() {
+            const data = {
+                company_name: document.getElementById('companyName').value,
+                company_code: document.getElementById('companyCode').value,
+                industry_type: document.getElementById('industryType').value,
+                description: document.getElementById('companyDesc').value
+            };
+
+            try {
+                const response = await axios.post('/api/knowledge_base/companies', data);
+                if (response.data.success) {
+                    showAlert('企业添加成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addCompanyModal')).hide();
+                    loadCompanies();
+                    document.getElementById('addCompanyForm').reset();
+                }
+            } catch (error) {
+                console.error('添加企业失败:', error);
+                showAlert('添加企业失败：' + (error.response?.data?.error || error.message), 'danger');
+            }
+        }
+
+        // 添加产品
+        async function addProduct() {
+            const data = {
+                product_name: document.getElementById('productName').value,
+                product_code: document.getElementById('productCode').value,
+                product_category: document.getElementById('productCategory').value,
+                description: document.getElementById('productDesc').value
+            };
+
+            try {
+                const response = await axios.post(`/api/knowledge_base/companies/${currentCompanyId}/products`, data);
+                if (response.data.success) {
+                    showAlert('产品添加成功', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                    selectCompany(currentCompanyId, '');
+                    document.getElementById('addProductForm').reset();
+                }
+            } catch (error) {
+                console.error('添加产品失败:', error);
+                showAlert('添加产品失败：' + (error.response?.data?.error || error.message), 'danger');
+            }
+        }
+
+        // 设置上传区域
+        function setupUploadZone() {
+            const uploadZone = document.getElementById('uploadZone');
+            const fileInput = document.getElementById('fileInput');
+
+            // 拖拽事件
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            // 文件选择事件
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+        }
+
+        // 处理选择的文件
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+
+            const listHtml = selectedFiles.map((file, index) => `
+                <div class="alert alert-info d-flex justify-content-between align-items-center">
+                    <span>${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    <button class="btn btn-sm btn-danger" onclick="removeFile(${index})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            document.getElementById('fileList').innerHTML = listHtml;
+        }
+
+        // 移除文件
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            handleFiles(selectedFiles);
+        }
+
+        // 上传文档
+        async function uploadDocuments() {
+            if (!currentLibraryId || selectedFiles.length === 0) {
+                showAlert('请选择要上传的文件', 'warning');
+                return;
+            }
+
+            const privacyLevel = document.getElementById('privacyLevel').value;
+            const tags = document.getElementById('documentTags').value.split(',').map(t => t.trim()).filter(t => t);
+
+            for (const file of selectedFiles) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('privacy_classification', privacyLevel);
+                formData.append('tags', JSON.stringify(tags));
+
+                try {
+                    const response = await axios.post(`/api/knowledge_base/libraries/${currentLibraryId}/documents`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+
+                    if (response.data.success) {
+                        showAlert(`文档 ${file.name} 上传成功`, 'success');
+                    }
+                } catch (error) {
+                    console.error(`文档 ${file.name} 上传失败:`, error);
+                    showAlert(`文档 ${file.name} 上传失败`, 'danger');
+                }
+            }
+
+            // 关闭模态框并刷新产品详情
+            bootstrap.Modal.getInstance(document.getElementById('uploadDocumentModal')).hide();
+            if (currentProductId) {
+                selectProduct(currentProductId, '');
+            }
+        }
+
+        // 删除文档
+        async function deleteDocument(docId) {
+            if (!confirm('确定要删除这个文档吗？')) {
+                return;
+            }
+
+            try {
+                const response = await axios.delete(`/api/knowledge_base/documents/${docId}`);
+                if (response.data.success) {
+                    showAlert('文档删除成功', 'success');
+                    // 刷新当前产品详情
+                    if (currentProductId) {
+                        selectProduct(currentProductId, '');
+                    }
+                }
+            } catch (error) {
+                console.error('删除文档失败:', error);
+                showAlert('删除文档失败', 'danger');
+            }
+        }
+
+        // 显示提示信息
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

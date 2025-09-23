@@ -247,7 +247,29 @@
         .sidebar-toggle-btn:active {
             background: #e9ecef !important;
             transform: translateY(0) !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+        }
+
+        /* 应用菜单下拉样式 */
+        .dropdown-menu {
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+        }
+        .dropdown-item {
+            padding: 10px 16px;
+            transition: all 0.2s ease;
+        }
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            color: #e60012;
+        }
+        .dropdown-item.active {
+            background-color: #e60012;
+            color: white;
+        }
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
         }
 
         .sidebar-toggle-btn i {
@@ -366,15 +388,22 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-grid-3x3-gap me-2"></i>
+                            应用菜单
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item active" href="/"><i class="bi bi-house me-2"></i>标书生成</a></li>
+                            <li><a class="dropdown-item" href="/knowledge_base"><i class="bi bi-collection me-2"></i>知识库管理</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>系统设置</a></li>
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-muted" href="#" title="通知">
                             <i class="bi bi-bell"></i>
                             <span class="badge bg-danger badge-sm">2</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-muted" href="#" title="设置">
-                            <i class="bi bi-gear"></i>
                         </a>
                     </li>
                     <li class="nav-item dropdown">
@@ -415,6 +444,9 @@
                 </a>
                 <a href="#" class="list-group-item list-group-item-action" id="company-management-nav" data-bs-toggle="pill" data-bs-target="#company-management">
                     <i class="bi bi-building me-2"></i>公司管理
+                </a>
+                <a href="/knowledge_base" class="list-group-item list-group-item-action">
+                    <i class="bi bi-collection me-2"></i>知识库管理
                 </a>
             </div>
         </div>
