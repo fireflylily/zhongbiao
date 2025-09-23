@@ -6,9 +6,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>AI标书点对点应答系统</title>
+    <title>元景AI智能标书生成平台</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js for modern charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
     <!-- TinyMCE Editor -->
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <style>
@@ -146,63 +148,406 @@
             margin-right: 8px;
             margin-bottom: 5px;
         }
+
+        /* 新侧边栏样式 - 立即生效 */
+        #sidebar-wrapper {
+            min-height: 100vh !important;
+            width: 280px !important;
+            background: #ffffff !important;
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08) !important;
+            border-right: 1px solid #f0f0f0 !important;
+        }
+
+        #sidebar-wrapper .sidebar-header {
+            background: #ffffff !important;
+            color: #333 !important;
+            border-bottom: 1px solid #f0f0f0 !important;
+            padding: 1.5rem 1.2rem !important;
+        }
+
+        #sidebar-wrapper .sidebar-header h6 {
+            color: #666 !important;
+            font-weight: 500 !important;
+            font-size: 0.85rem !important;
+            letter-spacing: 0.5px !important;
+            margin: 0 !important;
+            text-transform: uppercase !important;
+        }
+
+        #sidebar-wrapper .list-group-item {
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0.9rem 1.2rem !important;
+            transition: all 0.2s ease !important;
+            margin: 0 !important;
+            font-weight: 400 !important;
+            font-size: 0.9rem !important;
+            color: #666 !important;
+            background: transparent !important;
+            position: relative !important;
+            border-left: 3px solid transparent !important;
+        }
+
+        #sidebar-wrapper .list-group-item:hover {
+            background: #f8f9fa !important;
+            color: #333 !important;
+            border-left-color: #e0e0e0 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #sidebar-wrapper .list-group-item.active {
+            background: #e8f4ff !important;
+            color: #1976d2 !important;
+            border-left-color: #1976d2 !important;
+            font-weight: 500 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #sidebar-wrapper .list-group-item.active:hover {
+            background: #e3f2fd !important;
+        }
+
+        #sidebar-wrapper .list-group-item.active::before {
+            display: none !important;
+        }
+
+        #sidebar-wrapper .list-group-item i {
+            width: 16px !important;
+            text-align: center !important;
+            margin-right: 0.75rem !important;
+            font-size: 0.9rem !important;
+        }
+
+        /* 侧边栏切换按钮样式 - 参考元景平台 */
+        .sidebar-toggle-btn {
+            background: #ffffff !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 6px !important;
+            width: 40px !important;
+            height: 40px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: #666 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background: #f8f9fa !important;
+            border-color: #d0d0d0 !important;
+            color: #333 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12) !important;
+        }
+
+        .sidebar-toggle-btn:active {
+            background: #e9ecef !important;
+            transform: translateY(0) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+        }
+
+        .sidebar-toggle-btn i {
+            font-size: 18px !important;
+        }
+
+        /* 固定顶部导航栏 */
+        .navbar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 1030 !important;
+            background: white !important;
+        }
+
+        /* 调整body的上边距，避免内容被导航栏遮挡 */
+        body {
+            padding-top: 70px !important;
+        }
+
+        /* 调整侧边栏的位置，从导航栏下方开始 */
+        #sidebar-wrapper {
+            position: fixed !important;
+            top: 70px !important;
+            left: 0 !important;
+            height: calc(100vh - 70px) !important;
+            min-height: auto !important;
+        }
+
+        /* 调整主内容区域，留出侧边栏空间 */
+        #page-content-wrapper {
+            margin-left: 280px !important;
+            width: calc(100% - 280px) !important;
+            min-height: calc(100vh - 70px) !important;
+        }
+
+        /* 移动端响应式调整 */
+        @media (max-width: 768px) {
+            #sidebar-wrapper {
+                margin-left: -280px !important;
+            }
+
+            #page-content-wrapper {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <!-- 页面标题 -->
-        <div class="row">
-            <div class="col-12">
-                <div class="text-center mb-5">
-                    <h1 class="display-4 text-primary">
-                        <i class="bi bi-robot"></i> AI标书智能生成系统
-                    </h1>
-                    <p class="lead text-muted">智能识别采购需求，自动生成专业应答和技术方案</p>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+        <div class="container-fluid">
+            <!-- 侧边栏切换按钮 -->
+            <button class="btn sidebar-toggle-btn me-3" type="button" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="navbar-brand d-flex align-items-center">
+                <!-- 中国联通官方Logo -->
+                <div class="unicom-logo me-3">
+                    <svg width="120" height="40" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="unicomKnotGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#e60012;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#d10000;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c00000;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- 中国联通结绳标志 -->
+                        <g transform="translate(5, 5)">
+                            <!-- 中心圆形 -->
+                            <circle cx="25" cy="25" r="4" fill="url(#unicomKnotGradient)"/>
+
+                            <!-- 左侧结绳 -->
+                            <path d="M10 15 Q5 10 10 5 Q15 10 20 5 Q25 10 20 15 Q15 20 20 25 Q25 20 20 15"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 右侧结绳 -->
+                            <path d="M30 15 Q35 10 40 15 Q35 20 40 25 Q35 30 30 25 Q25 20 30 15"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 上侧结绳 -->
+                            <path d="M15 10 Q10 5 15 0 Q20 5 25 0 Q30 5 25 10 Q20 15 25 20 Q30 15 25 10"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 下侧结绳 -->
+                            <path d="M15 40 Q10 45 15 50 Q20 45 25 50 Q30 45 25 40 Q20 35 25 30 Q30 35 25 40"
+                                  fill="url(#unicomKnotGradient)" stroke="none"/>
+
+                            <!-- 装饰性连接线 -->
+                            <path d="M15 25 Q20 20 25 25 Q30 30 35 25 Q30 20 25 25 Q20 30 15 25"
+                                  fill="url(#unicomKnotGradient)" opacity="0.8" stroke="none"/>
+                        </g>
+
+                        <!-- 中国联通文字 -->
+                        <g transform="translate(60, 8)">
+                            <!-- 中国联通 -->
+                            <text x="0" y="18" fill="#333" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="16" font-weight="bold">中国联通</text>
+                            <!-- China Unicom -->
+                            <text x="0" y="35" fill="#666" font-family="Arial, sans-serif" font-size="11" font-weight="normal">China unicom</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="brand-text ms-2">
+                    <h4 class="mb-0 brand-title">元景AI智能标书生成平台</h4>
+                    <small class="text-muted brand-subtitle">Powered by China Unicom</small>
                 </div>
             </div>
-        </div>
 
-        <!-- 功能选项卡 -->
-        <div class="row">
-            <div class="col-12">
-                <ul class="nav nav-pills nav-justified mb-4" id="mainTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="tender-info-tab" data-bs-toggle="pill" 
-                                data-bs-target="#tender-info" type="button" role="tab">
-                            <i class="bi bi-search"></i> 读取信息
-                        </button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link text-muted" href="#" title="通知">
+                            <i class="bi bi-bell"></i>
+                            <span class="badge bg-danger badge-sm">2</span>
+                        </a>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="business-response-tab" data-bs-toggle="pill" 
-                                data-bs-target="#business-response" type="button" role="tab">
-                            <i class="bi bi-briefcase"></i> 商务应答
-                        </button>
+                    <li class="nav-item">
+                        <a class="nav-link text-muted" href="#" title="设置">
+                            <i class="bi bi-gear"></i>
+                        </a>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="point-to-point-tab" data-bs-toggle="pill" 
-                                data-bs-target="#point-to-point" type="button" role="tab">
-                            <i class="bi bi-chat-dots"></i> 点对点应答
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="tech-proposal-tab" data-bs-toggle="pill" 
-                                data-bs-target="#tech-proposal" type="button" role="tab">
-                            <i class="bi bi-file-earmark-code"></i> 技术方案生成
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="company-management-tab" data-bs-toggle="pill" 
-                                data-bs-target="#company-management" type="button" role="tab">
-                            <i class="bi bi-building"></i> 公司管理
-                        </button>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-muted" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> 用户
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>个人信息</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>系统设置</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>退出登录</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>
         </div>
+    </nav>
+
+    <!-- 主体布局 -->
+    <div class="d-flex" id="wrapper">
+        <!-- 侧边栏 -->
+        <div class="bg-light border-end" id="sidebar-wrapper">
+            <div class="list-group list-group-flush" style="padding-top: 1rem;">
+                <a href="#" class="list-group-item list-group-item-action active" id="home-nav" data-bs-toggle="pill" data-bs-target="#home">
+                    <i class="bi bi-house me-2"></i>首页
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="tender-info-nav" data-bs-toggle="pill" data-bs-target="#tender-info">
+                    <i class="bi bi-upload me-2"></i>上传标书
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="business-response-nav" data-bs-toggle="pill" data-bs-target="#business-response">
+                    <i class="bi bi-briefcase me-2"></i>商务应答
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="point-to-point-nav" data-bs-toggle="pill" data-bs-target="#point-to-point">
+                    <i class="bi bi-chat-dots me-2"></i>点对点应答
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="tech-proposal-nav" data-bs-toggle="pill" data-bs-target="#tech-proposal">
+                    <i class="bi bi-file-earmark-code me-2"></i>技术方案生成
+                </a>
+                <a href="#" class="list-group-item list-group-item-action" id="company-management-nav" data-bs-toggle="pill" data-bs-target="#company-management">
+                    <i class="bi bi-building me-2"></i>公司管理
+                </a>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div id="page-content-wrapper">
+            <div class="container-fluid p-4">
 
         <div class="tab-content" id="mainTabContent">
-            <!-- 读取信息选项卡 -->
-            <div class="tab-pane fade show active" id="tender-info" role="tabpanel">
+            <!-- 首页选项卡 -->
+            <div class="tab-pane fade show active" id="home" role="tabpanel">
+                <!-- 系统统计面板 -->
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-bar-chart"></i> 系统统计
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-file-text" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">137</div>
+                                            <div class="stat-label">模型总数</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center" style="background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-cpu" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">0</div>
+                                            <div class="stat-label">我的模型</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center" style="background: linear-gradient(135deg, #ff6b35 0%, #f57c00 100%);">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-clock-history" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">0</div>
+                                            <div class="stat-label">调用次数</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-4">
+                                        <div class="stat-card text-center" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);">
+                                            <div class="stat-icon mb-3">
+                                                <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div class="stat-number">100%</div>
+                                            <div class="stat-label">成功率</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 图表区域 -->
+                                <div class="row mt-4">
+                                    <div class="col-lg-6 mb-4">
+                                        <h6 class="text-muted mb-3">模型使用趋势</h6>
+                                        <canvas id="usageChart" height="200"></canvas>
+                                    </div>
+                                    <div class="col-lg-6 mb-4">
+                                        <h6 class="text-muted mb-3">调用类型分布</h6>
+                                        <canvas id="typeChart" height="200"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快速操作面板 -->
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-search text-primary" style="font-size: 3rem;"></i>
+                                <h5 class="mt-3">智能提取</h5>
+                                <p class="text-muted">AI自动识别招标文件中的关键信息</p>
+                                <button class="btn btn-primary" onclick="switchToTab('tender-info')">
+                                    开始提取
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-briefcase text-success" style="font-size: 3rem;"></i>
+                                <h5 class="mt-3">商务应答</h5>
+                                <p class="text-muted">生成专业的商务应答文档</p>
+                                <button class="btn btn-success" onclick="switchToTab('business-response')">
+                                    立即生成
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-building text-warning" style="font-size: 3rem;"></i>
+                                <h5 class="mt-3">公司管理</h5>
+                                <p class="text-muted">管理公司信息和资质文件</p>
+                                <button class="btn btn-warning" onclick="switchToTab('company-management')">
+                                    管理公司
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 精简版权信息 -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="text-center py-3 border-top">
+                            <small class="text-muted">
+                                © 2025 元景AI智能标书生成平台 |
+                                <a href="/help.html" class="text-decoration-none text-muted">
+                                    <i class="bi bi-question-circle"></i> 帮助
+                                </a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 上传标书选项卡 -->
+            <div class="tab-pane fade" id="tender-info" role="tabpanel">
 
             <!-- 文件上传区域 -->
             <div class="row mb-4">
@@ -221,10 +566,10 @@
                                 <p class="text-muted small">
                                     支持格式：Word文档 (.docx, .doc)、文本文件 (.txt)、PDF文件 (.pdf)
                                 </p>
-                                <input type="file" class="d-none" id="tenderFileInput" 
+                                <input type="file" class="d-none" id="tenderFileInput"
                                        accept=".docx,.doc,.txt,.pdf">
                             </div>
-                            
+
                             <!-- 文件信息显示 -->
                             <div class="mt-3" id="tenderFileInfo" style="display: none;">
                                 <div class="alert alert-info">
@@ -264,7 +609,7 @@
                             </h6>
                         </div>
                         <div class="card-body">
-                            <div class="row" id="tenderInfoDisplay">
+                            <div id="tenderInfoDisplay">
                                 <!-- 提取结果将在这里显示 -->
                             </div>
 
@@ -350,6 +695,7 @@
                 </div>
             </div>
 
+
             <!-- 功能说明 -->
             <div class="row mt-5">
                 <div class="col-12">
@@ -396,7 +742,7 @@
                 </div>
             </div>
         </div>
-        <!-- 结束读取信息选项卡 -->
+        <!-- 结束上传标书选项卡 -->
 
 
         <!-- 商务应答选项卡 -->
@@ -405,7 +751,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-briefcase"></i> 商务应答处理</h5>
+                            <h6 class="mb-0"><i class="bi bi-briefcase"></i> 商务应答处理</h6>
                             <small class="text-muted">上传商务应答模板，按选择的公司信息填写投标人名称、项目信息并插入资质证明图片</small>
                         </div>
                         <div class="card-body">
@@ -538,12 +884,28 @@
             <!-- 点对点应答选项卡 -->
             <div class="tab-pane fade" id="point-to-point" role="tabpanel">
 
+        <!-- 功能说明 -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                    <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>内联回复功能（原地插入应答）</h6>
+                    <p class="mb-2">该功能会在原文档中每个需求后<strong>直接插入应答</strong>，特点：</p>
+                    <ul class="mb-0 small">
+                        <li><strong>原地插入</strong>：应答紧跟在每个需求段落后面</li>
+                        <li><strong>灰色底纹标记</strong>：应答内容添加浅灰色背景（RGB 217,217,217），便于识别</li>
+                        <li><strong>格式完整保留</strong>：保持原文档的字体、样式、结构不变</li>
+                        <li><strong>专业提示词</strong>：使用三种专业模板（点对点/内容生成/标题简化）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- 应答配置区域 -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5><i class="bi bi-gear"></i> 应答配置</h5>
+                        <h6 class="mb-0"><i class="bi bi-gear"></i> 应答配置</h6>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -574,8 +936,14 @@
                                     </button>
                                 </label>
                                 <select class="form-select" name="aiModel" id="aiModel" onchange="onModelChange()">
-                                    <option value="gpt-4o-mini">GPT-4o-mini</option>
-                                    <option value="unicom-yuanjing" selected>联通元景大模型</option>
+                                    <optgroup label="始皇API">
+                                        <option value="shihuang-gpt4o-mini" selected>始皇-GPT4o迷你版（快速高效）</option>
+                                        <option value="shihuang-gpt4">始皇-GPT4专业版（深度分析）</option>
+                                    </optgroup>
+                                    <optgroup label="联通元景">
+                                        <option value="yuanjing-deepseek-v3">元景-DeepSeek-V3</option>
+                                        <option value="yuanjing-qwen-235b">元景-通义千问235B</option>
+                                    </optgroup>
                                 </select>
                                 <div id="modelStatus" class="mt-2" style="display: none;">
                                     <small class="text-muted">
@@ -672,6 +1040,22 @@
             </div>
         </div>
 
+        <!-- 历史文件列表 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-files"></i> 历史文件</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="pointHistoryFilesList">
+                            <p class="text-muted">正在加载历史文件...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
                 <!-- 功能特点 -->
         <div class="row mb-5">
@@ -759,7 +1143,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-upload"></i> 技术方案生成</h5>
+                            <h6 class="mb-0"><i class="bi bi-upload"></i> 技术方案生成</h6>
                         </div>
                         <div class="card-body">
                             <form id="techProposalForm" enctype="multipart/form-data">
@@ -816,7 +1200,7 @@
                             <!-- 结果区域 -->
                             <div id="techResultArea" class="mt-4" style="display: none;">
                                 <div class="alert alert-success">
-                                    <h5><i class="bi bi-check-circle"></i> 技术方案生成完成！</h5>
+                                    <h6 class="mb-0"><i class="bi bi-check-circle"></i> 技术方案生成完成！</h6>
                                     <p id="techResultMessage"></p>
                                     <div id="techDownloadArea" class="mt-3">
                                         <!-- 下载按钮将动态生成 -->
@@ -880,7 +1264,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-question-circle"></i> 技术方案生成说明</h5>
+                            <h6 class="mb-0"><i class="bi bi-question-circle"></i> 技术方案生成说明</h6>
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -931,7 +1315,7 @@
                 <div class="col-md-4">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-list-ul"></i> 公司列表</h5>
+                            <h6 class="mb-0"><i class="bi bi-list-ul"></i> 公司列表</h6>
                             <small class="text-muted">管理和选择公司配置</small>
                         </div>
                         <div class="card-body">
@@ -966,7 +1350,7 @@
                 <div class="col-md-8">
                     <div class="card">
                         <div class="card-header">
-                            <h5><i class="bi bi-pencil-square"></i> 公司信息编辑</h5>
+                            <h6 class="mb-0"><i class="bi bi-pencil-square"></i> 公司信息编辑</h6>
                             <small class="text-muted">编辑公司基本信息和资质文件</small>
                         </div>
                         <div class="card-body">
@@ -1268,15 +1652,6 @@
         </div>
         <!-- 结束选项卡内容 -->
 
-        <!-- 页脚 -->
-        <div class="footer text-center">
-            <p>&copy; 2025 智慧足迹AI标书生成系统 | 专业 · 高效 · 智能</p>
-            <p>
-                <a href="/help.html" class="text-decoration-none">
-                    <i class="bi bi-question-circle"></i> 帮助中心
-                </a>
-            </p>
-        </div>
     </div>
 
     <!-- API密钥备份管理模态框 -->
@@ -1840,6 +2215,10 @@
                     // 设置下载按钮事件
                     const downloadBtn = document.getElementById('downloadBtn');
                     if (data.download_url && data.filename) {
+                        // 存储下载信息到按钮的data属性
+                        downloadBtn.setAttribute('data-download-url', data.download_url);
+                        downloadBtn.setAttribute('data-filename', data.filename);
+
                         downloadBtn.onclick = function(e) {
                             e.preventDefault();
                             downloadFile(data.download_url, data.filename);
@@ -2655,7 +3034,7 @@
             extractInfoBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始提取信息';
         });
 
-        // ====== 读取信息页面初始化 ======
+        // ====== 上传标书页面初始化 ======
         console.log('Initializing tender info page...');
         // 注意：公司管理功能已移至商务应答页面，此处不再需要相关元素
 
@@ -2827,7 +3206,7 @@
             }
         }
 
-        // 移除了对读取信息页面不存在元素的事件绑定
+        // 移除了对上传标书页面不存在元素的事件绑定
         // 注意：公司管理功能现在集中在商务应答页面
 
         // 加载公司信息
@@ -4532,23 +4911,15 @@
         // 点对点应答文档预览
         function previewPointDocument() {
             const downloadBtn = document.getElementById('downloadBtn');
-            if (!downloadBtn || !downloadBtn.onclick) {
+            if (!downloadBtn) {
                 showNotification('没有可预览的文档', 'warning');
                 return;
             }
 
-            // 获取文件路径
-            const onclickStr = downloadBtn.onclick.toString();
-            const match = onclickStr.match(/downloadFile\(['"]([^'"]+)['"]/);
-            if (!match) {
-                showNotification('无法获取文档路径', 'error');
-                return;
-            }
-
-            const downloadUrl = match[1];
-            // 检查下载URL是否为undefined或无效
-            if (!downloadUrl || downloadUrl === 'undefined' || downloadUrl.includes('undefined')) {
-                showNotification('文档链接无效，请重新处理点对点应答', 'error');
+            // 从data属性获取下载URL
+            const downloadUrl = downloadBtn.getAttribute('data-download-url');
+            if (!downloadUrl || downloadUrl === 'undefined') {
+                showNotification('无法获取文档路径，请重新处理内联回复', 'error');
                 return;
             }
 
@@ -4582,23 +4953,15 @@
         // 点对点应答文档编辑
         function editPointDocument() {
             const downloadBtn = document.getElementById('downloadBtn');
-            if (!downloadBtn || !downloadBtn.onclick) {
+            if (!downloadBtn) {
                 showNotification('没有可编辑的文档', 'warning');
                 return;
             }
 
-            // 获取文件路径
-            const onclickStr = downloadBtn.onclick.toString();
-            const match = onclickStr.match(/downloadFile\(['"]([^'"]+)['"]/);
-            if (!match) {
-                showNotification('无法获取文档路径', 'error');
-                return;
-            }
-
-            const downloadUrl = match[1];
-            // 检查下载URL是否为undefined或无效
-            if (!downloadUrl || downloadUrl === 'undefined' || downloadUrl.includes('undefined')) {
-                showNotification('文档链接无效，请重新处理点对点应答', 'error');
+            // 从data属性获取下载URL
+            const downloadUrl = downloadBtn.getAttribute('data-download-url');
+            if (!downloadUrl || downloadUrl === 'undefined') {
+                showNotification('无法获取文档路径，请重新处理内联回复', 'error');
                 return;
             }
 
@@ -4838,7 +5201,55 @@
                 filesList.innerHTML = '<p class="text-warning">文件列表加载失败，请稍后重试</p>';
             });
         }
-        
+
+        // 加载点对点应答历史文件
+        function loadPointToPointFilesList() {
+            const filesList = document.getElementById('pointHistoryFilesList');
+            if (!filesList) {
+                console.log('pointHistoryFilesList 元素不存在，跳过文件列表加载');
+                return;
+            }
+
+            fetch('/api/point-to-point-files')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.files && data.files.length > 0) {
+                    let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr>';
+                    html += '<th>文件名</th><th>大小</th><th>创建时间</th><th>操作</th></tr></thead><tbody>';
+
+                    data.files.forEach(file => {
+                        const size = (file.size / 1024 / 1024).toFixed(2);
+                        const date = new Date(file.created).toLocaleString('zh-CN');
+                        const downloadUrl = `/download/${encodeURIComponent(file.name)}`;
+                        const previewBtn = `<button class="btn btn-sm btn-outline-info me-2" onclick="previewHistoricalDocument('${file.name}')">预览</button>`;
+                        html += `<tr>
+                            <td>${file.name}</td>
+                            <td>${size} MB</td>
+                            <td>${date}</td>
+                            <td>
+                                ${previewBtn}
+                                <a href="${downloadUrl}" class="btn btn-sm btn-outline-primary">下载</a>
+                            </td>
+                        </tr>`;
+                    });
+
+                    html += '</tbody></table></div>';
+                    filesList.innerHTML = html;
+                } else {
+                    filesList.innerHTML = '<p class="text-muted">暂无历史文件</p>';
+                }
+            })
+            .catch(error => {
+                console.error('加载点对点应答文件列表失败:', error);
+                filesList.innerHTML = '<p class="text-warning">文件列表加载失败，请稍后重试</p>';
+            });
+        }
+
         // 页面加载时初始化商务应答页面
         function initBusinessResponsePage() {
             // 确保所有结果区域都被隐藏
@@ -4855,9 +5266,12 @@
         
         // 监听商务应答选项卡的显示事件
         document.addEventListener('shown.bs.tab', function(e) {
-            if (e.target.id === 'business-response-tab') {
+            if (e.target.id === 'business-response-nav') {
                 // 当切换到商务应答选项卡时，确保结果区域被隐藏
                 initBusinessResponsePage();
+            } else if (e.target.id === 'point-to-point-nav') {
+                // 当切换到点对点应答选项卡时，加载历史文件
+                loadPointToPointFilesList();
             }
         });
         
@@ -6150,6 +6564,7 @@
             console.log('[页面初始化] 初始化完成');
         });
 
+
         // 加载现有的投标信息配置
         function loadExistingTenderConfig() {
             fetch('/api/tender-config')
@@ -6493,8 +6908,229 @@
         // 页面加载完成后初始化模型管理
         document.addEventListener('DOMContentLoaded', function() {
             ModelManager.init();
+
+            // 侧边栏切换功能
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                const sidebar = document.getElementById('sidebar-wrapper');
+
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.toggle('show');
+                } else {
+                    // 桌面端侧边栏收缩
+                    if (sidebar.style.marginLeft === '-280px') {
+                        sidebar.style.marginLeft = '0';
+                    } else {
+                        sidebar.style.marginLeft = '-280px';
+                    }
+                }
+            });
+
+            // 移动端点击其他区域关闭侧边栏
+            document.addEventListener('click', function(e) {
+                const sidebar = document.getElementById('sidebar-wrapper');
+                const toggle = document.getElementById('sidebarToggle');
+
+                if (window.innerWidth <= 768 &&
+                    sidebar.classList.contains('show') &&
+                    !sidebar.contains(e.target) &&
+                    !toggle.contains(e.target)) {
+                    sidebar.classList.remove('show');
+                }
+            });
+
+            // 初始化统计图表
+            initCharts();
+
+            // 添加卡片悬停动画
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px) scale(1.02)';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // 添加按钮点击动画
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                });
+            });
         });
+
+        // 初始化图表函数
+        function initCharts() {
+            // 使用趋势图表
+            const usageCtx = document.getElementById('usageChart');
+            if (usageCtx) {
+                new Chart(usageCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+                        datasets: [{
+                            label: '模型调用次数',
+                            data: [65, 59, 80, 81, 56, 95],
+                            borderColor: '#4fc3f7',
+                            backgroundColor: 'rgba(79, 195, 247, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 类型分布图表
+            const typeCtx = document.getElementById('typeChart');
+            if (typeCtx) {
+                new Chart(typeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['招标信息提取', '商务应答', '技术方案', '点对点应答'],
+                        datasets: [{
+                            data: [40, 25, 20, 15],
+                            backgroundColor: [
+                                '#4fc3f7',
+                                '#ff6b35',
+                                '#667eea',
+                                '#4caf50'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // 加载状态管理
+        function showLoading(element, text = '加载中...') {
+            const loadingHTML = `
+                <div class="d-flex justify-content-center align-items-center p-4">
+                    <div class="spinner-border text-primary me-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="text-muted">${text}</span>
+                </div>
+            `;
+            element.innerHTML = loadingHTML;
+        }
+
+        function hideLoading(element, content) {
+            element.innerHTML = content;
+        }
+
+        // 通知系统
+        function showNotification(message, type = 'info', duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+
+        // 数字动画效果
+        function animateValue(element, start, end, duration) {
+            const range = end - start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let current = start;
+
+            const timer = setInterval(() => {
+                current += increment;
+                element.textContent = current;
+                if (current === end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+
+        // 页面加载完成后启动数字动画
+        window.addEventListener('load', function() {
+            document.querySelectorAll('.stat-number').forEach(el => {
+                const finalValue = parseInt(el.textContent) || 0;
+                if (finalValue > 0) {
+                    el.textContent = '0';
+                    setTimeout(() => {
+                        animateValue(el, 0, finalValue, 1000);
+                    }, 500);
+                }
+            });
+        });
+
+        // 切换选项卡函数
+        function switchToTab(tabId) {
+            // 移除所有活跃状态
+            document.querySelectorAll('.list-group-item-action').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+
+            // 激活指定的导航项和选项卡
+            const navItem = document.querySelector(`[data-bs-target="#${tabId}"]`);
+            const tabPane = document.querySelector(`#${tabId}`);
+
+            if (navItem && tabPane) {
+                navItem.classList.add('active');
+                tabPane.classList.add('show', 'active');
+            }
+        }
     </script>
+
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
