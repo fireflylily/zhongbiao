@@ -216,6 +216,98 @@
             transform: translateY(-3px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.12);
         }
+
+        /* 搜索界面增强样式 */
+        .search-modal-header {
+            background: linear-gradient(135deg, #4a89dc, #74b9ff);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        /* 搜索模式切换按钮样式 */
+        .btn-check:checked + .btn-outline-primary {
+            background: linear-gradient(135deg, #4a89dc, #74b9ff);
+            border-color: #4a89dc;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(74, 137, 220, 0.25);
+        }
+
+        /* 高级选项展开区域 */
+        .search-advanced-options {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        /* 搜索结果卡片增强 */
+        .search-result-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .search-result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: #4a89dc;
+        }
+
+        /* 相似度评分颜色渐变 */
+        .similarity-score-high {
+            background: linear-gradient(135deg, #48cfad, #5dade2);
+        }
+
+        .similarity-score-medium {
+            background: linear-gradient(135deg, #4a89dc, #74b9ff);
+        }
+
+        .similarity-score-low {
+            background: linear-gradient(135deg, #eb7d3c, #f39c12);
+        }
+
+        /* 搜索历史按钮样式 */
+        .search-history-btn {
+            border: 1px solid #dee2e6;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            transition: all 0.2s ease;
+        }
+
+        .search-history-btn:hover {
+            background: linear-gradient(135deg, #4a89dc, #74b9ff);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(74, 137, 220, 0.2);
+        }
+
+        /* 加载动画增强 */
+        .search-loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4a89dc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 搜索统计信息样式 */
+        .search-stats {
+            background: linear-gradient(135deg, #48cfad, #5dade2);
+            border-radius: 8px;
+            color: white;
+        }
+
+        /* 文档类型徽章样式 */
+        .doc-type-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -1764,21 +1856,53 @@
         function showSearchModal() {
             const searchHtml = `
                 <div class="modal fade" id="searchModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
+                    <div class="modal-dialog modal-xl">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title">🔍 智能检索</h5>
+                                <h5 class="modal-title">
+                                    <i class="bi bi-brain me-2"></i>AI智能检索
+                                    <small class="text-muted ms-2">支持语义搜索和关键词搜索</small>
+                                </h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
-                                <div class="mb-3">
-                                    <label class="form-label">搜索问题</label>
-                                    <textarea class="form-control" id="searchQuery" rows="3"
-                                              placeholder="请输入您的问题，例如：5G核心网的主要技术架构是什么？"></textarea>
+                                <!-- 搜索配置区域 -->
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-chat-square-text me-1"></i>搜索问题
+                                        </label>
+                                        <textarea class="form-control form-control-lg" id="searchQuery" rows="3"
+                                                  placeholder="请输入您的问题，例如：5G核心网的主要技术架构是什么？"></textarea>
+                                        <div class="form-text">
+                                            <i class="bi bi-lightbulb me-1"></i>
+                                            提示：使用语义搜索可以更好地理解自然语言问题
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <!-- 搜索方式选择 -->
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">文档类型</label>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">
+                                            <i class="bi bi-gear me-1"></i>搜索方式
+                                        </label>
+                                        <div class="btn-group w-100" role="group">
+                                            <input type="radio" class="btn-check" name="searchMode" id="semanticSearch" value="semantic" checked>
+                                            <label class="btn btn-outline-primary" for="semanticSearch">
+                                                <i class="bi bi-brain me-1"></i>语义搜索
+                                            </label>
+                                            <input type="radio" class="btn-check" name="searchMode" id="keywordSearch" value="keyword">
+                                            <label class="btn btn-outline-primary" for="keywordSearch">
+                                                <i class="bi bi-search me-1"></i>关键词
+                                            </label>
+                                        </div>
+                                        <div class="form-text">
+                                            <small id="searchModeHelp">语义搜索：理解语义和上下文</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">文档类型</label>
                                         <select class="form-control" id="searchCategory">
                                             <option value="">全部类型</option>
                                             <option value="tech">🔧 技术文档</option>
@@ -1786,9 +1910,10 @@
                                             <option value="service">🛠️ 服务文档</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">隐私级别</label>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">隐私级别</label>
                                         <select class="form-control" id="searchPrivacy">
+                                            <option value="">全部级别</option>
                                             <option value="1">🌐 公开文档</option>
                                             <option value="2">🏢 内部文档</option>
                                             <option value="3">🔒 机密文档</option>
@@ -1796,10 +1921,46 @@
                                         </select>
                                     </div>
                                 </div>
+
+                                <!-- 高级搜索选项 -->
+                                <div class="mb-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedOptions">
+                                            <i class="bi bi-sliders me-1"></i>高级选项
+                                        </button>
+                                    </div>
+                                    <div class="collapse" id="advancedOptions">
+                                        <div class="card card-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">结果数量</label>
+                                                    <select class="form-select" id="searchLimit">
+                                                        <option value="5">5 个结果</option>
+                                                        <option value="10" selected>10 个结果</option>
+                                                        <option value="20">20 个结果</option>
+                                                        <option value="50">50 个结果</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">相似度阈值</label>
+                                                    <input type="range" class="form-range" id="similarityThreshold" min="0" max="1" step="0.1" value="0.3">
+                                                    <div class="form-text">当前值: <span id="thresholdValue">0.3</span></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 搜索结果区域 -->
                                 <div id="searchResults" class="mt-3"></div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-x-circle me-1"></i>关闭
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="clearSearchHistory()">
+                                    <i class="bi bi-trash me-1"></i>清空历史
+                                </button>
                                 <button type="button" class="btn btn-primary" onclick="performSearch()">
                                     <i class="bi bi-search me-1"></i>开始搜索
                                 </button>
@@ -1817,7 +1978,94 @@
 
             // 添加新搜索模态框并显示
             document.body.insertAdjacentHTML('beforeend', searchHtml);
+
+            // 初始化事件监听器
+            initSearchModalEventListeners();
+
             new bootstrap.Modal(document.getElementById('searchModal')).show();
+        }
+
+        // 初始化搜索模态框事件监听器
+        function initSearchModalEventListeners() {
+            // 搜索方式切换提示文本
+            const searchModeInputs = document.querySelectorAll('input[name="searchMode"]');
+            const searchModeHelp = document.getElementById('searchModeHelp');
+
+            searchModeInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    if (this.value === 'semantic') {
+                        searchModeHelp.textContent = '语义搜索：理解语义和上下文';
+                        document.getElementById('advancedOptions').style.display = 'block';
+                    } else {
+                        searchModeHelp.textContent = '关键词搜索：匹配精确关键词';
+                        document.getElementById('advancedOptions').style.display = 'none';
+                    }
+                });
+            });
+
+            // 相似度阈值滑块
+            const thresholdSlider = document.getElementById('similarityThreshold');
+            const thresholdValue = document.getElementById('thresholdValue');
+
+            if (thresholdSlider && thresholdValue) {
+                thresholdSlider.addEventListener('input', function() {
+                    thresholdValue.textContent = this.value;
+                });
+            }
+
+            // 加载搜索历史
+            loadSearchHistory();
+        }
+
+        // 加载搜索历史
+        function loadSearchHistory() {
+            try {
+                const history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+                if (history.length > 0) {
+                    const historyHtml = `
+                        <div class="mb-3">
+                            <h6 class="text-muted">
+                                <i class="bi bi-clock-history me-1"></i>最近搜索
+                            </h6>
+                            <div class="d-flex flex-wrap gap-1">
+${history.slice(0, 5).map(query =>
+                                    `<button class="btn btn-sm search-history-btn" onclick="fillSearchQuery('${query}')">
+                                        <i class="bi bi-clock-history me-1"></i>${query}
+                                    </button>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('searchResults').innerHTML = historyHtml;
+                }
+            } catch (e) {
+                console.warn('搜索历史加载失败:', e);
+            }
+        }
+
+        // 填充搜索查询
+        function fillSearchQuery(query) {
+            document.getElementById('searchQuery').value = query;
+        }
+
+        // 清空搜索历史
+        function clearSearchHistory() {
+            localStorage.removeItem('searchHistory');
+            document.getElementById('searchResults').innerHTML = '';
+            showAlert('搜索历史已清空', 'success');
+        }
+
+        // 保存搜索历史
+        function saveSearchHistory(query) {
+            try {
+                let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+                history = history.filter(item => item !== query); // 去重
+                history.unshift(query); // 添加到开头
+                history = history.slice(0, 10); // 只保留最近10次
+                localStorage.setItem('searchHistory', JSON.stringify(history));
+            } catch (e) {
+                console.warn('搜索历史保存失败:', e);
+            }
         }
 
         // 执行智能搜索
@@ -1825,94 +2073,237 @@
             const query = document.getElementById('searchQuery').value.trim();
             const category = document.getElementById('searchCategory').value;
             const privacy = document.getElementById('searchPrivacy').value;
+            const searchMode = document.querySelector('input[name="searchMode"]:checked').value;
+            const limit = document.getElementById('searchLimit').value;
+            const threshold = document.getElementById('similarityThreshold').value;
 
             if (!query) {
                 showAlert('请输入搜索问题', 'warning');
                 return;
             }
 
+            // 保存搜索历史
+            saveSearchHistory(query);
+
             const resultsContainer = document.getElementById('searchResults');
+
+            // 显示加载状态
+            const searchModeText = searchMode === 'semantic' ? '语义搜索' : '关键词搜索';
             resultsContainer.innerHTML = `
-                <div class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
                         <span class="visually-hidden">搜索中...</span>
                     </div>
-                    <p class="mt-2">正在进行智能检索...</p>
+                    <div class="mt-3">
+                        <h6 class="text-muted">正在进行${searchModeText}...</h6>
+                        <p class="small text-muted mb-0">
+                            <i class="bi bi-search me-1"></i>查询: "${query.substring(0, 50)}${query.length > 50 ? '...' : ''}"
+                        </p>
+                        <p class="small text-muted">
+                            <i class="bi bi-gear me-1"></i>模式: ${searchModeText} |
+                            <i class="bi bi-funnel me-1"></i>结果数: ${limit}
+                            ${searchMode === 'semantic' ? ` | <i class="bi bi-speedometer2 me-1"></i>阈值: ${threshold}` : ''}
+                        </p>
+                    </div>
                 </div>
             `;
 
             try {
-                const response = await axios.post('/api/knowledge_base/search', {
-                    query: query,
-                    category: category,
-                    privacy_level: privacy
-                });
+                let response;
+                let searchStartTime = Date.now();
+
+                if (searchMode === 'semantic') {
+                    // 使用语义搜索API
+                    response = await axios.post('/api/vector_search/search', {
+                        query: query,
+                        top_k: parseInt(limit),
+                        threshold: parseFloat(threshold),
+                        filters: {
+                            category: category || null,
+                            privacy_level: privacy || null
+                        }
+                    });
+                } else {
+                    // 使用传统关键词搜索API
+                    response = await axios.post('/api/knowledge_base/search', {
+                        query: query,
+                        category: category,
+                        privacy_level: privacy,
+                        limit: parseInt(limit)
+                    });
+                }
+
+                const searchTime = (Date.now() - searchStartTime) / 1000;
 
                 if (response.data.success) {
-                    displaySearchResults(response.data.data);
+                    displaySearchResults(response.data.data, searchMode, searchTime);
                 } else {
-                    resultsContainer.innerHTML = `<div class="alert alert-danger">搜索失败: ${response.data.error}</div>`;
+                    resultsContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            搜索失败: ${response.data.error || '未知错误'}
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('搜索失败:', error);
-                resultsContainer.innerHTML = `<div class="alert alert-danger">搜索失败，请稍后重试</div>`;
+                const errorMessage = error.response?.data?.error || error.message || '网络连接错误';
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        搜索失败: ${errorMessage}
+                        <div class="mt-2 small">
+                            <button class="btn btn-outline-danger btn-sm" onclick="performSearch()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>重试
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
         }
 
         // 显示搜索结果
-        function displaySearchResults(results) {
+        function displaySearchResults(results, searchMode = 'keyword', searchTime = 0) {
             const resultsContainer = document.getElementById('searchResults');
 
             if (!results || results.length === 0) {
                 resultsContainer.innerHTML = `
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle me-2"></i>
-                        没有找到相关文档，请尝试调整搜索条件
+                        <strong>未找到相关文档</strong>
+                        <div class="mt-2 small">
+                            <p class="mb-1">建议尝试：</p>
+                            <ul class="mb-0">
+                                <li>使用不同的关键词</li>
+                                <li>尝试语义搜索模式</li>
+                                <li>调低相似度阈值</li>
+                                <li>选择不同的文档类型或隐私级别</li>
+                            </ul>
+                        </div>
                     </div>
                 `;
                 return;
             }
 
-            const resultsHtml = results.map((result, index) => `
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title mb-0">
-                                <i class="bi bi-file-earmark-text me-2"></i>
-                                ` + (result.title || result.filename) + `
-                            </h6>
-                            <div>
-                                <span class="privacy-badge privacy-` + result.privacy_classification + `">
-                                    ` + ['', '公开', '内部', '机密', '绝密'][result.privacy_classification] + `
-                                </span>
-                                <span class="doc-category-badge doc-category-` + result.category + ` ms-1">
-                                    ` + {'tech': '技术', 'impl': '实施', 'service': '服务'}[result.category] + `
-                                </span>
+            // 根据搜索模式显示不同的结果
+            const resultsHtml = results.map((result, index) => {
+                // 语义搜索和关键词搜索的结果格式可能不同
+                const isSemanticResult = searchMode === 'semantic';
+                const similarity_score = isSemanticResult ?
+                    (result.similarity_score || result.relevance_score) :
+                    (result.relevance_score || 0);
+
+                const title = result.title || result.filename || result.original_filename || `文档 ${result.doc_id}`;
+                const summary = result.summary || result.content_snippet || result.content || '暂无摘要';
+                const privacy_level = result.privacy_classification || result.privacy_level || 1;
+                const category = result.category || result.document_category || 'unknown';
+
+                // 根据相似度设置颜色
+                let scoreColor = 'secondary';
+                if (similarity_score > 0.8) scoreColor = 'success';
+                else if (similarity_score > 0.6) scoreColor = 'primary';
+                else if (similarity_score > 0.4) scoreColor = 'warning';
+
+                return `
+                    <div class="card mb-3 shadow-sm search-result-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-1">
+                                        <span class="badge bg-light text-dark me-2">#${index + 1}</span>
+                                        <i class="bi bi-file-earmark-text me-1"></i>
+                                        ${title}
+                                    </h6>
+                                    <div class="small text-muted">
+                                        ${isSemanticResult ?
+                                            `<i class="bi bi-cpu me-1"></i>语义匹配` :
+                                            `<i class="bi bi-search me-1"></i>关键词匹配`}
+                                        <span class="mx-1">•</span>
+                                        文档ID: ${result.doc_id}
+                                        ${result.chunk_id ? `<span class="mx-1">•</span>片段ID: ${result.chunk_id}` : ''}
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="privacy-badge privacy-${privacy_level}">
+                                        ${['', '🌐 公开', '🏢 内部', '🔒 机密', '🚫 绝密'][privacy_level]}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                        <p class="card-text small text-muted mb-2">` + (result.summary || '暂无摘要') + `</p>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-primary">相关度: ` + (result.relevance_score * 100).toFixed(1) + `%</span>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-primary" onclick="viewDocumentDetail(` + result.doc_id + `)">
-                                    <i class="bi bi-eye me-1"></i>查看
-                                </button>
-                                <button class="btn btn-sm btn-outline-success" onclick="downloadDocument(` + result.doc_id + `)">
-                                    <i class="bi bi-download me-1"></i>下载
-                                </button>
+
+                            <p class="card-text small mb-2" style="line-height: 1.4;">
+                                ${summary.length > 200 ? summary.substring(0, 200) + '...' : summary}
+                            </p>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-${scoreColor} me-2">
+                                        ${isSemanticResult ? '相似度' : '相关度'}: ${(similarity_score * 100).toFixed(1)}%
+                                    </span>
+                                    ${category && category !== 'unknown' ? `
+                                        <span class="badge bg-secondary me-2">
+                                            ${{'tech': '🔧 技术', 'impl': '📋 实施', 'service': '🛠️ 服务'}[category] || category}
+                                        </span>
+                                    ` : ''}
+                                    ${result.file_type ? `
+                                        <span class="badge bg-info me-2">${result.file_type.toUpperCase()}</span>
+                                    ` : ''}
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewDocumentDetail(${result.doc_id})" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="downloadDocument(${result.doc_id})" title="下载文档">
+                                        <i class="bi bi-download"></i>
+                                    </button>
+                                    ${isSemanticResult && result.chunk_id ? `
+                                        <button class="btn btn-outline-info" onclick="viewChunkDetail(${result.chunk_id})" title="查看片段">
+                                            <i class="bi bi-zoom-in"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+
+            // 搜索结果统计
+            const avgScore = results.reduce((sum, r) => sum + (r.similarity_score || r.relevance_score || 0), 0) / results.length;
+            const modeText = searchMode === 'semantic' ? '语义搜索' : '关键词搜索';
 
             resultsContainer.innerHTML = `
-                <div class="alert alert-success">
-                    <i class="bi bi-check-circle me-2"></i>
-                    找到 ` + results.length + ` 个相关文档
+                <div class="alert search-stats d-flex justify-content-between align-items-center border-0 shadow-sm">
+                    <div>
+                        <i class="bi bi-check-circle me-2 fs-5"></i>
+                        找到 <strong>${results.length}</strong> 个相关文档
+                        <div class="mt-1 small opacity-90">
+                            <i class="bi bi-gear me-1"></i>搜索模式: ${modeText}
+                            <span class="mx-2">•</span>
+                            <i class="bi bi-stopwatch me-1"></i>耗时: ${searchTime.toFixed(2)}s
+                            <span class="mx-2">•</span>
+                            <i class="bi bi-speedometer2 me-1"></i>平均${searchMode === 'semantic' ? '相似度' : '相关度'}: ${(avgScore * 100).toFixed(1)}%
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-light" onclick="exportSearchResults()" title="导出结果">
+                            <i class="bi bi-download me-1"></i>导出
+                        </button>
+                    </div>
                 </div>
                 ${resultsHtml}
             `;
+        }
+
+        // 查看片段详情
+        function viewChunkDetail(chunkId) {
+            // 这里可以实现查看具体文档片段的功能
+            showAlert('片段查看功能开发中...', 'info');
+        }
+
+        // 导出搜索结果
+        function exportSearchResults() {
+            // 这里可以实现搜索结果导出功能
+            showAlert('搜索结果导出功能开发中...', 'info');
         }
     </script>
 </body>

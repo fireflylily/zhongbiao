@@ -82,6 +82,14 @@ def create_app() -> Flask:
     except ImportError as e:
         logger.warning(f"知识库API模块加载失败: {e}")
 
+    # 注册向量搜索API蓝图
+    try:
+        from modules.vector_search_api import vector_search_api
+        app.register_blueprint(vector_search_api.get_blueprint())
+        logger.info("向量搜索API模块注册成功")
+    except ImportError as e:
+        logger.warning(f"向量搜索API模块加载失败: {e}")
+
     # 注册路由
     register_routes(app, config, logger)
     
@@ -148,14 +156,25 @@ def register_routes(app: Flask, config, logger):
     def health_check():
         """健康检查"""
         from datetime import datetime
+
+        # 检查向量搜索功能是否可用
+        vector_search_available = False
+        try:
+            from modules.vector_search_api import vector_search_api
+            vector_search_available = True
+        except ImportError:
+            pass
+
         return jsonify({
             'status': 'healthy',
-            'version': '2.0.0',
+            'version': '2.1.0',  # 版本升级
             'timestamp': datetime.now().isoformat(),
             'tender_info_available': TENDER_INFO_AVAILABLE,
             'business_response_available': BUSINESS_RESPONSE_AVAILABLE,
             'point_to_point_available': POINT_TO_POINT_AVAILABLE,  # 向后兼容
-            'tech_responder_available': TECH_RESPONDER_AVAILABLE
+            'tech_responder_available': TECH_RESPONDER_AVAILABLE,
+            'vector_search_available': vector_search_available,
+            'knowledge_base_available': True  # 知识库功能总是可用
         })
     
     @app.route('/api/config')
