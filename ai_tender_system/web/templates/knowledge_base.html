@@ -855,47 +855,45 @@
         // 渲染公司树形结构
         function renderCompanyTree(companies) {
             const treeHtml = companies.map(company => {
-                return `
-                    <div class="list-group mb-3">
-                        <!-- 企业节点 -->
-                        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                             onclick="toggleCompanyNode(${company.company_id}, '${company.company_name}')">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-chevron-right tree-toggle me-2" id="toggle-${company.company_id}"></i>
-                                <i class="bi bi-building text-primary me-2"></i>
-                                <span class="fw-medium">${company.company_name}</span>
-                                <span class="badge bg-secondary ms-2">` + (company.product_count || 0) + `</span>
-                            </div>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); showCompanyProfileModal(${company.company_id})" title="企业信息库">
-                                    <i class="bi bi-person-workspace"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showAddProductModal(${company.company_id})" title="添加产品">
-                                    <i class="bi bi-plus"></i>
-                                </button>
-                            </div>
-                        </div>
+                return '<div class="list-group mb-3">' +
+                    '<!-- 企业节点 -->' +
+                    '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"' +
+                         ' onclick="toggleCompanyNode(' + company.company_id + ', \'' + company.company_name + '\')">' +
+                        '<div class="d-flex align-items-center">' +
+                            '<i class="bi bi-chevron-right tree-toggle me-2" id="toggle-' + company.company_id + '"></i>' +
+                            '<i class="bi bi-building text-primary me-2"></i>' +
+                            '<span class="fw-medium">' + company.company_name + '</span>' +
+                            '<span class="badge bg-secondary ms-2">' + (company.product_count || 0) + '</span>' +
+                        '</div>' +
+                        '<div class="btn-group">' +
+                            '<button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); showCompanyProfileModal(' + company.company_id + ')" title="企业信息库">' +
+                                '<i class="bi bi-person-workspace"></i>' +
+                            '</button>' +
+                            '<button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showAddProductModal(' + company.company_id + ')" title="添加产品">' +
+                                '<i class="bi bi-plus"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
 
-                        <!-- 企业信息库节点 -->
-                        <div class="ms-3 d-none" id="company-profile-${company.company_id}">
-                            <div class="list-group-item list-group-item-action" onclick="selectCompanyProfile(${company.company_id})">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-person-workspace text-info me-2"></i>
-                                    <span>企业信息库</span>
-                                    <div class="ms-2">
-                                        <span class="privacy-badge privacy-1 me-1 small">基础</span>
-                                        <span class="privacy-badge privacy-2 me-1 small">资质</span>
-                                        <span class="privacy-badge privacy-3 me-1 small">人员</span>
-                                        <span class="privacy-badge privacy-4 small">财务</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    '<!-- 企业信息库节点 -->' +
+                    '<div class="ms-3 d-none" id="company-profile-' + company.company_id + '">' +
+                        '<div class="list-group-item list-group-item-action" onclick="selectCompanyProfile(' + company.company_id + ')">' +
+                            '<div class="d-flex align-items-center">' +
+                                '<i class="bi bi-person-workspace text-info me-2"></i>' +
+                                '<span>企业信息库</span>' +
+                                '<div class="ms-2">' +
+                                    '<span class="privacy-badge privacy-1 me-1 small">基础</span>' +
+                                    '<span class="privacy-badge privacy-2 me-1 small">资质</span>' +
+                                    '<span class="privacy-badge privacy-3 me-1 small">人员</span>' +
+                                    '<span class="privacy-badge privacy-4 small">财务</span>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
 
-                        <!-- 产品节点容器 -->
-                        <div class="ms-3 d-none" id="products-${company.company_id}"></div>
-                    </div>
-                `;
+                    '<!-- 产品节点容器 -->' +
+                    '<div class="ms-3 d-none" id="products-' + company.company_id + '"></div>' +
+                '</div>';
             }).join('');
 
             document.getElementById('companyTree').innerHTML = treeHtml || '<p class="text-muted">暂无企业数据</p>';
@@ -903,9 +901,9 @@
 
         // 切换公司节点展开/收起
         function toggleCompanyNode(companyId, companyName) {
-            const toggleIcon = document.getElementById(`toggle-${companyId}`);
-            const profileContainer = document.getElementById(`company-profile-${companyId}`);
-            const productsContainer = document.getElementById(`products-${companyId}`);
+            const toggleIcon = document.getElementById('toggle-' + companyId);
+            const profileContainer = document.getElementById('company-profile-' + companyId);
+            const productsContainer = document.getElementById('products-' + companyId);
 
             const isExpanded = !profileContainer.classList.contains('d-none');
 
@@ -936,7 +934,7 @@
 
             // 更新活动状态
             document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
-            document.querySelector(`[onclick*="toggleCompanyNode(${companyId}"]`).classList.add('active');
+            document.querySelector('[onclick*="toggleCompanyNode(' + companyId + '"]').classList.add('active');
 
             // 更新面包屑
             updateBreadcrumb([
@@ -946,7 +944,7 @@
 
             // 加载公司详情
             try {
-                const response = await axios.get(`/api/knowledge_base/companies/${companyId}`);
+                const response = await axios.get('/api/knowledge_base/companies/' + companyId);
                 if (response.data.success) {
                     const company = response.data.data;
                     renderCompanyDetail(company);
@@ -960,7 +958,7 @@
         // 加载公司产品列表
         async function loadCompanyProducts(companyId) {
             try {
-                const response = await axios.get(`/api/knowledge_base/companies/${companyId}/products`);
+                const response = await axios.get('/api/knowledge_base/companies/' + companyId + '/products');
                 if (response.data.success) {
                     renderProductTree(companyId, response.data.data);
                 }
@@ -971,56 +969,56 @@
 
         // 渲染产品树形结构
         function renderProductTree(companyId, products) {
-            const treeHtml = products.map(product => `
-                <div class="list-group mb-2">
-                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                         onclick="selectProduct(${product.product_id}, '${product.product_name}')">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-box-seam text-success me-2"></i>
-                            <span>${product.product_name}</span>
-                            <span class="badge bg-info ms-2">${product.document_count || 0}</span>
-                        </div>
-                        <div class="d-flex">
-                            <span class="badge bg-light text-secondary me-1">🔧</span>
-                            <span class="badge bg-light text-secondary me-1">📋</span>
-                            <span class="badge bg-light text-secondary">🛠️</span>
-                        </div>
-                    </div>
+            const treeHtml = products.map(product =>
+                '<div class="list-group mb-2">' +
+                    '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"' +
+                         ' onclick="selectProduct(' + product.product_id + ', \'' + product.product_name + '\')">' +
+                        '<div class="d-flex align-items-center">' +
+                            '<i class="bi bi-box-seam text-success me-2"></i>' +
+                            '<span>' + product.product_name + '</span>' +
+                            '<span class="badge bg-info ms-2">' + (product.document_count || 0) + '</span>' +
+                        '</div>' +
+                        '<div class="d-flex">' +
+                            '<span class="badge bg-light text-secondary me-1">🔧</span>' +
+                            '<span class="badge bg-light text-secondary me-1">📋</span>' +
+                            '<span class="badge bg-light text-secondary">🛠️</span>' +
+                        '</div>' +
+                    '</div>' +
 
-                    <!-- 产品文档分类 -->
-                    <div class="ms-4 d-none" id="product-categories-${product.product_id}">
-                        <div class="list-group-item list-group-item-action" onclick="selectProductCategory(${product.product_id}, 'tech')">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-gear text-primary me-2"></i>
-                                    <span>🔧 技术文档</span>
-                                </div>
-                                <span class="badge bg-light text-dark">${product.tech_docs_count || 0}</span>
-                            </div>
-                        </div>
-                        <div class="list-group-item list-group-item-action" onclick="selectProductCategory(${product.product_id}, 'impl')">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-clipboard-check text-warning me-2"></i>
-                                    <span>📋 实施方案</span>
-                                </div>
-                                <span class="badge bg-light text-dark">${product.impl_docs_count || 0}</span>
-                            </div>
-                        </div>
-                        <div class="list-group-item list-group-item-action" onclick="selectProductCategory(${product.product_id}, 'service')">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-tools text-info me-2"></i>
-                                    <span>🛠️ 服务文档</span>
-                                </div>
-                                <span class="badge bg-light text-dark">${product.service_docs_count || 0}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+                    '<!-- 产品文档分类 -->' +
+                    '<div class="ms-4 d-none" id="product-categories-' + product.product_id + '">' +
+                        '<div class="list-group-item list-group-item-action" onclick="selectProductCategory(' + product.product_id + ', \'tech\')">' +
+                            '<div class="d-flex justify-content-between align-items-center">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<i class="bi bi-gear text-primary me-2"></i>' +
+                                    '<span>🔧 技术文档</span>' +
+                                '</div>' +
+                                '<span class="badge bg-light text-dark">' + (product.tech_docs_count || 0) + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="list-group-item list-group-item-action" onclick="selectProductCategory(' + product.product_id + ', \'impl\')">' +
+                            '<div class="d-flex justify-content-between align-items-center">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<i class="bi bi-clipboard-check text-warning me-2"></i>' +
+                                    '<span>📋 实施方案</span>' +
+                                '</div>' +
+                                '<span class="badge bg-light text-dark">' + (product.impl_docs_count || 0) + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="list-group-item list-group-item-action" onclick="selectProductCategory(' + product.product_id + ', \'service\')">' +
+                            '<div class="d-flex justify-content-between align-items-center">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<i class="bi bi-tools text-info me-2"></i>' +
+                                    '<span>🛠️ 服务文档</span>' +
+                                '</div>' +
+                                '<span class="badge bg-light text-dark">' + (product.service_docs_count || 0) + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
 
-            const productsContainer = document.getElementById(`products-${companyId}`);
+            const productsContainer = document.getElementById('products-' + companyId);
             if (productsContainer) {
                 productsContainer.innerHTML = treeHtml || '<p class="text-muted text-center py-2">暂无产品</p>';
             }
@@ -1033,7 +1031,7 @@
 
             // 更新活动状态
             document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
-            document.querySelector(`[onclick*="selectCompanyProfile(${companyId}"]`).classList.add('active');
+            document.querySelector('[onclick*="selectCompanyProfile(' + companyId + '"]').classList.add('active');
 
             // 更新面包屑
             updateBreadcrumb([
@@ -1043,7 +1041,7 @@
 
             // 加载企业信息库
             try {
-                const response = await axios.get(`/api/knowledge_base/companies/${companyId}/profiles`);
+                const response = await axios.get('/api/knowledge_base/companies/' + companyId + '/profiles');
                 if (response.data.success) {
                     renderCompanyProfiles(response.data.data);
                 }
@@ -1055,112 +1053,110 @@
 
         // 渲染企业信息库（多列布局）
         function renderCompanyProfiles(profiles) {
-            const html = `
-                <div class="container-fluid px-0">
-                    <!-- 页面标题 -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="card shadow-sm border-0">
-                                <div class="card-body p-4">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">
-                                                <i class="bi bi-person-workspace text-info fs-3"></i>
-                                            </div>
-                                            <div>
-                                                <h3 class="mb-1 fw-bold">企业信息库</h3>
-                                                <p class="text-muted mb-0">管理企业基础信息、资质证书、人员档案和财务文档</p>
-                                            </div>
-                                        </div>
-                                        <button class="btn btn-primary" onclick="showCompanyProfileUploadModal()">
-                                            <i class="bi bi-plus-circle me-2"></i>添加文档
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            const html = '<div class="container-fluid px-0">' +
+                    '<!-- 页面标题 -->' +
+                    '<div class="row mb-4">' +
+                        '<div class="col-12">' +
+                            '<div class="card shadow-sm border-0">' +
+                                '<div class="card-body p-4">' +
+                                    '<div class="d-flex align-items-center justify-content-between">' +
+                                        '<div class="d-flex align-items-center">' +
+                                            '<div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">' +
+                                                '<i class="bi bi-person-workspace text-info fs-3"></i>' +
+                                            '</div>' +
+                                            '<div>' +
+                                                '<h3 class="mb-1 fw-bold">企业信息库</h3>' +
+                                                '<p class="text-muted mb-0">管理企业基础信息、资质证书、人员档案和财务文档</p>' +
+                                            '</div>' +
+                                        '</div>' +
+                                        '<button class="btn btn-primary" onclick="showCompanyProfileUploadModal()">' +
+                                            '<i class="bi bi-plus-circle me-2"></i>添加文档' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
 
-                    <!-- 四个分类的文档库 -->
-                    <div class="row g-4">
-                        <div class="col-lg-6">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-success bg-opacity-10 border-0 p-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-success rounded-circle p-2 me-3">
-                                            <i class="bi bi-globe text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="mb-0 fw-bold text-success">基础信息</h5>
-                                            <small class="text-muted">公开级别 - 对外公开资料</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">
-                                    ${renderProfileDocuments('basic')}
-                                </div>
-                            </div>
-                        </div>
+                    '<!-- 四个分类的文档库 -->' +
+                    '<div class="row g-4">' +
+                        '<div class="col-lg-6">' +
+                            '<div class="card shadow-sm border-0 h-100">' +
+                                '<div class="card-header bg-success bg-opacity-10 border-0 p-4">' +
+                                    '<div class="d-flex align-items-center">' +
+                                        '<div class="bg-success rounded-circle p-2 me-3">' +
+                                            '<i class="bi bi-globe text-white"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<h5 class="mb-0 fw-bold text-success">基础信息</h5>' +
+                                            '<small class="text-muted">公开级别 - 对外公开资料</small>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
+                                    renderProfileDocuments('basic') +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
 
-                        <div class="col-lg-6">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-primary bg-opacity-10 border-0 p-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-primary rounded-circle p-2 me-3">
-                                            <i class="bi bi-award text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="mb-0 fw-bold text-primary">资质证书</h5>
-                                            <small class="text-muted">内部级别 - 企业资质材料</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">
-                                    ${renderProfileDocuments('qualification')}
-                                </div>
-                            </div>
-                        </div>
+                        '<div class="col-lg-6">' +
+                            '<div class="card shadow-sm border-0 h-100">' +
+                                '<div class="card-header bg-primary bg-opacity-10 border-0 p-4">' +
+                                    '<div class="d-flex align-items-center">' +
+                                        '<div class="bg-primary rounded-circle p-2 me-3">' +
+                                            '<i class="bi bi-award text-white"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<h5 class="mb-0 fw-bold text-primary">资质证书</h5>' +
+                                            '<small class="text-muted">内部级别 - 企业资质材料</small>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
+                                    renderProfileDocuments('qualification') +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
 
-                        <div class="col-lg-6">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-warning bg-opacity-10 border-0 p-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-warning rounded-circle p-2 me-3">
-                                            <i class="bi bi-people text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="mb-0 fw-bold text-warning">人员信息</h5>
-                                            <small class="text-muted">机密级别 - 员工档案信息</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">
-                                    ${renderProfileDocuments('personnel')}
-                                </div>
-                            </div>
-                        </div>
+                        '<div class="col-lg-6">' +
+                            '<div class="card shadow-sm border-0 h-100">' +
+                                '<div class="card-header bg-warning bg-opacity-10 border-0 p-4">' +
+                                    '<div class="d-flex align-items-center">' +
+                                        '<div class="bg-warning rounded-circle p-2 me-3">' +
+                                            '<i class="bi bi-people text-white"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<h5 class="mb-0 fw-bold text-warning">人员信息</h5>' +
+                                            '<small class="text-muted">机密级别 - 员工档案信息</small>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
+                                    renderProfileDocuments('personnel') +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
 
-                        <div class="col-lg-6">
-                            <div class="card shadow-sm border-0 h-100">
-                                <div class="card-header bg-danger bg-opacity-10 border-0 p-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-danger rounded-circle p-2 me-3">
-                                            <i class="bi bi-bank text-white"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="mb-0 fw-bold text-danger">财务文档</h5>
-                                            <small class="text-muted">绝密级别 - 财务报告资料</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">
-                                    ${renderProfileDocuments('financial')}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+                        '<div class="col-lg-6">' +
+                            '<div class="card shadow-sm border-0 h-100">' +
+                                '<div class="card-header bg-danger bg-opacity-10 border-0 p-4">' +
+                                    '<div class="d-flex align-items-center">' +
+                                        '<div class="bg-danger rounded-circle p-2 me-3">' +
+                                            '<i class="bi bi-bank text-white"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<h5 class="mb-0 fw-bold text-danger">财务文档</h5>' +
+                                            '<small class="text-muted">绝密级别 - 财务报告资料</small>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
+                                    renderProfileDocuments('financial') +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
 
             document.getElementById('mainContent').innerHTML = html;
         }
@@ -1168,91 +1164,87 @@
         // 渲染分类文档
         function renderProfileDocuments(profileType) {
             // 这里应该从实际数据渲染，暂时用示例
-            return `
-                <div class="text-center py-4">
-                    <i class="bi bi-folder text-muted fs-1"></i>
-                    <p class="text-muted mt-2">暂无文档</p>
-                    <button class="btn btn-outline-primary btn-sm" onclick="showProfileUploadModal('${profileType}')">
-                        <i class="bi bi-plus me-1"></i>上传文档
-                    </button>
-                </div>
-            `;
+            return '<div class="text-center py-4">' +
+                '<i class="bi bi-folder text-muted fs-1"></i>' +
+                '<p class="text-muted mt-2">暂无文档</p>' +
+                '<button class="btn btn-outline-primary btn-sm" onclick="showProfileUploadModal(\'' + profileType + '\')">' +
+                    '<i class="bi bi-plus me-1"></i>上传文档' +
+                '</button>' +
+            '</div>';
         }
 
         // 渲染公司详情
         function renderCompanyDetail(company) {
-            const html = `
-                <div class="card mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">${company.company_name}</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>企业代码：</strong>${company.company_code || '未设置'}</p>
-                                <p><strong>行业类型：</strong>${company.industry_type || '未设置'}</p>
-                                <p><strong>创建时间：</strong>${company.created_at || '未知'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>产品数量：</strong>` + (company.products ? company.products.length : 0) + ` 个</p>
-                                <p><strong>文档总数：</strong>` + (company.stats ? company.stats.total_documents : 0) + ` 份</p>
-                            </div>
-                        </div>
-                        ` + (company.description ? `<p class="mt-3">` + company.description + `</p>` : '') + `
-                    </div>
-                </div>
+            const html = '<div class="card mb-3">' +
+                    '<div class="card-header bg-primary text-white">' +
+                        '<h5 class="mb-0">' + company.company_name + '</h5>' +
+                    '</div>' +
+                    '<div class="card-body">' +
+                        '<div class="row">' +
+                            '<div class="col-md-6">' +
+                                '<p><strong>企业代码：</strong>' + (company.company_code || '未设置') + '</p>' +
+                                '<p><strong>行业类型：</strong>' + (company.industry_type || '未设置') + '</p>' +
+                                '<p><strong>创建时间：</strong>' + (company.created_at || '未知') + '</p>' +
+                            '</div>' +
+                            '<div class="col-md-6">' +
+                                '<p><strong>产品数量：</strong>' + (company.products ? company.products.length : 0) + ' 个</p>' +
+                                '<p><strong>文档总数：</strong>' + (company.stats ? company.stats.total_documents : 0) + ' 份</p>' +
+                            '</div>' +
+                        '</div>' +
+                        (company.description ? '<p class="mt-3">' + company.description + '</p>' : '') +
+                    '</div>' +
+                '</div>' +
 
-                <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">产品列表</h6>
-                            <button class="btn btn-sm btn-success" onclick="showAddProductModal(${company.company_id})">
-                                <i class="bi bi-plus-circle"></i> 添加产品
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="productList"></div>
-                    </div>
-                </div>
-            `;
+                '<div class="card">' +
+                    '<div class="card-header">' +
+                        '<div class="d-flex justify-content-between align-items-center">' +
+                            '<h6 class="mb-0">产品列表</h6>' +
+                            '<button class="btn btn-sm btn-success" onclick="showAddProductModal(' + company.company_id + ')">' +
+                                '<i class="bi bi-plus-circle"></i> 添加产品' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="card-body">' +
+                        '<div id="productList"></div>' +
+                    '</div>' +
+                '</div>';
 
             document.getElementById('mainContent').innerHTML = html;
         }
 
         // 渲染产品列表
         function renderProductList(companyId, products) {
-            const listHtml = products.map(product => `
-                <div class="document-item" onclick="selectProduct(${product.product_id}, '${product.product_name}')">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">
-                                <i class="bi bi-box-seam me-2"></i>
-                                ${product.product_name}
-                            </h6>
-                            <small class="text-muted">` + (product.product_category || '未分类') + ` | ` + (product.document_count || 0) + ` 份文档</small>
-                        </div>
-                        <div>
-                            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showUploadModal(${product.product_id})">
-                                <i class="bi bi-upload"></i> 上传
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            const listHtml = products.map(product =>
+                '<div class="document-item" onclick="selectProduct(' + product.product_id + ', \'' + product.product_name + '\')">' +
+                    '<div class="d-flex justify-content-between align-items-center">' +
+                        '<div>' +
+                            '<h6 class="mb-1">' +
+                                '<i class="bi bi-box-seam me-2"></i>' +
+                                product.product_name +
+                            '</h6>' +
+                            '<small class="text-muted">' + (product.product_category || '未分类') + ' | ' + (product.document_count || 0) + ' 份文档</small>' +
+                        '</div>' +
+                        '<div>' +
+                            '<button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showUploadModal(' + product.product_id + ')">' +
+                                '<i class="bi bi-upload"></i> 上传' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>'
+            ).join('');
 
             document.getElementById('productList').innerHTML = listHtml || '<p class="text-muted text-center">暂无产品</p>';
 
             // 同时更新左侧树形结构
-            const productsContainer = document.getElementById(`products-${companyId}`);
+            const productsContainer = document.getElementById('products-' + companyId);
             if (productsContainer) {
-                const treeHtml = products.map(product => `
-                    <div class="tree-node ms-3" onclick="selectProduct(${product.product_id}, '${product.product_name}')">
-                        <i class="bi bi-box-seam me-2"></i>
-                        ${product.product_name}
-                        <span class="badge bg-info ms-2">` + (product.document_count || 0) + `</span>
-                    </div>
-                `).join('');
+                const treeHtml = products.map(product =>
+                    '<div class="tree-node ms-3" onclick="selectProduct(' + product.product_id + ', \'' + product.product_name + '\')">' +
+                        '<i class="bi bi-box-seam me-2"></i>' +
+                        product.product_name +
+                        '<span class="badge bg-info ms-2">' + (product.document_count || 0) + '</span>' +
+                    '</div>'
+                ).join('');
                 productsContainer.innerHTML = treeHtml;
                 productsContainer.classList.remove('d-none');
             }
@@ -1272,7 +1264,7 @@
 
             // 加载产品详情和文档列表
             try {
-                const response = await axios.get(`/api/knowledge_base/products/${productId}`);
+                const response = await axios.get('/api/knowledge_base/products/' + productId);
                 if (response.data.success) {
                     renderProductDetail(response.data.data);
                 }
@@ -1284,39 +1276,39 @@
 
         // 渲染产品详情
         function renderProductDetail(product) {
-            const html = `
-                <div class="card mb-3">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">${product.product_name}</h5>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>产品代码：</strong>` + (product.product_code || '未设置') + `</p>
-                        <p><strong>产品类别：</strong>` + (product.product_category || '未分类') + `</p>
-                        ` + (product.description ? `<p>` + product.description + `</p>` : '') + `
-                    </div>
-                </div>
+            let html = '<div class="card mb-3">' +
+                    '<div class="card-header bg-success text-white">' +
+                        '<h5 class="mb-0">' + product.product_name + '</h5>' +
+                    '</div>' +
+                    '<div class="card-body">' +
+                        '<p><strong>产品代码：</strong>' + (product.product_code || '未设置') + '</p>' +
+                        '<p><strong>产品类别：</strong>' + (product.product_category || '未分类') + '</p>' +
+                        (product.description ? '<p>' + product.description + '</p>' : '') +
+                    '</div>' +
+                '</div>';
 
-                ${product.libraries ? product.libraries.map(library => `
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">${library.library_name}</h6>
-                                <button class="btn btn-sm btn-primary" onclick="showUploadModal(${product.product_id}, ${library.library_id})">
-                                    <i class="bi bi-upload"></i> 上传文档
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body p-4" style="max-height: 600px; overflow-y: auto;">
-                            <div class="kb-document-grid">
-                                ${library.documents && library.documents.length > 0 ?
+            if (product.libraries) {
+                html += product.libraries.map(library =>
+                    '<div class="card mb-3">' +
+                        '<div class="card-header">' +
+                            '<div class="d-flex justify-content-between align-items-center">' +
+                                '<h6 class="mb-0">' + library.library_name + '</h6>' +
+                                '<button class="btn btn-sm btn-primary" onclick="showUploadModal(' + product.product_id + ', ' + library.library_id + ')">' +
+                                    '<i class="bi bi-upload"></i> 上传文档' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="card-body p-4" style="max-height: 600px; overflow-y: auto;">' +
+                            '<div class="kb-document-grid">' +
+                                (library.documents && library.documents.length > 0 ?
                                     library.documents.map(doc => renderDocument(doc)).join('') :
                                     '<div class="col-12"><div class="text-center py-5"><i class="bi bi-folder text-muted fs-1"></i><p class="text-muted mt-3">暂无文档</p><button class="btn btn-primary" onclick="document.getElementById(\'fileInput\').click()"><i class="bi bi-plus me-2"></i>上传第一个文档</button></div></div>'
-                                }
-                            </div>
-                        </div>
-                    </div>
-                `).join('') : ''}
-            `;
+                                ) +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                ).join('');
+            }
 
             document.getElementById('mainContent').innerHTML = html;
         }
@@ -1336,20 +1328,20 @@
             const fileSize = doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) : '0';
 
             return `
-                <div class="card shadow-sm border-0 kb-document-card h-100" onclick="viewDocumentDetail(${doc.doc_id})">
+                <div class="card shadow-sm border-0 kb-document-card h-100" onclick="viewDocumentDetail(' + doc.doc_id + ')">
                     <div class="card-header bg-light border-0 p-3">
                         <div class="d-flex align-items-center">
                             <div class="bg-primary bg-opacity-10 rounded p-2 me-3">
                                 <i class="bi bi-file-earmark-text text-primary fs-5"></i>
                             </div>
                             <div class="flex-grow-1">
-                                <h6 class="mb-0 text-truncate" title="${doc.original_filename}">${doc.original_filename.length > 20 ? doc.original_filename.substring(0, 20) + '...' : doc.original_filename}</h6>
+                                <h6 class="mb-0 text-truncate" title="' + doc.original_filename + '">' + (doc.original_filename.length > 20 ? doc.original_filename.substring(0, 20) + '...' : doc.original_filename) + '</h6>
                                 <div class="d-flex align-items-center mt-1">
-                                    <span class="badge ${privacyLevel === 1 ? 'bg-success' : privacyLevel === 2 ? 'bg-primary' : privacyLevel === 3 ? 'bg-warning' : 'bg-danger'} me-2 small">
-                                        ${privacyNames[privacyLevel]}
+                                    <span class="badge ' + (privacyLevel === 1 ? 'bg-success' : privacyLevel === 2 ? 'bg-primary' : privacyLevel === 3 ? 'bg-warning' : 'bg-danger') + ' me-2 small">
+                                        ' + privacyNames[privacyLevel] + '
                                     </span>
                                     <span class="badge bg-secondary small">
-                                        ${categoryNames[category]}
+                                        ' + categoryNames[category] + '
                                     </span>
                                 </div>
                             </div>
@@ -1360,7 +1352,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="text-muted small">
                                     <i class="bi bi-hdd me-1"></i>
-                                    ${fileSize} MB
+                                    ' + fileSize + ' MB
                                 </span>
                                 <span class="text-muted small">
                                     <i class="bi bi-calendar me-1"></i>
@@ -1380,18 +1372,18 @@
                         <div class="mb-3">
                             <div class="row g-2">
                                 <div class="col-6">
-                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ${doc.parse_status === 'completed' ? 'bg-success bg-opacity-10' : 'bg-warning bg-opacity-10'}">
-                                        <i class="bi ${doc.parse_status === 'completed' ? 'bi-check-circle text-success' : 'bi-clock text-warning'} me-1"></i>
-                                        <small class="${doc.parse_status === 'completed' ? 'text-success' : 'text-warning'}">
-                                            ${doc.parse_status === 'completed' ? '已解析' : '待处理'}
+                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ' + (doc.parse_status === 'completed' ? 'bg-success bg-opacity-10' : 'bg-warning bg-opacity-10') + '">
+                                        <i class="bi ' + (doc.parse_status === 'completed' ? 'bi-check-circle text-success' : 'bi-clock text-warning') + ' me-1"></i>
+                                        <small class="' + (doc.parse_status === 'completed' ? 'text-success' : 'text-warning') + '">
+                                            ' + (doc.parse_status === 'completed' ? '已解析' : '待处理') + '
                                         </small>
                                     </div>
                                 </div>
                                 <div class="col-6">
-                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ${doc.vector_status === 'completed' ? 'bg-info bg-opacity-10' : 'bg-secondary bg-opacity-10'}">
-                                        <i class="bi ${doc.vector_status === 'completed' ? 'bi-database text-info' : 'bi-hourglass text-secondary'} me-1"></i>
-                                        <small class="${doc.vector_status === 'completed' ? 'text-info' : 'text-secondary'}">
-                                            ${doc.vector_status === 'completed' ? '已索引' : '待索引'}
+                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ' + (doc.vector_status === 'completed' ? 'bg-info bg-opacity-10' : 'bg-secondary bg-opacity-10') + '">
+                                        <i class="bi ' + (doc.vector_status === 'completed' ? 'bi-database text-info' : 'bi-hourglass text-secondary') + ' me-1"></i>
+                                        <small class="' + (doc.vector_status === 'completed' ? 'text-info' : 'text-secondary') + '">
+                                            ' + (doc.vector_status === 'completed' ? '已索引' : '待索引') + '
                                         </small>
                                     </div>
                                 </div>
@@ -1402,13 +1394,13 @@
                     <div class="card-footer bg-white border-0 p-3">
                         <div class="d-grid">
                             <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); downloadDocument(${doc.doc_id})" title="下载">
+                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); downloadDocument(' + doc.doc_id + ')" title="下载">
                                     <i class="bi bi-download"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); previewDocument(${doc.doc_id})" title="预览">
+                                <button class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); previewDocument(' + doc.doc_id + ')" title="预览">
                                     <i class="bi bi-eye"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteDocument(${doc.doc_id})" title="删除">
+                                <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteDocument(' + doc.doc_id + ')" title="删除">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -1422,9 +1414,9 @@
         function updateBreadcrumb(items) {
             const html = items.map(item => {
                 if (item.active) {
-                    return `<li class="breadcrumb-item active">${item.name}</li>`;
+                    return '<li class="breadcrumb-item active">' + item.name + '</li>';
                 } else {
-                    return `<li class="breadcrumb-item"><a href="${item.link || '#'}">${item.name}</a></li>`;
+                    return '<li class="breadcrumb-item"><a href="' + (item.link || '#') + '">' + item.name + '</a></li>';
                 }
             }).join('');
 
@@ -1484,7 +1476,7 @@
             };
 
             try {
-                const response = await axios.post(`/api/knowledge_base/companies/${currentCompanyId}/products`, data);
+                const response = await axios.post('/api/knowledge_base/companies/' + currentCompanyId + '/products', data);
                 if (response.data.success) {
                     showAlert('产品添加成功', 'success');
                     bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
@@ -1528,14 +1520,14 @@
         function handleFiles(files) {
             selectedFiles = Array.from(files);
 
-            const listHtml = selectedFiles.map((file, index) => `
-                <div class="alert alert-info d-flex justify-content-between align-items-center">
-                    <span>${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                    <button class="btn btn-sm btn-danger" onclick="removeFile(${index})">
-                        <i class="bi bi-x"></i>
-                    </button>
-                </div>
-            `).join('');
+            const listHtml = selectedFiles.map((file, index) =>
+                '<div class="alert alert-info d-flex justify-content-between align-items-center">' +
+                    '<span>' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)</span>' +
+                    '<button class="btn btn-sm btn-danger" onclick="removeFile(' + index + ')">' +
+                        '<i class="bi bi-x"></i>' +
+                    '</button>' +
+                '</div>'
+            ).join('');
 
             document.getElementById('fileList').innerHTML = listHtml;
         }
@@ -1575,7 +1567,7 @@
                 formData.append('tags', JSON.stringify(tags));
 
                 try {
-                    const response = await axios.post(`/api/knowledge_base/libraries/${currentLibraryId}/documents`, formData, {
+                    const response = await axios.post('/api/knowledge_base/libraries/' + currentLibraryId + '/documents', formData, {
                         headers: { 'Content-Type': 'multipart/form-data' },
                         onUploadProgress: (progressEvent) => {
                             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -1585,12 +1577,12 @@
 
                     if (response.data.success) {
                         successCount++;
-                        showAlert(`文档 ${file.name} 上传成功`, 'success');
+                        showAlert('文档 ' + file.name + ' 上传成功', 'success');
                     }
                 } catch (error) {
                     failCount++;
-                    console.error(`文档 ${file.name} 上传失败:`, error);
-                    showAlert(`文档 ${file.name} 上传失败: ${error.response?.data?.error || error.message}`, 'danger');
+                    console.error('文档 ' + file.name + ' 上传失败:', error);
+                    showAlert('文档 ' + file.name + ' 上传失败: ' + (error.response?.data?.error || error.message), 'danger');
                 }
             }
 
@@ -1613,15 +1605,15 @@
 
             if (progressBar && progressText) {
                 const overallPercent = Math.round(((current - 1) * 100 + percent) / total);
-                progressBar.style.width = `${overallPercent}%`;
-                progressText.textContent = `正在上传 ${fileName} (${current}/${total}) - ${percent}%`;
+                progressBar.style.width = overallPercent + '%';
+                progressText.textContent = '正在上传 ' + fileName + ' (' + current + '/' + total + ') - ' + percent + '%';
             }
         }
 
         // 查看文档详情
         async function viewDocumentDetail(docId) {
             try {
-                const response = await axios.get(`/api/knowledge_base/documents/${docId}`);
+                const response = await axios.get('/api/knowledge_base/documents/' + docId);
                 if (response.data.success) {
                     const doc = response.data.data;
                     showDocumentDetailModal(doc);
@@ -1652,16 +1644,16 @@
                             <div class="modal-body">
                                 <div class="row">
                                     <div class="col-md-8">
-                                        <h6>${doc.original_filename}</h6>
-                                        <p class="text-muted mb-3">${doc.description || '暂无描述'}</p>
+                                        <h6>' + doc.original_filename + '</h6>
+                                        <p class="text-muted mb-3">' + (doc.description || '暂无描述') + '</p>
                                     </div>
                                     <div class="col-md-4 text-end">
-                                        <span class="privacy-badge privacy-${doc.privacy_classification || 1}">
-                                            ${privacyNames[doc.privacy_classification || 1]}
+                                        <span class="privacy-badge privacy-' + (doc.privacy_classification || 1) + '">
+                                            ' + privacyNames[doc.privacy_classification || 1] + '
                                         </span>
                                         <br>
-                                        <span class="doc-category-badge doc-category-${doc.document_category || 'tech'} mt-2">
-                                            ${categoryNames[doc.document_category || 'tech']}
+                                        <span class="doc-category-badge doc-category-' + (doc.document_category || 'tech') + ' mt-2">
+                                            ' + categoryNames[doc.document_category || 'tech'] + '
                                         </span>
                                     </div>
                                 </div>
@@ -1689,8 +1681,8 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                                <button type="button" class="btn btn-primary" onclick="downloadDocument(${doc.doc_id})">下载文档</button>
-                                <button type="button" class="btn btn-info" onclick="previewDocument(${doc.doc_id})">预览文档</button>
+                                <button type="button" class="btn btn-primary" onclick="downloadDocument(' + doc.doc_id + ')">下载文档</button>
+                                <button type="button" class="btn btn-info" onclick="previewDocument(' + doc.doc_id + ')">预览文档</button>
                             </div>
                         </div>
                     </div>
@@ -1710,13 +1702,13 @@
 
         // 下载文档
         function downloadDocument(docId) {
-            window.open(`/api/knowledge_base/documents/${docId}/download`, '_blank');
+            window.open('/api/knowledge_base/documents/' + docId + '/download', '_blank');
         }
 
         // 预览文档
         async function previewDocument(docId) {
             try {
-                const response = await axios.get(`/api/knowledge_base/documents/${docId}/preview`);
+                const response = await axios.get('/api/knowledge_base/documents/' + docId + '/preview');
                 if (response.data.success) {
                     showDocumentPreview(response.data.content);
                 }
@@ -1738,7 +1730,7 @@
                             </div>
                             <div class="modal-body">
                                 <div class="document-preview" style="max-height: 500px; overflow-y: auto;">
-                                    ${content}
+                                    ' + content + '
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -1767,7 +1759,7 @@
             }
 
             try {
-                const response = await axios.delete(`/api/knowledge_base/documents/${docId}`);
+                const response = await axios.delete('/api/knowledge_base/documents/' + docId);
                 if (response.data.success) {
                     showAlert('文档删除成功', 'success');
                     // 刷新当前产品详情
@@ -1784,12 +1776,10 @@
         // 显示提示信息
         function showAlert(message, type = 'info') {
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
             alertDiv.style.zIndex = '9999';
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
+            alertDiv.innerHTML = message +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
 
             document.body.appendChild(alertDiv);
 
@@ -2028,11 +2018,11 @@
                                 <i class="bi bi-clock-history me-1"></i>最近搜索
                             </h6>
                             <div class="d-flex flex-wrap gap-1">
-${history.slice(0, 5).map(query =>
-                                    `<button class="btn btn-sm search-history-btn" onclick="fillSearchQuery('${query}')">
-                                        <i class="bi bi-clock-history me-1"></i>${query}
-                                    </button>`
-                                ).join('')}
+' + history.slice(0, 5).map(query =>
+                                    '<button class="btn btn-sm search-history-btn" onclick="fillSearchQuery(\'' + query + '\')">
+                                        <i class="bi bi-clock-history me-1"></i>' + query + '
+                                    </button>'
+                                ).join('') + '
                             </div>
                         </div>
                     `;
@@ -2095,14 +2085,14 @@ ${history.slice(0, 5).map(query =>
                         <span class="visually-hidden">搜索中...</span>
                     </div>
                     <div class="mt-3">
-                        <h6 class="text-muted">正在进行${searchModeText}...</h6>
+                        <h6 class="text-muted">正在进行' + searchModeText + '...</h6>
                         <p class="small text-muted mb-0">
-                            <i class="bi bi-search me-1"></i>查询: "${query.substring(0, 50)}${query.length > 50 ? '...' : ''}"
+                            <i class="bi bi-search me-1"></i>查询: "' + query.substring(0, 50) + (query.length > 50 ? '...' : '') + '""
                         </p>
                         <p class="small text-muted">
-                            <i class="bi bi-gear me-1"></i>模式: ${searchModeText} |
-                            <i class="bi bi-funnel me-1"></i>结果数: ${limit}
-                            ${searchMode === 'semantic' ? ` | <i class="bi bi-speedometer2 me-1"></i>阈值: ${threshold}` : ''}
+                            <i class="bi bi-gear me-1"></i>模式: ' + searchModeText + ' |
+                            <i class="bi bi-funnel me-1"></i>结果数: ' + limit + '
+                            ' + (searchMode === 'semantic' ? ' | <i class="bi bi-speedometer2 me-1"></i>阈值: ' + threshold : '') + '
                         </p>
                     </div>
                 </div>
@@ -2141,7 +2131,7 @@ ${history.slice(0, 5).map(query =>
                     resultsContainer.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="bi bi-exclamation-triangle me-2"></i>
-                            搜索失败: ${response.data.error || '未知错误'}
+                            搜索失败: ' + (response.data.error || '未知错误') + '
                         </div>
                     `;
                 }
@@ -2151,7 +2141,7 @@ ${history.slice(0, 5).map(query =>
                 resultsContainer.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        搜索失败: ${errorMessage}
+                        搜索失败: ' + errorMessage + '
                         <div class="mt-2 small">
                             <button class="btn btn-outline-danger btn-sm" onclick="performSearch()">
                                 <i class="bi bi-arrow-clockwise me-1"></i>重试
@@ -2193,7 +2183,7 @@ ${history.slice(0, 5).map(query =>
                     (result.similarity_score || result.relevance_score) :
                     (result.relevance_score || 0);
 
-                const title = result.title || result.filename || result.original_filename || `文档 ${result.doc_id}`;
+                const title = result.title || result.filename || result.original_filename || ('文档 ' + result.doc_id);
                 const summary = result.summary || result.content_snippet || result.content || '暂无摘要';
                 const privacy_level = result.privacy_classification || result.privacy_level || 1;
                 const category = result.category || result.document_category || 'unknown';
@@ -2210,53 +2200,53 @@ ${history.slice(0, 5).map(query =>
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="flex-grow-1">
                                     <h6 class="card-title mb-1">
-                                        <span class="badge bg-light text-dark me-2">#${index + 1}</span>
+                                        <span class="badge bg-light text-dark me-2">#' + (index + 1) + '</span>
                                         <i class="bi bi-file-earmark-text me-1"></i>
-                                        ${title}
+                                        ' + title + '
                                     </h6>
                                     <div class="small text-muted">
-                                        ${isSemanticResult ?
-                                            `<i class="bi bi-cpu me-1"></i>语义匹配` :
-                                            `<i class="bi bi-search me-1"></i>关键词匹配`}
+                                        ' + (isSemanticResult ?
+                                            '<i class="bi bi-cpu me-1"></i>语义匹配' :
+                                            '<i class="bi bi-search me-1"></i>关键词匹配') + '
                                         <span class="mx-1">•</span>
-                                        文档ID: ${result.doc_id}
-                                        ${result.chunk_id ? `<span class="mx-1">•</span>片段ID: ${result.chunk_id}` : ''}
+                                        文档ID: ' + result.doc_id + '
+                                        ' + (result.chunk_id ? '<span class="mx-1">•</span>片段ID: ' + result.chunk_id : '') + '
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <span class="privacy-badge privacy-${privacy_level}">
-                                        ${['', '🌐 公开', '🏢 内部', '🔒 机密', '🚫 绝密'][privacy_level]}
+                                    <span class="privacy-badge privacy-' + privacy_level + '">
+                                        ' + ['', '🌐 公开', '🏢 内部', '🔒 机密', '🚫 绝密'][privacy_level] + '
                                     </span>
                                 </div>
                             </div>
 
                             <p class="card-text small mb-2" style="line-height: 1.4;">
-                                ${summary.length > 200 ? summary.substring(0, 200) + '...' : summary}
+                                ' + (summary.length > 200 ? summary.substring(0, 200) + '...' : summary) + '
                             </p>
 
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="badge bg-${scoreColor} me-2">
-                                        ${isSemanticResult ? '相似度' : '相关度'}: ${(similarity_score * 100).toFixed(1)}%
+                                    <span class="badge bg-' + scoreColor + ' me-2">
+                                        ' + (isSemanticResult ? '相似度' : '相关度') + ': ' + (similarity_score * 100).toFixed(1) + '%
                                     </span>
-                                    ${category && category !== 'unknown' ? `
+                                    ' + (category && category !== 'unknown' ? '
                                         <span class="badge bg-secondary me-2">
-                                            ${{'tech': '🔧 技术', 'impl': '📋 实施', 'service': '🛠️ 服务'}[category] || category}
+                                            ' + ({'tech': '🔧 技术', 'impl': '📋 实施', 'service': '🛠️ 服务'}[category] || category) + '
                                         </span>
                                     ` : ''}
-                                    ${result.file_type ? `
-                                        <span class="badge bg-info me-2">${result.file_type.toUpperCase()}</span>
-                                    ` : ''}
+                                    ' + (result.file_type ? '
+                                        <span class="badge bg-info me-2">' + result.file_type.toUpperCase() + '</span>
+                                    ' : '') + '
                                 </div>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary" onclick="viewDocumentDetail(${result.doc_id})" title="查看详情">
+                                    <button class="btn btn-outline-primary" onclick="viewDocumentDetail(' + result.doc_id + ')" title="查看详情">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-success" onclick="downloadDocument(${result.doc_id})" title="下载文档">
+                                    <button class="btn btn-outline-success" onclick="downloadDocument(' + result.doc_id + ')" title="下载文档">
                                         <i class="bi bi-download"></i>
                                     </button>
-                                    ${isSemanticResult && result.chunk_id ? `
-                                        <button class="btn btn-outline-info" onclick="viewChunkDetail(${result.chunk_id})" title="查看片段">
+                                    ' + (isSemanticResult && result.chunk_id ? '
+                                        <button class="btn btn-outline-info" onclick="viewChunkDetail(' + result.chunk_id + ')" title="查看片段">
                                             <i class="bi bi-zoom-in"></i>
                                         </button>
                                     ` : ''}
@@ -2275,13 +2265,13 @@ ${history.slice(0, 5).map(query =>
                 <div class="alert search-stats d-flex justify-content-between align-items-center border-0 shadow-sm">
                     <div>
                         <i class="bi bi-check-circle me-2 fs-5"></i>
-                        找到 <strong>${results.length}</strong> 个相关文档
+                        找到 <strong>' + results.length + '</strong> 个相关文档
                         <div class="mt-1 small opacity-90">
-                            <i class="bi bi-gear me-1"></i>搜索模式: ${modeText}
+                            <i class="bi bi-gear me-1"></i>搜索模式: ' + modeText + '
                             <span class="mx-2">•</span>
-                            <i class="bi bi-stopwatch me-1"></i>耗时: ${searchTime.toFixed(2)}s
+                            <i class="bi bi-stopwatch me-1"></i>耗时: ' + searchTime.toFixed(2) + 's'
                             <span class="mx-2">•</span>
-                            <i class="bi bi-speedometer2 me-1"></i>平均${searchMode === 'semantic' ? '相似度' : '相关度'}: ${(avgScore * 100).toFixed(1)}%
+                            <i class="bi bi-speedometer2 me-1"></i>平均' + (searchMode === 'semantic' ? '相似度' : '相关度') + ': ' + (avgScore * 100).toFixed(1) + '%'
                         </div>
                     </div>
                     <div class="btn-group btn-group-sm">
@@ -2290,7 +2280,7 @@ ${history.slice(0, 5).map(query =>
                         </button>
                     </div>
                 </div>
-                ${resultsHtml}
+                ' + resultsHtml + '
             `;
         }
 
