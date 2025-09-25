@@ -406,8 +406,8 @@
                         </div>
                     </div>
 
-                    <!-- 导航底部操作区域 -->
-                    <div class="card-footer bg-light border-0 p-3">
+                    <!-- 导航底部操作区域 - 已移至右侧内容区 -->
+                    <!-- <div class="card-footer bg-light border-0 p-3">
                         <div class="d-grid gap-2">
                             <button class="btn btn-outline-primary btn-sm" onclick="showSearchModal()">
                                 <i class="bi bi-search me-2"></i>全局搜索
@@ -416,7 +416,7 @@
                                 <i class="bi bi-arrow-clockwise me-2"></i>刷新数据
                             </button>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -1041,124 +1041,151 @@
 
             // 加载企业信息库
             try {
-                const response = await axios.get('/api/knowledge_base/companies/' + companyId + '/profiles');
-                if (response.data.success) {
-                    renderCompanyProfiles(response.data.data);
-                }
+                // 直接调用渲染函数，不依赖后端API
+                renderCompanyProfiles([]);
             } catch (error) {
                 console.error('加载企业信息库失败:', error);
                 showAlert('加载企业信息库失败', 'danger');
             }
         }
 
-        // 渲染企业信息库（多列布局）
-        function renderCompanyProfiles(profiles) {
-            const html = '<div class="container-fluid px-0">' +
-                    '<!-- 页面标题 -->' +
-                    '<div class="row mb-4">' +
-                        '<div class="col-12">' +
-                            '<div class="card shadow-sm border-0">' +
-                                '<div class="card-body p-4">' +
-                                    '<div class="d-flex align-items-center justify-content-between">' +
-                                        '<div class="d-flex align-items-center">' +
-                                            '<div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">' +
-                                                '<i class="bi bi-person-workspace text-info fs-3"></i>' +
-                                            '</div>' +
-                                            '<div>' +
-                                                '<h3 class="mb-1 fw-bold">企业信息库</h3>' +
-                                                '<p class="text-muted mb-0">管理企业基础信息、资质证书、人员档案和财务文档</p>' +
-                                            '</div>' +
-                                        '</div>' +
-                                        '<button class="btn btn-primary" onclick="showCompanyProfileUploadModal()">' +
-                                            '<i class="bi bi-plus-circle me-2"></i>添加文档' +
-                                        '</button>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
+        // 渲染企业信息库（增强版Tab切换）
+        async function renderCompanyProfiles(profiles) {
+            // 先获取公司详细信息
+            let companyData = null;
+            try {
+                const response = await axios.get('/api/companies/' + currentCompanyId);
+                if (response.data.success) {
+                    companyData = response.data.company;
+                } else if (response.data.company) {
+                    // 兼容不同的响应格式
+                    companyData = response.data.company;
+                }
+            } catch (error) {
+                console.error('获取公司详情失败:', error);
+                // 即使API失败也显示基础界面
+                companyData = null;
+            }
 
-                    '<!-- 四个分类的文档库 -->' +
-                    '<div class="row g-4">' +
-                        '<div class="col-lg-6">' +
-                            '<div class="card shadow-sm border-0 h-100">' +
-                                '<div class="card-header bg-success bg-opacity-10 border-0 p-4">' +
-                                    '<div class="d-flex align-items-center">' +
-                                        '<div class="bg-success rounded-circle p-2 me-3">' +
-                                            '<i class="bi bi-globe text-white"></i>' +
-                                        '</div>' +
-                                        '<div>' +
-                                            '<h5 class="mb-0 fw-bold text-success">基础信息</h5>' +
-                                            '<small class="text-muted">公开级别 - 对外公开资料</small>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
-                                    renderProfileDocuments('basic') +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-
-                        '<div class="col-lg-6">' +
-                            '<div class="card shadow-sm border-0 h-100">' +
-                                '<div class="card-header bg-primary bg-opacity-10 border-0 p-4">' +
-                                    '<div class="d-flex align-items-center">' +
-                                        '<div class="bg-primary rounded-circle p-2 me-3">' +
-                                            '<i class="bi bi-award text-white"></i>' +
-                                        '</div>' +
-                                        '<div>' +
-                                            '<h5 class="mb-0 fw-bold text-primary">资质证书</h5>' +
-                                            '<small class="text-muted">内部级别 - 企业资质材料</small>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
-                                    renderProfileDocuments('qualification') +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-
-                        '<div class="col-lg-6">' +
-                            '<div class="card shadow-sm border-0 h-100">' +
-                                '<div class="card-header bg-warning bg-opacity-10 border-0 p-4">' +
-                                    '<div class="d-flex align-items-center">' +
-                                        '<div class="bg-warning rounded-circle p-2 me-3">' +
-                                            '<i class="bi bi-people text-white"></i>' +
-                                        '</div>' +
-                                        '<div>' +
-                                            '<h5 class="mb-0 fw-bold text-warning">人员信息</h5>' +
-                                            '<small class="text-muted">机密级别 - 员工档案信息</small>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
-                                    renderProfileDocuments('personnel') +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-
-                        '<div class="col-lg-6">' +
-                            '<div class="card shadow-sm border-0 h-100">' +
-                                '<div class="card-header bg-danger bg-opacity-10 border-0 p-4">' +
-                                    '<div class="d-flex align-items-center">' +
-                                        '<div class="bg-danger rounded-circle p-2 me-3">' +
-                                            '<i class="bi bi-bank text-white"></i>' +
-                                        '</div>' +
-                                        '<div>' +
-                                            '<h5 class="mb-0 fw-bold text-danger">财务文档</h5>' +
-                                            '<small class="text-muted">绝密级别 - 财务报告资料</small>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                                '<div class="card-body p-4" style="max-height: 400px; overflow-y: auto;">' +
-                                    renderProfileDocuments('financial') +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
+            const html = renderEnhancedCompanyProfile(companyData);
 
             document.getElementById('mainContent').innerHTML = html;
+
+            // 初始化表单事件
+            setTimeout(() => initCompanyProfileEvents(), 100);
+        }
+
+        // 渲染增强型企业信息库页面
+        function renderEnhancedCompanyProfile(companyData) {
+            return '<div class="container-fluid px-0">' +
+                '<!-- 操作按钮栏 -->' +
+                '<div class="mb-3">' +
+                    '<div class="btn-group w-100">' +
+                        '<button class="btn btn-outline-primary" onclick="showSearchModal()">' +
+                            '<i class="bi bi-search me-2"></i>全局搜索' +
+                        '</button>' +
+                        '<button class="btn btn-outline-success" onclick="refreshKnowledgeBase()">' +
+                            '<i class="bi bi-arrow-clockwise me-2"></i>刷新数据' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+
+                '<!-- 页面标题 -->' +
+                '<div class="row mb-4">' +
+                    '<div class="col-12">' +
+                        '<div class="card shadow-sm border-0">' +
+                            '<div class="card-body p-4">' +
+                                '<div class="d-flex align-items-center justify-content-between">' +
+                                    '<div class="d-flex align-items-center">' +
+                                        '<div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">' +
+                                            '<i class="bi bi-person-workspace text-info fs-3"></i>' +
+                                        '</div>' +
+                                        '<div>' +
+                                            '<h3 class="mb-1 fw-bold">企业信息库</h3>' +
+                                            '<p class="text-muted mb-0">管理企业基础信息、资质证书、人员档案和财务文档</p>' +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+
+                '<!-- Tab导航 -->' +
+                '<ul class="nav nav-tabs mb-3" id="companyProfileTabs">' +
+                    '<li class="nav-item">' +
+                        '<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-basic">' +
+                            '<i class="bi bi-globe text-success"></i> 基础信息' +
+                        '</button>' +
+                    '</li>' +
+                    '<li class="nav-item">' +
+                        '<button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-qualification">' +
+                            '<i class="bi bi-award text-primary"></i> 资质信息' +
+                        '</button>' +
+                    '</li>' +
+                    '<li class="nav-item">' +
+                        '<button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-personnel">' +
+                            '<i class="bi bi-people text-warning"></i> 人员信息' +
+                        '</button>' +
+                    '</li>' +
+                    '<li class="nav-item">' +
+                        '<button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-financial">' +
+                            '<i class="bi bi-bank text-danger"></i> 财务信息' +
+                        '</button>' +
+                    '</li>' +
+                '</ul>' +
+
+                '<!-- Tab内容 -->' +
+                '<div class="tab-content">' +
+                    '<!-- 基础信息Tab -->' +
+                    '<div class="tab-pane fade show active" id="tab-basic">' +
+                        '<div class="card">' +
+                            '<div class="card-header bg-success bg-opacity-10">' +
+                                '<h5 class="mb-0"><i class="bi bi-building"></i> 企业基本信息</h5>' +
+                            '</div>' +
+                            '<div class="card-body">' +
+                                (companyData ? renderBasicInfoForm(companyData) : '<p class="text-muted">加载中...</p>') +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+
+                    '<!-- 资质信息Tab -->' +
+                    '<div class="tab-pane fade" id="tab-qualification">' +
+                        '<div class="card">' +
+                            '<div class="card-header bg-primary bg-opacity-10">' +
+                                '<h5 class="mb-0"><i class="bi bi-award"></i> 资质证书管理</h5>' +
+                            '</div>' +
+                            '<div class="card-body">' +
+                                renderQualificationSection() +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+
+                    '<!-- 人员信息Tab -->' +
+                    '<div class="tab-pane fade" id="tab-personnel">' +
+                        '<div class="card">' +
+                            '<div class="card-header bg-warning bg-opacity-10">' +
+                                '<h5 class="mb-0"><i class="bi bi-people"></i> 人员档案管理</h5>' +
+                            '</div>' +
+                            '<div class="card-body">' +
+                                renderPersonnelSection() +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+
+                    '<!-- 财务信息Tab -->' +
+                    '<div class="tab-pane fade" id="tab-financial">' +
+                        '<div class="card">' +
+                            '<div class="card-header bg-danger bg-opacity-10">' +
+                                '<h5 class="mb-0"><i class="bi bi-bank"></i> 财务文档管理</h5>' +
+                            '</div>' +
+                            '<div class="card-body">' +
+                                renderFinancialSection() +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
         }
 
         // 渲染分类文档
@@ -1173,9 +1200,298 @@
             '</div>';
         }
 
+        // 渲染基础信息表单
+        function renderBasicInfoForm(companyData) {
+            const data = companyData || {};
+            return '<form id="companyBasicInfoForm">' +
+                '<div class="row mb-3">' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label">公司名称 <span class="text-danger">*</span></label>' +
+                        '<input type="text" class="form-control" id="prof-companyName" value="' + (data.companyName || data.company_name || '') + '" required>' +
+                    '</div>' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label">成立日期</label>' +
+                        '<input type="date" class="form-control" id="prof-establishDate" value="' + (data.establishDate || data.establish_date || '') + '">' +
+                    '</div>' +
+                '</div>' +
+
+                '<div class="row mb-3">' +
+                    '<div class="col-md-4">' +
+                        '<label class="form-label">法定代表人</label>' +
+                        '<input type="text" class="form-control" id="prof-legalRepresentative" value="' + (data.legalRepresentative || data.legal_representative || '') + '">' +
+                    '</div>' +
+                    '<div class="col-md-4">' +
+                        '<label class="form-label">法定代表人职务</label>' +
+                        '<input type="text" class="form-control" id="prof-legalRepresentativePosition" value="' + (data.legalRepresentativePosition || data.legal_representative_position || '') + '">' +
+                    '</div>' +
+                    '<div class="col-md-4">' +
+                        '<label class="form-label">统一社会信用代码</label>' +
+                        '<input type="text" class="form-control" id="prof-socialCreditCode" value="' + (data.socialCreditCode || data.social_credit_code || '') + '">' +
+                    '</div>' +
+                '</div>' +
+
+                '<div class="row mb-3">' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label">注册资本</label>' +
+                        '<input type="text" class="form-control" id="prof-registeredCapital" value="' + (data.registeredCapital || '') + '">' +
+                    '</div>' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label">公司类型</label>' +
+                        '<select class="form-select" id="prof-companyType">' +
+                            '<option value="">请选择公司类型</option>' +
+                            '<option value="有限责任公司" ' + (data.companyType === '有限责任公司' ? 'selected' : '') + '>有限责任公司</option>' +
+                            '<option value="股份有限公司" ' + (data.companyType === '股份有限公司' ? 'selected' : '') + '>股份有限公司</option>' +
+                            '<option value="合伙企业" ' + (data.companyType === '合伙企业' ? 'selected' : '') + '>合伙企业</option>' +
+                            '<option value="个人独资企业" ' + (data.companyType === '个人独资企业' ? 'selected' : '') + '>个人独资企业</option>' +
+                            '<option value="外商投资企业" ' + (data.companyType === '外商投资企业' ? 'selected' : '') + '>外商投资企业</option>' +
+                            '<option value="其他" ' + (data.companyType === '其他' ? 'selected' : '') + '>其他</option>' +
+                        '</select>' +
+                    '</div>' +
+                '</div>' +
+
+                '<div class="mb-3">' +
+                    '<label class="form-label">注册地址</label>' +
+                    '<textarea class="form-control" id="prof-registeredAddress" rows="2">' + (data.registeredAddress || '') + '</textarea>' +
+                '</div>' +
+
+                '<div class="mb-3">' +
+                    '<label class="form-label">经营范围</label>' +
+                    '<textarea class="form-control" id="prof-businessScope" rows="3">' + (data.businessScope || '') + '</textarea>' +
+                '</div>' +
+
+                '<div class="mb-3">' +
+                    '<label class="form-label">公司简介</label>' +
+                    '<textarea class="form-control" id="prof-companyDescription" rows="3">' + (data.companyDescription || '') + '</textarea>' +
+                '</div>' +
+
+                '<div class="text-center mt-4">' +
+                    '<button type="button" class="btn btn-success btn-lg" onclick="saveCompanyBasicInfo()">' +
+                        '<i class="bi bi-save"></i> 保存基础信息' +
+                    '</button>' +
+                '</div>' +
+            '</form>';
+        }
+
+        // 渲染资质信息部分
+        function renderQualificationSection() {
+            return '<div class="qualification-section">' +
+                '<div class="mb-4">' +
+                    '<h6 class="text-primary mb-3"><i class="bi bi-collection"></i> 标准资质文件</h6>' +
+                    '<div class="row g-3">' +
+                        '<div class="col-md-6">' +
+                            renderQualificationItem('营业执照', 'business_license', 'bi-file-earmark-text') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderQualificationItem('ISO9001认证', 'iso9001', 'bi-patch-check') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderQualificationItem('ISO14001认证', 'iso14001', 'bi-tree') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderQualificationItem('ISO27001认证', 'iso27001', 'bi-shield-check') +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="text-center">' +
+                    '<button class="btn btn-primary btn-lg" onclick="uploadQualifications()">' +
+                        '<i class="bi bi-cloud-upload"></i> 上传资质文件' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        }
+
+        // 渲染资质项
+        function renderQualificationItem(name, id, icon) {
+            return '<div class="card mb-3">' +
+                '<div class="card-body">' +
+                    '<div class="d-flex justify-content-between align-items-center">' +
+                        '<div>' +
+                            '<i class="bi ' + icon + ' me-2"></i>' +
+                            '<span>' + name + '</span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<input type="file" class="d-none" id="qual-' + id + '" accept=".pdf,.jpg,.png">' +
+                            '<button class="btn btn-sm btn-outline-primary" onclick="document.getElementById(\'qual-' + id + '\').click()">' +
+                                '<i class="bi bi-upload"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        // 渲染人员信息部分
+        function renderPersonnelSection() {
+            return '<div class="personnel-section">' +
+                '<div class="mb-4">' +
+                    '<h6 class="text-warning mb-3"><i class="bi bi-people"></i> 人员档案</h6>' +
+                    '<div class="row g-3">' +
+                        '<div class="col-md-6">' +
+                            renderPersonnelItem('法定代表人身份证', 'legal_id', 'bi-person-badge') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderPersonnelItem('被授权人身份证', 'auth_id', 'bi-person-check') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderPersonnelItem('员工社保证明', 'social_security', 'bi-file-medical') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderPersonnelItem('团队成员简历', 'team_resume', 'bi-file-person') +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="text-center">' +
+                    '<button class="btn btn-warning btn-lg" onclick="uploadPersonnelDocs()">' +
+                        '<i class="bi bi-cloud-upload"></i> 上传人员档案' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        }
+
+        // 渲染人员项
+        function renderPersonnelItem(name, id, icon) {
+            return '<div class="card mb-3 border-warning">' +
+                '<div class="card-body">' +
+                    '<div class="d-flex justify-content-between align-items-center">' +
+                        '<div>' +
+                            '<i class="bi ' + icon + ' text-warning me-2"></i>' +
+                            '<span>' + name + '</span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<input type="file" class="d-none" id="pers-' + id + '" accept=".pdf,.jpg,.png">' +
+                            '<button class="btn btn-sm btn-outline-warning" onclick="document.getElementById(\'pers-' + id + '\').click()">' +
+                                '<i class="bi bi-upload"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        // 渲染财务信息部分
+        function renderFinancialSection() {
+            return '<div class="financial-section">' +
+                '<div class="mb-4">' +
+                    '<h6 class="text-danger mb-3"><i class="bi bi-bank"></i> 财务文档</h6>' +
+                    '<div class="row g-3">' +
+                        '<div class="col-md-6">' +
+                            renderFinancialItem('审计报告', 'audit_report', 'bi-file-earmark-check') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderFinancialItem('财务报表', 'financial_statement', 'bi-file-earmark-spreadsheet') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderFinancialItem('银行流水', 'bank_statement', 'bi-bank2') +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            renderFinancialItem('纳税证明', 'tax_certificate', 'bi-receipt') +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="mb-4">' +
+                    '<h6>银行账户信息</h6>' +
+                    '<div class="row">' +
+                        '<div class="col-md-6">' +
+                            '<label class="form-label">开户行全称</label>' +
+                            '<input type="text" class="form-control" id="prof-bankName" placeholder="例：中国工商银行股份有限公司北京分行">' +
+                        '</div>' +
+                        '<div class="col-md-6">' +
+                            '<label class="form-label">银行账号</label>' +
+                            '<input type="text" class="form-control" id="prof-bankAccount" placeholder="请输入银行账号">' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="text-center">' +
+                    '<button class="btn btn-danger btn-lg" onclick="saveFinancialInfo()">' +
+                        '<i class="bi bi-save"></i> 保存财务信息' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        }
+
+        // 渲染财务项
+        function renderFinancialItem(name, id, icon) {
+            return '<div class="card mb-3 border-danger">' +
+                '<div class="card-body">' +
+                    '<div class="d-flex justify-content-between align-items-center">' +
+                        '<div>' +
+                            '<i class="bi ' + icon + ' text-danger me-2"></i>' +
+                            '<span>' + name + '</span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<input type="file" class="d-none" id="fin-' + id + '" accept=".pdf,.xls,.xlsx">' +
+                            '<button class="btn btn-sm btn-outline-danger" onclick="document.getElementById(\'fin-' + id + '\').click()">' +
+                                '<i class="bi bi-upload"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        // 初始化企业信息库事件
+        function initCompanyProfileEvents() {
+            // 添加表单验证和提交事件
+            console.log('初始化企业信息库事件');
+        }
+
+        // 保存公司基础信息
+        async function saveCompanyBasicInfo() {
+            const data = {
+                companyName: document.getElementById('prof-companyName').value,
+                establishDate: document.getElementById('prof-establishDate').value,
+                legalRepresentative: document.getElementById('prof-legalRepresentative').value,
+                legalRepresentativePosition: document.getElementById('prof-legalRepresentativePosition').value,
+                socialCreditCode: document.getElementById('prof-socialCreditCode').value,
+                registeredCapital: document.getElementById('prof-registeredCapital').value,
+                companyType: document.getElementById('prof-companyType').value,
+                registeredAddress: document.getElementById('prof-registeredAddress').value,
+                businessScope: document.getElementById('prof-businessScope').value,
+                companyDescription: document.getElementById('prof-companyDescription').value
+            };
+
+            try {
+                const response = await axios.put('/api/companies/' + currentCompanyId, data);
+                if (response.data.success) {
+                    showAlert('基础信息保存成功', 'success');
+                }
+            } catch (error) {
+                showAlert('保存失败：' + error.message, 'danger');
+            }
+        }
+
+        // 保存财务信息
+        async function saveFinancialInfo() {
+            const data = {
+                bankName: document.getElementById('prof-bankName').value,
+                bankAccount: document.getElementById('prof-bankAccount').value
+            };
+
+            try {
+                const response = await axios.put('/api/companies/' + currentCompanyId, data);
+                if (response.data.success) {
+                    showAlert('财务信息保存成功', 'success');
+                }
+            } catch (error) {
+                showAlert('保存失败：' + error.message, 'danger');
+            }
+        }
+
         // 渲染公司详情
         function renderCompanyDetail(company) {
-            const html = '<div class="card mb-3">' +
+            const html = '<!-- 操作按钮栏 -->' +
+                '<div class="mb-3">' +
+                    '<div class="btn-group w-100">' +
+                        '<button class="btn btn-outline-primary" onclick="showSearchModal()">' +
+                            '<i class="bi bi-search me-2"></i>全局搜索' +
+                        '</button>' +
+                        '<button class="btn btn-outline-success" onclick="refreshKnowledgeBase()">' +
+                            '<i class="bi bi-arrow-clockwise me-2"></i>刷新数据' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+
+                '<div class="card mb-3">' +
                     '<div class="card-header bg-primary text-white">' +
                         '<h5 class="mb-0">' + company.company_name + '</h5>' +
                     '</div>' +
@@ -1276,7 +1592,19 @@
 
         // 渲染产品详情
         function renderProductDetail(product) {
-            let html = '<div class="card mb-3">' +
+            let html = '<!-- 操作按钮栏 -->' +
+                '<div class="mb-3">' +
+                    '<div class="btn-group w-100">' +
+                        '<button class="btn btn-outline-primary" onclick="showSearchModal()">' +
+                            '<i class="bi bi-search me-2"></i>全局搜索' +
+                        '</button>' +
+                        '<button class="btn btn-outline-success" onclick="refreshKnowledgeBase()">' +
+                            '<i class="bi bi-arrow-clockwise me-2"></i>刷新数据' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+
+                '<div class="card mb-3">' +
                     '<div class="card-header bg-success text-white">' +
                         '<h5 class="mb-0">' + product.product_name + '</h5>' +
                     '</div>' +
