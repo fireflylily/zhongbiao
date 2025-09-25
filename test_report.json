@@ -1,0 +1,142 @@
+{
+  "api_tests": [
+    {
+      "test_name": "Health Check API",
+      "success": true,
+      "duration": 0.00637507438659668,
+      "message": "System version: 2.1.0, Status: healthy",
+      "details": {
+        "status_code": 200,
+        "response": {
+          "business_response_available": true,
+          "knowledge_base_available": true,
+          "point_to_point_available": true,
+          "status": "healthy",
+          "tech_responder_available": true,
+          "tender_info_available": true,
+          "timestamp": "2025-09-25T11:11:22.658042",
+          "vector_search_available": true,
+          "version": "2.1.0"
+        }
+      }
+    },
+    {
+      "test_name": "Get Companies API",
+      "success": true,
+      "duration": 0.012709856033325195,
+      "message": "Found 2 companies",
+      "details": {}
+    },
+    {
+      "test_name": "Knowledge Base Search API",
+      "success": true,
+      "duration": 0.004530906677246094,
+      "message": "Search completed",
+      "details": {}
+    },
+    {
+      "test_name": "Vector Search Status API",
+      "success": true,
+      "duration": 0.006072044372558594,
+      "message": "Status retrieved",
+      "details": {}
+    },
+    {
+      "test_name": "Vector Semantic Search API",
+      "success": true,
+      "duration": 0.012663125991821289,
+      "message": "Semantic search completed",
+      "details": {}
+    }
+  ],
+  "performance_tests": [
+    {
+      "test_name": "Concurrent Requests (x1)",
+      "success": true,
+      "duration": 0.017319917678833008,
+      "message": "Success rate: 100.0%, Avg response: 0.009s",
+      "details": {
+        "concurrency": 1,
+        "success_rate": 100.0,
+        "avg_response_time": 0.008568882942199707,
+        "total_requests": 2
+      }
+    },
+    {
+      "test_name": "Concurrent Requests (x5)",
+      "success": true,
+      "duration": 0.0070650577545166016,
+      "message": "Success rate: 100.0%, Avg response: 0.003s",
+      "details": {
+        "concurrency": 5,
+        "success_rate": 100.0,
+        "avg_response_time": 0.0027611970901489256,
+        "total_requests": 10
+      }
+    },
+    {
+      "test_name": "Concurrent Requests (x10)",
+      "success": true,
+      "duration": 0.014965057373046875,
+      "message": "Success rate: 100.0%, Avg response: 0.006s",
+      "details": {
+        "concurrency": 10,
+        "success_rate": 100.0,
+        "avg_response_time": 0.00576094388961792,
+        "total_requests": 20
+      }
+    },
+    {
+      "test_name": "Vector Engine Performance",
+      "success": true,
+      "duration": 0.7489700317382812,
+      "message": "Vector engine test completed",
+      "details": {
+        "stdout_lines": 57,
+        "stderr_lines": 0
+      }
+    }
+  ],
+  "integration_tests": [
+    {
+      "test_name": "End-to-End Search: '人工智能在招标中的应用...'",
+      "success": true,
+      "duration": 0.007277965545654297,
+      "message": "Semantic: ✓, Keyword: ✓",
+      "details": {
+        "query": "人工智能在招标中的应用",
+        "semantic_status": 200,
+        "keyword_status": 200
+      }
+    },
+    {
+      "test_name": "End-to-End Search: '5G网络技术方案...'",
+      "success": true,
+      "duration": 0.0052831172943115234,
+      "message": "Semantic: ✓, Keyword: ✓",
+      "details": {
+        "query": "5G网络技术方案",
+        "semantic_status": 200,
+        "keyword_status": 200
+      }
+    },
+    {
+      "test_name": "End-to-End Search: '供应商管理系统...'",
+      "success": true,
+      "duration": 0.005079746246337891,
+      "message": "Semantic: ✓, Keyword: ✓",
+      "details": {
+        "query": "供应商管理系统",
+        "semantic_status": 200,
+        "keyword_status": 200
+      }
+    }
+  ],
+  "summary": {
+    "total_tests": 12,
+    "total_passed": 12,
+    "pass_rate": 100.0,
+    "total_duration": 0.8483119010925293,
+    "timestamp": "2025-09-25 11:11:23"
+  }
+}

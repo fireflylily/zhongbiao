@@ -1,26 +1,26 @@
 /* AI标书系统公共样式 - 现代化设计 */
 
-/* 全局样式 - 中国联通主题 */
+/* 全局样式 - 中国联通主题 + Bootswatch Litera */
 :root {
     --unicom-red: #e60012;
     --unicom-red-light: #ff1a2b;
     --unicom-red-dark: #cc0000;
-    --primary-color: #e60012;
-    --secondary-color: #ff6b35;
+    --primary-color: #4582ec; /* Litera 主色调 */
+    --secondary-color: #f0ad4e;
     --accent-color: #2196f3;
-    --success-color: #4caf50;
-    --warning-color: #ff9800;
-    --danger-color: #f44336;
-    --light-bg: #fafbfc;
-    --dark-text: #2c3e50;
-    --light-text: #6c757d;
-    --border-color: #e8eaed;
-    --shadow-color: rgba(230, 0, 18, 0.12);
+    --success-color: #02b875;
+    --warning-color: #f0ad4e;
+    --danger-color: #d9534f;
+    --light-bg: #f8f9fa;
+    --dark-text: #495057;
+    --light-text: #868e96;
+    --border-color: #ddd;
+    --shadow-color: rgba(69, 130, 236, 0.12);
     --unicom-gradient: linear-gradient(135deg, #e60012 0%, #ff1a2b 100%);
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Litera 主题已定义字体，此处继承 */
     background-color: var(--light-bg);
     color: var(--dark-text);
 }
@@ -30,12 +30,10 @@ body {
     min-height: 100vh;
 }
 
-/* 顶部导航栏样式 */
+/* 顶部导航栏样式 - 简化以配合 Litera 主题 */
 .navbar {
-    box-shadow: 0 2px 15px var(--shadow-color);
-    background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid var(--border-color);
-    padding: 0.8rem 0;
 }
 
 /* 品牌标识样式 */
@@ -44,22 +42,18 @@ body {
 }
 
 .logo-container {
-    filter: drop-shadow(0 3px 6px rgba(230, 0, 18, 0.2));
     transition: transform 0.3s ease;
 }
 
 .logo-container:hover {
-    transform: scale(1.05);
+    transform: scale(1.02);
 }
 
 .brand-text .brand-title {
-    background: var(--unicom-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    font-weight: 700;
-    font-size: 1.4rem;
-    letter-spacing: 0.5px;
+    color: var(--unicom-red);
+    font-weight: 600;
+    font-size: 1.3rem;
+    letter-spacing: 0.3px;
     margin: 0;
 }
 
@@ -175,45 +169,33 @@ body {
 
 /* 卡片样式优化 */
 .card {
-    border: none;
-    border-radius: 15px;
-    box-shadow: 0 4px 20px var(--shadow-color);
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fc 100%);
+    background: #ffffff;
     overflow: hidden;
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 30px rgba(58, 59, 69, 0.25);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
-    background: var(--unicom-gradient);
+    background: var(--primary-color);
     color: white;
     border: none;
-    padding: 1.2rem 1.5rem;
-    font-weight: 600;
-    position: relative;
-    overflow: hidden;
+    padding: 1rem 1.25rem;
+    font-weight: 500;
+    border-radius: 12px 12px 0 0;
 }
 
-.card-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%);
-    pointer-events: none;
-}
 
 .card-header h6 {
     color: white;
     margin: 0;
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    font-weight: 500;
 }
 
 .card-body {
@@ -222,43 +204,141 @@ body {
 
 /* 按钮样式优化 */
 .btn {
-    border-radius: 25px;
-    padding: 0.75rem 2rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: none;
 }
 
 .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.btn-primary {
+/* Litera 主题已定义 .btn-primary 样式，此处保留自定义 */
+.btn-primary.btn-unicom {
     background: var(--unicom-gradient);
     border: none;
     color: white;
 }
 
-.btn-primary:hover {
+.btn-primary.btn-unicom:hover {
     background: linear-gradient(135deg, var(--unicom-red-dark), var(--unicom-red-light));
     color: white;
 }
 
-.btn-success {
-    background: linear-gradient(135deg, var(--success-color), #66bb6a);
-    border: none;
+/* 让 Litera 主题处理按钮颜色，保留一些个性化样式 */
+
+/* 知识库页面专用语义化样式 */
+.kb-tree-toggle {
+    transition: transform 0.2s ease;
 }
 
-.btn-warning {
-    background: linear-gradient(135deg, var(--warning-color), #ffb74d);
-    border: none;
+.kb-tree-toggle.expanded {
+    transform: rotate(90deg);
 }
 
-.btn-danger {
-    background: linear-gradient(135deg, var(--danger-color), #e57373);
+.kb-privacy-indicator {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.kb-document-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.kb-document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.kb-upload-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 2.5rem;
+    text-align: center;
+    background-color: var(--light-bg);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.kb-upload-zone:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(69, 130, 236, 0.05);
+}
+
+.kb-upload-zone.dragover {
+    border-color: var(--success-color);
+    background-color: rgba(2, 184, 117, 0.05);
+}
+
+/* 隐私分级样式 - 简化版本 */
+.privacy-1 {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.privacy-2 {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.privacy-3 {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.privacy-4 {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+/* 现代化统计卡片样式 */
+.kb-stat-card {
     border: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.kb-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.kb-stat-card:hover::before {
+    opacity: 1;
+}
+
+.kb-stat-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* 文档网格布局 */
+.kb-document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .kb-document-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
 
 /* 顶部导航栏样式 */
@@ -272,32 +352,19 @@ body {
     min-height: calc(100vh - 56px);
 }
 
-/* 统计卡片样式 */
+/* 统计卡片样式 - 简化版本 */
 .stat-card {
-    background: var(--unicom-gradient);
-    color: white;
-    border-radius: 1rem;
-    padding: 1.5rem;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
     margin-bottom: 1rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(230, 0, 18, 0.25);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     position: relative;
-    overflow: hidden;
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-    pointer-events: none;
 }
 
 .stat-card:hover {
-    box-shadow: 0 8px 30px rgba(230, 0, 18, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .stat-card .stat-icon {
@@ -305,27 +372,22 @@ body {
 }
 
 .stat-card .stat-number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    font-size: 2.25rem;
+    font-weight: 700;
 }
 
 .stat-card .stat-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
+    font-size: 0.875rem;
     font-weight: 500;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
-/* 页面标题优化 */
+/* 页面标题优化 - 简化版本 */
 .page-title {
-    background: var(--unicom-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    font-weight: 700;
-    font-size: 1.8rem;
-    letter-spacing: 0.5px;
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 1.75rem;
+    letter-spacing: 0.3px;
 }
 
 /* 图标悬停效果 */
@@ -377,48 +439,20 @@ canvas {
     background: #f0f9f0;
 }
 
-/* 特性卡片美化 */
+/* 特性卡片美化 - 简化版本 */
 .feature-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: none;
-    border-radius: 15px;
+    transition: all 0.3s ease;
+    border-radius: 12px;
     overflow: hidden;
 }
 
 .feature-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 35px rgba(230, 0, 18, 0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
 }
 
-.feature-card .card-body {
-    position: relative;
-}
-
-.feature-card .card-body::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--unicom-gradient);
-}
-
-/* 导航下拉菜单美化 */
-.dropdown-menu {
-    border: none;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    padding: 0.5rem 0;
-}
-
-.dropdown-item {
-    padding: 0.75rem 1.25rem;
-    transition: all 0.2s ease;
-}
-
+/* 导航下拉菜单美化 - 使用 Litera 默认样式 */
 .dropdown-item:hover {
-    background: linear-gradient(135deg, rgba(230, 0, 18, 0.08) 0%, rgba(230, 0, 18, 0.12) 100%);
     color: var(--unicom-red);
 }
 
@@ -437,15 +471,7 @@ canvas {
     transform: scale(0.8);
 }
 
-.feature-card {
-    transition: transform 0.2s ease;
-    height: 100%;
-}
-
-.feature-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
+/* 已在上面定义，移除重复 */
 
 .progress {
     display: none;

@@ -317,8 +317,8 @@ class KnowledgeBaseManager:
     # =========================
 
     def upload_document(self, library_id: int, file_obj, original_filename: str,
-                       privacy_classification: int = 1, tags: List[str] = None,
-                       metadata: Dict = None) -> Dict:
+                       privacy_classification: int = 1, document_category: str = 'tech',
+                       tags: List[str] = None, metadata: Dict = None) -> Dict:
         """上传文档到文档库"""
         try:
             # 生成文件名
@@ -343,6 +343,7 @@ class KnowledgeBaseManager:
                 file_type=file_type,
                 file_size=file_size,
                 privacy_classification=privacy_classification,
+                document_category=document_category,
                 tags=tags,
                 metadata=metadata
             )
@@ -409,6 +410,50 @@ class KnowledgeBaseManager:
         except Exception as e:
             logger.error(f"更新文档状态失败: {e}")
             return False
+
+    def delete_document(self, doc_id: int) -> Dict:
+        """删除文档"""
+        try:
+            # 先获取文档信息
+            documents = self.db.get_documents()
+            document = None
+            for doc in documents:
+                if doc['doc_id'] == doc_id:
+                    document = doc
+                    break
+
+            if not document:
+                return {
+                    'success': False,
+                    'error': f'文档 ID {doc_id} 不存在'
+                }
+
+            # 删除物理文件
+            file_path = Path(document['file_path'])
+            if file_path.exists():
+                file_path.unlink()
+                logger.info(f"已删除物理文件: {file_path}")
+
+            # 删除数据库记录
+            result = self.db.delete_document(doc_id)
+            if result:
+                logger.info(f"文档删除成功: doc_id={doc_id}, filename={document['original_filename']}")
+                return {
+                    'success': True,
+                    'message': f"文档 '{document['original_filename']}' 删除成功"
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '删除数据库记录失败'
+                }
+
+        except Exception as e:
+            logger.error(f"删除文档失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     # =========================
     # 隐私和权限管理方法
@@ -496,3 +541,124 @@ class KnowledgeBaseManager:
         except Exception as e:
             logger.error(f"获取统计信息失败: {e}")
             return {}
+
+    def get_knowledge_base_statistics(self) -> Dict:
+        """获取知识库整体统计数据"""
+        try:
+            stats = {}
+
+            # 获取企业总数
+            companies = self.db.get_companies()
+            stats['totalCompanies'] = len(companies)
+
+            # 获取产品总数
+            total_products = 0
+            total_documents = 0
+            confidential_docs = 0
+
+            for company in companies:
+                products = self.db.get_products(company['company_id'])
+                total_products += len(products)
+
+                # 统计文档数量
+                for product in products:
+                    libraries = self.db.get_document_libraries('product', product['product_id'])
+                    for library in libraries:
+                        documents = self.db.get_documents(library['library_id'])
+                        total_documents += len(documents)
+
+                        # 统计机密文档数量
+                        for doc in documents:
+                            if doc.get('privacy_classification', 1) >= 3:  # 机密及以上
+                                confidential_docs += 1
+
+            stats['totalProducts'] = total_products
+            stats['totalDocuments'] = total_documents
+            stats['confidentialDocs'] = confidential_docs
+
+            # 按分类统计
+            stats['byCategory'] = self._get_documents_by_category()
+            stats['byPrivacyLevel'] = self._get_documents_by_privacy_level()
+
+            return stats
+
+        except Exception as e:
+            logger.error(f"获取统计数据失败: {e}")
+            return {
+                'totalCompanies': 0,
+                'totalProducts': 0,
+                'totalDocuments': 0,
+                'confidentialDocs': 0,
+                'byCategory': {},
+                'byPrivacyLevel': {}
+            }
+
+    def _get_documents_by_category(self) -> Dict:
+        """按文档分类统计"""
+        try:
+            query = """
+            SELECT document_category, COUNT(*) as count
+            FROM documents
+            GROUP BY document_category
+            """
+            results = self.db.execute_query(query)
+            return {item['document_category']: item['count'] for item in results}
+        except:
+            return {}
+
+    def _get_documents_by_privacy_level(self) -> Dict:
+        """按隐私级别统计"""
+        try:
+            query = """
+            SELECT privacy_classification, COUNT(*) as count
+            FROM documents
+            GROUP BY privacy_classification
+            """
+            results = self.db.execute_query(query)
+            return {str(item['privacy_classification']): item['count'] for item in results}
+        except:
+            return {}
+
+    def search_documents(self, query: str, category: str = None, privacy_level: int = 1) -> List[Dict]:
+        """搜索文档（基础版本，后续可增强为向量搜索）"""
+        try:
+            conditions = ["d.privacy_classification <= ?"]
+            params = [privacy_level]
+
+            # 添加分类过滤
+            if category:
+                conditions.append("d.document_category = ?")
+                params.append(category)
+
+            # 简单的文本搜索（在文件名中搜索）
+            conditions.append("(d.original_filename LIKE ? OR d.tags LIKE ?)")
+            search_term = f"%{query}%"
+            params.extend([search_term, search_term])
+
+            where_clause = " AND ".join(conditions)
+
+            search_query = f"""
+            SELECT d.*, dl.library_name, p.product_name
+            FROM documents d
+            JOIN document_libraries dl ON d.library_id = dl.library_id
+            LEFT JOIN products p ON dl.owner_id = p.product_id AND dl.owner_type = 'product'
+            WHERE {where_clause}
+            ORDER BY d.upload_time DESC
+            LIMIT 20
+            """
+
+            results = self.db.execute_query(search_query, tuple(params))
+
+            # 为结果添加相关度评分（简单版本）
+            for result in results:
+                # 简单的相关度计算
+                filename_score = 0.7 if query.lower() in result['original_filename'].lower() else 0.3
+                result['relevance_score'] = filename_score
+                result['category'] = result.get('document_category', 'tech')
+                result['filename'] = result['original_filename']
+
+            return results
+
+        except Exception as e:
+            logger.error(f"搜索文档失败: {e}")
+            return []

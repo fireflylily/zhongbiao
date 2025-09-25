@@ -270,6 +270,7 @@ class KnowledgeBaseAPI:
 
                 # 获取其他参数
                 privacy_classification = int(request.form.get('privacy_classification', 1))
+                document_category = request.form.get('document_category', 'tech')
                 tags = request.form.get('tags')
                 metadata = request.form.get('metadata')
 
@@ -286,6 +287,14 @@ class KnowledgeBaseAPI:
                     except:
                         metadata = {}
 
+                # 验证文档分类
+                valid_categories = ['tech', 'impl', 'service']
+                if document_category not in valid_categories:
+                    return jsonify({
+                        'success': False,
+                        'error': f'无效的文档分类: {document_category}。有效分类: {", ".join(valid_categories)}'
+                    }), 400
+
                 # 验证文件类型
                 allowed_extensions = {'pdf', 'doc', 'docx', 'txt'}
                 file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
@@ -300,6 +309,7 @@ class KnowledgeBaseAPI:
                     file_obj=file,
                     original_filename=secure_filename(file.filename),
                     privacy_classification=privacy_classification,
+                    document_category=document_category,
                     tags=tags,
                     metadata=metadata
                 )
@@ -374,6 +384,24 @@ class KnowledgeBaseAPI:
                     'error': str(e)
                 }), 500
 
+        @self.blueprint.route('/documents/<int:doc_id>', methods=['DELETE'])
+        def delete_document(doc_id):
+            """删除文档"""
+            try:
+                result = self.manager.delete_document(doc_id)
+
+                if result['success']:
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 400
+
+            except Exception as e:
+                logger.error(f"删除文档失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
         # =========================
         # 统计和仪表板API
         # =========================
@@ -391,6 +419,55 @@ class KnowledgeBaseAPI:
                 })
             except Exception as e:
                 logger.error(f"获取统计信息失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
+        @self.blueprint.route('/statistics', methods=['GET'])
+        def get_statistics():
+            """获取知识库整体统计数据"""
+            try:
+                stats = self.manager.get_knowledge_base_statistics()
+                return jsonify({
+                    'success': True,
+                    'data': stats
+                })
+            except Exception as e:
+                logger.error(f"获取统计数据失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
+        @self.blueprint.route('/search', methods=['POST'])
+        def search_documents():
+            """智能文档搜索"""
+            try:
+                data = request.get_json()
+                if not data or not data.get('query'):
+                    return jsonify({
+                        'success': False,
+                        'error': '搜索查询不能为空'
+                    }), 400
+
+                query = data['query']
+                category = data.get('category')
+                privacy_level = data.get('privacy_level', 1)
+
+                results = self.manager.search_documents(
+                    query=query,
+                    category=category,
+                    privacy_level=int(privacy_level)
+                )
+
+                return jsonify({
+                    'success': True,
+                    'data': results
+                })
+
+            except Exception as e:
+                logger.error(f"文档搜索失败: {e}")
                 return jsonify({
                     'success': False,
                     'error': str(e)

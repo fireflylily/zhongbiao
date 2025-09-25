@@ -1187,11 +1187,11 @@
                                 '<p><strong>创建时间：</strong>' + (company.created_at || '未知') + '</p>' +
                             '</div>' +
                             '<div class="col-md-6">' +
-                                '<p><strong>产品数量：</strong>' + (company.products ? company.products.length : 0) + ' 个</p>' +
-                                '<p><strong>文档总数：</strong>' + (company.stats ? company.stats.total_documents : 0) + ' 份</p>' +
+                                '<p><strong>产品数量：</strong>' + (company.products && company.products.length || 0) + ' 个</p>' +
+                                '<p><strong>文档总数：</strong>' + (company.stats && company.stats.total_documents || 0) + ' 份</p>' +
                             '</div>' +
                         '</div>' +
-                        (company.description ? '<p class="mt-3">' + company.description + '</p>' : '') +
+                        (company.description && ('<p class="mt-3">' + company.description + '</p>') || '') +
                     '</div>' +
                 '</div>' +
 
@@ -1255,7 +1255,7 @@
             currentProductId = productId;
 
             // 更新面包屑
-            const companyName = document.querySelector('.tree-node.active')?.textContent.trim() || '未知企业';
+            const companyName = (document.querySelector('.tree-node.active') && document.querySelector('.tree-node.active').textContent.trim()) || '未知企业';
             updateBreadcrumb([
                 { name: '知识库管理', link: '#' },
                 { name: companyName, link: '#' },
@@ -1283,7 +1283,7 @@
                     '<div class="card-body">' +
                         '<p><strong>产品代码：</strong>' + (product.product_code || '未设置') + '</p>' +
                         '<p><strong>产品类别：</strong>' + (product.product_category || '未分类') + '</p>' +
-                        (product.description ? '<p>' + product.description + '</p>' : '') +
+                        (product.description && '<p>' + product.description + '</p>' || '') +
                     '</div>' +
                 '</div>';
 
@@ -1300,8 +1300,8 @@
                         '</div>' +
                         '<div class="card-body p-4" style="max-height: 600px; overflow-y: auto;">' +
                             '<div class="kb-document-grid">' +
-                                (library.documents && library.documents.length > 0 ?
-                                    library.documents.map(doc => renderDocument(doc)).join('') :
+                                (library.documents && library.documents.length > 0 &&
+                                    library.documents.map(doc => renderDocument(doc)).join('') ||
                                     '<div class="col-12"><div class="text-center py-5"><i class="bi bi-folder text-muted fs-1"></i><p class="text-muted mt-3">暂无文档</p><button class="btn btn-primary" onclick="document.getElementById(\'fileInput\').click()"><i class="bi bi-plus me-2"></i>上传第一个文档</button></div></div>'
                                 ) +
                             '</div>' +
@@ -1325,7 +1325,7 @@
 
             const privacyLevel = doc.privacy_classification || 1;
             const category = doc.document_category || 'tech';
-            const fileSize = doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) : '0';
+            const fileSize = doc.file_size && (doc.file_size / (1024 * 1024)).toFixed(2) || '0';
 
             return `
                 <div class="card shadow-sm border-0 kb-document-card h-100" onclick="viewDocumentDetail(' + doc.doc_id + ')">
@@ -1335,9 +1335,9 @@
                                 <i class="bi bi-file-earmark-text text-primary fs-5"></i>
                             </div>
                             <div class="flex-grow-1">
-                                <h6 class="mb-0 text-truncate" title="' + doc.original_filename + '">' + (doc.original_filename.length > 20 ? doc.original_filename.substring(0, 20) + '...' : doc.original_filename) + '</h6>
+                                <h6 class="mb-0 text-truncate" title="' + doc.original_filename + '">' + (doc.original_filename.length > 20 && doc.original_filename.substring(0, 20) + '...' || doc.original_filename) + '</h6>
                                 <div class="d-flex align-items-center mt-1">
-                                    <span class="badge ' + (privacyLevel === 1 ? 'bg-success' : privacyLevel === 2 ? 'bg-primary' : privacyLevel === 3 ? 'bg-warning' : 'bg-danger') + ' me-2 small">
+                                    <span class="badge ' + (privacyLevel === 1 && 'bg-success' || privacyLevel === 2 && 'bg-primary' || privacyLevel === 3 && 'bg-warning' || 'bg-danger') + ' me-2 small">
                                         ' + privacyNames[privacyLevel] + '
                                     </span>
                                     <span class="badge bg-secondary small">
@@ -1356,34 +1356,34 @@
                                 </span>
                                 <span class="text-muted small">
                                     <i class="bi bi-calendar me-1"></i>
-                                    ' + (doc.upload_time ? new Date(doc.upload_time).toLocaleDateString() : '未知') + '
+                                    ' + (doc.upload_time && new Date(doc.upload_time).toLocaleDateString() || '未知') + '
                                 </span>
                             </div>
-                            ' + (doc.tags ? '
+                            ' + (doc.tags && '
                             <div class="mb-2">
                                 <small class="text-muted">
                                     <i class="bi bi-tags me-1"></i>
                                     ' + JSON.parse(doc.tags).slice(0, 2).join(', ') + '
                                 </small>
-                            </div>' : '') + '
+                            </div>' || '') + '
                         </div>
 
                         <!-- 状态指示器 -->
                         <div class="mb-3">
                             <div class="row g-2">
                                 <div class="col-6">
-                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ' + (doc.parse_status === 'completed' ? 'bg-success bg-opacity-10' : 'bg-warning bg-opacity-10') + '">
-                                        <i class="bi ' + (doc.parse_status === 'completed' ? 'bi-check-circle text-success' : 'bi-clock text-warning') + ' me-1"></i>
-                                        <small class="' + (doc.parse_status === 'completed' ? 'text-success' : 'text-warning') + '">
-                                            ' + (doc.parse_status === 'completed' ? '已解析' : '待处理') + '
+                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ' + (doc.parse_status === 'completed' && 'bg-success bg-opacity-10' || 'bg-warning bg-opacity-10') + '">
+                                        <i class="bi ' + (doc.parse_status === 'completed' && 'bi-check-circle text-success' || 'bi-clock text-warning') + ' me-1"></i>
+                                        <small class="' + (doc.parse_status === 'completed' && 'text-success' || 'text-warning') + '">
+                                            ' + (doc.parse_status === 'completed' && '已解析' || '待处理') + '
                                         </small>
                                     </div>
                                 </div>
                                 <div class="col-6">
-                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ' + (doc.vector_status === 'completed' ? 'bg-info bg-opacity-10' : 'bg-secondary bg-opacity-10') + '">
-                                        <i class="bi ' + (doc.vector_status === 'completed' ? 'bi-database text-info' : 'bi-hourglass text-secondary') + ' me-1"></i>
-                                        <small class="' + (doc.vector_status === 'completed' ? 'text-info' : 'text-secondary') + '">
-                                            ' + (doc.vector_status === 'completed' ? '已索引' : '待索引') + '
+                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ' + (doc.vector_status === 'completed' && 'bg-info bg-opacity-10' || 'bg-secondary bg-opacity-10') + '">
+                                        <i class="bi ' + (doc.vector_status === 'completed' && 'bi-database text-info' || 'bi-hourglass text-secondary') + ' me-1"></i>
+                                        <small class="' + (doc.vector_status === 'completed' && 'text-info' || 'text-secondary') + '">
+                                            ' + (doc.vector_status === 'completed' && '已索引' || '待索引') + '
                                         </small>
                                     </div>
                                 </div>
@@ -1588,7 +1588,7 @@
 
             // 显示最终结果
             if (successCount > 0) {
-                showAlert('成功上传 ' + successCount + ' 个文档' + (failCount > 0 ? '，失败 ' + failCount + ' 个' : ''), successCount === selectedFiles.length ? 'success' : 'warning');
+                showAlert('成功上传 ' + successCount + ' 个文档' + (failCount > 0 && '，失败 ' + failCount + ' 个' || ''), successCount === selectedFiles.length && 'success' || 'warning');
             }
 
             // 关闭模态框并刷新产品详情
@@ -1660,24 +1660,24 @@
 
                                 <div class="row mt-3">
                                     <div class="col-md-6">
-                                        <strong>文件大小：</strong>' + (doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) : '0') + ' MB<br>
+                                        <strong>文件大小：</strong>' + (doc.file_size && (doc.file_size / (1024 * 1024)).toFixed(2) || '0') + ' MB<br>
                                         <strong>文件类型：</strong>' + (doc.file_type || '未知') + '<br>
-                                        <strong>上传时间：</strong>' + (doc.upload_time ? new Date(doc.upload_time).toLocaleString() : '未知') + '
+                                        <strong>上传时间：</strong>' + (doc.upload_time && new Date(doc.upload_time).toLocaleString() || '未知') + '
                                     </div>
                                     <div class="col-md-6">
                                         <strong>处理状态：</strong>
-                                        <span class="badge bg-' + (doc.parse_status === 'completed' ? 'success' : 'warning') + '">' + (doc.parse_status || 'pending') + '</span><br>
+                                        <span class="badge bg-' + (doc.parse_status === 'completed' && 'success' || 'warning') + '">' + (doc.parse_status || 'pending') + '</span><br>
                                         <strong>向量状态：</strong>
-                                        <span class="badge bg-' + (doc.vector_status === 'completed' ? 'success' : 'warning') + '">' + (doc.vector_status || 'pending') + '</span>
+                                        <span class="badge bg-' + (doc.vector_status === 'completed' && 'success' || 'warning') + '">' + (doc.vector_status || 'pending') + '</span>
                                     </div>
                                 </div>
 
-                                ' + (doc.tags ? '
+                                ' + (doc.tags && '
                                 <div class="mt-3">
                                     <strong>标签：</strong>
                                     ' + JSON.parse(doc.tags).map(tag => '<span class="badge bg-light text-dark me-1">' + tag + '</span>').join('') + '
                                 </div>
-                                ' : '') + '
+                                ' || '') + '
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
@@ -2078,7 +2078,7 @@
             const resultsContainer = document.getElementById('searchResults');
 
             // 显示加载状态
-            const searchModeText = searchMode === 'semantic' ? '语义搜索' : '关键词搜索';
+            const searchModeText = searchMode === 'semantic' && '语义搜索' || '关键词搜索';
             resultsContainer.innerHTML = `
                 <div class="text-center py-4">
                     <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
@@ -2087,12 +2087,12 @@
                     <div class="mt-3">
                         <h6 class="text-muted">正在进行' + searchModeText + '...</h6>
                         <p class="small text-muted mb-0">
-                            <i class="bi bi-search me-1"></i>查询: "' + query.substring(0, 50) + (query.length > 50 ? '...' : '') + '""
+                            <i class="bi bi-search me-1"></i>查询: "' + query.substring(0, 50) + (query.length > 50 && '...' || '') + '""
                         </p>
                         <p class="small text-muted">
                             <i class="bi bi-gear me-1"></i>模式: ' + searchModeText + ' |
                             <i class="bi bi-funnel me-1"></i>结果数: ' + limit + '
-                            ' + (searchMode === 'semantic' ? ' | <i class="bi bi-speedometer2 me-1"></i>阈值: ' + threshold : '') + '
+                            ' + (searchMode === 'semantic' && ' | <i class="bi bi-speedometer2 me-1"></i>阈值: ' + threshold || '') + '
                         </p>
                     </div>
                 </div>
@@ -2179,8 +2179,8 @@
             const resultsHtml = results.map((result, index) => {
                 // 语义搜索和关键词搜索的结果格式可能不同
                 const isSemanticResult = searchMode === 'semantic';
-                const similarity_score = isSemanticResult ?
-                    (result.similarity_score || result.relevance_score) :
+                const similarity_score = isSemanticResult &&
+                    (result.similarity_score || result.relevance_score) ||
                     (result.relevance_score || 0);
 
                 const title = result.title || result.filename || result.original_filename || ('文档 ' + result.doc_id);
@@ -2205,12 +2205,12 @@
                                         ' + title + '
                                     </h6>
                                     <div class="small text-muted">
-                                        ' + (isSemanticResult ?
-                                            '<i class="bi bi-cpu me-1"></i>语义匹配' :
+                                        ' + (isSemanticResult &&
+                                            '<i class="bi bi-cpu me-1"></i>语义匹配' ||
                                             '<i class="bi bi-search me-1"></i>关键词匹配') + '
                                         <span class="mx-1">•</span>
                                         文档ID: ' + result.doc_id + '
-                                        ' + (result.chunk_id ? '<span class="mx-1">•</span>片段ID: ' + result.chunk_id : '') + '
+                                        ' + (result.chunk_id && '<span class="mx-1">•</span>片段ID: ' + result.chunk_id || '') + '
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -2221,22 +2221,22 @@
                             </div>
 
                             <p class="card-text small mb-2" style="line-height: 1.4;">
-                                ' + (summary.length > 200 ? summary.substring(0, 200) + '...' : summary) + '
+                                ' + (summary.length > 200 && summary.substring(0, 200) + '...' || summary) + '
                             </p>
 
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <span class="badge bg-' + scoreColor + ' me-2">
-                                        ' + (isSemanticResult ? '相似度' : '相关度') + ': ' + (similarity_score * 100).toFixed(1) + '%
+                                        ' + (isSemanticResult && '相似度' || '相关度') + ': ' + (similarity_score * 100).toFixed(1) + '%
                                     </span>
-                                    ' + (category && category !== 'unknown' ? '
+                                    ' + (category && category !== 'unknown' && '
                                         <span class="badge bg-secondary me-2">
                                             ' + ({'tech': '🔧 技术', 'impl': '📋 实施', 'service': '🛠️ 服务'}[category] || category) + '
                                         </span>
-                                    ' : ''}
-                                    ' + (result.file_type ? '
+                                    ' || ''}
+                                    ' + (result.file_type && '
                                         <span class="badge bg-info me-2">' + result.file_type.toUpperCase() + '</span>
-                                    ' : '') + '
+                                    ' || '') + '
                                 </div>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-outline-primary" onclick="viewDocumentDetail(' + result.doc_id + ')" title="查看详情">
@@ -2245,11 +2245,11 @@
                                     <button class="btn btn-outline-success" onclick="downloadDocument(' + result.doc_id + ')" title="下载文档">
                                         <i class="bi bi-download"></i>
                                     </button>
-                                    ' + (isSemanticResult && result.chunk_id ? '
+                                    ' + (isSemanticResult && result.chunk_id && '
                                         <button class="btn btn-outline-info" onclick="viewChunkDetail(' + result.chunk_id + ')" title="查看片段">
                                             <i class="bi bi-zoom-in"></i>
                                         </button>
-                                    ' : ''}
+                                    ' || '')
                                 </div>
                             </div>
                         </div>
@@ -2259,7 +2259,7 @@
 
             // 搜索结果统计
             const avgScore = results.reduce((sum, r) => sum + (r.similarity_score || r.relevance_score || 0), 0) / results.length;
-            const modeText = searchMode === 'semantic' ? '语义搜索' : '关键词搜索';
+            const modeText = searchMode === 'semantic' && '语义搜索' || '关键词搜索';
 
             resultsContainer.innerHTML = `
                 <div class="alert search-stats d-flex justify-content-between align-items-center border-0 shadow-sm">
@@ -2271,7 +2271,7 @@
                             <span class="mx-2">•</span>
                             <i class="bi bi-stopwatch me-1"></i>耗时: ' + searchTime.toFixed(2) + 's'
                             <span class="mx-2">•</span>
-                            <i class="bi bi-speedometer2 me-1"></i>平均' + (searchMode === 'semantic' ? '相似度' : '相关度') + ': ' + (avgScore * 100).toFixed(1) + '%'
+                            <i class="bi bi-speedometer2 me-1"></i>平均' + (searchMode === 'semantic' && '相似度' || '相关度') + ': ' + (avgScore * 100).toFixed(1) + '%'
                         </div>
                     </div>
                     <div class="btn-group btn-group-sm">

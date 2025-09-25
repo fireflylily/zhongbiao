@@ -50,10 +50,12 @@ CREATE TABLE IF NOT EXISTS document_libraries (
     owner_id INTEGER NOT NULL, -- product_id 或 profile_id
     library_name VARCHAR(255) NOT NULL,
     library_type VARCHAR(50) NOT NULL, -- tech/impl/service/qualification/personnel/financial
-    privacy_level INTEGER DEFAULT 1,
+    privacy_level INTEGER DEFAULT 1, -- 1:公开🌐 2:内部🏢 3:机密🔒 4:绝密🚫
     is_shared BOOLEAN DEFAULT FALSE,
     share_scope VARCHAR(50), -- company/category/custom
     share_products TEXT, -- JSON数组: 共享的产品ID列表
+    access_control_enabled BOOLEAN DEFAULT TRUE, -- 是否启用访问控制
+    auto_classification BOOLEAN DEFAULT TRUE, -- 是否自动分类文档
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -67,10 +69,13 @@ CREATE TABLE IF NOT EXISTS documents (
     file_path VARCHAR(500) NOT NULL,
     file_type VARCHAR(20) NOT NULL, -- pdf/doc/docx
     file_size INTEGER,
-    privacy_classification INTEGER DEFAULT 1, -- 隐私级别
+    privacy_classification INTEGER DEFAULT 1, -- 1:公开🌐 2:内部🏢 3:机密🔒 4:绝密🚫
     access_roles TEXT, -- JSON数组: 访问角色列表
     tags TEXT, -- JSON数组: 文档标签
     metadata TEXT, -- JSON: 文档元数据
+    document_category VARCHAR(50) DEFAULT 'tech', -- tech:技术🔧 impl:实施📋 service:服务🛠️
+    applicable_products TEXT, -- JSON数组: 适用产品ID列表
+    security_classification VARCHAR(20) DEFAULT 'normal', -- normal/confidential/secret/top_secret
 
     -- 处理状态
     upload_status VARCHAR(20) DEFAULT 'uploaded', -- uploaded/processing/completed/failed
@@ -163,14 +168,67 @@ INSERT OR IGNORE INTO products (company_id, product_name, product_code, product_
 (1, '云计算平台', 'CLOUD_PLATFORM', 'cloud', '企业级云计算服务平台'),
 (1, '大数据平台', 'BIG_DATA', 'bigdata', '大数据分析和处理平台');
 
+-- 9. 用户角色表
+CREATE TABLE IF NOT EXISTS user_roles (
+    role_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_name VARCHAR(50) NOT NULL UNIQUE,
+    role_description TEXT,
+    privacy_level_access INTEGER DEFAULT 1, -- 最高可访问隐私级别
+    can_upload BOOLEAN DEFAULT FALSE,
+    can_delete BOOLEAN DEFAULT FALSE,
+    can_modify_privacy BOOLEAN DEFAULT FALSE,
+    can_manage_users BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. 用户表
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(255),
+    role_id INTEGER NOT NULL,
+    company_id INTEGER,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (role_id) REFERENCES user_roles(role_id),
+    FOREIGN KEY (company_id) REFERENCES companies(company_id)
+);
+
+-- 11. 文档访问权限表
+CREATE TABLE IF NOT EXISTS document_permissions (
+    permission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    doc_id INTEGER NOT NULL,
+    user_id INTEGER,
+    role_id INTEGER,
+    permission_type VARCHAR(20) NOT NULL, -- read/download/modify/delete
+    granted_by INTEGER, -- 授权人user_id
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doc_id) REFERENCES documents(doc_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (role_id) REFERENCES user_roles(role_id),
+    FOREIGN KEY (granted_by) REFERENCES users(user_id)
+);
+
+-- 插入默认用户角色
+INSERT OR IGNORE INTO user_roles (role_name, role_description, privacy_level_access, can_upload, can_delete, can_modify_privacy, can_manage_users) VALUES
+('普通用户', '只能访问公开文档', 1, FALSE, FALSE, FALSE, FALSE),
+('内部员工', '可访问公开和内部文档', 2, TRUE, FALSE, FALSE, FALSE),
+('项目经理', '可访问机密级别文档', 3, TRUE, TRUE, TRUE, FALSE),
+('高级管理', '可访问所有级别文档', 4, TRUE, TRUE, TRUE, TRUE);
+
 -- 插入系统配置
 INSERT OR IGNORE INTO knowledge_base_configs (config_key, config_value, config_type, description) VALUES
 ('max_file_size', '100', 'integer', '文档上传最大大小(MB)'),
-('supported_file_types', '["pdf", "doc", "docx"]', 'json', '支持的文件类型'),
+('supported_file_types', '["pdf", "doc", "docx", "txt", "xls", "xlsx", "ppt", "pptx"]', 'json', '支持的文件类型'),
 ('vector_model_name', 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2', 'string', '向量化模型名称'),
 ('chunk_size', '1000', 'integer', '文档分块大小'),
 ('chunk_overlap', '200', 'integer', '分块重叠大小'),
 ('privacy_retention_days', '2555', 'integer', '隐私文档保留天数(7年)'),
-('audit_log_retention_days', '2555', 'integer', '审计日志保留天数(7年)');
+('audit_log_retention_days', '2555', 'integer', '审计日志保留天数(7年)'),
+('auto_encrypt_level', '3', 'integer', '自动加密的隐私级别阈值'),
+('session_timeout', '7200', 'integer', '会话超时时间(秒)'),
+('max_concurrent_uploads', '5', 'integer', '最大并发上传数'),
+('enable_document_watermark', 'true', 'boolean', '是否启用文档水印');
 
-COMMIT;

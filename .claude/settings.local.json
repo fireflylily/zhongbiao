@@ -49,7 +49,17 @@
       "Bash(cd:*)",
       "WebFetch(domain:maas.ai-yuanjing.com)",
       "Bash(pip3 install:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "mcp__playwright__browser_navigate",
+      "Bash(FLASK_RUN_PORT=8083 python3 -m ai_tender_system.web.app)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_close",
+      "Bash(FLASK_RUN_PORT=8084 python3 -m ai_tender_system.web.app)",
+      "Bash(FLASK_RUN_PORT=8085 python3 -m ai_tender_system.web.app)",
+      "Bash(FLASK_RUN_PORT=8086 python3 -m ai_tender_system.web.app)",
+      "Bash(FLASK_RUN_PORT=8087 python3 -m ai_tender_system.web.app)",
+      "Bash(FLASK_RUN_PORT=8088 python3 -m ai_tender_system.web.app)",
+      "Bash(FLASK_RUN_PORT=8089 python3 -m ai_tender_system.web.app)"
     ],
     "deny": [],
     "ask": []
