@@ -2295,6 +2295,151 @@
             // 这里可以实现搜索结果导出功能
             showAlert('搜索结果导出功能开发中...', 'info');
         }
+
+        /* 固定底部搜索栏样式 */
+        .fixed-search-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .search-input-group {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .search-input-group input {
+            padding: 12px 50px 12px 15px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .search-input-group input:focus {
+            border-color: #4a89dc;
+            box-shadow: 0 0 0 0.2rem rgba(74, 137, 220, 0.25);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: #4a89dc;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .search-btn:hover {
+            background: #357abd;
+        }
+
+        .search-type-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+    </style>
+
+    <!-- 固定底部搜索栏 -->
+    <div class="fixed-search-bar">
+        <div class="row g-2">
+            <div class="col-md-6">
+                <div class="search-type-label">
+                    <i class="bi bi-brain me-1"></i>语义搜索
+                </div>
+                <div class="search-input-group">
+                    <input type="text" class="form-control" id="semanticSearchInput"
+                           placeholder="输入问题，如：5G技术的核心架构是什么？">
+                    <button class="search-btn" onclick="quickSemanticSearch()">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="search-type-label">
+                    <i class="bi bi-search me-1"></i>普通搜索
+                </div>
+                <div class="search-input-group">
+                    <input type="text" class="form-control" id="keywordSearchInput"
+                           placeholder="输入关键词，如：5G、核心网、技术架构">
+                    <button class="search-btn" onclick="quickKeywordSearch()">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 快速语义搜索
+        function quickSemanticSearch() {
+            const query = document.getElementById('semanticSearchInput').value.trim();
+            if (!query) {
+                showAlert('请输入搜索内容', 'warning');
+                return;
+            }
+
+            // 设置搜索模式为语义搜索并填入查询内容
+            document.getElementById('searchQuery').value = query;
+            document.getElementById('semanticSearch').checked = true;
+
+            // 显示搜索模态框并执行搜索
+            showSearchModal();
+            setTimeout(() => {
+                performSearch();
+            }, 500);
+        }
+
+        // 快速关键词搜索
+        function quickKeywordSearch() {
+            const query = document.getElementById('keywordSearchInput').value.trim();
+            if (!query) {
+                showAlert('请输入搜索内容', 'warning');
+                return;
+            }
+
+            // 设置搜索模式为关键词搜索并填入查询内容
+            document.getElementById('searchQuery').value = query;
+            document.getElementById('keywordSearch').checked = true;
+
+            // 显示搜索模态框并执行搜索
+            showSearchModal();
+            setTimeout(() => {
+                performSearch();
+            }, 500);
+        }
+
+        // 回车键支持
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('semanticSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    quickSemanticSearch();
+                }
+            });
+
+            document.getElementById('keywordSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    quickKeywordSearch();
+                }
+            });
+        });
     </script>
 </body>
 </html>
