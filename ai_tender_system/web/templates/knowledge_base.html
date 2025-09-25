@@ -1356,16 +1356,16 @@
                                 </span>
                                 <span class="text-muted small">
                                     <i class="bi bi-calendar me-1"></i>
-                                    ` + (doc.upload_time ? new Date(doc.upload_time).toLocaleDateString() : '未知') + `
+                                    ' + (doc.upload_time ? new Date(doc.upload_time).toLocaleDateString() : '未知') + '
                                 </span>
                             </div>
-                            ` + (doc.tags ? `
+                            ' + (doc.tags ? '
                             <div class="mb-2">
                                 <small class="text-muted">
                                     <i class="bi bi-tags me-1"></i>
-                                    ` + JSON.parse(doc.tags).slice(0, 2).join(', ') + `
+                                    ' + JSON.parse(doc.tags).slice(0, 2).join(', ') + '
                                 </small>
-                            </div>` : '') + `
+                            </div>' : '') + '
                         </div>
 
                         <!-- 状态指示器 -->
@@ -1588,7 +1588,7 @@
 
             // 显示最终结果
             if (successCount > 0) {
-                showAlert(`成功上传 ` + successCount + ` 个文档` + (failCount > 0 ? `，失败 ` + failCount + ` 个` : ''), successCount === selectedFiles.length ? 'success' : 'warning');
+                showAlert('成功上传 ' + successCount + ' 个文档' + (failCount > 0 ? '，失败 ' + failCount + ' 个' : ''), successCount === selectedFiles.length ? 'success' : 'warning');
             }
 
             // 关闭模态框并刷新产品详情
@@ -1660,24 +1660,24 @@
 
                                 <div class="row mt-3">
                                     <div class="col-md-6">
-                                        <strong>文件大小：</strong>` + (doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) : '0') + ` MB<br>
-                                        <strong>文件类型：</strong>` + (doc.file_type || '未知') + `<br>
-                                        <strong>上传时间：</strong>` + (doc.upload_time ? new Date(doc.upload_time).toLocaleString() : '未知') + `
+                                        <strong>文件大小：</strong>' + (doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) : '0') + ' MB<br>
+                                        <strong>文件类型：</strong>' + (doc.file_type || '未知') + '<br>
+                                        <strong>上传时间：</strong>' + (doc.upload_time ? new Date(doc.upload_time).toLocaleString() : '未知') + '
                                     </div>
                                     <div class="col-md-6">
                                         <strong>处理状态：</strong>
-                                        <span class="badge bg-` + (doc.parse_status === 'completed' ? 'success' : 'warning') + `">` + (doc.parse_status || 'pending') + `</span><br>
+                                        <span class="badge bg-' + (doc.parse_status === 'completed' ? 'success' : 'warning') + '">' + (doc.parse_status || 'pending') + '</span><br>
                                         <strong>向量状态：</strong>
-                                        <span class="badge bg-` + (doc.vector_status === 'completed' ? 'success' : 'warning') + `">` + (doc.vector_status || 'pending') + `</span>
+                                        <span class="badge bg-' + (doc.vector_status === 'completed' ? 'success' : 'warning') + '">' + (doc.vector_status || 'pending') + '</span>
                                     </div>
                                 </div>
 
-                                ` + (doc.tags ? `
+                                ' + (doc.tags ? '
                                 <div class="mt-3">
                                     <strong>标签：</strong>
-                                    ` + JSON.parse(doc.tags).map(tag => `<span class="badge bg-light text-dark me-1">` + tag + `</span>`).join('') + `
+                                    ' + JSON.parse(doc.tags).map(tag => '<span class="badge bg-light text-dark me-1">' + tag + '</span>').join('') + '
                                 </div>
-                                ` : '') + `
+                                ' : '') + '
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
@@ -2233,7 +2233,7 @@
                                         <span class="badge bg-secondary me-2">
                                             ' + ({'tech': '🔧 技术', 'impl': '📋 实施', 'service': '🛠️ 服务'}[category] || category) + '
                                         </span>
-                                    ` : ''}
+                                    ' : ''}
                                     ' + (result.file_type ? '
                                         <span class="badge bg-info me-2">' + result.file_type.toUpperCase() + '</span>
                                     ' : '') + '
@@ -2249,7 +2249,7 @@
                                         <button class="btn btn-outline-info" onclick="viewChunkDetail(' + result.chunk_id + ')" title="查看片段">
                                             <i class="bi bi-zoom-in"></i>
                                         </button>
-                                    ` : ''}
+                                    ' : ''}
                                 </div>
                             </div>
                         </div>
