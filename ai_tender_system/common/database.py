@@ -774,6 +774,137 @@ class KnowledgeBaseDB:
         result = self.execute_query(query, (config_key, value_str, config_type, datetime.now().isoformat()))
         return result is not None
 
+    # =========================
+    # 公司资质文件管理方法
+    # =========================
+
+    def save_company_qualification(self, company_id: int, qualification_key: str,
+                                  qualification_name: str, original_filename: str,
+                                  safe_filename: str, file_path: str,
+                                  file_size: int, file_type: str = None,
+                                  custom_name: str = None, issue_date: str = None,
+                                  expire_date: str = None, upload_by: str = None) -> int:
+        """保存或更新公司资质文件信息"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # 检查是否已存在
+                cursor.execute("""
+                    SELECT qualification_id FROM company_qualifications
+                    WHERE company_id = ? AND qualification_key = ?
+                """, (company_id, qualification_key))
+
+                existing = cursor.fetchone()
+
+                if existing:
+                    # 更新现有记录
+                    qualification_id = existing['qualification_id']
+                    cursor.execute("""
+                        UPDATE company_qualifications
+                        SET qualification_name = ?, custom_name = ?,
+                            original_filename = ?, safe_filename = ?,
+                            file_path = ?, file_size = ?, file_type = ?,
+                            issue_date = ?, expire_date = ?,
+                            upload_by = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE qualification_id = ?
+                    """, (qualification_name, custom_name,
+                          original_filename, safe_filename,
+                          file_path, file_size, file_type,
+                          issue_date, expire_date, upload_by,
+                          qualification_id))
+                else:
+                    # 插入新记录
+                    cursor.execute("""
+                        INSERT INTO company_qualifications (
+                            company_id, qualification_key, qualification_name,
+                            custom_name, original_filename, safe_filename,
+                            file_path, file_size, file_type,
+                            issue_date, expire_date, upload_by
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (company_id, qualification_key, qualification_name,
+                          custom_name, original_filename, safe_filename,
+                          file_path, file_size, file_type,
+                          issue_date, expire_date, upload_by))
+                    qualification_id = cursor.lastrowid
+
+                conn.commit()
+                return qualification_id
+
+        except Exception as e:
+            logger.error(f"保存资质文件失败: {e}")
+            return 0
+
+    def get_company_qualifications(self, company_id: int) -> List[Dict]:
+        """获取公司的所有资质文件"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT q.*, qt.type_name, qt.category
+                    FROM company_qualifications q
+                    LEFT JOIN qualification_types qt ON q.qualification_key = qt.type_key
+                    WHERE q.company_id = ?
+                    ORDER BY qt.sort_order, q.upload_time DESC
+                """, (company_id,))
+
+                return [dict(row) for row in cursor.fetchall()]
+
+        except Exception as e:
+            logger.error(f"获取公司资质文件失败: {e}")
+            return []
+
+    def get_qualification_by_id(self, qualification_id: int) -> Optional[Dict]:
+        """根据ID获取资质文件信息"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM company_qualifications
+                    WHERE qualification_id = ?
+                """, (qualification_id,))
+
+                row = cursor.fetchone()
+                return dict(row) if row else None
+
+        except Exception as e:
+            logger.error(f"获取资质文件失败: {e}")
+            return None
+
+    def get_qualification_by_key(self, company_id: int, qualification_key: str) -> Optional[Dict]:
+        """根据公司ID和资质key获取资质文件信息"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM company_qualifications
+                    WHERE company_id = ? AND qualification_key = ?
+                """, (company_id, qualification_key))
+
+                row = cursor.fetchone()
+                return dict(row) if row else None
+
+        except Exception as e:
+            logger.error(f"获取资质文件失败: {e}")
+            return None
+
+    def delete_qualification(self, qualification_id: int) -> bool:
+        """删除资质文件记录"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    DELETE FROM company_qualifications
+                    WHERE qualification_id = ?
+                """, (qualification_id,))
+
+                conn.commit()
+                return cursor.rowcount > 0
+
+        except Exception as e:
+            logger.error(f"删除资质文件失败: {e}")
+            return False
+
 
 # 全局数据库实例
 _db_instance = None

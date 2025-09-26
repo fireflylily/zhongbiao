@@ -1263,31 +1263,34 @@ def register_routes(app: Flask, config, logger):
     def get_company_qualifications(company_id):
         """获取公司资质文件列表"""
         try:
-            import json
-
-            # 首先检查数据库中是否存在该公司
+            # 验证公司ID并获取资质列表
             try:
                 company_id_int = int(company_id)
-                company_data = kb_manager.get_company_detail(company_id_int)
-                if not company_data:
-                    return jsonify({'success': False, 'error': '公司不存在'}), 404
+                # 使用数据库方法获取资质列表
+                qualifications = kb_manager.get_company_qualifications(company_id_int)
+
+                # 转换为前端期望的格式
+                qualifications_dict = {}
+                for qual in qualifications:
+                    qual_key = qual['qualification_key']
+                    qualifications_dict[qual_key] = {
+                        'original_filename': qual['original_filename'],
+                        'safe_filename': qual['safe_filename'],
+                        'file_size': qual['file_size'],
+                        'upload_time': qual['upload_time'],
+                        'custom_name': qual.get('custom_name'),
+                        'expire_date': qual.get('expire_date'),
+                        'verify_status': qual.get('verify_status', 'pending')
+                    }
+
+                logger.info(f"获取公司 {company_id} 的资质文件列表，共 {len(qualifications_dict)} 个")
+                return jsonify({
+                    'success': True,
+                    'qualifications': qualifications_dict
+                })
+
             except ValueError:
                 return jsonify({'success': False, 'error': '无效的公司ID'}), 400
-
-            # 获取资质文件目录路径（保持原有路径结构用于向后兼容）
-            qualifications_dir = config.get_path('config') / 'companies' / 'qualifications' / company_id
-            qualifications_metadata_file = qualifications_dir / 'metadata.json'
-
-            qualifications = {}
-            if qualifications_metadata_file.exists():
-                with open(qualifications_metadata_file, 'r', encoding='utf-8') as f:
-                    qualifications = json.load(f)
-
-            logger.info(f"获取公司 {company_id} 的资质文件列表，共 {len(qualifications)} 个")
-            return jsonify({
-                'success': True,
-                'qualifications': qualifications
-            })
 
         except Exception as e:
             logger.error(f"获取公司资质文件失败: {e}")
@@ -1310,53 +1313,32 @@ def register_routes(app: Flask, config, logger):
             except ValueError:
                 return jsonify({'success': False, 'error': '无效的公司ID'}), 400
             
-            # 创建资质文件目录
-            company_configs_dir = config.get_path('config') / 'companies'
-            qualifications_dir = company_configs_dir / 'qualifications' / company_id
-            qualifications_dir.mkdir(parents=True, exist_ok=True)
-            
             # 处理上传的文件
             uploaded_files = {}
             qualification_names = request.form.get('qualification_names', '{}')
             qualification_names = json.loads(qualification_names) if qualification_names else {}
-            
+
             for key, file in request.files.items():
                 if key.startswith('qualifications[') and file.filename:
                     # 提取资质键名
                     qual_key = key.replace('qualifications[', '').replace(']', '')
-                    
-                    # 安全的文件名
-                    filename = secure_filename(file.filename)
-                    timestamp = int(time.time())
-                    safe_filename = f"{timestamp}_{filename}"
-                    
-                    # 保存文件
-                    file_path = qualifications_dir / safe_filename
-                    file.save(str(file_path))
-                    
-                    # 记录文件信息
-                    file_info = {
-                        'filename': filename,
-                        'safe_filename': safe_filename,
-                        'upload_time': timestamp,
-                        'size': file_path.stat().st_size
-                    }
-                    
-                    # 如果是自定义资质，添加名称
-                    if qual_key in qualification_names:
-                        file_info['custom_name'] = qualification_names[qual_key]
-                    
-                    uploaded_files[qual_key] = file_info
-            
-            # 更新公司信息中的资质文件记录
-            if 'qualifications' not in company_data:
-                company_data['qualifications'] = {}
-            
-            company_data['qualifications'].update(uploaded_files)
-            
-            # 保存公司信息
-            with open(company_file, 'w', encoding='utf-8') as f:
-                json.dump(company_data, f, ensure_ascii=False, indent=2)
+
+                    # 使用数据库方法上传资质文件
+                    result = kb_manager.upload_qualification(
+                        company_id=company_id_int,
+                        qualification_key=qual_key,
+                        file_obj=file,
+                        original_filename=file.filename,
+                        qualification_name=qualification_names.get(qual_key, qual_key),
+                        custom_name=qualification_names.get(qual_key) if qual_key.startswith('custom') else None
+                    )
+
+                    if result['success']:
+                        uploaded_files[qual_key] = {
+                            'filename': file.filename,
+                            'qualification_id': result['qualification_id'],
+                            'message': result['message']
+                        }
             
             logger.info(f"公司 {company_id} 上传了 {len(uploaded_files)} 个资质文件")
             return jsonify({
@@ -1373,61 +1355,7 @@ def register_routes(app: Flask, config, logger):
     def download_qualification_file(company_id, qualification_key):
         """下载公司资质文件"""
         try:
-            import json
-            
-            # 获取公司信息
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-            
-            if not company_file.exists():
-                return jsonify({'success': False, 'error': '公司不存在'}), 404
-                
-            with open(company_file, 'r', encoding='utf-8') as f:
-                company_data = json.load(f)
-            
-            # 检查资质文件信息
-            qualifications = company_data.get('qualifications', {})
-            if qualification_key not in qualifications:
-                return jsonify({'success': False, 'error': '资质文件不存在'}), 404
-            
-            qualification_info = qualifications[qualification_key]
-            
-            # 构建文件路径 - 检查多个可能的位置
-            safe_filename = qualification_info.get('safe_filename', '')
-            
-            possible_paths = [
-                # 新系统路径
-                config.get_path('config') / 'companies' / 'qualifications' / company_id / safe_filename,
-                # 项目根目录的qualifications路径  
-                Path(__file__).parent.parent.parent / 'qualifications' / company_id / safe_filename
-            ]
-            
-            file_path = None
-            for path in possible_paths:
-                if path.exists():
-                    file_path = path
-                    break
-            
-            if not file_path or not file_path.exists():
-                return jsonify({'success': False, 'error': '资质文件不存在'}), 404
-            
-            # 返回文件
-            original_filename = qualification_info.get('original_filename', qualification_info.get('safe_filename', 'qualification_file'))
-            logger.info(f"下载资质文件: {original_filename}")
-            return send_file(str(file_path), as_attachment=True, download_name=original_filename)
-            
-        except Exception as e:
-            logger.error(f"下载资质文件失败: {e}")
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    @app.route('/api/companies/<company_id>/qualifications/<qualification_key>', methods=['DELETE'])
-    def delete_qualification_file(company_id, qualification_key):
-        """删除公司资质文件"""
-        try:
-            import json
-            import os
-
-            # 首先检查数据库中是否存在该公司
+            # 验证公司ID
             try:
                 company_id_int = int(company_id)
                 company_data = kb_manager.get_company_detail(company_id_int)
@@ -1436,53 +1364,45 @@ def register_routes(app: Flask, config, logger):
             except ValueError:
                 return jsonify({'success': False, 'error': '无效的公司ID'}), 400
 
-            # 获取资质文件目录路径
-            company_configs_dir = config.get_path('config') / 'companies'
-            qualifications_dir = company_configs_dir / 'qualifications' / company_id
-            qualifications_metadata_file = qualifications_dir / 'metadata.json'
-
-            # 检查资质文件元数据是否存在
-            qualifications = {}
-            if qualifications_metadata_file.exists():
-                with open(qualifications_metadata_file, 'r', encoding='utf-8') as f:
-                    qualifications = json.load(f)
-            if qualification_key not in qualifications:
+            # 从数据库获取资质文件信息
+            qualification = kb_manager.db.get_qualification_by_key(company_id_int, qualification_key)
+            if not qualification:
                 return jsonify({'success': False, 'error': '资质文件不存在'}), 404
 
-            qualification_info = qualifications[qualification_key]
-            safe_filename = qualification_info.get('safe_filename', '')
+            # 检查文件是否存在
+            file_path = Path(qualification['file_path'])
+            if not file_path.exists():
+                return jsonify({'success': False, 'error': '文件不存在'}), 404
 
-            # 构建文件路径 - 检查多个可能的位置
-            possible_paths = [
-                # 新系统路径
-                config.get_path('config') / 'companies' / 'qualifications' / company_id / safe_filename,
-                # 项目根目录的qualifications路径
-                Path(__file__).parent.parent.parent / 'qualifications' / company_id / safe_filename
-            ]
+            # 返回文件
+            original_filename = qualification['original_filename']
+            logger.info(f"下载资质文件: {original_filename}")
+            return send_file(str(file_path), as_attachment=True, download_name=original_filename)
 
-            # 删除物理文件
-            file_deleted = False
-            for path in possible_paths:
-                if path.exists():
-                    os.remove(str(path))
-                    file_deleted = True
-                    logger.info(f"已删除资质文件: {path}")
-                    break
+        except Exception as e:
+            logger.error(f"下载资质文件失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
 
-            # 从JSON配置中移除记录
-            del qualifications[qualification_key]
-            company_data['qualifications'] = qualifications
+    @app.route('/api/companies/<company_id>/qualifications/<qualification_key>', methods=['DELETE'])
+    def delete_qualification_file(company_id, qualification_key):
+        """删除公司资质文件"""
+        try:
+            # 验证公司ID
+            try:
+                company_id_int = int(company_id)
+                company_data = kb_manager.get_company_detail(company_id_int)
+                if not company_data:
+                    return jsonify({'success': False, 'error': '公司不存在'}), 404
+            except ValueError:
+                return jsonify({'success': False, 'error': '无效的公司ID'}), 400
 
-            # 保存更新后的公司信息
-            with open(company_file, 'w', encoding='utf-8') as f:
-                json.dump(company_data, f, ensure_ascii=False, indent=2)
+            # 使用新的数据库方法删除资质文件
+            result = kb_manager.delete_qualification_by_key(company_id_int, qualification_key)
 
-            logger.info(f"公司 {company_id} 删除了资质文件 {qualification_key}")
-            return jsonify({
-                'success': True,
-                'message': '资质文件删除成功',
-                'file_deleted': file_deleted
-            })
+            if result['success']:
+                return jsonify(result)
+            else:
+                return jsonify(result), 400
 
         except Exception as e:
             logger.error(f"删除资质文件失败: {e}")

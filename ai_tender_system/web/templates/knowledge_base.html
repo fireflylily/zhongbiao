@@ -969,13 +969,13 @@
             // 更新活动状态
             updateActiveState('[onclick*="selectCompanyProfile(' + companyId + '"]');
 
-            // 加载企业资质文件信息
-            await loadExistingQualifications(companyId);
-
             // 加载企业信息库
             try {
                 // 直接调用渲染函数，不依赖后端API
                 renderCompanyProfiles([]);
+                console.log('企业信息库DOM渲染完成，currentCompanyId已设置为:', companyId);
+
+                // 不在这里加载资质文件，只有在切换到资质信息标签时才加载
             } catch (error) {
                 console.error('加载企业信息库失败:', error);
                 showAlert('加载企业信息库失败', 'danger');
@@ -2169,6 +2169,19 @@
             loadCompanies();
             loadStatistics();
             handleUrlParameters();
+
+            // 监听Bootstrap tab切换事件
+            document.addEventListener('shown.bs.tab', function (event) {
+                if (event.target.getAttribute('data-bs-target') === '#tab-qualification') {
+                    console.log('资质信息标签被激活，开始加载资质文件...');
+                    handleQualificationTabDisplay();
+                }
+            });
+
+            // 自动选择智慧足迹公司（ID=8）以显示资质文件
+            setTimeout(() => {
+                selectCompanyProfile(8);
+            }, 1000); // 等待公司列表加载完成
         });
 
         // 处理URL参数
@@ -2712,14 +2725,20 @@
 
         // 刷新资质文件显示
         function refreshQualificationDisplay(qualKey, fileInfo) {
+            console.log('refreshQualificationDisplay 被调用:', qualKey, fileInfo);
             const statusElement = document.getElementById(`profile-status-${qualKey}`);
+            console.log('找到DOM元素:', statusElement ? 'YES' : 'NO', `profile-status-${qualKey}`);
+
             if (statusElement && fileInfo) {
                 statusElement.classList.remove('d-none');
+                const formattedTime = formatDateTime(fileInfo.upload_time);
+                const formattedSize = formatFileSize(fileInfo.file_size);
+
                 statusElement.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <small class="text-success">✓ ${fileInfo.filename}</small>
-                            <br><small class="text-muted">${formatFileSize(fileInfo.size)} | ${formatDateTime(fileInfo.upload_time)}</small>
+                            <small class="text-success">✓ ${fileInfo.original_filename}</small>
+                            <br><small class="text-muted">${formattedSize} | ${formattedTime}</small>
                         </div>
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-outline-primary btn-sm" onclick="downloadQualificationFile('${currentCompanyId}', '${qualKey}')" title="下载">
@@ -2731,6 +2750,9 @@
                         </div>
                     </div>
                 `;
+                console.log('资质文件显示已更新:', qualKey);
+            } else {
+                console.error('无法更新资质文件显示 - statusElement:', statusElement, 'fileInfo:', fileInfo);
             }
         }
 
@@ -2782,26 +2804,83 @@
 
         // 格式化时间
         function formatDateTime(timestamp) {
-            return new Date(timestamp * 1000).toLocaleString('zh-CN');
+            try {
+                // 如果是字符串格式的时间戳（如"2025-09-26 13:24:24"）
+                if (typeof timestamp === 'string') {
+                    return new Date(timestamp).toLocaleString('zh-CN');
+                }
+                // 如果是Unix时间戳数字
+                else if (typeof timestamp === 'number') {
+                    return new Date(timestamp * 1000).toLocaleString('zh-CN');
+                }
+                // 其他情况直接转换
+                return new Date(timestamp).toLocaleString('zh-CN');
+            } catch (error) {
+                console.error('时间格式化错误:', error, '原始时间戳:', timestamp);
+                return timestamp || '未知时间';
+            }
         }
 
         // 加载现有资质文件信息
         async function loadExistingQualifications(companyId) {
             try {
+                console.log('正在加载公司', companyId, '的资质文件信息...');
                 const response = await axios.get(`/api/companies/${companyId}/qualifications`);
+                console.log('API响应:', response.data);
 
                 if (response.data.success) {
                     const qualifications = response.data.qualifications;
+                    console.log('找到资质文件数量:', Object.keys(qualifications).length);
+                    console.log('API返回的所有qualification keys:', Object.keys(qualifications));
+
+                    // 先检查所有DOM元素的存在性
+                    Object.keys(qualifications).forEach(key => {
+                        console.log(`检查key: ${key}, 对应DOM ID: profile-status-${key}`);
+                        const element = document.getElementById(`profile-status-${key}`);
+                        console.log(`DOM元素存在: ${element ? 'YES' : 'NO'}`);
+                        if (!element) {
+                            console.warn(`警告: 找不到DOM元素 profile-status-${key}`);
+                        }
+                    });
 
                     // 更新每个资质文件的显示状态
                     Object.keys(qualifications).forEach(qualKey => {
                         const fileInfo = qualifications[qualKey];
+                        console.log('处理资质文件:', qualKey, fileInfo);
                         refreshQualificationDisplay(qualKey, fileInfo);
                     });
+                } else {
+                    console.error('API返回失败:', response.data);
                 }
             } catch (error) {
                 console.error('加载资质文件信息失败:', error);
             }
+        }
+
+        // 处理资质信息标签显示，带有延迟重试机制
+        async function handleQualificationTabDisplay() {
+            console.log('handleQualificationTabDisplay 被调用，currentCompanyId:', currentCompanyId);
+
+            if (!currentCompanyId) {
+                console.log('currentCompanyId 未设置，无法加载资质文件');
+                return;
+            }
+
+            // 检查资质DOM元素是否存在，如果不存在则延迟重试
+            const checkAndLoad = async (retries = 3) => {
+                const testElement = document.getElementById('profile-status-business_license');
+                if (testElement) {
+                    console.log('资质DOM元素已就绪，开始加载资质文件...');
+                    await loadExistingQualifications(currentCompanyId);
+                } else if (retries > 0) {
+                    console.log('资质DOM元素尚未就绪，', retries, '次重试后再次尝试...');
+                    setTimeout(() => checkAndLoad(retries - 1), 200);
+                } else {
+                    console.error('资质DOM元素加载超时，无法显示资质文件');
+                }
+            };
+
+            await checkAndLoad();
         }
 
         // 人员档案上传功能（之前缺失的函数）

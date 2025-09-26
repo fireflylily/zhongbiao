@@ -8,7 +8,7 @@
 import os
 import json
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 
@@ -824,4 +824,203 @@ class KnowledgeBaseManager:
 
         except Exception as e:
             logger.error(f"搜索文档失败: {e}")
+            return []
+
+    # =========================
+    # 公司资质文件管理方法
+    # =========================
+
+    def upload_qualification(self, company_id: int, qualification_key: str,
+                            file_obj, original_filename: str,
+                            qualification_name: str = None, custom_name: str = None,
+                            issue_date: str = None, expire_date: str = None) -> Dict:
+        """上传公司资质文件"""
+        try:
+            # 检查公司是否存在
+            company = self.db.get_company_by_id(company_id)
+            if not company:
+                return {
+                    'success': False,
+                    'error': f'公司ID {company_id} 不存在'
+                }
+
+            # 创建资质文件目录
+            qualifications_dir = self.config.get_path('uploads') / 'qualifications' / str(company_id)
+            qualifications_dir.mkdir(parents=True, exist_ok=True)
+
+            # 生成安全的文件名
+            timestamp = int(datetime.now().timestamp())
+            file_ext = Path(original_filename).suffix.lower()
+            safe_filename = f"{timestamp}_{hashlib.md5(original_filename.encode()).hexdigest()[:8]}{file_ext}"
+
+            # 保存文件
+            file_path = qualifications_dir / safe_filename
+            file_obj.save(str(file_path))
+
+            # 获取文件信息
+            file_size = file_path.stat().st_size
+            file_type = file_ext[1:] if file_ext else ''
+
+            # 创建或更新资质记录
+            qualification_id = self.db.save_company_qualification(
+                company_id=company_id,
+                qualification_key=qualification_key,
+                qualification_name=qualification_name or qualification_key,
+                custom_name=custom_name,
+                original_filename=original_filename,
+                safe_filename=safe_filename,
+                file_path=str(file_path),
+                file_size=file_size,
+                file_type=file_type,
+                issue_date=issue_date,
+                expire_date=expire_date
+            )
+
+            logger.info(f"公司 {company_id} 上传资质文件成功: {qualification_key} -> {safe_filename}")
+
+            return {
+                'success': True,
+                'qualification_id': qualification_id,
+                'qualification_key': qualification_key,
+                'filename': safe_filename,
+                'message': f"资质文件 '{original_filename}' 上传成功"
+            }
+
+        except Exception as e:
+            logger.error(f"上传资质文件失败: {e}")
+            # 如果文件已保存但数据库操作失败，删除文件
+            if 'file_path' in locals() and file_path.exists():
+                file_path.unlink()
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def get_company_qualifications(self, company_id: int) -> List[Dict]:
+        """获取公司的所有资质文件"""
+        try:
+            qualifications = self.db.get_company_qualifications(company_id)
+
+            # 检查文件是否存在
+            for qual in qualifications:
+                file_path = Path(qual['file_path'])
+                qual['file_exists'] = file_path.exists()
+                qual['file_size_kb'] = round(qual['file_size'] / 1024, 2) if qual['file_size'] else 0
+
+                # 检查是否过期
+                if qual.get('expire_date'):
+                    expire_date = datetime.strptime(qual['expire_date'], '%Y-%m-%d').date()
+                    qual['is_expired'] = expire_date < datetime.now().date()
+                else:
+                    qual['is_expired'] = False
+
+            return qualifications
+
+        except Exception as e:
+            logger.error(f"获取公司资质文件失败: {e}")
+            return []
+
+    def delete_qualification(self, qualification_id: int) -> Dict:
+        """删除资质文件"""
+        try:
+            # 获取资质信息
+            qualification = self.db.get_qualification_by_id(qualification_id)
+            if not qualification:
+                return {
+                    'success': False,
+                    'error': f'资质文件 ID {qualification_id} 不存在'
+                }
+
+            # 删除物理文件
+            file_path = Path(qualification['file_path'])
+            if file_path.exists():
+                file_path.unlink()
+                logger.info(f"已删除资质文件: {file_path}")
+
+            # 删除数据库记录
+            result = self.db.delete_qualification(qualification_id)
+            if result:
+                logger.info(f"资质文件删除成功: qualification_id={qualification_id}")
+                return {
+                    'success': True,
+                    'message': f"资质文件 '{qualification['original_filename']}' 删除成功"
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '删除数据库记录失败'
+                }
+
+        except Exception as e:
+            logger.error(f"删除资质文件失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def delete_qualification_by_key(self, company_id: int, qualification_key: str) -> Dict:
+        """根据公司ID和资质key删除资质文件"""
+        try:
+            # 获取资质信息
+            qualification = self.db.get_qualification_by_key(company_id, qualification_key)
+            if not qualification:
+                return {
+                    'success': False,
+                    'error': f'公司 {company_id} 的资质文件 {qualification_key} 不存在'
+                }
+
+            # 删除物理文件
+            file_path = Path(qualification['file_path'])
+            if file_path.exists():
+                file_path.unlink()
+                logger.info(f"已删除资质文件: {file_path}")
+
+            # 删除数据库记录
+            result = self.db.delete_qualification(qualification['qualification_id'])
+            if result:
+                logger.info(f"资质文件删除成功: company_id={company_id}, key={qualification_key}")
+                return {
+                    'success': True,
+                    'message': f"资质文件 '{qualification['original_filename']}' 删除成功"
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '删除数据库记录失败'
+                }
+
+        except Exception as e:
+            logger.error(f"删除资质文件失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def verify_qualification(self, qualification_id: int, verify_status: str,
+                           verify_by: str = None, verify_note: str = None) -> bool:
+        """验证资质文件状态"""
+        try:
+            result = self.db.update_qualification_status(
+                qualification_id=qualification_id,
+                verify_status=verify_status,
+                verify_by=verify_by,
+                verify_note=verify_note
+            )
+            if result:
+                logger.info(f"资质验证状态更新成功: qualification_id={qualification_id}, status={verify_status}")
+            return result
+
+        except Exception as e:
+            logger.error(f"更新资质验证状态失败: {e}")
+            return False
+
+    def get_expired_qualifications(self, days_ahead: int = 30) -> List[Dict]:
+        """获取即将过期的资质文件"""
+        try:
+            future_date = (datetime.now() + timedelta(days=days_ahead)).strftime('%Y-%m-%d')
+            qualifications = self.db.get_expiring_qualifications(future_date)
+            return qualifications
+
+        except Exception as e:
+            logger.error(f"获取过期资质文件失败: {e}")
             return []
