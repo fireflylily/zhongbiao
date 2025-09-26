@@ -98,7 +98,11 @@ def create_app() -> Flask:
 
 def register_routes(app: Flask, config, logger):
     """注册所有路由"""
-    
+
+    # 初始化知识库管理器
+    from modules.knowledge_base.manager import KnowledgeBaseManager
+    kb_manager = KnowledgeBaseManager()
+
     # ===================
     # 静态页面路由
     # ===================
@@ -1083,30 +1087,23 @@ def register_routes(app: Flask, config, logger):
     def list_companies():
         """获取所有公司配置"""
         try:
-            import json
-            
-            companies = []
-            company_configs_dir = config.get_path('config') / 'companies'
-            
-            if company_configs_dir.exists():
-                for filename in os.listdir(company_configs_dir):
-                    if filename.endswith('.json'):
-                        file_path = company_configs_dir / filename
-                        try:
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                company_data = json.load(f)
-                                companies.append({
-                                    'id': company_data.get('id', filename.replace('.json', '')),
-                                    'companyName': company_data.get('companyName', '未命名公司'),
-                                    'created_at': company_data.get('created_at', ''),
-                                    'updated_at': company_data.get('updated_at', '')
-                                })
-                        except Exception as e:
-                            logger.warning(f"读取公司配置文件失败 {filename}: {e}")
-            
-            companies.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
-            return jsonify({'success': True, 'companies': companies})
-            
+            companies = kb_manager.get_companies()
+
+            # 转换字段格式以保持前端兼容性
+            result_companies = []
+            for company in companies:
+                result_companies.append({
+                    'company_id': company.get('company_id', ''),
+                    'company_name': company.get('company_name', '未命名公司'),
+                    'created_at': company.get('created_at', ''),
+                    'updated_at': company.get('updated_at', ''),
+                    'product_count': company.get('product_count', 0),
+                    'document_count': company.get('document_count', 0)
+                })
+
+            result_companies.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+            return jsonify({'success': True, 'data': result_companies})
+
         except Exception as e:
             logger.error(f"获取公司列表失败: {e}")
             return jsonify({'error': str(e)}), 500
@@ -1115,19 +1112,28 @@ def register_routes(app: Flask, config, logger):
     def get_company(company_id):
         """获取指定公司的详细信息"""
         try:
-            import json
-            
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-            
-            if not company_file.exists():
+            # 转换字符串ID为整数ID
+            company_id_int = int(company_id)
+
+            company_data = kb_manager.get_company_detail(company_id_int)
+
+            # DEBUG: 记录从数据库获取的原始数据
+            logger.info(f"[DEBUG GET] 公司 {company_id} - 数据库返回的原始数据: {company_data}")
+            if company_data and 'registered_capital' in company_data:
+                logger.info(f"[DEBUG GET] registered_capital 字段存在: {company_data['registered_capital']!r}")
+            elif company_data:
+                logger.info(f"[DEBUG GET] registered_capital 字段不在返回数据中，可用字段: {list(company_data.keys())}")
+
+            if not company_data:
                 return jsonify({'success': False, 'error': '公司不存在'}), 404
-                
-            with open(company_file, 'r', encoding='utf-8') as f:
-                company_data = json.load(f)
-                
-            return jsonify({'success': True, 'company': company_data})
-            
+
+            # 转换字段格式以保持前端兼容性 - 保持原有格式
+            result_company = company_data
+
+            return jsonify({'success': True, 'data': result_company})
+
+        except ValueError:
+            return jsonify({'success': False, 'error': '无效的公司ID'}), 400
         except Exception as e:
             logger.error(f"获取公司信息失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -1136,45 +1142,39 @@ def register_routes(app: Flask, config, logger):
     def create_company():
         """创建新公司"""
         try:
-            import json
-            from datetime import datetime
-            
             data = request.get_json()
             if not data:
                 return jsonify({'success': False, 'error': '请提供公司信息'}), 400
-            
+
             company_name = data.get('companyName', '').strip()
             if not company_name:
                 return jsonify({'success': False, 'error': '公司名称不能为空'}), 400
-            
-            # 生成公司ID
-            company_id = hashlib.md5(company_name.encode('utf-8')).hexdigest()[:8]
-            
-            # 准备公司数据
-            company_data = {
-                'id': company_id,
-                'companyName': company_name,
-                'created_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat()
-            }
-            
-            # 添加其他字段
-            for field in ['companyAddress', 'legalPerson', 'contactInfo', 'businessScope']:
-                if field in data:
-                    company_data[field] = data[field]
-            
-            # 确保目录存在
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_configs_dir.mkdir(parents=True, exist_ok=True)
-            
-            # 保存公司信息
-            company_file = company_configs_dir / f'{company_id}.json'
-            with open(company_file, 'w', encoding='utf-8') as f:
-                json.dump(company_data, f, ensure_ascii=False, indent=2)
-            
-            logger.info(f"创建公司成功: {company_name} (ID: {company_id})")
-            return jsonify({'success': True, 'company': company_data})
-            
+
+            # 使用知识库管理器创建公司
+            result = kb_manager.create_company(
+                company_name=company_name,
+                company_code=data.get('companyCode', None),
+                industry_type=data.get('industryType', None),
+                description=data.get('companyDescription', None)
+            )
+
+            if result['success']:
+                # 导入datetime
+                from datetime import datetime
+
+                # 返回格式与前端兼容
+                company_data = {
+                    'id': str(result['company_id']),
+                    'companyName': company_name,
+                    'created_at': datetime.now().isoformat(),
+                    'updated_at': datetime.now().isoformat()
+                }
+
+                logger.info(f"创建公司成功: {company_name} (ID: {result['company_id']})")
+                return jsonify({'success': True, 'company': company_data})
+            else:
+                return jsonify({'success': False, 'error': result['error']}), 400
+
         except Exception as e:
             logger.error(f"创建公司失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -1183,67 +1183,53 @@ def register_routes(app: Flask, config, logger):
     def update_company(company_id):
         """更新公司信息"""
         try:
-            import json
-            from datetime import datetime
-            
+            # 转换字符串ID为整数ID
+            company_id_int = int(company_id)
+
             data = request.get_json()
             if not data:
                 return jsonify({'success': False, 'error': '请提供公司信息'}), 400
-            
-            # 检查公司是否存在
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-            
-            if not company_file.exists():
-                return jsonify({'success': False, 'error': '公司不存在'}), 404
-            
-            # 读取现有公司数据
-            with open(company_file, 'r', encoding='utf-8') as f:
-                existing_company = json.load(f)
-            
-            # 更新字段
-            company_name = data.get('companyName', '').strip()
-            if company_name:
-                existing_company['companyName'] = company_name
-            
-            # 更新其他所有字段
-            field_mapping = {
-                'establishDate': 'establishDate',
-                'legalRepresentative': 'legalRepresentative',
-                'legalRepresentativePosition': 'legalRepresentativePosition',
-                'socialCreditCode': 'socialCreditCode',
-                'authorizedPersonName': 'authorizedPersonName',
-                'authorizedPersonPosition': 'authorizedPersonPosition',
-                'email': 'email',
-                'registeredCapital': 'registeredCapital',
-                'companyType': 'companyType',
-                'fixedPhone': 'fixedPhone',
-                'fax': 'fax',
-                'postalCode': 'postalCode',
-                'registeredAddress': 'registeredAddress',
-                'officeAddress': 'officeAddress',
-                'website': 'website',
-                'employeeCount': 'employeeCount',
-                'companyDescription': 'companyDescription',
-                'businessScope': 'businessScope',
-                'bankName': 'bankName',
-                'bankAccount': 'bankAccount'
-            }
-            
-            for field_name, data_key in field_mapping.items():
-                if data_key in data:
-                    existing_company[field_name] = data[data_key]
-            
-            # 更新时间戳
-            existing_company['updated_at'] = datetime.now().isoformat()
-            
-            # 保存更新后的公司信息
-            with open(company_file, 'w', encoding='utf-8') as f:
-                json.dump(existing_company, f, ensure_ascii=False, indent=2)
-            
-            logger.info(f"更新公司成功: {company_name or existing_company.get('companyName', '')} (ID: {company_id})")
-            return jsonify({'success': True, 'company': existing_company, 'message': '公司信息更新成功'})
-            
+
+            # 使用知识库管理器更新公司信息
+            result = kb_manager.update_company(company_id_int, data)
+
+            if result['success']:
+                # 获取更新后的公司详情
+                updated_company = kb_manager.get_company_detail(company_id_int)
+
+                if updated_company:
+                    # 转换格式与前端兼容
+                    result_company = {
+                        'id': str(updated_company.get('company_id', '')),
+                        'companyName': updated_company.get('company_name', ''),
+                        'establishDate': updated_company.get('establish_date', ''),
+                        'legalRepresentative': updated_company.get('legal_representative', ''),
+                        'legalRepresentativePosition': updated_company.get('legal_representative_position', ''),
+                        'socialCreditCode': updated_company.get('social_credit_code', ''),
+                        'registeredCapital': updated_company.get('registered_capital', ''),
+                        'companyType': updated_company.get('company_type', ''),
+                        'registeredAddress': updated_company.get('registered_address', ''),
+                        'businessScope': updated_company.get('business_scope', ''),
+                        'companyDescription': updated_company.get('description', ''),
+                        'fixedPhone': updated_company.get('fixed_phone', ''),
+                        'fax': updated_company.get('fax', ''),
+                        'postalCode': updated_company.get('postal_code', ''),
+                        'email': updated_company.get('email', ''),
+                        'officeAddress': updated_company.get('office_address', ''),
+                        'employeeCount': updated_company.get('employee_count', ''),
+                        'created_at': updated_company.get('created_at', ''),
+                        'updated_at': updated_company.get('updated_at', '')
+                    }
+
+                    logger.info(f"更新公司成功: {updated_company.get('company_name', '')} (ID: {company_id})")
+                    return jsonify({'success': True, 'company': result_company, 'message': '公司信息更新成功'})
+                else:
+                    return jsonify({'success': False, 'error': '获取更新后的公司信息失败'}), 500
+            else:
+                return jsonify({'success': False, 'error': result['error']}), 400
+
+        except ValueError:
+            return jsonify({'success': False, 'error': '无效的公司ID'}), 400
         except Exception as e:
             logger.error(f"更新公司失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -1252,18 +1238,23 @@ def register_routes(app: Flask, config, logger):
     def delete_company(company_id):
         """删除公司"""
         try:
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-            
-            if not company_file.exists():
-                return jsonify({'success': False, 'error': '公司不存在'}), 404
-            
-            # 删除公司文件
-            company_file.unlink()
-            
-            logger.info(f"删除公司成功: {company_id}")
-            return jsonify({'success': True, 'message': '公司删除成功'})
-            
+            # 转换字符串ID为整数ID
+            company_id_int = int(company_id)
+
+            # 使用知识库管理器删除公司
+            result = kb_manager.delete_company(company_id_int)
+
+            if result['success']:
+                logger.info(f"删除公司成功: {company_id}")
+                return jsonify({'success': True, 'message': '公司删除成功'})
+            else:
+                if '不存在' in result['error']:
+                    return jsonify({'success': False, 'error': result['error']}), 404
+                else:
+                    return jsonify({'success': False, 'error': result['error']}), 500
+
+        except ValueError:
+            return jsonify({'success': False, 'error': '无效的公司ID'}), 400
         except Exception as e:
             logger.error(f"删除公司失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -1273,27 +1264,31 @@ def register_routes(app: Flask, config, logger):
         """获取公司资质文件列表"""
         try:
             import json
-            
-            # 获取公司信息
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-            
-            if not company_file.exists():
-                logger.error(f"公司文件不存在: {company_file}")
-                return jsonify({'success': False, 'error': '公司不存在'}), 404
-                
-            with open(company_file, 'r', encoding='utf-8') as f:
-                company_data = json.load(f)
-            
-            # 获取资质文件信息
-            qualifications = company_data.get('qualifications', {})
-            
+
+            # 首先检查数据库中是否存在该公司
+            try:
+                company_id_int = int(company_id)
+                company_data = kb_manager.get_company_detail(company_id_int)
+                if not company_data:
+                    return jsonify({'success': False, 'error': '公司不存在'}), 404
+            except ValueError:
+                return jsonify({'success': False, 'error': '无效的公司ID'}), 400
+
+            # 获取资质文件目录路径（保持原有路径结构用于向后兼容）
+            qualifications_dir = config.get_path('config') / 'companies' / 'qualifications' / company_id
+            qualifications_metadata_file = qualifications_dir / 'metadata.json'
+
+            qualifications = {}
+            if qualifications_metadata_file.exists():
+                with open(qualifications_metadata_file, 'r', encoding='utf-8') as f:
+                    qualifications = json.load(f)
+
             logger.info(f"获取公司 {company_id} 的资质文件列表，共 {len(qualifications)} 个")
             return jsonify({
-                'success': True, 
+                'success': True,
                 'qualifications': qualifications
             })
-            
+
         except Exception as e:
             logger.error(f"获取公司资质文件失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -1305,18 +1300,18 @@ def register_routes(app: Flask, config, logger):
             import json
             import shutil
             from werkzeug.utils import secure_filename
-            
-            # 获取公司信息
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-            
-            if not company_file.exists():
-                return jsonify({'success': False, 'error': '公司不存在'}), 404
-                
-            with open(company_file, 'r', encoding='utf-8') as f:
-                company_data = json.load(f)
+
+            # 首先检查数据库中是否存在该公司
+            try:
+                company_id_int = int(company_id)
+                company_data = kb_manager.get_company_detail(company_id_int)
+                if not company_data:
+                    return jsonify({'success': False, 'error': '公司不存在'}), 404
+            except ValueError:
+                return jsonify({'success': False, 'error': '无效的公司ID'}), 400
             
             # 创建资质文件目录
+            company_configs_dir = config.get_path('config') / 'companies'
             qualifications_dir = company_configs_dir / 'qualifications' / company_id
             qualifications_dir.mkdir(parents=True, exist_ok=True)
             
@@ -1423,6 +1418,74 @@ def register_routes(app: Flask, config, logger):
             
         except Exception as e:
             logger.error(f"下载资质文件失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/companies/<company_id>/qualifications/<qualification_key>', methods=['DELETE'])
+    def delete_qualification_file(company_id, qualification_key):
+        """删除公司资质文件"""
+        try:
+            import json
+            import os
+
+            # 首先检查数据库中是否存在该公司
+            try:
+                company_id_int = int(company_id)
+                company_data = kb_manager.get_company_detail(company_id_int)
+                if not company_data:
+                    return jsonify({'success': False, 'error': '公司不存在'}), 404
+            except ValueError:
+                return jsonify({'success': False, 'error': '无效的公司ID'}), 400
+
+            # 获取资质文件目录路径
+            company_configs_dir = config.get_path('config') / 'companies'
+            qualifications_dir = company_configs_dir / 'qualifications' / company_id
+            qualifications_metadata_file = qualifications_dir / 'metadata.json'
+
+            # 检查资质文件元数据是否存在
+            qualifications = {}
+            if qualifications_metadata_file.exists():
+                with open(qualifications_metadata_file, 'r', encoding='utf-8') as f:
+                    qualifications = json.load(f)
+            if qualification_key not in qualifications:
+                return jsonify({'success': False, 'error': '资质文件不存在'}), 404
+
+            qualification_info = qualifications[qualification_key]
+            safe_filename = qualification_info.get('safe_filename', '')
+
+            # 构建文件路径 - 检查多个可能的位置
+            possible_paths = [
+                # 新系统路径
+                config.get_path('config') / 'companies' / 'qualifications' / company_id / safe_filename,
+                # 项目根目录的qualifications路径
+                Path(__file__).parent.parent.parent / 'qualifications' / company_id / safe_filename
+            ]
+
+            # 删除物理文件
+            file_deleted = False
+            for path in possible_paths:
+                if path.exists():
+                    os.remove(str(path))
+                    file_deleted = True
+                    logger.info(f"已删除资质文件: {path}")
+                    break
+
+            # 从JSON配置中移除记录
+            del qualifications[qualification_key]
+            company_data['qualifications'] = qualifications
+
+            # 保存更新后的公司信息
+            with open(company_file, 'w', encoding='utf-8') as f:
+                json.dump(company_data, f, ensure_ascii=False, indent=2)
+
+            logger.info(f"公司 {company_id} 删除了资质文件 {qualification_key}")
+            return jsonify({
+                'success': True,
+                'message': '资质文件删除成功',
+                'file_deleted': file_deleted
+            })
+
+        except Exception as e:
+            logger.error(f"删除资质文件失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
     # ===================

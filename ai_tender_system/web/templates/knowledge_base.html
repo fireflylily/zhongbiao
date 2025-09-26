@@ -795,7 +795,7 @@
         // 加载公司列表
         async function loadCompanies() {
             try {
-                const response = await axios.get('/api/knowledge_base/companies');
+                const response = await axios.get('/api/companies');
                 if (response.data.success) {
                     renderCompanyTree(response.data.data);
                 }
@@ -878,7 +878,7 @@
 
             // 加载公司详情
             try {
-                const response = await axios.get('/api/knowledge_base/companies/' + companyId);
+                const response = await axios.get('/api/companies/' + companyId);
                 if (response.data.success) {
                     const company = response.data.data;
                     renderCompanyDetail(company);
@@ -987,7 +987,7 @@
             // 先获取公司详细信息
             let companyData = null;
             try {
-                const response = await axios.get('/api/knowledge_base/companies/' + currentCompanyId);
+                const response = await axios.get('/api/companies/' + currentCompanyId);
                 if (response.data.success && response.data.data) {
                     companyData = response.data.data;
                     console.log('公司数据加载成功:', companyData);
@@ -1126,30 +1126,30 @@
                 '<div class="row mb-3">' +
                     '<div class="col-md-6">' +
                         '<label class="form-label">注册资本</label>' +
-                        '<input type="text" class="form-control" id="prof-registeredCapital" value="' + (data.registeredCapital || '') + '">' +
+                        '<input type="text" class="form-control" id="prof-registeredCapital" value="' + (data.registeredCapital || data.registered_capital || '') + '">' +
                     '</div>' +
                     '<div class="col-md-6">' +
                         '<label class="form-label">公司类型</label>' +
                         '<select class="form-select" id="prof-companyType">' +
                             '<option value="">请选择公司类型</option>' +
-                            '<option value="有限责任公司" ' + (data.companyType === '有限责任公司' ? 'selected' : '') + '>有限责任公司</option>' +
-                            '<option value="股份有限公司" ' + (data.companyType === '股份有限公司' ? 'selected' : '') + '>股份有限公司</option>' +
-                            '<option value="合伙企业" ' + (data.companyType === '合伙企业' ? 'selected' : '') + '>合伙企业</option>' +
-                            '<option value="个人独资企业" ' + (data.companyType === '个人独资企业' ? 'selected' : '') + '>个人独资企业</option>' +
-                            '<option value="外商投资企业" ' + (data.companyType === '外商投资企业' ? 'selected' : '') + '>外商投资企业</option>' +
-                            '<option value="其他" ' + (data.companyType === '其他' ? 'selected' : '') + '>其他</option>' +
+                            '<option value="有限责任公司" ' + ((data.companyType || data.company_type) === '有限责任公司' ? 'selected' : '') + '>有限责任公司</option>' +
+                            '<option value="股份有限公司" ' + ((data.companyType || data.company_type) === '股份有限公司' ? 'selected' : '') + '>股份有限公司</option>' +
+                            '<option value="合伙企业" ' + ((data.companyType || data.company_type) === '合伙企业' ? 'selected' : '') + '>合伙企业</option>' +
+                            '<option value="个人独资企业" ' + ((data.companyType || data.company_type) === '个人独资企业' ? 'selected' : '') + '>个人独资企业</option>' +
+                            '<option value="外商投资企业" ' + ((data.companyType || data.company_type) === '外商投资企业' ? 'selected' : '') + '>外商投资企业</option>' +
+                            '<option value="其他" ' + ((data.companyType || data.company_type) === '其他' ? 'selected' : '') + '>其他</option>' +
                         '</select>' +
                     '</div>' +
                 '</div>' +
 
                 '<div class="mb-3">' +
                     '<label class="form-label">注册地址</label>' +
-                    '<textarea class="form-control" id="prof-registeredAddress" rows="2">' + (data.registeredAddress || '') + '</textarea>' +
+                    '<textarea class="form-control" id="prof-registeredAddress" rows="2">' + (data.registeredAddress || data.registered_address || '') + '</textarea>' +
                 '</div>' +
 
                 '<div class="mb-3">' +
                     '<label class="form-label">经营范围</label>' +
-                    '<textarea class="form-control" id="prof-businessScope" rows="3">' + (data.businessScope || '') + '</textarea>' +
+                    '<textarea class="form-control" id="prof-businessScope" rows="3">' + (data.businessScope || data.business_scope || '') + '</textarea>' +
                 '</div>' +
 
                 // 联系信息分组
@@ -1187,7 +1187,7 @@
 
                 '<div class="mb-3">' +
                     '<label class="form-label">公司简介</label>' +
-                    '<textarea class="form-control" id="prof-companyDescription" rows="3">' + (data.companyDescription || '') + '</textarea>' +
+                    '<textarea class="form-control" id="prof-companyDescription" rows="3">' + (data.companyDescription || data.description || '') + '</textarea>' +
                 '</div>' +
 
                 '<div class="text-center mt-4">' +
@@ -1485,11 +1485,15 @@
 
             try {
                 console.log('发送数据:', data);
-                console.log('API地址:', '/api/knowledge_base/companies/' + currentCompanyId);
+                console.log('API地址:', '/api/companies/' + currentCompanyId);
 
-                const response = await axios.put('/api/knowledge_base/companies/' + currentCompanyId, data);
+                const response = await axios.put('/api/companies/' + currentCompanyId, data);
                 if (response.data.success) {
                     showAlert('基础信息保存成功', 'success');
+                    // 保存成功后重新加载企业详情以刷新显示
+                    setTimeout(() => {
+                        selectCompanyProfile(currentCompanyId);
+                    }, 1000);
                 } else {
                     console.error('保存失败 - 响应:', response.data);
                     showAlert('保存失败：' + (response.data.error || '未知错误'), 'danger');
@@ -1516,9 +1520,13 @@
             };
 
             try {
-                const response = await axios.put('/api/knowledge_base/companies/' + currentCompanyId, data);
+                const response = await axios.put('/api/companies/' + currentCompanyId, data);
                 if (response.data.success) {
                     showAlert('财务信息保存成功', 'success');
+                    // 保存成功后重新加载企业详情以刷新显示
+                    setTimeout(() => {
+                        selectCompanyProfile(currentCompanyId);
+                    }, 1000);
                 }
             } catch (error) {
                 showAlert('保存失败：' + error.message, 'danger');
@@ -1794,7 +1802,7 @@
             };
 
             try {
-                const response = await axios.post('/api/knowledge_base/companies', data);
+                const response = await axios.post('/api/companies', data);
                 if (response.data.success) {
                     showAlert('企业添加成功', 'success');
                     bootstrap.Modal.getInstance(document.getElementById('addCompanyModal')).hide();

@@ -97,6 +97,9 @@ class KnowledgeBaseManager:
     def update_company(self, company_id: int, data: Dict) -> Dict:
         """更新公司信息"""
         try:
+            # DEBUG: 记录接收到的原始数据
+            logger.info(f"[DEBUG] 更新公司 {company_id} - 接收到的原始数据: {data}")
+
             # 检查公司是否存在
             existing_company = self.db.get_company_by_id(company_id)
             if not existing_company:
@@ -126,10 +129,31 @@ class KnowledgeBaseManager:
                 'employeeCount': 'employee_count'
             }
 
-            # 转换字段名并过滤空值
+            # DEBUG: 专门检查 registeredCapital 字段
+            if 'registeredCapital' in data:
+                logger.info(f"[DEBUG] registeredCapital 字段存在于输入数据中: {data['registeredCapital']!r}")
+            else:
+                logger.info(f"[DEBUG] registeredCapital 字段不存在于输入数据中")
+
+            # 转换字段名并过滤None值，保留空字符串
             for frontend_key, db_key in field_mapping.items():
-                if frontend_key in data and data[frontend_key] is not None and data[frontend_key] != '':
+                if frontend_key in data and data[frontend_key] is not None:
                     update_data[db_key] = data[frontend_key]
+                    # DEBUG: 专门追踪 registeredCapital 的映射过程
+                    if frontend_key == 'registeredCapital':
+                        logger.info(f"[DEBUG] registeredCapital 映射成功: {frontend_key} -> {db_key} = {data[frontend_key]!r}")
+                elif frontend_key == 'registeredCapital':
+                    if frontend_key not in data:
+                        logger.info(f"[DEBUG] registeredCapital 不在输入数据中")
+                    elif data[frontend_key] is None:
+                        logger.info(f"[DEBUG] registeredCapital 值为 None，被过滤掉")
+
+            # DEBUG: 记录最终的更新数据
+            logger.info(f"[DEBUG] 字段映射完成，最终更新数据: {update_data}")
+            if 'registered_capital' in update_data:
+                logger.info(f"[DEBUG] registered_capital 包含在最终更新数据中: {update_data['registered_capital']!r}")
+            else:
+                logger.info(f"[DEBUG] registered_capital 不在最终更新数据中")
 
             if not update_data:
                 return {
@@ -139,6 +163,9 @@ class KnowledgeBaseManager:
 
             # 更新时间戳
             update_data['updated_at'] = datetime.now()
+
+            # DEBUG: 记录发送给数据库的最终数据
+            logger.info(f"[DEBUG] 发送给数据库的数据(包含时间戳): {update_data}")
 
             # 调用数据库更新方法
             result = self.db.update_company(company_id, update_data)
@@ -210,6 +237,74 @@ class KnowledgeBaseManager:
         except Exception as e:
             logger.error(f"获取公司详情失败: {e}")
             return None
+
+    def delete_company(self, company_id: int) -> Dict:
+        """删除公司"""
+        try:
+            # 检查公司是否存在
+            existing_company = self.db.get_company_by_id(company_id)
+            if not existing_company:
+                return {
+                    'success': False,
+                    'error': f'公司 ID {company_id} 不存在'
+                }
+
+            # 获取公司相关的产品
+            products = self.db.get_products(company_id)
+
+            # 删除所有产品相关的文档和文档库
+            for product in products:
+                product_id = product['product_id']
+
+                # 获取产品的文档库
+                libraries = self.db.get_document_libraries('product', product_id)
+                for library in libraries:
+                    library_id = library['library_id']
+
+                    # 获取文档库中的所有文档
+                    documents = self.db.get_documents(library_id)
+                    for document in documents:
+                        # 删除物理文件
+                        file_path = Path(document['file_path'])
+                        if file_path.exists():
+                            file_path.unlink()
+
+                        # 删除文档记录
+                        self.db.delete_document(document['doc_id'])
+
+                    # 删除文档库
+                    self.db.delete_document_library(library_id)
+
+                # 删除产品
+                self.db.delete_product(product_id)
+
+            # 获取公司信息库分类
+            profiles = self.db.get_company_profiles(company_id)
+            for profile in profiles:
+                # 删除企业信息库分类
+                self.db.delete_company_profile(profile['profile_id'])
+
+            # 删除公司记录
+            result = self.db.delete_company(company_id)
+
+            if result:
+                logger.info(f"删除公司成功: company_id={company_id}")
+                return {
+                    'success': True,
+                    'message': '公司删除成功'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '删除公司失败'
+                }
+
+        except Exception as e:
+            logger.error(f"删除公司失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     # =========================
     # 产品管理相关方法

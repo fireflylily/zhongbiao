@@ -136,6 +136,11 @@ class KnowledgeBaseDB:
         if not update_data:
             return False
 
+        # DEBUG: 记录数据库层接收到的数据
+        logger.info(f"[DEBUG DATABASE] 更新公司 {company_id} - 接收到的数据: {update_data}")
+        if 'registered_capital' in update_data:
+            logger.info(f"[DEBUG DATABASE] registered_capital 字段值: {update_data['registered_capital']!r}")
+
         # 构建更新语句
         set_clauses = []
         values = []
@@ -152,10 +157,16 @@ class KnowledgeBaseDB:
         WHERE company_id = ?
         """
 
+        # DEBUG: 记录SQL语句和参数
+        logger.info(f"[DEBUG DATABASE] 执行SQL: {query}")
+        logger.info(f"[DEBUG DATABASE] SQL参数: {values}")
+
         try:
             self.execute_query(query, tuple(values))
+            logger.info(f"[DEBUG DATABASE] SQL执行成功")
             return True
         except Exception as e:
+            logger.error(f"[DEBUG DATABASE] SQL执行失败: {e}")
             logger.error(f"更新公司信息失败: {e}")
             return False
 
