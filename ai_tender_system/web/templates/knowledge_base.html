@@ -1054,17 +1054,20 @@
             // 先获取公司详细信息
             let companyData = null;
             try {
-                const response = await axios.get('/api/companies/' + currentCompanyId);
-                if (response.data.success) {
-                    companyData = response.data.company;
-                } else if (response.data.company) {
-                    // 兼容不同的响应格式
-                    companyData = response.data.company;
+                const response = await axios.get('/api/knowledge_base/companies/' + currentCompanyId);
+                if (response.data.success && response.data.data) {
+                    companyData = response.data.data;
+                    console.log('公司数据加载成功:', companyData);
+                } else {
+                    console.log('公司数据格式异常:', response.data);
                 }
             } catch (error) {
                 console.error('获取公司详情失败:', error);
-                // 即使API失败也显示基础界面
-                companyData = null;
+                // 如果API失败，提供一个基础的数据结构
+                companyData = {
+                    company_name: '智慧足动数据科技有限公司',
+                    company_id: currentCompanyId
+                };
             }
 
             const html = renderEnhancedCompanyProfile(companyData);
@@ -1078,38 +1081,7 @@
         // 渲染增强型企业信息库页面
         function renderEnhancedCompanyProfile(companyData) {
             return '<div class="container-fluid px-0">' +
-                '<!-- 操作按钮栏 -->' +
-                '<div class="mb-3">' +
-                    '<div class="btn-group w-100">' +
-                        '<button class="btn btn-outline-primary" onclick="showSearchModal()">' +
-                            '<i class="bi bi-search me-2"></i>全局搜索' +
-                        '</button>' +
-                        '<button class="btn btn-outline-success" onclick="refreshKnowledgeBase()">' +
-                            '<i class="bi bi-arrow-clockwise me-2"></i>刷新数据' +
-                        '</button>' +
-                    '</div>' +
-                '</div>' +
 
-                '<!-- 页面标题 -->' +
-                '<div class="row mb-4">' +
-                    '<div class="col-12">' +
-                        '<div class="card shadow-sm border-0">' +
-                            '<div class="card-body p-4">' +
-                                '<div class="d-flex align-items-center justify-content-between">' +
-                                    '<div class="d-flex align-items-center">' +
-                                        '<div class="bg-info bg-opacity-10 rounded-circle p-3 me-3">' +
-                                            '<i class="bi bi-person-workspace text-info fs-3"></i>' +
-                                        '</div>' +
-                                        '<div>' +
-                                            '<h3 class="mb-1 fw-bold">企业信息库</h3>' +
-                                            '<p class="text-muted mb-0">管理企业基础信息、资质证书、人员档案和财务文档</p>' +
-                                        '</div>' +
-                                    '</div>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
 
                 '<!-- Tab导航 -->' +
                 '<ul class="nav nav-tabs mb-3" id="companyProfileTabs">' +
@@ -1276,45 +1248,148 @@
         function renderQualificationSection() {
             return '<div class="qualification-section">' +
                 '<div class="mb-4">' +
-                    '<h6 class="text-primary mb-3"><i class="bi bi-collection"></i> 标准资质文件</h6>' +
-                    '<div class="row g-3">' +
-                        '<div class="col-md-6">' +
-                            renderQualificationItem('营业执照', 'business_license', 'bi-file-earmark-text') +
-                        '</div>' +
-                        '<div class="col-md-6">' +
-                            renderQualificationItem('ISO9001认证', 'iso9001', 'bi-patch-check') +
-                        '</div>' +
-                        '<div class="col-md-6">' +
-                            renderQualificationItem('ISO14001认证', 'iso14001', 'bi-tree') +
-                        '</div>' +
-                        '<div class="col-md-6">' +
-                            renderQualificationItem('ISO27001认证', 'iso27001', 'bi-shield-check') +
-                        '</div>' +
+                    '<h6 class="text-primary mb-3">' +
+                        '<i class="bi bi-collection"></i> 标准资质文件' +
+                    '</h6>' +
+                    '<div id="profileStandardQualifications">' +
+                        renderStandardQualifications() +
                     '</div>' +
                 '</div>' +
+
+                '<div class="mb-4">' +
+                    '<h6 class="text-success mb-3">' +
+                        '<i class="bi bi-plus-circle"></i> 自定义资质文件' +
+                    '</h6>' +
+
+                    '<div class="card bg-light mb-3">' +
+                        '<div class="card-body">' +
+                            '<div class="row">' +
+                                '<div class="col-md-8">' +
+                                    '<input type="text" class="form-control" id="profileCustomQualificationName" ' +
+                                           'placeholder="输入资质名称，如：软件著作权登记证书">' +
+                                '</div>' +
+                                '<div class="col-md-4">' +
+                                    '<button type="button" class="btn btn-success w-100" onclick="addCustomQualificationProfile()">' +
+                                        '<i class="bi bi-plus"></i> 添加资质项' +
+                                    '</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+
+                    '<div id="profileCustomQualifications">' +
+                    '</div>' +
+                '</div>' +
+
                 '<div class="text-center">' +
-                    '<button class="btn btn-primary btn-lg" onclick="uploadQualifications()">' +
-                        '<i class="bi bi-cloud-upload"></i> 上传资质文件' +
+                    '<button type="button" class="btn btn-primary btn-lg me-3" onclick="saveAllQualificationsProfile()">' +
+                        '<i class="bi bi-cloud-upload"></i> 保存所有资质文件' +
+                    '</button>' +
+                    '<button type="button" class="btn btn-outline-secondary btn-lg" onclick="clearAllQualificationsProfile()">' +
+                        '<i class="bi bi-x-circle"></i> 清空所有资质' +
                     '</button>' +
                 '</div>' +
             '</div>';
         }
 
+        // 渲染标准资质
+        function renderStandardQualifications() {
+            const standardQualificationTypes = [
+                // 基本证件资质
+                { key: 'business_license', name: '营业执照', icon: 'bi-building', category: 'basic', required: true },
+                { key: 'legal_id_front', name: '法人身份证（正面）', icon: 'bi-person-badge', category: 'basic', required: true },
+                { key: 'legal_id_back', name: '法人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
+                { key: 'auth_id_front', name: '授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
+                { key: 'auth_id_back', name: '授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
+
+                // ISO体系认证
+                { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
+                { key: 'iso14001', name: '环境管理体系认证（ISO14001）', icon: 'bi-tree', category: 'iso' },
+                { key: 'iso45001', name: '职业健康安全管理体系认证（ISO45001）', icon: 'bi-shield-check', category: 'iso' },
+                { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', icon: 'bi-gear', category: 'iso' },
+                { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
+
+                // 税务和财务资质
+                { key: 'taxpayer_certificate', name: '纳税人资格证明', icon: 'bi-receipt', category: 'financial' },
+                { key: 'audit_report', name: '财务审计报告', icon: 'bi-file-earmark-check', category: 'financial' },
+                { key: 'financial_audit', name: '近三年财务审计报告', icon: 'bi-graph-up', category: 'financial' },
+                { key: 'bank_account', name: '银行开户许可证', icon: 'bi-bank', category: 'financial' },
+
+                // 信用资质
+                { key: 'credit_dishonest', name: '信用中国-失信被执行人查询', icon: 'bi-shield-x', category: 'credit' },
+                { key: 'credit_corruption', name: '信用中国-重大税收违法案件查询', icon: 'bi-exclamation-triangle', category: 'credit' },
+                { key: 'credit_tax', name: '信用中国-政府采购严重违法失信查询', icon: 'bi-flag', category: 'credit' },
+                { key: 'credit_procurement', name: '政府采购信用查询结果', icon: 'bi-check-circle', category: 'credit' },
+
+                // 社保和员工
+                { key: 'social_security', name: '社会保险参保证明', icon: 'bi-people', category: 'employee' },
+                { key: 'employee_social_security', name: '员工社保证明', icon: 'bi-file-medical', category: 'employee' },
+
+                // 知识产权和行业资质
+                { key: 'software_copyright', name: '软件著作权登记证书', icon: 'bi-code-square', category: 'industry' },
+                { key: 'patent_certificate', name: '专利证书', icon: 'bi-lightbulb', category: 'industry' },
+                { key: 'high_tech', name: '高新技术企业证书', icon: 'bi-rocket', category: 'industry' },
+                { key: 'software_enterprise', name: '软件企业认定证书', icon: 'bi-cpu', category: 'industry' },
+                { key: 'cmmi', name: 'CMMI成熟度等级证书', icon: 'bi-diagram-3', category: 'industry' }
+            ];
+
+            const categories = {
+                'basic': { name: '基本证件资质', color: 'primary' },
+                'iso': { name: 'ISO体系认证', color: 'success' },
+                'financial': { name: '财务税务资质', color: 'warning' },
+                'credit': { name: '信用资质证明', color: 'info' },
+                'employee': { name: '员工社保资质', color: 'secondary' },
+                'industry': { name: '行业专业资质', color: 'danger' }
+            };
+
+            let html = '';
+
+            Object.keys(categories).forEach(categoryKey => {
+                const category = categories[categoryKey];
+                const categoryQuals = standardQualificationTypes.filter(qual => qual.category === categoryKey);
+
+                if (categoryQuals.length > 0) {
+                    html += '<div class="mb-4">' +
+                        '<h6 class="text-' + category.color + ' mb-3 border-bottom pb-2">' +
+                            '<i class="bi bi-folder"></i> ' + category.name +
+                        '</h6>' +
+                        '<div class="row g-3">';
+
+                    categoryQuals.forEach(qual => {
+                        html += '<div class="col-lg-6">' +
+                            renderQualificationItem(qual.name, qual.key, qual.icon, qual.required) +
+                        '</div>';
+                    });
+
+                    html += '</div></div>';
+                }
+            });
+
+            return html;
+        }
+
         // 渲染资质项
-        function renderQualificationItem(name, id, icon) {
-            return '<div class="card mb-3">' +
+        function renderQualificationItem(name, id, icon, required) {
+            const borderClass = required ? 'border-warning' : '';
+            const requiredBadge = required ? '<span class="badge bg-warning text-dark ms-2">必需</span>' : '';
+
+            return '<div class="card mb-3 ' + borderClass + '">' +
                 '<div class="card-body">' +
                     '<div class="d-flex justify-content-between align-items-center">' +
-                        '<div>' +
-                            '<i class="bi ' + icon + ' me-2"></i>' +
+                        '<div class="flex-grow-1">' +
+                            '<i class="bi ' + icon + ' me-2 text-primary"></i>' +
                             '<span>' + name + '</span>' +
+                            requiredBadge +
                         '</div>' +
-                        '<div>' +
-                            '<input type="file" class="d-none" id="qual-' + id + '" accept=".pdf,.jpg,.png">' +
-                            '<button class="btn btn-sm btn-outline-primary" onclick="document.getElementById(\'qual-' + id + '\').click()">' +
+                        '<div class="btn-group">' +
+                            '<input type="file" class="d-none" id="profile-qual-' + id + '" accept=".pdf,.jpg,.png,.jpeg">' +
+                            '<button class="btn btn-sm btn-outline-primary" onclick="document.getElementById(\'profile-qual-' + id + '\').click()" title="上传文件">' +
                                 '<i class="bi bi-upload"></i>' +
                             '</button>' +
                         '</div>' +
+                    '</div>' +
+                    '<div class="mt-2 d-none" id="profile-status-' + id + '">' +
+                        '<small class="text-muted">未上传文件</small>' +
                     '</div>' +
                 '</div>' +
             '</div>';
@@ -1451,7 +1526,7 @@
             };
 
             try {
-                const response = await axios.put('/api/companies/' + currentCompanyId, data);
+                const response = await axios.put('/api/knowledge_base/companies/' + currentCompanyId, data);
                 if (response.data.success) {
                     showAlert('基础信息保存成功', 'success');
                 }
@@ -1468,7 +1543,7 @@
             };
 
             try {
-                const response = await axios.put('/api/companies/' + currentCompanyId, data);
+                const response = await axios.put('/api/knowledge_base/companies/' + currentCompanyId, data);
                 if (response.data.success) {
                     showAlert('财务信息保存成功', 'success');
                 }
@@ -1479,17 +1554,7 @@
 
         // 渲染公司详情
         function renderCompanyDetail(company) {
-            const html = '<!-- 操作按钮栏 -->' +
-                '<div class="mb-3">' +
-                    '<div class="btn-group w-100">' +
-                        '<button class="btn btn-outline-primary" onclick="showSearchModal()">' +
-                            '<i class="bi bi-search me-2"></i>全局搜索' +
-                        '</button>' +
-                        '<button class="btn btn-outline-success" onclick="refreshKnowledgeBase()">' +
-                            '<i class="bi bi-arrow-clockwise me-2"></i>刷新数据' +
-                        '</button>' +
-                    '</div>' +
-                '</div>' +
+            const html =
 
                 '<div class="card mb-3">' +
                     '<div class="card-header bg-primary text-white">' +
@@ -1592,17 +1657,7 @@
 
         // 渲染产品详情
         function renderProductDetail(product) {
-            let html = '<!-- 操作按钮栏 -->' +
-                '<div class="mb-3">' +
-                    '<div class="btn-group w-100">' +
-                        '<button class="btn btn-outline-primary" onclick="showSearchModal()">' +
-                            '<i class="bi bi-search me-2"></i>全局搜索' +
-                        '</button>' +
-                        '<button class="btn btn-outline-success" onclick="refreshKnowledgeBase()">' +
-                            '<i class="bi bi-arrow-clockwise me-2"></i>刷新数据' +
-                        '</button>' +
-                    '</div>' +
-                '</div>' +
+            let html =
 
                 '<div class="card mb-3">' +
                     '<div class="card-header bg-success text-white">' +
@@ -2625,152 +2680,6 @@
         }
     </script>
 
-    <style>
-        /* 固定底部搜索栏样式 */
-        .fixed-search-bar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 800px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
 
-        .search-input-group {
-            position: relative;
-            margin-bottom: 8px;
-        }
-
-        .search-input-group input {
-            padding: 12px 50px 12px 15px;
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-
-        .search-input-group input:focus {
-            border-color: #4a89dc;
-            box-shadow: 0 0 0 0.2rem rgba(74, 137, 220, 0.25);
-        }
-
-        .search-btn {
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            border: none;
-            background: #4a89dc;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .search-btn:hover {
-            background: #357abd;
-        }
-
-        .search-type-label {
-            font-size: 12px;
-            color: #6c757d;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-    </style>
-
-    <!-- 固定底部搜索栏 -->
-    <div class="fixed-search-bar">
-        <div class="row g-2">
-            <div class="col-md-6">
-                <div class="search-type-label">
-                    <i class="bi bi-brain me-1"></i>语义搜索
-                </div>
-                <div class="search-input-group">
-                    <input type="text" class="form-control" id="semanticSearchInput"
-                           placeholder="输入问题，如：5G技术的核心架构是什么？">
-                    <button class="search-btn" onclick="quickSemanticSearch()">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="search-type-label">
-                    <i class="bi bi-search me-1"></i>普通搜索
-                </div>
-                <div class="search-input-group">
-                    <input type="text" class="form-control" id="keywordSearchInput"
-                           placeholder="输入关键词，如：5G、核心网、技术架构">
-                    <button class="search-btn" onclick="quickKeywordSearch()">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    </style>
-
-    <script>
-        // 快速语义搜索
-        function quickSemanticSearch() {
-            const query = document.getElementById('semanticSearchInput').value.trim();
-            if (!query) {
-                showAlert('请输入搜索内容', 'warning');
-                return;
-            }
-
-            // 设置搜索模式为语义搜索并填入查询内容
-            document.getElementById('searchQuery').value = query;
-            document.getElementById('semanticSearch').checked = true;
-
-            // 显示搜索模态框并执行搜索
-            showSearchModal();
-            setTimeout(() => {
-                performSearch();
-            }, 500);
-        }
-
-        // 快速关键词搜索
-        function quickKeywordSearch() {
-            const query = document.getElementById('keywordSearchInput').value.trim();
-            if (!query) {
-                showAlert('请输入搜索内容', 'warning');
-                return;
-            }
-
-            // 设置搜索模式为关键词搜索并填入查询内容
-            document.getElementById('searchQuery').value = query;
-            document.getElementById('keywordSearch').checked = true;
-
-            // 显示搜索模态框并执行搜索
-            showSearchModal();
-            setTimeout(() => {
-                performSearch();
-            }, 500);
-        }
-
-        // 回车键支持
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('semanticSearchInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    quickSemanticSearch();
-                }
-            });
-
-            document.getElementById('keywordSearchInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    quickKeywordSearch();
-                }
-            });
-        });
-    </script>
 </body>
 </html>
