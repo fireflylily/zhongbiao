@@ -422,12 +422,6 @@
 
             <!-- 右侧内容区 -->
             <div class="col-md-9 p-4 bg-light" style="border-left: 1px solid #dee2e6;">
-                <!-- 面包屑导航 -->
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb" id="breadcrumb">
-                        <li class="breadcrumb-item active">知识库管理</li>
-                    </ol>
-                </nav>
 
                 <!-- 主内容区 -->
                 <div id="mainContent">
@@ -936,11 +930,6 @@
             document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
             document.querySelector('[onclick*="toggleCompanyNode(' + companyId + '"]').classList.add('active');
 
-            // 更新面包屑
-            updateBreadcrumb([
-                { name: '知识库管理', link: '#' },
-                { name: companyName, active: true }
-            ]);
 
             // 加载公司详情
             try {
@@ -1033,11 +1022,6 @@
             document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
             document.querySelector('[onclick*="selectCompanyProfile(' + companyId + '"]').classList.add('active');
 
-            // 更新面包屑
-            updateBreadcrumb([
-                { name: '知识库管理', link: '#' },
-                { name: '企业信息库', active: true }
-            ]);
 
             // 加载企业信息库
             try {
@@ -1112,9 +1096,6 @@
                     '<!-- 基础信息Tab -->' +
                     '<div class="tab-pane fade show active" id="tab-basic">' +
                         '<div class="card">' +
-                            '<div class="card-header bg-success bg-opacity-10">' +
-                                '<h5 class="mb-0"><i class="bi bi-building"></i> 企业基本信息</h5>' +
-                            '</div>' +
                             '<div class="card-body">' +
                                 (companyData ? renderBasicInfoForm(companyData) : '<p class="text-muted">加载中...</p>') +
                             '</div>' +
@@ -1124,9 +1105,6 @@
                     '<!-- 资质信息Tab -->' +
                     '<div class="tab-pane fade" id="tab-qualification">' +
                         '<div class="card">' +
-                            '<div class="card-header bg-primary bg-opacity-10">' +
-                                '<h5 class="mb-0"><i class="bi bi-award"></i> 资质证书管理</h5>' +
-                            '</div>' +
                             '<div class="card-body">' +
                                 renderQualificationSection() +
                             '</div>' +
@@ -1136,9 +1114,6 @@
                     '<!-- 人员信息Tab -->' +
                     '<div class="tab-pane fade" id="tab-personnel">' +
                         '<div class="card">' +
-                            '<div class="card-header bg-warning bg-opacity-10">' +
-                                '<h5 class="mb-0"><i class="bi bi-people"></i> 人员档案管理</h5>' +
-                            '</div>' +
                             '<div class="card-body">' +
                                 renderPersonnelSection() +
                             '</div>' +
@@ -1148,9 +1123,6 @@
                     '<!-- 财务信息Tab -->' +
                     '<div class="tab-pane fade" id="tab-financial">' +
                         '<div class="card">' +
-                            '<div class="card-header bg-danger bg-opacity-10">' +
-                                '<h5 class="mb-0"><i class="bi bi-bank"></i> 财务文档管理</h5>' +
-                            '</div>' +
                             '<div class="card-body">' +
                                 renderFinancialSection() +
                             '</div>' +
@@ -1248,9 +1220,6 @@
         function renderQualificationSection() {
             return '<div class="qualification-section">' +
                 '<div class="mb-4">' +
-                    '<h6 class="text-primary mb-3">' +
-                        '<i class="bi bi-collection"></i> 标准资质文件' +
-                    '</h6>' +
                     '<div id="profileStandardQualifications">' +
                         renderStandardQualifications() +
                     '</div>' +
@@ -1635,13 +1604,6 @@
         async function selectProduct(productId, productName) {
             currentProductId = productId;
 
-            // 更新面包屑
-            const companyName = (document.querySelector('.tree-node.active') && document.querySelector('.tree-node.active').textContent.trim()) || '未知企业';
-            updateBreadcrumb([
-                { name: '知识库管理', link: '#' },
-                { name: companyName, link: '#' },
-                { name: productName, active: true }
-            ]);
 
             // 加载产品详情和文档列表
             try {
@@ -1793,18 +1755,6 @@
             `;
         }
 
-        // 更新面包屑
-        function updateBreadcrumb(items) {
-            const html = items.map(item => {
-                if (item.active) {
-                    return '<li class="breadcrumb-item active">' + item.name + '</li>';
-                } else {
-                    return '<li class="breadcrumb-item"><a href="' + (item.link || '#') + '">' + item.name + '</a></li>';
-                }
-            }).join('');
-
-            document.getElementById('breadcrumb').innerHTML = html;
-        }
 
         // 显示添加公司模态框
         function showAddCompanyModal() {
