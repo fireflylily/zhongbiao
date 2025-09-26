@@ -358,15 +358,7 @@
             <!-- 左侧树形导航 -->
             <div class="col-md-3 p-0">
                 <div class="card shadow-sm border-0 h-100" style="border-radius: 0;">
-                    <div class="card-header bg-white border-0 p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <h6 class="mb-0 fw-bold">企业目录</h6>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card-body p-0" style="max-height: calc(100vh - 200px); overflow-y: auto;">
+                    <div class="card-body p-0" style="max-height: calc(100vh - 70px); overflow-y: auto;">
                         <div class="p-3">
                             <div id="companyTree">
                                 <!-- 企业树形结构会在这里动态渲染 -->
@@ -381,18 +373,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- 导航底部操作区域 - 已移至右侧内容区 -->
-                    <!-- <div class="card-footer bg-light border-0 p-3">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary btn-sm" onclick="showSearchModal()">
-                                <i class="bi bi-search me-2"></i>全局搜索
-                            </button>
-                            <button class="btn btn-outline-success btn-sm" onclick="refreshKnowledgeBase()">
-                                <i class="bi bi-arrow-clockwise me-2"></i>刷新数据
-                            </button>
-                        </div>
-                    </div> -->
                 </div>
             </div>
 
@@ -838,14 +818,6 @@
                             '<span class="fw-medium">' + company.company_name + '</span>' +
                             '<span class="badge bg-secondary ms-2">' + (company.product_count || 0) + '</span>' +
                         '</div>' +
-                        '<div class="btn-group">' +
-                            '<button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); showCompanyProfileModal(' + company.company_id + ')" title="企业信息库">' +
-                                '<i class="bi bi-person-workspace"></i>' +
-                            '</button>' +
-                            '<button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); showAddProductModal(' + company.company_id + ')" title="添加产品">' +
-                                '<i class="bi bi-plus"></i>' +
-                            '</button>' +
-                        '</div>' +
                     '</div>' +
 
                     '<!-- 企业信息库节点 -->' +
@@ -938,12 +910,6 @@
                         '<div class="d-flex align-items-center">' +
                             '<i class="bi bi-box-seam text-success me-2"></i>' +
                             '<span>' + product.product_name + '</span>' +
-                            '<span class="badge bg-info ms-2">' + (product.document_count || 0) + '</span>' +
-                        '</div>' +
-                        '<div class="d-flex">' +
-                            '<span class="badge bg-light text-secondary me-1">🔧</span>' +
-                            '<span class="badge bg-light text-secondary me-1">📋</span>' +
-                            '<span class="badge bg-light text-secondary">🛠️</span>' +
                         '</div>' +
                     '</div>' +
 
@@ -986,15 +952,25 @@
             }
         }
 
+        // 统一的选中状态管理函数
+        function updateActiveState(targetSelector) {
+            document.querySelectorAll('.list-group-item-action').forEach(node =>
+                node.classList.remove('active')
+            );
+            const target = document.querySelector(targetSelector);
+            if (target) target.classList.add('active');
+        }
+
         // 选择企业信息库
         async function selectCompanyProfile(companyId) {
             currentCompanyId = companyId;
             currentProductId = null;
 
             // 更新活动状态
-            document.querySelectorAll('.list-group-item-action').forEach(node => node.classList.remove('active'));
-            document.querySelector('[onclick*="selectCompanyProfile(' + companyId + '"]').classList.add('active');
+            updateActiveState('[onclick*="selectCompanyProfile(' + companyId + '"]');
 
+            // 加载企业资质文件信息
+            await loadExistingQualifications(companyId);
 
             // 加载企业信息库
             try {
@@ -1357,7 +1333,7 @@
                             requiredBadge +
                         '</div>' +
                         '<div class="btn-group">' +
-                            '<input type="file" class="d-none" id="profile-qual-' + id + '" accept=".pdf,.jpg,.png,.jpeg">' +
+                            '<input type="file" class="d-none" id="profile-qual-' + id + '" accept=".pdf,.jpg,.png,.jpeg" onchange="uploadQualificationFile(\'' + id + '\', this)">' +
                             '<button class="btn btn-sm btn-outline-primary" onclick="document.getElementById(\'profile-qual-' + id + '\').click()" title="上传文件">' +
                                 '<i class="bi bi-upload"></i>' +
                             '</button>' +
@@ -1631,6 +1607,10 @@
         // 选择产品
         async function selectProduct(productId, productName) {
             currentProductId = productId;
+            currentCompanyId = null;
+
+            // 更新活动状态
+            updateActiveState('[onclick*="selectProduct(' + productId + ',"]');
 
 
             // 加载产品详情和文档列表
@@ -2180,7 +2160,36 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadCompanies();
             loadStatistics();
+            handleUrlParameters();
         });
+
+        // 处理URL参数
+        function handleUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            const companyId = urlParams.get('company');
+
+            if (action === 'company_management') {
+                // 如果指定了公司ID，直接打开该公司的企业信息库
+                if (companyId) {
+                    setTimeout(() => {
+                        selectCompanyProfile(companyId);
+                    }, 1000);
+                } else {
+                    // 没有指定公司，展开第一个公司的企业信息库
+                    setTimeout(() => {
+                        const firstCompany = document.querySelector('[id^="toggle-"]');
+                        if (firstCompany) {
+                            const companyId = firstCompany.id.replace('toggle-', '');
+                            toggleCompanyNode(companyId, '');
+                            setTimeout(() => {
+                                selectCompanyProfile(companyId);
+                            }, 500);
+                        }
+                    }, 1000);
+                }
+            }
+        }
 
         // 加载统计数据
         async function loadStatistics() {
@@ -2655,6 +2664,201 @@
         function exportSearchResults() {
             // 这里可以实现搜索结果导出功能
             showAlert('搜索结果导出功能开发中...', 'info');
+        }
+
+        // 资质文件上传功能
+        async function uploadQualificationFile(qualKey, inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const companyId = getCurrentCompanyId();
+            if (!companyId) {
+                showAlert('请先选择企业', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append(`qualifications[${qualKey}]`, file);
+
+            try {
+                showAlert('正在上传资质文件...', 'info');
+
+                const response = await axios.post(`/api/companies/${companyId}/qualifications/upload`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data.success) {
+                    showAlert(`资质文件 "${file.name}" 上传成功`, 'success');
+                    // 刷新资质文件显示
+                    refreshQualificationDisplay(qualKey, response.data.uploaded_files[qualKey]);
+                } else {
+                    showAlert('资质文件上传失败: ' + response.data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('资质文件上传失败:', error);
+                showAlert('资质文件上传失败', 'danger');
+            }
+        }
+
+        // 刷新资质文件显示
+        function refreshQualificationDisplay(qualKey, fileInfo) {
+            const statusElement = document.getElementById(`profile-status-${qualKey}`);
+            if (statusElement && fileInfo) {
+                statusElement.classList.remove('d-none');
+                statusElement.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-success">✓ ${fileInfo.filename}</small>
+                            <br><small class="text-muted">${formatFileSize(fileInfo.size)} | ${formatDateTime(fileInfo.upload_time)}</small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary btn-sm" onclick="downloadQualificationFile('${getCurrentCompanyId()}', '${qualKey}')" title="下载">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteQualificationFile('${qualKey}')" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 下载资质文件
+        async function downloadQualificationFile(companyId, qualKey) {
+            try {
+                window.open(`/api/companies/${companyId}/qualifications/${qualKey}/download`);
+            } catch (error) {
+                console.error('下载资质文件失败:', error);
+                showAlert('下载资质文件失败', 'danger');
+            }
+        }
+
+        // 删除资质文件
+        async function deleteQualificationFile(qualKey) {
+            if (!confirm('确定要删除这个资质文件吗？')) return;
+
+            const companyId = getCurrentCompanyId();
+            try {
+                const response = await axios.delete(`/api/companies/${companyId}/qualifications/${qualKey}`);
+
+                if (response.data.success) {
+                    showAlert('资质文件删除成功', 'success');
+                    // 清空显示
+                    const statusElement = document.getElementById(`profile-status-${qualKey}`);
+                    if (statusElement) {
+                        statusElement.classList.add('d-none');
+                        statusElement.innerHTML = '<small class="text-muted">未上传文件</small>';
+                    }
+                } else {
+                    showAlert('删除失败: ' + response.data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('删除资质文件失败:', error);
+                showAlert('删除资质文件失败', 'danger');
+            }
+        }
+
+        // 获取当前选择的企业ID
+        function getCurrentCompanyId() {
+            // 从页面或全局变量中获取当前企业ID
+            const companyElements = document.querySelectorAll('.company-item');
+            for (let element of companyElements) {
+                if (element.classList.contains('active')) {
+                    return element.getAttribute('data-company-id');
+                }
+            }
+            return null;
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 格式化时间
+        function formatDateTime(timestamp) {
+            return new Date(timestamp * 1000).toLocaleString('zh-CN');
+        }
+
+        // 加载现有资质文件信息
+        async function loadExistingQualifications(companyId) {
+            try {
+                const response = await axios.get(`/api/companies/${companyId}/qualifications`);
+
+                if (response.data.success) {
+                    const qualifications = response.data.qualifications;
+
+                    // 更新每个资质文件的显示状态
+                    Object.keys(qualifications).forEach(qualKey => {
+                        const fileInfo = qualifications[qualKey];
+                        refreshQualificationDisplay(qualKey, fileInfo);
+                    });
+                }
+            } catch (error) {
+                console.error('加载资质文件信息失败:', error);
+            }
+        }
+
+        // 人员档案上传功能（之前缺失的函数）
+        async function uploadPersonnelDocs() {
+            const companyId = getCurrentCompanyId();
+            if (!companyId) {
+                showAlert('请先选择企业', 'warning');
+                return;
+            }
+
+            // 收集所有人员相关的文件输入
+            const personnelInputs = [
+                'pers-legal_id',
+                'pers-auth_id',
+                'pers-social_security',
+                'pers-team_resume'
+            ];
+
+            const formData = new FormData();
+            let hasFiles = false;
+
+            personnelInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input && input.files[0]) {
+                    const qualKey = inputId.replace('pers-', '');
+                    formData.append(`qualifications[${qualKey}]`, input.files[0]);
+                    hasFiles = true;
+                }
+            });
+
+            if (!hasFiles) {
+                showAlert('请选择要上传的人员档案文件', 'warning');
+                return;
+            }
+
+            try {
+                showAlert('正在上传人员档案...', 'info');
+
+                const response = await axios.post(`/api/companies/${companyId}/qualifications/upload`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data.success) {
+                    showAlert(`成功上传 ${Object.keys(response.data.uploaded_files).length} 个人员档案文件`, 'success');
+                    // 刷新页面或更新显示
+                    location.reload();
+                } else {
+                    showAlert('人员档案上传失败: ' + response.data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('人员档案上传失败:', error);
+                showAlert('人员档案上传失败', 'danger');
+            }
         }
     </script>
 

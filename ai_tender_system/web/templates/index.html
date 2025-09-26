@@ -512,7 +512,7 @@
                 <a href="#" class="list-group-item list-group-item-action" id="tech-proposal-nav" data-bs-toggle="pill" data-bs-target="#tech-proposal">
                     <i class="bi bi-file-earmark-code me-2"></i>技术方案生成
                 </a>
-                <a href="#" class="list-group-item list-group-item-action" id="company-management-nav" data-bs-toggle="pill" data-bs-target="#company-management">
+                <a href="/knowledge_base?action=company_management" class="list-group-item list-group-item-action">
                     <i class="bi bi-building me-2"></i>公司管理
                 </a>
                 <a href="/knowledge_base" class="list-group-item list-group-item-action">
@@ -625,7 +625,7 @@
                                 <i class="bi bi-building text-warning display-1"></i>
                                 <h5 class="mt-3">公司管理</h5>
                                 <p class="text-muted">管理公司信息和资质文件</p>
-                                <button class="btn btn-warning" onclick="switchToTab('company-management')">
+                                <button class="btn btn-warning" onclick="window.location.href='/knowledge_base?action=company_management';">
                                     管理公司
                                 </button>
                             </div>
@@ -877,7 +877,7 @@
                                         <select class="form-select" id="businessCompanySelect" style="flex: 1;">
                                             <option value="">请选择公司...</option>
                                         </select>
-                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="document.getElementById('company-management-tab').click();">
+                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="window.location.href='/knowledge_base?action=company_management';">
                                             <i class="bi bi-building"></i> 管理公司
                                         </button>
                                     </div>
@@ -6080,15 +6080,15 @@
                                 </div>
                                 <p>资质文件需要关联到特定的公司，请先完成以下步骤：</p>
                                 <ol class="mb-3">
-                                    <li>前往"公司管理"页面</li>
+                                    <li>前往"知识库管理"页面的企业信息库</li>
                                     <li>选择已有公司或新建公司</li>
                                     <li>填写并保存公司基本信息</li>
-                                    <li>然后返回此页面上传资质文件</li>
+                                    <li>在知识库中直接管理资质文件</li>
                                 </ol>
                                 <div class="d-flex justify-content-end gap-2">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                                    <button type="button" class="btn btn-primary" onclick="navigateToCompanyManagement()">
-                                        <i class="bi bi-arrow-right"></i> 前往公司管理
+                                    <button type="button" class="btn btn-primary" onclick="window.location.href='/knowledge_base?action=company_management';">
+                                        <i class="bi bi-arrow-right"></i> 前往知识库管理
                                     </button>
                                 </div>
                             </div>
