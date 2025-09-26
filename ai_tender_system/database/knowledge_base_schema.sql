@@ -9,6 +9,27 @@ CREATE TABLE IF NOT EXISTS companies (
     company_code VARCHAR(50) UNIQUE,
     industry_type VARCHAR(100),
     description TEXT,
+
+    -- 基本信息
+    establish_date DATE, -- 成立日期
+    legal_representative VARCHAR(100), -- 法定代表人
+    legal_representative_position VARCHAR(100), -- 法定代表人职务
+    social_credit_code VARCHAR(50), -- 统一社会信用代码
+    registered_capital VARCHAR(100), -- 注册资本
+    company_type VARCHAR(100), -- 公司类型
+    registered_address TEXT, -- 注册地址
+    business_scope TEXT, -- 经营范围
+
+    -- 联系信息
+    fixed_phone VARCHAR(50), -- 固定电话
+    fax VARCHAR(50), -- 传真
+    postal_code VARCHAR(20), -- 邮编
+    email VARCHAR(255), -- 电子邮箱
+    office_address TEXT, -- 办公地址
+
+    -- 规模信息
+    employee_count INTEGER, -- 员工人数规模
+
     security_level INTEGER DEFAULT 1, -- 1:普通 2:保密 3:机密
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

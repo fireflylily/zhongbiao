@@ -94,6 +94,74 @@ class KnowledgeBaseManager:
                 'error': str(e)
             }
 
+    def update_company(self, company_id: int, data: Dict) -> Dict:
+        """更新公司信息"""
+        try:
+            # 检查公司是否存在
+            existing_company = self.db.get_company_by_id(company_id)
+            if not existing_company:
+                return {
+                    'success': False,
+                    'error': f'公司 ID {company_id} 不存在'
+                }
+
+            # 映射前端字段到数据库字段
+            update_data = {}
+            field_mapping = {
+                'companyName': 'company_name',
+                'establishDate': 'establish_date',
+                'legalRepresentative': 'legal_representative',
+                'legalRepresentativePosition': 'legal_representative_position',
+                'socialCreditCode': 'social_credit_code',
+                'registeredCapital': 'registered_capital',
+                'companyType': 'company_type',
+                'registeredAddress': 'registered_address',
+                'businessScope': 'business_scope',
+                'companyDescription': 'description',
+                'fixedPhone': 'fixed_phone',
+                'fax': 'fax',
+                'postalCode': 'postal_code',
+                'email': 'email',
+                'officeAddress': 'office_address',
+                'employeeCount': 'employee_count'
+            }
+
+            # 转换字段名并过滤空值
+            for frontend_key, db_key in field_mapping.items():
+                if frontend_key in data and data[frontend_key] is not None and data[frontend_key] != '':
+                    update_data[db_key] = data[frontend_key]
+
+            if not update_data:
+                return {
+                    'success': False,
+                    'error': '没有可更新的字段'
+                }
+
+            # 更新时间戳
+            update_data['updated_at'] = datetime.now()
+
+            # 调用数据库更新方法
+            result = self.db.update_company(company_id, update_data)
+
+            if result:
+                logger.info(f"更新公司信息成功: company_id={company_id}")
+                return {
+                    'success': True,
+                    'message': '公司信息更新成功'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': '更新公司信息失败'
+                }
+
+        except Exception as e:
+            logger.error(f"更新公司信息失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
     def get_companies(self) -> List[Dict]:
         """获取公司列表"""
         try:

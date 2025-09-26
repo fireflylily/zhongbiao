@@ -131,6 +131,34 @@ class KnowledgeBaseDB:
         query = "SELECT * FROM companies WHERE company_id = ?"
         return self.execute_query(query, (company_id,), fetch_one=True)
 
+    def update_company(self, company_id: int, update_data: Dict) -> bool:
+        """更新公司信息"""
+        if not update_data:
+            return False
+
+        # 构建更新语句
+        set_clauses = []
+        values = []
+
+        for field, value in update_data.items():
+            set_clauses.append(f"{field} = ?")
+            values.append(value)
+
+        values.append(company_id)  # WHERE条件的参数
+
+        query = f"""
+        UPDATE companies
+        SET {', '.join(set_clauses)}
+        WHERE company_id = ?
+        """
+
+        try:
+            self.execute_query(query, tuple(values))
+            return True
+        except Exception as e:
+            logger.error(f"更新公司信息失败: {e}")
+            return False
+
     # =========================
     # 企业信息库相关方法
     # =========================

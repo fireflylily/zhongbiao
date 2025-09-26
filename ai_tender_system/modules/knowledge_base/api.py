@@ -112,6 +112,34 @@ class KnowledgeBaseAPI:
                     'error': str(e)
                 }), 500
 
+        @self.blueprint.route('/companies/<int:company_id>', methods=['PUT'])
+        def update_company(company_id):
+            """更新公司信息"""
+            try:
+                data = request.get_json()
+
+                # 验证必需字段
+                if not data:
+                    return jsonify({
+                        'success': False,
+                        'error': '请求数据不能为空'
+                    }), 400
+
+                # 调用管理器更新公司信息
+                result = self.manager.update_company(company_id, data)
+
+                if result['success']:
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 400
+
+            except Exception as e:
+                logger.error(f"更新公司信息失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
         # =========================
         # 产品管理API
         # =========================

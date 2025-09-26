@@ -381,7 +381,7 @@
                                 </div>
                                 <div>
                                     <h6 class="mb-0 fw-bold">企业目录</h6>
-                                    <small class="text-muted">Knowledge Base</small>
+                                    <small class="text-muted">投标知识库</small>
                                 </div>
                             </div>
                             <button class="btn btn-sm btn-primary rounded-pill" onclick="showAddCompanyModal()" title="添加企业">
@@ -921,7 +921,7 @@
             currentProductId = null;
 
             // 更新活动状态
-            document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
+            document.querySelectorAll('.list-group-item-action').forEach(node => node.classList.remove('active'));
             document.querySelector('[onclick*="toggleCompanyNode(' + companyId + '"]').classList.add('active');
 
 
@@ -1013,7 +1013,7 @@
             currentProductId = null;
 
             // 更新活动状态
-            document.querySelectorAll('.tree-node').forEach(node => node.classList.remove('active'));
+            document.querySelectorAll('.list-group-item-action').forEach(node => node.classList.remove('active'));
             document.querySelector('[onclick*="selectCompanyProfile(' + companyId + '"]').classList.add('active');
 
 
@@ -1195,6 +1195,39 @@
                 '<div class="mb-3">' +
                     '<label class="form-label">经营范围</label>' +
                     '<textarea class="form-control" id="prof-businessScope" rows="3">' + (data.businessScope || '') + '</textarea>' +
+                '</div>' +
+
+                // 联系信息分组
+                '<h6 class="text-primary mb-3 mt-4"><i class="bi bi-telephone"></i> 联系信息</h6>' +
+                '<div class="row mb-3">' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label">固定电话</label>' +
+                        '<input type="text" class="form-control" id="prof-fixedPhone" value="' + (data.fixedPhone || data.fixed_phone || '') + '">' +
+                    '</div>' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label">传真</label>' +
+                        '<input type="text" class="form-control" id="prof-fax" value="' + (data.fax || '') + '">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="row mb-3">' +
+                    '<div class="col-md-4">' +
+                        '<label class="form-label">邮编</label>' +
+                        '<input type="text" class="form-control" id="prof-postalCode" value="' + (data.postalCode || data.postal_code || '') + '">' +
+                    '</div>' +
+                    '<div class="col-md-8">' +
+                        '<label class="form-label">电子邮箱</label>' +
+                        '<input type="email" class="form-control" id="prof-email" value="' + (data.email || '') + '">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="mb-3">' +
+                    '<label class="form-label">办公地址</label>' +
+                    '<textarea class="form-control" id="prof-officeAddress" rows="2">' + (data.officeAddress || data.office_address || '') + '</textarea>' +
+                '</div>' +
+                '<div class="row mb-3">' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label">员工人数规模</label>' +
+                        '<input type="number" class="form-control" id="prof-employeeCount" value="' + (data.employeeCount || data.employee_count || '') + '">' +
+                    '</div>' +
                 '</div>' +
 
                 '<div class="mb-3">' +
@@ -1485,16 +1518,38 @@
                 companyType: document.getElementById('prof-companyType').value,
                 registeredAddress: document.getElementById('prof-registeredAddress').value,
                 businessScope: document.getElementById('prof-businessScope').value,
+                // 联系信息字段
+                fixedPhone: document.getElementById('prof-fixedPhone').value,
+                fax: document.getElementById('prof-fax').value,
+                postalCode: document.getElementById('prof-postalCode').value,
+                email: document.getElementById('prof-email').value,
+                officeAddress: document.getElementById('prof-officeAddress').value,
+                employeeCount: document.getElementById('prof-employeeCount').value,
                 companyDescription: document.getElementById('prof-companyDescription').value
             };
 
             try {
+                console.log('发送数据:', data);
+                console.log('API地址:', '/api/knowledge_base/companies/' + currentCompanyId);
+
                 const response = await axios.put('/api/knowledge_base/companies/' + currentCompanyId, data);
                 if (response.data.success) {
                     showAlert('基础信息保存成功', 'success');
+                } else {
+                    console.error('保存失败 - 响应:', response.data);
+                    showAlert('保存失败：' + (response.data.error || '未知错误'), 'danger');
                 }
             } catch (error) {
-                showAlert('保存失败：' + error.message, 'danger');
+                console.error('保存异常:', error);
+                console.error('错误详情:', error.response);
+
+                let errorMsg = '保存失败：';
+                if (error.response) {
+                    errorMsg += `HTTP ${error.response.status} - ${error.response.data?.error || error.message}`;
+                } else {
+                    errorMsg += error.message;
+                }
+                showAlert(errorMsg, 'danger');
             }
         }
 
