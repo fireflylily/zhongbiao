@@ -2679,7 +2679,7 @@
             const file = inputElement.files[0];
             if (!file) return;
 
-            const companyId = getCurrentCompanyId();
+            const companyId = currentCompanyId;
             if (!companyId) {
                 showAlert('请先选择企业', 'warning');
                 return;
@@ -2722,7 +2722,7 @@
                             <br><small class="text-muted">${formatFileSize(fileInfo.size)} | ${formatDateTime(fileInfo.upload_time)}</small>
                         </div>
                         <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-primary btn-sm" onclick="downloadQualificationFile('${getCurrentCompanyId()}', '${qualKey}')" title="下载">
+                            <button class="btn btn-outline-primary btn-sm" onclick="downloadQualificationFile('${currentCompanyId}', '${qualKey}')" title="下载">
                                 <i class="bi bi-download"></i>
                             </button>
                             <button class="btn btn-outline-danger btn-sm" onclick="deleteQualificationFile('${qualKey}')" title="删除">
@@ -2748,7 +2748,7 @@
         async function deleteQualificationFile(qualKey) {
             if (!confirm('确定要删除这个资质文件吗？')) return;
 
-            const companyId = getCurrentCompanyId();
+            const companyId = currentCompanyId;
             try {
                 const response = await axios.delete(`/api/companies/${companyId}/qualifications/${qualKey}`);
 
@@ -2770,16 +2770,6 @@
         }
 
         // 获取当前选择的企业ID
-        function getCurrentCompanyId() {
-            // 从页面或全局变量中获取当前企业ID
-            const companyElements = document.querySelectorAll('.company-item');
-            for (let element of companyElements) {
-                if (element.classList.contains('active')) {
-                    return element.getAttribute('data-company-id');
-                }
-            }
-            return null;
-        }
 
         // 格式化文件大小
         function formatFileSize(bytes) {
@@ -2816,7 +2806,7 @@
 
         // 人员档案上传功能（之前缺失的函数）
         async function uploadPersonnelDocs() {
-            const companyId = getCurrentCompanyId();
+            const companyId = currentCompanyId;
             if (!companyId) {
                 showAlert('请先选择企业', 'warning');
                 return;
