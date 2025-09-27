@@ -30,7 +30,7 @@ const StateManager = {
             // 尝试解析JSON
             try {
                 return JSON.parse(value);
-            } catch {
+            } catch (e) {
                 return value;
             }
         } catch (e) {
