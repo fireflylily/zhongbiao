@@ -1260,11 +1260,7 @@
                 { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', icon: 'bi-gear', category: 'iso' },
                 { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
 
-                // 税务和财务资质
-                { key: 'taxpayer_certificate', name: '纳税人资格证明', icon: 'bi-receipt', category: 'financial' },
-                { key: 'audit_report', name: '财务审计报告', icon: 'bi-file-earmark-check', category: 'financial' },
-                { key: 'financial_audit', name: '近三年财务审计报告', icon: 'bi-graph-up', category: 'financial' },
-                { key: 'bank_account', name: '银行开户许可证', icon: 'bi-bank', category: 'financial' },
+                // 税务和财务资质（已移至财务信息tab）
 
                 // 信用资质
                 { key: 'credit_dishonest', name: '信用中国-失信被执行人查询', icon: 'bi-shield-x', category: 'credit' },
@@ -1272,9 +1268,7 @@
                 { key: 'credit_tax', name: '信用中国-政府采购严重违法失信查询', icon: 'bi-flag', category: 'credit' },
                 { key: 'credit_procurement', name: '政府采购信用查询结果', icon: 'bi-check-circle', category: 'credit' },
 
-                // 社保和员工
-                { key: 'social_security', name: '社会保险参保证明', icon: 'bi-people', category: 'employee' },
-                { key: 'employee_social_security', name: '员工社保证明', icon: 'bi-file-medical', category: 'employee' },
+                // 社保和员工（已移至人员信息tab）
 
                 // 知识产权和行业资质
                 { key: 'software_copyright', name: '软件著作权登记证书', icon: 'bi-code-square', category: 'industry' },
@@ -1359,10 +1353,18 @@
                             renderPersonnelItem('被授权人身份证', 'auth_id', 'bi-person-check') +
                         '</div>' +
                         '<div class="col-md-6">' +
-                            renderPersonnelItem('员工社保证明', 'social_security', 'bi-file-medical') +
+                            renderPersonnelItem('团队成员简历', 'team_resume', 'bi-file-person') +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="mb-4">' +
+                    '<h6 class="text-secondary mb-3"><i class="bi bi-shield-check"></i> 社保资质</h6>' +
+                    '<div class="row g-3">' +
+                        '<div class="col-md-6">' +
+                            renderPersonnelItem('社会保险参保证明', 'social_security', 'bi-people') +
                         '</div>' +
                         '<div class="col-md-6">' +
-                            renderPersonnelItem('团队成员简历', 'team_resume', 'bi-file-person') +
+                            renderPersonnelItem('员工社保证明', 'employee_social_security', 'bi-file-medical') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -1401,16 +1403,16 @@
                     '<h6 class="text-danger mb-3"><i class="bi bi-bank"></i> 财务文档</h6>' +
                     '<div class="row g-3">' +
                         '<div class="col-md-6">' +
-                            renderFinancialItem('审计报告', 'audit_report', 'bi-file-earmark-check') +
+                            renderFinancialItem('纳税人资格证明', 'taxpayer_certificate', 'bi-receipt') +
                         '</div>' +
                         '<div class="col-md-6">' +
-                            renderFinancialItem('财务报表', 'financial_statement', 'bi-file-earmark-spreadsheet') +
+                            renderFinancialItem('财务审计报告', 'audit_report', 'bi-file-earmark-check') +
                         '</div>' +
                         '<div class="col-md-6">' +
-                            renderFinancialItem('银行流水', 'bank_statement', 'bi-bank2') +
+                            renderFinancialItem('近三年财务审计报告', 'financial_audit', 'bi-graph-up') +
                         '</div>' +
                         '<div class="col-md-6">' +
-                            renderFinancialItem('纳税证明', 'tax_certificate', 'bi-receipt') +
+                            renderFinancialItem('银行开户许可证', 'bank_account', 'bi-bank') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
