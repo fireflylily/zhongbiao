@@ -1,73 +1,114 @@
 <!DOCTYPE html>
 <!--
-═══════════════════════════════════════════════════════════════════════════════
-                            INDEX.HTML 重构计划
-═══════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════════════
+                    前端架构统一重构计划 (index.html + knowledge_base.html)
+════════════════════════════════════════════════════════════════════════════════════════
 
-📊 当前状态：
-  - 文件大小：272.7KB (6056行)
-  - 包含内容：HTML + CSS + JavaScript 混合
-  - 主要问题：页面"死机"、性能低下、维护困难
+📊 现状分析：
+  index.html:         6103行，275KB，~621行JavaScript代码
+  knowledge_base.html: 3073行，157KB，~963行JavaScript代码
 
-🔍 问题诊断：
-  1. 定时器资源泄漏 (setInterval未正确清理，行1943/2104/2477/4801/6009)
-  2. 文件体积过大 (单一文件包含所有代码)
-  3. 内存泄漏 (事件监听器、DOM引用未清理)
-  4. 资源竞争 (多个异步操作同时进行)
+🔍 共同问题：
+  1. 巨型单文件架构 - HTML+CSS+JS混合
+  2. 定时器资源泄漏 - setInterval未正确清理
+  3. 内存泄漏风险 - 事件监听器、DOM引用未清理
+  4. 代码重复冗余 - 相同组件在多个页面重复实现
+  5. 维护困难 - 缺乏模块化和组件化
 
-🎯 重构目标：
-  - 主HTML文件减少到20-30KB
-  - 解决页面"死机"问题
-  - 提升代码可维护性
-  - 改善页面加载性能
+🎯 统一重构目标：
+  - 建立共享组件体系，60%+代码复用率
+  - 主HTML文件减少75% (< 1500行)
+  - 解决页面"死机"和性能问题
+  - 建立可持续的前端架构
 
-📁 分离计划：
+📁 共享架构设计：
 
-第一阶段 - 紧急修复 (🔥高优先级)：
+阶段一：共享基础设施 (🔥最高优先级)
+  /static/css/
+  ├── base/
+  │   ├── variables.css           # CSS变量定义 (配色、间距等)
+  │   ├── bootstrap-overrides.css # Bootstrap统一覆盖
+  │   └── animations.css          # 共同动画效果
+  ├── components/
+  │   ├── buttons.css            # 按钮组件样式
+  │   ├── cards.css              # 卡片组件样式
+  │   ├── modals.css             # 模态框样式
+  │   ├── privacy-badges.css     # 隐私标识样式
+  │   └── navigation.css         # 导航栏样式
+  ├── knowledge_base.css         # 知识库特定样式
+  └── index.css                  # 首页特定样式
+
   /static/js/
-  ├── timer-manager.js        # 定时器统一管理器 (解决死机问题)
-  ├── progress-manager.js     # 进度条管理器 (行1943/2104/2477)
-  └── index-main.css         # 主要CSS样式分离
+  ├── core/
+  │   ├── api-client.js          # 统一API调用封装
+  │   ├── notification.js        # 通知系统
+  │   ├── validation.js          # 表单验证
+  │   ├── timer-manager.js       # 定时器管理 (已存在)
+  │   └── progress-manager.js    # 进度管理 (已存在)
+  ├── components/
+  │   ├── file-upload.js         # 文件上传组件
+  │   ├── company-selector.js    # 公司选择器
+  │   └── modal-manager.js       # 模态框管理
 
-第二阶段 - 功能优化 (⚡中优先级)：
-  /static/js/
-  ├── file-upload.js          # 文件上传功能
-  ├── proposal-generator.js   # 标书生成功能
-  ├── tender-processor.js     # 招标文件处理
-  └── notification.js         # 通知系统
+阶段二：页面特定重构 (⚡中优先级)
+  /static/js/pages/
+  ├── knowledge-base/
+  │   ├── category-manager.js    # 分类管理
+  │   ├── document-manager.js    # 文档管理
+  │   └── search-manager.js      # 搜索功能
+  ├── index/
+  │   ├── proposal-generator.js  # 标书生成
+  │   ├── tender-processor.js    # 招标文件处理
+  │   └── dashboard-manager.js   # 仪表板管理
 
-第三阶段 - 架构重构 (🚀低优先级)：
   /templates/components/
-  ├── sidebar.html           # 侧边栏组件
-  ├── upload-area.html       # 上传区域组件
-  ├── progress-bars.html     # 进度条组件
-  ├── company-selector.html  # 公司选择器
-  └── modal-dialogs.html     # 模态框组件
+  ├── layout/
+  │   ├── base.html              # 基础布局模板
+  │   └── navbar.html            # 导航栏组件
+  ├── shared/
+  │   ├── company-selector.html  # 公司选择器
+  │   ├── file-upload.html       # 文件上传区域
+  │   ├── progress-bars.html     # 进度条组件
+  │   └── modal-dialogs.html     # 模态框组件
+  ├── knowledge-base/
+  │   ├── category-tree.html     # 分类树组件
+  │   └── document-list.html     # 文档列表组件
+  └── index/
+      ├── sidebar.html           # 首页侧边栏
+      └── upload-area.html       # 上传区域组件
+
+阶段三：性能优化 (🚀低优先级)
+  1. 懒加载策略 - 按需加载组件和数据
+  2. 缓存机制 - 前端数据缓存和状态管理
+  3. 代码分割 - 按功能模块分割JavaScript包
+  4. 资源优化 - 图片压缩、CSS/JS压缩合并
 
 🔧 实施策略：
-  1. 按功能模块分离 (低耦合)
-  2. 按代码类型分离 (CSS/JS/HTML)
-  3. 按加载优先级分离 (核心优先、懒加载)
-  4. 保持向后兼容 (可随时回滚)
+  1. 共享优先 - 先建立共同组件，再处理页面特定功能
+  2. 渐进式重构 - 不影响现有功能的前提下逐步迁移
+  3. 组件化开发 - 每个组件独立开发、测试、部署
+  4. 统一规范 - 代码风格、命名约定、API设计保持一致
+
+📈 预期收益：
+  ✅ 代码复用率提升60%+ - 共享组件和样式
+  ✅ 维护成本降低 - 统一的架构和规范
+  ✅ 开发效率提升 - 组件化开发模式
+  ✅ 性能改善 - 减少重复代码，优化加载
+  ✅ 页面稳定性 - 解决定时器泄漏和内存问题
 
 ⚠️ 风险控制：
-  - 分阶段实施，每阶段完成后测试
-  - 保持现有功能完整性
-  - 版本控制，可快速回滚
-  - 渐进式优化，不影响生产环境
+  - 分阶段实施，每个阶段独立测试验证
+  - 保持API向后兼容，支持快速回滚
+  - 共享组件变更需要回归测试所有页面
+  - 建立组件文档和使用规范
 
-📈 预期效果：
-  ✅ 解决页面"死机"问题
-  ✅ 减少内存泄漏
-  ✅ 提升页面响应速度
-  ✅ 增强系统稳定性
-  ✅ 提高代码可维护性
+📝 实施记录：
+  - 2024-09-27: 建立统一重构计划
+  - 已完成: timer-manager.js, progress-manager.js
+  - 进行中: CSS样式分离和JavaScript模块化
+  - 待完成: 组件模板化和性能优化
 
-📝 更新记录：
-  - 2024-09-27: 创建重构计划，识别死机根因
-  - TODO: 按阶段实施分离计划
-
-═══════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════════════
 -->
 <html lang="zh-CN">
 <head>
@@ -79,6 +120,8 @@
     <title>元景AI智能标书生成平台</title>
     <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/litera/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- 统一CSS架构 - 基于模块化组件设计 -->
+    <link href="/static/css/main.css" rel="stylesheet">
     <!-- Chart.js for modern charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
     <!-- TinyMCE Editor -->
@@ -90,382 +133,6 @@
     <!-- 第一阶段重构：性能优化管理器 (解决死机问题) -->
     <script src="/static/js/timer-manager.js"></script>
     <script src="/static/js/progress-manager.js"></script>
-    <style>
-        /* 专业商务风配色方案 - 覆盖Bootstrap默认颜色 */
-        :root {
-            --bs-primary: #4a89dc;
-            --bs-primary-rgb: 74, 137, 220;
-            --bs-success: #48cfad;
-            --bs-success-rgb: 72, 207, 173;
-            --bs-warning: #eb7d3c;
-            --bs-warning-rgb: 235, 125, 60;
-            --bs-danger: #da4453;
-            --bs-danger-rgb: 218, 68, 83;
-            --bs-info: #5dade2;
-            --bs-info-rgb: 93, 173, 226;
-        }
-
-        .upload-area {
-            border: 2px dashed #4a89dc;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            background: #f8f9fa;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .upload-area:hover {
-            border-color: #3d6cb9;
-            background: #f4f7ff;
-            box-shadow: 0 4px 12px rgba(74, 137, 220, 0.1);
-        }
-        .upload-area.dragover {
-            border-color: #48cfad;
-            background: #e8f9f5;
-        }
-        .feature-card {
-            transition: transform 0.2s ease;
-            height: 100%;
-        }
-        .feature-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .progress {
-            display: none;
-        }
-        .api-status {
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-            display: none;
-        }
-        .api-status.success {
-            background-color: rgba(72, 207, 173, 0.1);
-            color: #2a7a68;
-            border: 1px solid #48cfad;
-        }
-        .api-status.error {
-            background-color: rgba(218, 68, 83, 0.1);
-            color: #8b1a26;
-            border: 1px solid #da4453;
-        }
-        .footer {
-            margin-top: 60px;
-            padding: 20px 0;
-            border-top: 1px solid #dee2e6;
-            color: #6c757d;
-        }
-        
-        /* 改善模态框显示 */
-        .modal-backdrop {
-            backdrop-filter: blur(3px);
-        }
-        
-        .modal {
-            z-index: 1055;
-        }
-        
-        /* 未保存状态指示器样式 */
-        .unsaved-indicator {
-            color: #da4453;
-            font-weight: bold;
-            animation: pulse-indicator 2s infinite;
-            margin-left: 5px;
-        }
-        
-        @keyframes pulse-indicator {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.6;
-                transform: scale(1.1);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        
-        /* 标签页改进样式 */
-        .nav-pills .nav-link {
-            position: relative;
-        }
-        
-        /* 引导提示样式 */
-        .guide-alert {
-            background: linear-gradient(45deg, #f4f7ff, #f8f9fa);
-            border: 1px solid #4a89dc;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .guide-alert .bi {
-            color: #4a89dc;
-            margin-right: 8px;
-        }
-
-        /* 拆分文件卡片样式 */
-        .split-document-card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-        }
-
-        .split-document-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(74, 137, 220, 0.15);
-            border-color: #4a89dc;
-        }
-
-        .split-document-title {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 8px;
-        }
-
-        .split-document-meta {
-            color: #6c757d;
-            font-size: 0.875rem;
-            margin-bottom: 10px;
-        }
-
-        .split-document-actions .btn {
-            margin-right: 8px;
-            margin-bottom: 5px;
-        }
-
-        /* 增强的按钮样式 */
-        .btn-primary {
-            background: linear-gradient(135deg, #4a89dc, #74b9ff);
-            border: none;
-            box-shadow: 0 2px 4px rgba(74, 137, 220, 0.2);
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #3d6cb9, #4a89dc);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(74, 137, 220, 0.3);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #48cfad, #5dade2);
-            border: none;
-            box-shadow: 0 2px 4px rgba(72, 207, 173, 0.2);
-        }
-        .btn-success:hover {
-            background: linear-gradient(135deg, #3ea99f, #48cfad);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(72, 207, 173, 0.3);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #eb7d3c, #f39c12);
-            border: none;
-            box-shadow: 0 2px 4px rgba(235, 125, 60, 0.2);
-        }
-        .btn-warning:hover {
-            background: linear-gradient(135deg, #d35400, #eb7d3c);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(235, 125, 60, 0.3);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #da4453, #e74c3c);
-            border: none;
-            box-shadow: 0 2px 4px rgba(218, 68, 83, 0.2);
-        }
-        .btn-danger:hover {
-            background: linear-gradient(135deg, #c0392b, #da4453);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(218, 68, 83, 0.3);
-        }
-
-        /* 卡片悬浮效果优化 */
-        .card {
-            transition: all 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-
-        /* 新侧边栏样式 - 立即生效 */
-        #sidebar-wrapper {
-            min-height: 100vh !important;
-            width: 280px !important;
-            background: #ffffff !important;
-            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08) !important;
-            border-right: 1px solid #f0f0f0 !important;
-        }
-
-        #sidebar-wrapper .sidebar-header {
-            background: #ffffff !important;
-            color: #333 !important;
-            border-bottom: 1px solid #f0f0f0 !important;
-            padding: 1.5rem 1.2rem !important;
-        }
-
-        #sidebar-wrapper .sidebar-header h6 {
-            color: #666 !important;
-            font-weight: 500 !important;
-            font-size: 0.85rem !important;
-            letter-spacing: 0.5px !important;
-            margin: 0 !important;
-            text-transform: uppercase !important;
-        }
-
-        #sidebar-wrapper .list-group-item {
-            border: none !important;
-            border-radius: 0 !important;
-            padding: 0.9rem 1.2rem !important;
-            transition: all 0.2s ease !important;
-            margin: 0 !important;
-            font-weight: 400 !important;
-            font-size: 0.9rem !important;
-            color: #666 !important;
-            background: transparent !important;
-            position: relative !important;
-            border-left: 3px solid transparent !important;
-        }
-
-        #sidebar-wrapper .list-group-item:hover {
-            background: #f8f9fa !important;
-            color: #333 !important;
-            border-left-color: #e0e0e0 !important;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        #sidebar-wrapper .list-group-item.active {
-            background: #f4f7ff !important;
-            color: #4a89dc !important;
-            border-left-color: #4a89dc !important;
-            font-weight: 500 !important;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        #sidebar-wrapper .list-group-item.active:hover {
-            background: #eef3ff !important;
-        }
-
-        #sidebar-wrapper .list-group-item.active::before {
-            display: none !important;
-        }
-
-        #sidebar-wrapper .list-group-item i {
-            width: 16px !important;
-            text-align: center !important;
-            margin-right: 0.75rem !important;
-            font-size: 0.9rem !important;
-        }
-
-        /* 侧边栏切换按钮样式 - 参考元景平台 */
-        .sidebar-toggle-btn {
-            background: #ffffff !important;
-            border: 1px solid #e0e0e0 !important;
-            border-radius: 6px !important;
-            width: 40px !important;
-            height: 40px !important;
-            padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: #666 !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
-            transition: all 0.2s ease !important;
-        }
-
-        .sidebar-toggle-btn:hover {
-            background: #f8f9fa !important;
-            border-color: #d0d0d0 !important;
-            color: #333 !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.12) !important;
-        }
-
-        .sidebar-toggle-btn:active {
-            background: #e9ecef !important;
-            transform: translateY(0) !important;
-        }
-
-        /* 应用菜单下拉样式 */
-        .dropdown-menu {
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border: 1px solid #e9ecef;
-        }
-        .dropdown-item {
-            padding: 10px 16px;
-            transition: all 0.2s ease;
-        }
-        .dropdown-item:hover {
-            background-color: #f8f9fa;
-            color: #e60012;
-        }
-        .dropdown-item.active {
-            background-color: #e60012;
-            color: white;
-        }
-        .dropdown-item i {
-            width: 16px;
-            text-align: center;
-        }
-
-        .sidebar-toggle-btn i {
-            font-size: 18px !important;
-        }
-
-        /* 固定顶部导航栏 */
-        .navbar {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            z-index: 1030 !important;
-            background: white !important;
-        }
-
-        /* 调整body的上边距，避免内容被导航栏遮挡 */
-        body {
-            padding-top: 70px !important;
-        }
-
-        /* 调整侧边栏的位置，从导航栏下方开始 */
-        #sidebar-wrapper {
-            position: fixed !important;
-            top: 70px !important;
-            left: 0 !important;
-            height: calc(100vh - 70px) !important;
-            min-height: auto !important;
-        }
-
-        /* 调整主内容区域，留出侧边栏空间 */
-        #page-content-wrapper {
-            margin-left: 280px !important;
-            width: calc(100% - 280px) !important;
-            min-height: calc(100vh - 70px) !important;
-        }
-
-        /* 移动端响应式调整 */
-        @media (max-width: 768px) {
-            #sidebar-wrapper {
-                margin-left: -280px !important;
-            }
-
-            #page-content-wrapper {
-                margin-left: 0 !important;
-                width: 100% !important;
-            }
-        }
-    </style>
 </head>
 <body>
     <!-- 顶部导航栏 -->

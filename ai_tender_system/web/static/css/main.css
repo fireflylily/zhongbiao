@@ -1,0 +1,232 @@
+/**
+ * 主样式文件 - 统一前端架构
+ * 按正确顺序引入所有样式组件，确保样式层叠正确
+ *
+ * 引入顺序说明：
+ * 1. 基础变量和设置 (variables, bootstrap-overrides)
+ * 2. 基础动画效果 (animations)
+ * 3. 通用组件样式 (buttons, cards, modals等)
+ * 4. 页面特定样式 (index, knowledge_base)
+ */
+
+/* =============================================================================
+   基础设施样式 - 变量定义和Bootstrap覆盖
+   ============================================================================= */
+
+/* CSS变量定义 - 必须最先加载 */
+@import url('./base/variables.css');
+
+/* Bootstrap组件覆盖 - 在变量之后立即加载 */
+@import url('./base/bootstrap-overrides.css');
+
+/* 动画效果定义 */
+@import url('./base/animations.css');
+
+/* =============================================================================
+   通用组件样式 - 可在任何页面复用
+   ============================================================================= */
+
+/* 按钮组件 - 包含所有按钮变种和状态 */
+@import url('./components/buttons.css');
+
+/* 卡片组件 - 包含各种卡片样式和悬浮效果 */
+@import url('./components/cards.css');
+
+/* 隐私标识组件 - 四级隐私分类和文档分类标识 */
+@import url('./components/privacy-badges.css');
+
+/* 模态框组件 - 搜索、确认对话框等模态框样式 */
+@import url('./components/modals.css');
+
+/* 导航组件 - 侧边栏、面包屑、分页等导航元素 */
+@import url('./components/navigation.css');
+
+/* =============================================================================
+   页面特定样式 - 仅在对应页面使用
+   ============================================================================= */
+
+/* 知识库页面样式 - 文件上传、搜索、分类树等 */
+@import url('./knowledge_base.css');
+
+/* 首页样式 - 仪表板、统计卡片、快捷操作等 */
+@import url('./index.css');
+
+/* =============================================================================
+   全局工具类和最终覆盖
+   ============================================================================= */
+
+/* 工具类 */
+.text-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.no-select {
+    user-select: none;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.border-radius-0 {
+    border-radius: 0 !important;
+}
+
+.shadow-none {
+    box-shadow: none !important;
+}
+
+.transition-none {
+    transition: none !important;
+}
+
+/* 响应式间距工具类 */
+@media (max-width: 768px) {
+    .p-mobile-sm {
+        padding: var(--spacing-sm) !important;
+    }
+
+    .m-mobile-sm {
+        margin: var(--spacing-sm) !important;
+    }
+
+    .px-mobile-sm {
+        padding-left: var(--spacing-sm) !important;
+        padding-right: var(--spacing-sm) !important;
+    }
+
+    .py-mobile-sm {
+        padding-top: var(--spacing-sm) !important;
+        padding-bottom: var(--spacing-sm) !important;
+    }
+}
+
+/* 可访问性增强 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+    :root {
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+        --shadow-md: 0 2px 6px rgba(0,0,0,0.35);
+        --shadow-lg: 0 4px 12px rgba(0,0,0,0.3);
+        --shadow-xl: 0 8px 25px rgba(0,0,0,0.3);
+        --shadow-xxl: 0 10px 30px rgba(0,0,0,0.32);
+    }
+
+    .btn,
+    .card,
+    .badge,
+    .privacy-badge {
+        border-width: 2px !important;
+    }
+}
+
+/* 打印样式优化 */
+@media print {
+    .btn,
+    .dropdown,
+    .modal,
+    .tooltip,
+    .popover,
+    .navbar,
+    .sidebar,
+    .floating-nav {
+        display: none !important;
+    }
+
+    .card,
+    .privacy-badge,
+    .doc-category-badge {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+    }
+
+    body {
+        font-size: 12pt !important;
+        line-height: 1.4 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid;
+    }
+}
+
+/* 暗色主题支持 (实验性) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-white: #1a1a1a;
+        --bg-light: #2d2d2d;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --text-muted: #999999;
+        --border-light: #404040;
+        --border-primary: #555555;
+    }
+}
+
+/* 性能优化 - 减少重绘和重排 */
+.card,
+.btn,
+.privacy-badge,
+.modal,
+.dropdown-menu {
+    will-change: transform, opacity;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: var(--border-radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-primary);
+    border-radius: var(--border-radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Firefox滚动条 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-primary) var(--bg-light);
+}
+
+/* 焦点样式统一 */
+button:focus,
+.btn:focus,
+input:focus,
+select:focus,
+textarea:focus,
+[tabindex]:focus {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+}
+
+/* 选择文本样式 */
+::selection {
+    background-color: rgba(74, 137, 220, 0.3);
+    color: var(--text-primary);
+}
+
+::-moz-selection {
+    background-color: rgba(74, 137, 220, 0.3);
+    color: var(--text-primary);
+}

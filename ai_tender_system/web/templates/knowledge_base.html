@@ -1,3 +1,114 @@
+<!--
+════════════════════════════════════════════════════════════════════════════════════════
+                    前端架构统一重构计划 (index.html + knowledge_base.html)
+════════════════════════════════════════════════════════════════════════════════════════
+
+📊 现状分析：
+  index.html:         6103行，275KB，~621行JavaScript代码
+  knowledge_base.html: 3073行，157KB，~963行JavaScript代码
+
+🔍 共同问题：
+  1. 巨型单文件架构 - HTML+CSS+JS混合
+  2. 定时器资源泄漏 - setInterval未正确清理
+  3. 内存泄漏风险 - 事件监听器、DOM引用未清理
+  4. 代码重复冗余 - 相同组件在多个页面重复实现
+  5. 维护困难 - 缺乏模块化和组件化
+
+🎯 统一重构目标：
+  - 建立共享组件体系，60%+代码复用率
+  - 主HTML文件减少75% (< 1500行)
+  - 解决页面"死机"和性能问题
+  - 建立可持续的前端架构
+
+📁 共享架构设计：
+
+阶段一：共享基础设施 (🔥最高优先级)
+  /static/css/
+  ├── base/
+  │   ├── variables.css           # CSS变量定义 (配色、间距等)
+  │   ├── bootstrap-overrides.css # Bootstrap统一覆盖
+  │   └── animations.css          # 共同动画效果
+  ├── components/
+  │   ├── buttons.css            # 按钮组件样式
+  │   ├── cards.css              # 卡片组件样式
+  │   ├── modals.css             # 模态框样式
+  │   ├── privacy-badges.css     # 隐私标识样式
+  │   └── navigation.css         # 导航栏样式
+  ├── knowledge_base.css         # 知识库特定样式
+  └── index.css                  # 首页特定样式
+
+  /static/js/
+  ├── core/
+  │   ├── api-client.js          # 统一API调用封装
+  │   ├── notification.js        # 通知系统
+  │   ├── validation.js          # 表单验证
+  │   ├── timer-manager.js       # 定时器管理 (已存在)
+  │   └── progress-manager.js    # 进度管理 (已存在)
+  ├── components/
+  │   ├── file-upload.js         # 文件上传组件
+  │   ├── company-selector.js    # 公司选择器
+  │   └── modal-manager.js       # 模态框管理
+
+阶段二：页面特定重构 (⚡中优先级)
+  /static/js/pages/
+  ├── knowledge-base/
+  │   ├── category-manager.js    # 分类管理
+  │   ├── document-manager.js    # 文档管理
+  │   └── search-manager.js      # 搜索功能
+  ├── index/
+  │   ├── proposal-generator.js  # 标书生成
+  │   ├── tender-processor.js    # 招标文件处理
+  │   └── dashboard-manager.js   # 仪表板管理
+
+  /templates/components/
+  ├── layout/
+  │   ├── base.html              # 基础布局模板
+  │   └── navbar.html            # 导航栏组件
+  ├── shared/
+  │   ├── company-selector.html  # 公司选择器
+  │   ├── file-upload.html       # 文件上传区域
+  │   ├── progress-bars.html     # 进度条组件
+  │   └── modal-dialogs.html     # 模态框组件
+  ├── knowledge-base/
+  │   ├── category-tree.html     # 分类树组件
+  │   └── document-list.html     # 文档列表组件
+  └── index/
+      ├── sidebar.html           # 首页侧边栏
+      └── upload-area.html       # 上传区域组件
+
+阶段三：性能优化 (🚀低优先级)
+  1. 懒加载策略 - 按需加载组件和数据
+  2. 缓存机制 - 前端数据缓存和状态管理
+  3. 代码分割 - 按功能模块分割JavaScript包
+  4. 资源优化 - 图片压缩、CSS/JS压缩合并
+
+🔧 实施策略：
+  1. 共享优先 - 先建立共同组件，再处理页面特定功能
+  2. 渐进式重构 - 不影响现有功能的前提下逐步迁移
+  3. 组件化开发 - 每个组件独立开发、测试、部署
+  4. 统一规范 - 代码风格、命名约定、API设计保持一致
+
+📈 预期收益：
+  ✅ 代码复用率提升60%+ - 共享组件和样式
+  ✅ 维护成本降低 - 统一的架构和规范
+  ✅ 开发效率提升 - 组件化开发模式
+  ✅ 性能改善 - 减少重复代码，优化加载
+  ✅ 页面稳定性 - 解决定时器泄漏和内存问题
+
+⚠️ 风险控制：
+  - 分阶段实施，每个阶段独立测试验证
+  - 保持API向后兼容，支持快速回滚
+  - 共享组件变更需要回归测试所有页面
+  - 建立组件文档和使用规范
+
+📝 实施记录：
+  - 2024-09-27: 建立统一重构计划
+  - 已完成: timer-manager.js, progress-manager.js
+  - 进行中: CSS样式分离和JavaScript模块化
+  - 待完成: 组件模板化和性能优化
+
+════════════════════════════════════════════════════════════════════════════════════════
+-->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -7,296 +118,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.1.3/dist/litera/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/static/css/common.css" rel="stylesheet">
-    <style>
-        /* 专业商务风配色方案 - 覆盖Bootstrap默认颜色 */
-        :root {
-            --bs-primary: #4a89dc;
-            --bs-primary-rgb: 74, 137, 220;
-            --bs-success: #48cfad;
-            --bs-success-rgb: 72, 207, 173;
-            --bs-warning: #eb7d3c;
-            --bs-warning-rgb: 235, 125, 60;
-            --bs-danger: #da4453;
-            --bs-danger-rgb: 218, 68, 83;
-            --bs-info: #5dade2;
-            --bs-info-rgb: 93, 173, 226;
-        }
-
-        /* 导航栏样式统一 */
-        .unicom-logo svg {
-            max-height: 40px;
-        }
-        .brand-text .brand-title {
-            color: #333;
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 2px;
-        }
-        .brand-text .brand-subtitle {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-        .dropdown-menu {
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border: 1px solid #e9ecef;
-        }
-        .dropdown-item {
-            padding: 10px 16px;
-            transition: all 0.2s ease;
-        }
-        .dropdown-item:hover {
-            background-color: #f8f9fa;
-            color: #4a89dc;
-        }
-        .dropdown-item.active {
-            background-color: #4a89dc;
-            color: white;
-        }
-        .dropdown-item i {
-            width: 16px;
-            text-align: center;
-        }
-
-        .kb-sidebar {
-            min-height: calc(100vh - 100px);
-        }
-        /* 使用 Bootstrap 的 list-group 组件，不需要自定义样式 */
-        /* 使用 Bootstrap Card 组件，不需要自定义样式 */
-        /* 四级隐私分类UI标识样式 */
-        .privacy-badge {
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
-        }
-        .privacy-badge:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-
-        /* 1:公开🌐 - 柔和青绿色 */
-        .privacy-1 {
-            background: linear-gradient(135deg, #48cfad, #5dade2);
-            color: white;
-            border: 1px solid #3ea99f;
-        }
-        .privacy-1::before { content: "🌐"; margin-right: 2px; }
-
-        /* 2:内部🏢 - 低饱和度蓝色 */
-        .privacy-2 {
-            background: linear-gradient(135deg, #4a89dc, #74b9ff);
-            color: white;
-            border: 1px solid #3d6cb9;
-        }
-        .privacy-2::before { content: "🏢"; margin-right: 2px; }
-
-        /* 3:机密🔒 - 沉稳橘红色 */
-        .privacy-3 {
-            background: linear-gradient(135deg, #eb7d3c, #f39c12);
-            color: white;
-            border: 1px solid #d35400;
-        }
-        .privacy-3::before { content: "🔒"; margin-right: 2px; }
-
-        /* 4:绝密🚫 - 暗红色 */
-        .privacy-4 {
-            background: linear-gradient(135deg, #da4453, #e74c3c);
-            color: white;
-            border: 1px solid #c0392b;
-        }
-        .privacy-4::before { content: "🚫"; margin-right: 2px; }
-
-        /* 文档分类标识样式 */
-        .doc-category-badge {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 8px;
-            background-color: #f8f9fa;
-            color: #6c757d;
-            border: 1px solid #dee2e6;
-            margin-left: 5px;
-        }
-        .doc-category-tech::before { content: "🔧"; margin-right: 2px; }
-        .doc-category-impl::before { content: "📋"; margin-right: 2px; }
-        .doc-category-service::before { content: "🛠️"; margin-right: 2px; }
-        .upload-zone {
-            border: 2px dashed #dee2e6;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            background-color: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .upload-zone:hover {
-            border-color: #4a89dc;
-            background-color: #fff;
-            box-shadow: 0 4px 12px rgba(74, 137, 220, 0.1);
-        }
-        .upload-zone.dragover {
-            background-color: #f4f7ff;
-            border-color: #4a89dc;
-        }
-
-        /* 增强的交互元素样式 */
-        .btn-primary {
-            background: linear-gradient(135deg, #4a89dc, #74b9ff);
-            border: none;
-            box-shadow: 0 2px 4px rgba(74, 137, 220, 0.2);
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #3d6cb9, #4a89dc);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(74, 137, 220, 0.3);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #48cfad, #5dade2);
-            border: none;
-            box-shadow: 0 2px 4px rgba(72, 207, 173, 0.2);
-        }
-        .btn-success:hover {
-            background: linear-gradient(135deg, #3ea99f, #48cfad);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(72, 207, 173, 0.3);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #eb7d3c, #f39c12);
-            border: none;
-            box-shadow: 0 2px 4px rgba(235, 125, 60, 0.2);
-        }
-        .btn-warning:hover {
-            background: linear-gradient(135deg, #d35400, #eb7d3c);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(235, 125, 60, 0.3);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #da4453, #e74c3c);
-            border: none;
-            box-shadow: 0 2px 4px rgba(218, 68, 83, 0.2);
-        }
-        .btn-danger:hover {
-            background: linear-gradient(135deg, #c0392b, #da4453);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(218, 68, 83, 0.3);
-        }
-
-        /* 卡片悬浮效果优化 */
-        .card {
-            transition: all 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-
-        /* 统计卡片特殊样式 */
-        .kb-stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-        }
-
-        /* 搜索界面增强样式 */
-        .search-modal-header {
-            background: linear-gradient(135deg, #4a89dc, #74b9ff);
-            color: white;
-            border-radius: 12px 12px 0 0;
-        }
-
-        /* 搜索模式切换按钮样式 */
-        .btn-check:checked + .btn-outline-primary {
-            background: linear-gradient(135deg, #4a89dc, #74b9ff);
-            border-color: #4a89dc;
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(74, 137, 220, 0.25);
-        }
-
-        /* 高级选项展开区域 */
-        .search-advanced-options {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
-
-        /* 搜索结果卡片增强 */
-        .search-result-card {
-            border: 1px solid #e9ecef;
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .search-result-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            border-color: #4a89dc;
-        }
-
-        /* 相似度评分颜色渐变 */
-        .similarity-score-high {
-            background: linear-gradient(135deg, #48cfad, #5dade2);
-        }
-
-        .similarity-score-medium {
-            background: linear-gradient(135deg, #4a89dc, #74b9ff);
-        }
-
-        .similarity-score-low {
-            background: linear-gradient(135deg, #eb7d3c, #f39c12);
-        }
-
-        /* 搜索历史按钮样式 */
-        .search-history-btn {
-            border: 1px solid #dee2e6;
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            transition: all 0.2s ease;
-        }
-
-        .search-history-btn:hover {
-            background: linear-gradient(135deg, #4a89dc, #74b9ff);
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(74, 137, 220, 0.2);
-        }
-
-        /* 加载动画增强 */
-        .search-loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #4a89dc;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 搜索统计信息样式 */
-        .search-stats {
-            background: linear-gradient(135deg, #48cfad, #5dade2);
-            border-radius: 8px;
-            color: white;
-        }
-
-        /* 文档类型徽章样式 */
-        .doc-type-badge {
-            font-size: 0.75rem;
-            padding: 4px 8px;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-    </style>
+    <!-- 新的组件化CSS架构 -->
+    <link href="/static/css/main.css" rel="stylesheet">
+    <!-- 所有样式已移至组件化CSS架构 - 请查看 /static/css/main.css -->
 </head>
 <body>
     <!-- 导航栏 -->
