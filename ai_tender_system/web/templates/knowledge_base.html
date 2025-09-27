@@ -975,7 +975,11 @@
                 renderCompanyProfiles([]);
                 console.log('企业信息库DOM渲染完成，currentCompanyId已设置为:', companyId);
 
-                // 不在这里加载资质文件，只有在切换到资质信息标签时才加载
+                // 延迟加载所有文件状态，确保DOM渲染完成
+                setTimeout(async () => {
+                    console.log('开始加载公司', companyId, '的所有文件状态...');
+                    await loadExistingQualifications(companyId);
+                }, 500);
             } catch (error) {
                 console.error('加载企业信息库失败:', error);
                 showAlert('加载企业信息库失败', 'danger');
@@ -1008,7 +1012,7 @@
             document.getElementById('mainContent').innerHTML = html;
 
             // 初始化表单事件
-            setTimeout(() => initCompanyProfileEvents(), 100);
+            setTimeout(() => initCompanyProfileEvents(companyData), 100);
         }
 
         // 渲染增强型企业信息库页面
@@ -1073,7 +1077,7 @@
                     '<div class="tab-pane fade" id="tab-financial">' +
                         '<div class="card">' +
                             '<div class="card-body">' +
-                                renderFinancialSection() +
+                                (companyData ? renderFinancialSection(companyData) : '<p class="text-muted">加载中...</p>') +
                             '</div>' +
                         '</div>' +
                     '</div>' +
@@ -1181,7 +1185,17 @@
                 '<div class="row mb-3">' +
                     '<div class="col-md-6">' +
                         '<label class="form-label">员工人数规模</label>' +
-                        '<input type="number" class="form-control" id="prof-employeeCount" value="' + (data.employeeCount || data.employee_count || '') + '">' +
+                        '<select class="form-control" id="prof-employeeCount">' +
+                            '<option value="">请选择员工人数规模</option>' +
+                            '<option value="10人以下">10人以下</option>' +
+                            '<option value="10-49人">10-49人</option>' +
+                            '<option value="50-99人">50-99人</option>' +
+                            '<option value="100-199人">100-199人</option>' +
+                            '<option value="200-299人">200-299人</option>' +
+                            '<option value="300-499人">300-499人</option>' +
+                            '<option value="500-999人">500-999人</option>' +
+                            '<option value="1000人以上">1000人以上</option>' +
+                        '</select>' +
                     '</div>' +
                 '</div>' +
 
@@ -1368,11 +1382,6 @@
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                '<div class="text-center">' +
-                    '<button class="btn btn-warning btn-lg" onclick="uploadPersonnelDocs()">' +
-                        '<i class="bi bi-cloud-upload"></i> 上传人员档案' +
-                    '</button>' +
-                '</div>' +
             '</div>';
         }
 
@@ -1386,18 +1395,22 @@
                             '<span>' + name + '</span>' +
                         '</div>' +
                         '<div>' +
-                            '<input type="file" class="d-none" id="pers-' + id + '" accept=".pdf,.jpg,.png">' +
+                            '<input type="file" class="d-none" id="pers-' + id + '" accept=".pdf,.jpg,.png" onchange="uploadQualificationFile(\'' + id + '\', this)">' +
                             '<button class="btn btn-sm btn-outline-warning" onclick="document.getElementById(\'pers-' + id + '\').click()">' +
                                 '<i class="bi bi-upload"></i>' +
                             '</button>' +
                         '</div>' +
+                    '</div>' +
+                    '<div class="mt-2 d-none" id="profile-status-' + id + '">' +
+                        '<small class="text-muted">未上传文件</small>' +
                     '</div>' +
                 '</div>' +
             '</div>';
         }
 
         // 渲染财务信息部分
-        function renderFinancialSection() {
+        function renderFinancialSection(companyData) {
+            const data = companyData || {};
             return '<div class="financial-section">' +
                 '<div class="mb-4">' +
                     '<h6 class="text-danger mb-3"><i class="bi bi-bank"></i> 财务文档</h6>' +
@@ -1421,11 +1434,11 @@
                     '<div class="row">' +
                         '<div class="col-md-6">' +
                             '<label class="form-label">开户行全称</label>' +
-                            '<input type="text" class="form-control" id="prof-bankName" placeholder="例：中国工商银行股份有限公司北京分行">' +
+                            '<input type="text" class="form-control" id="prof-bankName" value="' + (data.bankName || data.bank_name || '') + '" placeholder="例：中国工商银行股份有限公司北京分行">' +
                         '</div>' +
                         '<div class="col-md-6">' +
                             '<label class="form-label">银行账号</label>' +
-                            '<input type="text" class="form-control" id="prof-bankAccount" placeholder="请输入银行账号">' +
+                            '<input type="text" class="form-control" id="prof-bankAccount" value="' + (data.bankAccount || data.bank_account || '') + '" placeholder="请输入银行账号">' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -1447,20 +1460,32 @@
                             '<span>' + name + '</span>' +
                         '</div>' +
                         '<div>' +
-                            '<input type="file" class="d-none" id="fin-' + id + '" accept=".pdf,.xls,.xlsx">' +
+                            '<input type="file" class="d-none" id="fin-' + id + '" accept=".pdf,.xls,.xlsx" onchange="uploadFinancialFile(\'' + id + '\', this)">' +
                             '<button class="btn btn-sm btn-outline-danger" onclick="document.getElementById(\'fin-' + id + '\').click()">' +
                                 '<i class="bi bi-upload"></i>' +
                             '</button>' +
                         '</div>' +
+                    '</div>' +
+                    '<div id="fin-status-' + id + '" class="mt-2 d-none">' +
+                        '<!-- 上传状态将在这里显示 -->' +
                     '</div>' +
                 '</div>' +
             '</div>';
         }
 
         // 初始化企业信息库事件
-        function initCompanyProfileEvents() {
+        function initCompanyProfileEvents(companyData) {
             // 添加表单验证和提交事件
             console.log('初始化企业信息库事件');
+
+            // 设置员工人数规模下拉框的值
+            const employeeCountSelect = document.getElementById('prof-employeeCount');
+            if (employeeCountSelect && companyData) {
+                const employeeCount = companyData.employeeCount || companyData.employee_count || '';
+                if (employeeCount) {
+                    employeeCountSelect.value = employeeCount;
+                }
+            }
         }
 
         // 保存公司基础信息
@@ -2172,13 +2197,7 @@
             loadStatistics();
             handleUrlParameters();
 
-            // 监听Bootstrap tab切换事件
-            document.addEventListener('shown.bs.tab', function (event) {
-                if (event.target.getAttribute('data-bs-target') === '#tab-qualification') {
-                    console.log('资质信息标签被激活，开始加载资质文件...');
-                    handleQualificationTabDisplay();
-                }
-            });
+            // 标签事件监听器已移除，现在在选择公司时统一加载所有文件状态
 
             // 自动选择智慧足迹公司（ID=8）以显示资质文件
             setTimeout(() => {
@@ -2715,6 +2734,9 @@
                 if (response.data.success) {
                     showAlert(`资质文件 "${file.name}" 上传成功`, 'success');
                     // 刷新资质文件显示
+                    console.log('上传成功后调用refreshQualificationDisplay，qualKey:', qualKey);
+                    console.log('API返回的uploaded_files:', response.data.uploaded_files);
+                    console.log('当前qualKey对应的文件信息:', response.data.uploaded_files[qualKey]);
                     refreshQualificationDisplay(qualKey, response.data.uploaded_files[qualKey]);
                 } else {
                     showAlert('资质文件上传失败: ' + response.data.error, 'danger');
@@ -2722,6 +2744,112 @@
             } catch (error) {
                 console.error('资质文件上传失败:', error);
                 showAlert('资质文件上传失败', 'danger');
+            }
+        }
+
+        // 财务文件上传功能
+        async function uploadFinancialFile(finKey, inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const companyId = currentCompanyId;
+            if (!companyId) {
+                showAlert('请先选择企业', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append(`qualifications[${finKey}]`, file);
+
+            try {
+                showAlert('正在上传财务文件...', 'info');
+
+                const response = await axios.post(`/api/companies/${companyId}/qualifications/upload`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data.success) {
+                    showAlert(`财务文件 "${file.name}" 上传成功`, 'success');
+                    // 刷新财务文件显示
+                    console.log('上传成功后调用refreshFinancialDisplay，finKey:', finKey);
+                    console.log('API返回的uploaded_files:', response.data.uploaded_files);
+                    console.log('当前finKey对应的文件信息:', response.data.uploaded_files[finKey]);
+                    refreshFinancialDisplay(finKey, response.data.uploaded_files[finKey]);
+                } else {
+                    showAlert('财务文件上传失败: ' + response.data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('财务文件上传失败:', error);
+                showAlert('财务文件上传失败', 'danger');
+            }
+        }
+
+        // 刷新财务文件显示
+        function refreshFinancialDisplay(finKey, fileInfo) {
+            console.log('refreshFinancialDisplay 被调用:', finKey, fileInfo);
+            const statusElement = document.getElementById(`fin-status-${finKey}`);
+            console.log('找到DOM元素:', statusElement ? 'YES' : 'NO', `fin-status-${finKey}`);
+
+            if (statusElement && fileInfo) {
+                statusElement.classList.remove('d-none');
+                const formattedTime = formatDateTime(fileInfo.upload_time);
+                const formattedSize = formatFileSize(fileInfo.file_size);
+
+                statusElement.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-success">✓ ${fileInfo.original_filename}</small>
+                            <br><small class="text-muted">${formattedSize} | ${formattedTime}</small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-danger btn-sm" onclick="downloadFinancialFile('${currentCompanyId}', '${finKey}')" title="下载">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteFinancialFile('${finKey}')" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                console.log('财务文件显示已更新:', finKey);
+            } else {
+                console.error('无法更新财务文件显示 - statusElement:', statusElement, 'fileInfo:', fileInfo);
+            }
+        }
+
+        // 下载财务文件
+        async function downloadFinancialFile(companyId, finKey) {
+            try {
+                window.open(`/api/companies/${companyId}/qualifications/${finKey}/download`);
+            } catch (error) {
+                console.error('下载财务文件失败:', error);
+                showAlert('下载财务文件失败', 'danger');
+            }
+        }
+
+        // 删除财务文件
+        async function deleteFinancialFile(finKey) {
+            if (!confirm('确定要删除这个财务文件吗？')) return;
+
+            const companyId = currentCompanyId;
+            try {
+                const response = await axios.delete(`/api/companies/${companyId}/qualifications/${finKey}`);
+
+                if (response.data.success) {
+                    showAlert('财务文件删除成功', 'success');
+                    // 隐藏状态显示
+                    const statusElement = document.getElementById(`fin-status-${finKey}`);
+                    if (statusElement) {
+                        statusElement.classList.add('d-none');
+                    }
+                } else {
+                    showAlert('财务文件删除失败: ' + response.data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('删除财务文件失败:', error);
+                showAlert('删除财务文件失败', 'danger');
             }
         }
 
