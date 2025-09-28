@@ -41,7 +41,15 @@ class KnowledgeBaseDB:
         logger.info(f"知识库数据库初始化完成: {self.db_path}")
 
     def _init_database(self):
-        """初始化数据库表结构"""
+        """初始化数据库表结构和初始数据"""
+        # 1. 创建表结构
+        self._create_schema()
+
+        # 2. 检查并插入初始数据（仅首次初始化时）
+        self._load_initial_data_if_needed()
+
+    def _create_schema(self):
+        """创建数据库表结构"""
         schema_file = Path(__file__).parent.parent / 'database' / 'knowledge_base_schema.sql'
 
         if not schema_file.exists():
@@ -62,8 +70,47 @@ class KnowledgeBaseDB:
             logger.info("数据库表结构初始化完成")
 
         except Exception as e:
-            logger.error(f"数据库初始化失败: {e}")
+            logger.error(f"数据库表结构创建失败: {e}")
             raise
+
+    def _load_initial_data_if_needed(self):
+        """检查并加载初始数据（仅在首次初始化时）"""
+        try:
+            # 检查是否已经加载过初始数据
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT config_value FROM knowledge_base_configs
+                    WHERE config_key = 'initial_data_loaded'
+                """)
+                result = cursor.fetchone()
+
+                if result and result[0] == 'true':
+                    logger.info("初始数据已存在，跳过数据加载")
+                    return
+
+            # 加载初始数据
+            initial_data_file = Path(__file__).parent.parent / 'database' / 'initial_data.sql'
+
+            if not initial_data_file.exists():
+                logger.warning(f"初始数据文件不存在: {initial_data_file}")
+                return
+
+            with open(initial_data_file, 'r', encoding='utf-8') as f:
+                initial_data_sql = f.read()
+
+            # Remove explicit COMMIT statements to avoid transaction conflicts
+            initial_data_sql = initial_data_sql.replace('COMMIT;', '')
+
+            with sqlite3.connect(self.db_path) as conn:
+                conn.executescript(initial_data_sql)
+                conn.commit()
+
+            logger.info("初始数据加载完成")
+
+        except Exception as e:
+            logger.error(f"初始数据加载失败: {e}")
+            # 不抛出异常，因为即使初始数据加载失败，表结构已经创建成功
 
     @contextmanager
     def get_connection(self):
