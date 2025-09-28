@@ -1,0 +1,177 @@
+<!-- 技术方案生成功能区域 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-magic"></i> 技术方案生成
+                </h6>
+            </div>
+            <div class="card-body">
+                <form id="techProposalForm">
+                    <!-- 文件上传区域 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-file-earmark-text"></i> 招标文件
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="upload-area small-upload" id="techTenderUpload">
+                                <i class="bi bi-cloud-upload text-primary"></i>
+                                <p class="mb-2">选择招标文件</p>
+                                <small class="text-muted">支持 .doc, .docx, .pdf</small>
+                                <input type="file" class="d-none" id="techTenderFileInput"
+                                       accept=".doc,.docx,.pdf" required>
+                            </div>
+                            <div class="file-info d-none" id="techTenderFileInfo">
+                                <small class="text-success">
+                                    <i class="bi bi-check-circle"></i>
+                                    <span id="techTenderFileName"></span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-file-earmark-code"></i> 产品文件
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="upload-area small-upload" id="productUpload">
+                                <i class="bi bi-cloud-upload text-primary"></i>
+                                <p class="mb-2">选择产品文件</p>
+                                <small class="text-muted">支持 .doc, .docx, .pdf</small>
+                                <input type="file" class="d-none" id="productFileInput"
+                                       accept=".doc,.docx,.pdf" required>
+                            </div>
+                            <div class="file-info d-none" id="productFileInfo">
+                                <small class="text-success">
+                                    <i class="bi bi-check-circle"></i>
+                                    <span id="productFileName"></span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 生成配置 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="outputPrefix" class="form-label">
+                                <i class="bi bi-tag"></i> 输出前缀
+                            </label>
+                            <input type="text" class="form-control" id="outputPrefix"
+                                   value="技术方案" placeholder="请输入输出文件名前缀">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="techCompanySelect" class="form-label">
+                                <i class="bi bi-building"></i> 选择公司
+                            </label>
+                            <select class="form-select" id="techCompanySelect">
+                                <option value="">请选择公司...</option>
+                                <!-- 公司选项将通过JavaScript动态加载 -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 高级选项 -->
+                    <div class="mb-4">
+                        <div class="card border-light">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-gear"></i> 高级选项
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeAnalysis" checked>
+                                            <label class="form-check-label" for="includeAnalysis">
+                                                包含需求分析
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeMapping" checked>
+                                            <label class="form-check-label" for="includeMapping">
+                                                生成匹配表
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeSummary" checked>
+                                            <label class="form-check-label" for="includeSummary">
+                                                生成总结报告
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="optimizeFormat">
+                                            <label class="form-check-label" for="optimizeFormat">
+                                                优化文档格式
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 生成按钮 -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg" id="generateProposalBtn" disabled>
+                            <i class="bi bi-magic"></i> 生成技术方案
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 进度显示 -->
+<div class="progress mb-3 d-none" id="techProgressBar">
+    <div class="progress-bar progress-bar-striped progress-bar-animated"
+         role="progressbar" style="width: 0%"></div>
+</div>
+
+<!-- 生成结果 -->
+<div class="row d-none" id="techResultArea">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-check-circle"></i> 技术方案生成完成
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="techResultMessage" class="mb-3">
+                    <!-- 生成统计信息将在这里显示 -->
+                </div>
+                <div id="techDownloadArea">
+                    <!-- 下载按钮将在这里显示 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 错误显示 -->
+<div class="row d-none" id="techErrorArea">
+    <div class="col-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-x-circle"></i> 生成失败
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger" id="techErrorMessage">
+                    <!-- 错误信息将在这里显示 -->
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-outline-danger" id="techRetryBtn">
+                        <i class="bi bi-arrow-clockwise"></i> 重试
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

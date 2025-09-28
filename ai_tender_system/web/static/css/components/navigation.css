@@ -1,7 +1,37 @@
 /**
  * 导航组件样式
  * 基于variables.css中定义的颜色和过渡效果
+ * 统一的响应式布局架构
  */
+
+/* 统一应用布局样式 */
+.app-sidebar {
+    background: #ffffff;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
+    border-right: 1px solid #f0f0f0;
+    min-height: calc(100vh - 70px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 修复固定导航栏遮挡侧边栏内容的问题 */
+.app-sidebar .card-body {
+    padding-top: 1.5rem;
+}
+
+.app-sidebar .list-group {
+    padding-top: 0.5rem;
+}
+
+/* 确保固定导航栏的层级正确 */
+.navbar.fixed-top {
+    z-index: 1030;
+}
+
+.app-main-content {
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 70px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 /* 侧边栏基础样式 */
 .kb-sidebar {
@@ -318,6 +348,12 @@
         left: 0;
     }
 
+    /* 统一布局的移动端响应式 */
+    .app-sidebar {
+        box-shadow: 0 0 15px rgba(0,0,0,0.15);
+        z-index: 1050;
+    }
+
     .navbar {
         padding: var(--spacing-sm) var(--spacing-md);
     }
@@ -350,6 +386,24 @@
     .pagination {
         justify-content: center;
         flex-wrap: wrap;
+    }
+}
+
+/* 超宽屏幕优化 */
+@media (min-width: 1920px) {
+    .app-sidebar {
+        min-width: 300px;
+    }
+
+    .app-main-content .p-4 {
+        padding: 2rem 3rem !important;
+    }
+}
+
+/* 中等宽度屏幕优化 */
+@media (min-width: 1200px) and (max-width: 1919px) {
+    .app-sidebar {
+        min-width: 280px;
     }
 }
 

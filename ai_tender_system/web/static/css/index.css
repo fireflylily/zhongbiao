@@ -1,7 +1,35 @@
 /**
  * 首页特定样式
  * 包含首页独有的组件和交互效果
+ * 适配统一的响应式网格布局
  */
+
+/* 布局适配 - 确保新网格布局下的正常显示 */
+.app-main-content .container-fluid {
+    padding: 0;
+}
+
+.app-main-content .p-4 {
+    padding: 2rem !important;
+}
+
+/* 优化大屏幕下的内容布局 */
+@media (min-width: 1400px) {
+    .app-main-content .p-4 {
+        padding: 2rem 3rem !important;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+/* 确保侧边栏内容在新布局下正常显示 */
+.app-sidebar .list-group-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 /* 上传区域样式 */
 .upload-area {

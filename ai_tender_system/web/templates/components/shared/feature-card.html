@@ -1,0 +1,9 @@
+<!-- 功能特性卡片组件 -->
+<!-- 使用方式: {% include 'components/shared/feature-card.html' with icon='bi-shield-check' title='安全保障' description='API密钥加密存储' %} -->
+<div class="card feature-card h-100">
+    <div class="card-body text-center">
+        <i class="{{ icon }} mb-3" style="font-size: 2.5rem; color: #0d6efd;"></i>
+        <h6 class="card-title">{{ title }}</h6>
+        <p class="card-text text-muted small">{{ description }}</p>
+    </div>
+</div>

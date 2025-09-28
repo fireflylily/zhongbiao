@@ -1,0 +1,188 @@
+<!-- 招标文档上传区域 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-cloud-upload"></i> 招标文档上传
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- 表单容器 -->
+                <form id="tenderUploadForm" enctype="multipart/form-data">
+                    <div class="upload-area" id="tenderUploadArea">
+                        <i class="bi bi-cloud-upload-fill text-primary display-1"></i>
+                        <h5 class="mt-3">拖放招标文档到此处</h5>
+                        <p class="text-muted mb-3">或点击选择文件</p>
+                        <p class="text-muted small">
+                            支持格式：Word文档 (.docx, .doc)、文本文件 (.txt)、PDF文件 (.pdf)
+                        </p>
+                        <input type="file" class="d-none" id="tenderFileInput"
+                               accept=".docx,.doc,.txt,.pdf">
+                    </div>
+                </form>
+
+                <!-- 文件信息显示 -->
+                <div class="mt-3 d-none" id="tenderFileInfo">
+                    <div class="alert alert-info">
+                        <i class="bi bi-file-earmark-text"></i>
+                        已选择文件：<strong id="tenderFileName"></strong>
+                        <span class="text-muted" id="tenderFileSize"></span>
+                    </div>
+                </div>
+
+                <!-- 提取按钮 -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary btn-lg" type="button" id="extractInfoBtn" disabled>
+                        <i class="bi bi-play-circle"></i> 开始提取信息
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 进度条 -->
+<div class="progress mb-2 d-none" id="tenderProgressBar">
+    <div class="progress-bar progress-bar-striped progress-bar-animated"
+         role="progressbar" style="width: 0%"></div>
+</div>
+<div class="text-center mb-4 d-none text-primary" id="stepMessage">
+    正在提取招标信息...
+</div>
+
+<!-- 提取结果显示 -->
+<div class="row d-none" id="tenderResultArea">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-check-circle"></i> 招标信息提取完成
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="tenderInfoDisplay">
+                    <!-- 提取结果将在这里显示 -->
+                </div>
+
+                <!-- 拆分文件显示区域 -->
+                <div id="splitDocumentsArea" class="d-none">
+                    <hr>
+                    <h6 class="mb-3">
+                        <i class="bi bi-file-earmark-break"></i> 文档拆分结果
+                    </h6>
+                    <div class="row" id="splitDocumentsList">
+                        <!-- 拆分文件将在这里显示 -->
+                    </div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <button class="btn btn-outline-success me-2" id="tenderRetryBtn">
+                        <i class="bi bi-arrow-clockwise"></i> 重新提取
+                    </button>
+                    <button class="btn btn-outline-secondary" id="tenderResetBtn">
+                        <i class="bi bi-x-circle"></i> 重置
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 错误显示区域 -->
+<div class="row d-none" id="tenderErrorArea">
+    <div class="col-12">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-x-circle"></i> 处理失败
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger" id="tenderErrorMessage">
+                    <!-- 错误信息将在这里显示 -->
+                </div>
+                <div class="text-center">
+                    <button class="btn btn-outline-danger me-2" id="tenderRetryErrorBtn">
+                        <i class="bi bi-arrow-clockwise"></i> 重试
+                    </button>
+                    <button class="btn btn-outline-secondary" id="tenderResetErrorBtn">
+                        <i class="bi bi-x-circle"></i> 重置
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 功能特点 -->
+<div class="row mb-5">
+    <div class="col-md-4 mb-3">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-search text-info" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">智能提取</h5>
+                <p class="card-text text-muted">AI自动识别招标文件中的关键信息</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-list-check text-success" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">完整字段</h5>
+                <p class="card-text text-muted">提取招标人、代理、时间等8个关键字段</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-gear text-warning" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-3">配置保存</h5>
+                <p class="card-text text-muted">自动保存提取结果到配置文件</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 功能说明 -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i> 功能说明
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📄 提取字段</h6>
+                        <ul>
+                            <li>招标人（采购人/甲方）</li>
+                            <li>招标代理（代理机构）</li>
+                            <li>投标方式（公开招标等）</li>
+                            <li>投标地点（递交地点）</li>
+                            <li>投标时间（截止时间）</li>
+                            <li>中标人数量（预计数量）</li>
+                            <li>项目名称</li>
+                            <li>项目编号（招标编号）</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>🔧 技术特点</h6>
+                        <ul>
+                            <li>AI智能识别关键信息</li>
+                            <li>支持多种文档格式</li>
+                            <li>自动提取结构化数据</li>
+                            <li>保存配置便于复用</li>
+                            <li>一键导出Excel格式</li>
+                            <li>实时进度反馈</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

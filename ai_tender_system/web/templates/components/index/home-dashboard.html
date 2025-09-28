@@ -1,0 +1,138 @@
+<!-- 首页仪表板 -->
+<!-- 系统统计面板 -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-bar-chart"></i> 系统统计
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-icon mb-3">
+                                <i class="bi bi-file-text fs-1"></i>
+                            </div>
+                            <div class="stat-number">137</div>
+                            <div class="stat-label">模型总数</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card text-center bg-info">
+                            <div class="stat-icon mb-3">
+                                <i class="bi bi-cpu fs-1"></i>
+                            </div>
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">我的模型</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card text-center bg-warning">
+                            <div class="stat-icon mb-3">
+                                <i class="bi bi-clock-history fs-1"></i>
+                            </div>
+                            <div class="stat-number">0</div>
+                            <div class="stat-label">调用次数</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="stat-card text-center bg-success">
+                            <div class="stat-icon mb-3">
+                                <i class="bi bi-check-circle fs-1"></i>
+                            </div>
+                            <div class="stat-number">100%</div>
+                            <div class="stat-label">成功率</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速功能 -->
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="card feature-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-shield-check mb-3" style="font-size: 2.5rem; color: #0d6efd;"></i>
+                <h6 class="card-title">安全保障</h6>
+                <p class="card-text text-muted small">API密钥加密存储，确保数据安全</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card feature-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-lightning mb-3" style="font-size: 2.5rem; color: #0d6efd;"></i>
+                <h6 class="card-title">高效处理</h6>
+                <p class="card-text text-muted small">智能文档分析，快速生成标书</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card feature-card h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up mb-3" style="font-size: 2.5rem; color: #0d6efd;"></i>
+                <h6 class="card-title">数据洞察</h6>
+                <p class="card-text text-muted small">实时统计分析，优化业务流程</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- 快速操作 -->
+<div class="row">
+    <div class="col-md-4">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-cloud-upload fs-1 text-primary mb-3"></i>
+                <h6>快速上传</h6>
+                <p class="small text-muted">上传招标文档开始处理</p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="tab" data-bs-target="#tender-info">
+                    开始上传
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-chat-dots fs-1 text-success mb-3"></i>
+                <h6>智能应答</h6>
+                <p class="small text-muted">点对点智能应答处理</p>
+                <button class="btn btn-success btn-sm" data-bs-toggle="tab" data-bs-target="#point-to-point">
+                    开始应答
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card feature-card">
+            <div class="card-body text-center">
+                <i class="bi bi-magic fs-1 text-warning mb-3"></i>
+                <h6>方案生成</h6>
+                <p class="small text-muted">生成技术方案文档</p>
+                <button class="btn btn-warning btn-sm" data-bs-toggle="tab" data-bs-target="#tech-proposal">
+                    开始生成
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 系统信息和帮助 -->
+<div class="text-center py-3 border-top mt-5">
+    <small class="text-muted">
+        © 2025 元景AI智能标书生成平台 |
+        <button type="button" class="btn btn-sm btn-outline-primary" id="viewFilesBtn">
+            <i class="bi bi-folder"></i> 查看文件
+        </button>
+        <a href="/help.html" class="text-decoration-none text-muted ms-2">
+            <i class="bi bi-question-circle"></i> 帮助
+        </a>
+    </small>
+</div>
