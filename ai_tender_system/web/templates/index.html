@@ -11,6 +11,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <!-- 统一CSS架构 -->
     <link href="/static/css/main.css" rel="stylesheet">
+    <!-- 通用上传组件样式 -->
+    <link href="/static/css/components/universal-uploader.css" rel="stylesheet">
 
     <!-- 外部库 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
@@ -31,6 +33,10 @@
     <script src="/static/js/components/file-upload.js"></script>
     <script src="/static/js/components/company-selector.js"></script>
     <script src="/static/js/components/modal-manager.js"></script>
+    <!-- 通用上传组件 -->
+    <script src="/static/js/components/universal-uploader.js"></script>
+    <!-- 公司状态管理器 -->
+    <script src="/static/js/components/company-state-manager.js"></script>
 
     <!-- 页面特定模块 -->
     <script src="/static/js/pages/index/tender-processor.js"></script>
@@ -51,7 +57,8 @@
                 <div class="app-sidebar" id="sidebar-wrapper">
                     <div class="card shadow-sm border-0 h-100" style="border-radius: 0;">
                         <div class="card-body p-0" style="max-height: calc(100vh - 70px); overflow-y: auto;">
-                            <div class="list-group list-group-flush" style="padding-top: 1rem;">
+                            <div class="p-3">
+                                <div class="list-group list-group-flush">
                                 <a href="#" class="list-group-item list-group-item-action active" id="home-nav" data-bs-toggle="pill" data-bs-target="#home">
                                     <i class="bi bi-house me-2"></i>首页
                                 </a>
@@ -73,6 +80,7 @@
                                 <a href="/knowledge_base" class="list-group-item list-group-item-action">
                                     <i class="bi bi-collection me-2"></i>知识库管理
                                 </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -159,13 +167,28 @@
             // 更新模型选择下拉框
             updateModelSelect() {
                 const aiModelSelect = document.getElementById('aiModel');
-                if (!aiModelSelect) return;
+                const tenderAiModelSelect = document.getElementById('tenderAiModel');
+
+                // 更新点对点页面的模型选择器
+                if (aiModelSelect) {
+                    this.updateSingleModelSelect(aiModelSelect, 'aiModel');
+                }
+
+                // 更新招标上传页面的模型选择器
+                if (tenderAiModelSelect) {
+                    this.updateSingleModelSelect(tenderAiModelSelect, 'tenderAiModel');
+                }
+            },
+
+            // 更新单个模型选择下拉框
+            updateSingleModelSelect(selectElement, selectId) {
+                if (!selectElement) return;
 
                 // 保存当前选中的模型
-                const currentValue = aiModelSelect.value;
+                const currentValue = selectElement.value;
 
                 // 清空并重新填充选项
-                aiModelSelect.innerHTML = '';
+                selectElement.innerHTML = '';
 
                 this.currentModels.forEach(model => {
                     const option = document.createElement('option');
@@ -180,17 +203,17 @@
                         option.textContent += ' ✓';
                     }
 
-                    aiModelSelect.appendChild(option);
+                    selectElement.appendChild(option);
                 });
 
                 // 恢复之前选中的模型，如果不存在则选择第一个可用的
-                if (currentValue && Array.from(aiModelSelect.options).some(opt => opt.value === currentValue)) {
-                    aiModelSelect.value = currentValue;
+                if (currentValue && Array.from(selectElement.options).some(opt => opt.value === currentValue)) {
+                    selectElement.value = currentValue;
                 } else {
                     // 选择第一个可用的模型
-                    const availableOption = Array.from(aiModelSelect.options).find(opt => !opt.disabled);
+                    const availableOption = Array.from(selectElement.options).find(opt => !opt.disabled);
                     if (availableOption) {
-                        aiModelSelect.value = availableOption.value;
+                        selectElement.value = availableOption.value;
                     }
                 }
 
@@ -199,14 +222,23 @@
 
             // 更新模型状态显示
             updateModelStatus() {
-                const aiModelSelect = document.getElementById('aiModel');
-                const modelStatus = document.getElementById('modelStatus');
-                const statusIcon = document.getElementById('modelStatusIcon');
-                const statusText = document.getElementById('modelStatusText');
+                // 更新点对点页面的模型状态
+                this.updateSingleModelStatus('aiModel', 'modelStatus', 'modelStatusIcon', 'modelStatusText');
 
-                if (!aiModelSelect || !modelStatus) return;
+                // 更新招标上传页面的模型状态
+                this.updateSingleModelStatus('tenderAiModel', 'tenderModelStatus', 'tenderModelStatusIcon', 'tenderModelStatusText');
+            },
 
-                const selectedModel = this.currentModels.find(m => m.name === aiModelSelect.value);
+            // 更新单个模型状态显示
+            updateSingleModelStatus(selectId, statusId, iconId, textId) {
+                const modelSelect = document.getElementById(selectId);
+                const modelStatus = document.getElementById(statusId);
+                const statusIcon = document.getElementById(iconId);
+                const statusText = document.getElementById(textId);
+
+                if (!modelSelect || !modelStatus) return;
+
+                const selectedModel = this.currentModels.find(m => m.name === modelSelect.value);
 
                 if (selectedModel) {
                     modelStatus.style.display = 'block';
@@ -255,6 +287,15 @@
                     });
                 }
 
+                // 绑定招标模型选择器事件
+                const tenderAiModelSelect = document.getElementById('tenderAiModel');
+                if (tenderAiModelSelect) {
+                    tenderAiModelSelect.addEventListener('change', () => {
+                        this.currentModel = tenderAiModelSelect.value;
+                        this.updateModelStatus();
+                    });
+                }
+
                 // 更新模型状态显示
                 this.updateModelStatus();
 
@@ -271,6 +312,12 @@
         // 模型选择变化事件
         function onModelChange() {
             ModelManager.currentModel = document.getElementById('aiModel').value;
+            ModelManager.updateModelStatus();
+        }
+
+        // 招标模型选择变化事件
+        function onTenderModelChange() {
+            ModelManager.currentModel = document.getElementById('tenderAiModel').value;
             ModelManager.updateModelStatus();
         }
 

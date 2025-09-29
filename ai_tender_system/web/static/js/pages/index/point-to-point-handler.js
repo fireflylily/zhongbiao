@@ -1,0 +1,1046 @@
+// 点对点应答功能处理
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('初始化点对点应答页面...');
+
+    // 初始化应答方式切换逻辑
+    initResponseModeToggle();
+
+    // 初始化公司状态管理
+    initCompanyStateManagement();
+
+    // 初始化文件上传功能
+    initFileUpload();
+
+    // 初始化表单提交
+    initFormSubmission();
+});
+
+// 初始化应答方式切换逻辑
+function initResponseModeToggle() {
+    const responseModeSelect = document.getElementById('responseMode');
+    const aiModelSelection = document.getElementById('aiModelSelection');
+
+    if (!responseModeSelect || !aiModelSelection) {
+        console.log('应答方式或AI模型选择元素未找到');
+        return;
+    }
+
+    // 添加变化监听器
+    responseModeSelect.addEventListener('change', function() {
+        const selectedMode = this.value;
+        console.log('应答方式切换为:', selectedMode);
+
+        if (selectedMode === 'ai') {
+            aiModelSelection.style.display = 'block';
+            aiModelSelection.classList.remove('d-none');
+        } else {
+            aiModelSelection.style.display = 'none';
+            aiModelSelection.classList.add('d-none');
+        }
+    });
+
+    // 初始状态设置
+    const initialMode = responseModeSelect.value;
+    if (initialMode === 'ai') {
+        aiModelSelection.style.display = 'block';
+        aiModelSelection.classList.remove('d-none');
+    } else {
+        aiModelSelection.style.display = 'none';
+        aiModelSelection.classList.add('d-none');
+    }
+
+    console.log('应答方式切换功能初始化完成');
+}
+
+// 初始化公司状态管理
+function initCompanyStateManagement() {
+    console.log('初始化点对点应答公司状态管理...');
+
+    // 检查是否有保存的公司状态
+    checkAndDisplayCompanyState();
+
+    // 绑定按钮事件
+    bindCompanyManagementEvents();
+
+    // 监听公司状态变更
+    if (window.companyStateManager) {
+        window.companyStateManager.addListener(handleCompanyStateChange);
+    }
+}
+
+// 检查并显示公司状态
+function checkAndDisplayCompanyState() {
+    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
+    const companySelector = document.getElementById('companySelector');
+    const companyPrompt = document.getElementById('companyPrompt');
+    const companySelect = document.getElementById('companySelect');
+
+    if (!selectedCompanyDisplay || !companySelector || !companyPrompt || !companySelect) {
+        console.error('公司状态管理元素缺失');
+        return;
+    }
+
+    // 检查是否有保存的公司状态
+    if (window.companyStateManager) {
+        const savedCompany = window.companyStateManager.getSelectedCompany();
+
+        if (savedCompany && savedCompany.company_id) {
+            // 显示已选择的公司
+            displaySelectedCompany(savedCompany);
+        } else {
+            // 显示提示信息
+            showCompanyPrompt();
+        }
+    } else {
+        console.error('公司状态管理器未初始化');
+        showCompanyPrompt();
+    }
+}
+
+// 显示已选择的公司
+function displaySelectedCompany(companyData) {
+    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
+    const companySelector = document.getElementById('companySelector');
+    const companyPrompt = document.getElementById('companyPrompt');
+    const companySelect = document.getElementById('companySelect');
+    const selectedCompanyNameDisplay = document.getElementById('selectedCompanyNameDisplay');
+
+    // 隐藏其他区域，显示已选择公司区域
+    if (companyPrompt) companyPrompt.style.display = 'none';
+    if (companySelector) companySelector.style.display = 'none';
+    if (selectedCompanyDisplay) selectedCompanyDisplay.style.display = 'block';
+
+    // 设置公司名称和ID
+    if (selectedCompanyNameDisplay) {
+        selectedCompanyNameDisplay.textContent = companyData.company_name;
+    }
+    if (companySelect) {
+        companySelect.value = companyData.company_id;
+    }
+
+    console.log('点对点应答页面：显示已选择公司', companyData);
+}
+
+// 显示公司选择提示
+function showCompanyPrompt() {
+    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
+    const companySelector = document.getElementById('companySelector');
+    const companyPrompt = document.getElementById('companyPrompt');
+
+    // 隐藏其他区域，显示提示信息
+    if (selectedCompanyDisplay) selectedCompanyDisplay.style.display = 'none';
+    if (companySelector) companySelector.style.display = 'none';
+    if (companyPrompt) companyPrompt.style.display = 'block';
+
+    console.log('点对点应答页面：显示公司选择提示');
+}
+
+// 显示公司选择器
+function showCompanySelector() {
+    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
+    const companySelector = document.getElementById('companySelector');
+    const companyPrompt = document.getElementById('companyPrompt');
+
+    // 隐藏其他区域，显示选择器
+    if (selectedCompanyDisplay) selectedCompanyDisplay.style.display = 'none';
+    if (companyPrompt) companyPrompt.style.display = 'none';
+    if (companySelector) companySelector.style.display = 'block';
+
+    // 加载公司列表
+    loadCompaniesToSelector();
+
+    console.log('点对点应答页面：显示公司选择器');
+}
+
+// 加载公司列表到选择器
+function loadCompaniesToSelector() {
+    const companySelectorDropdown = document.getElementById('companySelectorDropdown');
+    if (!companySelectorDropdown) {
+        console.error('公司选择下拉框不存在');
+        return;
+    }
+
+    console.log('加载公司列表到选择器...');
+
+    fetch('/api/companies')
+        .then(response => response.json())
+        .then(data => {
+            console.log('API返回的公司数据:', data);
+
+            // 清空现有选项
+            companySelectorDropdown.innerHTML = '<option value="">请选择公司...</option>';
+
+            if (data.success && data.data && data.data.length > 0) {
+                // 遍历公司列表并添加选项
+                data.data.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = company.company_id;
+                    option.textContent = company.company_name;
+                    companySelectorDropdown.appendChild(option);
+                });
+
+                console.log(`成功加载 ${data.data.length} 家公司到选择器`);
+            } else {
+                console.log('没有找到公司数据');
+                companySelectorDropdown.innerHTML = '<option value="">暂无公司数据</option>';
+            }
+        })
+        .catch(error => {
+            console.error('加载公司列表失败:', error);
+            companySelectorDropdown.innerHTML = '<option value="">加载失败，请刷新重试</option>';
+        });
+}
+
+// 绑定公司管理相关事件
+function bindCompanyManagementEvents() {
+    // "在此选择公司"按钮
+    const selectCompanyHereBtn = document.getElementById('selectCompanyHereBtn');
+    if (selectCompanyHereBtn) {
+        selectCompanyHereBtn.addEventListener('click', function() {
+            showCompanySelector();
+        });
+    }
+
+    // "更换公司"按钮
+    const changeCompanyBtn = document.getElementById('changeCompanyBtn');
+    if (changeCompanyBtn) {
+        changeCompanyBtn.addEventListener('click', function() {
+            showCompanySelector();
+        });
+    }
+
+    // 公司选择下拉框变更
+    const companySelectorDropdown = document.getElementById('companySelectorDropdown');
+    if (companySelectorDropdown) {
+        companySelectorDropdown.addEventListener('change', function() {
+            const selectedValue = this.value;
+            const selectedText = this.options[this.selectedIndex].text;
+
+            if (selectedValue && selectedText && selectedText !== '请选择公司...') {
+                const companyData = {
+                    company_id: selectedValue,
+                    company_name: selectedText
+                };
+
+                // 保存到全局状态
+                if (window.companyStateManager) {
+                    window.companyStateManager.setSelectedCompany(companyData);
+                }
+
+                // 立即显示选择的公司
+                displaySelectedCompany(companyData);
+            }
+        });
+    }
+
+    // 刷新公司列表按钮
+    const refreshCompaniesBtn = document.getElementById('refreshCompaniesBtn');
+    if (refreshCompaniesBtn) {
+        refreshCompaniesBtn.addEventListener('click', function() {
+            loadCompaniesToSelector();
+        });
+    }
+}
+
+// 处理公司状态变更（来自其他页面）
+function handleCompanyStateChange(companyData) {
+    console.log('点对点应答页面：接收到公司状态变更', companyData);
+
+    if (companyData && companyData.company_id) {
+        displaySelectedCompany(companyData);
+    } else {
+        showCompanyPrompt();
+    }
+}
+
+// 初始化文件上传功能
+function initFileUpload() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const processBtn = document.getElementById('processBtn');
+
+    if (!uploadArea || !fileInput) {
+        console.log('文件上传元素未找到');
+        return;
+    }
+
+    // 上传区域点击事件
+    uploadArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // 文件选择事件
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            displayFileInfo(file);
+            updateProcessButton();
+        }
+    });
+
+    // 拖拽上传
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+    });
+
+    uploadArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            displayFileInfo(files[0]);
+            updateProcessButton();
+        }
+    }
+
+    function displayFileInfo(file) {
+        if (fileName) fileName.textContent = file.name;
+        if (fileSize) fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        if (fileInfo) fileInfo.classList.remove('d-none');
+    }
+
+    function updateProcessButton() {
+        const companySelect = document.getElementById('companySelect');
+        const hasFile = fileInput.files.length > 0;
+        const hasCompany = companySelect && companySelect.value;
+
+        if (processBtn) {
+            processBtn.disabled = !(hasFile && hasCompany);
+        }
+    }
+
+    // 公司选择变化时也要更新按钮状态
+    const companySelect = document.getElementById('companySelect');
+    if (companySelect) {
+        companySelect.addEventListener('change', updateProcessButton);
+    }
+}
+
+// 防止默认拖拽行为
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// 初始化表单提交
+function initFormSubmission() {
+    const uploadForm = document.getElementById('uploadForm');
+    if (!uploadForm) {
+        console.log('上传表单未找到');
+        return;
+    }
+
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitPointToPointForm();
+    });
+}
+
+// 提交点对点应答表单
+function submitPointToPointForm() {
+    const fileInput = document.getElementById('fileInput');
+    const companySelect = document.getElementById('companySelect');
+    const responseFrequency = document.getElementById('responseFrequency');
+    const responseMode = document.getElementById('responseMode');
+    const aiModel = document.getElementById('aiModel');
+
+    // 验证必填字段
+    if (!fileInput.files[0]) {
+        alert('请选择文件');
+        return;
+    }
+
+    if (!companySelect.value) {
+        alert('请选择公司');
+        return;
+    }
+
+    // 显示进度条
+    const progressBar = document.getElementById('progressBar');
+    const resultArea = document.getElementById('resultArea');
+    const errorArea = document.getElementById('errorArea');
+    const processBtn = document.getElementById('processBtn');
+
+    if (progressBar) progressBar.classList.remove('d-none');
+    if (resultArea) resultArea.classList.add('d-none');
+    if (errorArea) errorArea.classList.add('d-none');
+
+    // 构建FormData
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('companyId', companySelect.value);
+    formData.append('responseFrequency', responseFrequency?.value || 'every_paragraph');
+    formData.append('responseMode', responseMode?.value || 'simple');
+
+    if (responseMode?.value === 'ai' && aiModel) {
+        formData.append('aiModel', aiModel.value);
+    }
+
+    // 禁用提交按钮
+    if (processBtn) {
+        processBtn.disabled = true;
+        processBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 处理中...';
+    }
+
+    // 模拟进度
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        const progressBarInner = document.querySelector('#progressBar .progress-bar');
+        if (progressBarInner) progressBarInner.style.width = progress + '%';
+    }, 500);
+
+    // 创建超时控制器
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分钟超时
+
+    fetch('/process-point-to-point', {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal
+    })
+    .then(response => {
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            throw new Error(`HTTP错误! 状态: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        clearInterval(progressInterval);
+        const progressBarInner = document.querySelector('#progressBar .progress-bar');
+        if (progressBarInner) progressBarInner.style.width = '100%';
+
+        if (data.success) {
+            const resultMessage = document.getElementById('resultMessage');
+            if (resultMessage) resultMessage.textContent = data.message;
+
+            // 设置下载按钮事件
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (data.download_url && data.filename && downloadBtn) {
+                downloadBtn.onclick = function(e) {
+                    e.preventDefault();
+                    downloadFile(data.download_url, data.filename);
+                };
+            }
+
+            if (resultArea) resultArea.classList.remove('d-none');
+        } else {
+            const errorMessage = document.getElementById('errorMessage');
+            if (errorMessage) errorMessage.textContent = data.error || '处理失败';
+            if (errorArea) errorArea.classList.remove('d-none');
+        }
+    })
+    .catch(error => {
+        clearTimeout(timeoutId);
+        clearInterval(progressInterval);
+        let errorMsg = '上传失败: ';
+
+        if (error.name === 'AbortError') {
+            errorMsg += '请求超时，文档过大或网络不稳定。建议：1) 检查网络连接 2) 尝试更小的文档 3) 点击重试';
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMsg += '网络连接失败，请检查网络状态后重试';
+        } else {
+            errorMsg += error.message;
+        }
+
+        const errorMessage = document.getElementById('errorMessage');
+        if (errorMessage) errorMessage.textContent = errorMsg;
+        if (errorArea) errorArea.classList.remove('d-none');
+    })
+    .finally(() => {
+        setTimeout(() => {
+            if (progressBar) progressBar.classList.add('d-none');
+            const progressBarInner = document.querySelector('#progressBar .progress-bar');
+            if (progressBarInner) progressBarInner.style.width = '0%';
+            if (processBtn) {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始处理';
+            }
+        }, 1000);
+    });
+}
+
+// 下载文件功能
+function downloadFile(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 刷新公司列表
+function refreshCompanies() {
+    loadCompaniesToSelector();
+}
+
+// 重试和重置功能
+document.addEventListener('DOMContentLoaded', function() {
+    const retryBtn = document.getElementById('retryBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function() {
+            submitPointToPointForm();
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            // 重置表单
+            const uploadForm = document.getElementById('uploadForm');
+            if (uploadForm) uploadForm.reset();
+
+            // 隐藏文件信息
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) fileInfo.classList.add('d-none');
+
+            // 隐藏结果和错误区域
+            const resultArea = document.getElementById('resultArea');
+            const errorArea = document.getElementById('errorArea');
+            if (resultArea) resultArea.classList.add('d-none');
+            if (errorArea) errorArea.classList.add('d-none');
+
+            // 重新设置按钮状态
+            const processBtn = document.getElementById('processBtn');
+            if (processBtn) {
+                processBtn.disabled = true;
+                processBtn.innerHTML = '<i class="bi bi-play-circle"></i> 开始处理';
+            }
+        });
+    }
+});
+
+// 刷新模型列表（与ModelManager集成）
+function refreshModels() {
+    if (typeof ModelManager !== 'undefined' && ModelManager.loadModels) {
+        ModelManager.loadModels();
+    } else {
+        console.log('ModelManager未找到，无法刷新模型列表');
+    }
+}
+
+// 模型选择变化事件（与ModelManager集成）
+function onModelChange() {
+    if (typeof ModelManager !== 'undefined') {
+        const aiModelSelect = document.getElementById('aiModel');
+        if (aiModelSelect) {
+            ModelManager.currentModel = aiModelSelect.value;
+            if (ModelManager.updateModelStatus) {
+                ModelManager.updateModelStatus();
+            }
+        }
+    }
+}
+
+// 加载点对点应答历史文件列表
+function loadPointToPointFilesList() {
+    console.log('开始加载点对点应答历史文件列表...');
+
+    const tableBody = document.getElementById('pointToPointFilesTableBody');
+    const noFilesDiv = document.getElementById('pointToPointNoFiles');
+
+    if (!tableBody) {
+        console.error('找不到点对点应答文件列表表格体');
+        return;
+    }
+
+    // 显示加载状态
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="5" class="text-center text-muted">
+                <i class="bi bi-hourglass-split"></i> 加载中...
+            </td>
+        </tr>
+    `;
+
+    // 隐藏空状态
+    if (noFilesDiv) {
+        noFilesDiv.classList.add('d-none');
+    }
+
+    fetch('/api/point-to-point/files')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP错误! 状态: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('点对点应答文件列表API返回:', data);
+
+            if (data.success && data.data && data.data.length > 0) {
+                displayPointToPointFilesList(data.data);
+            } else {
+                // 显示空状态
+                tableBody.innerHTML = '';
+                if (noFilesDiv) {
+                    noFilesDiv.classList.remove('d-none');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('加载点对点应答文件列表失败:', error);
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 加载失败: ${error.message}
+                        <br>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadPointToPointFilesList()">
+                            <i class="bi bi-arrow-clockwise"></i> 重试
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+// 显示点对点应答文件列表
+function displayPointToPointFilesList(files) {
+    const tableBody = document.getElementById('pointToPointFilesTableBody');
+    const template = document.getElementById('pointToPointFileRowTemplate');
+
+    if (!tableBody || !template) {
+        console.error('找不到表格体或行模板元素');
+        return;
+    }
+
+    // 清空表格
+    tableBody.innerHTML = '';
+
+    files.forEach(file => {
+        // 克隆模板
+        const row = template.content.cloneNode(true);
+
+        // 填充数据
+        row.querySelector('.file-name').textContent = file.original_filename || file.filename || '未知文件';
+        row.querySelector('.company-name').textContent = file.company_name || '未知公司';
+        row.querySelector('.process-time').textContent = formatDateTime(file.created_at || file.process_time);
+
+        // 设置状态
+        const statusCell = row.querySelector('.status');
+        if (file.status === 'completed' || file.status === 'success') {
+            statusCell.innerHTML = '<span class="badge bg-success">已完成</span>';
+        } else if (file.status === 'processing') {
+            statusCell.innerHTML = '<span class="badge bg-warning">处理中</span>';
+        } else if (file.status === 'failed' || file.status === 'error') {
+            statusCell.innerHTML = '<span class="badge bg-danger">失败</span>';
+        } else {
+            statusCell.innerHTML = '<span class="badge bg-secondary">未知</span>';
+        }
+
+        // 设置按钮的数据属性
+        const previewBtn = row.querySelector('.preview-btn');
+        const editBtn = row.querySelector('.edit-btn');
+        const downloadBtn = row.querySelector('.download-btn');
+
+        const filePath = file.output_path || file.file_path || '';
+        const fileId = file.id || file.file_id || '';
+
+        if (previewBtn) {
+            previewBtn.setAttribute('data-file-path', filePath);
+            previewBtn.setAttribute('data-file-id', fileId);
+            previewBtn.setAttribute('data-filename', file.original_filename || file.filename || '');
+        }
+
+        if (editBtn) {
+            editBtn.setAttribute('data-file-path', filePath);
+            editBtn.setAttribute('data-file-id', fileId);
+            editBtn.setAttribute('data-filename', file.original_filename || file.filename || '');
+        }
+
+        if (downloadBtn) {
+            downloadBtn.setAttribute('data-file-path', filePath);
+            downloadBtn.setAttribute('data-file-id', fileId);
+            downloadBtn.setAttribute('data-filename', file.original_filename || file.filename || '');
+        }
+
+        // 添加到表格
+        tableBody.appendChild(row);
+    });
+
+    console.log(`成功显示 ${files.length} 个点对点应答文件`);
+}
+
+// 格式化日期时间
+function formatDateTime(dateTimeStr) {
+    if (!dateTimeStr) return '未知时间';
+
+    try {
+        const date = new Date(dateTimeStr);
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        console.error('日期格式化失败:', error);
+        return dateTimeStr;
+    }
+}
+
+// 预览点对点应答文档
+function previewPointDocument(button) {
+    const filePath = button.getAttribute('data-file-path');
+    const fileId = button.getAttribute('data-file-id');
+    const filename = button.getAttribute('data-filename');
+
+    if (!filePath && !fileId) {
+        alert('无法获取文件信息');
+        return;
+    }
+
+    console.log('预览点对点应答文档:', { filePath, fileId, filename });
+
+    // 构建预览URL
+    let previewUrl = '/api/point-to-point/preview';
+    if (fileId) {
+        previewUrl += `?file_id=${fileId}`;
+    } else if (filePath) {
+        previewUrl += `?file_path=${encodeURIComponent(filePath)}`;
+    }
+
+    // 在新窗口中打开预览
+    const previewWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+    if (!previewWindow) {
+        alert('浏览器阻止了弹出窗口，请检查弹出窗口设置');
+        return;
+    }
+
+    // 显示加载状态
+    previewWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>预览: ${filename || '文档'}</title>
+            <meta charset="utf-8">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container-fluid">
+                <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3">正在加载文档预览...</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+
+    // 获取预览内容
+    fetch(previewUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP错误! 状态: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const content = data.content || data.html || '无法显示预览内容';
+                previewWindow.document.open();
+                previewWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>预览: ${filename || '文档'}</title>
+                        <meta charset="utf-8">
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+                        <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+                            .preview-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000; }
+                            .preview-content { padding: 2rem; max-width: 900px; margin: 0 auto; }
+                            .highlight { background-color: #d4edda; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="preview-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>${filename || '文档预览'}</h5>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="window.close()">
+                                    <i class="bi bi-x-lg"></i> 关闭
+                                </button>
+                            </div>
+                        </div>
+                        <div class="preview-content">
+                            ${content}
+                        </div>
+                    </body>
+                    </html>
+                `);
+                previewWindow.document.close();
+            } else {
+                throw new Error(data.error || '预览失败');
+            }
+        })
+        .catch(error => {
+            console.error('文档预览失败:', error);
+            previewWindow.document.open();
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>预览错误</title>
+                    <meta charset="utf-8">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+                </head>
+                <body>
+                    <div class="container mt-5">
+                        <div class="alert alert-danger">
+                            <h5><i class="bi bi-exclamation-triangle me-2"></i>预览失败</h5>
+                            <p>无法预览此文档: ${error.message}</p>
+                            <button class="btn btn-outline-secondary" onclick="window.close()">关闭</button>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            previewWindow.document.close();
+        });
+}
+
+// 编辑点对点应答文档
+function editPointDocument(button) {
+    const filePath = button.getAttribute('data-file-path');
+    const fileId = button.getAttribute('data-file-id');
+    const filename = button.getAttribute('data-filename');
+
+    if (!filePath && !fileId) {
+        alert('无法获取文件信息');
+        return;
+    }
+
+    console.log('编辑点对点应答文档:', { filePath, fileId, filename });
+
+    // 构建编辑URL
+    let editUrl = '/api/point-to-point/edit';
+    if (fileId) {
+        editUrl += `?file_id=${fileId}`;
+    } else if (filePath) {
+        editUrl += `?file_path=${encodeURIComponent(filePath)}`;
+    }
+
+    // 在新窗口中打开编辑器
+    const editWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+
+    if (!editWindow) {
+        alert('浏览器阻止了弹出窗口，请检查弹出窗口设置');
+        return;
+    }
+
+    // 显示加载状态
+    editWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>编辑: ${filename || '文档'}</title>
+            <meta charset="utf-8">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container-fluid">
+                <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3">正在加载文档编辑器...</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+
+    // 获取编辑内容
+    fetch(editUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP错误! 状态: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const editableContent = data.content || data.html || '';
+                createDocumentEditor(editWindow, filename, editableContent, editUrl);
+            } else {
+                throw new Error(data.error || '加载编辑内容失败');
+            }
+        })
+        .catch(error => {
+            console.error('文档编辑失败:', error);
+            editWindow.document.open();
+            editWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>编辑错误</title>
+                    <meta charset="utf-8">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+                </head>
+                <body>
+                    <div class="container mt-5">
+                        <div class="alert alert-danger">
+                            <h5><i class="bi bi-exclamation-triangle me-2"></i>编辑失败</h5>
+                            <p>无法编辑此文档: ${error.message}</p>
+                            <button class="btn btn-outline-secondary" onclick="window.close()">关闭</button>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            editWindow.document.close();
+        });
+}
+
+// 创建文档编辑器
+function createDocumentEditor(editWindow, filename, content, saveUrl) {
+    editWindow.document.open();
+    editWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>编辑: ${filename || '文档'}</title>
+            <meta charset="utf-8">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+                .editor-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000; }
+                .editor-content { padding: 1rem; }
+                .editor-textarea { font-family: 'Courier New', monospace; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div class="editor-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-pencil me-2"></i>编辑: ${filename || '文档'}</h5>
+                    <div>
+                        <button class="btn btn-primary btn-sm me-2" onclick="saveDocument()">
+                            <i class="bi bi-check-lg"></i> 保存
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="window.close()">
+                            <i class="bi bi-x-lg"></i> 关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="editor-content">
+                <textarea class="form-control editor-textarea" rows="30" id="documentContent">${content}</textarea>
+                <div class="mt-3">
+                    <small class="text-muted">提示：修改完成后点击"保存"按钮保存更改</small>
+                </div>
+            </div>
+
+            <script>
+                function saveDocument() {
+                    const content = document.getElementById('documentContent').value;
+                    const saveBtn = document.querySelector('.btn-primary');
+
+                    // 显示保存状态
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
+
+                    fetch('${saveUrl}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            content: content
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('保存成功！');
+                            // 刷新父窗口的文件列表
+                            if (window.opener && window.opener.loadPointToPointFilesList) {
+                                window.opener.loadPointToPointFilesList();
+                            }
+                        } else {
+                            throw new Error(data.error || '保存失败');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('保存失败:', error);
+                        alert('保存失败: ' + error.message);
+                    })
+                    .finally(() => {
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="bi bi-check-lg"></i> 保存';
+                    });
+                }
+            </script>
+        </body>
+        </html>
+    `);
+    editWindow.document.close();
+}
+
+// 下载点对点应答文档
+function downloadPointDocument(button) {
+    const filePath = button.getAttribute('data-file-path');
+    const fileId = button.getAttribute('data-file-id');
+    const filename = button.getAttribute('data-filename');
+
+    if (!filePath && !fileId) {
+        alert('无法获取文件信息');
+        return;
+    }
+
+    console.log('下载点对点应答文档:', { filePath, fileId, filename });
+
+    // 构建下载URL
+    let downloadUrl = '/api/point-to-point/download';
+    if (fileId) {
+        downloadUrl += `?file_id=${fileId}`;
+    } else if (filePath) {
+        downloadUrl += `?file_path=${encodeURIComponent(filePath)}`;
+    }
+
+    // 触发下载
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename || 'document';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 在页面加载完成后自动加载历史文件列表
+document.addEventListener('DOMContentLoaded', function() {
+    // 延迟一下确保其他组件初始化完成
+    setTimeout(() => {
+        loadPointToPointFilesList();
+    }, 1000);
+});

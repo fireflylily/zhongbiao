@@ -1,3 +1,19 @@
+<!-- 功能说明 -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>内联回复功能（原地插入应答）</h6>
+            <p class="mb-2">该功能会在原文档中每个需求后<strong>直接插入应答</strong>，特点：</p>
+            <ul class="mb-0 small">
+                <li><strong>原地插入</strong>：应答紧跟在每个需求段落后面</li>
+                <li><strong>灰色底纹标记</strong>：应答内容添加浅灰色背景（RGB 217,217,217），便于识别</li>
+                <li><strong>格式完整保留</strong>：保持原文档的字体、样式、结构不变</li>
+                <li><strong>专业提示词</strong>：使用三种专业模板（点对点/内容生成/标题简化）</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
 <!-- 点对点应答功能区域 -->
 <div class="row mb-4">
     <div class="col-12">
@@ -9,22 +25,56 @@
             </div>
             <div class="card-body">
                 <form id="uploadForm">
-                    <!-- 公司选择 -->
-                    <div class="row mb-4">
-                        <div class="col-md-8">
-                            <label for="companySelect" class="form-label">
-                                <i class="bi bi-building"></i> 选择公司
+                    <!-- 公司信息区域 -->
+                    <div class="row mb-4" id="companyInfoSection">
+                        <!-- 已选择公司时显示 -->
+                        <div class="col-12" id="selectedCompanyDisplay" style="display: none;">
+                            <label class="form-label">
+                                <i class="bi bi-building-check"></i> 应答公司
                             </label>
-                            <select class="form-select" id="companySelect" name="companyId">
-                                <option value="">请选择公司...</option>
-                                <!-- 公司选项将通过JavaScript动态加载 -->
-                            </select>
+                            <div class="alert alert-success d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong id="selectedCompanyNameDisplay">-</strong>
+                                    <small class="text-muted d-block">已在商务应答页面选择</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="changeCompanyBtn">
+                                    <i class="bi bi-arrow-repeat"></i> 更换公司
+                                </button>
+                            </div>
+                            <!-- 隐藏的表单字段存储公司ID -->
+                            <input type="hidden" id="companySelect" name="companyId" value="">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">&nbsp;</label>
-                            <div>
-                                <button type="button" class="btn btn-outline-primary" id="refreshCompaniesBtn">
-                                    <i class="bi bi-arrow-clockwise"></i> 刷新
+
+                        <!-- 未选择公司时显示选择器 -->
+                        <div class="col-12" id="companySelector" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <label for="companySelectorDropdown" class="form-label">
+                                        <i class="bi bi-building"></i> 选择公司
+                                    </label>
+                                    <select class="form-select" id="companySelectorDropdown">
+                                        <option value="">请选择公司...</option>
+                                        <!-- 公司选项将通过JavaScript动态加载 -->
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-primary" id="refreshCompaniesBtn">
+                                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 提示信息（初始状态） -->
+                        <div class="col-12" id="companyPrompt">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                请先在<strong>商务应答</strong>页面选择公司，或在此处手动选择应答公司
+                                <button type="button" class="btn btn-sm btn-primary ms-2" id="selectCompanyHereBtn">
+                                    在此选择公司
                                 </button>
                             </div>
                         </div>
@@ -176,6 +226,83 @@
                     <button class="btn btn-outline-secondary" id="resetBtn">
                         <i class="bi bi-x-circle"></i> 重置
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 历史文件列表 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-clock-history"></i> 历史处理文件
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadPointToPointFilesList()">
+                    <i class="bi bi-arrow-clockwise"></i> 刷新列表
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="pointToPointFilesTable">
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th>公司</th>
+                                <th>处理时间</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pointToPointFilesTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    <i class="bi bi-hourglass-split"></i> 加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 隐藏的表格行模板，用于JavaScript动态生成 -->
+                <template id="pointToPointFileRowTemplate">
+                    <tr>
+                        <td class="file-name"></td>
+                        <td class="company-name"></td>
+                        <td class="process-time"></td>
+                        <td class="status"></td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary preview-btn"
+                                        onclick="previewPointDocument(this)"
+                                        data-file-path=""
+                                        title="预览文档">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-success edit-btn"
+                                        onclick="editPointDocument(this)"
+                                        data-file-path=""
+                                        title="编辑文档">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-info download-btn"
+                                        onclick="downloadPointDocument(this)"
+                                        data-file-path=""
+                                        title="下载文档">
+                                    <i class="bi bi-download"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+
+                <!-- 空状态显示 -->
+                <div class="text-center text-muted d-none" id="pointToPointNoFiles">
+                    <i class="bi bi-inbox display-4"></i>
+                    <p class="mt-3">暂无历史处理文件</p>
+                    <p class="small">处理完成的文件将在这里显示</p>
                 </div>
             </div>
         </div>
