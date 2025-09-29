@@ -1,0 +1,34 @@
+<!-- 知识库分类树组件 -->
+<div class="col-md-3 p-0">
+    <div class="card shadow-sm border-0 h-100" style="border-radius: 0;">
+        <div class="card-body p-0" style="max-height: calc(100vh - 70px); overflow-y: auto;">
+            <div class="p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0 text-primary">
+                        <i class="bi bi-collection me-2"></i>企业知识库
+                    </h6>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary btn-sm" onclick="window.categoryManager.showAddCompanyModal()" title="添加企业">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="window.searchManager.showSearchModal()" title="搜索文档">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="companyTree">
+                    <!-- 企业树形结构会在这里动态渲染 -->
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0">正在加载企业数据...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

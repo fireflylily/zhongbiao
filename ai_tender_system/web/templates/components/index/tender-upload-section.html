@@ -1,87 +1,191 @@
-<!-- 招标文档上传区域 -->
+<!--
+招标文档上传区域 - 分步骤处理重构版本
+设计架构说明：
+1. 分离上传和处理：先上传文件，再分步处理信息
+2. 参考资质上传：使用相同的UI设计模式
+3. 清晰的步骤：上传 → 处理控制 → 结果展示
+4. 用户可控：用户可选择处理哪些信息类型
+-->
+<!-- 第1部分：文件上传区域 -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="bi bi-cloud-upload"></i> 招标文档上传
+                    <i class="bi bi-cloud-upload"></i> 步骤1：上传招标文档
                 </h6>
             </div>
             <div class="card-body">
-                <!-- 表单容器 -->
-                <form id="tenderUploadForm" enctype="multipart/form-data">
-                    <div class="upload-area" id="tenderUploadArea">
-                        <i class="bi bi-cloud-upload-fill text-primary display-1"></i>
-                        <h5 class="mt-3">拖放招标文档到此处</h5>
-                        <p class="text-muted mb-3">或点击选择文件</p>
-                        <p class="text-muted small">
-                            支持格式：Word文档 (.docx, .doc)、文本文件 (.txt)、PDF文件 (.pdf)
-                        </p>
-                        <input type="file" class="d-none" id="tenderFileInput"
-                               accept=".docx,.doc,.txt,.pdf">
-                    </div>
-                </form>
+                <!-- 使用通用上传组件，配置为纯上传模式 -->
+                <div id="tenderUploadContainer"></div>
 
-                <!-- 文件信息显示 -->
-                <div class="mt-3 d-none" id="tenderFileInfo">
-                    <div class="alert alert-info">
-                        <i class="bi bi-file-earmark-text"></i>
-                        已选择文件：<strong id="tenderFileName"></strong>
-                        <span class="text-muted" id="tenderFileSize"></span>
+                <!-- 上传成功后的文件信息显示 -->
+                <div class="mt-3 d-none" id="uploadedFileInfo">
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        <strong>文件上传成功：</strong>
+                        <span id="uploadedFileName"></span>
+                        <span class="text-muted">(<span id="uploadedFileSize"></span>)</span>
                     </div>
-                </div>
-
-                <!-- 提取按钮 -->
-                <div class="text-center mt-4">
-                    <button class="btn btn-primary btn-lg" type="button" id="extractInfoBtn" disabled>
-                        <i class="bi bi-play-circle"></i> 开始提取信息
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 进度条 -->
-<div class="progress mb-2 d-none" id="tenderProgressBar">
-    <div class="progress-bar progress-bar-striped progress-bar-animated"
-         role="progressbar" style="width: 0%"></div>
-</div>
-<div class="text-center mb-4 d-none text-primary" id="stepMessage">
-    正在提取招标信息...
-</div>
-
-<!-- 提取结果显示 -->
-<div class="row d-none" id="tenderResultArea">
+<!-- 第2部分：信息处理控制区域 -->
+<div class="row mb-4 d-none" id="processingControlArea">
     <div class="col-12">
-        <div class="card border-success">
-            <div class="card-header bg-success text-white">
+        <div class="card">
+            <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="bi bi-check-circle"></i> 招标信息提取完成
+                    <i class="bi bi-gear"></i> 步骤2：选择处理信息类型
                 </h6>
             </div>
             <div class="card-body">
-                <div id="tenderInfoDisplay">
-                    <!-- 提取结果将在这里显示 -->
-                </div>
+                <!-- AI模型选择 -->
+                <div class="mb-4" id="tenderAiModelSelection">
+                    <label for="tenderAiModel" class="form-label">
+                        <strong>选择AI模型：</strong>
+                        <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="refreshModels()">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                        </button>
+                    </label>
+                    <select class="form-select" name="tenderAiModel" id="tenderAiModel" onchange="onTenderModelChange()">
+                        <optgroup label="始皇API">
+                            <option value="shihuang-gpt4o-mini" selected>始皇-GPT4o迷你版（快速高效）</option>
+                            <option value="shihuang-gpt4">始皇-GPT4专业版（深度分析）</option>
+                        </optgroup>
+                        <optgroup label="联通元景">
+                            <option value="unicom-yuanjing">联通元景模型</option>
+                        </optgroup>
+                        <optgroup label="OpenAI">
+                            <option value="gpt-4o-mini">GPT-4O Mini (推荐)</option>
+                            <option value="gpt-4o">GPT-4O (高质量)</option>
+                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (快速)</option>
+                        </optgroup>
+                    </select>
 
-                <!-- 拆分文件显示区域 -->
-                <div id="splitDocumentsArea" class="d-none">
-                    <hr>
-                    <h6 class="mb-3">
-                        <i class="bi bi-file-earmark-break"></i> 文档拆分结果
-                    </h6>
-                    <div class="row" id="splitDocumentsList">
-                        <!-- 拆分文件将在这里显示 -->
+                    <!-- 模型状态显示 -->
+                    <div class="mt-2" id="tenderModelStatus" style="display: none;">
+                        <small class="d-flex align-items-center">
+                            <span id="tenderModelStatusIcon" class="me-1"></span>
+                            <span id="tenderModelStatusText"></span>
+                        </small>
                     </div>
                 </div>
 
-                <div class="text-center mt-3">
-                    <button class="btn btn-outline-success me-2" id="tenderRetryBtn">
-                        <i class="bi bi-arrow-clockwise"></i> 重新提取
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-outline-primary w-100" id="processBasicInfoBtn" disabled>
+                            <i class="bi bi-info-circle"></i><br>
+                            <small>处理基本信息</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-outline-success w-100" id="processQualificationBtn" disabled>
+                            <i class="bi bi-award"></i><br>
+                            <small>处理资质要求</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-outline-warning w-100" id="processScoringBtn" disabled>
+                            <i class="bi bi-star"></i><br>
+                            <small>处理评分信息</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button class="btn btn-primary w-100" id="processAllBtn" disabled>
+                            <i class="bi bi-lightning"></i><br>
+                            <small>一键全部处理</small>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 处理进度显示 -->
+                <div class="mt-3 d-none" id="processingProgress">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width: 0%" id="processingProgressBar">
+                            <span id="processingProgressText">准备处理...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 第3部分：结果展示区域 -->
+<div class="row mb-4 d-none" id="resultsDisplayArea">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-list-check"></i> 步骤3：处理结果展示
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- 基本信息展示 -->
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-info-circle"></i> 基本信息
+                                </h6>
+                            </div>
+                            <div class="card-body" id="basicInfoDisplay">
+                                <div class="text-muted text-center">
+                                    <i class="bi bi-hourglass-split"></i><br>
+                                    等待处理...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 资质要求展示 -->
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-award"></i> 资质要求
+                                </h6>
+                            </div>
+                            <div class="card-body" id="qualificationDisplay">
+                                <div class="text-muted text-center">
+                                    <i class="bi bi-hourglass-split"></i><br>
+                                    等待处理...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 评分信息展示 -->
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-star"></i> 评分信息
+                                </h6>
+                            </div>
+                            <div class="card-body" id="scoringDisplay">
+                                <div class="text-muted text-center">
+                                    <i class="bi bi-hourglass-split"></i><br>
+                                    等待处理...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-primary me-2" id="exportResultsBtn" disabled>
+                        <i class="bi bi-download"></i> 导出结果
                     </button>
-                    <button class="btn btn-outline-secondary" id="tenderResetBtn">
-                        <i class="bi bi-x-circle"></i> 重置
+                    <button class="btn btn-outline-secondary me-2" id="resetAllBtn">
+                        <i class="bi bi-arrow-counterclockwise"></i> 重新开始
                     </button>
                 </div>
             </div>

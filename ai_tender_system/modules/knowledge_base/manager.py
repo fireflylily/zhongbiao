@@ -126,7 +126,9 @@ class KnowledgeBaseManager:
                 'postalCode': 'postal_code',
                 'email': 'email',
                 'officeAddress': 'office_address',
-                'employeeCount': 'employee_count'
+                'employeeCount': 'employee_count',
+                'bankName': 'bank_name',
+                'bankAccount': 'bank_account'
             }
 
             # DEBUG: 专门检查 registeredCapital 字段

@@ -294,7 +294,20 @@ def register_routes(app: Flask, config, logger):
     
     @app.route('/extract-tender-info', methods=['POST'])
     def extract_tender_info():
-        """招标信息提取"""
+        """
+        招标信息提取API
+
+        设计架构说明：
+        1. 当前实现：直接文件上传 → AI处理 → 返回结果 (一体化流程)
+        2. 目标架构：统一存储 → AI处理 → 结果存储 (分离式流程)
+
+        重构计划：
+        - 阶段1: 前端统一 (已完成) - 使用UniversalUploader组件
+        - 阶段2: 存储统一 (计划中) - 迁移到FileStorageService
+        - 阶段3: 流程标准化 (未来) - 实现存储→处理→结果的标准流程
+
+        向下兼容：保持现有API接口和响应格式不变
+        """
         if not TENDER_INFO_AVAILABLE:
             return jsonify({
                 'success': False,
@@ -353,20 +366,23 @@ def register_routes(app: Flask, config, logger):
                 data = request.get_json()
                 step = data.get('step', '1')
                 file_path = data.get('file_path', '')
+                ai_model = data.get('ai_model', 'gpt-4o-mini')
                 api_key = data.get('api_key') or config.get_default_api_key()
             else:
                 # FormData 格式
                 step = request.form.get('step', '1')
                 file_path = request.form.get('file_path', '')
+                ai_model = request.form.get('ai_model', 'gpt-4o-mini')
                 api_key = request.form.get('api_key') or config.get_default_api_key()
-            
+
             if not file_path or not Path(file_path).exists():
                 raise ValueError("文件路径无效")
-            
+
             if not api_key:
                 raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
-            
-            extractor = TenderInfoExtractor(api_key=api_key)
+
+            # 使用选择的AI模型创建提取器
+            extractor = TenderInfoExtractor(api_key=api_key, model_name=ai_model)
             
             if step == '1':
                 # 第一步：提取基本信息
@@ -445,16 +461,35 @@ def register_routes(app: Flask, config, logger):
             if not company_id:
                 raise ValueError("请选择应答公司")
             
-            # 获取公司信息
-            import json
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-            
-            if not company_file.exists():
+            # 从数据库获取公司信息
+            company_id_int = int(company_id)
+            company_db_data = kb_manager.get_company_detail(company_id_int)
+            if not company_db_data:
                 raise ValueError(f"未找到公司信息: {company_id}")
-                
-            with open(company_file, 'r', encoding='utf-8') as f:
-                company_data = json.load(f)
+
+            # 使用现有字段映射反向转换为业务处理器期望的格式
+            field_mapping = {
+                'companyName': 'company_name',
+                'establishDate': 'establish_date',
+                'legalRepresentative': 'legal_representative',
+                'legalRepresentativePosition': 'legal_representative_position',
+                'socialCreditCode': 'social_credit_code',
+                'registeredCapital': 'registered_capital',
+                'companyType': 'company_type',
+                'registeredAddress': 'registered_address',
+                'businessScope': 'business_scope',
+                'companyDescription': 'description',
+                'fixedPhone': 'fixed_phone',
+                'fax': 'fax',
+                'postalCode': 'postal_code',
+                'email': 'email',
+                'officeAddress': 'office_address',
+                'employeeCount': 'employee_count',
+                'bankName': 'bank_name',
+                'bankAccount': 'bank_account'
+            }
+            reverse_mapping = {v: k for k, v in field_mapping.items()}
+            company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
             
             # 保存模板文件
             filename = safe_filename(file.filename)
@@ -624,19 +659,38 @@ def register_routes(app: Flask, config, logger):
                     'error': '缺少公司ID参数'
                 })
 
-            # 加载公司数据
-            import json
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-
-            if not company_file.exists():
+            # 从数据库获取公司信息
+            company_id_int = int(company_id)
+            company_db_data = kb_manager.get_company_detail(company_id_int)
+            if not company_db_data:
                 return jsonify({
                     'success': False,
                     'error': f'未找到公司数据: {company_id}'
                 })
 
-            with open(company_file, 'r', encoding='utf-8') as f:
-                company_data = json.load(f)
+            # 使用现有字段映射反向转换为业务处理器期望的格式
+            field_mapping = {
+                'companyName': 'company_name',
+                'establishDate': 'establish_date',
+                'legalRepresentative': 'legal_representative',
+                'legalRepresentativePosition': 'legal_representative_position',
+                'socialCreditCode': 'social_credit_code',
+                'registeredCapital': 'registered_capital',
+                'companyType': 'company_type',
+                'registeredAddress': 'registered_address',
+                'businessScope': 'business_scope',
+                'companyDescription': 'description',
+                'fixedPhone': 'fixed_phone',
+                'fax': 'fax',
+                'postalCode': 'postal_code',
+                'email': 'email',
+                'officeAddress': 'office_address',
+                'employeeCount': 'employee_count',
+                'bankName': 'bank_name',
+                'bankAccount': 'bank_account'
+            }
+            reverse_mapping = {v: k for k, v in field_mapping.items()}
+            company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
 
             logger.info(f"使用公司信息: {company_data.get('companyName', 'N/A')}")
 
@@ -740,16 +794,35 @@ def register_routes(app: Flask, config, logger):
             requirements_path = upload_dir / filename
             file.save(str(requirements_path))
             
-            # 加载公司数据
-            import json
-            company_configs_dir = config.get_path('config') / 'companies'
-            company_file = company_configs_dir / f'{company_id}.json'
-
-            if not company_file.exists():
+            # 从数据库获取公司信息
+            company_id_int = int(company_id)
+            company_db_data = kb_manager.get_company_detail(company_id_int)
+            if not company_db_data:
                 raise ValueError(f"未找到公司数据: {company_id}")
 
-            with open(company_file, 'r', encoding='utf-8') as f:
-                company_data = json.load(f)
+            # 使用现有字段映射反向转换为业务处理器期望的格式
+            field_mapping = {
+                'companyName': 'company_name',
+                'establishDate': 'establish_date',
+                'legalRepresentative': 'legal_representative',
+                'legalRepresentativePosition': 'legal_representative_position',
+                'socialCreditCode': 'social_credit_code',
+                'registeredCapital': 'registered_capital',
+                'companyType': 'company_type',
+                'registeredAddress': 'registered_address',
+                'businessScope': 'business_scope',
+                'companyDescription': 'description',
+                'fixedPhone': 'fixed_phone',
+                'fax': 'fax',
+                'postalCode': 'postal_code',
+                'email': 'email',
+                'officeAddress': 'office_address',
+                'employeeCount': 'employee_count',
+                'bankName': 'bank_name',
+                'bankAccount': 'bank_account'
+            }
+            reverse_mapping = {v: k for k, v in field_mapping.items()}
+            company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
             
             logger.info(f"开始处理技术需求: {filename}")
             
@@ -1089,11 +1162,17 @@ def register_routes(app: Flask, config, logger):
         try:
             companies = kb_manager.get_companies()
 
-            # 转换字段格式以保持前端兼容性
+            # 转换字段格式以保持前端兼容性，过滤无效公司ID
             result_companies = []
             for company in companies:
+                company_id = company.get('company_id')
+                # 跳过没有有效 company_id 的记录
+                if company_id is None:
+                    logger.warning(f"跳过无效的公司记录，company_id为None: {company.get('company_name', '未知')}")
+                    continue
+
                 result_companies.append({
-                    'company_id': company.get('company_id', ''),
+                    'company_id': company_id,
                     'company_name': company.get('company_name', '未命名公司'),
                     'created_at': company.get('created_at', ''),
                     'updated_at': company.get('updated_at', ''),
@@ -1101,7 +1180,8 @@ def register_routes(app: Flask, config, logger):
                     'document_count': company.get('document_count', 0)
                 })
 
-            result_companies.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+            # 安全排序，处理可能的 None 值
+            result_companies.sort(key=lambda x: x.get('updated_at') or '', reverse=True)
             return jsonify({'success': True, 'data': result_companies})
 
         except Exception as e:
@@ -1445,7 +1525,7 @@ def register_routes(app: Flask, config, logger):
             logger.error(f"获取商务文件列表失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/point-to-point-files')
+    @app.route('/api/point-to-point/files')
     def list_point_to_point_files():
         """获取点对点应答文件列表"""
         try:
@@ -1463,20 +1543,371 @@ def register_routes(app: Flask, config, logger):
                         try:
                             stat = file_path.stat()
                             files.append({
-                                'name': filename,
+                                'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
+                                'filename': filename,
+                                'original_filename': filename,
+                                'file_path': str(file_path),
+                                'output_path': str(file_path),
                                 'size': stat.st_size,
-                                'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
-                                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                                'path': str(file_path)
+                                'created_at': datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                                'process_time': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                                'status': 'completed',
+                                'company_name': '未知公司'  # 暂时使用默认值，后续会从数据库获取
                             })
                         except Exception as e:
                             logger.warning(f"读取文件信息失败 {filename}: {e}")
 
-            files.sort(key=lambda x: x.get('modified', ''), reverse=True)
-            return jsonify({'success': True, 'files': files})
+            files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
+            return jsonify({'success': True, 'data': files})
 
         except Exception as e:
             logger.error(f"获取点对点应答文件列表失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/point-to-point/preview')
+    def preview_point_to_point_document():
+        """预览点对点应答文档"""
+        try:
+            from docx import Document
+            import html
+
+            # 获取参数
+            file_id = request.args.get('file_id')
+            file_path = request.args.get('file_path')
+
+            if not file_id and not file_path:
+                return jsonify({'success': False, 'error': '缺少文件ID或文件路径参数'}), 400
+
+            # 根据参数确定文件路径
+            if file_path:
+                target_file = Path(file_path)
+            else:
+                # 如果只有file_id，需要从输出目录查找文件
+                output_dir = config.get_path('output')
+                target_file = None
+                if output_dir.exists():
+                    for filename in os.listdir(output_dir):
+                        full_path = output_dir / filename
+                        if hashlib.md5(str(full_path).encode()).hexdigest()[:8] == file_id:
+                            target_file = full_path
+                            break
+
+                if not target_file:
+                    return jsonify({'success': False, 'error': '找不到指定的文件'}), 404
+
+            if not target_file.exists():
+                return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+            # 根据文件类型进行预览
+            file_extension = target_file.suffix.lower()
+
+            if file_extension in ['.docx', '.doc']:
+                # Word文档预览
+                try:
+                    doc = Document(target_file)
+                    html_content = ['<div class="document-preview">']
+
+                    # 处理段落
+                    for paragraph in doc.paragraphs:
+                        if paragraph.text.strip():
+                            style_name = paragraph.style.name if paragraph.style else ''
+                            text = html.escape(paragraph.text)
+
+                            # 检查段落是否有灰色背景（点对点应答标记）
+                            is_response = any(keyword in paragraph.text.lower() for keyword in ['应答', '回复', '答复'])
+                            style_class = 'response-paragraph' if is_response else ''
+
+                            if 'Heading 1' in style_name or 'heading 1' in style_name.lower():
+                                html_content.append(f'<h1 class="{style_class}">{text}</h1>')
+                            elif 'Heading 2' in style_name or 'heading 2' in style_name.lower():
+                                html_content.append(f'<h2 class="{style_class}">{text}</h2>')
+                            elif 'Heading 3' in style_name or 'heading 3' in style_name.lower():
+                                html_content.append(f'<h3 class="{style_class}">{text}</h3>')
+                            else:
+                                html_content.append(f'<p class="{style_class}">{text}</p>')
+
+                    # 处理表格
+                    for table in doc.tables:
+                        html_content.append('<table class="table table-bordered table-striped">')
+                        for i, row in enumerate(table.rows):
+                            tag = 'th' if i == 0 else 'td'
+                            html_content.append('<tr>')
+                            for cell in row.cells:
+                                cell_text = html.escape(cell.text)
+                                html_content.append(f'<{tag}>{cell_text}</{tag}>')
+                            html_content.append('</tr>')
+                        html_content.append('</table>')
+
+                    html_content.append('</div>')
+
+                    # 添加CSS样式
+                    css_styles = """
+                    <style>
+                        .document-preview { font-family: 'Microsoft YaHei', sans-serif; line-height: 1.6; }
+                        .response-paragraph { background-color: #d9d9d9; padding: 8px; margin: 4px 0; border-left: 4px solid #007bff; }
+                        .table { margin: 20px 0; }
+                        h1, h2, h3 { color: #333; margin: 20px 0 10px 0; }
+                        p { margin: 10px 0; }
+                    </style>
+                    """
+
+                    full_content = css_styles + ''.join(html_content)
+
+                    return jsonify({
+                        'success': True,
+                        'content': full_content,
+                        'filename': target_file.name
+                    })
+
+                except Exception as e:
+                    logger.error(f"Word文档预览失败: {e}")
+                    return jsonify({'success': False, 'error': f'Word文档预览失败: {str(e)}'}), 500
+
+            elif file_extension == '.pdf':
+                # PDF预览（简单实现，返回提示信息）
+                return jsonify({
+                    'success': True,
+                    'content': f'<div class="alert alert-info"><h4>PDF文档预览</h4><p>文件名: {target_file.name}</p><p>PDF文件预览功能正在开发中，请使用下载功能查看完整内容。</p></div>',
+                    'filename': target_file.name
+                })
+
+            else:
+                return jsonify({'success': False, 'error': '不支持的文件格式'}), 400
+
+        except Exception as e:
+            logger.error(f"文档预览失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/point-to-point/edit', methods=['GET', 'POST'])
+    def edit_point_to_point_document():
+        """编辑点对点应答文档"""
+
+        if request.method == 'GET':
+            # 获取文档内容用于编辑
+            try:
+                from docx import Document
+                import html
+
+                # 获取参数
+                file_id = request.args.get('file_id')
+                file_path = request.args.get('file_path')
+
+                if not file_id and not file_path:
+                    return jsonify({'success': False, 'error': '缺少文件ID或文件路径参数'}), 400
+
+                # 根据参数确定文件路径
+                if file_path:
+                    target_file = Path(file_path)
+                else:
+                    # 如果只有file_id，需要从输出目录查找文件
+                    output_dir = config.get_path('output')
+                    target_file = None
+                    if output_dir.exists():
+                        for filename in os.listdir(output_dir):
+                            full_path = output_dir / filename
+                            if hashlib.md5(str(full_path).encode()).hexdigest()[:8] == file_id:
+                                target_file = full_path
+                                break
+
+                    if not target_file:
+                        return jsonify({'success': False, 'error': '找不到指定的文件'}), 404
+
+                if not target_file.exists():
+                    return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+                # 只支持Word文档编辑
+                file_extension = target_file.suffix.lower()
+                if file_extension not in ['.docx', '.doc']:
+                    return jsonify({'success': False, 'error': '只支持Word文档编辑'}), 400
+
+                try:
+                    # 读取Word文档并转换为可编辑的HTML
+                    doc = Document(target_file)
+                    html_content = []
+
+                    # 处理段落
+                    for paragraph in doc.paragraphs:
+                        if paragraph.text.strip():
+                            style_name = paragraph.style.name if paragraph.style else ''
+                            text = html.escape(paragraph.text)
+
+                            if 'Heading 1' in style_name or 'heading 1' in style_name.lower():
+                                html_content.append(f'<h1>{text}</h1>')
+                            elif 'Heading 2' in style_name or 'heading 2' in style_name.lower():
+                                html_content.append(f'<h2>{text}</h2>')
+                            elif 'Heading 3' in style_name or 'heading 3' in style_name.lower():
+                                html_content.append(f'<h3>{text}</h3>')
+                            else:
+                                html_content.append(f'<p>{text}</p>')
+
+                    # 处理表格（简化为文本形式）
+                    for table in doc.tables:
+                        html_content.append('<table border="1">')
+                        for row in table.rows:
+                            html_content.append('<tr>')
+                            for cell in row.cells:
+                                cell_text = html.escape(cell.text)
+                                html_content.append(f'<td>{cell_text}</td>')
+                            html_content.append('</tr>')
+                        html_content.append('</table>')
+
+                    return jsonify({
+                        'success': True,
+                        'content': '\n'.join(html_content),
+                        'filename': target_file.name
+                    })
+
+                except Exception as e:
+                    logger.error(f"读取文档内容失败: {e}")
+                    return jsonify({'success': False, 'error': f'读取文档内容失败: {str(e)}'}), 500
+
+            except Exception as e:
+                logger.error(f"获取编辑内容失败: {e}")
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        elif request.method == 'POST':
+            # 保存编辑后的文档
+            try:
+                from docx import Document
+                from bs4 import BeautifulSoup
+                import re
+
+                # 获取参数
+                file_id = request.args.get('file_id')
+                file_path = request.args.get('file_path')
+
+                # 获取POST数据
+                data = request.get_json()
+                if not data or 'content' not in data:
+                    return jsonify({'success': False, 'error': '缺少文档内容'}), 400
+
+                new_content = data['content']
+
+                # 根据参数确定文件路径
+                if file_path:
+                    target_file = Path(file_path)
+                else:
+                    # 如果只有file_id，需要从输出目录查找文件
+                    output_dir = config.get_path('output')
+                    target_file = None
+                    if output_dir.exists():
+                        for filename in os.listdir(output_dir):
+                            full_path = output_dir / filename
+                            if hashlib.md5(str(full_path).encode()).hexdigest()[:8] == file_id:
+                                target_file = full_path
+                                break
+
+                    if not target_file:
+                        return jsonify({'success': False, 'error': '找不到指定的文件'}), 404
+
+                if not target_file.exists():
+                    return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+                try:
+                    # 解析HTML内容
+                    soup = BeautifulSoup(new_content, 'html.parser')
+
+                    # 创建新的Word文档
+                    doc = Document()
+
+                    # 遍历解析的HTML元素
+                    for element in soup.find_all(['h1', 'h2', 'h3', 'p', 'table']):
+                        if element.name in ['h1', 'h2', 'h3']:
+                            # 添加标题
+                            heading_level = int(element.name[1])
+                            paragraph = doc.add_heading(element.get_text().strip(), level=heading_level)
+                        elif element.name == 'p':
+                            # 添加段落
+                            doc.add_paragraph(element.get_text().strip())
+                        elif element.name == 'table':
+                            # 添加表格
+                            rows = element.find_all('tr')
+                            if rows:
+                                cols = len(rows[0].find_all(['td', 'th']))
+                                table = doc.add_table(rows=len(rows), cols=cols)
+                                table.style = 'Table Grid'
+
+                                for i, row in enumerate(rows):
+                                    cells = row.find_all(['td', 'th'])
+                                    for j, cell in enumerate(cells):
+                                        if i < len(table.rows) and j < len(table.rows[i].cells):
+                                            table.rows[i].cells[j].text = cell.get_text().strip()
+
+                    # 保存文档
+                    doc.save(str(target_file))
+
+                    logger.info(f"文档保存成功: {target_file}")
+
+                    return jsonify({
+                        'success': True,
+                        'message': '文档保存成功',
+                        'filename': target_file.name
+                    })
+
+                except Exception as e:
+                    logger.error(f"保存文档失败: {e}")
+                    return jsonify({'success': False, 'error': f'保存文档失败: {str(e)}'}), 500
+
+            except Exception as e:
+                logger.error(f"编辑文档失败: {e}")
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/point-to-point/download')
+    def download_point_to_point_document():
+        """下载点对点应答文档"""
+        try:
+            # 获取参数
+            file_id = request.args.get('file_id')
+            file_path = request.args.get('file_path')
+
+            if not file_id and not file_path:
+                return jsonify({'success': False, 'error': '缺少文件ID或文件路径参数'}), 400
+
+            # 根据参数确定文件路径
+            if file_path:
+                target_file = Path(file_path)
+            else:
+                # 如果只有file_id，需要从输出目录查找文件
+                output_dir = config.get_path('output')
+                target_file = None
+                if output_dir.exists():
+                    for filename in os.listdir(output_dir):
+                        full_path = output_dir / filename
+                        if hashlib.md5(str(full_path).encode()).hexdigest()[:8] == file_id:
+                            target_file = full_path
+                            break
+
+                if not target_file:
+                    return jsonify({'success': False, 'error': '找不到指定的文件'}), 404
+
+            if not target_file.exists():
+                return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+            # 确定MIME类型
+            file_extension = target_file.suffix.lower()
+            if file_extension == '.docx':
+                mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            elif file_extension == '.doc':
+                mimetype = 'application/msword'
+            elif file_extension == '.pdf':
+                mimetype = 'application/pdf'
+            else:
+                mimetype = 'application/octet-stream'
+
+            # 生成下载文件名
+            download_filename = target_file.name
+
+            logger.info(f"开始下载文件: {target_file}")
+
+            return send_file(
+                str(target_file),
+                as_attachment=True,
+                download_name=download_filename,
+                mimetype=mimetype
+            )
+
+        except Exception as e:
+            logger.error(f"文档下载失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
     # ===================

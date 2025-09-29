@@ -1,0 +1,96 @@
+<!-- 添加企业模态框 -->
+<div class="modal fade" id="addCompanyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-building-add me-2"></i>添加企业
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addCompanyForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">企业名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="companyName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">企业代码</label>
+                        <input type="text" class="form-control" id="companyCode"
+                               placeholder="企业统一社会信用代码">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">行业类型</label>
+                        <select class="form-select" id="industryType">
+                            <option value="">请选择行业类型</option>
+                            <option value="technology">科技</option>
+                            <option value="manufacturing">制造业</option>
+                            <option value="finance">金融</option>
+                            <option value="education">教育</option>
+                            <option value="healthcare">医疗</option>
+                            <option value="retail">零售</option>
+                            <option value="construction">建筑</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">企业描述</label>
+                        <textarea class="form-control" id="companyDesc" rows="3"
+                                  placeholder="简要描述企业业务范围和特点"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="window.categoryManager.addCompany()">添加企业</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 添加产品模态框 -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-box-seam me-2"></i>添加产品
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addProductForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">产品名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="productName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">产品代码</label>
+                        <input type="text" class="form-control" id="productCode"
+                               placeholder="产品型号或编码">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">产品分类</label>
+                        <select class="form-select" id="productCategory">
+                            <option value="">请选择产品分类</option>
+                            <option value="software">软件产品</option>
+                            <option value="hardware">硬件产品</option>
+                            <option value="service">服务产品</option>
+                            <option value="solution">解决方案</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">产品描述</label>
+                        <textarea class="form-control" id="productDesc" rows="3"
+                                  placeholder="描述产品功能、特点和应用场景"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="window.categoryManager.addProduct()">添加产品</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

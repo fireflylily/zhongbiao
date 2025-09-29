@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
 import re
+import tempfile
+import os
 
 try:
     from docx import Document
@@ -88,11 +90,52 @@ class WordParser:
             self.logger.error(f"Word解析失败: {file_path}, error={e}")
             raise
 
+    def _convert_doc_to_docx(self, file_path: str) -> str:
+        """将.doc文件转换为.docx"""
+        try:
+            import doc2docx
+
+            # 创建临时文件
+            temp_dir = tempfile.gettempdir()
+            temp_docx = os.path.join(temp_dir, f"temp_{os.getpid()}_{Path(file_path).stem}.docx")
+
+            self.logger.info(f"开始转换.doc文件: {file_path} -> {temp_docx}")
+
+            # 转换文件
+            doc2docx.convert(file_path, temp_docx)
+
+            self.logger.info(f".doc文件转换成功: {temp_docx}")
+            return temp_docx
+
+        except ImportError:
+            raise ValueError("缺少doc2docx库，无法转换.doc文件。请运行: pip install doc2docx")
+        except Exception as e:
+            self.logger.error(f".doc文件转换失败: {str(e)}")
+            raise ValueError(f"无法转换.doc文件: {e}")
+
     def _parse_document(self, file_path: str) -> Tuple[str, Dict]:
         """解析Word文档的核心方法"""
+        temp_file = None
+
         try:
+            # 检查是否是.doc格式
+            if Path(file_path).suffix.lower() == '.doc':
+                # 转换为.docx
+                temp_file = self._convert_doc_to_docx(file_path)
+                file_path = temp_file
+                self.logger.info(f"使用转换后的临时文件: {file_path}")
+
+            # 现在使用python-docx处理
             doc = Document(file_path)
+
         except Exception as e:
+            # 清理临时文件
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                    self.logger.info(f"已清理临时文件: {temp_file}")
+                except:
+                    pass
             raise ValueError(f"无法打开Word文档: {e}")
 
         # 提取文档内容
@@ -148,6 +191,14 @@ class WordParser:
         # 提取文档属性
         doc_metadata = self._extract_document_properties(doc)
         doc_metadata.update(structure_info)
+
+        # 清理临时文件
+        if temp_file and os.path.exists(temp_file):
+            try:
+                os.remove(temp_file)
+                self.logger.info(f"已清理临时文件: {temp_file}")
+            except Exception as cleanup_error:
+                self.logger.warning(f"清理临时文件失败: {cleanup_error}")
 
         return full_content, doc_metadata
 
