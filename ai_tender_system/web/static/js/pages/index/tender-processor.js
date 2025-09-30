@@ -340,6 +340,13 @@ class TenderProcessor {
             // 显示结果
             this.displayStepResult(stepType, result);
 
+            // 如果处理了基本信息,立即激活保存按钮
+            if (stepType === 'basic' && result.data && result.data.project_name) {
+                if (this.saveProjectBtn) {
+                    this.saveProjectBtn.disabled = false;
+                }
+            }
+
             console.log(`[TenderProcessor] 步骤 ${stepType} 处理完成`);
         } catch (error) {
             console.error(`[TenderProcessor] 步骤 ${stepType} 处理失败:`, error);

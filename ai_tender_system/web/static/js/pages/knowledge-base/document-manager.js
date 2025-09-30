@@ -317,15 +317,14 @@ class DocumentManager {
      * @param {number} total 总文件数
      */
     async uploadSingleFile(file, current, total) {
-        // 获取分类和隐私级别
-        const category = document.getElementById('documentCategory')?.value || 'tech';
+        // 获取隐私级别和标签
         const privacy = document.getElementById('privacyLevel')?.value || '1';
         const tags = document.getElementById('documentTags')?.value || '';
 
         const percent = Math.round((current / total) * 100);
         this.updateUploadProgress(current, total, percent, file.name);
 
-        // 步骤1: 如果没有library_id，需要先获取或创建
+        // 步骤1: 获取产品的文档库（现在每个产品只有1个general库）
         let libraryId = this.currentLibraryId;
 
         if (!libraryId && this.currentProductId) {
@@ -334,14 +333,11 @@ class DocumentManager {
 
             if (librariesResp.data.success) {
                 const libraries = librariesResp.data.data;
-                // 查找对应类型的文档库
-                const targetLibrary = libraries.find(lib => lib.library_type === category);
-
-                if (targetLibrary) {
-                    libraryId = targetLibrary.library_id;
+                if (libraries && libraries.length > 0) {
+                    // 使用第一个文档库（general库）
+                    libraryId = libraries[0].library_id;
                 } else {
-                    // 文档库不存在，需要创建
-                    throw new Error(`产品尚未创建${category}类型的文档库，请联系管理员`);
+                    throw new Error('产品尚未创建文档库，请联系管理员');
                 }
             } else {
                 throw new Error('获取文档库列表失败');
@@ -430,9 +426,9 @@ class DocumentManager {
      * 刷新当前视图
      */
     refreshCurrentView() {
-        if (this.currentProductId && this.currentCategory && window.categoryManager) {
-            // 重新选择当前分类以刷新文档列表
-            window.categoryManager.selectProductCategory(this.currentProductId, this.currentCategory);
+        if (this.currentProductId && window.categoryManager) {
+            // 重新选择当前产品以刷新文档列表
+            window.categoryManager.selectProduct(this.currentProductId, '');
         }
     }
 
@@ -751,16 +747,16 @@ class DocumentManager {
      * @param {string} category 文档分类
      * @param {Array} documents 文档列表
      */
-    renderCategoryDocuments(productId, category, documents) {
-        const categoryNames = {
-            'tech': '🔧 技术文档',
-            'impl': '📋 实施方案',
-            'service': '🛠️ 服务文档'
-        };
-
-        // 存储当前产品ID和分类，以便上传和刷新时使用
+    /**
+     * 渲染产品文档列表（简化版 - 不再区分分类）
+     * @param {number} productId 产品ID
+     * @param {string} productName 产品名称
+     * @param {Array} documents 文档列表
+     */
+    renderProductDocuments(productId, productName, documents) {
+        // 存储当前产品ID，以便上传和刷新时使用
         this.currentProductId = productId;
-        this.currentCategory = category;
+        this.currentCategory = null;  // 不再使用分类
 
         // 渲染文档列表内容
         let documentsHtml = '';
@@ -787,10 +783,10 @@ class DocumentManager {
                         <div class="row align-items-center">
                             <div class="col">
                                 <div class="d-flex align-items-center">
-                                    <i class="bi bi-folder text-primary fs-3 me-3"></i>
+                                    <i class="bi bi-box-seam text-success fs-3 me-3"></i>
                                     <div>
-                                        <h5 class="mb-0">${categoryNames[category] || category}</h5>
-                                        <small class="text-muted">产品分类文档 (${documents ? documents.length : 0}个文档)</small>
+                                        <h5 class="mb-0">${productName}</h5>
+                                        <small class="text-muted">产品文档 (${documents ? documents.length : 0}个文档)</small>
                                     </div>
                                 </div>
                             </div>
@@ -802,7 +798,7 @@ class DocumentManager {
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3" id="category-documents-${category}">
+                        <div class="row g-3" id="product-documents-${productId}">
                             ${documentsHtml}
                         </div>
                     </div>
@@ -811,6 +807,15 @@ class DocumentManager {
         `;
 
         document.getElementById('mainContent').innerHTML = html;
+    }
+
+    /**
+     * 兼容性方法 - 保留以防其他地方调用
+     * @deprecated 使用 renderProductDocuments 替代
+     */
+    renderCategoryDocuments(productId, category, documents) {
+        // 转发到新方法
+        this.renderProductDocuments(productId, `产品${productId}`, documents);
     }
 
     setCurrentCompanyId(companyId) {

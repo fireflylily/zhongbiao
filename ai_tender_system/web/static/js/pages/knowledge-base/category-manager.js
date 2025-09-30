@@ -123,7 +123,7 @@ class CategoryManager {
     }
 
     /**
-     * 渲染产品树形结构（增强版 - 包含文档分类）
+     * 渲染产品树形结构（简化版 - 点击产品直接显示文档）
      * @param {number} companyId 企业ID
      * @param {Array} products 产品列表
      */
@@ -138,150 +138,69 @@ class CategoryManager {
         }
 
         const productHtml = products.map(product => {
-            return '<div class="list-group mb-2">' +
-                '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" ' +
-                     'onclick="window.categoryManager.toggleProductCategories(' + product.product_id + ', \'' + product.product_name + '\')">' +
-                    '<div class="d-flex align-items-center">' +
-                        '<i class="bi bi-chevron-right me-2" id="product-toggle-' + product.product_id + '"></i>' +
-                        '<i class="bi bi-box-seam text-success me-2"></i>' +
-                        '<span>' + product.product_name + '</span>' +
-                        '<span class="badge bg-info ms-2">' + (product.document_count || 0) + '</span>' +
-                    '</div>' +
-                '</div>' +
-                // 产品文档分类子菜单
-                '<div class="ms-4 d-none" id="product-categories-' + product.product_id + '">' +
-                    '<div class="list-group-item list-group-item-action" onclick="window.categoryManager.selectProductCategory(' + product.product_id + ', \'tech\')">' +
-                        '<div class="d-flex justify-content-between align-items-center">' +
-                            '<div class="d-flex align-items-center">' +
-                                '<i class="bi bi-gear text-primary me-2"></i>' +
-                                '<span>🔧 技术文档</span>' +
-                            '</div>' +
-                            '<span class="badge bg-light text-dark">' + (product.tech_docs_count || 0) + '</span>' +
+            return '<div class="list-group-item list-group-item-action" ' +
+                     'onclick="window.categoryManager.selectProduct(' + product.product_id + ', \'' + product.product_name + '\')">' +
+                    '<div class="d-flex justify-content-between align-items-center">' +
+                        '<div class="d-flex align-items-center">' +
+                            '<i class="bi bi-box-seam text-success me-2"></i>' +
+                            '<span>' + product.product_name + '</span>' +
                         '</div>' +
+                        '<span class="badge bg-info">' + (product.document_count || 0) + '</span>' +
                     '</div>' +
-                    '<div class="list-group-item list-group-item-action" onclick="window.categoryManager.selectProductCategory(' + product.product_id + ', \'impl\')">' +
-                        '<div class="d-flex justify-content-between align-items-center">' +
-                            '<div class="d-flex align-items-center">' +
-                                '<i class="bi bi-clipboard-check text-warning me-2"></i>' +
-                                '<span>📋 实施方案</span>' +
-                            '</div>' +
-                            '<span class="badge bg-light text-dark">' + (product.impl_docs_count || 0) + '</span>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="list-group-item list-group-item-action" onclick="window.categoryManager.selectProductCategory(' + product.product_id + ', \'service\')">' +
-                        '<div class="d-flex justify-content-between align-items-center">' +
-                            '<div class="d-flex align-items-center">' +
-                                '<i class="bi bi-tools text-info me-2"></i>' +
-                                '<span>🛠️ 服务文档</span>' +
-                            '</div>' +
-                            '<span class="badge bg-light text-dark">' + (product.service_docs_count || 0) + '</span>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
+                '</div>';
         }).join('');
 
         productsContainer.innerHTML = productHtml;
     }
 
     /**
-     * 切换产品分类展开/折叠状态
-     * @param {number} productId 产品ID
-     * @param {string} productName 产品名称
-     */
-    toggleProductCategories(productId, productName) {
-        const toggleIcon = document.getElementById('product-toggle-' + productId);
-        const categoriesContainer = document.getElementById('product-categories-' + productId);
-
-        if (!toggleIcon || !categoriesContainer) {
-            console.error('产品分类DOM元素未找到:', productId);
-            return;
-        }
-
-        const isExpanded = !categoriesContainer.classList.contains('d-none');
-
-        if (isExpanded) {
-            // 折叠
-            categoriesContainer.classList.add('d-none');
-            toggleIcon.classList.remove('bi-chevron-down');
-            toggleIcon.classList.add('bi-chevron-right');
-        } else {
-            // 展开
-            categoriesContainer.classList.remove('d-none');
-            toggleIcon.classList.remove('bi-chevron-right');
-            toggleIcon.classList.add('bi-chevron-down');
-        }
-
-        // 设置当前产品
-        this.currentProductId = productId;
-    }
-
-    /**
-     * 选择产品
+     * 选择产品（直接加载产品的所有文档）
      * @param {number} productId 产品ID
      * @param {string} productName 产品名称
      */
     async selectProduct(productId, productName) {
         this.currentProductId = productId;
+        this.currentCategory = null;  // 清除分类信息
 
         // 更新活动状态
         this.updateActiveState('[onclick*="selectProduct(' + productId + ',"]');
 
-        // 通知其他模块产品已选择
-        this.onProductSelected(productId, productName);
-    }
-
-    /**
-     * 选择产品分类
-     * @param {number} productId 产品ID
-     * @param {string} category 分类类型 (tech, impl, service)
-     */
-    async selectProductCategory(productId, category) {
-        this.currentProductId = productId;
-        this.currentCategory = category;
-
-        // 更新活动状态
-        this.updateActiveState('[onclick*="selectProductCategory(' + productId + ', \'' + category + '\'"]');
-
         try {
-            // 步骤1: 获取产品的文档库列表
+            // 步骤1: 获取产品的文档库（现在每个产品只有1个general库）
             const librariesResp = await axios.get(`/api/knowledge_base/product/${productId}/libraries`);
 
             if (!librariesResp.data.success) {
                 throw new Error('获取文档库列表失败');
             }
 
-            // 步骤2: 找到对应类型的文档库
             const libraries = librariesResp.data.data;
-            const targetLibrary = libraries.find(lib => lib.library_type === category);
-
-            if (!targetLibrary) {
-                // 文档库不存在，显示空状态
-                console.log(`产品 ${productId} 没有 ${category} 类型的文档库`);
+            if (!libraries || libraries.length === 0) {
+                // 没有文档库，显示空状态
                 if (window.documentManager) {
-                    window.documentManager.renderCategoryDocuments(productId, category, []);
+                    window.documentManager.renderProductDocuments(productId, productName, []);
                 }
                 return;
             }
 
-            // 步骤3: 获取文档库的文档列表
-            const docsResp = await axios.get(`/api/knowledge_base/libraries/${targetLibrary.library_id}/documents`);
+            // 步骤2: 获取第一个文档库的文档（general库）
+            const library = libraries[0];
+            const docsResp = await axios.get(`/api/knowledge_base/libraries/${library.library_id}/documents`);
 
             if (docsResp.data.success) {
-                // 通知文档管理器渲染该分类的文档
+                // 通知文档管理器渲染产品文档
                 if (window.documentManager) {
-                    window.documentManager.renderCategoryDocuments(productId, category, docsResp.data.data);
+                    window.documentManager.renderProductDocuments(productId, productName, docsResp.data.data);
                 }
             }
         } catch (error) {
-            console.error('加载产品分类文档失败:', error);
+            console.error('加载产品文档失败:', error);
             if (window.showAlert) {
                 window.showAlert('加载文档失败：' + error.message, 'danger');
             }
         }
 
-        // 通知其他模块产品分类已选择
-        this.onProductCategorySelected(productId, category);
+        // 通知其他模块产品已选择
+        this.onProductSelected(productId, productName);
     }
 
     /**

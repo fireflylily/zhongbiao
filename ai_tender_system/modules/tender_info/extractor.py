@@ -196,6 +196,28 @@ class TenderInfoExtractor:
                 '专利证书', '专利', '发明专利', '实用新型', '外观设计',
                 '知识产权', '专利权'
             ],
+            'audit_report': [
+                '审计报告', '财务审计', '年度审计报告',
+                '近三年审计报告', '审计', '会计师事务所',
+                '财务审计报告', '审计证明', '审计意见',
+                '审计师', '注册会计师'
+            ],
+
+            # 信用资质类
+            'credit_dishonest': [
+                '失信被执行人', '失信名单', '信用中国失信',
+                '不得被列入失信', '未被列入失信', '失信黑名单'
+            ],
+            'credit_corruption': [
+                '重大税收违法', '重大税收违法案件当事人名单',
+                '重大税收违法失信主体', '税收违法', '税收黑名单',
+                '不得被列入.*重大税收违法', '未被列入.*重大税收违法'
+            ],
+            'credit_tax': [
+                '政府采购严重违法失信', '政府采购违法',
+                '政府采购失信', '采购严重违法', '政府采购黑名单',
+                '不得被列入.*政府采购', '未被列入.*政府采购'
+            ],
 
             # 过时资质（仅用于检测并提醒更新）
             'tax_registration': ['税务登记证', '税务登记'],
@@ -876,22 +898,22 @@ class TenderInfoExtractor:
 请提取以下信息：
 1. project_name: 项目名称
 2. project_number: 项目编号
-3. tenderer: 招标人
-4. agency: 招标代理机构
-5. bidding_method: 采购方式
-6. bidding_location: 开标地点
-7. bidding_time: 开标时间
+3. tender_party: 招标人
+4. tender_agent: 招标代理机构
+5. tender_method: 采购方式
+6. tender_location: 开标地点
+7. tender_deadline: 开标时间
 8. winner_count: 中标人数量
 
 请严格按照JSON格式返回，例如：
 {{
   "project_name": "项目名称",
   "project_number": "项目编号",
-  "tenderer": "招标人",
-  "agency": "代理机构",
-  "bidding_method": "公开招标",
-  "bidding_location": "开标地点",
-  "bidding_time": "开标时间",
+  "tender_party": "招标人",
+  "tender_agent": "代理机构",
+  "tender_method": "公开招标",
+  "tender_location": "开标地点",
+  "tender_deadline": "开标时间",
   "winner_count": "中标人数"
 }}
 """

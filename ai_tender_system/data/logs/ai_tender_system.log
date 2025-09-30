@@ -264,3 +264,180 @@
 2025-09-30 15:44:34,329 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:44:34] "GET /api/knowledge_base/libraries/1/documents HTTP/1.1" 200 -
 2025-09-30 15:44:37,297 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:44:37] "[31m[1mGET /api/knowledge_base/documents/4 HTTP/1.1[0m" 405 -
 2025-09-30 15:44:39,821 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:44:39] "[33mGET /api/knowledge_base/documents/4/preview HTTP/1.1[0m" 404 -
+2025-09-30 15:48:15,975 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-09-30 15:48:16,234 - werkzeug - INFO -  * Restarting with stat
+2025-09-30 15:48:16,872 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-09-30 15:48:16,873 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-09-30 15:48:16,873 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-09-30 15:48:16,873 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 15:48:16,873 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-09-30 15:48:16,877 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 15:48:17,254 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-09-30 15:48:17,255 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 15:48:17,256 - root - WARNING - LangChain dependencies not installed. RAG features will be disabled.
+2025-09-30 15:48:17,256 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-09-30 15:48:17,257 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 15:48:17,257 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 15:48:17,264 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 15:48:17,285 - werkzeug - WARNING -  * Debugger is active!
+2025-09-30 15:48:17,299 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-30 15:49:14,250 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "GET / HTTP/1.1" 200 -
+2025-09-30 15:49:14,311 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,311 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,311 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,311 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,312 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,314 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,315 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,317 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,319 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,320 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,321 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,322 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,323 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,325 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,326 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,326 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,329 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,330 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:14,330 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:14] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,017 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,022 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,025 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,061 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,062 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,064 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,064 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,063 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,066 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,067 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-09-30 15:49:15,282 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 15:49:15,285 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "GET /api/models HTTP/1.1" 200 -
+2025-09-30 15:49:15,297 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-30 15:49:15,303 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-30 15:49:15,309 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-30 15:49:15,314 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "GET /api/companies HTTP/1.1" 200 -
+2025-09-30 15:49:15,742 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:15] "GET /api/tender-projects?company_id=1 HTTP/1.1" 200 -
+2025-09-30 15:49:16,246 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:16] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-09-30 15:49:28,890 - ai_tender_system.web_app - INFO - 文件上传成功: 20250930_154928_--9-221.doc (原始名称: 单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1).doc)
+2025-09-30 15:49:28,891 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:28] "POST /upload HTTP/1.1" 200 -
+2025-09-30 15:49:31,534 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: shihuang-gpt4o-mini
+2025-09-30 15:49:31,534 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: shihuang-gpt4o-mini
+2025-09-30 15:49:31,545 - ai_tender_system.tender_info - WARNING - antiword读取失败，尝试LibreOffice: 使用antiword读取.doc文件失败: antiword读取失败: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc is not a Word Document.
+
+2025-09-30 15:49:31,999 - ai_tender_system.tender_info - INFO - 使用LibreOffice转换.doc文件: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc
+2025-09-30 15:49:34,492 - ai_tender_system.tender_info - INFO - LibreOffice转换成功，内容长度: 50668
+2025-09-30 15:49:34,496 - ai_tender_system.tender_info - INFO - 开始使用关键字匹配提取资质要求
+2025-09-30 15:49:34,501 - ai_tender_system.tender_info - INFO - 关键字匹配完成，检测到6项资质要求
+2025-09-30 15:49:34,501 - ai_tender_system.web_app - INFO - 处理资质要求 - 公司ID: 1, 类型: <class 'str'>
+2025-09-30 15:49:34,501 - ai_tender_system.web_app - INFO - 开始整合资质数据，company_id: 1
+2025-09-30 15:49:34,506 - ai_tender_system.knowledge_base.manager - INFO - 获取资质类型定义成功，共 16 个类型
+2025-09-30 15:49:34,507 - ai_tender_system.web_app - INFO - 获取到公司 1 的 2 个已上传资质
+2025-09-30 15:49:34,507 - ai_tender_system.web_app - INFO - 资质数据整合完成，要求: 4, 已上传: 1, 缺失: 3
+2025-09-30 15:49:34,507 - ai_tender_system.web_app - INFO - 资质要求提取完成，返回数据包含 16 项资质
+2025-09-30 15:49:34,508 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:34] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-30 15:49:43,899 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: gpt-4o-mini
+2025-09-30 15:49:43,900 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: gpt-4o-mini
+2025-09-30 15:49:43,910 - ai_tender_system.tender_info - WARNING - antiword读取失败，尝试LibreOffice: 使用antiword读取.doc文件失败: antiword读取失败: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc is not a Word Document.
+
+2025-09-30 15:49:44,259 - ai_tender_system.tender_info - INFO - 使用LibreOffice转换.doc文件: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc
+2025-09-30 15:49:46,462 - ai_tender_system.tender_info - INFO - LibreOffice转换成功，内容长度: 50668
+2025-09-30 15:49:46,464 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:46] "GET /api/document/preview/20250930_154928_--9-221.doc HTTP/1.1" 200 -
+2025-09-30 15:49:46,466 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: gpt-4o-mini
+2025-09-30 15:49:46,466 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: gpt-4o-mini
+2025-09-30 15:49:46,470 - ai_tender_system.tender_info - WARNING - antiword读取失败，尝试LibreOffice: 使用antiword读取.doc文件失败: antiword读取失败: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc is not a Word Document.
+
+2025-09-30 15:49:46,945 - ai_tender_system.tender_info - INFO - 使用LibreOffice转换.doc文件: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc
+2025-09-30 15:49:48,765 - ai_tender_system.tender_info - INFO - LibreOffice转换成功，内容长度: 50668
+2025-09-30 15:49:48,767 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:49:48] "GET /api/document/preview/20250930_154928_--9-221.doc HTTP/1.1" 200 -
+2025-09-30 15:50:31,550 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: shihuang-gpt4o-mini
+2025-09-30 15:50:31,551 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: shihuang-gpt4o-mini
+2025-09-30 15:50:31,562 - ai_tender_system.tender_info - WARNING - antiword读取失败，尝试LibreOffice: 使用antiword读取.doc文件失败: antiword读取失败: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc is not a Word Document.
+
+2025-09-30 15:50:31,979 - ai_tender_system.tender_info - INFO - 使用LibreOffice转换.doc文件: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc
+2025-09-30 15:50:34,284 - ai_tender_system.tender_info - INFO - LibreOffice转换成功，内容长度: 50668
+2025-09-30 15:50:34,284 - ai_tender_system.tender_info - INFO - 开始提取基本项目信息
+2025-09-30 15:50:34,284 - ai_tender_system.llm_client - INFO - 基本信息提取 (尝试 1/3)
+2025-09-30 15:50:39,068 - ai_tender_system.llm_client - INFO - 基本信息提取 成功
+2025-09-30 15:50:39,071 - ai_tender_system.tender_info - INFO - 基本信息提取 - JSON解析成功
+2025-09-30 15:50:39,074 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:50:39] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-30 15:51:15,653 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: gpt-4o-mini
+2025-09-30 15:51:15,654 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: gpt-4o-mini
+2025-09-30 15:51:15,665 - ai_tender_system.tender_info - WARNING - antiword读取失败，尝试LibreOffice: 使用antiword读取.doc文件失败: antiword读取失败: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc is not a Word Document.
+
+2025-09-30 15:51:16,129 - ai_tender_system.tender_info - INFO - 使用LibreOffice转换.doc文件: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc
+2025-09-30 15:51:18,911 - ai_tender_system.tender_info - INFO - LibreOffice转换成功，内容长度: 50668
+2025-09-30 15:51:18,914 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:51:18] "GET /api/document/preview/20250930_154928_--9-221.doc HTTP/1.1" 200 -
+2025-09-30 15:51:18,918 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: gpt-4o-mini
+2025-09-30 15:51:18,918 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: gpt-4o-mini
+2025-09-30 15:51:18,921 - ai_tender_system.tender_info - WARNING - antiword读取失败，尝试LibreOffice: 使用antiword读取.doc文件失败: antiword读取失败: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc is not a Word Document.
+
+2025-09-30 15:51:19,398 - ai_tender_system.tender_info - INFO - 使用LibreOffice转换.doc文件: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc
+2025-09-30 15:51:21,438 - ai_tender_system.tender_info - INFO - LibreOffice转换成功，内容长度: 50668
+2025-09-30 15:51:21,441 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:51:21] "GET /api/document/preview/20250930_154928_--9-221.doc HTTP/1.1" 200 -
+2025-09-30 15:52:06,134 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-09-30 15:52:06,335 - werkzeug - INFO -  * Restarting with stat
+2025-09-30 15:52:07,018 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-09-30 15:52:07,019 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-09-30 15:52:07,019 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-09-30 15:52:07,019 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 15:52:07,020 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-09-30 15:52:07,023 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 15:52:07,457 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-09-30 15:52:07,458 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 15:52:07,459 - root - WARNING - LangChain dependencies not installed. RAG features will be disabled.
+2025-09-30 15:52:07,459 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-09-30 15:52:07,460 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 15:52:07,460 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 15:52:07,473 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 15:52:07,513 - werkzeug - WARNING -  * Debugger is active!
+2025-09-30 15:52:07,533 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-30 15:57:42,439 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-09-30 15:57:42,617 - werkzeug - INFO -  * Restarting with stat
+2025-09-30 15:57:43,239 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-09-30 15:57:43,240 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-09-30 15:57:43,240 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-09-30 15:57:43,240 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 15:57:43,240 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-09-30 15:57:43,244 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 15:57:43,759 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-09-30 15:57:43,763 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 15:57:43,764 - root - WARNING - LangChain dependencies not installed. RAG features will be disabled.
+2025-09-30 15:57:43,764 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-09-30 15:57:43,764 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 15:57:43,764 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 15:57:43,771 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 15:57:43,790 - werkzeug - WARNING -  * Debugger is active!
+2025-09-30 15:57:43,800 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-09-30 15:59:05,590 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: shihuang-gpt4o-mini
+2025-09-30 15:59:05,592 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: shihuang-gpt4o-mini
+2025-09-30 15:59:05,603 - ai_tender_system.tender_info - WARNING - antiword读取失败，尝试LibreOffice: 使用antiword读取.doc文件失败: antiword读取失败: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc is not a Word Document.
+
+2025-09-30 15:59:06,120 - ai_tender_system.tender_info - INFO - 使用LibreOffice转换.doc文件: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/20250930_154928_--9-221.doc
+2025-09-30 15:59:08,678 - ai_tender_system.tender_info - INFO - LibreOffice转换成功，内容长度: 50668
+2025-09-30 15:59:08,678 - ai_tender_system.tender_info - INFO - 开始使用关键字匹配提取资质要求
+2025-09-30 15:59:08,685 - ai_tender_system.tender_info - INFO - 关键字匹配完成，检测到9项资质要求
+2025-09-30 15:59:08,685 - ai_tender_system.web_app - INFO - 处理资质要求 - 公司ID: 1, 类型: <class 'str'>
+2025-09-30 15:59:08,686 - ai_tender_system.web_app - INFO - 开始整合资质数据，company_id: 1
+2025-09-30 15:59:08,691 - ai_tender_system.knowledge_base.manager - INFO - 获取资质类型定义成功，共 16 个类型
+2025-09-30 15:59:08,692 - ai_tender_system.web_app - INFO - 获取到公司 1 的 2 个已上传资质
+2025-09-30 15:59:08,692 - ai_tender_system.web_app - INFO - 资质数据整合完成，要求: 4, 已上传: 1, 缺失: 3
+2025-09-30 15:59:08,692 - ai_tender_system.web_app - INFO - 资质要求提取完成，返回数据包含 16 项资质
+2025-09-30 15:59:08,693 - werkzeug - INFO - 127.0.0.1 - - [30/Sep/2025 15:59:08] "POST /extract-tender-info-step HTTP/1.1" 200 -
+2025-09-30 16:01:46,644 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-09-30 16:01:46,838 - werkzeug - INFO -  * Restarting with stat
+2025-09-30 16:01:47,474 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-09-30 16:01:47,475 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-09-30 16:01:47,475 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-09-30 16:01:47,475 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 16:01:47,475 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-09-30 16:01:47,479 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 16:01:47,894 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-09-30 16:01:47,895 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 16:01:47,896 - root - WARNING - LangChain dependencies not installed. RAG features will be disabled.
+2025-09-30 16:01:47,896 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-09-30 16:01:47,896 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 16:01:47,896 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-09-30 16:01:47,903 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 16:01:47,920 - werkzeug - WARNING -  * Debugger is active!
+2025-09-30 16:01:47,932 - werkzeug - INFO -  * Debugger PIN: 989-437-274
