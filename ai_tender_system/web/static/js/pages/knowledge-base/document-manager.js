@@ -730,12 +730,33 @@ class DocumentManager {
      * @param {string} category 文档分类
      * @param {Array} documents 文档列表
      */
-    renderCategoryDocuments(productId, category) {
+    renderCategoryDocuments(productId, category, documents) {
         const categoryNames = {
             'tech': '🔧 技术文档',
             'impl': '📋 实施方案',
             'service': '🛠️ 服务文档'
         };
+
+        // 存储当前产品ID，以便上传时使用
+        this.currentProductId = productId;
+
+        // 渲染文档列表内容
+        let documentsHtml = '';
+        if (!documents || documents.length === 0) {
+            documentsHtml = `
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="bi bi-folder text-muted fs-1"></i>
+                        <p class="text-muted mt-3">暂无文档</p>
+                        <button class="btn btn-primary" onclick="window.documentManager.showUploadModal(${productId})">
+                            <i class="bi bi-plus me-2"></i>上传第一个文档
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            documentsHtml = documents.map(doc => this.renderDocument(doc)).join('');
+        }
 
         const html = `
             <div class="container-fluid px-0">
@@ -747,7 +768,7 @@ class DocumentManager {
                                     <i class="bi bi-folder text-primary fs-3 me-3"></i>
                                     <div>
                                         <h5 class="mb-0">${categoryNames[category] || category}</h5>
-                                        <small class="text-muted">产品分类文档</small>
+                                        <small class="text-muted">产品分类文档 (${documents ? documents.length : 0}个文档)</small>
                                     </div>
                                 </div>
                             </div>
@@ -760,14 +781,7 @@ class DocumentManager {
                     </div>
                     <div class="card-body">
                         <div class="row g-3" id="category-documents-${category}">
-                            <div class="col-12">
-                                <div class="text-center py-5">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">加载中...</span>
-                                    </div>
-                                    <p class="text-muted mt-3">正在加载文档...</p>
-                                </div>
-                            </div>
+                            ${documentsHtml}
                         </div>
                     </div>
                 </div>
