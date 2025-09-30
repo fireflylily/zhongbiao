@@ -488,7 +488,7 @@ class KnowledgeBaseManager:
         上传文档到文档库 - 使用统一文件存储服务
         """
         try:
-            from ..core.storage_service import storage_service
+            from core.storage_service import storage_service
 
             # 获取文档库信息以确定所属公司
             library = self.db.get_library(library_id)
@@ -849,7 +849,7 @@ class KnowledgeBaseManager:
                             issue_date: str = None, expire_date: str = None) -> Dict:
         """上传公司资质文件 - 使用统一存储服务"""
         try:
-            from ..core.storage_service import storage_service
+            from core.storage_service import storage_service
 
             # 检查公司是否存在
             company = self.db.get_company_by_id(company_id)
