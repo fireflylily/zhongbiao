@@ -1002,10 +1002,10 @@ def register_routes(app: Flask, config, logger):
     # 文档预览和编辑API
     @app.route('/api/document/preview/<filename>', methods=['GET'])
     def preview_document(filename):
-        """预览文档内容（转换为HTML）"""
+        """预览文档内容（转换为HTML）- 支持.doc和.docx格式"""
         try:
-            from docx import Document
             import html
+            from pathlib import Path
 
             # 直接使用传入的文件名，因为这应该是从系统生成的安全文件名
             # 只进行基本的安全检查，避免路径遍历攻击
@@ -1020,53 +1020,58 @@ def register_routes(app: Flask, config, logger):
 
             if not file_path.exists():
                 raise FileNotFoundError(f"文档不存在: {filename}")
-            
-            # 读取Word文档
-            doc = Document(str(file_path))
-            
-            # 转换为HTML
-            html_content = []
-            html_content.append('<div class="document-preview">')
-            
-            for paragraph in doc.paragraphs:
-                if paragraph.text.strip():
-                    # 检查段落样式
-                    style_name = paragraph.style.name if paragraph.style else ''
-                    text = html.escape(paragraph.text)
-                    
-                    if 'Heading 1' in style_name:
-                        html_content.append(f'<h1>{text}</h1>')
-                    elif 'Heading 2' in style_name:
-                        html_content.append(f'<h2>{text}</h2>')
-                    elif 'Heading 3' in style_name:
-                        html_content.append(f'<h3>{text}</h3>')
+
+            file_ext = Path(file_path).suffix.lower()
+
+            # 只处理Word文档
+            if file_ext not in ['.doc', '.docx']:
+                raise ValueError(f"不支持的文件格式: {file_ext}")
+
+            # 使用TenderInfoExtractor的文档读取功能（支持.doc和.docx）
+            from modules.tender_info.extractor import TenderInfoExtractor
+            extractor = TenderInfoExtractor()
+
+            # 读取文档内容（自动处理.doc和.docx）
+            text_content = extractor.read_document(str(file_path))
+
+            # 将纯文本转换为HTML（保留段落结构）
+            html_content = ['<div class="document-preview">']
+
+            # 按段落分割文本
+            paragraphs = text_content.split('\n')
+            for para in paragraphs:
+                para = para.strip()
+                if para:
+                    # 简单的标题检测（全大写或以数字开头）
+                    if para.isupper() and len(para) < 100:
+                        html_content.append(f'<h3>{html.escape(para)}</h3>')
+                    elif re.match(r'^\d+[\.\、]', para):
+                        html_content.append(f'<h4>{html.escape(para)}</h4>')
                     else:
-                        html_content.append(f'<p>{text}</p>')
-            
-            # 处理表格
-            for table in doc.tables:
-                html_content.append('<table class="table table-bordered">')
-                for row in table.rows:
-                    html_content.append('<tr>')
-                    for cell in row.cells:
-                        cell_text = html.escape(cell.text)
-                        html_content.append(f'<td>{cell_text}</td>')
-                    html_content.append('</tr>')
-                html_content.append('</table>')
-            
+                        html_content.append(f'<p>{html.escape(para)}</p>')
+
             html_content.append('</div>')
-            
+
             return jsonify({
                 'success': True,
                 'html_content': ''.join(html_content),
-                'filename': filename
+                'filename': filename,
+                'format': file_ext
             })
-            
+
         except Exception as e:
             logger.error(f"文档预览失败: {e}")
+            error_msg = str(e)
+
+            # 提供友好的错误提示
+            if 'WPS Office' in error_msg:
+                error_msg = 'WPS格式文档预览失败。建议：\n1. 使用WPS或Word将文件另存为.docx格式\n2. 或直接进行信息提取'
+            elif '.doc' in error_msg or 'antiword' in error_msg:
+                error_msg = '旧版.doc格式预览失败。建议：\n1. 将文件另存为.docx格式\n2. 或直接进行信息提取（系统会自动处理）'
+
             return jsonify({
                 'success': False,
-                'error': str(e)
+                'error': error_msg
             })
     
     @app.route('/api/editor/load-document', methods=['POST'])

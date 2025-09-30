@@ -16,6 +16,8 @@ try:
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
+    # 定义占位类型以避免NameError
+    Document = Any
     logging.warning("LangChain dependencies not installed. RAG features will be disabled.")
 
 logger = logging.getLogger(__name__)

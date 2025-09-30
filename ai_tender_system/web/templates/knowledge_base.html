@@ -785,6 +785,8 @@ document_chunks (文档分块表)
     <script src="/static/js/pages/knowledge-base/search-manager.js"></script>
     <script src="/static/js/pages/knowledge-base/company-profile-manager.js"></script>
     <script src="/static/js/pages/knowledge-base/rag-integration.js"></script>
+    <script src="/static/js/pages/knowledge-base/ai-search-manager.js"></script>
+    <script src="/static/js/pages/knowledge-base/document-viewer.js"></script>
 
     <!-- 页面初始化脚本 -->
     <script>
@@ -909,21 +911,22 @@ document_chunks (文档分块表)
             }
         }
 
-        // ====== RAG智能检索功能 ======
+        // ====== RAG智能检索功能 (已模块化到ai-search-manager.js) ======
 
         /**
-         * 显示AI检索面板
+         * 同步搜索范围到AI搜索管理器
          */
-        function showAISearch() {
-            const searchCard = document.getElementById('aiSearchCard');
-            searchCard.style.display = 'block';
-            document.getElementById('aiQueryInput').focus();
+        function syncSearchScope() {
+            if (window.aiSearchManager) {
+                window.aiSearchManager.setSearchScope(currentCompanyId, currentProductId);
+            }
         }
 
         /**
-         * 执行AI智能检索（使用Chroma向量搜索）
+         * 执行AI智能检索（委托给ai-search-manager.js）
+         * 注：实际逻辑已移至aiSearchManager，此处仅为兼容保留
          */
-        async function performAISearch() {
+        async function performAISearch_Legacy() {
             const query = document.getElementById('aiQueryInput').value.trim();
             if (!query) {
                 showAlert('请输入查询问题', 'warning');
@@ -1145,10 +1148,161 @@ document_chunks (文档分块表)
         /**
          * 查看完整文档
          */
-        function viewFullDocument(docId) {
-            showAlert('文档查看功能开发中...', 'info');
+        async function viewFullDocument(docId) {
             console.log('查看文档:', docId);
-            // TODO: 实现文档查看功能
+
+            try {
+                // 显示加载模态框
+                const modalHtml = `
+                    <div class="modal fade" id="documentViewModal" tabindex="-1">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="bi bi-file-text me-2"></i>文档详情
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body" id="documentViewBody">
+                                    <div class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <p class="text-muted mt-2">正在加载文档...</p>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 移除旧模态框
+                const oldModal = document.getElementById('documentViewModal');
+                if (oldModal) {
+                    oldModal.remove();
+                }
+
+                // 添加新模态框
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+                // 显示模态框
+                const modal = new bootstrap.Modal(document.getElementById('documentViewModal'));
+                modal.show();
+
+                // 获取文档信息
+                const response = await axios.get(`/api/knowledge_base/documents/${docId}`);
+
+                if (response.data.success && response.data.data) {
+                    const doc = response.data.data;
+
+                    // 渲染文档内容
+                    const bodyHtml = `
+                        <div class="document-view-content">
+                            <!-- 文档元信息 -->
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">${doc.file_name}</h5>
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>文档类型:</strong> ${doc.document_category || '未分类'}</p>
+                                            <p class="mb-1"><strong>文件大小:</strong> ${formatFileSize(doc.file_size)}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>上传时间:</strong> ${formatDate(doc.created_at)}</p>
+                                            <p class="mb-1"><strong>解析状态:</strong>
+                                                <span class="badge ${doc.parse_status === 'completed' ? 'bg-success' : 'bg-warning'}">
+                                                    ${doc.parse_status === 'completed' ? '已解析' : '待解析'}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 文档内容预览 -->
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <i class="bi bi-eye me-2"></i>文档内容预览
+                                </div>
+                                <div class="card-body" id="documentContentPreview">
+                                    <div class="text-center py-3">
+                                        <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                                        <p class="text-muted small mt-2">正在加载预览...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('documentViewBody').innerHTML = bodyHtml;
+
+                    // 加载文档预览
+                    loadDocumentPreview(doc.file_name);
+
+                } else {
+                    throw new Error(response.data.error || '获取文档信息失败');
+                }
+
+            } catch (error) {
+                console.error('查看文档失败:', error);
+                showAlert('查看文档失败：' + error.message, 'danger');
+
+                // 显示错误信息
+                const bodyElement = document.getElementById('documentViewBody');
+                if (bodyElement) {
+                    bodyElement.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>加载失败</strong>
+                            <p class="mb-0 mt-2">${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        /**
+         * 加载文档预览内容
+         */
+        async function loadDocumentPreview(filename) {
+            try {
+                const response = await axios.get(`/api/document/preview/${filename}`);
+
+                if (response.data.success) {
+                    document.getElementById('documentContentPreview').innerHTML =
+                        response.data.html_content || '<p class="text-muted">暂无预览内容</p>';
+                } else {
+                    throw new Error(response.data.error || '预览失败');
+                }
+            } catch (error) {
+                console.error('预览失败:', error);
+                document.getElementById('documentContentPreview').innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle me-2"></i>
+                        无法预览此文档：${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * 格式化文件大小
+         */
+        function formatFileSize(bytes) {
+            if (!bytes) return '未知';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        /**
+         * 格式化日期
+         */
+        function formatDate(dateString) {
+            if (!dateString) return '未知';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN');
         }
 
         /**
