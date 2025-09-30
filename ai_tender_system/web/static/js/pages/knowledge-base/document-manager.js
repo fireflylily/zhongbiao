@@ -734,13 +734,8 @@ class DocumentManager {
                 if (window.showAlert) {
                     window.showAlert('文档删除成功', 'success');
                 }
-                // 刷新当前产品详情
-                if (this.currentProductId) {
-                    // 通知其他模块刷新
-                    if (window.categoryManager) {
-                        window.categoryManager.selectProduct(this.currentProductId, '');
-                    }
-                }
+                // 刷新当前视图
+                this.refreshCurrentView();
             }
         } catch (error) {
             console.error('删除文档失败:', error);
