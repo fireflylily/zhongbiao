@@ -244,15 +244,33 @@ class CategoryManager {
         this.updateActiveState('[onclick*="selectProductCategory(' + productId + ', \'' + category + '\'"]');
 
         try {
-            // 加载该分类下的文档
-            const response = await axios.get(`/api/knowledge_base/products/${productId}/documents`, {
-                params: { category: category }
-            });
+            // 步骤1: 获取产品的文档库列表
+            const librariesResp = await axios.get(`/api/knowledge_base/product/${productId}/libraries`);
 
-            if (response.data.success) {
+            if (!librariesResp.data.success) {
+                throw new Error('获取文档库列表失败');
+            }
+
+            // 步骤2: 找到对应类型的文档库
+            const libraries = librariesResp.data.data;
+            const targetLibrary = libraries.find(lib => lib.library_type === category);
+
+            if (!targetLibrary) {
+                // 文档库不存在，显示空状态
+                console.log(`产品 ${productId} 没有 ${category} 类型的文档库`);
+                if (window.documentManager) {
+                    window.documentManager.renderCategoryDocuments(productId, category, []);
+                }
+                return;
+            }
+
+            // 步骤3: 获取文档库的文档列表
+            const docsResp = await axios.get(`/api/knowledge_base/libraries/${targetLibrary.library_id}/documents`);
+
+            if (docsResp.data.success) {
                 // 通知文档管理器渲染该分类的文档
                 if (window.documentManager) {
-                    window.documentManager.renderCategoryDocuments(productId, category, response.data.data);
+                    window.documentManager.renderCategoryDocuments(productId, category, docsResp.data.data);
                 }
             }
         } catch (error) {
