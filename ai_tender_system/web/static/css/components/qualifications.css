@@ -1,0 +1,526 @@
+/**
+ * 资质组件样式 - 统一的资质卡片和显示效果
+ * 用于 index.html 和 knowledge_base.html 的资质显示
+ * 基于 variables.css 中定义的变量和 cards.css 的设计风格
+ */
+
+/* ============================================
+   资质卡片基础样式
+   ============================================ */
+
+/* 资质项卡片容器 */
+.qualification-item {
+    transition: var(--transition-normal);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-white);
+    margin-bottom: var(--spacing-md);
+}
+
+.qualification-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* 资质卡片 - 必需资质特殊样式 */
+.qualification-item.qualification-required {
+    border-left: 4px solid var(--brand-warning);
+}
+
+.qualification-item.qualification-required:hover {
+    border-left-color: var(--brand-warning);
+}
+
+/* 资质卡片 - 已上传状态 */
+.qualification-item.qualification-uploaded {
+    border-left: 4px solid var(--brand-success);
+    background: linear-gradient(135deg, rgba(72, 207, 173, 0.03), var(--bg-white));
+}
+
+.qualification-item.qualification-uploaded:hover {
+    border-left-color: var(--brand-success);
+}
+
+/* 资质卡片 - 缺失状态 */
+.qualification-item.qualification-missing {
+    border-left: 4px solid var(--brand-warning);
+    background: linear-gradient(135deg, rgba(235, 125, 60, 0.03), var(--bg-white));
+}
+
+.qualification-item.qualification-missing:hover {
+    border-left-color: var(--brand-warning);
+}
+
+/* 资质卡片主体 */
+.qualification-item .card-body {
+    padding: var(--spacing-md);
+}
+
+/* ============================================
+   资质信息显示
+   ============================================ */
+
+/* 资质名称区域 */
+.qualification-name {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-grow: 1;
+}
+
+.qualification-name i {
+    font-size: 1.1rem;
+    color: var(--brand-primary);
+}
+
+.qualification-name span {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* 资质徽章 */
+.qualification-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* 必需徽章 */
+.qualification-badge-required {
+    background-color: var(--brand-warning);
+    color: var(--text-dark);
+}
+
+/* 已上传徽章 */
+.qualification-badge-uploaded {
+    background-color: var(--brand-success);
+    color: white;
+}
+
+/* 缺失徽章 */
+.qualification-badge-missing {
+    background-color: var(--brand-danger);
+    color: white;
+}
+
+/* 可选徽章 */
+.qualification-badge-optional {
+    background-color: var(--bg-light);
+    color: var(--text-muted);
+    border: 1px solid var(--border-light);
+}
+
+/* ============================================
+   文件上传状态显示
+   ============================================ */
+
+/* 上传状态容器 */
+.qualification-upload-status {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-light);
+}
+
+/* 文件信息显示 */
+.qualification-file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.qualification-file-info small {
+    color: var(--text-muted);
+}
+
+.qualification-file-info .text-success {
+    color: var(--brand-success) !important;
+}
+
+/* 文件名显示 */
+.qualification-filename {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* 文件大小和时间 */
+.qualification-file-meta {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   资质操作按钮
+   ============================================ */
+
+/* 按钮组 */
+.qualification-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.qualification-actions .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   资质汇总统计卡片
+   ============================================ */
+
+/* 汇总卡片容器 */
+.qualification-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* 统计卡片 */
+.qualification-stat-card {
+    text-align: center;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    background: var(--bg-light);
+    border: 1px solid var(--border-light);
+    transition: var(--transition-normal);
+}
+
+.qualification-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.qualification-stat-card h6 {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+}
+
+.qualification-stat-card h4 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.qualification-stat-card.stat-total h4 {
+    color: var(--brand-primary);
+}
+
+.qualification-stat-card.stat-uploaded h4 {
+    color: var(--brand-success);
+}
+
+.qualification-stat-card.stat-missing h4 {
+    color: var(--brand-danger);
+}
+
+.qualification-stat-card.stat-match h4 {
+    color: var(--brand-info);
+}
+
+.qualification-stat-card.stat-complete {
+    background: var(--brand-success);
+    color: white;
+}
+
+.qualification-stat-card.stat-complete h6,
+.qualification-stat-card.stat-complete h4 {
+    color: white;
+}
+
+/* ============================================
+   资质要求上下文显示
+   ============================================ */
+
+/* 要求描述 */
+.qualification-requirement-context {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--bg-light);
+    border-left: 3px solid var(--brand-info);
+    border-radius: var(--border-radius-sm);
+}
+
+.qualification-requirement-context small {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* 关键词标签 */
+.qualification-keywords {
+    margin-top: var(--spacing-xs);
+    display: flex;
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+}
+
+.qualification-keyword-tag {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    background: var(--brand-info);
+    color: white;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* ============================================
+   资质分类容器
+   ============================================ */
+
+/* 分类标题 */
+.qualification-category-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--border-light);
+}
+
+.qualification-category-title i {
+    font-size: 1.25rem;
+}
+
+.qualification-category-title h6 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 分类容器 */
+.category-qualifications {
+    margin-bottom: var(--spacing-lg);
+}
+
+/* ============================================
+   状态图标
+   ============================================ */
+
+/* 成功图标 */
+.qualification-status-icon-success {
+    color: var(--brand-success);
+    font-size: 1.25rem;
+}
+
+/* 警告图标 */
+.qualification-status-icon-warning {
+    color: var(--brand-warning);
+    font-size: 1.25rem;
+}
+
+/* 错误图标 */
+.qualification-status-icon-error {
+    color: var(--brand-danger);
+    font-size: 1.25rem;
+}
+
+/* 信息图标 */
+.qualification-status-icon-info {
+    color: var(--brand-info);
+    font-size: 1.25rem;
+}
+
+/* ============================================
+   响应式设计
+   ============================================ */
+
+@media (max-width: 768px) {
+    .qualification-summary {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .qualification-item .card-body {
+        padding: var(--spacing-sm);
+    }
+
+    .qualification-file-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+
+    .qualification-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .qualification-stat-card h4 {
+        font-size: 1.5rem;
+    }
+}
+
+/* ============================================
+   动画效果
+   ============================================ */
+
+/* 上传成功动画 */
+@keyframes qualification-upload-success {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.qualification-item.uploading-success {
+    animation: qualification-upload-success 0.6s ease-in-out;
+}
+
+/* 加载动画 */
+.qualification-item.loading {
+    position: relative;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.qualification-item.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--border-light);
+    border-top-color: var(--brand-primary);
+    border-radius: 50%;
+    animation: qualification-spin 0.8s linear infinite;
+}
+
+@keyframes qualification-spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ============================================
+   人员信息组件样式（共享相同的卡片结构）
+   ============================================ */
+
+/* 人员项卡片容器 */
+.personnel-item {
+    transition: var(--transition-normal);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-white);
+    margin-bottom: var(--spacing-md);
+}
+
+.personnel-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--brand-warning);
+}
+
+.personnel-item .card {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+}
+
+.personnel-item .card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.personnel-item .card-body {
+    padding: var(--spacing-md);
+}
+
+/* 人员项图标 */
+.personnel-item i.bi {
+    color: var(--brand-warning);
+}
+
+/* 人员项上传按钮 */
+.personnel-item .btn-outline-warning:hover {
+    background-color: var(--brand-warning);
+    color: white;
+}
+
+/* ============================================
+   财务文件组件样式（共享相同的卡片结构）
+   ============================================ */
+
+/* 财务项卡片容器 */
+.financial-item {
+    transition: var(--transition-normal);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-white);
+    margin-bottom: var(--spacing-md);
+}
+
+.financial-item:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--brand-danger);
+}
+
+.financial-item .card {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+}
+
+.financial-item .card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.financial-item .card-body {
+    padding: var(--spacing-md);
+}
+
+/* 财务项图标 */
+.financial-item i.bi {
+    color: var(--brand-danger);
+}
+
+/* 财务项上传按钮 */
+.financial-item .btn-outline-danger:hover {
+    background-color: var(--brand-danger);
+    color: white;
+}
+
+/* ============================================
+   通用文档项状态显示（人员、财务共用）
+   ============================================ */
+
+/* 文件状态显示区域 */
+.personnel-item [id^="pers-status-"],
+.financial-item [id^="fin-status-"] {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-light);
+}
+
+/* 文件信息成功状态 */
+.personnel-item .text-success,
+.financial-item .text-success {
+    color: var(--brand-success) !important;
+    font-weight: 500;
+}
+
+/* 文件元数据 */
+.personnel-item small.text-muted,
+.financial-item small.text-muted {
+    color: var(--text-muted) !important;
+    font-size: 0.875rem;
+}

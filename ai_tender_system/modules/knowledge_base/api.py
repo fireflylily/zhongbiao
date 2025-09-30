@@ -6,7 +6,6 @@
 """
 
 from flask import Blueprint, request, jsonify, session
-from werkzeug.utils import secure_filename
 import os
 import json
 from typing import Dict, Any
@@ -280,69 +279,36 @@ class KnowledgeBaseAPI:
 
         @self.blueprint.route('/libraries/<int:library_id>/documents', methods=['POST'])
         def upload_document(library_id):
-            """上传文档到文档库"""
+            """上传文档到文档库 - 简化版（统一服务已处理验证）"""
             try:
-                # 检查文件是否存在
+                # 基本检查
                 if 'file' not in request.files:
-                    return jsonify({
-                        'success': False,
-                        'error': '没有选择文件'
-                    }), 400
+                    return jsonify({'success': False, 'error': '没有选择文件'}), 400
 
                 file = request.files['file']
-                if file.filename == '':
-                    return jsonify({
-                        'success': False,
-                        'error': '文件名不能为空'
-                    }), 400
+                if not file.filename:
+                    return jsonify({'success': False, 'error': '文件名不能为空'}), 400
 
-                # 获取其他参数
+                # 获取参数
                 privacy_classification = int(request.form.get('privacy_classification', 1))
-                tags = request.form.get('tags')
-                metadata = request.form.get('metadata')
+                tags = json.loads(request.form.get('tags', '[]')) if request.form.get('tags') else []
+                metadata = json.loads(request.form.get('metadata', '{}')) if request.form.get('metadata') else {}
 
-                # 解析JSON字段
-                if tags:
-                    try:
-                        tags = json.loads(tags)
-                    except:
-                        tags = []
-
-                if metadata:
-                    try:
-                        metadata = json.loads(metadata)
-                    except:
-                        metadata = {}
-
-                # 验证文件类型
-                allowed_extensions = {'pdf', 'doc', 'docx', 'txt'}
-                file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-                if file_ext not in allowed_extensions:
-                    return jsonify({
-                        'success': False,
-                        'error': f'不支持的文件类型: {file_ext}。支持的类型: {", ".join(allowed_extensions)}'
-                    }), 400
-
+                # 调用manager上传（已集成统一存储服务）
                 result = self.manager.upload_document(
                     library_id=library_id,
                     file_obj=file,
-                    original_filename=secure_filename(file.filename),
+                    original_filename=file.filename,  # 保留原始文件名
                     privacy_classification=privacy_classification,
                     tags=tags,
                     metadata=metadata
                 )
 
-                if result['success']:
-                    return jsonify(result), 201
-                else:
-                    return jsonify(result), 400
+                return jsonify(result), 201 if result['success'] else 400
 
             except Exception as e:
                 logger.error(f"文档上传失败: {e}")
-                return jsonify({
-                    'success': False,
-                    'error': str(e)
-                }), 500
+                return jsonify({'success': False, 'error': str(e)}), 500
 
         @self.blueprint.route('/libraries/<int:library_id>/documents', methods=['GET'])
         def get_documents(library_id):

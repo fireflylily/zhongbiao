@@ -228,14 +228,28 @@ class FileStorageService:
                     print(f"删除临时文件失败 {file_path}: {e}")
 
     def _generate_safe_filename(self, original_name: str, file_id: str) -> str:
-        """生成安全的文件名"""
-        # 获取文件扩展名
-        name_parts = original_name.rsplit('.', 1)
-        extension = f".{name_parts[1]}" if len(name_parts) > 1 else ""
+        """
+        生成安全的文件名，保留中文字符
 
-        # 使用UUID前8位 + 时间戳 + 扩展名
+        格式：timestamp_原始名称_fileid.ext
+        例如：20250930_160755_5G技术白皮书_a1b2c3d4.pdf
+        """
+        import re
+
+        # 分离文件名和扩展名
+        name_part, extension = os.path.splitext(original_name)
+
+        # 只移除文件系统不允许的特殊字符，保留中文、字母、数字
+        # Windows/Linux/Mac 不允许的字符: < > : " / \ | ? *
+        safe_name_part = re.sub(r'[<>:"/\\|?*]', '_', name_part)
+
+        # 限制长度，避免路径过长（一般文件系统限制255字符）
+        if len(safe_name_part) > 100:
+            safe_name_part = safe_name_part[:100]
+
+        # 使用时间戳 + 原始名称 + UUID前8位 + 扩展名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_name = f"{file_id[:8]}_{timestamp}{extension}"
+        safe_name = f"{timestamp}_{safe_name_part}_{file_id[:8]}{extension}"
 
         return safe_name
 

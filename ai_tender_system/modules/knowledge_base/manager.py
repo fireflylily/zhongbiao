@@ -484,49 +484,60 @@ class KnowledgeBaseManager:
     def upload_document(self, library_id: int, file_obj, original_filename: str,
                        privacy_classification: int = 1,
                        tags: List[str] = None, metadata: Dict = None) -> Dict:
-        """上传文档到文档库"""
+        """
+        上传文档到文档库 - 使用统一文件存储服务
+        """
         try:
-            # 生成文件名
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_ext = Path(original_filename).suffix.lower()
-            filename = f"{timestamp}_{hashlib.md5(original_filename.encode()).hexdigest()[:8]}{file_ext}"
+            from ..core.storage_service import storage_service
 
-            # 保存文件
-            file_path = self.upload_dir / filename
-            file_obj.save(str(file_path))
+            # 获取文档库信息以确定所属公司
+            library = self.db.get_library(library_id)
+            company_id = None
+            if library and library.get('owner_type') == 'product':
+                # 如果是产品库，获取产品所属的公司ID
+                product_id = library.get('owner_id')
+                if product_id:
+                    product = self.db.get_product(product_id)
+                    if product:
+                        company_id = product.get('company_id')
 
-            # 获取文件信息
-            file_size = file_path.stat().st_size
-            file_type = file_ext[1:]  # 去掉点号
-
-            # 创建文档记录
-            doc_id = self.db.create_document(
-                library_id=library_id,
-                filename=filename,
-                original_filename=original_filename,
-                file_path=str(file_path),
-                file_type=file_type,
-                file_size=file_size,
-                privacy_classification=privacy_classification,
-                tags=tags,
-                metadata=metadata
+            # 使用统一存储服务保存文件
+            file_metadata = storage_service.store_file(
+                file_obj=file_obj,
+                original_name=original_filename,
+                category='product_docs',
+                business_type='knowledge_base',
+                company_id=company_id,
+                tags=tags
             )
 
-            logger.info(f"文档上传成功: {original_filename} -> {filename} (ID: {doc_id})")
+            # 创建文档记录（使用file_id关联）
+            file_ext = Path(original_filename).suffix.lower()
+            doc_id = self.db.create_document(
+                library_id=library_id,
+                filename=file_metadata.safe_name,  # 物理文件名
+                original_filename=file_metadata.original_name,  # 原始文件名
+                file_path=file_metadata.file_path,
+                file_type=file_ext[1:],  # 去掉点号
+                file_size=file_metadata.file_size,
+                privacy_classification=privacy_classification,
+                tags=tags,
+                metadata={'file_id': file_metadata.file_id, 'checksum': file_metadata.checksum}
+            )
+
+            logger.info(f"文档上传成功: {original_filename} -> {file_metadata.safe_name} (ID: {doc_id}, file_id: {file_metadata.file_id})")
 
             return {
                 'success': True,
                 'doc_id': doc_id,
-                'filename': filename,
+                'filename': file_metadata.safe_name,
+                'original_filename': file_metadata.original_name,
+                'file_id': file_metadata.file_id,
                 'message': f"文档 '{original_filename}' 上传成功"
             }
 
         except Exception as e:
             logger.error(f"文档上传失败: {e}")
-            # 如果数据库操作失败，删除已上传的文件
-            if 'file_path' in locals() and file_path.exists():
-                file_path.unlink()
-
             return {
                 'success': False,
                 'error': str(e)
@@ -836,8 +847,10 @@ class KnowledgeBaseManager:
                             file_obj, original_filename: str,
                             qualification_name: str = None, custom_name: str = None,
                             issue_date: str = None, expire_date: str = None) -> Dict:
-        """上传公司资质文件"""
+        """上传公司资质文件 - 使用统一存储服务"""
         try:
+            from ..core.storage_service import storage_service
+
             # 检查公司是否存在
             company = self.db.get_company_by_id(company_id)
             if not company:
@@ -846,21 +859,18 @@ class KnowledgeBaseManager:
                     'error': f'公司ID {company_id} 不存在'
                 }
 
-            # 创建资质文件目录
-            qualifications_dir = self.config.get_path('uploads') / 'qualifications' / str(company_id)
-            qualifications_dir.mkdir(parents=True, exist_ok=True)
+            # 使用统一存储服务保存文件
+            file_metadata = storage_service.store_file(
+                file_obj=file_obj,
+                original_name=original_filename,
+                category='qualifications',
+                business_type=qualification_key,
+                company_id=company_id,
+                tags=[qualification_name or qualification_key, f'company_{company_id}']
+            )
 
-            # 生成安全的文件名
-            timestamp = int(datetime.now().timestamp())
+            # 获取文件类型
             file_ext = Path(original_filename).suffix.lower()
-            safe_filename = f"{timestamp}_{hashlib.md5(original_filename.encode()).hexdigest()[:8]}{file_ext}"
-
-            # 保存文件
-            file_path = qualifications_dir / safe_filename
-            file_obj.save(str(file_path))
-
-            # 获取文件信息
-            file_size = file_path.stat().st_size
             file_type = file_ext[1:] if file_ext else ''
 
             # 创建或更新资质记录
@@ -869,22 +879,24 @@ class KnowledgeBaseManager:
                 qualification_key=qualification_key,
                 qualification_name=qualification_name or qualification_key,
                 custom_name=custom_name,
-                original_filename=original_filename,
-                safe_filename=safe_filename,
-                file_path=str(file_path),
-                file_size=file_size,
+                original_filename=file_metadata.original_name,
+                safe_filename=file_metadata.safe_name,
+                file_path=file_metadata.file_path,
+                file_size=file_metadata.file_size,
                 file_type=file_type,
                 issue_date=issue_date,
                 expire_date=expire_date
             )
 
-            logger.info(f"公司 {company_id} 上传资质文件成功: {qualification_key} -> {safe_filename}")
+            logger.info(f"公司 {company_id} 上传资质文件成功: {qualification_key} -> {file_metadata.safe_name} (file_id: {file_metadata.file_id})")
 
             return {
                 'success': True,
                 'qualification_id': qualification_id,
                 'qualification_key': qualification_key,
-                'filename': safe_filename,
+                'filename': file_metadata.safe_name,
+                'original_filename': file_metadata.original_name,
+                'file_id': file_metadata.file_id,
                 'message': f"资质文件 '{original_filename}' 上传成功"
             }
 

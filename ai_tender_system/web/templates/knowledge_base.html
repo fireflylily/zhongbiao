@@ -377,6 +377,7 @@ document_chunks (文档分块表)
     <link href="/static/css/components/navigation.css" rel="stylesheet">
     <link href="/static/css/components/privacy-badges.css" rel="stylesheet">
     <link href="/static/css/components/universal-uploader.css" rel="stylesheet">
+    <link href="/static/css/components/qualifications.css" rel="stylesheet">
 </head>
 <body>
     <!-- 导航栏 -->
@@ -1100,22 +1101,6 @@ document_chunks (文档分块表)
                     }).join('')}
                 </div>
 
-                <!-- CSS样式 -->
-                <style>
-                    .hover-lift:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-                    }
-                    .gap-2 {
-                        gap: 0.5rem !important;
-                    }
-                    mark {
-                        background-color: #fff3cd;
-                        padding: 2px 4px;
-                        border-radius: 3px;
-                        font-weight: 500;
-                    }
-                </style>
             `;
 
             resultsDiv.innerHTML = html;

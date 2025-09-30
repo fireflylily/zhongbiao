@@ -451,3 +451,15 @@
         border: 1px solid #ccc !important;
     }
 }
+
+/* ============================================
+   搜索高亮样式
+   ============================================ */
+
+/* 搜索关键词高亮标记 */
+mark {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}

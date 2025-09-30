@@ -343,44 +343,37 @@ def register_routes(app: Flask, config, logger):
     
     @app.route('/upload', methods=['POST'])
     def upload_file():
-        """通用文件上传"""
+        """通用文件上传 - 使用统一存储服务"""
         try:
+            from ai_tender_system.core.storage_service import storage_service
+
             if 'file' not in request.files:
                 raise ValueError("没有选择文件")
 
             file = request.files['file']
-            if file.filename == '':
+            if not file.filename:
                 raise ValueError("文件名为空")
 
-            # 保存原始文件名
-            original_filename = file.filename
-
-            # 获取文件类型和允许的扩展名
+            # 获取文件类型
             file_type = request.form.get('type', 'tender_info')
-            upload_config = config.get_upload_config()
-            allowed_extensions = upload_config['allowed_extensions'].get(file_type, set())
 
-            if not allowed_file(file.filename, allowed_extensions):
-                raise ValueError(f"不支持的文件类型，允许的类型: {', '.join(allowed_extensions)}")
+            # 使用统一存储服务
+            file_metadata = storage_service.store_file(
+                file_obj=file.stream,
+                original_name=file.filename,
+                category='tender_documents',
+                business_type=file_type
+            )
 
-            # 保存文件（生成安全文件名）
-            filename = safe_filename(file.filename)
-            upload_dir = ensure_dir(config.get_path('upload'))
-            file_path = upload_dir / filename
-            file.save(str(file_path))
-
-            # 获取文件大小
-            file_size = file_path.stat().st_size
-            file_size_mb = round(file_size / (1024 * 1024), 2)
-
-            logger.info(f"文件上传成功: {filename} (原始名称: {original_filename})")
+            logger.info(f"文件上传成功: {file.filename} -> {file_metadata.safe_name}")
             return jsonify({
                 'success': True,
-                'filename': filename,  # 安全文件名（用于后端处理）
-                'original_filename': original_filename,  # 原始文件名（用于显示）
-                'file_path': str(file_path),
-                'file_size': file_size,
-                'file_size_mb': file_size_mb,
+                'filename': file_metadata.safe_name,
+                'original_filename': file_metadata.original_name,
+                'file_path': file_metadata.file_path,
+                'file_size': file_metadata.file_size,
+                'file_size_mb': round(file_metadata.file_size / (1024 * 1024), 2),
+                'file_id': file_metadata.file_id,
                 'message': '文件上传成功'
             })
 
@@ -445,17 +438,20 @@ def register_routes(app: Flask, config, logger):
             if not api_key:
                 raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
             
-            # 保存上传文件
-            filename = safe_filename(file.filename)
-            upload_dir = ensure_dir(config.get_path('upload'))
-            file_path = upload_dir / filename
-            file.save(str(file_path))
-            
-            logger.info(f"开始提取招标信息: {filename}")
-            
+            # 保存上传文件 - 使用统一服务
+            from ai_tender_system.core.storage_service import storage_service
+            file_metadata = storage_service.store_file(
+                file_obj=file.stream,
+                original_name=file.filename,
+                category='tender_documents',
+                business_type='tender_info_extraction'
+            )
+
+            logger.info(f"开始提取招标信息: {file_metadata.original_name}")
+
             # 执行信息提取
             extractor = TenderInfoExtractor(api_key=api_key)
-            result = extractor.process_document(str(file_path))
+            result = extractor.process_document(file_metadata.file_path)
             
             logger.info("招标信息提取完成")
             return jsonify({
@@ -633,13 +629,19 @@ def register_routes(app: Flask, config, logger):
             reverse_mapping = {v: k for k, v in field_mapping.items()}
             company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
             
-            # 保存模板文件
-            filename = safe_filename(file.filename)
-            upload_dir = ensure_dir(config.get_path('upload'))
-            template_path = upload_dir / filename
-            file.save(str(template_path))
-            
-            logger.info(f"开始处理商务应答: {filename}")
+            # 保存模板文件 - 使用统一服务
+            from ai_tender_system.core.storage_service import storage_service
+            file_metadata = storage_service.store_file(
+                file_obj=file.stream,
+                original_name=file.filename,
+                category='business_templates',
+                business_type='business_response',
+                company_id=company_id
+            )
+            template_path = Path(file_metadata.file_path)
+            filename = file_metadata.safe_name
+
+            logger.info(f"开始处理商务应答: {file_metadata.original_name}")
             
             # 公共的输出文件路径设置（移到外面，两个分支都需要）
             output_dir = ensure_dir(config.get_path('output'))
@@ -785,13 +787,17 @@ def register_routes(app: Flask, config, logger):
             if file.filename == '':
                 raise ValueError("文件名为空")
 
-            # 保存文件
-            filename = safe_filename(file.filename)
-            upload_dir = ensure_dir(config.get_path('upload'))
-            file_path = upload_dir / filename
-            file.save(str(file_path))
+            # 保存文件 - 使用统一服务
+            from ai_tender_system.core.storage_service import storage_service
+            file_metadata = storage_service.store_file(
+                file_obj=file.stream,
+                original_name=file.filename,
+                category='point_to_point',
+                business_type='point_to_point_response'
+            )
+            file_path = Path(file_metadata.file_path)
 
-            logger.info(f"开始处理点对点应答: {filename}")
+            logger.info(f"开始处理点对点应答: {file_metadata.original_name}")
 
             # 获取公司ID参数
             company_id = request.form.get('companyId')
@@ -930,11 +936,16 @@ def register_routes(app: Flask, config, logger):
             if not company_id:
                 raise ValueError("请选择应答公司")
             
-            # 保存上传的文件
-            filename = safe_filename(file.filename)
-            upload_dir = ensure_dir(config.get_path('upload'))
-            requirements_path = upload_dir / filename
-            file.save(str(requirements_path))
+            # 保存上传的文件 - 使用统一服务
+            from ai_tender_system.core.storage_service import storage_service
+            file_metadata = storage_service.store_file(
+                file_obj=file.stream,
+                original_name=file.filename,
+                category='tech_proposals',
+                business_type='tech_requirements',
+                company_id=int(company_id)
+            )
+            requirements_path = Path(file_metadata.file_path)
             
             # 从数据库获取公司信息
             company_id_int = int(company_id)
@@ -1219,16 +1230,16 @@ def register_routes(app: Flask, config, logger):
             if file.filename == '':
                 raise ValueError("文件名为空")
             
-            # 检查文件类型
-            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
-            if not allowed_file(file.filename, allowed_extensions):
-                raise ValueError(f"不支持的图片格式")
-            
-            # 保存图片
-            filename = safe_filename(file.filename)
-            upload_dir = ensure_dir(config.get_path('upload') / 'images')
-            file_path = upload_dir / filename
-            file.save(str(file_path))
+            # 保存图片 - 使用统一服务
+            from ai_tender_system.core.storage_service import storage_service
+            file_metadata = storage_service.store_file(
+                file_obj=file.stream,
+                original_name=file.filename,
+                category='processed_results',  # 编辑器图片属于处理结果
+                business_type='editor_image'
+            )
+            file_path = Path(file_metadata.file_path)
+            filename = file_metadata.safe_name
             
             # 返回图片URL
             image_url = f'/static/uploads/images/{filename}'

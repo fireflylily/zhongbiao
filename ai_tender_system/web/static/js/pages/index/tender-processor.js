@@ -165,11 +165,13 @@ class TenderProcessor {
         // 结果展示区域
         this.resultsDisplayArea = document.getElementById('resultsDisplayArea');
         this.basicInfoDisplay = document.getElementById('basicInfoDisplay');
+        this.basicInfoFooter = document.getElementById('basicInfoFooter');
         this.qualificationDisplay = document.getElementById('qualificationDisplay');
         this.scoringDisplay = document.getElementById('scoringDisplay');
 
         // 操作按钮
         this.saveProjectBtn = document.getElementById('saveProjectBtn');
+        this.saveBasicInfoBtn = document.getElementById('saveBasicInfoBtn');
         this.resetAllBtn = document.getElementById('resetAllBtn');
 
         // 错误显示区域（保留原有的）
@@ -202,6 +204,9 @@ class TenderProcessor {
         // 操作按钮事件
         if (this.saveProjectBtn) {
             this.saveProjectBtn.addEventListener('click', () => this.saveProject());
+        }
+        if (this.saveBasicInfoBtn) {
+            this.saveBasicInfoBtn.addEventListener('click', () => this.saveBasicInfo());
         }
         if (this.resetAllBtn) {
             this.resetAllBtn.addEventListener('click', () => this.resetAll());
@@ -337,11 +342,23 @@ class TenderProcessor {
             // 调用分步处理API
             const result = await this.callStepAPI(stepType);
 
+            // 保存结果到 latestResults
+            if (!this.latestResults) {
+                this.latestResults = {};
+            }
+            this.latestResults[stepType] = result.data;
+
             // 显示结果
             this.displayStepResult(stepType, result);
 
-            // 如果处理了基本信息,立即激活保存按钮
+            // 如果处理了基本信息,显示并激活保存基本信息按钮
             if (stepType === 'basic' && result.data && result.data.project_name) {
+                if (this.basicInfoFooter) {
+                    this.basicInfoFooter.classList.remove('d-none');
+                }
+                if (this.saveBasicInfoBtn) {
+                    this.saveBasicInfoBtn.disabled = false;
+                }
                 if (this.saveProjectBtn) {
                     this.saveProjectBtn.disabled = false;
                 }
@@ -757,42 +774,24 @@ class TenderProcessor {
         const summary = data.summary || {};
         const qualifications = data.qualifications || {};
 
-        // 生成汇总信息
+        // 生成汇总信息 - 使用共享CSS类
         let html = `
-            <div class="mb-3">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="card text-center bg-light">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-1">资质要求总数</h6>
-                                <h4 class="text-primary mb-0">${summary.required_count || 0}</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-light">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-1">已上传数量</h6>
-                                <h4 class="text-success mb-0">${summary.uploaded_count || 0}</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-light">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-1">缺失数量</h6>
-                                <h4 class="text-danger mb-0">${summary.missing_count || 0}</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center ${summary.uploaded_count === summary.required_count ? 'bg-success text-white' : 'bg-light'}">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-1">资质匹配度</h6>
-                                <h4 class="${summary.uploaded_count === summary.required_count ? 'text-white' : 'text-info'} mb-0">${summary.required_count > 0 ? Math.round((summary.uploaded_count / summary.required_count) * 100) : 0}%</h4>
-                            </div>
-                        </div>
-                    </div>
+            <div class="qualification-summary">
+                <div class="qualification-stat-card stat-total">
+                    <h6>资质要求总数</h6>
+                    <h4>${summary.required_count || 0}</h4>
+                </div>
+                <div class="qualification-stat-card stat-uploaded">
+                    <h6>已上传数量</h6>
+                    <h4>${summary.uploaded_count || 0}</h4>
+                </div>
+                <div class="qualification-stat-card stat-missing">
+                    <h6>缺失数量</h6>
+                    <h4>${summary.missing_count || 0}</h4>
+                </div>
+                <div class="qualification-stat-card stat-match ${summary.uploaded_count === summary.required_count ? 'stat-complete' : ''}">
+                    <h6>资质匹配度</h6>
+                    <h4>${summary.required_count > 0 ? Math.round((summary.uploaded_count / summary.required_count) * 100) : 0}%</h4>
                 </div>
             </div>
         `;
@@ -813,48 +812,57 @@ class TenderProcessor {
             }
         });
 
-        // 显示必需的资质 - 卡片式
+        // 显示必需的资质 - 使用共享CSS类
         requiredQuals.forEach(qual => {
             const isUploaded = qual.company_status.uploaded;
             const confidence = qual.tender_requirement.confidence || 0;
             const context = qual.tender_requirement.context || '';
             const keywords = qual.tender_requirement.keywords_found || [];
 
+            const statusClass = isUploaded ? 'qualification-uploaded' : 'qualification-missing';
             const statusIcon = isUploaded ?
-                '<i class="bi bi-check-circle-fill text-success"></i>' :
-                '<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
-
-            const borderClass = isUploaded ? 'border-success' : 'border-warning';
+                '<i class="bi bi-check-circle-fill qualification-status-icon-success"></i>' :
+                '<i class="bi bi-exclamation-triangle-fill qualification-status-icon-warning"></i>';
 
             html += `
-                <div class="card mb-2 ${borderClass}" style="border-left-width: 4px;">
-                    <div class="card-body p-3">
+                <div class="card qualification-item ${statusClass}">
+                    <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-auto">
                                 ${statusIcon}
                             </div>
                             <div class="col">
-                                <div class="d-flex align-items-center mb-1">
-                                    <strong class="me-2">${qual.qualification_name}</strong>
-                                    <span class="badge bg-danger rounded-pill">必需</span>
+                                <div class="qualification-name mb-1">
+                                    <span>${qual.qualification_name}</span>
+                                    <span class="qualification-badge qualification-badge-required">必需</span>
                                 </div>
-                                ${context ? `<small class="text-muted d-block mb-1"><i class="bi bi-quote"></i> ${context.substring(0, 120)}${context.length > 120 ? '...' : ''}</small>` : ''}
-                                ${keywords.length > 0 ? `<small class="text-info"><i class="bi bi-tags"></i> ${keywords.slice(0, 5).join(', ')}</small>` : ''}
+                                ${context ? `
+                                    <div class="qualification-requirement-context">
+                                        <small><i class="bi bi-quote"></i> ${context.substring(0, 120)}${context.length > 120 ? '...' : ''}</small>
+                                    </div>
+                                ` : ''}
+                                ${keywords.length > 0 ? `
+                                    <div class="qualification-keywords">
+                                        ${keywords.slice(0, 5).map(kw => `<span class="qualification-keyword-tag">${kw}</span>`).join('')}
+                                    </div>
+                                ` : ''}
                             </div>
                             <div class="col-auto text-end" style="min-width: 200px;">
                                 ${isUploaded ? `
-                                    <div class="badge bg-success mb-1">✓ 已上传</div>
-                                    <br>
-                                    <small class="text-muted d-block">
-                                        <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
-                                    </small>
-                                    ${qual.company_status.upload_time ?
-                                        `<small class="text-muted d-block"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
-                                        : ''}
+                                    <span class="qualification-badge qualification-badge-uploaded">✓ 已上传</span>
+                                    <div class="qualification-upload-status">
+                                        <small class="qualification-file-meta">
+                                            <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
+                                        </small>
+                                        ${qual.company_status.upload_time ?
+                                            `<br><small class="qualification-file-meta"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
+                                            : ''}
+                                    </div>
                                 ` : `
-                                    <div class="badge bg-warning text-dark mb-1">✗ 未上传</div>
-                                    <br>
-                                    <small class="text-danger">需补充此资质</small>
+                                    <span class="qualification-badge qualification-badge-missing">✗ 未上传</span>
+                                    <div class="qualification-upload-status">
+                                        <small class="text-danger">需补充此资质</small>
+                                    </div>
                                 `}
                             </div>
                         </div>
@@ -863,40 +871,39 @@ class TenderProcessor {
             `;
         });
 
-        // 显示已上传但非必需的资质
+        // 显示已上传但非必需的资质 - 使用共享CSS类
         if (optionalQuals.length > 0) {
             html += `
-                <div class="mt-3 mb-2">
-                    <h6 class="text-muted">
-                        <i class="bi bi-plus-circle"></i> 额外资质
-                        <small class="text-muted">(非必需但已上传，可提升竞争力)</small>
-                    </h6>
+                <div class="qualification-category-title mt-4">
+                    <i class="bi bi-plus-circle text-info"></i>
+                    <h6>额外资质 <small class="text-muted">(非必需但已上传，可提升竞争力)</small></h6>
                 </div>
             `;
 
             optionalQuals.forEach(qual => {
                 html += `
-                    <div class="card mb-2 border-info" style="border-left-width: 4px;">
-                        <div class="card-body p-3 bg-light">
+                    <div class="card qualification-item qualification-uploaded">
+                        <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col-auto">
-                                    <i class="bi bi-check-circle text-info"></i>
+                                    <i class="bi bi-check-circle qualification-status-icon-info"></i>
                                 </div>
                                 <div class="col">
-                                    <div class="d-flex align-items-center">
-                                        <strong class="me-2">${qual.qualification_name}</strong>
-                                        <span class="badge bg-info rounded-pill">可选</span>
+                                    <div class="qualification-name">
+                                        <span>${qual.qualification_name}</span>
+                                        <span class="qualification-badge qualification-badge-optional">可选</span>
                                     </div>
                                 </div>
                                 <div class="col-auto text-end" style="min-width: 200px;">
-                                    <div class="badge bg-info mb-1">✓ 已上传</div>
-                                    <br>
-                                    <small class="text-muted d-block">
-                                        <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
-                                    </small>
-                                    ${qual.company_status.upload_time ?
-                                        `<small class="text-muted d-block"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
-                                        : ''}
+                                    <span class="qualification-badge qualification-badge-uploaded">✓ 已上传</span>
+                                    <div class="qualification-upload-status">
+                                        <small class="qualification-file-meta">
+                                            <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
+                                        </small>
+                                        ${qual.company_status.upload_time ?
+                                            `<br><small class="qualification-file-meta"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
+                                            : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -982,6 +989,94 @@ class TenderProcessor {
         });
         html += '</div>';
         return html;
+    }
+
+    /**
+     * 保存基本信息
+     */
+    async saveBasicInfo() {
+        try {
+            // 检查是否已提取基本信息
+            if (!this.latestResults || !this.latestResults.basic) {
+                if (typeof showNotification === 'function') {
+                    showNotification('请先提取基本信息', 'warning');
+                }
+                return;
+            }
+
+            // 检查是否选择了公司
+            if (!this.selectedCompanyId) {
+                if (typeof showNotification === 'function') {
+                    showNotification('请先选择应答公司', 'warning');
+                }
+                return;
+            }
+
+            // 禁用按钮
+            if (this.saveBasicInfoBtn) {
+                this.saveBasicInfoBtn.disabled = true;
+                this.saveBasicInfoBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
+            }
+
+            // 准备项目数据(只包含基本信息)
+            const projectData = {
+                project_name: this.latestResults.basic.project_name || '',
+                project_number: this.latestResults.basic.project_number || '',
+                tender_party: this.latestResults.basic.tender_party || '',
+                tender_agent: this.latestResults.basic.tender_agent || '',
+                tender_method: this.latestResults.basic.tender_method || '',
+                tender_location: this.latestResults.basic.tender_location || '',
+                tender_deadline: this.latestResults.basic.tender_deadline || '',
+                winner_count: this.latestResults.basic.winner_count || '',
+                tender_document_path: this.uploadedFilePath || '',
+                original_filename: this.uploadedFileName || '',
+                company_id: this.selectedCompanyId
+            };
+
+            console.log('[TenderProcessor] 保存基本信息:', projectData);
+
+            // 调用API保存项目
+            const response = await fetch('/api/tender-projects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(projectData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (typeof showNotification === 'function') {
+                    showNotification('基本信息保存成功', 'success');
+                }
+                console.log('[TenderProcessor] 基本信息保存成功，ID:', data.project_id);
+
+                // 更新项目选择器
+                await this.loadProjects();
+
+                // 按钮改为已保存状态
+                if (this.saveBasicInfoBtn) {
+                    this.saveBasicInfoBtn.innerHTML = '<i class="bi bi-check-lg"></i> 已保存';
+                    this.saveBasicInfoBtn.classList.remove('btn-primary');
+                    this.saveBasicInfoBtn.classList.add('btn-success');
+                }
+            } else {
+                throw new Error(data.message || '保存失败');
+            }
+
+        } catch (error) {
+            console.error('[TenderProcessor] 保存基本信息失败:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('保存基本信息失败: ' + error.message, 'error');
+            }
+
+            // 恢复按钮
+            if (this.saveBasicInfoBtn) {
+                this.saveBasicInfoBtn.disabled = false;
+                this.saveBasicInfoBtn.innerHTML = '<i class="bi bi-save"></i> 保存基本信息';
+            }
+        }
     }
 
     /**
