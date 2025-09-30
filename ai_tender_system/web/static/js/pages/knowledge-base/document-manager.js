@@ -317,26 +317,54 @@ class DocumentManager {
      * @param {number} total 总文件数
      */
     async uploadSingleFile(file, current, total) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('product_id', this.currentProductId);
-        if (this.currentLibraryId) {
-            formData.append('library_id', this.currentLibraryId);
-        }
-
         // 获取分类和隐私级别
         const category = document.getElementById('documentCategory')?.value || 'tech';
         const privacy = document.getElementById('privacyLevel')?.value || '1';
         const tags = document.getElementById('documentTags')?.value || '';
 
-        formData.append('category', category);
-        formData.append('privacy_classification', privacy);
-        formData.append('tags', tags);
-
         const percent = Math.round((current / total) * 100);
         this.updateUploadProgress(current, total, percent, file.name);
 
-        const response = await axios.post('/api/knowledge_base/documents/upload', formData, {
+        // 步骤1: 如果没有library_id，需要先获取或创建
+        let libraryId = this.currentLibraryId;
+
+        if (!libraryId && this.currentProductId) {
+            // 获取产品的文档库列表
+            const librariesResp = await axios.get(`/api/knowledge_base/product/${this.currentProductId}/libraries`);
+
+            if (librariesResp.data.success) {
+                const libraries = librariesResp.data.data;
+                // 查找对应类型的文档库
+                const targetLibrary = libraries.find(lib => lib.library_type === category);
+
+                if (targetLibrary) {
+                    libraryId = targetLibrary.library_id;
+                } else {
+                    // 文档库不存在，需要创建
+                    throw new Error(`产品尚未创建${category}类型的文档库，请联系管理员`);
+                }
+            } else {
+                throw new Error('获取文档库列表失败');
+            }
+        }
+
+        if (!libraryId) {
+            throw new Error('无法确定文档库，上传失败');
+        }
+
+        // 步骤2: 上传文档到指定的文档库
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('document_category', category);
+        formData.append('privacy_classification', privacy);
+
+        if (tags) {
+            // 处理标签：如果是逗号分隔的字符串，转为数组
+            const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t);
+            formData.append('tags', JSON.stringify(tagsArray));
+        }
+
+        const response = await axios.post(`/api/knowledge_base/libraries/${libraryId}/documents`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
