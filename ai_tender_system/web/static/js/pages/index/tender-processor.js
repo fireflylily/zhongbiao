@@ -27,6 +27,9 @@ class TenderProcessor {
         this.selectedCompanyId = null;
         this.selectedProjectId = null;
 
+        // 上传文件名（用于保存项目）
+        this.uploadedFileName = null;
+
         this.init();
     }
 
@@ -166,7 +169,7 @@ class TenderProcessor {
         this.scoringDisplay = document.getElementById('scoringDisplay');
 
         // 操作按钮
-        this.exportResultsBtn = document.getElementById('exportResultsBtn');
+        this.saveProjectBtn = document.getElementById('saveProjectBtn');
         this.resetAllBtn = document.getElementById('resetAllBtn');
 
         // 错误显示区域（保留原有的）
@@ -197,8 +200,8 @@ class TenderProcessor {
         }
 
         // 操作按钮事件
-        if (this.exportResultsBtn) {
-            this.exportResultsBtn.addEventListener('click', () => this.exportResults());
+        if (this.saveProjectBtn) {
+            this.saveProjectBtn.addEventListener('click', () => this.saveProject());
         }
         if (this.resetAllBtn) {
             this.resetAllBtn.addEventListener('click', () => this.resetAll());
@@ -214,8 +217,9 @@ class TenderProcessor {
         console.log('[TenderProcessor] 文件上传成功:', result);
 
         if (result && result.success) {
-            // 保存文件路径
+            // 保存文件路径和文件名
             this.uploadedFilePath = result.file_path;
+            this.uploadedFileName = result.filename;
 
             // 显示上传成功信息
             this.showFileUploadSuccess(result.filename);
@@ -356,9 +360,9 @@ class TenderProcessor {
             }
         }
 
-        // 只有全部成功才激活导出按钮
-        if (!hasError && this.exportResultsBtn) {
-            this.exportResultsBtn.disabled = false;
+        // 只有全部成功才激活保存按钮
+        if (!hasError && this.saveProjectBtn) {
+            this.saveProjectBtn.disabled = false;
         }
 
         console.log('[TenderProcessor] 全部步骤处理完成');
@@ -763,10 +767,10 @@ class TenderProcessor {
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card text-center bg-light">
+                        <div class="card text-center ${summary.uploaded_count === summary.required_count ? 'bg-success text-white' : 'bg-light'}">
                             <div class="card-body py-2">
-                                <h6 class="card-title mb-1">完成度</h6>
-                                <h4 class="text-info mb-0">${summary.required_count > 0 ? Math.round((summary.uploaded_count / summary.required_count) * 100) : 0}%</h4>
+                                <h6 class="card-title mb-1">资质匹配度</h6>
+                                <h4 class="${summary.uploaded_count === summary.required_count ? 'text-white' : 'text-info'} mb-0">${summary.required_count > 0 ? Math.round((summary.uploaded_count / summary.required_count) * 100) : 0}%</h4>
                             </div>
                         </div>
                     </div>
@@ -814,8 +818,6 @@ class TenderProcessor {
                                 <div class="d-flex align-items-center mb-1">
                                     <strong class="me-2">${qual.qualification_name}</strong>
                                     <span class="badge bg-danger rounded-pill">必需</span>
-                                    ${!qual.is_active ? '<span class="badge bg-secondary rounded-pill ms-1">已废止</span>' : ''}
-                                    ${confidence > 0 ? `<small class="text-muted ms-2">${Math.round(confidence * 100)}%匹配</small>` : ''}
                                 </div>
                                 ${context ? `<small class="text-muted d-block mb-1"><i class="bi bi-quote"></i> ${context.substring(0, 120)}${context.length > 120 ? '...' : ''}</small>` : ''}
                                 ${keywords.length > 0 ? `<small class="text-info"><i class="bi bi-tags"></i> ${keywords.slice(0, 5).join(', ')}</small>` : ''}
@@ -865,7 +867,6 @@ class TenderProcessor {
                                     <div class="d-flex align-items-center">
                                         <strong class="me-2">${qual.qualification_name}</strong>
                                         <span class="badge bg-info rounded-pill">可选</span>
-                                        ${!qual.is_active ? '<span class="badge bg-secondary rounded-pill ms-1">已废止</span>' : ''}
                                     </div>
                                 </div>
                                 <div class="col-auto text-end" style="min-width: 200px;">
@@ -932,10 +933,8 @@ class TenderProcessor {
                         <small class="text-muted me-2"><strong>标签说明：</strong></small>
                         <span class="badge bg-danger">必需</span>
                         <small class="text-muted">招标文件明确要求</small>
-                        <span class="badge bg-secondary ms-2">可选</span>
+                        <span class="badge bg-info ms-2">可选</span>
                         <small class="text-muted">非必需的额外资质</small>
-                        <span class="badge bg-secondary ms-2">已废止</span>
-                        <small class="text-muted">因政策变化已不再使用</small>
                     </div>
                 </div>
             </div>
@@ -967,13 +966,89 @@ class TenderProcessor {
     }
 
     /**
-     * 导出结果
+     * 保存项目
      */
-    exportResults() {
-        // TODO: 实现导出功能
-        console.log('[TenderProcessor] 导出结果功能待实现');
-        if (typeof showNotification === 'function') {
-            showNotification('导出功能开发中', 'info');
+    async saveProject() {
+        try {
+            // 检查是否已提取信息
+            if (!this.latestResults || !this.latestResults.basic) {
+                if (typeof showNotification === 'function') {
+                    showNotification('请先提取项目信息', 'warning');
+                }
+                return;
+            }
+
+            // 检查是否选择了公司
+            if (!this.selectedCompanyId) {
+                if (typeof showNotification === 'function') {
+                    showNotification('请先选择应答公司', 'warning');
+                }
+                return;
+            }
+
+            // 禁用按钮
+            if (this.saveProjectBtn) {
+                this.saveProjectBtn.disabled = true;
+                this.saveProjectBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
+            }
+
+            // 准备项目数据
+            const projectData = {
+                project_name: this.latestResults.basic.project_name || '',
+                project_number: this.latestResults.basic.project_number || '',
+                tenderer: this.latestResults.basic.tenderer || '',
+                agency: this.latestResults.basic.agency || '',
+                bidding_method: this.latestResults.basic.bidding_method || '',
+                bidding_location: this.latestResults.basic.bidding_location || '',
+                bidding_time: this.latestResults.basic.bidding_time || '',
+                tender_document_path: this.uploadedFilePath || '',
+                original_filename: this.uploadedFileName || '',
+                company_id: this.selectedCompanyId
+            };
+
+            console.log('[TenderProcessor] 保存项目数据:', projectData);
+
+            // 调用API保存项目
+            const response = await fetch('/api/tender-projects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(projectData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (typeof showNotification === 'function') {
+                    showNotification('项目保存成功', 'success');
+                }
+                console.log('[TenderProcessor] 项目保存成功，ID:', data.project_id);
+
+                // 更新项目选择器
+                await this.loadProjects();
+
+                // 按钮改为已保存状态
+                if (this.saveProjectBtn) {
+                    this.saveProjectBtn.innerHTML = '<i class="bi bi-check-lg"></i> 已保存';
+                    this.saveProjectBtn.classList.remove('btn-primary');
+                    this.saveProjectBtn.classList.add('btn-success');
+                }
+            } else {
+                throw new Error(data.message || '保存失败');
+            }
+
+        } catch (error) {
+            console.error('[TenderProcessor] 保存项目失败:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('保存项目失败: ' + error.message, 'error');
+            }
+
+            // 恢复按钮
+            if (this.saveProjectBtn) {
+                this.saveProjectBtn.disabled = false;
+                this.saveProjectBtn.innerHTML = '<i class="bi bi-save"></i> 保存项目';
+            }
         }
     }
 
@@ -1036,7 +1111,7 @@ class TenderProcessor {
 
         // 禁用按钮
         [this.processBasicInfoBtn, this.processQualificationBtn,
-         this.processScoringBtn, this.processAllBtn, this.exportResultsBtn].forEach(btn => {
+         this.processScoringBtn, this.processAllBtn, this.saveProjectBtn].forEach(btn => {
             if (btn) {
                 btn.disabled = true;
             }

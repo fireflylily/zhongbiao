@@ -145,12 +145,12 @@ class TenderInfoExtractor:
                 '法人身份证背面'
             ],
             'auth_id_front': [
-                '授权人身份证正面', '被授权人身份证', '委托代理人身份证',
-                '代理人身份证', '投标代表身份证'
+                '被授权人身份证正面', '被授权人身份证', '委托代理人身份证',
+                '代理人身份证', '投标代表身份证', '受托人身份证'
             ],
             'auth_id_back': [
-                '授权人身份证反面', '被授权人身份证反面',
-                '代理人身份证反面', '投标代表身份证反面'
+                '被授权人身份证反面', '被授权人身份证背面',
+                '代理人身份证反面', '投标代表身份证反面', '受托人身份证反面'
             ],
             'authorization_letter': [
                 '法人授权委托书', '授权书', '法人授权', '委托书',
@@ -1022,6 +1022,25 @@ class TenderInfoExtractor:
     def save_to_database(self, data: Dict[str, Any], file_info: Dict[str, Any] = None) -> int:
         """保存数据到数据库"""
         try:
+            # 检查是否已存在相同项目（防止重复创建）
+            project_name = data.get('project_name', '')
+            project_number = data.get('project_number', '')
+
+            if project_name and project_number:
+                check_sql = """
+                    SELECT project_id FROM tender_projects
+                    WHERE project_name = ? AND project_number = ?
+                    LIMIT 1
+                """
+                with self.db.get_connection() as conn:
+                    cursor = conn.execute(check_sql, (project_name, project_number))
+                    existing = cursor.fetchone()
+
+                    if existing:
+                        existing_id = existing[0]
+                        self.logger.info(f"项目已存在（名称: {project_name}, 编号: {project_number}），使用现有项目ID: {existing_id}")
+                        return existing_id
+
             # 准备文件信息
             file_info = file_info or {}
             file_path = file_info.get('file_path', data.get('file_path', ''))

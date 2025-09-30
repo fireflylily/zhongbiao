@@ -22,7 +22,7 @@ sys.path.insert(0, str(project_root))
 from common.logger import get_module_logger
 from common.database import get_knowledge_base_db
 from modules.vector_engine.simple_embedding import SimpleEmbeddingService
-from modules.vector_engine.simple_vector_store import SimpleVectorStore, SimpleVectorDocument
+from modules.vector_engine.chroma_adapter import ChromaVectorStore, ChromaVectorDocument
 from modules.document_parser.parser_manager import ParserManager, ParseResult
 
 logger = get_module_logger("vector_search.api")
@@ -56,8 +56,8 @@ class VectorSearchAPI:
             self.embedding_service = SimpleEmbeddingService(dimension=100)
             await self.embedding_service.initialize()
 
-            # 初始化向量存储
-            self.vector_store = SimpleVectorStore(dimension=100)
+            # 初始化向量存储（使用Chroma）
+            self.vector_store = ChromaVectorStore(dimension=100)
             await self.vector_store.initialize()
 
             # 初始化文档解析器
@@ -434,7 +434,7 @@ class VectorSearchAPI:
                     vector = embedding_result.vectors[0]
 
                     # 创建向量文档
-                    vector_doc = SimpleVectorDocument(
+                    vector_doc = ChromaVectorDocument(
                         id=f"doc_{doc_id}_chunk_{i}",
                         content=chunk['content'],
                         vector=vector,
