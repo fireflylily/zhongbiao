@@ -359,7 +359,7 @@ def register_routes(app: Flask, config, logger):
 
             # 使用统一存储服务
             file_metadata = storage_service.store_file(
-                file_obj=file.stream,
+                file_obj=file,
                 original_name=file.filename,
                 category='tender_documents',
                 business_type=file_type
@@ -441,7 +441,7 @@ def register_routes(app: Flask, config, logger):
             # 保存上传文件 - 使用统一服务
             from ai_tender_system.core.storage_service import storage_service
             file_metadata = storage_service.store_file(
-                file_obj=file.stream,
+                file_obj=file,
                 original_name=file.filename,
                 category='tender_documents',
                 business_type='tender_info_extraction'
@@ -632,7 +632,7 @@ def register_routes(app: Flask, config, logger):
             # 保存模板文件 - 使用统一服务
             from ai_tender_system.core.storage_service import storage_service
             file_metadata = storage_service.store_file(
-                file_obj=file.stream,
+                file_obj=file,
                 original_name=file.filename,
                 category='business_templates',
                 business_type='business_response',
@@ -790,7 +790,7 @@ def register_routes(app: Flask, config, logger):
             # 保存文件 - 使用统一服务
             from ai_tender_system.core.storage_service import storage_service
             file_metadata = storage_service.store_file(
-                file_obj=file.stream,
+                file_obj=file,
                 original_name=file.filename,
                 category='point_to_point',
                 business_type='point_to_point_response'
@@ -939,7 +939,7 @@ def register_routes(app: Flask, config, logger):
             # 保存上传的文件 - 使用统一服务
             from ai_tender_system.core.storage_service import storage_service
             file_metadata = storage_service.store_file(
-                file_obj=file.stream,
+                file_obj=file,
                 original_name=file.filename,
                 category='tech_proposals',
                 business_type='tech_requirements',
@@ -1233,7 +1233,7 @@ def register_routes(app: Flask, config, logger):
             # 保存图片 - 使用统一服务
             from ai_tender_system.core.storage_service import storage_service
             file_metadata = storage_service.store_file(
-                file_obj=file.stream,
+                file_obj=file,
                 original_name=file.filename,
                 category='processed_results',  # 编辑器图片属于处理结果
                 business_type='editor_image'
