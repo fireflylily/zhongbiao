@@ -64,9 +64,10 @@ INSERT OR IGNORE INTO qualification_types (type_key, type_name, category, is_req
     ('bank_permit', '开户许可证', '基础资质', FALSE, 4),
     ('legal_id_front', '法人身份证正面', '基础资质', FALSE, 5),
     ('legal_id_back', '法人身份证反面', '基础资质', FALSE, 6),
-    ('auth_id_front', '授权人身份证正面', '基础资质', FALSE, 7),
-    ('auth_id_back', '授权人身份证反面', '基础资质', FALSE, 8),
-    ('authorization_letter', '法人授权委托书', '基础资质', FALSE, 9),
+    -- 已移除授权人身份证和法人授权委托书
+    -- ('auth_id_front', '授权人身份证正面', '基础资质', FALSE, 7),
+    -- ('auth_id_back', '授权人身份证反面', '基础资质', FALSE, 8),
+    -- ('authorization_letter', '法人授权委托书', '基础资质', FALSE, 9),
     ('iso9001', 'ISO9001质量管理体系认证', '认证证书', FALSE, 10),
     ('iso14001', 'ISO14001环境管理体系认证', '认证证书', FALSE, 11),
     ('iso20000', 'ISO20000信息技术服务管理体系认证', '认证证书', FALSE, 12),
@@ -75,7 +76,8 @@ INSERT OR IGNORE INTO qualification_types (type_key, type_name, category, is_req
     ('itss', 'ITSS信息技术服务标准认证', '认证证书', FALSE, 15),
     ('safety_production', '安全生产许可证', '行业资质', FALSE, 16),
     ('software_copyright', '软件著作权登记证书', '行业资质', FALSE, 17),
-    ('patent_certificate', '专利证书', '行业资质', FALSE, 18);
+    ('patent_certificate', '专利证书', '行业资质', FALSE, 18),
+    ('audit_report', '财务审计报告', '财务资质', FALSE, 19);
 
 -- 资质文件访问日志表（用于审计）
 CREATE TABLE IF NOT EXISTS qualification_access_logs (

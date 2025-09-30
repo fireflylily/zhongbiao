@@ -217,12 +217,14 @@ class TenderProcessor {
         console.log('[TenderProcessor] 文件上传成功:', result);
 
         if (result && result.success) {
-            // 保存文件路径和文件名
+            // 保存文件路径和文件名（包括原始文件名）
             this.uploadedFilePath = result.file_path;
-            this.uploadedFileName = result.filename;
+            this.uploadedFileName = result.filename;  // 安全文件名（用于后端处理）
+            this.originalFileName = result.original_filename || result.filename;  // 原始文件名（用于显示）
+            this.fileSizeMB = result.file_size_mb;
 
-            // 显示上传成功信息
-            this.showFileUploadSuccess(result.filename);
+            // 显示上传成功信息（使用原始文件名）
+            this.showFileUploadSuccess(result);
 
             // 激活处理控制区域
             this.activateProcessingControls();
@@ -246,27 +248,37 @@ class TenderProcessor {
     /**
      * 显示文件上传成功信息
      */
-    showFileUploadSuccess(filename) {
-        if (this.uploadedFileName) {
-            this.uploadedFileName.textContent = filename;
+    showFileUploadSuccess(result) {
+        // 显示原始文件名
+        const fileNameElement = document.getElementById('uploadedFileName');
+        if (fileNameElement) {
+            fileNameElement.textContent = result.original_filename || result.filename;
+            // 添加title属性，鼠标悬停时显示完整信息
+            fileNameElement.title = `原始文件名: ${result.original_filename}\n服务器文件名: ${result.filename}`;
         }
 
-        // 可以添加文件大小显示逻辑
-        if (this.uploadedFileSize) {
-            this.uploadedFileSize.textContent = '上传完成';
+        // 显示文件大小
+        const fileSizeElement = document.getElementById('uploadedFileSize');
+        if (fileSizeElement) {
+            if (result.file_size_mb) {
+                fileSizeElement.textContent = `${result.file_size_mb} MB`;
+            } else {
+                fileSizeElement.textContent = '上传完成';
+            }
         }
 
+        // 显示上传信息区域
         if (this.uploadedFileInfo) {
             this.uploadedFileInfo.classList.remove('d-none');
         }
 
-        // 绑定预览按钮事件
+        // 绑定预览按钮事件（使用安全文件名）
         const previewBtn = document.getElementById('previewTenderBtn');
         if (previewBtn) {
-            previewBtn.onclick = () => this.previewTenderDocument(filename);
+            previewBtn.onclick = () => this.previewTenderDocument(result.filename);
         }
 
-        console.log('[TenderProcessor] 文件上传成功信息已显示');
+        console.log('[TenderProcessor] 文件上传成功信息已显示:', result.original_filename);
     }
 
     /**

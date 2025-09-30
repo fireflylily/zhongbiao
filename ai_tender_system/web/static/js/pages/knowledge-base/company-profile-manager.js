@@ -326,8 +326,9 @@ class CompanyProfileManager {
             { key: 'business_license', name: '营业执照', icon: 'bi-building', category: 'basic', required: true },
             { key: 'legal_id_front', name: '法人身份证（正面）', icon: 'bi-person-badge', category: 'basic', required: true },
             { key: 'legal_id_back', name: '法人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
-            { key: 'auth_id_front', name: '授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
-            { key: 'auth_id_back', name: '授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
+            // 已移除授权人身份证相关项
+            // { key: 'auth_id_front', name: '授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
+            // { key: 'auth_id_back', name: '授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
 
             // ISO体系认证
             { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
@@ -391,11 +392,13 @@ class CompanyProfileManager {
      * @param {boolean} required 是否必需
      */
     renderQualificationItem(name, id, icon, required = false) {
-        const borderClass = required ? 'border-warning' : '';
-        const requiredBadge = required ? '<span class="badge bg-warning text-dark ms-2">必需</span>' : '';
+        // 使用柔和的左侧边框代替整体边框
+        const borderClass = required ? 'border-start border-4 border-warning' : '';
+        // 使用柔和配色的徽章
+        const requiredBadge = required ? '<span class="badge bg-light text-warning border border-warning ms-2">必需</span>' : '';
 
         return `
-            <div class="card mb-3 ${borderClass}">
+            <div class="card mb-3 shadow-sm ${borderClass}">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="flex-grow-1">
@@ -652,7 +655,22 @@ class CompanyProfileManager {
         const statusElement = document.getElementById(`profile-status-${qualificationId}`);
         if (statusElement) {
             statusElement.classList.remove('d-none');
-            statusElement.innerHTML = `<small class="text-${status === 'success' ? 'success' : 'danger'}">${fileName}</small>`;
+            // 使用柔和图标 + 更优雅的样式
+            if (status === 'success') {
+                statusElement.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <small class="text-dark">${fileName}</small>
+                    </div>
+                `;
+            } else {
+                statusElement.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-circle text-warning me-2"></i>
+                        <small class="text-muted">${fileName}</small>
+                    </div>
+                `;
+            }
         }
     }
 
@@ -764,18 +782,23 @@ class CompanyProfileManager {
             const formattedSize = this.formatFileSize(fileInfo.file_size);
 
             statusElement.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-success">✓ ${fileInfo.original_filename}</small>
-                        <br><small class="text-muted">${formattedSize} | ${formattedTime}</small>
-                    </div>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary btn-sm" onclick="window.companyProfileManager.downloadQualificationFile('${this.currentCompanyId}', '${qualKey}')" title="下载">
-                            <i class="bi bi-download"></i>
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm" onclick="window.companyProfileManager.deleteQualificationFile('${qualKey}')" title="删除">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                <div class="card border-start border-4 border-success bg-light p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <small class="text-dark fw-medium">${fileInfo.original_filename}</small>
+                            </div>
+                            <small class="text-muted ms-4">${formattedSize} | ${formattedTime}</small>
+                        </div>
+                        <div class="btn-group btn-group-sm ms-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="window.companyProfileManager.downloadQualificationFile('${this.currentCompanyId}', '${qualKey}')" title="下载">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="window.companyProfileManager.deleteQualificationFile('${qualKey}')" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;

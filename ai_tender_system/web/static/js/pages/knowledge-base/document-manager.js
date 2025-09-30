@@ -430,10 +430,9 @@ class DocumentManager {
      * 刷新当前视图
      */
     refreshCurrentView() {
-        if (this.currentProductId && window.categoryManager) {
-            // 重新选择当前产品以刷新文档列表
-            const productName = ''; // 这里可以从当前状态获取产品名称
-            window.categoryManager.selectProduct(this.currentProductId, productName);
+        if (this.currentProductId && this.currentCategory && window.categoryManager) {
+            // 重新选择当前分类以刷新文档列表
+            window.categoryManager.selectProductCategory(this.currentProductId, this.currentCategory);
         }
     }
 
@@ -764,8 +763,9 @@ class DocumentManager {
             'service': '🛠️ 服务文档'
         };
 
-        // 存储当前产品ID，以便上传时使用
+        // 存储当前产品ID和分类，以便上传和刷新时使用
         this.currentProductId = productId;
+        this.currentCategory = category;
 
         // 渲染文档列表内容
         let documentsHtml = '';

@@ -10,6 +10,7 @@ import sys
 import tempfile
 import hashlib
 import time
+import re
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
 from flask_cors import CORS
@@ -346,33 +347,43 @@ def register_routes(app: Flask, config, logger):
         try:
             if 'file' not in request.files:
                 raise ValueError("没有选择文件")
-            
+
             file = request.files['file']
             if file.filename == '':
                 raise ValueError("文件名为空")
-            
+
+            # 保存原始文件名
+            original_filename = file.filename
+
             # 获取文件类型和允许的扩展名
             file_type = request.form.get('type', 'tender_info')
             upload_config = config.get_upload_config()
             allowed_extensions = upload_config['allowed_extensions'].get(file_type, set())
-            
+
             if not allowed_file(file.filename, allowed_extensions):
                 raise ValueError(f"不支持的文件类型，允许的类型: {', '.join(allowed_extensions)}")
-            
-            # 保存文件
+
+            # 保存文件（生成安全文件名）
             filename = safe_filename(file.filename)
             upload_dir = ensure_dir(config.get_path('upload'))
             file_path = upload_dir / filename
             file.save(str(file_path))
-            
-            logger.info(f"文件上传成功: {filename}")
+
+            # 获取文件大小
+            file_size = file_path.stat().st_size
+            file_size_mb = round(file_size / (1024 * 1024), 2)
+
+            logger.info(f"文件上传成功: {filename} (原始名称: {original_filename})")
             return jsonify({
                 'success': True,
-                'filename': filename,
+                'filename': filename,  # 安全文件名（用于后端处理）
+                'original_filename': original_filename,  # 原始文件名（用于显示）
                 'file_path': str(file_path),
+                'file_size': file_size,
+                'file_size_mb': file_size_mb,
                 'message': '文件上传成功'
             })
-            
+
         except Exception as e:
             logger.error(f"文件上传失败: {e}")
             return jsonify(format_error_response(e))

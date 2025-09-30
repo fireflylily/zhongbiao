@@ -99,7 +99,10 @@
       "Bash(ps:*)",
       "Read(///**)",
       "Bash(FLASK_RUN_PORT=8105 python3 -m ai_tender_system.web.app)",
-      "Bash(FLASK_RUN_PORT=8110 python3 -m ai_tender_system.web.app)"
+      "Bash(FLASK_RUN_PORT=8110 python3 -m ai_tender_system.web.app)",
+      "Bash(git log:*)",
+      "Bash(mv:*)",
+      "Read(//private/tmp/**)"
     ],
     "deny": [],
     "ask": []
