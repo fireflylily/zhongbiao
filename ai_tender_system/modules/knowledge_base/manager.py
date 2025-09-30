@@ -1030,9 +1030,6 @@ class KnowledgeBaseManager:
     def get_qualification_types(self, include_inactive: bool = False) -> List[Dict]:
         """获取资质类型定义"""
         try:
-            conn = self.db.get_connection()
-            cursor = conn.cursor()
-
             # 构建查询条件
             if include_inactive:
                 query = """
@@ -1050,27 +1047,29 @@ class KnowledgeBaseManager:
                     ORDER BY sort_order, type_name
                 """
 
-            cursor.execute(query)
-            rows = cursor.fetchall()
+            # 使用 execute_query 方法
+            rows = self.db.execute_query(query)
 
             # 转换为字典格式
             qualifications = []
-            for row in rows:
-                qualification = {
-                    'qualification_key': row[0],
-                    'qualification_name': row[1],
-                    'category': row[2],
-                    'is_required': bool(row[3]),
-                    'description': row[4],
-                    'sort_order': row[5],
-                    'is_active': bool(row[6]),
-                    'created_at': row[7]
-                }
-                qualifications.append(qualification)
+            if rows:
+                for row in rows:
+                    # row 已经是字典格式（execute_query 返回字典列表）
+                    qualification = {
+                        'qualification_key': row.get('type_key'),
+                        'qualification_name': row.get('type_name'),
+                        'category': row.get('category'),
+                        'is_required': bool(row.get('is_required')),
+                        'description': row.get('description'),
+                        'sort_order': row.get('sort_order'),
+                        'is_active': bool(row.get('is_active')),
+                        'created_at': row.get('created_at')
+                    }
+                    qualifications.append(qualification)
 
             logger.info(f"获取资质类型定义成功，共 {len(qualifications)} 个类型")
             return qualifications
 
         except Exception as e:
-            logger.error(f"获取资质类型定义失败: {e}")
+            logger.error(f"获取资质类型定义失败: {e}", exc_info=True)
             return []

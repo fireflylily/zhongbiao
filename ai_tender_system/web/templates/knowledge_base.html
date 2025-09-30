@@ -85,6 +85,9 @@
                                     <button class="btn btn-outline-primary btn-sm" onclick="window.categoryManager.showAddCompanyModal()" title="添加企业">
                                         <i class="bi bi-plus"></i>
                                     </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="showAISearch()" title="AI智能检索">
+                                        <i class="bi bi-stars"></i>
+                                    </button>
                                     <button class="btn btn-outline-success btn-sm" onclick="window.searchManager.showSearchModal()" title="搜索文档">
                                         <i class="bi bi-search"></i>
                                     </button>
@@ -111,6 +114,42 @@
             <div class="col-md-9 p-0">
                 <div class="card shadow-sm border-0 h-100" style="border-radius: 0;">
                     <div class="card-body p-4" style="max-height: calc(100vh - 70px); overflow-y: auto;">
+                        <!-- AI智能检索区域 -->
+                        <div class="card mb-3 border-primary" id="aiSearchCard" style="display:none;">
+                            <div class="card-header bg-primary text-white">
+                                <i class="bi bi-stars"></i> AI智能检索
+                                <button type="button" class="btn-close btn-close-white float-end" onclick="document.getElementById('aiSearchCard').style.display='none'"></button>
+                            </div>
+                            <div class="card-body">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-question-circle"></i>
+                                    </span>
+                                    <input type="text" class="form-control"
+                                           placeholder="例如：公司的ISO认证有哪些？法人代表是谁？近三年的财务审计报告内容..."
+                                           id="aiQueryInput"
+                                           onkeypress="if(event.key==='Enter') performAISearch()">
+                                    <button class="btn btn-primary" onclick="performAISearch()">
+                                        <i class="bi bi-search"></i> 智能搜索
+                                    </button>
+                                </div>
+
+                                <!-- 搜索结果 -->
+                                <div id="aiSearchResults"></div>
+
+                                <!-- 搜索提示 -->
+                                <div class="alert alert-info alert-dismissible fade show" role="alert" id="aiSearchTips">
+                                    <i class="bi bi-lightbulb"></i> <strong>搜索提示：</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>支持自然语言提问，如"公司有哪些ISO认证？"</li>
+                                        <li>会在当前选中公司/产品范围内搜索</li>
+                                        <li>结果按相关度排序，点击可查看原文档</li>
+                                    </ul>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div id="mainContent">
                             <!-- 欢迎页面 -->
                             <div class="welcome-content text-center py-5">
@@ -383,6 +422,7 @@
     <script src="/static/js/pages/knowledge-base/document-manager.js"></script>
     <script src="/static/js/pages/knowledge-base/search-manager.js"></script>
     <script src="/static/js/pages/knowledge-base/company-profile-manager.js"></script>
+    <script src="/static/js/pages/knowledge-base/rag-integration.js"></script>
 
     <!-- 页面初始化脚本 -->
     <script>
@@ -505,6 +545,135 @@
                     }
                 }, 1000);
             }
+        }
+
+        // ====== RAG智能检索功能 ======
+
+        /**
+         * 显示AI检索面板
+         */
+        function showAISearch() {
+            const searchCard = document.getElementById('aiSearchCard');
+            searchCard.style.display = 'block';
+            document.getElementById('aiQueryInput').focus();
+        }
+
+        /**
+         * 执行AI智能检索
+         */
+        async function performAISearch() {
+            const query = document.getElementById('aiQueryInput').value.trim();
+            if (!query) {
+                showAlert('请输入查询问题', 'warning');
+                return;
+            }
+
+            // 获取当前选中的范围
+            const filters = {};
+            if (currentCompanyId) {
+                filters.company_id = currentCompanyId;
+            }
+            if (currentProductId) {
+                filters.product_id = currentProductId;
+            }
+
+            // 显示加载状态
+            const resultsDiv = document.getElementById('aiSearchResults');
+            resultsDiv.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">搜索中...</span>
+                    </div>
+                    <p class="text-muted mt-2">正在智能检索...</p>
+                </div>
+            `;
+
+            // 隐藏提示
+            const tips = document.getElementById('aiSearchTips');
+            if (tips) {
+                tips.style.display = 'none';
+            }
+
+            try {
+                // 调用RAG检索
+                const result = await window.ragIntegration.search(query, filters, 5);
+
+                if (result.success && result.results.length > 0) {
+                    // 渲染结果
+                    displaySearchResults(result.results);
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle"></i>
+                            未找到相关内容，请尝试其他关键词或扩大搜索范围
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('智能检索失败:', error);
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        检索失败：${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * 显示检索结果
+         */
+        function displaySearchResults(results) {
+            const resultsDiv = document.getElementById('aiSearchResults');
+
+            const html = `
+                <div class="search-results">
+                    <div class="mb-2 text-muted">
+                        <i class="bi bi-check-circle text-success"></i>
+                        找到 ${results.length} 条相关内容
+                    </div>
+                    ${results.map((result, index) => `
+                        <div class="card mb-2 border-start border-primary border-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-subtitle text-primary mb-0">
+                                        <i class="bi bi-file-text"></i>
+                                        ${result.metadata.document_name || result.source || '文档 #' + (index + 1)}
+                                    </h6>
+                                    <span class="badge bg-primary">${(result.score * 100).toFixed(0)}%</span>
+                                </div>
+                                <p class="card-text">${highlightKeywords(result.content)}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        ${result.metadata.document_type ? `<span class="badge bg-secondary">${result.metadata.document_type}</span>` : ''}
+                                        ${result.metadata.company_id ? `公司ID: ${result.metadata.company_id}` : ''}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        /**
+         * 高亮关键词（简单实现）
+         */
+        function highlightKeywords(text) {
+            const query = document.getElementById('aiQueryInput').value.trim();
+            if (!query) return text;
+
+            // 简单的关键词高亮
+            const keywords = query.split(/\s+/);
+            let highlighted = text;
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`(${keyword})`, 'gi');
+                highlighted = highlighted.replace(regex, '<mark>$1</mark>');
+            });
+            return highlighted;
         }
 
         // 显示通知函数

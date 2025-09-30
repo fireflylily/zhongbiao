@@ -90,6 +90,14 @@ def create_app() -> Flask:
     except ImportError as e:
         logger.warning(f"向量搜索API模块加载失败: {e}")
 
+    # 注册RAG知识库API蓝图
+    try:
+        from modules.knowledge_base.rag_api import rag_api
+        app.register_blueprint(rag_api, url_prefix='/api')
+        logger.info("RAG知识库API模块注册成功")
+    except ImportError as e:
+        logger.warning(f"RAG知识库API模块加载失败: {e}")
+
     # 注册路由
     register_routes(app, config, logger)
     
@@ -998,14 +1006,18 @@ def register_routes(app: Flask, config, logger):
         try:
             from docx import Document
             import html
-            
+
             # 直接使用传入的文件名，因为这应该是从系统生成的安全文件名
             # 只进行基本的安全检查，避免路径遍历攻击
             if '..' in filename or '/' in filename or '\\' in filename:
                 raise ValueError("非法文件名")
 
+            # 先尝试从output目录查找，如果不存在则从upload目录查找
             file_path = config.get_path('output') / filename
-            
+
+            if not file_path.exists():
+                file_path = config.get_path('upload') / filename
+
             if not file_path.exists():
                 raise FileNotFoundError(f"文档不存在: {filename}")
             

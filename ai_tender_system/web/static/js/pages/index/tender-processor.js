@@ -256,6 +256,12 @@ class TenderProcessor {
             this.uploadedFileInfo.classList.remove('d-none');
         }
 
+        // 绑定预览按钮事件
+        const previewBtn = document.getElementById('previewTenderBtn');
+        if (previewBtn) {
+            previewBtn.onclick = () => this.previewTenderDocument(filename);
+        }
+
         console.log('[TenderProcessor] 文件上传成功信息已显示');
     }
 
@@ -768,21 +774,8 @@ class TenderProcessor {
             </div>
         `;
 
-        // 生成资质对比表格
-        html += `
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 30%">资质名称</th>
-                            <th style="width: 15%" class="text-center">招标要求</th>
-                            <th style="width: 15%" class="text-center">公司状态</th>
-                            <th style="width: 20%">上传文件</th>
-                            <th style="width: 20%">备注信息</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
+        // 生成资质对比表格 - 卡片式设计
+        html += `<div class="mt-3">`;
 
         // 先显示要求的资质
         const requiredQuals = [];
@@ -797,82 +790,154 @@ class TenderProcessor {
             }
         });
 
-        // 显示必需的资质
+        // 显示必需的资质 - 卡片式
         requiredQuals.forEach(qual => {
             const isUploaded = qual.company_status.uploaded;
             const confidence = qual.tender_requirement.confidence || 0;
             const context = qual.tender_requirement.context || '';
             const keywords = qual.tender_requirement.keywords_found || [];
 
+            const statusIcon = isUploaded ?
+                '<i class="bi bi-check-circle-fill text-success"></i>' :
+                '<i class="bi bi-exclamation-triangle-fill text-warning"></i>';
+
+            const borderClass = isUploaded ? 'border-success' : 'border-warning';
+
             html += `
-                <tr class="${isUploaded ? 'table-success' : 'table-warning'}">
-                    <td>
-                        <strong>${qual.qualification_name}</strong>
-                        ${qual.is_active ? '' : '<span class="badge bg-secondary ms-1">已废止</span>'}
-                    </td>
-                    <td class="text-center">
-                        <span class="badge bg-danger">必需</span>
-                        ${confidence > 0 ? `<br><small class="text-muted">${Math.round(confidence * 100)}%</small>` : ''}
-                    </td>
-                    <td class="text-center">
-                        ${isUploaded ? '<span class="badge bg-success">已上传</span>' : '<span class="badge bg-danger">未上传</span>'}
-                    </td>
-                    <td>
-                        ${isUploaded ?
-                            `<small class="text-primary">${qual.company_status.original_filename || ''}</small>
-                             ${qual.company_status.upload_time ? `<br><small class="text-muted">${new Date(qual.company_status.upload_time).toLocaleDateString()}</small>` : ''}`
-                            : '<span class="text-muted">-</span>'}
-                    </td>
-                    <td>
-                        ${context ? `<small class="text-muted">${context.substring(0, 100)}${context.length > 100 ? '...' : ''}</small>` : ''}
-                        ${keywords.length > 0 ? `<br><small class="text-info">关键词: ${keywords.slice(0, 3).join(', ')}</small>` : ''}
-                    </td>
-                </tr>
+                <div class="card mb-2 ${borderClass}" style="border-left-width: 4px;">
+                    <div class="card-body p-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                ${statusIcon}
+                            </div>
+                            <div class="col">
+                                <div class="d-flex align-items-center mb-1">
+                                    <strong class="me-2">${qual.qualification_name}</strong>
+                                    <span class="badge bg-danger rounded-pill">必需</span>
+                                    ${!qual.is_active ? '<span class="badge bg-secondary rounded-pill ms-1">已废止</span>' : ''}
+                                    ${confidence > 0 ? `<small class="text-muted ms-2">${Math.round(confidence * 100)}%匹配</small>` : ''}
+                                </div>
+                                ${context ? `<small class="text-muted d-block mb-1"><i class="bi bi-quote"></i> ${context.substring(0, 120)}${context.length > 120 ? '...' : ''}</small>` : ''}
+                                ${keywords.length > 0 ? `<small class="text-info"><i class="bi bi-tags"></i> ${keywords.slice(0, 5).join(', ')}</small>` : ''}
+                            </div>
+                            <div class="col-auto text-end" style="min-width: 200px;">
+                                ${isUploaded ? `
+                                    <div class="badge bg-success mb-1">✓ 已上传</div>
+                                    <br>
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
+                                    </small>
+                                    ${qual.company_status.upload_time ?
+                                        `<small class="text-muted d-block"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
+                                        : ''}
+                                ` : `
+                                    <div class="badge bg-warning text-dark mb-1">✗ 未上传</div>
+                                    <br>
+                                    <small class="text-danger">需补充此资质</small>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             `;
         });
 
         // 显示已上传但非必需的资质
         if (optionalQuals.length > 0) {
+            html += `
+                <div class="mt-3 mb-2">
+                    <h6 class="text-muted">
+                        <i class="bi bi-plus-circle"></i> 额外资质
+                        <small class="text-muted">(非必需但已上传，可提升竞争力)</small>
+                    </h6>
+                </div>
+            `;
+
             optionalQuals.forEach(qual => {
                 html += `
-                    <tr class="table-light">
-                        <td>
-                            <strong>${qual.qualification_name}</strong>
-                            ${qual.is_active ? '' : '<span class="badge bg-secondary ms-1">已废止</span>'}
-                        </td>
-                        <td class="text-center">
-                            <span class="badge bg-secondary">可选</span>
-                        </td>
-                        <td class="text-center">
-                            <span class="badge bg-success">已上传</span>
-                        </td>
-                        <td>
-                            <small class="text-primary">${qual.company_status.original_filename || ''}</small>
-                            ${qual.company_status.upload_time ? `<br><small class="text-muted">${new Date(qual.company_status.upload_time).toLocaleDateString()}</small>` : ''}
-                        </td>
-                        <td>
-                            <small class="text-success">额外资质，可提升竞争力</small>
-                        </td>
-                    </tr>
+                    <div class="card mb-2 border-info" style="border-left-width: 4px;">
+                        <div class="card-body p-3 bg-light">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <i class="bi bi-check-circle text-info"></i>
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex align-items-center">
+                                        <strong class="me-2">${qual.qualification_name}</strong>
+                                        <span class="badge bg-info rounded-pill">可选</span>
+                                        ${!qual.is_active ? '<span class="badge bg-secondary rounded-pill ms-1">已废止</span>' : ''}
+                                    </div>
+                                </div>
+                                <div class="col-auto text-end" style="min-width: 200px;">
+                                    <div class="badge bg-info mb-1">✓ 已上传</div>
+                                    <br>
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
+                                    </small>
+                                    ${qual.company_status.upload_time ?
+                                        `<small class="text-muted d-block"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
+                                        : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 `;
             });
         }
 
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
+        html += `</div>`;
 
-        // 添加说明
+        // 添加说明卡片
         html += `
-            <div class="mt-3">
-                <small class="text-muted">
-                    <strong>说明：</strong>
-                    <span class="badge bg-danger ms-1">必需</span> 招标文件明确要求的资质；
-                    <span class="badge bg-secondary ms-1">可选</span> 您已上传但非必需的资质；
-                    <span class="badge bg-secondary ms-1">已废止</span> 因政策变化已不再使用的证件
-                </small>
+            <div class="card mt-4" style="background-color: #f8f9fa; border: none;">
+                <div class="card-body p-3">
+                    <h6 class="mb-3"><i class="bi bi-info-circle text-primary"></i> 资质状态说明</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-start">
+                                <div class="me-2 text-success" style="font-size: 1.2rem;">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block">已满足</strong>
+                                    <small class="text-muted">必需资质已上传且有效</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-start">
+                                <div class="me-2 text-warning" style="font-size: 1.2rem;">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block">需要注意</strong>
+                                    <small class="text-muted">必需资质缺失或已废止</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-start">
+                                <div class="me-2 text-muted" style="font-size: 1.2rem;">
+                                    <i class="bi bi-info-circle"></i>
+                                </div>
+                                <div>
+                                    <strong class="d-block">额外资质</strong>
+                                    <small class="text-muted">可选的加分项资质</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <small class="text-muted me-2"><strong>标签说明：</strong></small>
+                        <span class="badge bg-danger">必需</span>
+                        <small class="text-muted">招标文件明确要求</small>
+                        <span class="badge bg-secondary ms-2">可选</span>
+                        <small class="text-muted">非必需的额外资质</small>
+                        <span class="badge bg-secondary ms-2">已废止</span>
+                        <small class="text-muted">因政策变化已不再使用</small>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -1072,6 +1137,62 @@ class TenderProcessor {
         if (displayElement) {
             displayElement.textContent = companyName || '未选择';
             displayElement.className = companyName ? 'text-primary fw-bold' : 'text-muted';
+        }
+    }
+
+    /**
+     * 预览招标文档
+     */
+    async previewTenderDocument(filename) {
+        try {
+            // 调用API获取文档内容
+            const response = await fetch(`/api/document/preview/${encodeURIComponent(filename)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // 创建预览窗口
+                const previewWindow = window.open('', '_blank', 'width=1200,height=800');
+                previewWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>文档预览 - ${filename}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <style>
+                            body { padding: 20px; }
+                            .document-preview { max-width: 1000px; margin: 0 auto; }
+                            .document-preview h1 { font-size: 1.8rem; margin-top: 20px; }
+                            .document-preview h2 { font-size: 1.5rem; margin-top: 15px; }
+                            .document-preview h3 { font-size: 1.2rem; margin-top: 10px; }
+                            .document-preview p { margin: 10px 0; line-height: 1.6; }
+                            .document-preview table { margin: 15px 0; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="mb-3">
+                                <button class="btn btn-secondary btn-sm" onclick="window.close()">关闭</button>
+                                <span class="ms-3 text-muted">文件名: ${filename}</span>
+                            </div>
+                            ${data.html_content}
+                        </div>
+                    </body>
+                    </html>
+                `);
+                previewWindow.document.close();
+            } else {
+                throw new Error(data.error || '预览失败');
+            }
+
+            console.log('[TenderProcessor] 文档预览成功:', filename);
+        } catch (error) {
+            console.error('[TenderProcessor] 预览文档失败:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('预览文档失败: ' + error.message, 'error');
+            } else {
+                alert('预览文档失败: ' + error.message);
+            }
         }
     }
 
