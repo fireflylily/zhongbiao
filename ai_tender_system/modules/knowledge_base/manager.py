@@ -1026,3 +1026,51 @@ class KnowledgeBaseManager:
         except Exception as e:
             logger.error(f"获取过期资质文件失败: {e}")
             return []
+
+    def get_qualification_types(self, include_inactive: bool = False) -> List[Dict]:
+        """获取资质类型定义"""
+        try:
+            conn = self.db.get_connection()
+            cursor = conn.cursor()
+
+            # 构建查询条件
+            if include_inactive:
+                query = """
+                    SELECT type_key, type_name, category, is_required, description,
+                           sort_order, is_active, created_at
+                    FROM qualification_types
+                    ORDER BY sort_order, type_name
+                """
+            else:
+                query = """
+                    SELECT type_key, type_name, category, is_required, description,
+                           sort_order, is_active, created_at
+                    FROM qualification_types
+                    WHERE is_active = TRUE
+                    ORDER BY sort_order, type_name
+                """
+
+            cursor.execute(query)
+            rows = cursor.fetchall()
+
+            # 转换为字典格式
+            qualifications = []
+            for row in rows:
+                qualification = {
+                    'qualification_key': row[0],
+                    'qualification_name': row[1],
+                    'category': row[2],
+                    'is_required': bool(row[3]),
+                    'description': row[4],
+                    'sort_order': row[5],
+                    'is_active': bool(row[6]),
+                    'created_at': row[7]
+                }
+                qualifications.append(qualification)
+
+            logger.info(f"获取资质类型定义成功，共 {len(qualifications)} 个类型")
+            return qualifications
+
+        except Exception as e:
+            logger.error(f"获取资质类型定义失败: {e}")
+            return []

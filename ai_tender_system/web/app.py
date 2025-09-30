@@ -104,6 +104,104 @@ def register_routes(app: Flask, config, logger):
     kb_manager = KnowledgeBaseManager()
 
     # ===================
+    # 辅助函数
+    # ===================
+
+    def enrich_qualification_with_company_status(tender_requirements: dict, company_id: str = None) -> dict:
+        """
+        整合招标资质要求与公司资质上传状态
+
+        Args:
+            tender_requirements: 招标文件中提取的资质要求
+            company_id: 公司ID，如果为None则只返回招标要求信息
+
+        Returns:
+            dict: 包含资质要求和公司上传状态的整合数据
+        """
+        logger.info(f"开始整合资质数据，company_id: {company_id}")
+
+        # 获取所有资质类型定义（包括活跃和非活跃的）
+        all_qualifications = kb_manager.get_qualification_types(include_inactive=True)
+
+        # 初始化结果结构
+        enriched_data = {
+            'summary': {
+                'total_types': len(all_qualifications),
+                'required_count': 0,
+                'uploaded_count': 0,
+                'missing_count': 0
+            },
+            'qualifications': {}
+        }
+
+        # 获取公司已上传的资质（如果提供了company_id）
+        company_qualifications = {}
+        if company_id:
+            try:
+                company_id_int = int(company_id)
+                uploaded_quals = kb_manager.get_company_qualifications(company_id_int)
+
+                # 转换为以qualification_key为键的字典
+                for qual in uploaded_quals:
+                    qual_key = qual['qualification_key']
+                    company_qualifications[qual_key] = {
+                        'uploaded': True,
+                        'original_filename': qual['original_filename'],
+                        'upload_time': qual['upload_time'],
+                        'custom_name': qual.get('custom_name'),
+                        'expire_date': qual.get('expire_date'),
+                        'verify_status': qual.get('verify_status', 'pending')
+                    }
+                logger.info(f"获取到公司 {company_id} 的 {len(company_qualifications)} 个已上传资质")
+            except (ValueError, TypeError) as e:
+                logger.warning(f"无效的公司ID: {company_id}, 错误: {e}")
+            except Exception as e:
+                logger.error(f"获取公司资质失败: {e}")
+
+        # 处理每个资质类型
+        for qual_type in all_qualifications:
+            qual_key = qual_type['qualification_key']
+            qual_name = qual_type['qualification_name']
+            is_active = qual_type.get('is_active', True)
+
+            # 检查招标文件是否要求此资质
+            tender_data = tender_requirements.get('qualifications', {}).get(qual_key, {})
+            is_required = tender_data.get('required', False)
+
+            # 检查公司是否上传了此资质
+            company_data = company_qualifications.get(qual_key, {'uploaded': False})
+
+            # 整合数据
+            qualification_info = {
+                'qualification_name': qual_name,
+                'qualification_key': qual_key,
+                'is_active': is_active,
+                'tender_requirement': {
+                    'required': is_required,
+                    'context': tender_data.get('context', ''),
+                    'confidence': tender_data.get('confidence', 0.0),
+                    'keywords_found': tender_data.get('keywords_found', [])
+                },
+                'company_status': company_data
+            }
+
+            # 更新统计信息
+            if is_required:
+                enriched_data['summary']['required_count'] += 1
+                if company_data['uploaded']:
+                    enriched_data['summary']['uploaded_count'] += 1
+                else:
+                    enriched_data['summary']['missing_count'] += 1
+
+            enriched_data['qualifications'][qual_key] = qualification_info
+
+        logger.info(f"资质数据整合完成，要求: {enriched_data['summary']['required_count']}, "
+                   f"已上传: {enriched_data['summary']['uploaded_count']}, "
+                   f"缺失: {enriched_data['summary']['missing_count']}")
+
+        return enriched_data
+
+    # ===================
     # 静态页面路由
     # ===================
     
@@ -397,14 +495,39 @@ def register_routes(app: Flask, config, logger):
                 })
                 
             elif step == '2':
-                # 第二步：提取资质要求
+                # 第二步：提取资质要求并对比公司资质状态
                 text = extractor.read_document(file_path)
-                qualification_info = extractor.extract_qualification_requirements(text)
-                
+                tender_requirements = extractor.extract_qualification_requirements(text)
+
+                # 获取公司ID - 支持FormData和JSON两种方式
+                company_id = None
+                if request.content_type and 'multipart/form-data' in request.content_type:
+                    company_id = request.form.get('company_id')
+                elif request.is_json:
+                    company_id = request.get_json().get('company_id')
+                else:
+                    # 尝试从form中获取
+                    company_id = request.form.get('company_id')
+
+                logger.info(f"处理资质要求 - 公司ID: {company_id}, 类型: {type(company_id)}")
+
+                # 确保company_id是整数或None
+                if company_id:
+                    try:
+                        company_id = int(company_id)
+                    except (ValueError, TypeError):
+                        logger.warning(f"无效的公司ID: {company_id}")
+                        company_id = None
+
+                # 整合公司资质状态
+                enriched_data = enrich_qualification_with_company_status(tender_requirements, company_id)
+
+                logger.info(f"资质要求提取完成，返回数据包含 {len(enriched_data.get('qualifications', {}))} 项资质")
+
                 return jsonify({
                     'success': True,
                     'step': 2,
-                    'data': qualification_info,
+                    'data': enriched_data,
                     'message': '资质要求提取成功'
                 })
                 
@@ -1913,7 +2036,115 @@ def register_routes(app: Flask, config, logger):
     # ===================
     # 项目配置API
     # ===================
-    
+    # 招标项目管理API
+    # ===================
+
+    @app.route('/api/tender-projects', methods=['GET'])
+    def get_tender_projects():
+        """获取招标项目列表"""
+        try:
+            company_id = request.args.get('company_id')
+            status = request.args.get('status')
+
+            query = "SELECT * FROM tender_projects WHERE 1=1"
+            params = []
+
+            if company_id:
+                query += " AND company_id = ?"
+                params.append(company_id)
+
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+
+            query += " ORDER BY created_at DESC LIMIT 100"
+
+            projects = kb_manager.db.execute_query(query, params)
+
+            return jsonify({
+                'success': True,
+                'data': projects or []
+            })
+        except Exception as e:
+            logger.error(f"获取项目列表失败: {e}")
+            return jsonify({
+                'success': False,
+                'message': str(e),
+                'data': []
+            })
+
+    @app.route('/api/tender-projects', methods=['POST'])
+    def create_tender_project():
+        """创建新招标项目"""
+        try:
+            data = request.get_json()
+
+            query = """
+                INSERT INTO tender_projects (
+                    project_name, project_number, tenderer, agency,
+                    bidding_method, bidding_location, bidding_time,
+                    tender_document_path, original_filename,
+                    company_id, status, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+
+            params = [
+                data.get('project_name'),
+                data.get('project_number'),
+                data.get('tenderer'),
+                data.get('agency'),
+                data.get('bidding_method'),
+                data.get('bidding_location'),
+                data.get('bidding_time'),
+                data.get('tender_document_path'),
+                data.get('original_filename'),
+                data.get('company_id'),
+                'draft',
+                'system'
+            ]
+
+            project_id = kb_manager.db.execute_update(query, params)
+
+            logger.info(f"创建项目成功，ID: {project_id}")
+
+            return jsonify({
+                'success': True,
+                'project_id': project_id,
+                'message': '项目创建成功'
+            })
+        except Exception as e:
+            logger.error(f"创建项目失败: {e}")
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            })
+
+    @app.route('/api/tender-projects/<int:project_id>', methods=['GET'])
+    def get_tender_project(project_id):
+        """获取单个项目详情"""
+        try:
+            query = "SELECT * FROM tender_projects WHERE project_id = ?"
+            projects = kb_manager.db.execute_query(query, [project_id])
+
+            if projects and len(projects) > 0:
+                return jsonify({
+                    'success': True,
+                    'data': projects[0]
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': '项目不存在'
+                })
+        except Exception as e:
+            logger.error(f"获取项目详情失败: {e}")
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            })
+
+    # ===================
+
     @app.route('/api/project-config')
     def get_project_config():
         """获取项目配置信息"""

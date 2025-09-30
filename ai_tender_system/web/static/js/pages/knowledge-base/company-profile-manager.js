@@ -26,9 +26,28 @@ class CompanyProfileManager {
 
     /**
      * 渲染企业信息库完整界面
-     * @param {Object} companyData 企业数据
+     * @param {number} companyId 企业ID
      */
-    renderCompanyProfile(companyData) {
+    async renderCompanyProfile(companyId) {
+        // 设置当前企业ID
+        this.currentCompanyId = companyId;
+
+        // 先获取企业完整数据
+        let companyData = null;
+        try {
+            const response = await axios.get(`/api/companies/${companyId}`);
+            if (response.data.success) {
+                companyData = response.data.data;
+            }
+        } catch (error) {
+            console.error('加载企业数据失败:', error);
+            if (window.showAlert) {
+                window.showAlert('加载企业数据失败：' + error.message, 'danger');
+            }
+            return;
+        }
+
+        // 渲染界面
         const html = `
             <div class="container-fluid px-0">
                 <!-- Tab导航 -->
@@ -263,19 +282,16 @@ class CompanyProfileManager {
                     <h6 class="text-danger mb-3"><i class="bi bi-bank"></i> 财务文档</h6>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            ${this.renderFinancialItem('纳税人资格证明', 'taxpayer_certificate', 'bi-receipt')}
+                            ${this.renderFinancialItem('近三年财务审计报告', 'financial_audit', 'bi-graph-up')}
                         </div>
                         <div class="col-md-6">
                             ${this.renderFinancialItem('财务审计报告', 'audit_report', 'bi-file-earmark-check')}
                         </div>
                         <div class="col-md-6">
-                            ${this.renderFinancialItem('近三年财务审计报告', 'financial_audit', 'bi-graph-up')}
+                            ${this.renderFinancialItem('纳税人资格证明', 'taxpayer_certificate', 'bi-receipt')}
                         </div>
                         <div class="col-md-6">
                             ${this.renderFinancialItem('银行开户许可证', 'bank_account', 'bi-bank')}
-                        </div>
-                        <div class="col-md-6">
-                            ${this.renderFinancialItem('税务登记证', 'tax_registration', 'bi-receipt')}
                         </div>
                     </div>
                 </div>
@@ -326,13 +342,6 @@ class CompanyProfileManager {
             { key: 'credit_tax', name: '信用中国-政府采购严重违法失信查询', icon: 'bi-flag', category: 'credit' },
             { key: 'credit_procurement', name: '政府采购信用查询结果', icon: 'bi-check-circle', category: 'credit' },
 
-            // 财务和税务资质
-            { key: 'financial_audit', name: '近三年财务审计报告', icon: 'bi-graph-up', category: 'financial' },
-            { key: 'audit_report', name: '财务审计报告', icon: 'bi-file-earmark-check', category: 'financial' },
-            { key: 'taxpayer_certificate', name: '纳税人资格证明', icon: 'bi-receipt', category: 'financial' },
-            { key: 'bank_account', name: '银行开户许可证', icon: 'bi-bank', category: 'financial' },
-            { key: 'tax_registration', name: '税务登记证', icon: 'bi-receipt', category: 'financial' },
-
             // 知识产权和行业资质
             { key: 'software_copyright', name: '软件著作权登记证书', icon: 'bi-code-square', category: 'industry' },
             { key: 'patent_certificate', name: '专利证书', icon: 'bi-lightbulb', category: 'industry' },
@@ -345,7 +354,6 @@ class CompanyProfileManager {
             'basic': { name: '基本证件资质', color: 'primary' },
             'iso': { name: 'ISO体系认证', color: 'success' },
             'credit': { name: '信用资质证明', color: 'info' },
-            'financial': { name: '财务和税务资质', color: 'warning' },
             'industry': { name: '行业专业资质', color: 'danger' }
         };
 

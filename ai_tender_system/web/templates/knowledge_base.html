@@ -476,13 +476,13 @@
         // 渲染企业信息库
         async function renderCompanyProfiles(companyData) {
             try {
-                // 跳转到知识库页面并传递企业ID参数
-                if (companyData && companyData.company_id) {
-                    window.location.href = `/knowledge_base?company_id=${companyData.company_id}`;
+                // 使用 companyProfileManager 渲染企业信息到主内容区
+                if (companyData && companyData.company_id && window.companyProfileManager) {
+                    await window.companyProfileManager.renderCompanyProfile(companyData.company_id);
                 }
             } catch (error) {
-                console.error('跳转企业信息库失败:', error);
-                showAlert('跳转企业信息库失败：' + error.message, 'danger');
+                console.error('加载企业信息库失败:', error);
+                showAlert('加载企业信息库失败：' + error.message, 'danger');
             }
         }
 
@@ -495,9 +495,13 @@
             const companyId = urlParams.get('company_id');
 
             if (companyId) {
+                // 仅展开企业节点，不自动触发选择（避免死循环）
                 setTimeout(() => {
                     if (window.categoryManager) {
-                        window.categoryManager.selectCompanyProfile(parseInt(companyId));
+                        const companyElement = document.querySelector(`[onclick*="toggleCompanyNode(${companyId},"]`);
+                        if (companyElement) {
+                            companyElement.click();
+                        }
                     }
                 }, 1000);
             }

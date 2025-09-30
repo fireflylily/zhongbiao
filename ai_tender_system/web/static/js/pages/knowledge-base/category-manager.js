@@ -75,9 +75,8 @@ class CategoryManager {
             await this.loadCompanyProducts(companyId);
         }
 
-        // 更新当前选中的公司
+        // 更新当前选中的公司ID（不触发选择事件）
         this.currentCompanyId = companyId;
-        this.selectCompany(companyId, companyName);
     }
 
     /**

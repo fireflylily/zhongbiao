@@ -6,6 +6,58 @@
 3. 清晰的步骤：上传 → 处理控制 → 结果展示
 4. 用户可控：用户可选择处理哪些信息类型
 -->
+
+<!-- 第0部分：项目和公司选择区域 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="bi bi-folder"></i> 项目和公司信息
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- 项目选择 -->
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label for="tenderProjectSelect" class="form-label">
+                            <i class="bi bi-folder2"></i> 关联项目
+                        </label>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select" id="tenderProjectSelect">
+                                <option value="" selected>新建项目</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshProjectsBtn" title="刷新项目列表">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">选择现有项目或创建新项目</small>
+                    </div>
+
+                    <!-- 公司选择 -->
+                    <div class="col-md-6">
+                        <label for="tenderCompanySelect" class="form-label">
+                            <i class="bi bi-building"></i> 应答公司 <span class="text-danger">*</span>
+                        </label>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select" id="tenderCompanySelect" required>
+                                <option value="">请选择公司...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="window.location.href='/knowledge_base?action=company_management';" title="管理公司">
+                                <i class="bi bi-building"></i> 管理
+                            </button>
+                        </div>
+                        <div class="mt-1">
+                            <small class="text-muted">当前：</small>
+                            <span id="tenderSelectedCompanyName" class="text-muted">未选择</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 第1部分：文件上传区域 -->
 <div class="row mb-4">
     <div class="col-12">
@@ -126,54 +178,61 @@
                 </h6>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <!-- 基本信息展示 -->
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-info-circle"></i> 基本信息
-                                </h6>
-                            </div>
-                            <div class="card-body" id="basicInfoDisplay">
-                                <div class="text-muted text-center">
-                                    <i class="bi bi-hourglass-split"></i><br>
-                                    等待处理...
-                                </div>
+                <!-- 基本信息展示 -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-info-circle"></i> 基本信息
+                        </h6>
+                        <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="true">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="basicInfoCollapse">
+                        <div class="card-body" id="basicInfoDisplay">
+                            <div class="text-muted text-center">
+                                <i class="bi bi-hourglass-split"></i><br>
+                                等待处理...
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- 资质要求展示 -->
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-success text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-award"></i> 资质要求
-                                </h6>
-                            </div>
-                            <div class="card-body" id="qualificationDisplay">
-                                <div class="text-muted text-center">
-                                    <i class="bi bi-hourglass-split"></i><br>
-                                    等待处理...
-                                </div>
+                <!-- 资质要求展示 -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-award"></i> 资质要求
+                        </h6>
+                        <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#qualificationCollapse" aria-expanded="true">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="qualificationCollapse">
+                        <div class="card-body" id="qualificationDisplay">
+                            <div class="text-muted text-center">
+                                <i class="bi bi-hourglass-split"></i><br>
+                                等待处理...
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- 评分信息展示 -->
-                    <div class="col-md-4">
-                        <div class="card h-100">
-                            <div class="card-header bg-warning text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-star"></i> 评分信息
-                                </h6>
-                            </div>
-                            <div class="card-body" id="scoringDisplay">
-                                <div class="text-muted text-center">
-                                    <i class="bi bi-hourglass-split"></i><br>
-                                    等待处理...
-                                </div>
+                <!-- 评分信息展示 -->
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-star"></i> 评分信息
+                        </h6>
+                        <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#scoringCollapse" aria-expanded="true">
+                            <i class="bi bi-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="collapse show" id="scoringCollapse">
+                        <div class="card-body" id="scoringDisplay">
+                            <div class="text-muted text-center">
+                                <i class="bi bi-hourglass-split"></i><br>
+                                等待处理...
                             </div>
                         </div>
                     </div>

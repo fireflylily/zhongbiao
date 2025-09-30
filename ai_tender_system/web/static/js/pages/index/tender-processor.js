@@ -23,6 +23,10 @@ class TenderProcessor {
         this.uploaderInitialized = false;
         this.uploadedFilePath = null; // 存储上传文件的路径
 
+        // 新增：项目和公司选择状态
+        this.selectedCompanyId = null;
+        this.selectedProjectId = null;
+
         this.init();
     }
 
@@ -32,6 +36,10 @@ class TenderProcessor {
     init() {
         // 绑定新的UI元素
         this.bindElements();
+        // 绑定选择器事件
+        this.bindSelectorEvents();
+        // 加载公司和项目列表
+        this.loadCompanies();
         console.log('[TenderProcessor] 基础初始化完成，等待tab激活后初始化上传组件');
     }
 
@@ -314,6 +322,8 @@ class TenderProcessor {
         } catch (error) {
             console.error(`[TenderProcessor] 步骤 ${stepType} 处理失败:`, error);
             this.showError(`${this.getStepDisplayName(stepType)}处理失败: ${error.message}`);
+            // 重新抛出错误，以便 processAllSteps 可以捕获
+            throw error;
         } finally {
             this.isProcessing = false;
             this.hideProcessingProgress();
@@ -325,21 +335,23 @@ class TenderProcessor {
      */
     async processAllSteps() {
         const steps = ['basic', 'qualification', 'scoring'];
+        let hasError = false;
 
         for (const step of steps) {
-            await this.processStep(step);
+            try {
+                await this.processStep(step);
 
-            // 如果中途失败，停止处理
-            if (!this.isProcessing) {
+                // 小延迟，避免过于频繁的API调用
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (error) {
+                console.error(`[TenderProcessor] 步骤 ${step} 处理失败，停止后续处理:`, error);
+                hasError = true;
                 break;
             }
-
-            // 小延迟，避免过于频繁的API调用
-            await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        // 激活导出按钮
-        if (this.exportResultsBtn) {
+        // 只有全部成功才激活导出按钮
+        if (!hasError && this.exportResultsBtn) {
             this.exportResultsBtn.disabled = false;
         }
 
@@ -359,6 +371,18 @@ class TenderProcessor {
         const formData = new FormData();
         formData.append('step', stepMap[stepType]);
         formData.append('file_path', this.uploadedFilePath);
+
+        // 添加公司ID
+        if (this.selectedCompanyId) {
+            formData.append('company_id', this.selectedCompanyId);
+            console.log(`[TenderProcessor] 传递公司ID: ${this.selectedCompanyId}`);
+        }
+
+        // 添加项目ID
+        if (this.selectedProjectId) {
+            formData.append('project_id', this.selectedProjectId);
+            console.log(`[TenderProcessor] 传递项目ID: ${this.selectedProjectId}`);
+        }
 
         // 获取选择的AI模型
         const selectedModel = this.getSelectedAIModel();
@@ -694,24 +718,164 @@ class TenderProcessor {
     }
 
     /**
-     * 格式化资质要求信息
+     * 格式化资质要求信息 - 表格对比显示
      */
     formatQualificationInfo(data) {
-        if (!data || Object.keys(data).length === 0) {
+        if (!data || !data.qualifications || Object.keys(data.qualifications).length === 0) {
             return '<div class="text-muted text-center">暂无资质要求信息</div>';
         }
 
-        let html = '<div>';
-        Object.keys(data).forEach(key => {
-            const value = data[key];
-            html += `
-                <div class="mb-2">
-                    <strong>${key}:</strong><br>
-                    <span class="text-muted">${value || '未提取到'}</span>
+        const summary = data.summary || {};
+        const qualifications = data.qualifications || {};
+
+        // 生成汇总信息
+        let html = `
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">资质要求总数</h6>
+                                <h4 class="text-primary mb-0">${summary.required_count || 0}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">已上传数量</h6>
+                                <h4 class="text-success mb-0">${summary.uploaded_count || 0}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">缺失数量</h6>
+                                <h4 class="text-danger mb-0">${summary.missing_count || 0}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-1">完成度</h6>
+                                <h4 class="text-info mb-0">${summary.required_count > 0 ? Math.round((summary.uploaded_count / summary.required_count) * 100) : 0}%</h4>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        `;
+
+        // 生成资质对比表格
+        html += `
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 30%">资质名称</th>
+                            <th style="width: 15%" class="text-center">招标要求</th>
+                            <th style="width: 15%" class="text-center">公司状态</th>
+                            <th style="width: 20%">上传文件</th>
+                            <th style="width: 20%">备注信息</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        // 先显示要求的资质
+        const requiredQuals = [];
+        const optionalQuals = [];
+
+        Object.keys(qualifications).forEach(key => {
+            const qual = qualifications[key];
+            if (qual.tender_requirement.required) {
+                requiredQuals.push({key, ...qual});
+            } else if (qual.company_status.uploaded) {
+                optionalQuals.push({key, ...qual});
+            }
+        });
+
+        // 显示必需的资质
+        requiredQuals.forEach(qual => {
+            const isUploaded = qual.company_status.uploaded;
+            const confidence = qual.tender_requirement.confidence || 0;
+            const context = qual.tender_requirement.context || '';
+            const keywords = qual.tender_requirement.keywords_found || [];
+
+            html += `
+                <tr class="${isUploaded ? 'table-success' : 'table-warning'}">
+                    <td>
+                        <strong>${qual.qualification_name}</strong>
+                        ${qual.is_active ? '' : '<span class="badge bg-secondary ms-1">已废止</span>'}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-danger">必需</span>
+                        ${confidence > 0 ? `<br><small class="text-muted">${Math.round(confidence * 100)}%</small>` : ''}
+                    </td>
+                    <td class="text-center">
+                        ${isUploaded ? '<span class="badge bg-success">已上传</span>' : '<span class="badge bg-danger">未上传</span>'}
+                    </td>
+                    <td>
+                        ${isUploaded ?
+                            `<small class="text-primary">${qual.company_status.original_filename || ''}</small>
+                             ${qual.company_status.upload_time ? `<br><small class="text-muted">${new Date(qual.company_status.upload_time).toLocaleDateString()}</small>` : ''}`
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${context ? `<small class="text-muted">${context.substring(0, 100)}${context.length > 100 ? '...' : ''}</small>` : ''}
+                        ${keywords.length > 0 ? `<br><small class="text-info">关键词: ${keywords.slice(0, 3).join(', ')}</small>` : ''}
+                    </td>
+                </tr>
             `;
         });
-        html += '</div>';
+
+        // 显示已上传但非必需的资质
+        if (optionalQuals.length > 0) {
+            optionalQuals.forEach(qual => {
+                html += `
+                    <tr class="table-light">
+                        <td>
+                            <strong>${qual.qualification_name}</strong>
+                            ${qual.is_active ? '' : '<span class="badge bg-secondary ms-1">已废止</span>'}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary">可选</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-success">已上传</span>
+                        </td>
+                        <td>
+                            <small class="text-primary">${qual.company_status.original_filename || ''}</small>
+                            ${qual.company_status.upload_time ? `<br><small class="text-muted">${new Date(qual.company_status.upload_time).toLocaleDateString()}</small>` : ''}
+                        </td>
+                        <td>
+                            <small class="text-success">额外资质，可提升竞争力</small>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        // 添加说明
+        html += `
+            <div class="mt-3">
+                <small class="text-muted">
+                    <strong>说明：</strong>
+                    <span class="badge bg-danger ms-1">必需</span> 招标文件明确要求的资质；
+                    <span class="badge bg-secondary ms-1">可选</span> 您已上传但非必需的资质；
+                    <span class="badge bg-secondary ms-1">已废止</span> 因政策变化已不再使用的证件
+                </small>
+            </div>
+        `;
+
         return html;
     }
 
@@ -812,6 +976,154 @@ class TenderProcessor {
                 btn.disabled = true;
             }
         });
+    }
+
+    /**
+     * 加载公司列表
+     */
+    async loadCompanies() {
+        const companySelect = document.getElementById('tenderCompanySelect');
+        if (!companySelect) {
+            console.log('[TenderProcessor] 公司选择器不存在');
+            return;
+        }
+
+        try {
+            console.log('[TenderProcessor] 开始加载公司列表...');
+            const response = await fetch('/api/companies');
+            const data = await response.json();
+
+            companySelect.innerHTML = '<option value="">请选择公司...</option>';
+
+            if (data.success && data.data && data.data.length > 0) {
+                data.data.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = company.company_id;
+                    option.textContent = company.company_name;
+                    companySelect.appendChild(option);
+                });
+
+                console.log(`[TenderProcessor] 成功加载 ${data.data.length} 家公司`);
+
+                // 恢复之前选择的公司
+                if (window.companyStateManager) {
+                    const savedCompany = window.companyStateManager.getSelectedCompany();
+                    if (savedCompany && savedCompany.company_id) {
+                        companySelect.value = savedCompany.company_id;
+                        this.selectedCompanyId = savedCompany.company_id;
+                        this.updateCompanyDisplay(savedCompany.company_name);
+                        console.log('[TenderProcessor] 已恢复公司选择状态', savedCompany);
+                        // 加载该公司的项目
+                        this.loadProjects();
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('[TenderProcessor] 加载公司列表失败:', error);
+            companySelect.innerHTML = '<option value="">加载失败，请刷新重试</option>';
+        }
+    }
+
+    /**
+     * 加载项目列表
+     */
+    async loadProjects() {
+        const projectSelect = document.getElementById('tenderProjectSelect');
+        if (!projectSelect) {
+            console.log('[TenderProcessor] 项目选择器不存在');
+            return;
+        }
+
+        try {
+            console.log('[TenderProcessor] 开始加载项目列表...');
+            const url = this.selectedCompanyId
+                ? `/api/tender-projects?company_id=${this.selectedCompanyId}`
+                : '/api/tender-projects';
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            projectSelect.innerHTML = '<option value="">新建项目</option>';
+
+            if (data.success && data.data && data.data.length > 0) {
+                data.data.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.project_id;
+                    const projectNumber = project.project_number || '无编号';
+                    const status = project.status || 'draft';
+                    option.textContent = `${project.project_name} (${projectNumber}) [${status}]`;
+                    projectSelect.appendChild(option);
+                });
+
+                console.log(`[TenderProcessor] 成功加载 ${data.data.length} 个项目`);
+            } else {
+                console.log('[TenderProcessor] 没有找到项目数据');
+            }
+        } catch (error) {
+            console.error('[TenderProcessor] 加载项目列表失败:', error);
+        }
+    }
+
+    /**
+     * 更新公司显示
+     */
+    updateCompanyDisplay(companyName) {
+        const displayElement = document.getElementById('tenderSelectedCompanyName');
+        if (displayElement) {
+            displayElement.textContent = companyName || '未选择';
+            displayElement.className = companyName ? 'text-primary fw-bold' : 'text-muted';
+        }
+    }
+
+    /**
+     * 绑定选择器事件
+     */
+    bindSelectorEvents() {
+        // 公司选择变更
+        const companySelect = document.getElementById('tenderCompanySelect');
+        if (companySelect) {
+            companySelect.addEventListener('change', (e) => {
+                this.selectedCompanyId = e.target.value || null;
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                const companyName = e.target.value ? selectedOption.text : '';
+
+                console.log('[TenderProcessor] 公司选择变更:', this.selectedCompanyId, companyName);
+                this.updateCompanyDisplay(companyName);
+
+                // 保存到全局状态
+                if (this.selectedCompanyId && window.companyStateManager) {
+                    window.companyStateManager.setSelectedCompany({
+                        company_id: this.selectedCompanyId,
+                        company_name: companyName
+                    });
+                    console.log('[TenderProcessor] 已保存公司选择到全局状态');
+                }
+
+                // 重新加载项目列表
+                this.loadProjects();
+            });
+            console.log('[TenderProcessor] 公司选择器事件已绑定');
+        }
+
+        // 项目选择变更
+        const projectSelect = document.getElementById('tenderProjectSelect');
+        if (projectSelect) {
+            projectSelect.addEventListener('change', (e) => {
+                this.selectedProjectId = e.target.value || null;
+                console.log('[TenderProcessor] 项目选择变更:', this.selectedProjectId);
+            });
+            console.log('[TenderProcessor] 项目选择器事件已绑定');
+        }
+
+        // 刷新项目按钮
+        const refreshBtn = document.getElementById('refreshProjectsBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                console.log('[TenderProcessor] 刷新项目列表');
+                this.loadProjects();
+            });
+            console.log('[TenderProcessor] 刷新按钮事件已绑定');
+        }
     }
 
     /**

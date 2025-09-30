@@ -119,7 +119,185 @@ class TenderInfoExtractor:
         json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
 
         return json_str
-    
+
+    def _get_qualification_keywords(self) -> Dict[str, List[str]]:
+        """
+        获取资质关键字匹配规则
+        基于数据库中实际的18种资质类型
+        """
+        return {
+            # 基础资质类（考虑三证合一）
+            'business_license': [
+                '营业执照', '三证合一', '企业法人营业执照',
+                '工商营业执照', '统一社会信用代码', '一照一码',
+                '企业法人', '工商登记'
+            ],
+            'bank_permit': [
+                '开户许可证', '基本存款账户', '开户行许可',
+                '银行开户证明', '银行开户', '基本户'
+            ],
+            'legal_id_front': [
+                '法人身份证正面', '法定代表人身份证', '法人身份证',
+                '法人代表身份证', '企业法人身份证'
+            ],
+            'legal_id_back': [
+                '法人身份证反面', '法定代表人身份证反面',
+                '法人身份证背面'
+            ],
+            'auth_id_front': [
+                '授权人身份证正面', '被授权人身份证', '委托代理人身份证',
+                '代理人身份证', '投标代表身份证'
+            ],
+            'auth_id_back': [
+                '授权人身份证反面', '被授权人身份证反面',
+                '代理人身份证反面', '投标代表身份证反面'
+            ],
+            'authorization_letter': [
+                '法人授权委托书', '授权书', '法人授权', '委托书',
+                '投标授权书', '授权委托书', '法定代表人授权书'
+            ],
+
+            # 认证证书类
+            'iso9001': [
+                'ISO9001', 'ISO 9001', '质量管理体系', '质量认证',
+                'GB/T19001', 'iso9001', '质量体系认证'
+            ],
+            'iso14001': [
+                'ISO14001', 'ISO 14001', '环境管理体系', '环境认证',
+                'GB/T24001', 'iso14001', '环境体系认证'
+            ],
+            'iso20000': [
+                'ISO20000', 'ISO 20000', '信息技术服务管理', 'IT服务管理',
+                'ISO/IEC 20000', 'iso20000', '信息技术服务'
+            ],
+            'iso27001': [
+                'ISO27001', 'ISO 27001', '信息安全管理', '信息安全认证',
+                'ISO/IEC 27001', 'iso27001', '信息安全体系'
+            ],
+            'cmmi': [
+                'CMMI', '能力成熟度', '软件能力成熟度', 'CMMI认证',
+                'cmmi', '软件过程改进', '能力成熟度集成'
+            ],
+            'itss': [
+                'ITSS', '信息技术服务标准', 'ITSS认证', '运维服务能力',
+                'itss', 'IT服务标准', '信息技术服务'
+            ],
+
+            # 行业资质类
+            'safety_production': [
+                '安全生产许可证', '安全生产', '安全许可', '生产许可',
+                '安全生产资质', '安全许可证'
+            ],
+            'software_copyright': [
+                '软件著作权', '软著', '计算机软件著作权', '软件版权',
+                '软件著作权登记证书', '著作权登记'
+            ],
+            'patent_certificate': [
+                '专利证书', '专利', '发明专利', '实用新型', '外观设计',
+                '知识产权', '专利权'
+            ],
+
+            # 过时资质（仅用于检测并提醒更新）
+            'tax_registration': ['税务登记证', '税务登记'],
+            'organization_code': ['组织机构代码证', '组织机构代码', '机构代码证']
+        }
+
+    def extract_qualification_requirements_by_keywords(self, text: str) -> Dict[str, Any]:
+        """
+        使用关键字匹配提取资质要求
+        替代LLM调用，提高性能和准确性
+        """
+        try:
+            self.logger.info("开始使用关键字匹配提取资质要求")
+
+            # 获取关键字匹配规则
+            keywords_mapping = self._get_qualification_keywords()
+
+            # 存储检测结果
+            qualification_results = {}
+            obsolete_detected = {}
+
+            # 转换文本为小写以便匹配
+            text_lower = text.lower()
+
+            for qual_key, keywords in keywords_mapping.items():
+                found_keywords = []
+                qualification_required = False
+                description_parts = []
+
+                # 检查每个关键字
+                for keyword in keywords:
+                    if keyword.lower() in text_lower:
+                        found_keywords.append(keyword)
+                        qualification_required = True
+
+                        # 尝试提取关键字周围的上下文作为描述
+                        context = self._extract_context_around_keyword(text, keyword)
+                        if context:
+                            description_parts.append(context)
+
+                # 如果找到关键字，记录结果
+                if found_keywords:
+                    # 处理过时资质的特殊提醒
+                    if qual_key in ['tax_registration', 'organization_code']:
+                        obsolete_detected[qual_key] = f"检测到{found_keywords[0]}要求，建议使用三证合一营业执照"
+                        continue
+
+                    # 生成描述
+                    description = f"需要提供{found_keywords[0]}"
+                    if description_parts:
+                        description = description_parts[0][:100] + "..." if len(description_parts[0]) > 100 else description_parts[0]
+
+                    qualification_results[qual_key] = {
+                        'required': True,
+                        'keywords_found': found_keywords,
+                        'description': description,
+                        'confidence': len(found_keywords) / len(keywords)  # 匹配置信度
+                    }
+
+            # 构建返回结果
+            result = {
+                'qualifications': qualification_results,
+                'total_required': len(qualification_results),
+                'keywords_method': True
+            }
+
+            # 如果检测到过时资质，添加提醒
+            if obsolete_detected:
+                result['obsolete_detected'] = obsolete_detected
+
+            self.logger.info(f"关键字匹配完成，检测到{len(qualification_results)}项资质要求")
+            return result
+
+        except Exception as e:
+            self.logger.error(f"关键字匹配提取资质要求失败: {e}")
+            return {}
+
+    def _extract_context_around_keyword(self, text: str, keyword: str, context_length: int = 50) -> str:
+        """
+        提取关键字周围的上下文文本作为描述
+        """
+        try:
+            # 找到关键字位置
+            keyword_pos = text.lower().find(keyword.lower())
+            if keyword_pos == -1:
+                return ""
+
+            # 计算上下文范围
+            start = max(0, keyword_pos - context_length)
+            end = min(len(text), keyword_pos + len(keyword) + context_length)
+
+            context = text[start:end].strip()
+
+            # 清理文本，移除换行符和多余空格
+            context = ' '.join(context.split())
+
+            return context
+
+        except Exception as e:
+            self.logger.debug(f"提取上下文失败: {e}")
+            return ""
+
     def _timeout_regex_search(self, pattern: str, text: str, timeout: int = 5):
         """带超时的正则表达式搜索，防止灾难性回溯"""
         result = None
@@ -732,49 +910,11 @@ class TenderInfoExtractor:
             raise TenderInfoExtractionError(f"基本信息提取失败: {str(e)}")
     
     def extract_qualification_requirements(self, text: str) -> Dict[str, Any]:
-        """提取资质要求"""
+        """提取资质要求 - 使用关键字匹配方法"""
         try:
-            self.logger.info("开始提取资质要求")
-            
-            prompt = f"""
-请从以下招标文档中提取资质要求信息，以JSON格式返回：
+            # 使用新的关键字匹配方法
+            return self.extract_qualification_requirements_by_keywords(text)
 
-文档内容：
-{text[:4000]}...
-
-请识别并提取以下资质要求（如果文档中提到）：
-1. business_license_required: 是否需要营业执照 (true/false)
-2. business_license_description: 营业执照要求描述
-3. taxpayer_qualification_required: 是否需要纳税人资格证明 (true/false)
-4. taxpayer_qualification_description: 纳税人资格要求描述
-5. performance_requirements_required: 是否需要业绩要求 (true/false)
-6. performance_requirements_description: 业绩要求描述
-7. authorization_requirements_required: 是否需要授权书 (true/false)
-8. authorization_requirements_description: 授权要求描述
-9. credit_china_required: 是否需要信用中国查询 (true/false)
-10. credit_china_description: 信用查询要求描述
-11. commitment_letter_required: 是否需要承诺书 (true/false)
-12. commitment_letter_description: 承诺书要求描述
-13. audit_report_required: 是否需要审计报告 (true/false)
-14. audit_report_description: 审计报告要求描述
-15. social_security_required: 是否需要社保证明 (true/false)
-16. social_security_description: 社保要求描述
-17. labor_contract_required: 是否需要劳动合同 (true/false)
-18. labor_contract_description: 劳动合同要求描述
-19. other_requirements_required: 是否有其他要求 (true/false)
-20. other_requirements_description: 其他要求描述
-
-请严格按照JSON格式返回。
-"""
-            
-            response = self.llm_callback(prompt, "资质要求提取")
-            
-            qualification_info = self._safe_json_parse(response, "资质要求提取")
-            if qualification_info:
-                return qualification_info
-            else:
-                return {}
-                
         except Exception as e:
             self.logger.error(f"提取资质要求失败: {e}")
             return {}
