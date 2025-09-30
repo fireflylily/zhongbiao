@@ -964,6 +964,31 @@ def get_knowledge_base_db() -> KnowledgeBaseDB:
     return _db_instance
 
 
+@contextmanager
+def get_db_connection():
+    """
+    获取数据库连接的上下文管理器
+    用于storage_service等需要直接数据库访问的模块
+    """
+    config = get_config()
+    db_path = str(config.get_path('data') / 'knowledge_base.db')
+
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row  # 支持字典式访问
+        yield conn
+        conn.commit()
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        logger.error(f"数据库操作失败: {e}")
+        raise
+    finally:
+        if conn:
+            conn.close()
+
+
 if __name__ == "__main__":
     # 测试数据库功能
     db = get_knowledge_base_db()

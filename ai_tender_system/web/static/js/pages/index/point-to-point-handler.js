@@ -104,6 +104,8 @@ function displaySelectedCompany(companyData) {
     const companyPrompt = document.getElementById('companyPrompt');
     const companySelect = document.getElementById('companySelect');
     const selectedCompanyNameDisplay = document.getElementById('selectedCompanyNameDisplay');
+    const selectedProjectInfo = document.getElementById('selectedProjectInfo');
+    const selectedProjectNameDisplay = document.getElementById('selectedProjectNameDisplay');
 
     // 隐藏其他区域，显示已选择公司区域
     if (companyPrompt) companyPrompt.style.display = 'none';
@@ -118,7 +120,17 @@ function displaySelectedCompany(companyData) {
         companySelect.value = companyData.company_id;
     }
 
-    console.log('点对点应答页面：显示已选择公司', companyData);
+    // 显示项目信息（始终显示，即使为空）
+    if (selectedProjectInfo && selectedProjectNameDisplay) {
+        selectedProjectInfo.style.display = 'block';
+        if (companyData.project_name) {
+            selectedProjectNameDisplay.textContent = companyData.project_name;
+        } else {
+            selectedProjectNameDisplay.textContent = '未填写';
+        }
+    }
+
+    console.log('点对点应答页面：显示已选择公司和项目', companyData);
 }
 
 // 显示公司选择提示

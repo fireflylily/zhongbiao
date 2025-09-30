@@ -1,6 +1,6 @@
 /**
  * 全局公司状态管理器
- * 用于在不同页面间同步选择的公司信息
+ * 用于在不同页面间同步选择的公司和项目信息
  */
 
 class CompanyStateManager {
@@ -22,10 +22,15 @@ class CompanyStateManager {
             return false;
         }
 
+        // 获取当前存储的数据（保留项目信息）
+        const currentData = this.getSelectedCompany();
+
         const dataToStore = {
             company_id: companyData.company_id,
             company_name: companyData.company_name,
             details: companyData.details || null,
+            project_name: currentData?.project_name || null,
+            project_number: currentData?.project_number || null,
             timestamp: Date.now()
         };
 
@@ -175,6 +180,79 @@ class CompanyStateManager {
         const company = this.getSelectedCompany();
         return company ? company.company_name : null;
     }
+
+    /**
+     * 保存项目信息
+     * @param {Object} projectData - 项目数据
+     * @param {string} [projectData.project_name] - 项目名称
+     * @param {string} [projectData.project_number] - 项目编号
+     */
+    setProjectInfo(projectData) {
+        const currentCompany = this.getSelectedCompany();
+        if (!currentCompany) {
+            console.warn('没有选择的公司，无法保存项目信息');
+            return false;
+        }
+
+        currentCompany.project_name = projectData.project_name || null;
+        currentCompany.project_number = projectData.project_number || null;
+        currentCompany.timestamp = Date.now();
+
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(currentCompany));
+            console.log('项目信息已保存:', projectData);
+
+            // 通知所有监听器
+            this.notifyListeners(currentCompany);
+            return true;
+        } catch (error) {
+            console.error('保存项目信息失败:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 获取项目信息
+     * @returns {Object|null} 项目数据或null
+     */
+    getProjectInfo() {
+        const company = this.getSelectedCompany();
+        if (!company) {
+            return null;
+        }
+
+        return {
+            project_name: company.project_name || null,
+            project_number: company.project_number || null
+        };
+    }
+
+    /**
+     * 获取项目名称（简便方法）
+     * @returns {string|null}
+     */
+    getProjectName() {
+        const company = this.getSelectedCompany();
+        return company?.project_name || null;
+    }
+
+    /**
+     * 获取项目编号（简便方法）
+     * @returns {string|null}
+     */
+    getProjectNumber() {
+        const company = this.getSelectedCompany();
+        return company?.project_number || null;
+    }
+
+    /**
+     * 检查是否有项目信息
+     * @returns {boolean}
+     */
+    hasProjectInfo() {
+        const projectInfo = this.getProjectInfo();
+        return !!(projectInfo?.project_name || projectInfo?.project_number);
+    }
 }
 
 // 创建全局单例实例
@@ -186,6 +264,8 @@ if (typeof window !== 'undefined' && window.location && window.location.hostname
         get: () => window.companyStateManager.getSelectedCompany(),
         set: (data) => window.companyStateManager.setSelectedCompany(data),
         clear: () => window.companyStateManager.clearSelectedCompany(),
-        has: () => window.companyStateManager.hasSelectedCompany()
+        has: () => window.companyStateManager.hasSelectedCompany(),
+        getProject: () => window.companyStateManager.getProjectInfo(),
+        setProject: (data) => window.companyStateManager.setProjectInfo(data)
     };
 }

@@ -28,8 +28,11 @@ from pathlib import Path
 from typing import Optional, Dict, List, BinaryIO
 from dataclasses import dataclass
 
-from ..config import config
-from ..database import get_db_connection
+from ..common.config import get_config
+from ..common.database import get_db_connection
+
+# 初始化配置实例
+config = get_config()
 
 
 @dataclass
@@ -59,7 +62,8 @@ class FileStorageService:
     """
 
     def __init__(self):
-        self.storage_root = Path(config.get_path('storage'))
+        # 使用upload路径作为存储根目录
+        self.storage_root = Path(config.get_path('upload'))
         self.ensure_storage_directories()
 
     def ensure_storage_directories(self):

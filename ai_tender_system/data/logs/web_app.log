@@ -16,3 +16,65 @@
 2025-09-30 19:42:25,361 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-30 19:43:04,353 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
 2025-09-30 19:43:10,837 - ai_tender_system.web_app - ERROR - 文件上传失败: No module named 'ai_tender_system.config'
+2025-09-30 19:44:23,301 - ai_tender_system.web_app - INFO - [DEBUG GET] 公司 8 - 数据库返回的原始数据: {'company_id': 8, 'company_name': '智慧足迹数据科技有限公司', 'company_code': '', 'industry_type': '', 'description': '智慧足迹是一家大数据技术提供商，通过采集手机原始信令数据和手机网络基础数据，并利用匿名、聚合、外推的网络数据，进行过滤、分析、计算，为用户提供基于位置信息的洞察及大数据相关业务。', 'security_level': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-27 22:18:05.132304', 'establish_date': '', 'legal_representative': '李振军', 'legal_representative_position': '总经理', 'social_credit_code': '91110101MA002N1D30', 'registered_capital': '19436.8569万元', 'company_type': '有限责任公司', 'registered_address': '北京市东城区王府井大街200号七层711室', 'business_scope': '一般项目：大数据服务；数字技术服务；互联网数据服务；数据处理服务；数据处理和存储支持服务；软件开发；人工智能应用软件开发；人工智能理论与算法软件开发；人工智能公共数据平台；人工智能公共服务平台技术咨询服务；工业互联网数据服务；物联网技术服务；物联网技术研发；物联网应用服务；5G通信技术服务；信息技术咨询服务；计算机软硬件及外围设备制造；技术服务、技术开发、技术咨询、技术交流、技术转让、技术推广；信息系统集成服务；计算机系统服务；信息咨询服务（不含许可类信息咨询服务）；软件外包服务；数字广告制作；广告制作；广告发布；数字广告设计、代理；销售代理；计算机软硬件及辅助设备零售；计算机软硬件及辅助设备批发；通讯设备销售；电子产品销售；电子元器件零售；电子元器件批发；仪器仪表销售；办公设备销售；消防器材销售；安防设备销售；信息安全设备销售。（除依法须经批准的项目外，凭营业执照依法自主开展经营活动）许可项目：第二类增值电信业务。（依法须经批准的项目，经相关部门批准后方可开展经营活动，具体经营项目以相关部门批准文件或许可证件为准）（不得从事国家和本市产业政策禁止和限制类项目的经营活动。）', 'fixed_phone': '010-63271000', 'fax': '010-63271000', 'postal_code': '100006', 'email': 'lvhe@smartsteps.com', 'office_address': '北京市东城区王府井大街200号七层711室', 'employee_count': '200-299人', 'bank_name': '中国工商银行北京', 'bank_account': '6212261234567890123', 'profiles': [{'profile_id': 29, 'company_id': 8, 'profile_type': 'basic', 'profile_name': '基础信息', 'description': '公司基本信息和对外资料', 'privacy_level': 1, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}, {'profile_id': 30, 'company_id': 8, 'profile_type': 'qualification', 'profile_name': '资质证书', 'description': '各类业务资质和认证证书', 'privacy_level': 2, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}, {'profile_id': 31, 'company_id': 8, 'profile_type': 'personnel', 'profile_name': '人员信息', 'description': '员工信息和人力资源资料', 'privacy_level': 3, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}, {'profile_id': 32, 'company_id': 8, 'profile_type': 'financial', 'profile_name': '财务文档', 'description': '财务报告和审计资料', 'privacy_level': 4, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}], 'products': [{'product_id': 22, 'company_id': 8, 'product_name': '极盾风控平台', 'product_code': '', 'product_category': '', 'description': '', 'is_active': 1, 'created_at': '2025-09-23 01:26:19', 'updated_at': '2025-09-23 01:26:19'}], 'stats': {'total_documents': 1, 'by_type': {'general': 1}, 'by_product': {'极盾风控平台': 1}}}
+2025-09-30 19:44:23,301 - ai_tender_system.web_app - INFO - [DEBUG GET] registered_capital 字段存在: '19436.8569万元'
+2025-09-30 19:44:23,314 - ai_tender_system.web_app - INFO - [DEBUG GET] 公司 8 - 数据库返回的原始数据: {'company_id': 8, 'company_name': '智慧足迹数据科技有限公司', 'company_code': '', 'industry_type': '', 'description': '智慧足迹是一家大数据技术提供商，通过采集手机原始信令数据和手机网络基础数据，并利用匿名、聚合、外推的网络数据，进行过滤、分析、计算，为用户提供基于位置信息的洞察及大数据相关业务。', 'security_level': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-27 22:18:05.132304', 'establish_date': '', 'legal_representative': '李振军', 'legal_representative_position': '总经理', 'social_credit_code': '91110101MA002N1D30', 'registered_capital': '19436.8569万元', 'company_type': '有限责任公司', 'registered_address': '北京市东城区王府井大街200号七层711室', 'business_scope': '一般项目：大数据服务；数字技术服务；互联网数据服务；数据处理服务；数据处理和存储支持服务；软件开发；人工智能应用软件开发；人工智能理论与算法软件开发；人工智能公共数据平台；人工智能公共服务平台技术咨询服务；工业互联网数据服务；物联网技术服务；物联网技术研发；物联网应用服务；5G通信技术服务；信息技术咨询服务；计算机软硬件及外围设备制造；技术服务、技术开发、技术咨询、技术交流、技术转让、技术推广；信息系统集成服务；计算机系统服务；信息咨询服务（不含许可类信息咨询服务）；软件外包服务；数字广告制作；广告制作；广告发布；数字广告设计、代理；销售代理；计算机软硬件及辅助设备零售；计算机软硬件及辅助设备批发；通讯设备销售；电子产品销售；电子元器件零售；电子元器件批发；仪器仪表销售；办公设备销售；消防器材销售；安防设备销售；信息安全设备销售。（除依法须经批准的项目外，凭营业执照依法自主开展经营活动）许可项目：第二类增值电信业务。（依法须经批准的项目，经相关部门批准后方可开展经营活动，具体经营项目以相关部门批准文件或许可证件为准）（不得从事国家和本市产业政策禁止和限制类项目的经营活动。）', 'fixed_phone': '010-63271000', 'fax': '010-63271000', 'postal_code': '100006', 'email': 'lvhe@smartsteps.com', 'office_address': '北京市东城区王府井大街200号七层711室', 'employee_count': '200-299人', 'bank_name': '中国工商银行北京', 'bank_account': '6212261234567890123', 'profiles': [{'profile_id': 29, 'company_id': 8, 'profile_type': 'basic', 'profile_name': '基础信息', 'description': '公司基本信息和对外资料', 'privacy_level': 1, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}, {'profile_id': 30, 'company_id': 8, 'profile_type': 'qualification', 'profile_name': '资质证书', 'description': '各类业务资质和认证证书', 'privacy_level': 2, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}, {'profile_id': 31, 'company_id': 8, 'profile_type': 'personnel', 'profile_name': '人员信息', 'description': '员工信息和人力资源资料', 'privacy_level': 3, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}, {'profile_id': 32, 'company_id': 8, 'profile_type': 'financial', 'profile_name': '财务文档', 'description': '财务报告和审计资料', 'privacy_level': 4, 'is_active': 1, 'created_at': '2025-09-23 01:25:39', 'updated_at': '2025-09-23 01:25:39'}], 'products': [{'product_id': 22, 'company_id': 8, 'product_name': '极盾风控平台', 'product_code': '', 'product_category': '', 'description': '', 'is_active': 1, 'created_at': '2025-09-23 01:26:19', 'updated_at': '2025-09-23 01:26:19'}], 'stats': {'total_documents': 1, 'by_type': {'general': 1}, 'by_product': {'极盾风控平台': 1}}}
+2025-09-30 19:44:23,314 - ai_tender_system.web_app - INFO - [DEBUG GET] registered_capital 字段存在: '19436.8569万元'
+2025-09-30 19:44:23,829 - ai_tender_system.web_app - INFO - 获取公司 8 的资质文件列表，共 12 个
+2025-09-30 19:44:44,981 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 19:44:53,644 - ai_tender_system.web_app - ERROR - 文件上传失败: No module named 'ai_tender_system.config'
+2025-09-30 19:47:16,114 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 19:47:16,659 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 19:47:16,661 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 19:47:16,672 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 19:47:23,986 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 19:47:24,291 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 19:47:24,293 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 19:47:24,304 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 19:47:32,476 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 19:47:32,807 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 19:47:32,809 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 19:47:32,820 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 19:47:39,230 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 19:47:39,619 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 19:47:39,621 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 19:47:39,631 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 19:47:47,138 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 19:47:47,714 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 19:47:47,717 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 19:47:47,729 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 19:47:50,721 - ai_tender_system.web_app - ERROR - 文件上传失败: No module named 'ai_tender_system.config'
+2025-09-30 19:47:55,134 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 19:47:55,557 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 19:47:55,559 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 19:47:55,572 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 19:49:08,671 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 19:49:16,353 - ai_tender_system.web_app - ERROR - 文件上传失败: No module named 'ai_tender_system.config'
+2025-09-30 19:49:19,404 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 19:49:25,430 - ai_tender_system.web_app - ERROR - 文件上传失败: No module named 'ai_tender_system.config'
+2025-09-30 19:54:22,803 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 19:54:49,716 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 19:59:49,085 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 20:03:51,385 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 20:06:33,663 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 20:06:46,947 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:06:47,503 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:06:47,505 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:06:47,518 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 20:06:55,770 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:06:56,052 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:06:56,054 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:06:56,065 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 20:07:43,022 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:07:43,361 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:07:43,363 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:07:43,375 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 20:08:16,901 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:08:17,185 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:08:17,204 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:08:17,233 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 20:08:26,160 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 20:09:55,561 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:09:56,067 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:09:56,069 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:09:56,080 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成

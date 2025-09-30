@@ -14,6 +14,71 @@
     </div>
 </div>
 
+<!-- 公司信息区域 -->
+<div class="row mb-3" id="companyInfoSection">
+    <!-- 已选择公司时显示 -->
+    <div class="col-12" id="selectedCompanyDisplay" style="display: none;">
+        <div class="card card-primary mb-0">
+            <div class="card-body p-3">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-building me-2 text-primary" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <small class="text-muted d-block">应答公司</small>
+                                <strong id="selectedCompanyNameDisplay">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6" id="selectedProjectInfo">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-folder me-2 text-primary" style="font-size: 1.2rem;"></i>
+                            <div>
+                                <small class="text-muted d-block">项目</small>
+                                <strong id="selectedProjectNameDisplay">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 未选择公司时显示选择器 -->
+    <div class="col-12" id="companySelector" style="display: none;">
+        <div class="row">
+            <div class="col-md-8">
+                <label for="companySelectorDropdown" class="form-label">
+                    <i class="bi bi-building"></i> 选择公司
+                </label>
+                <select class="form-select" id="companySelectorDropdown">
+                    <option value="">请选择公司...</option>
+                    <!-- 公司选项将通过JavaScript动态加载 -->
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button type="button" class="btn btn-outline-primary" id="refreshCompaniesBtn">
+                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示信息（初始状态） -->
+    <div class="col-12" id="companyPrompt">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            请先在<strong>商务应答</strong>页面选择公司，或在此处手动选择应答公司
+            <button type="button" class="btn btn-sm btn-primary ms-2" id="selectCompanyHereBtn">
+                在此选择公司
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- 点对点应答功能区域 -->
 <div class="row mb-4">
     <div class="col-12">
@@ -25,60 +90,8 @@
             </div>
             <div class="card-body">
                 <form id="uploadForm">
-                    <!-- 公司信息区域 -->
-                    <div class="row mb-4" id="companyInfoSection">
-                        <!-- 已选择公司时显示 -->
-                        <div class="col-12" id="selectedCompanyDisplay" style="display: none;">
-                            <label class="form-label">
-                                <i class="bi bi-building-check"></i> 应答公司
-                            </label>
-                            <div class="alert alert-success d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong id="selectedCompanyNameDisplay">-</strong>
-                                    <small class="text-muted d-block">已在商务应答页面选择</small>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="changeCompanyBtn">
-                                    <i class="bi bi-arrow-repeat"></i> 更换公司
-                                </button>
-                            </div>
-                            <!-- 隐藏的表单字段存储公司ID -->
-                            <input type="hidden" id="companySelect" name="companyId" value="">
-                        </div>
-
-                        <!-- 未选择公司时显示选择器 -->
-                        <div class="col-12" id="companySelector" style="display: none;">
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <label for="companySelectorDropdown" class="form-label">
-                                        <i class="bi bi-building"></i> 选择公司
-                                    </label>
-                                    <select class="form-select" id="companySelectorDropdown">
-                                        <option value="">请选择公司...</option>
-                                        <!-- 公司选项将通过JavaScript动态加载 -->
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">&nbsp;</label>
-                                    <div>
-                                        <button type="button" class="btn btn-outline-primary" id="refreshCompaniesBtn">
-                                            <i class="bi bi-arrow-clockwise"></i> 刷新
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 提示信息（初始状态） -->
-                        <div class="col-12" id="companyPrompt">
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i>
-                                请先在<strong>商务应答</strong>页面选择公司，或在此处手动选择应答公司
-                                <button type="button" class="btn btn-sm btn-primary ms-2" id="selectCompanyHereBtn">
-                                    在此选择公司
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- 隐藏的表单字段存储公司ID -->
+                    <input type="hidden" id="companySelect" name="companyId" value="">
 
                     <!-- 文件上传区域 -->
                     <div class="mb-4">
