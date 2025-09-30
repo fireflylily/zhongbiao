@@ -40,3 +40,20 @@
 2025-09-30 20:40:37,921 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
 2025-09-30 20:40:37,932 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-09-30 20:40:43,516 - ai_tender_system.web_app - INFO - 文件上传成功: 测试标书_验证修复.txt -> 20250930_204043_测试标书_验证修复_a3648d81.txt
+2025-09-30 20:43:27,483 - ai_tender_system.web_app - INFO - 文件上传成功: 单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1).doc -> 20250930_204327_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_f9615ab6.doc
+2025-09-30 20:43:34,710 - ai_tender_system.web_app - INFO - 处理资质要求 - 公司ID: 8, 类型: <class 'str'>
+2025-09-30 20:43:34,710 - ai_tender_system.web_app - INFO - 开始整合资质数据，company_id: 8
+2025-09-30 20:43:34,714 - ai_tender_system.web_app - INFO - 获取到公司 8 的 12 个已上传资质
+2025-09-30 20:43:34,714 - ai_tender_system.web_app - INFO - 资质数据整合完成，要求: 4, 已上传: 1, 缺失: 3
+2025-09-30 20:43:34,714 - ai_tender_system.web_app - INFO - 资质要求提取完成，返回数据包含 16 项资质
+2025-09-30 20:49:06,005 - ai_tender_system.web_app - ERROR - 创建项目失败: 'KnowledgeBaseDB' object has no attribute 'execute_update'
+2025-09-30 20:49:06,009 - ai_tender_system.web_app - ERROR - 创建项目失败: 'KnowledgeBaseDB' object has no attribute 'execute_update'
+2025-09-30 20:49:06,011 - ai_tender_system.web_app - ERROR - 创建项目失败: 'KnowledgeBaseDB' object has no attribute 'execute_update'
+2025-09-30 20:49:10,628 - ai_tender_system.web_app - ERROR - 创建项目失败: 'KnowledgeBaseDB' object has no attribute 'execute_update'
+2025-09-30 20:49:10,629 - ai_tender_system.web_app - ERROR - 创建项目失败: 'KnowledgeBaseDB' object has no attribute 'execute_update'
+2025-09-30 20:49:10,629 - ai_tender_system.web_app - ERROR - 创建项目失败: 'KnowledgeBaseDB' object has no attribute 'execute_update'
+2025-09-30 20:50:49,659 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 20:52:45,885 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:52:46,475 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:52:46,478 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:52:46,489 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成

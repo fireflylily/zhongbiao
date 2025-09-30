@@ -84,9 +84,6 @@ function updatePointToPointHiddenFields() {
         companySelect.value = companyData && companyData.company_id ? companyData.company_id : '';
     }
 
-    // 更新处理按钮状态
-    updateProcessButton();
-
     console.log('点对点应答页面：隐藏字段已更新', companyData);
 }
 

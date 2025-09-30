@@ -2142,7 +2142,7 @@ def register_routes(app: Flask, config, logger):
                 'system'
             ]
 
-            project_id = kb_manager.db.execute_update(query, params)
+            project_id = kb_manager.db.execute_query(query, params)
 
             logger.info(f"创建项目成功，ID: {project_id}")
 
