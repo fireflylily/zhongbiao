@@ -1421,6 +1421,29 @@ class TenderProcessor {
             projectSelect.addEventListener('change', (e) => {
                 this.selectedProjectId = e.target.value || null;
                 console.log('[TenderProcessor] 项目选择变更:', this.selectedProjectId);
+
+                // 保存项目信息到全局状态
+                if (this.selectedProjectId && window.companyStateManager) {
+                    const selectedOption = projectSelect.options[projectSelect.selectedIndex];
+                    const projectText = selectedOption.textContent;
+                    // 解析项目名称（格式：项目名 (编号) [状态]）
+                    const match = projectText.match(/^(.+?)\s*\((.+?)\)\s*\[.+?\]$/);
+                    if (match) {
+                        const projectInfo = {
+                            project_name: match[1].trim(),
+                            project_number: match[2].trim()
+                        };
+                        window.companyStateManager.setProjectInfo(projectInfo);
+                        console.log('[TenderProcessor] 项目信息已保存到全局状态:', projectInfo);
+                    }
+                } else if (!this.selectedProjectId && window.companyStateManager) {
+                    // 选择"新建项目"时清除项目信息
+                    window.companyStateManager.setProjectInfo({
+                        project_name: null,
+                        project_number: null
+                    });
+                    console.log('[TenderProcessor] 已清除项目信息（新建项目）');
+                }
             });
             console.log('[TenderProcessor] 项目选择器事件已绑定');
         }

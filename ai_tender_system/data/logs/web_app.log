@@ -57,3 +57,37 @@
 2025-09-30 20:52:46,475 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
 2025-09-30 20:52:46,478 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
 2025-09-30 20:52:46,489 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 20:54:01,096 - ai_tender_system.web_app - INFO - 创建项目成功，ID: 3
+2025-09-30 20:54:01,101 - ai_tender_system.web_app - INFO - 创建项目成功，ID: 4
+2025-09-30 20:54:01,102 - ai_tender_system.web_app - INFO - 创建项目成功，ID: 5
+2025-09-30 20:55:54,395 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 20:57:04,933 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:57:05,452 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:57:05,455 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:57:05,466 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 20:57:06,240 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 20:57:06,532 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 20:57:06,534 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 20:57:06,544 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 20:57:28,915 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-09-30 21:06:40,227 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 21:06:40,832 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 21:06:40,835 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 21:06:40,846 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 21:06:48,079 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 21:06:48,333 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 21:06:48,335 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 21:06:48,346 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 21:08:03,172 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 21:08:03,524 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 21:08:03,526 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 21:08:03,538 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 21:08:04,380 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-09-30 21:08:04,645 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-09-30 21:08:04,648 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-09-30 21:08:04,663 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-09-30 21:08:35,093 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 20250930_204327_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_f9615ab6.doc
+2025-09-30 21:08:38,741 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 20250930_204327_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_f9615ab6.doc
+2025-09-30 21:08:41,787 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 20250930_204327_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_f9615ab6.doc
+2025-09-30 21:08:42,049 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 20250930_204327_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_f9615ab6.doc
+2025-09-30 21:08:42,383 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 20250930_204327_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_f9615ab6.doc

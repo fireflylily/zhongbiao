@@ -10,18 +10,21 @@
  * @param {string} companyData.project_name - 项目名称（可选）
  */
 function updateCompanyProjectDisplay(companyData) {
-    const companyNameDisplay = document.getElementById('companyNameDisplay');
-    const projectNameDisplay = document.getElementById('projectNameDisplay');
+    // 使用class选择器获取所有显示元素
+    const companyNameDisplays = document.querySelectorAll('.companyNameDisplay');
+    const projectNameDisplays = document.querySelectorAll('.projectNameDisplay');
 
-    if (companyNameDisplay) {
-        companyNameDisplay.textContent = companyData && companyData.company_name ? companyData.company_name : '未选择';
-    }
+    // 更新所有公司名称显示
+    companyNameDisplays.forEach(function(element) {
+        element.textContent = companyData && companyData.company_name ? companyData.company_name : '未选择';
+    });
 
-    if (projectNameDisplay) {
-        projectNameDisplay.textContent = companyData && companyData.project_name ? companyData.project_name : '未填写';
-    }
+    // 更新所有项目名称显示
+    projectNameDisplays.forEach(function(element) {
+        element.textContent = companyData && companyData.project_name ? companyData.project_name : '未填写';
+    });
 
-    console.log('公司项目信息已更新:', companyData);
+    console.log('公司项目信息已更新 (所有section):', companyData);
 }
 
 /**

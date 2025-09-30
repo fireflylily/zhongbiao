@@ -222,3 +222,27 @@ CREATE TABLE IF NOT EXISTS document_permissions (
 
 -- 注意：默认用户角色和系统配置数据已移至单独的数据初始化脚本
 
+-- 12. 招标项目表
+CREATE TABLE IF NOT EXISTS tender_projects (
+    project_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_name VARCHAR(255),
+    project_number VARCHAR(100),
+    tenderer VARCHAR(255), -- 招标方
+    agency VARCHAR(255), -- 代理机构
+    bidding_method VARCHAR(100), -- 招标方式
+    bidding_location VARCHAR(255), -- 招标地点
+    bidding_time VARCHAR(100), -- 招标时间
+    tender_document_path VARCHAR(500), -- 标书文件路径
+    original_filename VARCHAR(255), -- 原始文件名
+    company_id INTEGER, -- 关联公司ID
+    status VARCHAR(20) DEFAULT 'draft', -- draft/active/completed
+    created_by VARCHAR(100) DEFAULT 'system',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(company_id),
+    UNIQUE(company_id, project_name, project_number) -- 防止同一公司创建重复项目
+);
+
+CREATE INDEX IF NOT EXISTS idx_tender_projects_company ON tender_projects(company_id);
+CREATE INDEX IF NOT EXISTS idx_tender_projects_status ON tender_projects(status);
+
