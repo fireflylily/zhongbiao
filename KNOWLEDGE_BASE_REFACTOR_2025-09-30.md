@@ -206,6 +206,69 @@ catch (error) {
 
 ---
 
+## 🐛 Bug修复记录
+
+### Bug 1: 产品分类文档加载404错误
+- **时间**: 2025-09-30
+- **报告**: 用户点击产品分类（技术文档/实施方案/服务文档）后报错
+- **错误信息**: `GET /api/knowledge_base/products/22/documents?category=tech` 返回 404
+- **根本原因**: 前端调用不存在的API端点
+- **解决方案**:
+  - 调研现有API架构（遵循用户指示"先查看是否可复用"）
+  - 发现系统使用两层架构：Product → Document Library → Documents
+  - 修改 `category-manager.js:239-285` 的 `selectProductCategory()` 方法
+  - 改用三步API调用：
+    1. `/api/knowledge_base/product/{id}/libraries` 获取产品文档库列表
+    2. 筛选符合category类型的library
+    3. `/api/knowledge_base/libraries/{library_id}/documents` 获取文档列表
+- **代码复用率**: 100% (无需修改后端)
+- **提交**: commit 780ad0a之前
+
+### Bug 2: 产品分类文档不显示
+- **时间**: 2025-09-30
+- **现象**: 点击产品分类后，永久显示"正在加载..."动画，文档从不出现
+- **根本原因**: `document-manager.js:733` 的 `renderCategoryDocuments()` 方法缺少 `documents` 参数实现
+- **问题代码**:
+```javascript
+// 旧代码：方法签名有参数，但函数体内未使用
+renderCategoryDocuments(productId, category) {
+    // 只渲染加载动画，从不渲染实际文档
+    const html = `...加载中...</div>`;
+}
+```
+- **解决方案**:
+  - 添加 `documents` 参数到方法实现
+  - 判断文档数组：空则显示"暂无文档"提示，否则渲染文档卡片
+  - 复用现有 `renderDocument()` 方法渲染每个文档
+  - 添加文档数量统计显示
+  - 存储 `currentProductId` 以支持后续上传功能
+- **修改代码**:
+```javascript
+// 新代码：正确处理documents参数
+renderCategoryDocuments(productId, category, documents) {
+    this.currentProductId = productId;
+
+    let documentsHtml = '';
+    if (!documents || documents.length === 0) {
+        documentsHtml = `暂无文档...上传第一个文档按钮`;
+    } else {
+        documentsHtml = documents.map(doc => this.renderDocument(doc)).join('');
+    }
+    // 渲染完整HTML
+}
+```
+- **提交**: commit 780ad0a
+
+### 修复效果总结
+- ✅ 产品分类点击后正确加载文档列表
+- ✅ 空状态友好提示和引导
+- ✅ 文档数量实时统计
+- ✅ 上传功能集成
+- ✅ 完全复用现有API，无后端修改
+- ✅ 符合用户"先复用再开发"的指导原则
+
+---
+
 ## 🚀 后续建议
 
 ### 短期 (1-2周)
@@ -285,6 +348,7 @@ git checkout HEAD -- ai_tender_system/web/templates/knowledge_base.html
 - 文档查看: ✅ 完整实现
 - AI搜索: ✅ 完整实现并模块化
 - 代码重构: ✅ 模块化完成
+- Bug修复: ✅ 产品分类文档加载/显示已修复
 
 ✅ **质量指标**:
 - 代码可维护性: ⭐⭐⭐⭐⭐
