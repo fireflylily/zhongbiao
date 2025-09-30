@@ -259,11 +259,53 @@ renderCategoryDocuments(productId, category, documents) {
 ```
 - **提交**: commit 780ad0a
 
+### Bug 3: 文档上传404错误
+- **时间**: 2025-09-30
+- **现象**: 用户点击上传文档后报错 "Request failed with status code 404"
+- **错误日志**: `POST /api/knowledge_base/documents/upload` 返回 404
+- **根本原因**: 前端调用不存在的API端点
+- **问题分析**:
+  - 前端调用: `/api/knowledge_base/documents/upload` ❌ (不存在)
+  - 实际API: `/api/knowledge_base/libraries/{library_id}/documents` ✅
+  - 需要 `library_id` 参数，但前端未正确获取
+- **解决方案**:
+  1. **智能获取library_id**:
+     - 如果 `currentLibraryId` 已存在，直接使用
+     - 否则根据 `currentProductId` 和 `category` 自动查找对应文档库
+     - 调用 `/api/knowledge_base/product/{id}/libraries` 获取文档库列表
+     - 筛选 `library_type` 匹配的文档库
+  2. **修正API调用**:
+     - 使用正确端点: `/api/knowledge_base/libraries/{library_id}/documents`
+     - 参数名修正: `category` → `document_category`
+     - 标签处理: 逗号分隔字符串 → JSON数组
+  3. **错误提示优化**:
+     - 找不到文档库时: "产品尚未创建{category}类型的文档库，请联系管理员"
+     - 其他错误: 清晰的错误信息传递给用户
+- **修改代码**:
+```javascript
+// 新上传逻辑 (document-manager.js:319-378)
+async uploadSingleFile(file, current, total) {
+    // 步骤1: 智能获取library_id
+    let libraryId = this.currentLibraryId;
+    if (!libraryId && this.currentProductId) {
+        const libraries = await getProductLibraries(this.currentProductId);
+        libraryId = libraries.find(lib => lib.library_type === category)?.library_id;
+    }
+
+    // 步骤2: 上传到正确的API端点
+    const response = await axios.post(
+        `/api/knowledge_base/libraries/${libraryId}/documents`,
+        formData
+    );
+}
+```
+- **提交**: commit 878d3e5
+
 ### 修复效果总结
 - ✅ 产品分类点击后正确加载文档列表
 - ✅ 空状态友好提示和引导
 - ✅ 文档数量实时统计
-- ✅ 上传功能集成
+- ✅ 文档上传功能正常工作
 - ✅ 完全复用现有API，无后端修改
 - ✅ 符合用户"先复用再开发"的指导原则
 
