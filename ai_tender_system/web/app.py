@@ -345,7 +345,7 @@ def register_routes(app: Flask, config, logger):
     def upload_file():
         """通用文件上传 - 使用统一存储服务"""
         try:
-            from ai_tender_system.core.storage_service import storage_service
+            from core.storage_service import storage_service
 
             if 'file' not in request.files:
                 raise ValueError("没有选择文件")
@@ -439,7 +439,7 @@ def register_routes(app: Flask, config, logger):
                 raise ValueError("API密钥未配置。请在环境变量中设置DEFAULT_API_KEY或在页面中输入API密钥")
             
             # 保存上传文件 - 使用统一服务
-            from ai_tender_system.core.storage_service import storage_service
+            from core.storage_service import storage_service
             file_metadata = storage_service.store_file(
                 file_obj=file,
                 original_name=file.filename,
@@ -630,7 +630,7 @@ def register_routes(app: Flask, config, logger):
             company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
             
             # 保存模板文件 - 使用统一服务
-            from ai_tender_system.core.storage_service import storage_service
+            from core.storage_service import storage_service
             file_metadata = storage_service.store_file(
                 file_obj=file,
                 original_name=file.filename,
@@ -788,7 +788,7 @@ def register_routes(app: Flask, config, logger):
                 raise ValueError("文件名为空")
 
             # 保存文件 - 使用统一服务
-            from ai_tender_system.core.storage_service import storage_service
+            from core.storage_service import storage_service
             file_metadata = storage_service.store_file(
                 file_obj=file,
                 original_name=file.filename,
@@ -937,7 +937,7 @@ def register_routes(app: Flask, config, logger):
                 raise ValueError("请选择应答公司")
             
             # 保存上传的文件 - 使用统一服务
-            from ai_tender_system.core.storage_service import storage_service
+            from core.storage_service import storage_service
             file_metadata = storage_service.store_file(
                 file_obj=file,
                 original_name=file.filename,
@@ -1231,7 +1231,7 @@ def register_routes(app: Flask, config, logger):
                 raise ValueError("文件名为空")
             
             # 保存图片 - 使用统一服务
-            from ai_tender_system.core.storage_service import storage_service
+            from core.storage_service import storage_service
             file_metadata = storage_service.store_file(
                 file_obj=file,
                 original_name=file.filename,

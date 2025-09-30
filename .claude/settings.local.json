@@ -104,7 +104,8 @@
       "Bash(mv:*)",
       "Read(//private/tmp/**)",
       "Bash(git show:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(truncate:*)"
     ],
     "deny": [],
     "ask": []

@@ -56,214 +56,40 @@ function initResponseModeToggle() {
 function initCompanyStateManagement() {
     console.log('初始化点对点应答公司状态管理...');
 
-    // 检查是否有保存的公司状态
-    checkAndDisplayCompanyState();
-
-    // 绑定按钮事件
-    bindCompanyManagementEvents();
+    // 注意：公司项目信息的显示已由共用组件 company-project-display.js 自动处理
+    // 这里只需要更新隐藏的表单字段
+    updatePointToPointHiddenFields();
 
     // 监听公司状态变更
     if (window.companyStateManager) {
-        window.companyStateManager.addListener(handleCompanyStateChange);
+        window.companyStateManager.addListener(function(companyData) {
+            console.log('点对点应答页面：接收到公司状态变更', companyData);
+            updatePointToPointHiddenFields();
+        });
     }
 }
 
-// 检查并显示公司状态
-function checkAndDisplayCompanyState() {
-    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
-    const companySelector = document.getElementById('companySelector');
-    const companyPrompt = document.getElementById('companyPrompt');
+// 更新点对点应答页面的隐藏表单字段
+function updatePointToPointHiddenFields() {
     const companySelect = document.getElementById('companySelect');
 
-    if (!selectedCompanyDisplay || !companySelector || !companyPrompt || !companySelect) {
-        console.error('公司状态管理元素缺失');
-        return;
-    }
-
-    // 检查是否有保存的公司状态
-    if (window.companyStateManager) {
-        const savedCompany = window.companyStateManager.getSelectedCompany();
-
-        if (savedCompany && savedCompany.company_id) {
-            // 显示已选择的公司
-            displaySelectedCompany(savedCompany);
-        } else {
-            // 显示提示信息
-            showCompanyPrompt();
-        }
-    } else {
+    if (!window.companyStateManager) {
         console.error('公司状态管理器未初始化');
-        showCompanyPrompt();
-    }
-}
-
-// 显示已选择的公司
-function displaySelectedCompany(companyData) {
-    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
-    const companySelector = document.getElementById('companySelector');
-    const companyPrompt = document.getElementById('companyPrompt');
-    const companySelect = document.getElementById('companySelect');
-    const selectedCompanyNameDisplay = document.getElementById('selectedCompanyNameDisplay');
-    const selectedProjectInfo = document.getElementById('selectedProjectInfo');
-    const selectedProjectNameDisplay = document.getElementById('selectedProjectNameDisplay');
-
-    // 隐藏其他区域，显示已选择公司区域
-    if (companyPrompt) companyPrompt.style.display = 'none';
-    if (companySelector) companySelector.style.display = 'none';
-    if (selectedCompanyDisplay) selectedCompanyDisplay.style.display = 'block';
-
-    // 设置公司名称和ID
-    if (selectedCompanyNameDisplay) {
-        selectedCompanyNameDisplay.textContent = companyData.company_name;
-    }
-    if (companySelect) {
-        companySelect.value = companyData.company_id;
-    }
-
-    // 显示项目信息（始终显示，即使为空）
-    if (selectedProjectInfo && selectedProjectNameDisplay) {
-        selectedProjectInfo.style.display = 'block';
-        if (companyData.project_name) {
-            selectedProjectNameDisplay.textContent = companyData.project_name;
-        } else {
-            selectedProjectNameDisplay.textContent = '未填写';
-        }
-    }
-
-    console.log('点对点应答页面：显示已选择公司和项目', companyData);
-}
-
-// 显示公司选择提示
-function showCompanyPrompt() {
-    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
-    const companySelector = document.getElementById('companySelector');
-    const companyPrompt = document.getElementById('companyPrompt');
-
-    // 隐藏其他区域，显示提示信息
-    if (selectedCompanyDisplay) selectedCompanyDisplay.style.display = 'none';
-    if (companySelector) companySelector.style.display = 'none';
-    if (companyPrompt) companyPrompt.style.display = 'block';
-
-    console.log('点对点应答页面：显示公司选择提示');
-}
-
-// 显示公司选择器
-function showCompanySelector() {
-    const selectedCompanyDisplay = document.getElementById('selectedCompanyDisplay');
-    const companySelector = document.getElementById('companySelector');
-    const companyPrompt = document.getElementById('companyPrompt');
-
-    // 隐藏其他区域，显示选择器
-    if (selectedCompanyDisplay) selectedCompanyDisplay.style.display = 'none';
-    if (companyPrompt) companyPrompt.style.display = 'none';
-    if (companySelector) companySelector.style.display = 'block';
-
-    // 加载公司列表
-    loadCompaniesToSelector();
-
-    console.log('点对点应答页面：显示公司选择器');
-}
-
-// 加载公司列表到选择器
-function loadCompaniesToSelector() {
-    const companySelectorDropdown = document.getElementById('companySelectorDropdown');
-    if (!companySelectorDropdown) {
-        console.error('公司选择下拉框不存在');
         return;
     }
 
-    console.log('加载公司列表到选择器...');
+    const companyData = window.companyStateManager.getSelectedCompany();
 
-    fetch('/api/companies')
-        .then(response => response.json())
-        .then(data => {
-            console.log('API返回的公司数据:', data);
+    if (companySelect) {
+        companySelect.value = companyData && companyData.company_id ? companyData.company_id : '';
+    }
 
-            // 清空现有选项
-            companySelectorDropdown.innerHTML = '<option value="">请选择公司...</option>';
+    // 更新处理按钮状态
+    updateProcessButton();
 
-            if (data.success && data.data && data.data.length > 0) {
-                // 遍历公司列表并添加选项
-                data.data.forEach(company => {
-                    const option = document.createElement('option');
-                    option.value = company.company_id;
-                    option.textContent = company.company_name;
-                    companySelectorDropdown.appendChild(option);
-                });
-
-                console.log(`成功加载 ${data.data.length} 家公司到选择器`);
-            } else {
-                console.log('没有找到公司数据');
-                companySelectorDropdown.innerHTML = '<option value="">暂无公司数据</option>';
-            }
-        })
-        .catch(error => {
-            console.error('加载公司列表失败:', error);
-            companySelectorDropdown.innerHTML = '<option value="">加载失败，请刷新重试</option>';
-        });
+    console.log('点对点应答页面：隐藏字段已更新', companyData);
 }
 
-// 绑定公司管理相关事件
-function bindCompanyManagementEvents() {
-    // "在此选择公司"按钮
-    const selectCompanyHereBtn = document.getElementById('selectCompanyHereBtn');
-    if (selectCompanyHereBtn) {
-        selectCompanyHereBtn.addEventListener('click', function() {
-            showCompanySelector();
-        });
-    }
-
-    // "更换公司"按钮
-    const changeCompanyBtn = document.getElementById('changeCompanyBtn');
-    if (changeCompanyBtn) {
-        changeCompanyBtn.addEventListener('click', function() {
-            showCompanySelector();
-        });
-    }
-
-    // 公司选择下拉框变更
-    const companySelectorDropdown = document.getElementById('companySelectorDropdown');
-    if (companySelectorDropdown) {
-        companySelectorDropdown.addEventListener('change', function() {
-            const selectedValue = this.value;
-            const selectedText = this.options[this.selectedIndex].text;
-
-            if (selectedValue && selectedText && selectedText !== '请选择公司...') {
-                const companyData = {
-                    company_id: selectedValue,
-                    company_name: selectedText
-                };
-
-                // 保存到全局状态
-                if (window.companyStateManager) {
-                    window.companyStateManager.setSelectedCompany(companyData);
-                }
-
-                // 立即显示选择的公司
-                displaySelectedCompany(companyData);
-            }
-        });
-    }
-
-    // 刷新公司列表按钮
-    const refreshCompaniesBtn = document.getElementById('refreshCompaniesBtn');
-    if (refreshCompaniesBtn) {
-        refreshCompaniesBtn.addEventListener('click', function() {
-            loadCompaniesToSelector();
-        });
-    }
-}
-
-// 处理公司状态变更（来自其他页面）
-function handleCompanyStateChange(companyData) {
-    console.log('点对点应答页面：接收到公司状态变更', companyData);
-
-    if (companyData && companyData.company_id) {
-        displaySelectedCompany(companyData);
-    } else {
-        showCompanyPrompt();
-    }
-}
 
 // 初始化文件上传功能
 function initFileUpload() {

@@ -1,4 +1,8 @@
 <!-- 商务应答选项卡 -->
+
+<!-- 公司项目信息展示卡片 - 使用共用组件 -->
+{% include 'components/common/company-project-info-card.html' %}
+
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -8,6 +12,12 @@
             </div>
             <div class="card-body">
                 <form id="businessResponseForm" enctype="multipart/form-data">
+                    <!-- 隐藏的表单字段存储公司和项目信息 -->
+                    <input type="hidden" id="businessCompanySelect" name="company_id" value="">
+                    <input type="hidden" id="businessProjectName" name="project_name" value="">
+                    <input type="hidden" id="businessTenderNo" name="tender_no" value="">
+                    <input type="hidden" id="businessDate" name="date_text" value="">
+
                     <!-- 模板文件上传 -->
                     <div class="mb-3">
                         <label for="businessTemplateFile" class="form-label">商务应答模板 *</label>
@@ -18,48 +28,6 @@
                             <input type="file" id="businessTemplateFile" class="form-control d-none" accept=".docx,.doc">
                         </div>
                         <div class="mt-2" id="businessTemplateFileName"></div>
-                    </div>
-
-                    <!-- 公司选择 -->
-                    <div class="mb-3">
-                        <label for="businessCompanySelect" class="form-label">选择应答公司 *</label>
-                        <div class="d-flex align-items-center gap-2">
-                            <select class="form-select" id="businessCompanySelect" style="flex: 1;">
-                                <option value="">请选择公司...</option>
-                            </select>
-                            <button type="button" class="btn btn-outline-info btn-sm" onclick="window.location.href='/knowledge_base?action=company_management';">
-                                <i class="bi bi-building"></i> 管理公司
-                            </button>
-                        </div>
-                        <!-- 当前选中公司显示 -->
-                        <div class="mt-2">
-                            <small class="text-muted">当前选中：</small>
-                            <span id="selectedCompanyName" class="text-muted">请选择公司</span>
-                        </div>
-                    </div>
-
-                    <!-- 项目信息 -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="businessProjectName" class="form-label">项目名称</label>
-                                <input type="text" class="form-control" id="businessProjectName"
-                                       placeholder="输入项目名称">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="businessTenderNo" class="form-label">招标编号</label>
-                                <input type="text" class="form-control" id="businessTenderNo"
-                                       placeholder="输入招标编号">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="businessDate" class="form-label">日期</label>
-                        <input type="text" class="form-control" id="businessDate"
-                               placeholder="例如：2025年 9月 3日">
                     </div>
 
 

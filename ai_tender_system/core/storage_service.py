@@ -28,8 +28,8 @@ from pathlib import Path
 from typing import Optional, Dict, List, BinaryIO
 from dataclasses import dataclass
 
-from ..common.config import get_config
-from ..common.database import get_db_connection
+from common.config import get_config
+from common.database import get_db_connection
 
 # 初始化配置实例
 config = get_config()

@@ -1,7 +1,7 @@
 // 商务应答功能处理
 document.addEventListener('DOMContentLoaded', function() {
-    // 首先加载公司列表
-    loadCompanies();
+    // 从全局状态管理器加载公司和项目信息
+    loadBusinessCompanyInfo();
 
     // 商务应答文件上传处理
     const businessTemplateFile = document.getElementById('businessTemplateFile');
@@ -246,87 +246,49 @@ function switchToEditMode() {
     }, 300);
 }
 
-// 加载公司列表
-function loadCompanies() {
-    const businessCompanySelect = document.getElementById('businessCompanySelect');
-    if (!businessCompanySelect) {
-        console.log('商务应答公司选择器不存在');
+// 加载商务应答页面的公司项目信息
+function loadBusinessCompanyInfo() {
+    console.log('商务应答页面：加载公司项目信息...');
+
+    // 注意：公司项目信息的显示已由共用组件 company-project-display.js 自动处理
+    // 这里只需要更新隐藏的表单字段
+    updateBusinessHiddenFields();
+
+    // 监听全局状态变更
+    if (window.companyStateManager) {
+        window.companyStateManager.addListener(function(companyData) {
+            console.log('商务应答页面：接收到公司状态变更', companyData);
+            updateBusinessHiddenFields();
+        });
+    }
+}
+
+// 更新商务应答页面的隐藏表单字段
+function updateBusinessHiddenFields() {
+    if (!window.companyStateManager) {
+        console.error('公司状态管理器未初始化');
         return;
     }
 
-    console.log('开始加载公司列表...');
+    const companyData = window.companyStateManager.getSelectedCompany();
+    const companySelect = document.getElementById('businessCompanySelect');
+    const projectNameInput = document.getElementById('businessProjectName');
+    const tenderNoInput = document.getElementById('businessTenderNo');
+    const dateInput = document.getElementById('businessDate');
 
-    fetch('/api/companies')
-        .then(response => response.json())
-        .then(data => {
-            console.log('API返回的公司数据:', data);
-
-            // 清空现有选项
-            businessCompanySelect.innerHTML = '<option value="">请选择公司...</option>';
-
-            if (data.success && data.data && data.data.length > 0) {
-                // 遍历公司列表并添加选项
-                data.data.forEach(company => {
-                    const option = document.createElement('option');
-                    option.value = company.company_id;
-                    option.textContent = company.company_name;
-                    businessCompanySelect.appendChild(option);
-                });
-
-                console.log(`成功加载 ${data.data.length} 家公司`);
-
-                // 检查是否有已保存的公司状态
-                if (window.companyStateManager) {
-                    const savedCompany = window.companyStateManager.getSelectedCompany();
-                    if (savedCompany && savedCompany.company_id) {
-                        businessCompanySelect.value = savedCompany.company_id;
-                        console.log('商务应答页面：已恢复公司选择状态', savedCompany);
-                    }
-                }
-
-                // 更新选中公司显示
-                updateSelectedCompanyDisplay();
-            } else {
-                console.log('没有找到公司数据');
-                businessCompanySelect.innerHTML = '<option value="">暂无公司数据</option>';
-            }
-        })
-        .catch(error => {
-            console.error('加载公司列表失败:', error);
-            businessCompanySelect.innerHTML = '<option value="">加载失败，请刷新重试</option>';
-        });
-}
-
-// 更新选中公司显示
-function updateSelectedCompanyDisplay() {
-    const businessCompanySelect = document.getElementById('businessCompanySelect');
-    const selectedCompanyName = document.getElementById('selectedCompanyName');
-
-    if (!businessCompanySelect || !selectedCompanyName) return;
-
-    const selectedOption = businessCompanySelect.options[businessCompanySelect.selectedIndex];
-    if (selectedOption && businessCompanySelect.value) {
-        selectedCompanyName.textContent = selectedOption.text;
-
-        // 保存选择的公司到全局状态管理器
-        if (window.companyStateManager) {
-            const companyData = {
-                company_id: businessCompanySelect.value,
-                company_name: selectedOption.text
-            };
-            window.companyStateManager.setSelectedCompany(companyData);
-            console.log('商务应答页面：已保存公司选择状态', companyData);
-        }
-    } else {
-        selectedCompanyName.textContent = '请选择公司';
-
-        // 清除公司状态
-        if (window.companyStateManager) {
-            window.companyStateManager.clearSelectedCompany();
-            console.log('商务应答页面：已清除公司选择状态');
-        }
+    if (companySelect) {
+        companySelect.value = companyData && companyData.company_id ? companyData.company_id : '';
     }
+
+    if (projectNameInput) {
+        projectNameInput.value = companyData && companyData.project_name ? companyData.project_name : '';
+    }
+
+    // 可以在这里添加招标编号和日期的同步逻辑（如果需要的话）
+
+    console.log('商务应答页面：隐藏字段已更新', companyData);
 }
+
 
 // 加载历史文件列表
 function loadBusinessFilesList() {
