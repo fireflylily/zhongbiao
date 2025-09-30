@@ -305,7 +305,7 @@ class KnowledgeBaseDB:
 
     def create_document(self, library_id: int, filename: str, original_filename: str,
                        file_path: str, file_type: str, file_size: int,
-                       privacy_classification: int = 1, document_category: str = 'tech',
+                       privacy_classification: int = 1,
                        tags: List[str] = None, metadata: Dict = None) -> int:
         """创建文档记录"""
         tags_json = json.dumps(tags, ensure_ascii=False) if tags else None
@@ -314,12 +314,12 @@ class KnowledgeBaseDB:
         query = """
         INSERT INTO documents
         (library_id, filename, original_filename, file_path, file_type, file_size,
-         privacy_classification, document_category, tags, metadata)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         privacy_classification, tags, metadata)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         return self.execute_query(query, (
             library_id, filename, original_filename, file_path, file_type, file_size,
-            privacy_classification, document_category, tags_json, metadata_json
+            privacy_classification, tags_json, metadata_json
         ))
 
     def get_documents(self, library_id: int = None, privacy_level: int = None) -> List[Dict]:

@@ -298,7 +298,6 @@ class KnowledgeBaseAPI:
 
                 # 获取其他参数
                 privacy_classification = int(request.form.get('privacy_classification', 1))
-                document_category = request.form.get('document_category', 'tech')
                 tags = request.form.get('tags')
                 metadata = request.form.get('metadata')
 
@@ -315,14 +314,6 @@ class KnowledgeBaseAPI:
                     except:
                         metadata = {}
 
-                # 验证文档分类
-                valid_categories = ['tech', 'impl', 'service']
-                if document_category not in valid_categories:
-                    return jsonify({
-                        'success': False,
-                        'error': f'无效的文档分类: {document_category}。有效分类: {", ".join(valid_categories)}'
-                    }), 400
-
                 # 验证文件类型
                 allowed_extensions = {'pdf', 'doc', 'docx', 'txt'}
                 file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
@@ -337,7 +328,6 @@ class KnowledgeBaseAPI:
                     file_obj=file,
                     original_filename=secure_filename(file.filename),
                     privacy_classification=privacy_classification,
-                    document_category=document_category,
                     tags=tags,
                     metadata=metadata
                 )

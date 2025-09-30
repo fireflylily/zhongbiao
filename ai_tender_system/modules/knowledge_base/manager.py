@@ -482,7 +482,7 @@ class KnowledgeBaseManager:
     # =========================
 
     def upload_document(self, library_id: int, file_obj, original_filename: str,
-                       privacy_classification: int = 1, document_category: str = 'tech',
+                       privacy_classification: int = 1,
                        tags: List[str] = None, metadata: Dict = None) -> Dict:
         """上传文档到文档库"""
         try:
@@ -508,7 +508,6 @@ class KnowledgeBaseManager:
                 file_type=file_type,
                 file_size=file_size,
                 privacy_classification=privacy_classification,
-                document_category=document_category,
                 tags=tags,
                 metadata=metadata
             )
@@ -759,15 +758,16 @@ class KnowledgeBaseManager:
             }
 
     def _get_documents_by_category(self) -> Dict:
-        """按文档分类统计"""
+        """按文档分类统计（通过library_type）"""
         try:
             query = """
-            SELECT document_category, COUNT(*) as count
-            FROM documents
-            GROUP BY document_category
+            SELECT dl.library_type, COUNT(*) as count
+            FROM documents d
+            JOIN document_libraries dl ON d.library_id = dl.library_id
+            GROUP BY dl.library_type
             """
             results = self.db.execute_query(query)
-            return {item['document_category']: item['count'] for item in results}
+            return {item['library_type']: item['count'] for item in results}
         except:
             return {}
 
@@ -790,9 +790,9 @@ class KnowledgeBaseManager:
             conditions = ["d.privacy_classification <= ?"]
             params = [privacy_level]
 
-            # 添加分类过滤
+            # 添加分类过滤（通过library_type）
             if category:
-                conditions.append("d.document_category = ?")
+                conditions.append("dl.library_type = ?")
                 params.append(category)
 
             # 简单的文本搜索（在文件名中搜索）
@@ -819,7 +819,7 @@ class KnowledgeBaseManager:
                 # 简单的相关度计算
                 filename_score = 0.7 if query.lower() in result['original_filename'].lower() else 0.3
                 result['relevance_score'] = filename_score
-                result['category'] = result.get('document_category', 'tech')
+                result['category'] = result.get('library_type', 'tech')
                 result['filename'] = result['original_filename']
 
             return results

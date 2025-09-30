@@ -355,7 +355,6 @@ class DocumentManager {
         // 步骤2: 上传文档到指定的文档库
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('document_category', category);
         formData.append('privacy_classification', privacy);
 
         if (tags) {
