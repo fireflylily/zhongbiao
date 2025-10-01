@@ -40,6 +40,7 @@ class UniversalUploader {
         this.onSuccess = config.onSuccess || this.defaultOnSuccess;
         this.onError = config.onError || this.defaultOnError;
         this.onProgress = config.onProgress || this.defaultOnProgress;
+        this.customUpload = config.customUpload || null;  // 自定义上传函数，允许外部完全控制上传逻辑
 
         // 内部状态
         this.isUploading = false;
@@ -366,8 +367,19 @@ class UniversalUploader {
 
         try {
             const formData = this.buildFormData();
-            const result = await this.uploadFiles(formData);
+            let result;
+
+            // 关键改动：如果提供了自定义上传函数，使用外部逻辑
+            if (this.customUpload) {
+                console.log(`[UniversalUploader] 使用自定义上传逻辑`);
+                result = await this.customUpload(this.selectedFiles, formData);
+            } else {
+                // 原有逻辑：使用内置上传
+                result = await this.uploadFiles(formData);
+            }
+
             this.onSuccess(result);
+            this.reset();
         } catch (error) {
             console.error(`[UniversalUploader] ${this.businessType} 上传失败:`, error);
             this.onError(error);

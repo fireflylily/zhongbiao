@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
             const templateFile = document.getElementById('businessTemplateFile').files[0];
-            const companyId = document.getElementById('businessCompanySelect').value;
+            const companyId = document.getElementById('businessCompanyId').value;
             const projectName = document.getElementById('businessProjectName').value;
             const tenderNo = document.getElementById('businessTenderNo').value;
             const dateText = document.getElementById('businessDate').value;
@@ -127,14 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 公司选择器变更处理
-    const businessCompanySelect = document.getElementById('businessCompanySelect');
-    if (businessCompanySelect) {
-        businessCompanySelect.addEventListener('change', function() {
-            updateSelectedCompanyDisplay();
-        });
-    }
-
     // 下一步按钮处理
     const businessNextStepBtn = document.getElementById('businessNextStepBtn');
     if (businessNextStepBtn) {
@@ -179,21 +171,53 @@ function previewBusinessDocument() {
     const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
     previewModal.show();
 
-    // 调用API获取文档内容
-    fetch(`/api/document/preview/${filename}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (previewContent) {
-                    previewContent.innerHTML = data.html_content || '<p>文档内容为空</p>';
-                }
-            } else {
-                if (previewContent) {
-                    previewContent.innerHTML = `<div class="alert alert-danger">预览失败: ${data.error || '未知错误'}</div>`;
+    // 使用mammoth.js在前端直接转换Word文档
+    fetch(downloadLink.href)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            // 使用mammoth转换Word为HTML
+            return mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+        })
+        .then(result => {
+            if (previewContent) {
+                const html = result.value || '<p>文档内容为空</p>';
+                // 添加样式包装
+                previewContent.innerHTML = `
+                    <style>
+                        #documentPreviewContent {
+                            font-family: 'Microsoft YaHei', sans-serif;
+                            line-height: 1.8;
+                            padding: 20px;
+                        }
+                        #documentPreviewContent p { margin: 10px 0; }
+                        #documentPreviewContent h1, #documentPreviewContent h2, #documentPreviewContent h3 {
+                            color: #333;
+                            margin: 20px 0 10px 0;
+                        }
+                        #documentPreviewContent table {
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 20px 0;
+                        }
+                        #documentPreviewContent table td, #documentPreviewContent table th {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                        }
+                        #documentPreviewContent table th {
+                            background-color: #f2f2f2;
+                        }
+                    </style>
+                    <div>${html}</div>
+                `;
+
+                // 显示转换警告信息(如果有)
+                if (result.messages && result.messages.length > 0) {
+                    console.log('Mammoth转换消息:', result.messages);
                 }
             }
         })
         .catch(error => {
+            console.error('预览失败:', error);
             if (previewContent) {
                 previewContent.innerHTML = `<div class="alert alert-danger">预览失败: ${error.message}</div>`;
             }
@@ -263,7 +287,7 @@ function loadBusinessCompanyInfo() {
     }
 }
 
-// 更新商务应答页面的隐藏表单字段
+// 更新商务应答页面的表单字段
 function updateBusinessHiddenFields() {
     if (!window.companyStateManager) {
         console.error('公司状态管理器未初始化');
@@ -271,22 +295,22 @@ function updateBusinessHiddenFields() {
     }
 
     const companyData = window.companyStateManager.getSelectedCompany();
-    const companySelect = document.getElementById('businessCompanySelect');
-    const projectNameInput = document.getElementById('businessProjectName');
-    const tenderNoInput = document.getElementById('businessTenderNo');
-    const dateInput = document.getElementById('businessDate');
 
-    if (companySelect) {
-        companySelect.value = companyData && companyData.company_id ? companyData.company_id : '';
+    // 更新公司ID（隐藏字段）
+    const companyIdInput = document.getElementById('businessCompanyId');
+    if (companyIdInput) {
+        companyIdInput.value = companyData && companyData.company_id ? companyData.company_id : '';
     }
 
+    // 更新项目名称
+    const projectNameInput = document.getElementById('businessProjectName');
     if (projectNameInput) {
         projectNameInput.value = companyData && companyData.project_name ? companyData.project_name : '';
     }
 
     // 可以在这里添加招标编号和日期的同步逻辑（如果需要的话）
 
-    console.log('商务应答页面：隐藏字段已更新', companyData);
+    console.log('商务应答页面：表单字段已更新', companyData);
 }
 
 

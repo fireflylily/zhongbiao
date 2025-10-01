@@ -2116,15 +2116,26 @@ def register_routes(app: Flask, config, logger):
     def create_tender_project():
         """创建新招标项目"""
         try:
+            import json
             data = request.get_json()
+
+            # 序列化资质和评分数据为JSON
+            qualifications_json = None
+            scoring_json = None
+
+            if data.get('qualifications_data'):
+                qualifications_json = json.dumps(data.get('qualifications_data'), ensure_ascii=False)
+            if data.get('scoring_data'):
+                scoring_json = json.dumps(data.get('scoring_data'), ensure_ascii=False)
 
             query = """
                 INSERT INTO tender_projects (
                     project_name, project_number, tenderer, agency,
                     bidding_method, bidding_location, bidding_time,
                     tender_document_path, original_filename,
-                    company_id, status, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    company_id, qualifications_data, scoring_data,
+                    status, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
 
             params = [
@@ -2138,6 +2149,8 @@ def register_routes(app: Flask, config, logger):
                 data.get('tender_document_path'),
                 data.get('original_filename'),
                 data.get('company_id'),
+                qualifications_json,
+                scoring_json,
                 'draft',
                 'system'
             ]
@@ -2177,6 +2190,72 @@ def register_routes(app: Flask, config, logger):
                 })
         except Exception as e:
             logger.error(f"获取项目详情失败: {e}")
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            })
+
+    @app.route('/api/tender-projects/<int:project_id>', methods=['PUT'])
+    def update_tender_project(project_id):
+        """更新招标项目"""
+        try:
+            import json
+            data = request.get_json()
+
+            # 序列化资质和评分数据为JSON
+            qualifications_json = None
+            scoring_json = None
+
+            if data.get('qualifications_data'):
+                qualifications_json = json.dumps(data.get('qualifications_data'), ensure_ascii=False)
+            if data.get('scoring_data'):
+                scoring_json = json.dumps(data.get('scoring_data'), ensure_ascii=False)
+
+            query = """
+                UPDATE tender_projects SET
+                    project_name = ?,
+                    project_number = ?,
+                    tenderer = ?,
+                    agency = ?,
+                    bidding_method = ?,
+                    bidding_location = ?,
+                    bidding_time = ?,
+                    tender_document_path = ?,
+                    original_filename = ?,
+                    company_id = ?,
+                    qualifications_data = ?,
+                    scoring_data = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE project_id = ?
+            """
+
+            params = [
+                data.get('project_name'),
+                data.get('project_number'),
+                data.get('tenderer'),
+                data.get('agency'),
+                data.get('bidding_method'),
+                data.get('bidding_location'),
+                data.get('bidding_time'),
+                data.get('tender_document_path'),
+                data.get('original_filename'),
+                data.get('company_id'),
+                qualifications_json,
+                scoring_json,
+                project_id
+            ]
+
+            kb_manager.db.execute_query(query, params)
+
+            logger.info(f"更新项目成功，ID: {project_id}")
+
+            return jsonify({
+                'success': True,
+                'project_id': project_id,
+                'message': '项目更新成功'
+            })
+        except Exception as e:
+            logger.error(f"更新项目失败: {e}")
             return jsonify({
                 'success': False,
                 'message': str(e)

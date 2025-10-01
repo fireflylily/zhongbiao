@@ -235,6 +235,8 @@ CREATE TABLE IF NOT EXISTS tender_projects (
     tender_document_path VARCHAR(500), -- 标书文件路径
     original_filename VARCHAR(255), -- 原始文件名
     company_id INTEGER, -- 关联公司ID
+    qualifications_data TEXT, -- 资质要求数据(JSON格式)
+    scoring_data TEXT, -- 评分信息数据(JSON格式)
     status VARCHAR(20) DEFAULT 'draft', -- draft/active/completed
     created_by VARCHAR(100) DEFAULT 'system',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -62,7 +62,16 @@
                     </div>
 
                     <!-- 处理配置 -->
-                    <div class="row mb-4">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="bidRole" class="form-label">
+                                <i class="bi bi-person-badge"></i> 投标角色
+                            </label>
+                            <select class="form-select" id="bidRole" name="bidRole">
+                                <option value="primary" selected>应标</option>
+                                <option value="secondary">陪标</option>
+                            </select>
+                        </div>
                         <div class="col-md-6">
                             <label for="responseFrequency" class="form-label">
                                 <i class="bi bi-gear"></i> 应答频率
@@ -74,6 +83,9 @@
                                 <option value="end_of_document">文档末尾统一应答</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="responseMode" class="form-label">
                                 <i class="bi bi-cpu"></i> 应答方式
@@ -83,37 +95,35 @@
                                 <option value="simple">简单应答</option>
                             </select>
                         </div>
-                    </div>
+                        <div class="col-md-6">
+                            <label for="aiModel" class="form-label">
+                                <strong>选择AI模型：</strong>
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="refreshModels()">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新
+                                </button>
+                            </label>
+                            <select class="form-select" name="aiModel" id="aiModel" onchange="onModelChange()">
+                                <optgroup label="始皇API">
+                                    <option value="shihuang-gpt4o-mini" selected>始皇-GPT4o迷你版（快速高效）</option>
+                                    <option value="shihuang-gpt4">始皇-GPT4专业版（深度分析）</option>
+                                </optgroup>
+                                <optgroup label="联通元景">
+                                    <option value="unicom-yuanjing">联通元景模型</option>
+                                </optgroup>
+                                <optgroup label="OpenAI">
+                                    <option value="gpt-4o-mini">GPT-4O Mini (推荐)</option>
+                                    <option value="gpt-4o">GPT-4O (高质量)</option>
+                                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo (快速)</option>
+                                </optgroup>
+                            </select>
 
-                    <!-- AI模型选择 -->
-                    <div class="mb-4" id="aiModelSelection">
-                        <label for="aiModel" class="form-label">
-                            <strong>选择AI模型：</strong>
-                            <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="refreshModels()">
-                                <i class="bi bi-arrow-clockwise"></i> 刷新
-                            </button>
-                        </label>
-                        <select class="form-select" name="aiModel" id="aiModel" onchange="onModelChange()">
-                            <optgroup label="始皇API">
-                                <option value="shihuang-gpt4o-mini" selected>始皇-GPT4o迷你版（快速高效）</option>
-                                <option value="shihuang-gpt4">始皇-GPT4专业版（深度分析）</option>
-                            </optgroup>
-                            <optgroup label="联通元景">
-                                <option value="unicom-yuanjing">联通元景模型</option>
-                            </optgroup>
-                            <optgroup label="OpenAI">
-                                <option value="gpt-4o-mini">GPT-4O Mini (推荐)</option>
-                                <option value="gpt-4o">GPT-4O (高质量)</option>
-                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo (快速)</option>
-                            </optgroup>
-                        </select>
-
-                        <!-- 模型状态显示 -->
-                        <div class="mt-2" id="modelStatus" style="display: none;">
-                            <small class="d-flex align-items-center">
-                                <span id="modelStatusIcon" class="me-1"></span>
-                                <span id="modelStatusText"></span>
-                            </small>
+                            <!-- 模型状态显示 -->
+                            <div class="mt-2" id="modelStatus" style="display: none;">
+                                <small class="d-flex align-items-center">
+                                    <span id="modelStatusIcon" class="me-1"></span>
+                                    <span id="modelStatusText"></span>
+                                </small>
+                            </div>
                         </div>
                     </div>
 

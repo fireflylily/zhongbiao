@@ -19,6 +19,8 @@
     <!-- 外部库 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
     <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <!-- Mammoth.js - Word文档转HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 
     <!-- 模块化JavaScript架构 -->
     <script src="/static/js/company-config.js"></script>
@@ -78,6 +80,12 @@
                                 <a href="#" class="list-group-item list-group-item-action" id="tech-proposal-nav" data-bs-toggle="pill" data-bs-target="#tech-proposal">
                                     <i class="bi bi-file-earmark-code me-2"></i>技术方案生成
                                 </a>
+                                <a href="#" class="list-group-item list-group-item-action" id="check-export-nav" data-bs-toggle="pill" data-bs-target="#check-export">
+                                    <i class="bi bi-file-earmark-arrow-down me-2"></i>检查导出
+                                </a>
+                                <a href="#" class="list-group-item list-group-item-action" id="tender-scoring-nav" data-bs-toggle="pill" data-bs-target="#tender-scoring">
+                                    <i class="bi bi-star me-2"></i>标书评分
+                                </a>
                                 <a href="/knowledge_base?action=company_management" class="list-group-item list-group-item-action">
                                     <i class="bi bi-building me-2"></i>公司管理
                                 </a>
@@ -118,6 +126,50 @@
                         <!-- 技术方案生成选项卡 -->
                         <div class="tab-pane fade" id="tech-proposal" role="tabpanel">
                             {% include 'components/index/tech-proposal-section.html' %}
+                        </div>
+
+                        <!-- 检查导出选项卡 -->
+                        <div class="tab-pane fade" id="check-export" role="tabpanel">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">
+                                                <i class="bi bi-file-earmark-arrow-down me-2"></i>检查导出
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="text-center py-5">
+                                                <i class="bi bi-tools text-muted" style="font-size: 4rem;"></i>
+                                                <h4 class="mt-3 text-muted">功能开发中</h4>
+                                                <p class="text-muted">检查导出功能即将上线，敬请期待...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 标书评分选项卡 -->
+                        <div class="tab-pane fade" id="tender-scoring" role="tabpanel">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">
+                                                <i class="bi bi-star me-2"></i>标书评分
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="text-center py-5">
+                                                <i class="bi bi-tools text-muted" style="font-size: 4rem;"></i>
+                                                <h4 class="mt-3 text-muted">功能开发中</h4>
+                                                <p class="text-muted">标书评分功能即将上线，敬请期待...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

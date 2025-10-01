@@ -5,6 +5,7 @@ RAG知识库API接口
 import logging
 from flask import Blueprint, request, jsonify
 from .rag_engine import get_rag_engine, LANGCHAIN_AVAILABLE
+from .manager import KnowledgeBaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,17 @@ def vectorize_document():
 
         if result['success']:
             logger.info(f"文档向量化成功: {file_path}")
+
+            # 更新文档状态为已索引
+            document_id = metadata.get('document_id')
+            if document_id:
+                kb_manager = KnowledgeBaseManager()
+                kb_manager.update_document_status(
+                    doc_id=document_id,
+                    vector_status='completed'
+                )
+                logger.info(f"文档状态已更新: doc_id={document_id}, vector_status=completed")
+
             return jsonify(result)
         else:
             logger.error(f"文档向量化失败: {result.get('error')}")

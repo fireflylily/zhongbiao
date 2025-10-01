@@ -15,7 +15,7 @@ class DocumentManager {
      * 初始化文档管理器
      */
     init() {
-        this.setupUploadZone();
+        // 上传功能已迁移到 UniversalUploader，在 showUploadModal() 中动态初始化
         this.bindEvents();
     }
 
@@ -144,7 +144,14 @@ class DocumentManager {
                                 <div class="mb-2">
                                     <small class="text-muted">
                                         <i class="bi bi-tags me-1"></i>
-                                        ${JSON.parse(doc.tags).slice(0, 2).join(', ')}
+                                        ${(() => {
+                                            try {
+                                                const tags = typeof doc.tags === 'string' ? JSON.parse(doc.tags) : doc.tags;
+                                                return Array.isArray(tags) ? tags.slice(0, 2).join(', ') : '';
+                                            } catch(e) {
+                                                return doc.tags;
+                                            }
+                                        })()}
                                     </small>
                                 </div>
                             ` : ''}
@@ -162,12 +169,19 @@ class DocumentManager {
                                     </div>
                                 </div>
                                 <div class="col-6">
-                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ${doc.vector_status === 'completed' ? 'bg-info bg-opacity-10' : 'bg-secondary bg-opacity-10'}">
-                                        <i class="bi ${doc.vector_status === 'completed' ? 'bi-database text-info' : 'bi-hourglass text-secondary'} me-1"></i>
-                                        <small class="${doc.vector_status === 'completed' ? 'text-info' : 'text-secondary'}">
-                                            ${doc.vector_status === 'completed' ? '已索引' : '待索引'}
-                                        </small>
-                                    </div>
+                                    ${doc.vector_status === 'completed'
+                                        ? `<div class="d-flex align-items-center justify-content-center p-2 rounded bg-info bg-opacity-10">
+                                               <i class="bi bi-database text-info me-1"></i>
+                                               <small class="text-info">已索引</small>
+                                           </div>`
+                                        : `<button type="button"
+                                               class="btn btn-sm btn-outline-primary w-100 py-2"
+                                               onclick="event.stopPropagation(); window.documentManager.vectorizeDocument(${doc.doc_id})"
+                                               title="点击建立智能索引">
+                                               <i class="bi bi-lightning-charge me-1"></i>
+                                               <small>建立索引</small>
+                                           </button>`
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -194,147 +208,121 @@ class DocumentManager {
     }
 
     /**
-     * 显示上传模态框
+     * 显示上传模态框 - 使用 UniversalUploader 组件
      * @param {number} productId 产品ID
      * @param {number} libraryId 文档库ID（可选）
      */
     showUploadModal(productId, libraryId = null) {
         this.currentProductId = productId;
         this.currentLibraryId = libraryId;
-        this.selectedFiles = [];
-        document.getElementById('fileList').innerHTML = '';
+
+        // 清理旧的上传器实例
+        if (this.uploader) {
+            this.uploader = null;
+        }
+
+        // 创建新的 UniversalUploader 实例
+        this.uploader = new UniversalUploader({
+            containerId: 'kbUploadContainer',
+            businessType: 'knowledge_base_document',
+            multiple: true,
+            acceptedTypes: '.pdf,.doc,.docx',
+            uploadText: '点击或拖拽文档到这里',
+            supportText: '支持 PDF、Word 文档，可批量上传',
+            autoUpload: false,  // 不自动上传，需点击按钮
+            maxFileSize: 50 * 1024 * 1024, // 50MB
+
+            // 额外表单字段
+            additionalFields: [
+                {
+                    type: 'select',
+                    id: 'kbPrivacyLevel',
+                    name: 'privacy_classification',
+                    label: '隐私级别',
+                    options: [
+                        {value: '1', text: '🌐 公开 - 所有用户可访问'},
+                        {value: '2', text: '🏢 内部 - 内部用户可访问'},
+                        {value: '3', text: '🔒 机密 - 管理员可访问'},
+                        {value: '4', text: '🚫 绝密 - 超级管理员可访问'}
+                    ]
+                },
+                {
+                    type: 'text',
+                    id: 'kbDocumentTags',
+                    name: 'tags',
+                    label: '标签 (可选)',
+                    placeholder: '用逗号分隔，例如：技术规格, 用户指南, 安装说明'
+                }
+            ],
+
+            // 关键：自定义上传逻辑
+            customUpload: async (files, formData) => {
+                return await this.uploadToKnowledgeBase(files, formData);
+            },
+
+            onSuccess: async (result) => {
+                console.log('文档上传成功', result);
+
+                // 显示上传成功消息
+                if (window.showAlert) {
+                    window.showAlert(result.message || '所有文档上传成功！', 'success');
+                }
+
+                // 关闭 modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadDocumentModal'));
+                if (modal) modal.hide();
+
+                // 🆕 自动触发向量化
+                if (window.ragIntegration && result.results) {
+                    for (const docResult of result.results) {
+                        if (docResult.success && docResult.file_path) {
+                            console.log('触发文档向量化:', docResult.original_filename);
+                            await window.ragIntegration.vectorizeDocument({
+                                file_path: docResult.file_path,
+                                company_id: docResult.company_id,
+                                product_id: docResult.product_id,
+                                document_id: docResult.doc_id,
+                                document_type: docResult.file_type || 'document',
+                                document_name: docResult.original_filename
+                            });
+                        }
+                    }
+                }
+
+                // 刷新当前视图
+                this.refreshCurrentView();
+            },
+
+            onError: (error) => {
+                console.error('文档上传失败', error);
+                if (window.showAlert) {
+                    window.showAlert('上传失败：' + error.message, 'danger');
+                }
+            }
+        });
+
+        // 显示 modal
         new bootstrap.Modal(document.getElementById('uploadDocumentModal')).show();
     }
 
     /**
-     * 设置上传区域拖拽功能
+     * 知识库文档上传适配器
+     * @param {File[]} files 文件列表
+     * @param {FormData} formData 表单数据（包含额外字段）
      */
-    setupUploadZone() {
-        const uploadZone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
-
-        if (!uploadZone || !fileInput) return;
-
-        // 拖拽事件
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            this.handleFiles(e.dataTransfer.files);
-        });
-
-        // 文件选择事件
-        fileInput.addEventListener('change', (e) => {
-            this.handleFiles(e.target.files);
-        });
-    }
-
-    /**
-     * 处理选择的文件
-     * @param {FileList} files 文件列表
-     */
-    handleFiles(files) {
-        this.selectedFiles = Array.from(files);
-
-        const listHtml = this.selectedFiles.map((file, index) =>
-            `<div class="alert alert-info d-flex justify-content-between align-items-center">
-                <span>${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                <button class="btn btn-sm btn-danger" onclick="window.documentManager.removeFile(${index})">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>`
-        ).join('');
-
-        document.getElementById('fileList').innerHTML = listHtml;
-    }
-
-    /**
-     * 移除选中的文件
-     * @param {number} index 文件索引
-     */
-    removeFile(index) {
-        this.selectedFiles.splice(index, 1);
-        this.handleFiles(this.selectedFiles);
-    }
-
-    /**
-     * 上传文档
-     */
-    async uploadDocuments() {
-        if (this.selectedFiles.length === 0) {
-            if (window.showAlert) {
-                window.showAlert('请选择要上传的文件', 'warning');
-            }
-            return;
-        }
-
-        // 显示上传进度
-        const progressContainer = document.getElementById('uploadProgress');
-        if (progressContainer) {
-            progressContainer.classList.remove('d-none');
-        }
-
-        try {
-            let uploadedCount = 0;
-            for (const file of this.selectedFiles) {
-                await this.uploadSingleFile(file, uploadedCount + 1, this.selectedFiles.length);
-                uploadedCount++;
-            }
-
-            if (window.showAlert) {
-                window.showAlert('所有文件上传成功！', 'success');
-            }
-
-            // 关闭模态框并刷新视图
-            bootstrap.Modal.getInstance(document.getElementById('uploadDocumentModal')).hide();
-            this.refreshCurrentView();
-
-        } catch (error) {
-            console.error('上传失败:', error);
-            if (window.showAlert) {
-                window.showAlert('上传失败：' + error.message, 'danger');
-            }
-        } finally {
-            // 隐藏进度条
-            if (progressContainer) {
-                progressContainer.classList.add('d-none');
-            }
-        }
-    }
-
-    /**
-     * 上传单个文件
-     * @param {File} file 文件对象
-     * @param {number} current 当前文件序号
-     * @param {number} total 总文件数
-     */
-    async uploadSingleFile(file, current, total) {
-        // 获取隐私级别和标签
-        const privacy = document.getElementById('privacyLevel')?.value || '1';
-        const tags = document.getElementById('documentTags')?.value || '';
-
-        const percent = Math.round((current / total) * 100);
-        this.updateUploadProgress(current, total, percent, file.name);
-
-        // 步骤1: 获取产品的文档库（现在每个产品只有1个general库）
+    async uploadToKnowledgeBase(files, formData) {
+        // 步骤1: 获取或创建 libraryId
         let libraryId = this.currentLibraryId;
 
         if (!libraryId && this.currentProductId) {
             // 获取产品的文档库列表
-            const librariesResp = await axios.get(`/api/knowledge_base/product/${this.currentProductId}/libraries`);
+            const librariesResp = await axios.get(
+                `/api/knowledge_base/product/${this.currentProductId}/libraries`
+            );
 
             if (librariesResp.data.success) {
                 const libraries = librariesResp.data.data;
                 if (libraries && libraries.length > 0) {
-                    // 使用第一个文档库（general库）
                     libraryId = libraries[0].library_id;
                 } else {
                     throw new Error('产品尚未创建文档库，请联系管理员');
@@ -348,51 +336,53 @@ class DocumentManager {
             throw new Error('无法确定文档库，上传失败');
         }
 
-        // 步骤2: 上传文档到指定的文档库
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('privacy_classification', privacy);
+        // 步骤2: 提取额外字段
+        const privacy = formData.get('privacy_classification') || '1';
+        const tagsStr = formData.get('tags') || '';
 
-        if (tags) {
-            // 处理标签：如果是逗号分隔的字符串，转为数组
-            const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t);
-            formData.append('tags', JSON.stringify(tagsArray));
+        // 处理标签
+        let tags = [];
+        if (tagsStr) {
+            tags = tagsStr.split(',').map(t => t.trim()).filter(t => t);
         }
 
-        const response = await axios.post(`/api/knowledge_base/libraries/${libraryId}/documents`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
+        // 步骤3: 逐个上传文件
+        const results = [];
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            // 构建单个文件的 FormData
+            const fileFormData = new FormData();
+            fileFormData.append('file', file);
+            fileFormData.append('privacy_classification', privacy);
+
+            if (tags.length > 0) {
+                fileFormData.append('tags', JSON.stringify(tags));
             }
-        });
 
-        if (!response.data.success) {
-            throw new Error(response.data.error || '上传失败');
+            // 调用知识库 API
+            const response = await axios.post(
+                `/api/knowledge_base/libraries/${libraryId}/documents`,
+                fileFormData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+
+            if (!response.data.success) {
+                throw new Error(response.data.error || `文件 ${file.name} 上传失败`);
+            }
+
+            results.push(response.data);
         }
 
-        return response.data;
-    }
-
-    /**
-     * 更新上传进度
-     * @param {number} current 当前文件数
-     * @param {number} total 总文件数
-     * @param {number} percent 百分比
-     * @param {string} fileName 文件名
-     */
-    updateUploadProgress(current, total, percent, fileName) {
-        const progressBar = document.querySelector('#uploadProgress .progress-bar');
-        const progressText = document.querySelector('#uploadProgress .progress-text');
-        const progressPercent = document.querySelector('#uploadProgress .progress-percent');
-
-        if (progressBar) {
-            progressBar.style.width = percent + '%';
-        }
-        if (progressText) {
-            progressText.textContent = `正在上传: ${fileName} (${current}/${total})`;
-        }
-        if (progressPercent) {
-            progressPercent.textContent = percent + '%';
-        }
+        return {
+            success: true,
+            message: `成功上传 ${results.length} 个文档`,
+            results: results
+        };
     }
 
     /**
@@ -536,10 +526,8 @@ class DocumentManager {
      * 绑定事件监听器
      */
     bindEvents() {
-        // 页面加载完成后初始化上传区域
-        document.addEventListener('DOMContentLoaded', () => {
-            this.setupUploadZone();
-        });
+        // 上传功能已迁移到 UniversalUploader，无需在此初始化
+        // 上传组件在 showUploadModal() 中动态创建
     }
 
     // Getter methods
@@ -627,7 +615,14 @@ class DocumentManager {
                             ${doc.tags ? `
                             <div class="mt-3">
                                 <strong>标签：</strong>
-                                ${JSON.parse(doc.tags).map(tag => '<span class="badge bg-light text-dark me-1">' + tag + '</span>').join('')}
+                                ${(() => {
+                                    try {
+                                        const tags = typeof doc.tags === 'string' ? JSON.parse(doc.tags) : doc.tags;
+                                        return Array.isArray(tags) ? tags.map(tag => '<span class="badge bg-light text-dark me-1">' + tag + '</span>').join('') : '';
+                                    } catch(e) {
+                                        return '<span class="badge bg-secondary me-1">' + doc.tags + '</span>';
+                                    }
+                                })()}
                             </div>
                             ` : ''}
                         </div>
@@ -738,6 +733,79 @@ class DocumentManager {
             if (window.showAlert) {
                 window.showAlert('删除文档失败', 'danger');
             }
+        }
+    }
+
+    /**
+     * 向量化文档（手动触发）
+     * @param {number} docId 文档ID
+     */
+    async vectorizeDocument(docId) {
+        try {
+            // 获取文档详细信息
+            const doc = await this.getDocumentDetails(docId);
+            if (!doc) {
+                throw new Error('文档不存在');
+            }
+
+            // 获取library信息以获得company_id和product_id
+            const libraryResp = await axios.get(`/api/knowledge_base/libraries/${doc.library_id}`);
+            if (!libraryResp.data.success) {
+                throw new Error('获取文档库信息失败');
+            }
+
+            const library = libraryResp.data.data;
+            let company_id = null;
+            let product_id = null;
+
+            if (library.owner_type === 'product') {
+                product_id = library.owner_id;
+                // 获取产品信息
+                const productResp = await axios.get(`/api/knowledge_base/products/${product_id}`);
+                if (productResp.data.success) {
+                    company_id = productResp.data.data.company_id;
+                }
+            }
+
+            // 调用RAG向量化
+            if (window.ragIntegration) {
+                await window.ragIntegration.vectorizeDocument({
+                    file_path: doc.file_path,
+                    company_id: company_id,
+                    product_id: product_id,
+                    document_id: doc.doc_id,
+                    document_type: doc.file_type || 'document',
+                    document_name: doc.original_filename
+                });
+
+                // 刷新视图
+                this.refreshCurrentView();
+            } else {
+                throw new Error('RAG服务未加载');
+            }
+
+        } catch (error) {
+            console.error('向量化文档失败:', error);
+            if (window.showAlert) {
+                window.showAlert('向量化失败：' + error.message, 'danger');
+            }
+        }
+    }
+
+    /**
+     * 获取文档详细信息
+     * @param {number} docId 文档ID
+     */
+    async getDocumentDetails(docId) {
+        try {
+            const response = await axios.get(`/api/knowledge_base/documents/${docId}`);
+            if (response.data.success) {
+                return response.data.data;
+            }
+            return null;
+        } catch (error) {
+            console.error('获取文档详情失败:', error);
+            return null;
         }
     }
 

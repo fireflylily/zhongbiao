@@ -605,7 +605,7 @@ document_chunks (文档分块表)
         </div>
     </div>
 
-    <!-- 文档上传模态框 -->
+    <!-- 文档上传模态框 - 使用 UniversalUploader 组件 -->
     <div class="modal fade" id="uploadDocumentModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -616,56 +616,8 @@ document_chunks (文档分块表)
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="kb-upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-                        <i class="bi bi-cloud-upload fs-1 text-primary"></i>
-                        <h5 class="mt-3">点击或拖拽文件到这里上传</h5>
-                        <p class="text-muted">支持 PDF、Word 文档</p>
-                        <input type="file" id="fileInput" class="d-none" accept=".pdf,.doc,.docx" multiple>
-                    </div>
-
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <label class="form-label">文档分类</label>
-                            <select class="form-select" id="documentCategory">
-                                <option value="tech">技术文档</option>
-                                <option value="product">产品文档</option>
-                                <option value="manual">使用手册</option>
-                                <option value="other">其他</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">隐私级别</label>
-                            <select class="form-select" id="privacyLevel">
-                                <option value="1">公开</option>
-                                <option value="2">内部</option>
-                                <option value="3">机密</option>
-                                <option value="4">绝密</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mt-3">
-                        <label class="form-label">标签 <small class="text-muted">(可选，用逗号分隔)</small></label>
-                        <input type="text" class="form-control" id="documentTags"
-                               placeholder="例如：技术规格, 用户指南, 安装说明">
-                    </div>
-
-                    <div id="fileList" class="mt-3"></div>
-
-                    <!-- 上传进度显示 -->
-                    <div id="uploadProgress" class="mt-3 d-none">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="progress-text">准备上传...</span>
-                            <span class="progress-percent">0%</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="window.documentManager.uploadDocuments()">开始上传</button>
+                    <!-- UniversalUploader 容器 - 组件会动态创建所有UI元素 -->
+                    <div id="kbUploadContainer"></div>
                 </div>
             </div>
         </div>
@@ -780,6 +732,9 @@ document_chunks (文档分块表)
     <script src="/static/js/core/notification.js"></script>
     <script src="/static/js/core/validation.js"></script>
 
+    <!-- 通用组件 -->
+    <script src="/static/js/components/universal-uploader.js"></script>
+
     <!-- 知识库页面特定模块 -->
     <script src="/static/js/pages/knowledge-base/category-manager.js"></script>
     <script src="/static/js/pages/knowledge-base/document-manager.js"></script>
@@ -812,8 +767,7 @@ document_chunks (文档分块表)
 
                 window.categoryManager.onProductSelected = function(productId, productName) {
                     currentProductId = productId;
-                    // 加载产品详情
-                    loadProductDetail(productId);
+                    // selectProduct已在category-manager中处理了文档加载和渲染
                 };
 
                 window.categoryManager.onCompanyProfileSelected = async function(companyId) {
@@ -865,18 +819,6 @@ document_chunks (文档分块表)
             }
         }
 
-        // 加载产品详情
-        async function loadProductDetail(productId) {
-            try {
-                const response = await axios.get('/api/knowledge_base/products/' + productId + '/documents');
-                if (response.data.success && window.documentManager) {
-                    window.documentManager.renderProductDetail(response.data.data);
-                }
-            } catch (error) {
-                console.error('加载产品详情失败:', error);
-                showAlert('加载产品详情失败：' + error.message, 'danger');
-            }
-        }
 
         // 渲染企业信息库
         async function renderCompanyProfiles(companyData) {

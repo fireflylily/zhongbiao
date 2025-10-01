@@ -106,7 +106,12 @@
       "Bash(git show:*)",
       "Bash(cat:*)",
       "Bash(truncate:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(FLASK_RUN_PORT=8115 python3 -m ai_tender_system.web.app)",
+      "Bash(FLASK_RUN_PORT=8120 python3 -m ai_tender_system.web.app)",
+      "Bash(pip3 list:*)",
+      "Bash(pip3 show:*)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

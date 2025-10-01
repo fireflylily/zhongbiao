@@ -452,6 +452,14 @@ class KnowledgeBaseManager:
                 'error': str(e)
             }
 
+    def get_library_by_id(self, library_id: int) -> Optional[Dict]:
+        """根据ID获取文档库详情"""
+        try:
+            return self.db.get_library(library_id)
+        except Exception as e:
+            logger.error(f"获取文档库详情失败: {e}")
+            return None
+
     def get_document_libraries(self, owner_type: str, owner_id: int) -> List[Dict]:
         """获取文档库列表"""
         try:
@@ -493,6 +501,7 @@ class KnowledgeBaseManager:
             # 获取文档库信息以确定所属公司
             library = self.db.get_library(library_id)
             company_id = None
+            product_id = None
             if library and library.get('owner_type') == 'product':
                 # 如果是产品库，获取产品所属的公司ID
                 product_id = library.get('owner_id')
@@ -533,6 +542,11 @@ class KnowledgeBaseManager:
                 'filename': file_metadata.safe_name,
                 'original_filename': file_metadata.original_name,
                 'file_id': file_metadata.file_id,
+                'file_path': file_metadata.file_path,  # 向量化需要
+                'file_type': file_ext[1:],  # 向量化需要
+                'library_id': library_id,  # 向量化需要
+                'company_id': company_id,  # 向量化需要
+                'product_id': product_id,  # 向量化需要
                 'message': f"文档 '{original_filename}' 上传成功"
             }
 
@@ -542,6 +556,18 @@ class KnowledgeBaseManager:
                 'success': False,
                 'error': str(e)
             }
+
+    def get_document_by_id(self, doc_id: int) -> Optional[Dict]:
+        """根据ID获取文档详细信息"""
+        try:
+            query = """
+            SELECT * FROM documents
+            WHERE doc_id = ?
+            """
+            return self.db.execute_query(query, (doc_id,), fetch_one=True)
+        except Exception as e:
+            logger.error(f"获取文档详情失败: {e}")
+            return None
 
     def get_documents(self, library_id: int = None, privacy_level: int = None) -> List[Dict]:
         """获取文档列表"""

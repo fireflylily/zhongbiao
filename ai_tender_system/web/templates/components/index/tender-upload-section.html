@@ -17,9 +17,9 @@
                 </h6>
             </div>
             <div class="card-body">
-                <div class="row">
+                <div class="row g-3">
                     <!-- 项目选择 -->
-                    <div class="col-md-6 mb-3 mb-md-0">
+                    <div class="col-md-6">
                         <label for="tenderProjectSelect" class="form-label">
                             <i class="bi bi-folder2"></i> 关联项目
                         </label>
@@ -111,57 +111,60 @@
             </div>
             <div class="card-body">
                 <!-- AI模型选择 -->
-                <div class="mb-4" id="tenderAiModelSelection">
-                    <label for="tenderAiModel" class="form-label">
-                        <strong>选择AI模型：</strong>
-                        <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="refreshModels()">
-                            <i class="bi bi-arrow-clockwise"></i> 刷新
-                        </button>
-                    </label>
-                    <select class="form-select" name="tenderAiModel" id="tenderAiModel" onchange="onTenderModelChange()">
-                        <optgroup label="始皇API">
-                            <option value="shihuang-gpt4o-mini" selected>始皇-GPT4o迷你版（快速高效）</option>
-                            <option value="shihuang-gpt4">始皇-GPT4专业版（深度分析）</option>
-                        </optgroup>
-                        <optgroup label="联通元景">
-                            <option value="unicom-yuanjing">联通元景模型</option>
-                        </optgroup>
-                        <optgroup label="OpenAI">
-                            <option value="gpt-4o-mini">GPT-4O Mini (推荐)</option>
-                            <option value="gpt-4o">GPT-4O (高质量)</option>
-                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo (快速)</option>
-                        </optgroup>
-                    </select>
-
-                    <!-- 模型状态显示 -->
-                    <div class="mt-2" id="tenderModelStatus" style="display: none;">
-                        <small class="d-flex align-items-center">
-                            <span id="tenderModelStatusIcon" class="me-1"></span>
-                            <span id="tenderModelStatusText"></span>
-                        </small>
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <label for="tenderAiModel" class="form-label">
+                            选择AI模型 <span class="text-danger">*</span>
+                        </label>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select" name="tenderAiModel" id="tenderAiModel" onchange="onTenderModelChange()">
+                                <optgroup label="始皇API">
+                                    <option value="shihuang-gpt4o-mini" selected>始皇-GPT4o迷你版（快速高效）</option>
+                                    <option value="shihuang-gpt4">始皇-GPT4专业版（深度分析）</option>
+                                </optgroup>
+                                <optgroup label="联通元景">
+                                    <option value="unicom-yuanjing">联通元景模型</option>
+                                </optgroup>
+                                <optgroup label="OpenAI">
+                                    <option value="gpt-4o-mini">GPT-4O Mini (推荐)</option>
+                                    <option value="gpt-4o">GPT-4O (高质量)</option>
+                                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo (快速)</option>
+                                </optgroup>
+                            </select>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="refreshModels()" title="刷新模型列表">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <!-- 模型状态显示 -->
+                        <div class="mt-2" id="tenderModelStatus" style="display: none;">
+                            <small class="d-flex align-items-center">
+                                <span id="tenderModelStatusIcon" class="me-1"></span>
+                                <span id="tenderModelStatusText"></span>
+                            </small>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row text-center">
-                    <div class="col-md-3 mb-3">
+                <div class="row g-3 text-center">
+                    <div class="col-md-3">
                         <button class="btn btn-outline-primary w-100" id="processBasicInfoBtn" disabled>
                             <i class="bi bi-info-circle"></i><br>
                             <small>处理基本信息</small>
                         </button>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3">
                         <button class="btn btn-outline-success w-100" id="processQualificationBtn" disabled>
                             <i class="bi bi-award"></i><br>
                             <small>处理资质要求</small>
                         </button>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3">
                         <button class="btn btn-outline-warning w-100" id="processScoringBtn" disabled>
                             <i class="bi bi-star"></i><br>
                             <small>处理评分信息</small>
                         </button>
                     </div>
-                    <div class="col-md-3 mb-3">
+                    <div class="col-md-3">
                         <button class="btn btn-primary w-100" id="processAllBtn" disabled>
                             <i class="bi bi-lightning"></i><br>
                             <small>一键全部处理</small>
@@ -184,90 +187,87 @@
 </div>
 
 <!-- 第3部分：结果展示区域 -->
-<div class="row mb-4 d-none" id="resultsDisplayArea">
+<div class="row g-3 mb-4 d-none" id="resultsDisplayArea">
+    <!-- 基本信息展示 -->
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
+        <div class="card mb-0">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">
-                    <i class="bi bi-list-check"></i> 步骤3：处理结果展示
+                    <i class="bi bi-info-circle"></i> 基本信息
                 </h6>
+                <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="true">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
             </div>
-            <div class="card-body">
-                <!-- 基本信息展示 -->
-                <div class="card mb-3">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="bi bi-info-circle"></i> 基本信息
-                        </h6>
-                        <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#basicInfoCollapse" aria-expanded="true">
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div class="collapse show" id="basicInfoCollapse">
-                        <div class="card-body" id="basicInfoDisplay">
-                            <div class="text-muted text-center">
-                                <i class="bi bi-hourglass-split"></i><br>
-                                等待处理...
-                            </div>
-                        </div>
-                        <div class="card-footer bg-light text-center d-none" id="basicInfoFooter">
-                            <button class="btn btn-sm btn-primary" id="saveBasicInfoBtn" disabled>
-                                <i class="bi bi-save"></i> 保存基本信息
-                            </button>
-                        </div>
+            <div class="collapse show" id="basicInfoCollapse">
+                <div class="card-body" id="basicInfoDisplay">
+                    <div class="text-muted text-center">
+                        <i class="bi bi-hourglass-split"></i><br>
+                        等待处理...
                     </div>
                 </div>
-
-                <!-- 资质要求展示 -->
-                <div class="card mb-3">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="bi bi-award"></i> 资质要求
-                        </h6>
-                        <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#qualificationCollapse" aria-expanded="true">
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div class="collapse show" id="qualificationCollapse">
-                        <div class="card-body" id="qualificationDisplay">
-                            <div class="text-muted text-center">
-                                <i class="bi bi-hourglass-split"></i><br>
-                                等待处理...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 评分信息展示 -->
-                <div class="card mb-3">
-                    <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="bi bi-star"></i> 评分信息
-                        </h6>
-                        <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#scoringCollapse" aria-expanded="true">
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div class="collapse show" id="scoringCollapse">
-                        <div class="card-body" id="scoringDisplay">
-                            <div class="text-muted text-center">
-                                <i class="bi bi-hourglass-split"></i><br>
-                                等待处理...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 操作按钮 -->
-                <div class="text-center mt-4">
-                    <button class="btn btn-primary me-2" id="saveProjectBtn" disabled>
-                        <i class="bi bi-save"></i> 保存项目
-                    </button>
-                    <button class="btn btn-outline-secondary me-2" id="resetAllBtn">
-                        <i class="bi bi-arrow-counterclockwise"></i> 重新开始
+                <div class="card-footer bg-light text-center d-none" id="basicInfoFooter">
+                    <button class="btn btn-sm btn-primary" id="saveBasicInfoBtn" disabled>
+                        <i class="bi bi-save"></i> 保存基本信息
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 资质要求展示 -->
+    <div class="col-12">
+        <div class="card mb-0">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-award"></i> 资质要求
+                </h6>
+                <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#qualificationCollapse" aria-expanded="true">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse show" id="qualificationCollapse">
+                <div class="card-body" id="qualificationDisplay">
+                    <div class="text-muted text-center">
+                        <i class="bi bi-hourglass-split"></i><br>
+                        等待处理...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评分信息展示 -->
+    <div class="col-12">
+        <div class="card mb-0">
+            <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-star"></i> 评分信息
+                </h6>
+                <button class="btn btn-sm btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#scoringCollapse" aria-expanded="true">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse show" id="scoringCollapse">
+                <div class="card-body" id="scoringDisplay">
+                    <div class="text-muted text-center">
+                        <i class="bi bi-hourglass-split"></i><br>
+                        等待处理...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="col-12">
+        <div class="text-center mt-2">
+            <button class="btn btn-primary me-2" id="saveProjectBtn" disabled>
+                <i class="bi bi-save"></i> 保存项目
+            </button>
+            <button class="btn btn-outline-secondary me-2" id="resetAllBtn">
+                <i class="bi bi-arrow-counterclockwise"></i> 重新开始
+            </button>
         </div>
     </div>
 </div>
@@ -299,8 +299,8 @@
 </div>
 
 <!-- 功能特点 -->
-<div class="row mb-5">
-    <div class="col-md-4 mb-3">
+<div class="row g-3 mb-5">
+    <div class="col-md-4">
         <div class="card feature-card">
             <div class="card-body text-center">
                 <i class="bi bi-search text-info" style="font-size: 2rem;"></i>
@@ -309,7 +309,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-4">
         <div class="card feature-card">
             <div class="card-body text-center">
                 <i class="bi bi-list-check text-success" style="font-size: 2rem;"></i>
@@ -318,7 +318,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-4">
         <div class="card feature-card">
             <div class="card-body text-center">
                 <i class="bi bi-gear text-warning" style="font-size: 2rem;"></i>

@@ -273,6 +273,28 @@ class KnowledgeBaseAPI:
                     'error': str(e)
                 }), 500
 
+        @self.blueprint.route('/libraries/<int:library_id>', methods=['GET'])
+        def get_library(library_id):
+            """获取单个文档库详情"""
+            try:
+                library = self.manager.get_library_by_id(library_id)
+                if library:
+                    return jsonify({
+                        'success': True,
+                        'data': library
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': '文档库不存在'
+                    }), 404
+            except Exception as e:
+                logger.error(f"获取文档库详情失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
         # =========================
         # 文档管理API
         # =========================
@@ -363,6 +385,28 @@ class KnowledgeBaseAPI:
 
             except Exception as e:
                 logger.error(f"更新文档状态失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
+        @self.blueprint.route('/documents/<int:doc_id>', methods=['GET'])
+        def get_document(doc_id):
+            """获取单个文档详细信息"""
+            try:
+                document = self.manager.get_document_by_id(doc_id)
+                if document:
+                    return jsonify({
+                        'success': True,
+                        'data': document
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': '文档不存在'
+                    }), 404
+            except Exception as e:
+                logger.error(f"获取文档详情失败: {e}")
                 return jsonify({
                     'success': False,
                     'error': str(e)

@@ -8,17 +8,18 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 try:
-    from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
-    from langchain.embeddings import HuggingFaceEmbeddings
-    from langchain.vectorstores import Chroma
-    from langchain.schema import Document
+    # LangChain 0.3.x 新的导入方式
+    from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from langchain_community.embeddings import HuggingFaceEmbeddings
+    from langchain_community.vectorstores import Chroma
+    from langchain_core.documents import Document
     LANGCHAIN_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     LANGCHAIN_AVAILABLE = False
     # 定义占位类型以避免NameError
     Document = Any
-    logging.warning("LangChain dependencies not installed. RAG features will be disabled.")
+    logging.warning(f"LangChain dependencies not installed: {e}. RAG features will be disabled.")
 
 logger = logging.getLogger(__name__)
 

@@ -268,6 +268,10 @@ class KnowledgeBaseDB:
         query = "SELECT * FROM products WHERE product_id = ?"
         return self.execute_query(query, (product_id,), fetch_one=True)
 
+    def get_product(self, product_id: int) -> Optional[Dict]:
+        """根据ID获取产品信息（别名方法）"""
+        return self.get_product_by_id(product_id)
+
     # =========================
     # 文档库管理相关方法
     # =========================
@@ -298,6 +302,14 @@ class KnowledgeBaseDB:
         ORDER BY library_type, library_name
         """
         return self.execute_query(query, (owner_type, owner_id))
+
+    def get_library(self, library_id: int) -> Optional[Dict]:
+        """根据library_id获取单个文档库信息"""
+        query = """
+        SELECT * FROM document_libraries
+        WHERE library_id = ?
+        """
+        return self.execute_query(query, (library_id,), fetch_one=True)
 
     # =========================
     # 文档管理相关方法
