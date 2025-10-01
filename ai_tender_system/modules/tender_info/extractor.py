@@ -132,10 +132,6 @@ class TenderInfoExtractor:
                 '工商营业执照', '统一社会信用代码', '一照一码',
                 '企业法人', '工商登记'
             ],
-            'bank_permit': [
-                '开户许可证', '基本存款账户', '开户行许可',
-                '银行开户证明', '银行开户', '基本户'
-            ],
             'legal_id_front': [
                 '法人身份证正面', '法定代表人身份证', '法人身份证',
                 '法人代表身份证', '企业法人身份证'
@@ -229,11 +225,7 @@ class TenderInfoExtractor:
                 '政府采购严重违法失信', '政府采购违法',
                 '政府采购失信', '采购严重违法', '政府采购黑名单',
                 '不得被列入.*政府采购', '未被列入.*政府采购'
-            ],
-
-            # 过时资质（仅用于检测并提醒更新）
-            'tax_registration': ['税务登记证', '税务登记'],
-            'organization_code': ['组织机构代码证', '组织机构代码', '机构代码证']
+            ]
         }
 
     def extract_qualification_requirements_by_keywords(self, text: str) -> Dict[str, Any]:
@@ -249,7 +241,6 @@ class TenderInfoExtractor:
 
             # 存储检测结果
             qualification_results = {}
-            obsolete_detected = {}
 
             # 转换文本为小写以便匹配
             text_lower = text.lower()
@@ -272,11 +263,6 @@ class TenderInfoExtractor:
 
                 # 如果找到关键字，记录结果
                 if found_keywords:
-                    # 处理过时资质的特殊提醒
-                    if qual_key in ['tax_registration', 'organization_code']:
-                        obsolete_detected[qual_key] = f"检测到{found_keywords[0]}要求，建议使用三证合一营业执照"
-                        continue
-
                     # 生成描述
                     description = f"需要提供{found_keywords[0]}"
                     if description_parts:
@@ -295,10 +281,6 @@ class TenderInfoExtractor:
                 'total_required': len(qualification_results),
                 'keywords_method': True
             }
-
-            # 如果检测到过时资质，添加提醒
-            if obsolete_detected:
-                result['obsolete_detected'] = obsolete_detected
 
             self.logger.info(f"关键字匹配完成，检测到{len(qualification_results)}项资质要求")
             return result

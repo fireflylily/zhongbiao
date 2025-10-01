@@ -87,7 +87,6 @@ const CompanyConfig = {
         { key: 'business_license', name: '营业执照', icon: 'bi-building', category: 'basic', required: true },
         { key: 'legal_id_front', name: '法定代表人身份证（正面）', icon: 'bi-person-badge', category: 'basic', required: true },
         { key: 'legal_id_back', name: '法定代表人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
-        { key: 'organization_code', name: '组织机构代码证', icon: 'bi-file-earmark', category: 'basic' },
 
         // ISO体系认证
         { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
@@ -119,10 +118,7 @@ const CompanyConfig = {
 
         // 知识产权
         { key: 'software_copyright', name: '软件著作权登记证书', icon: 'bi-code-slash', category: 'intellectual' },
-        { key: 'patent_certificate', name: '专利证书', icon: 'bi-lightbulb', category: 'intellectual' },
-
-        // 其他资质
-        { key: 'bank_account', name: '银行开户许可证', icon: 'bi-bank', category: 'basic' }
+        { key: 'patent_certificate', name: '专利证书', icon: 'bi-lightbulb', category: 'intellectual' }
     ],
 
     // 资质字段映射表：将公司管理资质映射到标书分析字段
@@ -131,7 +127,6 @@ const CompanyConfig = {
         'business_license': 'business_license_required',
         'legal_id_front': 'business_license_required',
         'legal_id_back': 'business_license_required',
-        'organization_code': 'business_license_required',
 
         // ISO体系认证
         'iso9001': 'iso9001_required',
@@ -161,10 +156,7 @@ const CompanyConfig = {
         'software_copyright': 'commitment_letter_required',
         'patent_certificate': 'commitment_letter_required',
         'high_tech_enterprise': 'commitment_letter_required',
-        'software_enterprise': 'commitment_letter_required',
-
-        // 其他资质
-        'bank_account': 'business_license_required'
+        'software_enterprise': 'commitment_letter_required'
     },
 
     // API配置

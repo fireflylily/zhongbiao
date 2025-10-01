@@ -2953,3 +2953,800 @@
 2025-10-01 10:23:17,035 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:23:17] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
 2025-10-01 10:23:17,621 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:23:17] "GET /api/point-to-point/files HTTP/1.1" 200 -
 2025-10-01 10:23:22,714 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:23:22] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 10:34:50,299 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "GET / HTTP/1.1" 200 -
+2025-10-01 10:34:50,348 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,349 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,351 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,353 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,354 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,355 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,355 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,357 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,357 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,357 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,358 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,361 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,362 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,363 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,363 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,364 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,366 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,366 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-01 10:34:50,367 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,367 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:50,368 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:50] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,024 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,025 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,054 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,058 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,059 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,063 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,068 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,069 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,070 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,073 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 10:34:51,208 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 10:34:51,209 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 10:34:51,232 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:34:51,238 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:34:51,243 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:34:51,599 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:51] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 10:34:52,212 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:52] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 10:34:55,417 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:34:55] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 10:35:00,467 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 重大税收失信主体名单-智慧足迹.png
+2025-10-01 10:35:00,468 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:35:00] "GET /api/document/preview/重大税收失信主体名单-智慧足迹.png HTTP/1.1" 200 -
+2025-10-01 10:35:04,058 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 重大税收失信主体名单-智慧足迹.png
+2025-10-01 10:35:04,058 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:35:04] "GET /api/document/preview/重大税收失信主体名单-智慧足迹.png HTTP/1.1" 200 -
+2025-10-01 10:41:01,227 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/web/app.py', reloading
+2025-10-01 10:41:02,108 - werkzeug - INFO -  * Restarting with stat
+2025-10-01 10:41:02,835 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 10:41:02,836 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 10:41:02,836 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 10:41:02,836 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 10:41:02,836 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 10:41:02,841 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 10:41:03,263 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 10:41:03,263 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 10:41:05,467 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 10:41:05,468 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 10:41:05,468 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 10:41:05,478 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 10:41:05,495 - werkzeug - WARNING -  * Debugger is active!
+2025-10-01 10:41:05,514 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-01 10:53:53,235 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "GET / HTTP/1.1" 200 -
+2025-10-01 10:53:53,306 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,309 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,312 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,312 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,314 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,315 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,317 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,317 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,318 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,320 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,321 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,321 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,322 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,324 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,325 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,325 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,327 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,328 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-01 10:53:53,329 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,330 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:53,333 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:53] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,284 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,324 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,328 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,331 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,332 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,334 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,336 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,337 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,339 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,341 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 10:53:54,726 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 10:53:54,731 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 10:53:54,780 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:53:54,787 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:53:54,795 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:54] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:53:55,328 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:55] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 10:53:55,722 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:55] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 10:53:58,703 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:53:58] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 10:54:02,067 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:54:02] "[31m[1mGET /api/companies/undefined/qualifications/business_license/preview HTTP/1.1[0m" 400 -
+2025-10-01 10:54:03,282 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:54:03] "[31m[1mGET /api/companies/undefined/qualifications/business_license/preview HTTP/1.1[0m" 400 -
+2025-10-01 10:54:03,498 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:54:03] "[31m[1mGET /api/companies/undefined/qualifications/business_license/preview HTTP/1.1[0m" 400 -
+2025-10-01 10:54:04,998 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:54:04] "[31m[1mGET /api/companies/undefined/qualifications/credit_dishonest/preview HTTP/1.1[0m" 400 -
+2025-10-01 10:54:05,702 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:54:05] "[31m[1mGET /api/companies/undefined/qualifications/credit_dishonest/preview HTTP/1.1[0m" 400 -
+2025-10-01 10:54:05,922 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:54:05] "[31m[1mGET /api/companies/undefined/qualifications/credit_dishonest/preview HTTP/1.1[0m" 400 -
+2025-10-01 10:55:48,731 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:48] "[31m[1mGET /api/companies/undefined/qualifications/credit_corruption/preview HTTP/1.1[0m" 400 -
+2025-10-01 10:55:52,563 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 10:55:52,576 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,577 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,577 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,577 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,578 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,580 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,581 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,584 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,584 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,589 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,590 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,592 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 10:55:52,592 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:55:52] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,204 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "GET / HTTP/1.1" 200 -
+2025-10-01 10:58:19,294 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 10:58:19,308 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,311 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,318 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,324 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,327 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,331 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,331 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,333 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,337 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,338 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,339 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,343 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,343 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,345 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,351 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,351 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-01 10:58:19,353 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,354 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,355 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,357 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:19,357 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:19] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,413 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,414 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,415 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,415 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,416 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,423 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,425 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,425 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,463 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,486 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 10:58:20,685 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 10:58:20,688 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 10:58:20,703 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:58:20,709 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:58:20,718 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:20] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 10:58:21,672 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:21] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 10:58:21,735 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:21] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 10:58:30,582 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:30] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 10:58:34,082 - ai_tender_system.web_app - INFO - 预览资质文件: 营业执照_智慧足迹.png
+2025-10-01 10:58:34,090 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 10:58:34] "GET /api/companies/8/qualifications/business_license/preview HTTP/1.1" 200 -
+2025-10-01 11:22:02,595 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "GET / HTTP/1.1" 200 -
+2025-10-01 11:22:02,709 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,712 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,715 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,716 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,718 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,718 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "GET /static/js/company-config.js HTTP/1.1" 200 -
+2025-10-01 11:22:02,719 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,722 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,723 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,724 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,725 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,732 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,733 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,736 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,742 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,743 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,745 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,746 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,749 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,750 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:02,750 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:02] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,784 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,786 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,802 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,809 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,827 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,834 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,836 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,838 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,839 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,842 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:22:03,960 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:22:03,962 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:22:03,992 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:22:03,998 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:03] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:22:04,003 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:04] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:22:04,910 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:04] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:22:04,998 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:04] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:22:10,633 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:10] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:22:14,319 - ai_tender_system.web_app - INFO - 预览资质文件: 营业执照_智慧足迹.png
+2025-10-01 11:22:14,325 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:22:14] "GET /api/companies/8/qualifications/business_license/preview HTTP/1.1" 200 -
+2025-10-01 11:23:24,085 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "GET / HTTP/1.1" 200 -
+2025-10-01 11:23:24,163 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,164 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,166 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,169 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,171 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,173 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,174 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,175 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,176 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,178 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,179 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,181 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,182 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,183 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,184 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,185 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,186 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,186 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,186 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,187 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,190 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,364 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,371 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,372 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,409 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,416 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,419 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,421 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,422 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,426 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,426 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:23:24,694 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:23:24,696 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:23:24,711 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:23:24,720 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:23:24,731 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:23:24,797 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:24] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:23:25,696 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:25] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:23:30,864 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:23:30] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:24:10,263 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "GET / HTTP/1.1" 200 -
+2025-10-01 11:24:10,346 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,349 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,355 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,355 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,355 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,356 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,357 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,358 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,366 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,367 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,369 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,372 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,375 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,378 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,381 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,381 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,383 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,385 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,389 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,395 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,397 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,547 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,548 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,548 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,581 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,585 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,587 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,588 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,591 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,593 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,593 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:24:10,795 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:24:10,797 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:24:10,828 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:24:10,836 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:24:10,848 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:24:10,862 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:10] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:24:11,813 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:11] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:24:14,086 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:24:14] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:27:13,741 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:27:13,750 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,751 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,751 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,752 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,755 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,768 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,768 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,768 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,771 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,772 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,772 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,775 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:27:13,778 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:27:13] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,476 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "GET / HTTP/1.1" 200 -
+2025-10-01 11:33:18,557 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:33:18,607 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,609 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,611 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,611 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,615 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,616 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,616 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,619 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,620 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,621 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,622 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,623 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,625 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,626 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,627 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,627 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,635 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,635 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,638 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,638 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:18,638 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:18] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,598 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,603 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,605 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,620 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,665 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,672 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,676 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,678 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,686 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:19,686 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:19] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:20,483 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:33:20,485 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:20] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:33:20,506 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:20] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:33:20,516 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:20] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:33:20,523 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:20] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:33:20,895 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:20] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:33:21,473 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:21] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:33:31,462 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:31] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:33:51,626 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "GET / HTTP/1.1" 200 -
+2025-10-01 11:33:51,724 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:33:51,744 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,745 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,746 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,748 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,748 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,748 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,755 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,755 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,757 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,759 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,761 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,766 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,769 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,769 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,770 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,770 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,771 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,775 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,776 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,778 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:51,779 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:51] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,430 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,432 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,434 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,451 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,452 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,455 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,458 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,459 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,459 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,460 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:33:52,633 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:33:52,634 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:33:52,676 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:33:52,682 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:33:52,690 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:52] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:33:53,629 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:53] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:33:54,310 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:33:54] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:38:38,642 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "GET / HTTP/1.1" 200 -
+2025-10-01 11:38:38,730 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:38:38,777 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,781 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,782 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,784 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,784 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,788 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,789 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "GET /static/js/company-config.js HTTP/1.1" 200 -
+2025-10-01 11:38:38,793 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,797 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,799 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,800 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,802 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,802 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,803 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,804 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,804 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,806 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,806 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,806 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,808 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:38,808 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:38] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,522 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,524 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,526 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,527 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,529 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,529 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,529 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,530 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,531 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,531 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:38:39,745 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:38:39,747 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:38:39,763 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:38:39,770 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:38:39,778 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:39] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:38:40,620 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:40] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:38:40,749 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:40] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:38:46,219 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:46] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:38:59,433 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:59] "GET / HTTP/1.1" 200 -
+2025-10-01 11:38:59,444 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:38:59] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,409 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,424 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,426 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,428 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,430 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,434 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,435 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,440 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,441 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,443 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,444 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,446 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,447 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,447 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,450 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,451 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,454 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,455 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,455 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,457 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,458 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,459 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,459 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,460 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,462 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,464 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,465 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,467 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,469 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,470 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:39:00,681 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:39:00,683 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:39:00,694 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:39:00,700 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:39:00,706 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:00] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:39:01,125 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:01] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:39:01,683 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:01] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:39:06,481 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:06] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:39:15,154 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:39:15,159 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,159 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,162 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,166 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,166 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,166 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,169 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,169 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,171 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,171 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,171 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,172 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:39:15,173 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:39:15] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:40:47,288 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET / HTTP/1.1" 200 -
+2025-10-01 11:40:47,364 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:40:47,427 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/css/main.css HTTP/1.1" 200 -
+2025-10-01 11:40:47,431 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/css/components/qualifications.css HTTP/1.1" 200 -
+2025-10-01 11:40:47,435 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/css/components/universal-uploader.css HTTP/1.1" 200 -
+2025-10-01 11:40:47,442 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/company-config.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,443 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/progress-manager.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,444 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/core/api-client.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,445 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/timer-manager.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,445 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/core/notification.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,445 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/company-manager.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,449 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/core/validation.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,450 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/components/file-upload.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,450 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/pages/index/proposal-generator.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,452 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/components/universal-uploader.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,452 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/components/company-selector.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,454 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/components/modal-manager.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,457 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,458 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/pages/index/point-to-point-handler.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,461 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/components/company-project-display.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,462 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/components/company-state-manager.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,464 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/pages/index/page-utilities.js HTTP/1.1" 200 -
+2025-10-01 11:40:47,464 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:47] "GET /static/js/pages/index/business-response-handler.js HTTP/1.1" 200 -
+2025-10-01 11:40:48,324 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/components/buttons.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,326 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/components/cards.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,327 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/base/bootstrap-overrides.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,328 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/base/variables.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,331 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/base/animations.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,333 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/components/privacy-badges.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,334 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/components/modals.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,336 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/components/navigation.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,337 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/knowledge_base.css HTTP/1.1" 200 -
+2025-10-01 11:40:48,341 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:48] "GET /static/css/index.css HTTP/1.1" 200 -
+2025-10-01 11:40:49,258 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:40:49,279 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:49] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:40:49,341 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:49] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:40:49,341 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:49] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:40:49,341 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:49] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:40:49,656 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:49] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:40:49,988 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:49] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-10-01 11:40:50,273 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:50] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:40:54,597 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:40:54] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:45:11,218 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-01 11:45:12,574 - werkzeug - INFO -  * Restarting with stat
+2025-10-01 11:45:13,216 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 11:45:13,216 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 11:45:13,216 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 11:45:13,216 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:45:13,217 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 11:45:13,221 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:45:13,685 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 11:45:13,686 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:45:15,927 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 11:45:15,928 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:45:15,928 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:45:15,936 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:45:15,954 - werkzeug - WARNING -  * Debugger is active!
+2025-10-01 11:45:15,974 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-01 11:45:35,565 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-01 11:45:36,079 - werkzeug - INFO -  * Restarting with stat
+2025-10-01 11:45:36,607 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 11:45:36,608 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 11:45:36,608 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 11:45:36,608 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:45:36,609 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 11:45:36,612 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:45:36,816 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 11:45:36,817 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:45:38,578 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 11:45:38,579 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:45:38,579 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:45:38,587 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:45:38,602 - werkzeug - WARNING -  * Debugger is active!
+2025-10-01 11:45:38,622 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-01 11:46:05,657 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-01 11:46:06,285 - werkzeug - INFO -  * Restarting with stat
+2025-10-01 11:46:06,948 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 11:46:06,948 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 11:46:06,948 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 11:46:06,948 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:46:06,949 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 11:46:06,954 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:46:07,394 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 11:46:07,396 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:46:09,545 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 11:46:09,546 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:46:09,546 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:46:09,554 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:46:09,573 - werkzeug - WARNING -  * Debugger is active!
+2025-10-01 11:46:09,590 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-01 11:46:16,885 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-01 11:46:17,229 - werkzeug - INFO -  * Restarting with stat
+2025-10-01 11:46:17,705 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 11:46:17,705 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 11:46:17,705 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 11:46:17,705 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:46:17,705 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 11:46:17,709 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:46:17,903 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 11:46:17,904 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:46:19,164 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 11:46:19,164 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:46:19,164 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:46:19,174 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:46:19,185 - werkzeug - WARNING -  * Debugger is active!
+2025-10-01 11:46:19,198 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-01 11:46:37,806 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-01 11:46:38,203 - werkzeug - INFO -  * Restarting with stat
+2025-10-01 11:46:38,731 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 11:46:38,732 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 11:46:38,732 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 11:46:38,732 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:46:38,732 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 11:46:38,736 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:46:38,935 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 11:46:38,936 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:46:40,821 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 11:46:40,822 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:46:40,822 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:46:40,831 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:46:40,843 - werkzeug - WARNING -  * Debugger is active!
+2025-10-01 11:46:40,853 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-01 11:47:17,514 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 11:47:17,515 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 11:47:17,515 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 11:47:17,515 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:47:17,515 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 11:47:17,519 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:47:17,750 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 11:47:17,751 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:47:19,580 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 11:47:19,581 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:47:19,581 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:47:19,591 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:47:19,739 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8110
+ * Running on http://192.168.0.102:8110
+2025-10-01 11:47:19,740 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-01 11:47:19,741 - werkzeug - INFO -  * Restarting with stat
+2025-10-01 11:47:20,053 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-01 11:47:20,054 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-01 11:47:20,054 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-01 11:47:20,054 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:47:20,054 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-01 11:47:20,058 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:47:20,312 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-01 11:47:20,315 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:47:21,636 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-01 11:47:21,637 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:47:21,637 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-01 11:47:21,647 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:47:21,656 - werkzeug - WARNING -  * Debugger is active!
+2025-10-01 11:47:21,668 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-01 11:49:41,473 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "GET / HTTP/1.1" 200 -
+2025-10-01 11:49:41,572 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:49:41,612 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,616 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,622 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,623 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,625 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,626 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,627 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,628 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,630 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,633 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,634 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,640 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,641 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,642 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,644 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,644 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,648 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/pages/index/tender-processor.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,649 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,652 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,653 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:41,655 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:41] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,503 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,504 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,506 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,508 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,509 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,510 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,513 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,517 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,518 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,520 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 11:49:42,823 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:49:42,825 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:49:42,861 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:49:42,871 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:49:42,897 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:42] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:49:43,853 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:43] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:49:43,905 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:43] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:49:49,610 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:49] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 11:49:57,648 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET / HTTP/1.1" 200 -
+2025-10-01 11:49:57,754 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 11:49:57,773 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/css/main.css HTTP/1.1" 200 -
+2025-10-01 11:49:57,774 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/company-config.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,774 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/css/components/qualifications.css HTTP/1.1" 200 -
+2025-10-01 11:49:57,774 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/css/components/universal-uploader.css HTTP/1.1" 200 -
+2025-10-01 11:49:57,776 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/timer-manager.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,779 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/core/api-client.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,781 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/core/notification.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,782 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/company-manager.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,786 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/components/file-upload.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,786 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/progress-manager.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,786 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/core/validation.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,787 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/components/modal-manager.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,788 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/components/company-selector.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,790 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/components/universal-uploader.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,793 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/components/company-state-manager.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,793 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,793 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/components/company-project-display.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,794 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/pages/index/proposal-generator.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,795 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/pages/index/business-response-handler.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,799 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/pages/index/point-to-point-handler.js HTTP/1.1" 200 -
+2025-10-01 11:49:57,799 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:57] "GET /static/js/pages/index/page-utilities.js HTTP/1.1" 200 -
+2025-10-01 11:49:58,583 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/components/modals.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,584 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/base/variables.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,584 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/base/animations.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,586 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/base/bootstrap-overrides.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,588 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/components/cards.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,587 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/components/buttons.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,586 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/knowledge_base.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,596 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/components/privacy-badges.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,615 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/components/navigation.css HTTP/1.1" 200 -
+2025-10-01 11:49:58,615 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:58] "GET /static/css/index.css HTTP/1.1" 200 -
+2025-10-01 11:49:59,278 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:49:59,281 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:59] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 11:49:59,336 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:59] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:49:59,337 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:59] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:49:59,338 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:59] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 11:49:59,659 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:59] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 11:49:59,963 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:49:59] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-10-01 11:50:00,298 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:50:00] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 11:50:02,922 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 11:50:02] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 12:20:25,505 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "GET / HTTP/1.1" 200 -
+2025-10-01 12:20:25,635 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-01 12:20:25,709 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,711 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,713 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,714 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,716 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,719 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,720 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,722 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,725 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,727 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,728 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,729 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,731 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,735 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,735 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,739 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-01 12:20:25,740 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,742 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,743 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,746 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:25,747 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:25] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,141 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,142 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,143 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,147 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,149 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,150 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,151 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,154 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,155 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,157 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 12:20:27,648 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 12:20:27,652 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 12:20:27,685 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 12:20:27,710 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 12:20:27,721 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:27] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 12:20:29,239 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:29] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 12:20:29,244 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:29] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 12:20:34,168 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:20:34] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 12:25:18,067 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "GET / HTTP/1.1" 200 -
+2025-10-01 12:25:18,176 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/css/components/qualifications.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,177 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/css/components/universal-uploader.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,178 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,191 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/company-config.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,188 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/company-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,192 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/timer-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,192 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/progress-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,196 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/core/notification.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,197 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/core/api-client.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,201 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/core/validation.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,202 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/components/file-upload.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,205 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/components/company-selector.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,208 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,209 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/components/company-state-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,209 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/components/modal-manager.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,214 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/components/company-project-display.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,214 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-01 12:25:18,218 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/pages/index/proposal-generator.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,218 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/pages/index/business-response-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,222 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/pages/index/point-to-point-handler.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:18,224 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:18] "[36mGET /static/js/pages/index/page-utilities.js HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,272 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/base/bootstrap-overrides.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,274 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/base/variables.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,275 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/components/cards.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,276 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/components/buttons.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,282 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/components/modals.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,318 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/base/animations.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,321 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/components/privacy-badges.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,326 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/knowledge_base.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,331 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/components/navigation.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,334 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "[36mGET /static/css/index.css HTTP/1.1[0m" 304 -
+2025-10-01 12:25:19,824 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 12:25:19,840 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "GET /api/models HTTP/1.1" 200 -
+2025-10-01 12:25:19,982 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 12:25:19,992 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:19] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 12:25:20,005 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:20] "GET /api/companies HTTP/1.1" 200 -
+2025-10-01 12:25:20,594 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:20] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-01 12:25:20,888 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:20] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-01 12:25:27,782 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 12:25:27] "GET /api/tender-projects/18 HTTP/1.1" 200 -
+2025-10-01 14:04:52,372 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 14:04:52] "GET /api/tender-projects/19 HTTP/1.1" 200 -
+2025-10-01 14:04:53,868 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 14:04:53] "GET /api/tender-projects/5 HTTP/1.1" 200 -
+2025-10-01 14:04:58,723 - werkzeug - INFO - 127.0.0.1 - - [01/Oct/2025 14:04:58] "GET /api/tender-projects/19 HTTP/1.1" 200 -

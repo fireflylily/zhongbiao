@@ -767,10 +767,13 @@ class TenderProcessor {
     /**
      * 格式化资质要求信息 - 表格对比显示
      */
-    formatQualificationInfo(data) {
+    formatQualificationInfo(data, companyId = null) {
         if (!data || !data.qualifications || Object.keys(data.qualifications).length === 0) {
             return '<div class="text-muted text-center">暂无资质要求信息</div>';
         }
+
+        // 使用传入的companyId，如果没有则使用selectedCompanyId
+        const currentCompanyId = companyId || this.selectedCompanyId;
 
         const summary = data.summary || {};
         const qualifications = data.qualifications || {};
@@ -804,7 +807,15 @@ class TenderProcessor {
         const requiredQuals = [];
         const optionalQuals = [];
 
+        // 过时证件列表（三证合一后已废弃）
+        const obsoleteQualifications = ['bank_permit', 'tax_registration', 'organization_code'];
+
         Object.keys(qualifications).forEach(key => {
+            // 跳过过时的证件
+            if (obsoleteQualifications.includes(key)) {
+                return;
+            }
+
             const qual = qualifications[key];
             if (qual.tender_requirement.required) {
                 requiredQuals.push({key, ...qual});
@@ -831,35 +842,40 @@ class TenderProcessor {
                                 ${statusIcon}
                             </div>
                             <div class="col">
-                                <div class="d-flex align-items-center gap-2 mb-1">
+                                <div class="mb-1">
                                     <span class="fw-medium">${qual.qualification_name}</span>
-                                    <span class="badge bg-warning text-dark">必需</span>
                                 </div>
                                 ${context ? `
                                     <div class="mt-2 p-2 bg-light border-start border-3 border-info rounded">
                                         <small class="text-muted fst-italic"><i class="bi bi-quote"></i> ${context.substring(0, 120)}${context.length > 120 ? '...' : ''}</small>
                                     </div>
                                 ` : ''}
-                                ${keywords.length > 0 ? `
-                                    <div class="mt-2 d-flex gap-1 flex-wrap">
-                                        ${keywords.slice(0, 5).map(kw => `<span class="badge bg-secondary">${kw}</span>`).join('')}
-                                    </div>
-                                ` : ''}
                             </div>
                             <div class="col-auto text-end" style="min-width: 200px;">
+                                <div class="d-flex gap-2 justify-content-end mb-2">
+                                    <span class="badge bg-warning text-dark">必需</span>
+                                    ${isUploaded ? `
+                                        <span class="badge bg-success text-white">✓ 已上传</span>
+                                    ` : `
+                                        <span class="badge bg-secondary text-white">✗ 未上传</span>
+                                    `}
+                                </div>
                                 ${isUploaded ? `
-                                    <span class="badge bg-success text-white">✓ 已上传</span>
-                                    <div class="mt-2">
+                                    <div class="mt-1">
                                         <small class="text-muted">
                                             <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
                                         </small>
                                         ${qual.company_status.upload_time ?
                                             `<br><small class="text-muted"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
                                             : ''}
+                                        <br>
+                                        <button class="btn btn-sm btn-outline-primary mt-1"
+                                                onclick="window.tenderProcessor.previewQualificationFile('${currentCompanyId}', '${qual.key}', '${qual.company_status.original_filename || ''}')">
+                                            <i class="bi bi-eye"></i> 预览
+                                        </button>
                                     </div>
                                 ` : `
-                                    <span class="badge bg-secondary text-white">✗ 未上传</span>
-                                    <div class="mt-2">
+                                    <div class="mt-1">
                                         <small class="text-muted">需补充此资质</small>
                                     </div>
                                 `}
@@ -894,21 +910,38 @@ class TenderProcessor {
                                     <i class="bi bi-check-circle text-primary"></i>
                                 </div>
                                 <div class="col">
-                                    <div class="d-flex align-items-center gap-2">
+                                    <div class="mb-1">
                                         <span class="fw-medium">${qual.qualification_name}</span>
-                                        <span class="badge bg-light text-dark border">可选</span>
                                     </div>
                                 </div>
                                 <div class="col-auto text-end" style="min-width: 200px;">
-                                    <span class="badge bg-success text-white">✓ 已上传</span>
-                                    <div class="mt-2">
-                                        <small class="text-muted">
-                                            <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
-                                        </small>
-                                        ${qual.company_status.upload_time ?
-                                            `<br><small class="text-muted"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
-                                            : ''}
+                                    <div class="d-flex gap-2 justify-content-end mb-2">
+                                        <span class="badge bg-light text-dark border">可选</span>
+                                        ${qual.company_status.uploaded ? `
+                                            <span class="badge bg-success text-white">✓ 已上传</span>
+                                        ` : `
+                                            <span class="badge bg-secondary text-white">✗ 未上传</span>
+                                        `}
                                     </div>
+                                    ${qual.company_status.uploaded ? `
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                <i class="bi bi-file-earmark"></i> ${qual.company_status.original_filename || '未知文件'}
+                                            </small>
+                                            ${qual.company_status.upload_time ?
+                                                `<br><small class="text-muted"><i class="bi bi-clock"></i> ${new Date(qual.company_status.upload_time).toLocaleDateString('zh-CN')}</small>`
+                                                : ''}
+                                            <br>
+                                            <button class="btn btn-sm btn-outline-primary mt-1"
+                                                    onclick="window.tenderProcessor.previewQualificationFile('${currentCompanyId}', '${qual.key}', '${qual.company_status.original_filename || ''}')">
+                                                <i class="bi bi-eye"></i> 预览
+                                            </button>
+                                        </div>
+                                    ` : `
+                                        <div class="mt-1">
+                                            <small class="text-muted">可提升竞争力</small>
+                                        </div>
+                                    `}
                                 </div>
                             </div>
                         </div>
@@ -1430,6 +1463,62 @@ class TenderProcessor {
     }
 
     /**
+     * 预览资质文件（图片/PDF等）
+     */
+    async previewQualificationFile(companyId, qualKey, filename) {
+        try {
+            // 调用API获取资质文件预览内容
+            const response = await fetch(`/api/companies/${companyId}/qualifications/${qualKey}/preview`);
+            const data = await response.json();
+
+            if (data.success) {
+                // 创建预览窗口
+                const previewWindow = window.open('', '_blank', 'width=1200,height=800');
+                previewWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>资质预览 - ${data.filename || filename}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+                        <style>
+                            body { padding: 20px; background: #f8f9fa; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="mb-3">
+                                <button class="btn btn-secondary btn-sm" onclick="window.close()">
+                                    <i class="bi bi-x-circle"></i> 关闭
+                                </button>
+                                <span class="ms-3 text-muted">
+                                    <i class="bi bi-file-earmark"></i> 文件名: ${data.filename || filename}
+                                </span>
+                            </div>
+                            <hr>
+                            ${data.content}
+                        </div>
+                    </body>
+                    </html>
+                `);
+                previewWindow.document.close();
+            } else {
+                throw new Error(data.error || '预览失败');
+            }
+
+            console.log('[TenderProcessor] 资质预览成功:', filename);
+        } catch (error) {
+            console.error('[TenderProcessor] 预览资质失败:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('预览资质失败: ' + error.message, 'error');
+            } else {
+                alert('预览资质失败: ' + error.message);
+            }
+        }
+    }
+
+    /**
      * 绑定选择器事件
      */
     bindSelectorEvents() {
@@ -1636,7 +1725,8 @@ class TenderProcessor {
 
                 // 显示资质要求（如果有）
                 if (formattedData.qualification && this.qualificationDisplay) {
-                    this.qualificationDisplay.innerHTML = this.formatQualificationInfo(formattedData.qualification);
+                    // 传递项目的公司ID或当前选择的公司ID
+                    this.qualificationDisplay.innerHTML = this.formatQualificationInfo(formattedData.qualification, project.company_id || this.selectedCompanyId);
                     this.qualificationDisplay.closest('.card').classList.remove('d-none');
                     console.log('[TenderProcessor] 已显示资质信息');
                 } else if (this.qualificationDisplay) {

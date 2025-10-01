@@ -400,3 +400,54 @@
 2025-10-01 10:23:12,577 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
 2025-10-01 10:23:12,585 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-10-01 10:23:16,615 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 10:34:51,208 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 10:35:00,467 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 重大税收失信主体名单-智慧足迹.png
+2025-10-01 10:35:04,058 - ai_tender_system.web_app - ERROR - 文档预览失败: 文档不存在: 重大税收失信主体名单-智慧足迹.png
+2025-10-01 10:41:02,841 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 10:41:03,263 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 10:41:05,468 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 10:41:05,478 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 10:53:54,726 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 10:58:20,685 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 10:58:34,082 - ai_tender_system.web_app - INFO - 预览资质文件: 营业执照_智慧足迹.png
+2025-10-01 11:22:03,960 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:22:14,319 - ai_tender_system.web_app - INFO - 预览资质文件: 营业执照_智慧足迹.png
+2025-10-01 11:23:24,694 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:24:10,795 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:33:20,483 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:33:52,633 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:38:39,745 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:39:00,681 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:40:49,258 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:45:13,221 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:45:13,686 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:45:15,928 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:45:15,936 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:45:36,612 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:45:36,817 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:45:38,579 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:45:38,587 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:46:06,954 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:46:07,396 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:46:09,546 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:46:09,554 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:46:17,709 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:46:17,904 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:46:19,164 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:46:19,174 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:46:38,736 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:46:38,936 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:46:40,822 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:46:40,831 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:47:17,519 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:47:17,751 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:47:19,581 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:47:19,591 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:47:20,058 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-01 11:47:20,315 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-01 11:47:21,637 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-01 11:47:21,647 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-01 11:49:42,823 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 11:49:59,278 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 12:20:27,648 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-01 12:25:19,824 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型

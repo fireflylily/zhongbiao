@@ -59,8 +59,6 @@ CREATE TABLE IF NOT EXISTS qualification_types (
 -- 插入预定义的资质类型
 INSERT OR IGNORE INTO qualification_types (type_key, type_name, category, is_required, sort_order) VALUES
     ('business_license', '营业执照', '基础资质', TRUE, 1),
-    ('tax_registration', '税务登记证', '基础资质', FALSE, 2),
-    ('organization_code', '组织机构代码证', '基础资质', FALSE, 3),
     ('bank_permit', '开户许可证', '基础资质', FALSE, 4),
     ('legal_id_front', '法人身份证正面', '基础资质', FALSE, 5),
     ('legal_id_back', '法人身份证反面', '基础资质', FALSE, 6),

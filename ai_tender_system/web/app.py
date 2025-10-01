@@ -1625,6 +1625,69 @@ def register_routes(app: Flask, config, logger):
             logger.error(f"下载资质文件失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    @app.route('/api/companies/<company_id>/qualifications/<qualification_key>/preview')
+    def preview_qualification_file(company_id, qualification_key):
+        """预览资质文件 - 返回JSON格式（符合全站架构）"""
+        try:
+            import base64
+
+            # 验证公司ID
+            try:
+                company_id_int = int(company_id)
+                company_data = kb_manager.get_company_detail(company_id_int)
+                if not company_data:
+                    return jsonify({'success': False, 'error': '公司不存在'}), 404
+            except ValueError:
+                return jsonify({'success': False, 'error': '无效的公司ID'}), 400
+
+            # 从数据库获取资质文件信息
+            qualification = kb_manager.db.get_qualification_by_key(company_id_int, qualification_key)
+            if not qualification:
+                return jsonify({'success': False, 'error': '资质文件不存在'}), 404
+
+            # 检查文件是否存在
+            file_path = Path(qualification['file_path'])
+            if not file_path.exists():
+                return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+            file_type = qualification['file_type'].lower() if qualification['file_type'] else ''
+            filename = qualification['original_filename']
+
+            # 根据文件类型生成HTML内容
+            if file_type in ['png', 'jpg', 'jpeg', 'gif', 'bmp']:
+                # 图片：base64编码嵌入
+                with open(file_path, 'rb') as f:
+                    img_data = base64.b64encode(f.read()).decode()
+                html_content = f'''
+                    <div class="text-center p-4">
+                        <img src="data:image/{file_type};base64,{img_data}"
+                             class="img-fluid"
+                             style="max-width: 100%; height: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+                    </div>
+                '''
+            elif file_type == 'pdf':
+                # PDF：提示下载
+                html_content = f'''
+                    <div class="alert alert-info m-4">
+                        <h5><i class="bi bi-file-pdf"></i> PDF文档预览</h5>
+                        <p class="mb-0">文件名: {filename}</p>
+                        <p class="text-muted">PDF预览功能正在开发中，请使用下载功能查看完整内容。</p>
+                    </div>
+                '''
+            else:
+                return jsonify({'success': False, 'error': f'不支持的文件格式: {file_type}'}), 400
+
+            logger.info(f"预览资质文件: {filename}")
+            return jsonify({
+                'success': True,
+                'content': html_content,
+                'filename': filename
+            })
+
+        except Exception as e:
+            logger.error(f"预览资质文件失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
     @app.route('/api/companies/<company_id>/qualifications/<qualification_key>', methods=['DELETE'])
     def delete_qualification_file(company_id, qualification_key):
         """删除公司资质文件"""

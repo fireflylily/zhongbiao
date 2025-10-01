@@ -290,9 +290,6 @@ class CompanyProfileManager {
                         <div class="col-md-6">
                             ${this.renderFinancialItem('纳税人资格证明', 'taxpayer_certificate', 'bi-receipt')}
                         </div>
-                        <div class="col-md-6">
-                            ${this.renderFinancialItem('银行开户许可证', 'bank_account', 'bi-bank')}
-                        </div>
                     </div>
                 </div>
                 <div class="mb-4">
