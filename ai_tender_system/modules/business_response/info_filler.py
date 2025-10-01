@@ -245,14 +245,29 @@ class InfoFiller:
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',  # 冒号后跟下划线或空格
                 rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',  # 冒号后跟下划线，以句号结束
                 rf'{re.escape(variant)}\s+[_\s]+$',  # 空格后跟下划线
+                rf'{re.escape(variant)}\s*[:：]\s*[_\s]{{10,}}',  # 🆕 10+个空格/下划线
+                rf'{re.escape(variant)}\s*[:：]\s*[_\s]+（[^）]*）',  # 🆕 空格+（盖章）
             ]
-            
+
             for pattern in patterns:
                 if re.search(pattern, text):
                     company_name = info.get('companyName', '')
                     if company_name:
-                        # 保持原有格式，只替换占位符部分
-                        new_text = re.sub(r'[_\s]+', company_name, text)
+                        # 保留后缀（如"（加盖公章）"）
+                        suffix_pattern = r'（[^）]*[章字印]）'
+                        suffix_match = re.search(suffix_pattern, text)
+                        suffix = suffix_match.group(0) if suffix_match else ''
+
+                        # 提取要替换的部分
+                        text_without_suffix = text.replace(suffix, '') if suffix else text
+
+                        # 替换空白符
+                        new_text = re.sub(r'[_\s]+', company_name, text_without_suffix).rstrip()
+
+                        # 如果有后缀，添加空格分隔
+                        if suffix:
+                            new_text = new_text + '  ' + suffix
+
                         self._update_paragraph_text(paragraph, new_text)
                         self.logger.info(f"填空规则: {variant} 填入 {company_name}")
                         return True
@@ -264,13 +279,29 @@ class InfoFiller:
                     rf'{re.escape(variant)}\s*[:：]\s*[_\s]*$',
                     rf'{re.escape(variant)}\s*[:：]\s*[_\s]+[。\.]',
                     rf'{re.escape(variant)}\s+[_\s]+$',
+                    rf'{re.escape(variant)}\s*[:：]\s*[_\s]{{10,}}',  # 🆕 10+个空格/下划线
+                    rf'{re.escape(variant)}\s*[:：]\s*[_\s]+（[^）]*）',  # 🆕 空格+（备注）
                 ]
-                
+
                 for pattern in patterns:
                     if re.search(pattern, text):
                         value = info.get(field_key, '')
                         if value:
-                            new_text = re.sub(r'[_\s]+', value, text)
+                            # 保留后缀（如"（盖章）"）
+                            suffix_pattern = r'（[^）]*[章字印注]）'
+                            suffix_match = re.search(suffix_pattern, text)
+                            suffix = suffix_match.group(0) if suffix_match else ''
+
+                            # 提取要替换的部分
+                            text_without_suffix = text.replace(suffix, '') if suffix else text
+
+                            # 替换空白符
+                            new_text = re.sub(r'[_\s]+', value, text_without_suffix).rstrip()
+
+                            # 如果有后缀，添加空格分隔
+                            if suffix:
+                                new_text = new_text + '  ' + suffix
+
                             self._update_paragraph_text(paragraph, new_text)
                             self.logger.info(f"填空规则: {variant} 填入 {value}")
                             return True

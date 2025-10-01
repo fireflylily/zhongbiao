@@ -357,26 +357,36 @@ class WordEditor {
 }
 
 // CSS动画
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addEditorStyles);
+    } else {
+        addEditorStyles();
     }
-    
-    .loading-content {
-        text-align: center;
+
+    function addEditorStyles() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            .loading-content {
+                text-align: center;
+            }
+
+            .loading-text {
+                font-size: 16px;
+                font-weight: 500;
+            }
+        `;
+        document.head.appendChild(styleElement);
     }
-    
-    .loading-text {
-        font-size: 16px;
-        font-weight: 500;
-    }
-`;
-document.head.appendChild(style);
+})();

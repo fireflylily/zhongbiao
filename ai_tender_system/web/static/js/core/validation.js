@@ -329,8 +329,16 @@ class ValidationManager {
 }
 
 // 添加CSS样式
-const style = document.createElement('style');
-style.textContent = `
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addValidationStyles);
+    } else {
+        addValidationStyles();
+    }
+
+    function addValidationStyles() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
     .is-invalid {
         border-color: #da4453 !important;
         box-shadow: 0 0 0 0.2rem rgba(218, 68, 83, 0.25) !important;
@@ -378,8 +386,10 @@ style.textContent = `
         10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
         20%, 40%, 60%, 80% { transform: translateX(2px); }
     }
-`;
-document.head.appendChild(style);
+        `;
+        document.head.appendChild(styleElement);
+    }
+})();
 
 // 创建全局验证管理器实例
 window.validator = new ValidationManager();

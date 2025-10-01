@@ -16,6 +16,18 @@ class NotificationManager {
      * 初始化通知容器
      */
     init() {
+        // 确保DOM加载完成后再初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.createContainer());
+        } else {
+            this.createContainer();
+        }
+    }
+
+    /**
+     * 创建通知容器
+     */
+    createContainer() {
         // 创建通知容器
         this.container = document.createElement('div');
         this.container.id = 'notification-container';
@@ -293,28 +305,38 @@ class NotificationManager {
 }
 
 // 添加CSS样式
-const style = document.createElement('style');
-style.textContent = `
-    .notification-enter {
-        transform: translateX(0) !important;
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addNotificationStyles);
+    } else {
+        addNotificationStyles();
     }
 
-    .notification-exit {
-        transform: translateX(100%) !important;
-        opacity: 0 !important;
-    }
+    function addNotificationStyles() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            .notification-enter {
+                transform: translateX(0) !important;
+            }
 
-    .notification:hover {
-        box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-    }
+            .notification-exit {
+                transform: translateX(100%) !important;
+                opacity: 0 !important;
+            }
 
-    .notification-close:hover {
-        color: #666 !important;
-        background-color: #f5f5f5;
-        border-radius: 50%;
+            .notification:hover {
+                box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            }
+
+            .notification-close:hover {
+                color: #666 !important;
+                background-color: #f5f5f5;
+                border-radius: 50%;
+            }
+        `;
+        document.head.appendChild(styleElement);
     }
-`;
-document.head.appendChild(style);
+})();
 
 // 创建全局通知管理器实例
 window.notifications = new NotificationManager();

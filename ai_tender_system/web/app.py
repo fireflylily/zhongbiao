@@ -594,7 +594,55 @@ def register_routes(app: Flask, config, logger):
             tender_no = data.get('tender_no', '')
             date_text = data.get('date_text', '')
             use_mcp = data.get('use_mcp', 'false').lower() == 'true'
-            
+
+            # 获取图片配置
+            image_config = None
+            image_config_str = data.get('image_config', '')
+            if image_config_str:
+                try:
+                    import json
+                    image_config_urls = json.loads(image_config_str)
+                    logger.info(f"接收到图片配置(URL): {image_config_urls}")
+
+                    # 将URL转换为实际文件路径
+                    image_config = {}
+
+                    # 转换公章路径
+                    if 'seal_path' in image_config_urls:
+                        qual_key = image_config_urls['seal_path'].split('/')[-2]
+                        qual = kb_manager.db.get_qualification_by_key(int(company_id), qual_key)
+                        if qual:
+                            image_config['seal_path'] = qual['file_path']
+                            logger.info(f"公章路径: {image_config['seal_path']}")
+
+                    # 转换营业执照路径
+                    if 'license_path' in image_config_urls:
+                        qual_key = image_config_urls['license_path'].split('/')[-2]
+                        qual = kb_manager.db.get_qualification_by_key(int(company_id), qual_key)
+                        if qual:
+                            image_config['license_path'] = qual['file_path']
+                            logger.info(f"营业执照路径: {image_config['license_path']}")
+
+                    # 转换资质证书路径
+                    if 'qualification_paths' in image_config_urls:
+                        qualification_paths = []
+                        for url in image_config_urls['qualification_paths']:
+                            qual_key = url.split('/')[-2]
+                            qual = kb_manager.db.get_qualification_by_key(int(company_id), qual_key)
+                            if qual:
+                                qualification_paths.append(qual['file_path'])
+                                logger.info(f"资质证书路径: {qual['file_path']}")
+                        if qualification_paths:
+                            image_config['qualification_paths'] = qualification_paths
+
+                    logger.info(f"转换后的图片配置: {image_config}")
+
+                except json.JSONDecodeError as e:
+                    logger.warning(f"图片配置JSON解析失败: {e}")
+                except Exception as e:
+                    logger.error(f"图片配置转换失败: {e}")
+                    image_config = None
+
             # 验证必填字段
             if not company_id:
                 raise ValueError("请选择应答公司")
@@ -662,15 +710,16 @@ def register_routes(app: Flask, config, logger):
             if use_mcp:
                 # 使用新架构的商务应答处理器
                 processor = BusinessResponseProcessor()
-                
-                # 使用MCP处理器的完整商务应答处理方法，包含日期字段处理
+
+                # 使用MCP处理器的完整商务应答处理方法，包含日期字段处理和图片插入
                 result_stats = processor.process_business_response(
                     str(template_path),
-                    str(output_path), 
+                    str(output_path),
                     company_data,
                     project_name,
                     tender_no,
-                    date_text
+                    date_text,
+                    image_config  # 传递图片配置
                 )
                 
                 output_path = str(output_path)
@@ -704,7 +753,8 @@ def register_routes(app: Flask, config, logger):
                     company_data,
                     project_name,
                     tender_no,
-                    date_text
+                    date_text,
+                    image_config  # 传递图片配置
                 )
                 
                 # 统一返回格式处理
@@ -1723,29 +1773,39 @@ def register_routes(app: Flask, config, logger):
         try:
             import os
             from datetime import datetime
-            
+
+            def format_size(size_bytes):
+                """格式化文件大小"""
+                for unit in ['B', 'KB', 'MB', 'GB']:
+                    if size_bytes < 1024.0:
+                        return f"{size_bytes:.1f} {unit}"
+                    size_bytes /= 1024.0
+                return f"{size_bytes:.1f} TB"
+
             files = []
             output_dir = config.get_path('output')
-            
+
             if output_dir.exists():
                 for filename in os.listdir(output_dir):
                     if filename.endswith(('.docx', '.doc', '.pdf')):
                         file_path = output_dir / filename
                         try:
                             stat = file_path.stat()
+                            modified_time = datetime.fromtimestamp(stat.st_mtime)
                             files.append({
                                 'name': filename,
-                                'size': stat.st_size,
+                                'size': format_size(stat.st_size),
+                                'date': modified_time.strftime('%Y-%m-%d %H:%M:%S'),
+                                'download_url': f'/download/{filename}',
                                 'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
-                                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                                'path': str(file_path)
+                                'modified': modified_time.isoformat()
                             })
                         except Exception as e:
                             logger.warning(f"读取文件信息失败 {filename}: {e}")
-            
+
             files.sort(key=lambda x: x.get('modified', ''), reverse=True)
             return jsonify({'success': True, 'files': files})
-            
+
         except Exception as e:
             logger.error(f"获取商务文件列表失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500

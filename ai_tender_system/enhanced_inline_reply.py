@@ -14,8 +14,14 @@ import json
 import logging
 import os
 import re
+import sys
 from datetime import datetime
 from typing import Dict, List
+from pathlib import Path
+
+# 添加公共模块路径
+sys.path.append(str(Path(__file__).parent))
+from common import get_prompt_manager
 
 #--------------------------------需要调整的全局变量--------------------------------------------------
 
@@ -40,12 +46,11 @@ try:
 except ImportError:
     API_CONFIG_AVAILABLE = False
 
-# 提示词模板（参考Generate.py的提示词设计）
-Prompt_Answer = """现在有个问答，比选文件要求和比选申请人应答，我给你举个例子，比如比选文件要求：支持可视化创建不同类型数据源，包括但不限于：传统数据库、文件系统、消息队列、SaaS API，NoSQL等、必选申请人回答的是：应答：满足。。系统支持数据源配置化管理，数据源、数据目标的信息可界面化管理。支持新增、修改、删除等配置管理功能，支持搜索功能。你学习一下我的风格。现在我是比选申请人，请严格按照我的风格来回答，请注意我回答的格式：首先是'应答：满足。'，然后说'系统支持什么什么'，这个过程需要你按照问题回答，不要跑题。以下是输入文字："""
-
-Prompt_Content = "你是一个大数据平台的专业产品售前，请针对这一需求给出800字的产品功能介绍，不要开头和总结，直接写产品功能，不需要用markdown格式，直接文本格式+特殊项目符号输出即可，需求如下："
-
-Prompt_Title = "你是一个专业作者，请把以下这段文字变为10字以内不带细节内容和标点和解释的文字，直接给出结果不要'简化为'这种返回："
+# 注意：提示词现在由 PromptManager 统一管理
+# 保留这些常量仅用于向后兼容，实际使用时从 PromptManager 加载
+Prompt_Answer = None  # 将从 point_to_point.json 加载
+Prompt_Content = None  # 将从 point_to_point.json 加载
+Prompt_Title = None  # 将从 point_to_point.json 加载
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -71,8 +76,11 @@ logger = logging.getLogger(__name__)
 
 class EnhancedInlineReplyProcessor:
     """增强版原地应答插入处理器"""
-    
+
     def __init__(self, api_key: str = None):
+        # 初始化提示词管理器
+        self.prompt_manager = get_prompt_manager()
+
         # 获取API密钥，优先级：参数 > 全局配置 > 配置文件 > 环境变量 > 默认值
         if api_key and api_key != "sk-xxx":
             self.api_key = api_key
@@ -82,19 +90,19 @@ class EnhancedInlineReplyProcessor:
             self.api_key = get_api_key()
         else:
             self.api_key = api_key or "sk-xxx"
-            
+
         # 检查API密钥有效性
         if not self._is_valid_key(self.api_key):
             logger.warning("使用默认API密钥，请在文件顶部配置SHIHUANG_API_KEY以获得更好的应答效果")
             if API_CONFIG_AVAILABLE:
                 logger.info("运行 python3 api_config.py 查看配置指南")
-        
+
         self.template_file = 'config/response_templates.json'
         self.patterns_file = 'config/requirement_patterns.json'
-        
+
         # 使用全局API配置
         self.model_config = API_CONFIG.copy()
-        
+
         # 加载配置
         self.load_templates()
         self.load_patterns()
@@ -243,52 +251,23 @@ class EnhancedInlineReplyProcessor:
     
     def get_system_prompt(self, prompt_type: str = "default") -> str:
         """
-        获取专业的LLM系统提示词（根据Generate.py的提示词模式优化）
+        获取专业的LLM系统提示词 - 使用提示词管理器
         """
         if prompt_type == "point_to_point":
-            return """你是一名专业的投标文件撰写专家，专门负责点对点应答。
-
-你的任务：
-1. 以"应答：满足。"开头
-2. 然后说"系统支持..."
-3. 不要跑题，针对具体需求回答
-4. 语言专业、简洁
-
-格式示例：
-"应答：满足。系统支持数据源配置化管理，数据源、数据目标的信息可界面化管理。支持新增、修改、删除等配置管理功能，全面支持搜索功能。"""
+            return self.prompt_manager.get_prompt('point_to_point', 'system_prompt',
+                default="你是一名专业的投标文件撰写专家，专门负责点对点应答。")
         elif prompt_type == "content":
-            return """你是一个大数据平台的专业产品售前。
-
-任务：
-- 针对需求给出800字的产品功能介绍
-- 不要开头和总结，直接写产品功能
-- 使用直接文本格式+特殊项目符号
-- 内容要专业、具体、可实现"""
+            return self.prompt_manager.get_prompt('point_to_point', 'content',
+                default="你是一个大数据平台的专业产品售前。")
         else:
-            # 默认系统提示词（保持原有逻辑）
-            return """你是一名资深的技术方案专家和投标文件撰写专家，专门负责为采购需求提供专业的技术应答。
+            # 从 common 模块获取默认提示词
+            return self.prompt_manager.get_prompt('common', 'default',
+                default="你是一名资深的技术方案专家和投标文件撰写专家。")
 
-你的任务是：
-1. 仔细分析每个采购需求的核心要点
-2. 生成专业、具体、可信的技术应答
-3. 应答必须以"应答：满足。"开头
-4. 后续内容要体现专业性，避免空洞的表述
-
-应答原则：
-- 专业性：使用行业标准术语，体现技术实力
-- 具体性：提及具体的技术方案、产品型号、服务标准
-- 可信性：承诺要可实现，避免夸大其词
-- 简洁性：控制在80-150字，重点突出
-- 规范性：语言正式，符合商务文档标准
-
-应答格式示例：
-"应答：满足。我方采用主流的XXX技术架构，配备专业的XXX团队，严格按照XXX标准执行，确保XXX指标达到XXX水平。"
-
-请根据具体需求内容，生成相应的专业技术应答。"""
-    
     def _get_fallback_response(self) -> str:
-        """获取备用应答"""
-        return "应答：满足。我方具备完整的技术实力和丰富的项目经验，将严格按照采购要求提供专业的技术方案和优质服务。"
+        """获取备用应答 - 使用提示词管理器"""
+        return self.prompt_manager.get_prompt('common', 'fallback',
+            default="应答：满足。我方具备完整的技术实力和丰富的项目经验，将严格按照采购要求提供专业的技术方案和优质服务。")
     
     def copy_paragraph_format(self, source_para, target_para):
         """
@@ -473,13 +452,15 @@ class EnhancedInlineReplyProcessor:
     
     def generate_professional_response(self, requirement_text: str) -> str:
         """
-        生成专业的技术应答（优先使用Generate.py的点对点风格）
+        生成专业的技术应答（优先使用Generate.py的点对点风格）- 使用提示词管理器
         """
         req_type = self.classify_requirement_type(requirement_text)
-        
-        # 使用Generate.py的点对点应答风格
-        prompt = f"{Prompt_Answer}'{requirement_text}'"
-        
+
+        # 从提示词管理器获取点对点应答提示词
+        answer_prompt_template = self.prompt_manager.get_prompt('point_to_point', 'answer',
+            default="现在我是比选申请人，请以'应答：满足。'开头，然后说'系统支持什么什么'回答问题。以下是输入文字：")
+        prompt = f"{answer_prompt_template}'{requirement_text}'"
+
         try:
             response = self.llm_callback(prompt, f"{req_type}应答")
             

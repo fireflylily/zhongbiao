@@ -111,7 +111,9 @@
       "Bash(FLASK_RUN_PORT=8120 python3 -m ai_tender_system.web.app)",
       "Bash(pip3 list:*)",
       "Bash(pip3 show:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(xargs:*)",
+      "mcp__playwright__browser_network_requests"
     ],
     "deny": [],
     "ask": []

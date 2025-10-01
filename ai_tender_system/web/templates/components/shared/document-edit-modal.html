@@ -9,13 +9,23 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="documentEditContent">
-                    <!-- 编辑内容将在这里显示 -->
+                <div class="mb-3">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="loadDocumentToEditor()">
+                            <i class="bi bi-folder-open"></i> 读取文档
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="saveEditedDocument()">
+                            <i class="bi bi-save"></i> 保存并下载
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="clearEditor()">
+                            <i class="bi bi-trash"></i> 清空
+                        </button>
+                    </div>
                 </div>
+                <textarea id="documentEditor" style="width: 100%; min-height: 500px;"></textarea>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="saveDocumentBtn">保存</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
             </div>
         </div>
     </div>

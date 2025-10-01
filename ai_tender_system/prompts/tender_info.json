@@ -1,0 +1,10 @@
+{
+  "module": "tender_info",
+  "description": "招标信息提取模块的提示词配置",
+  "version": "1.0.0",
+  "updated_at": "2025-10-01",
+  "prompts": {
+    "extract_basic_info": "请从以下招标文档中提取基本信息，以JSON格式返回：\n\n文档内容：\n{text}\n\n请提取以下信息：\n1. project_name: 项目名称\n2. project_number: 项目编号\n3. tender_party: 招标人\n4. tender_agent: 招标代理机构\n5. tender_method: 采购方式\n6. tender_location: 开标地点\n7. tender_deadline: 开标时间\n8. winner_count: 中标人数量\n\n请严格按照JSON格式返回，例如：\n{{\n  \"project_name\": \"项目名称\",\n  \"project_number\": \"项目编号\",\n  \"tender_party\": \"招标人\",\n  \"tender_agent\": \"代理机构\",\n  \"tender_method\": \"公开招标\",\n  \"tender_location\": \"开标地点\",\n  \"tender_deadline\": \"开标时间\",\n  \"winner_count\": \"中标人数\"\n}}",
+    "extract_technical_scoring": "请从以下招标文档中提取技术评分标准，以JSON格式返回：\n\n文档内容：\n{text}\n\n请找出所有技术评分项目，并为每个项目提取以下信息：\n1. 评分项目名称\n2. 分值/权重\n3. 评分标准/要求描述\n4. 来源位置\n\n请按以下JSON格式返回：\n{{\n  \"total_score\": \"技术评分总分\",\n  \"extraction_summary\": \"提取摘要\",\n  \"items_count\": \"评分项目数量\",\n  \"item_1_name\": \"第一个评分项名称\",\n  \"item_1_weight\": \"第一个评分项分值\",\n  \"item_1_criteria\": \"第一个评分项标准描述\",\n  \"item_1_source\": \"第一个评分项来源\",\n  \"item_2_name\": \"第二个评分项名称\",\n  \"item_2_weight\": \"第二个评分项分值\",\n  ...\n}}"
+  }
+}

@@ -7,6 +7,7 @@ AI标书系统公共模块
 from .config import get_config, Config
 from .logger import setup_logging, get_module_logger
 from .llm_client import LLMClient
+from .prompt_manager import get_prompt_manager, PromptManager, get_prompt, reload_prompts
 from .exceptions import (
     AITenderSystemError, ConfigurationError, APIError,
     FileProcessingError, DocumentProcessingError,
@@ -28,6 +29,8 @@ __all__ = [
     'setup_logging', 'get_module_logger',
     # LLM客户端
     'LLMClient',
+    # 提示词管理
+    'get_prompt_manager', 'PromptManager', 'get_prompt', 'reload_prompts',
     # 异常
     'AITenderSystemError', 'ConfigurationError', 'APIError',
     'FileProcessingError', 'DocumentProcessingError',

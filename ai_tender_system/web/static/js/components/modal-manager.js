@@ -14,10 +14,12 @@ class ModalManager {
      * 初始化管理器
      */
     init() {
-        // 创建模态框容器
-        this.container = document.createElement('div');
-        this.container.id = 'modal-container';
-        document.body.appendChild(this.container);
+        // 确保DOM加载完成后再初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.createContainer());
+        } else {
+            this.createContainer();
+        }
 
         // 监听键盘事件
         document.addEventListener('keydown', (e) => {
@@ -25,6 +27,16 @@ class ModalManager {
                 this.closeTopModal();
             }
         });
+    }
+
+    /**
+     * 创建模态框容器
+     */
+    createContainer() {
+        // 创建模态框容器
+        this.container = document.createElement('div');
+        this.container.id = 'modal-container';
+        document.body.appendChild(this.container);
     }
 
     /**
@@ -474,8 +486,16 @@ class ModalManager {
 }
 
 // 添加CSS样式增强
-const style = document.createElement('style');
-style.textContent = `
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addModalStyles);
+    } else {
+        addModalStyles();
+    }
+
+    function addModalStyles() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
     /* 模态框动画优化 */
     .modal.fade .modal-dialog {
         transition: transform 0.25s ease-out;
@@ -515,8 +535,10 @@ style.textContent = `
             max-width: none;
         }
     }
-`;
-document.head.appendChild(style);
+        `;
+        document.head.appendChild(styleElement);
+    }
+})();
 
 // 创建全局模态框管理器实例
 window.modalManager = new ModalManager();

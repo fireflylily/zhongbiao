@@ -201,7 +201,7 @@ class SearchManager {
         const resultsContainer = document.getElementById('searchResults');
 
         // 显示加载状态
-        const searchModeText = searchMode === 'semantic' ? '语义搜索' : '关键词搜索';
+        const searchModeText = searchMode === 'semantic' ? '语义搜索 (RAG)' : '关键词搜索';
         resultsContainer.innerHTML = `
             <div class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
@@ -213,33 +213,49 @@ class SearchManager {
 
         try {
             const startTime = Date.now();
+            let results = [];
 
-            // 构建搜索参数
-            const params = {
-                query: query,
-                mode: searchMode,
-                limit: parseInt(limit)
-            };
+            if (searchMode === 'semantic') {
+                // 使用RAG向量搜索
+                const ragParams = {
+                    query: query,
+                    top_k: parseInt(limit)
+                };
 
-            if (category) params.category = category;
-            if (privacy) params.privacy_level = privacy;
-            if (searchMode === 'semantic' && threshold) {
-                params.similarity_threshold = parseFloat(threshold);
-            }
+                const response = await axios.post('/api/rag/search', ragParams);
+                const searchTime = Date.now() - startTime;
 
-            // 发送搜索请求
-            const response = await axios.post('/api/knowledge_base/search', params);
+                if (response.data.success) {
+                    // 转换RAG结果为前端格式
+                    results = this.transformRAGResults(response.data.results || []);
+                    this.currentSearchResults = results;
+                    this.displaySearchResults(results, searchMode, searchTime);
+                    this.addToSearchHistory(query, searchMode, results.length);
+                } else {
+                    throw new Error(response.data.error || 'RAG搜索失败');
+                }
 
-            const searchTime = Date.now() - startTime;
-
-            if (response.data.success) {
-                this.currentSearchResults = response.data.data || [];
-                this.displaySearchResults(this.currentSearchResults, searchMode, searchTime);
-
-                // 添加到搜索历史
-                this.addToSearchHistory(query, searchMode, this.currentSearchResults.length);
             } else {
-                throw new Error(response.data.error || '搜索失败');
+                // 使用传统关键词搜索
+                const params = {
+                    query: query,
+                    mode: searchMode,
+                    limit: parseInt(limit)
+                };
+
+                if (category) params.category = category;
+                if (privacy) params.privacy_level = privacy;
+
+                const response = await axios.post('/api/knowledge_base/search', params);
+                const searchTime = Date.now() - startTime;
+
+                if (response.data.success) {
+                    this.currentSearchResults = response.data.data || [];
+                    this.displaySearchResults(this.currentSearchResults, searchMode, searchTime);
+                    this.addToSearchHistory(query, searchMode, this.currentSearchResults.length);
+                } else {
+                    throw new Error(response.data.error || '搜索失败');
+                }
             }
 
         } catch (error) {
@@ -256,6 +272,39 @@ class SearchManager {
                 </div>
             `;
         }
+    }
+
+    /**
+     * 转换RAG API结果为前端格式
+     * @param {Array} ragResults RAG API返回的结果
+     * @returns {Array} 转换后的结果
+     */
+    transformRAGResults(ragResults) {
+        return ragResults.map(result => {
+            const metadata = result.metadata || {};
+
+            // 计算相似度分数（RAG返回的score是负值，转换为0-1的正值）
+            const similarityScore = result.score ? Math.max(0, 1 + result.score) : 0;
+
+            // 截取内容片段（前200字符）
+            const contentSnippet = result.content ?
+                result.content.substring(0, 200) + (result.content.length > 200 ? '...' : '') :
+                '';
+
+            return {
+                doc_id: metadata.document_id || 0,
+                original_filename: metadata.document_name || '未知文档',
+                privacy_classification: 1, // 默认公开
+                document_category: metadata.document_type || 'other',
+                file_size: 0,
+                content_snippet: contentSnippet,
+                similarity_score: similarityScore,
+                company_name: metadata.company_name || '未知企业',
+                product_name: metadata.product_name || '未知产品',
+                upload_time: metadata.upload_time || '',
+                source_file: result.source || ''
+            };
+        });
     }
 
     /**

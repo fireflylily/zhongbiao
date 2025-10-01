@@ -1,13 +1,14 @@
-# RAG知识库依赖包
-langchain==0.1.0
-chromadb==0.4.22
-sentence-transformers==2.3.1
-pypdf==4.0.1
-python-docx==1.1.0
-unstructured==0.12.0
-pillow==10.2.0
-openai==1.10.0
-tiktoken==0.5.2
+# RAG知识库依赖包（兼容Python 3.13）
+langchain>=0.1.0
+chromadb>=0.4.22
+sentence-transformers>=2.3.1
+pypdf>=4.0.1
+python-docx>=1.1.0
+# unstructured 0.18+ 支持 Python 3.13
+unstructured>=0.18.0
+pillow>=10.2.0
+openai>=1.10.0
+tiktoken>=0.5.2
 
 # 中文Embedding模型
-text2vec==1.2.9
+text2vec>=1.2.9

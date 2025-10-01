@@ -30,41 +30,13 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import (
     get_config, get_module_logger,
-    LLMClient, BusinessResponseError
+    LLMClient, BusinessResponseError,
+    get_prompt_manager
 )
 
 
 class InlineReplyProcessor:
     """增强版内联回复处理器"""
-
-    # 专业提示词模板
-    PROMPT_TEMPLATES = {
-        "point_to_point": """现在有个问答，比选文件要求和比选申请人应答，我给你举个例子，比如比选文件要求：支持可视化创建不同类型数据源，包括但不限于：传统数据库、文件系统、消息队列、SaaS API，NoSQL等、必选申请人回答的是：应答：满足。系统支持数据源配置化管理，数据源、数据目标的信息可界面化管理。支持新增、修改、删除等配置管理功能，支持搜索功能。你学习一下我的风格。现在我是比选申请人，请严格按照我的风格来回答，请注意我回答的格式：首先是'应答：满足。'，然后说'系统支持什么什么'，这个过程需要你按照问题回答，不要跑题。以下是输入文字：""",
-
-        "content_generation": "你是一个大数据平台的专业产品售前，请针对这一需求给出800字的产品功能介绍，不要开头和总结，直接写产品功能，不需要用markdown格式，直接文本格式+特殊项目符号输出即可，需求如下：",
-
-        "title_simplification": "你是一个专业作者，请把以下这段文字变为10字以内不带细节内容和标点和解释的文字，直接给出结果不要'简化为'这种返回：",
-
-        "system_default": """你是一名资深的技术方案专家和投标文件撰写专家，专门负责为采购需求提供专业的技术应答。
-
-你的任务是：
-1. 仔细分析每个采购需求的核心要点
-2. 生成专业、具体、可信的技术应答
-3. 应答必须以"应答：满足。"开头
-4. 后续内容要体现专业性，避免空洞的表述
-
-应答原则：
-- 专业性：使用行业标准术语，体现技术实力
-- 具体性：提及具体的技术方案、产品型号、服务标准
-- 可信性：承诺要可实现，避免夸大其词
-- 简洁性：控制在80-150字，重点突出
-- 规范性：语言正式，符合商务文档标准
-
-应答格式示例：
-"应答：满足。我方采用主流的XXX技术架构，配备专业的XXX团队，严格按照XXX标准执行，确保XXX指标达到XXX水平。"
-
-请根据具体需求内容，生成相应的专业技术应答。"""
-    }
 
     def __init__(self, model_name: str = "shihuang-gpt4o-mini"):
         """
@@ -75,6 +47,9 @@ class InlineReplyProcessor:
         """
         self.config = get_config()
         self.logger = get_module_logger("inline_reply")
+
+        # 初始化提示词管理器
+        self.prompt_manager = get_prompt_manager()
 
         # 初始化LLM客户端
         self.llm_client = LLMClient(model_name=model_name)
@@ -234,14 +209,18 @@ class InlineReplyProcessor:
             template = self.templates.get(req_type, self.templates["通用模板"])
             return f"应答：满足。{template}。"
 
-        # 使用点对点应答风格
-        prompt = f"{self.PROMPT_TEMPLATES['point_to_point']}'{requirement_text}'"
+        # 使用点对点应答风格 - 从提示词管理器获取
+        prompt_template = self.prompt_manager.get_prompt('business_response', 'point_to_point',
+            default="以下是输入文字：")
+        prompt = f"{prompt_template}'{requirement_text}'"
 
         try:
-            # 调用LLM生成应答
+            # 调用LLM生成应答 - 使用提示词管理器获取系统提示词
+            system_prompt = self.prompt_manager.get_prompt('business_response', 'system_default',
+                default="你是一名资深的技术方案专家。")
             response = self.llm_client.call(
                 prompt=prompt,
-                system_prompt=self.PROMPT_TEMPLATES['system_default'],
+                system_prompt=system_prompt,
                 temperature=0.3,
                 purpose=f"{req_type}应答生成"
             )

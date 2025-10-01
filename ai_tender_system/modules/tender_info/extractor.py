@@ -21,7 +21,8 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import (
     get_config, get_module_logger,
-    TenderInfoExtractionError, APIError, FileProcessingError
+    TenderInfoExtractionError, APIError, FileProcessingError,
+    get_prompt_manager
 )
 from common.llm_client import create_llm_client
 from common.database import get_knowledge_base_db
@@ -32,6 +33,9 @@ class TenderInfoExtractor:
     def __init__(self, api_key: Optional[str] = None, model_name: str = "gpt-4o-mini"):
         self.config = get_config()
         self.logger = get_module_logger("tender_info")
+
+        # 初始化提示词管理器
+        self.prompt_manager = get_prompt_manager()
 
         # 创建LLM客户端
         self.llm_client = create_llm_client(model_name, api_key)
@@ -879,48 +883,29 @@ class TenderInfoExtractor:
             raise FileProcessingError(f"文本文件读取失败: {str(e)}")
     
     def extract_basic_info(self, text: str) -> Dict[str, str]:
-        """提取基本项目信息"""
+        """提取基本项目信息 - 使用提示词管理器"""
         try:
             self.logger.info("开始提取基本项目信息")
-            
-            prompt = f"""
-请从以下招标文档中提取基本信息，以JSON格式返回：
 
-文档内容：
-{text[:3000]}...
+            # 从提示词管理器获取提示词模板
+            prompt_template = self.prompt_manager.get_prompt(
+                'tender_info',
+                'extract_basic_info',
+                default="请从招标文档中提取基本信息并以JSON格式返回。"
+            )
 
-请提取以下信息：
-1. project_name: 项目名称
-2. project_number: 项目编号
-3. tender_party: 招标人
-4. tender_agent: 招标代理机构
-5. tender_method: 采购方式
-6. tender_location: 开标地点
-7. tender_deadline: 开标时间
-8. winner_count: 中标人数量
+            # 使用模板生成提示词
+            prompt = prompt_template.format(text=text[:3000] + "...")
 
-请严格按照JSON格式返回，例如：
-{{
-  "project_name": "项目名称",
-  "project_number": "项目编号",
-  "tender_party": "招标人",
-  "tender_agent": "代理机构",
-  "tender_method": "公开招标",
-  "tender_location": "开标地点",
-  "tender_deadline": "开标时间",
-  "winner_count": "中标人数"
-}}
-"""
-            
             response = self.llm_callback(prompt, "基本信息提取")
-            
+
             # 解析JSON响应
             basic_info = self._safe_json_parse(response, "基本信息提取")
             if basic_info:
                 return basic_info
             else:
                 return {}
-                
+
         except Exception as e:
             self.logger.error(f"提取基本信息失败: {e}")
             raise TenderInfoExtractionError(f"基本信息提取失败: {str(e)}")
@@ -936,45 +921,28 @@ class TenderInfoExtractor:
             return {}
     
     def extract_technical_scoring(self, text: str) -> Dict[str, Any]:
-        """提取技术评分标准"""
+        """提取技术评分标准 - 使用提示词管理器"""
         try:
             self.logger.info("开始提取技术评分标准")
-            
-            prompt = f"""
-请从以下招标文档中提取技术评分标准，以JSON格式返回：
 
-文档内容：
-{text[:4000]}...
+            # 从提示词管理器获取提示词模板
+            prompt_template = self.prompt_manager.get_prompt(
+                'tender_info',
+                'extract_technical_scoring',
+                default="请从招标文档中提取技术评分标准并以JSON格式返回。"
+            )
 
-请找出所有技术评分项目，并为每个项目提取以下信息：
-1. 评分项目名称
-2. 分值/权重
-3. 评分标准/要求描述
-4. 来源位置
+            # 使用模板生成提示词
+            prompt = prompt_template.format(text=text[:4000] + "...")
 
-请按以下JSON格式返回：
-{{
-  "total_score": "技术评分总分",
-  "extraction_summary": "提取摘要",
-  "items_count": "评分项目数量",
-  "item_1_name": "第一个评分项名称",
-  "item_1_weight": "第一个评分项分值",
-  "item_1_criteria": "第一个评分项标准描述",
-  "item_1_source": "第一个评分项来源",
-  "item_2_name": "第二个评分项名称",
-  "item_2_weight": "第二个评分项分值",
-  ...
-}}
-"""
-            
             response = self.llm_callback(prompt, "技术评分提取")
-            
+
             scoring_info = self._safe_json_parse(response, "技术评分提取")
             if scoring_info:
                 return scoring_info
             else:
                 return {}
-                
+
         except Exception as e:
             self.logger.error(f"提取技术评分标准失败: {e}")
             return {}

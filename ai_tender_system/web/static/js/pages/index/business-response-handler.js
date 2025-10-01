@@ -1,4 +1,8 @@
 // 商务应答功能处理
+
+// 存储当前公司的资质信息
+let currentCompanyQualifications = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     // 从全局状态管理器加载公司和项目信息
     loadBusinessCompanyInfo();
@@ -25,10 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const templateFile = document.getElementById('businessTemplateFile').files[0];
             const companyId = document.getElementById('businessCompanyId').value;
-            const projectName = document.getElementById('businessProjectName').value;
             const tenderNo = document.getElementById('businessTenderNo').value;
             const dateText = document.getElementById('businessDate').value;
             const useMcp = 'true'; // 默认使用MCP处理器
+
+            // 从全局状态管理器获取项目名称
+            const companyData = window.companyStateManager ? window.companyStateManager.getSelectedCompany() : null;
+            const projectName = companyData && companyData.project_name ? companyData.project_name : '';
 
             // 验证必填字段
             if (!templateFile) {
@@ -60,6 +67,15 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('tender_no', tenderNo);
             formData.append('date_text', dateText);
             formData.append('use_mcp', useMcp);
+
+            // 构建并添加图片配置
+            const imageConfig = buildImageConfig(companyId);
+            if (imageConfig) {
+                formData.append('image_config', JSON.stringify(imageConfig));
+                console.log('添加图片配置到请求:', imageConfig);
+            } else {
+                console.log('没有可用的图片配置');
+            }
 
             // 发送请求
             fetch('/process-business-response', {
@@ -145,19 +161,26 @@ let currentDocumentPath = null; // 存储当前文档路径
 let wordEditor = null; // WordEditor实例
 
 // 预览商务应答文档
-function previewBusinessDocument() {
-    const downloadLink = document.getElementById('businessDownloadLink');
-    if (!downloadLink || !downloadLink.href) {
-        if (typeof showNotification === 'function') {
-            showNotification('没有可预览的文档', 'warning');
-        } else {
-            alert('没有可预览的文档');
+function previewBusinessDocument(customUrl = null) {
+    // 确定预览URL：优先使用传入的customUrl，否则从下载按钮获取
+    let previewUrl;
+    if (customUrl) {
+        previewUrl = customUrl;
+    } else {
+        const downloadLink = document.getElementById('businessDownloadLink');
+        if (!downloadLink || !downloadLink.href) {
+            if (typeof showNotification === 'function') {
+                showNotification('没有可预览的文档', 'warning');
+            } else {
+                alert('没有可预览的文档');
+            }
+            return;
         }
-        return;
+        previewUrl = downloadLink.href;
     }
 
-    // 从下载链接获取文件路径
-    const url = new URL(downloadLink.href, window.location.href);
+    // 从URL获取文件路径
+    const url = new URL(previewUrl, window.location.href);
     const filename = url.pathname.split('/').pop();
     currentDocumentPath = filename;
 
@@ -172,7 +195,7 @@ function previewBusinessDocument() {
     previewModal.show();
 
     // 使用mammoth.js在前端直接转换Word文档
-    fetch(downloadLink.href)
+    fetch(previewUrl)
         .then(response => response.arrayBuffer())
         .then(arrayBuffer => {
             // 使用mammoth转换Word为HTML
@@ -236,6 +259,11 @@ function editBusinessDocument() {
         return;
     }
 
+    // 从下载链接获取文件路径
+    const url = new URL(downloadLink.href, window.location.href);
+    const filename = url.pathname.split('/').pop();
+    currentDocumentPath = filename;
+
     // 初始化编辑器（如果还没有初始化）
     if (!wordEditor && typeof WordEditor !== 'undefined') {
         wordEditor = new WordEditor('documentEditor', {
@@ -250,10 +278,159 @@ function editBusinessDocument() {
 
     // 自动加载文档
     setTimeout(() => {
-        if (typeof loadDocumentToEditor === 'function') {
-            loadDocumentToEditor();
-        }
+        loadDocumentToEditor();
     }, 500);
+}
+
+// 加载文档到编辑器
+function loadDocumentToEditor(retryCount = 0) {
+    const maxRetries = 15; // 最多重试15次 (3秒)
+
+    if (!currentDocumentPath) {
+        if (typeof showNotification === 'function') {
+            showNotification('没有可加载的文档', 'warning');
+        } else {
+            alert('没有可加载的文档');
+        }
+        return;
+    }
+
+    if (!wordEditor) {
+        if (typeof showNotification === 'function') {
+            showNotification('编辑器未初始化，请先打开编辑窗口', 'error');
+        } else {
+            alert('编辑器未初始化，请先打开编辑窗口');
+        }
+        return;
+    }
+
+    // 检查 TinyMCE 编辑器实例是否已初始化
+    if (!wordEditor.editor) {
+        if (retryCount < maxRetries) {
+            console.log(`编辑器还在初始化中，等待重试... (${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => {
+                loadDocumentToEditor(retryCount + 1);
+            }, 200);
+            return;
+        } else {
+            if (typeof showNotification === 'function') {
+                showNotification('编辑器初始化超时，请刷新页面重试', 'error');
+            } else {
+                alert('编辑器初始化超时，请刷新页面重试');
+            }
+            return;
+        }
+    }
+
+    // 编辑器已ready，开始加载文档
+    console.log('编辑器已就绪，开始加载文档');
+
+    // 方案1：通过预览API获取HTML内容直接加载到编辑器
+    fetch(`/api/document/preview/${currentDocumentPath}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.html_content) {
+                wordEditor.setContent(data.html_content);
+                if (typeof showNotification === 'function') {
+                    showNotification('文档内容加载成功', 'success');
+                }
+            } else {
+                throw new Error(data.error || '无法获取文档内容');
+            }
+        })
+        .catch(error => {
+            console.error('Document loading error:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('文档加载失败，尝试备用方案...', 'warning');
+            }
+
+            // 方案2：如果预览失败，尝试原始文件加载
+            tryLoadOriginalFile();
+        });
+}
+
+// 尝试加载原始文件的备用方案
+function tryLoadOriginalFile() {
+    if (!currentDocumentPath || !wordEditor) return;
+
+    fetch(`/download/${currentDocumentPath}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            // 确保正确的MIME类型
+            const mimeType = currentDocumentPath.endsWith('.docx')
+                ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                : 'application/msword';
+
+            const file = new File([blob], currentDocumentPath, {
+                type: mimeType
+            });
+
+            return wordEditor.loadDocument(file);
+        })
+        .then(() => {
+            if (typeof showNotification === 'function') {
+                showNotification('文档加载成功', 'success');
+            }
+        })
+        .catch(error => {
+            console.error('Fallback document loading error:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('文档加载失败: ' + error.message, 'error');
+            } else {
+                alert('文档加载失败: ' + error.message);
+            }
+        });
+}
+
+// 保存编辑的文档
+function saveEditedDocument() {
+    if (!wordEditor || !wordEditor.editor) {
+        if (typeof showNotification === 'function') {
+            showNotification('编辑器未初始化或还在加载中，请稍后再试', 'error');
+        } else {
+            alert('编辑器未初始化或还在加载中，请稍后再试');
+        }
+        return;
+    }
+
+    const filename = currentDocumentPath ? currentDocumentPath.replace('.docx', '_edited') : 'edited_document';
+    wordEditor.saveDocument(filename)
+        .then(() => {
+            if (typeof showNotification === 'function') {
+                showNotification('文档保存成功', 'success');
+            }
+        })
+        .catch(error => {
+            if (typeof showNotification === 'function') {
+                showNotification('文档保存失败: ' + error.message, 'error');
+            } else {
+                alert('文档保存失败: ' + error.message);
+            }
+        });
+}
+
+// 清空编辑器
+function clearEditor() {
+    if (!wordEditor || !wordEditor.editor) {
+        if (typeof showNotification === 'function') {
+            showNotification('编辑器未初始化或还在加载中，请稍后再试', 'error');
+        } else {
+            alert('编辑器未初始化或还在加载中，请稍后再试');
+        }
+        return;
+    }
+
+    if (confirm('确定要清空编辑器内容吗？')) {
+        wordEditor.clearContent();
+        if (typeof showNotification === 'function') {
+            showNotification('编辑器已清空', 'info');
+        }
+    }
 }
 
 // 切换到编辑模式
@@ -302,17 +479,78 @@ function updateBusinessHiddenFields() {
         companyIdInput.value = companyData && companyData.company_id ? companyData.company_id : '';
     }
 
-    // 更新项目名称
-    const projectNameInput = document.getElementById('businessProjectName');
-    if (projectNameInput) {
-        projectNameInput.value = companyData && companyData.project_name ? companyData.project_name : '';
-    }
-
+    // 注意：项目名称现在显示在共用组件中，不需要单独的输入框
     // 可以在这里添加招标编号和日期的同步逻辑（如果需要的话）
 
     console.log('商务应答页面：表单字段已更新', companyData);
+
+    // 获取公司资质信息
+    if (companyData && companyData.company_id) {
+        fetchCompanyQualifications(companyData.company_id);
+    }
 }
 
+// 获取公司资质信息
+function fetchCompanyQualifications(companyId) {
+    console.log('正在获取公司资质信息:', companyId);
+
+    fetch(`/api/companies/${companyId}/qualifications`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentCompanyQualifications = data.qualifications;
+                console.log('获取到公司资质:', currentCompanyQualifications);
+            } else {
+                console.warn('获取公司资质失败:', data.error);
+                currentCompanyQualifications = null;
+            }
+        })
+        .catch(error => {
+            console.error('获取公司资质时发生错误:', error);
+            currentCompanyQualifications = null;
+        });
+}
+
+// 构建图片配置对象
+function buildImageConfig(companyId) {
+    if (!currentCompanyQualifications || Object.keys(currentCompanyQualifications).length === 0) {
+        console.log('没有可用的资质信息');
+        return null;
+    }
+
+    const imageConfig = {};
+
+    // 营业执照
+    if (currentCompanyQualifications.business_license) {
+        imageConfig.license_path = `/api/companies/${companyId}/qualifications/business_license/download`;
+        console.log('添加营业执照路径:', imageConfig.license_path);
+    }
+
+    // 公章 (如果有的话)
+    if (currentCompanyQualifications.company_seal) {
+        imageConfig.seal_path = `/api/companies/${companyId}/qualifications/company_seal/download`;
+        console.log('添加公章路径:', imageConfig.seal_path);
+    }
+
+    // 资质证书 - 收集所有ISO认证和其他资质
+    const qualificationPaths = [];
+    const qualificationKeys = ['iso9001', 'iso14001', 'iso20000', 'iso27001', 'cmmi', 'itss',
+                               'safety_production', 'software_copyright', 'patent_certificate'];
+
+    for (const key of qualificationKeys) {
+        if (currentCompanyQualifications[key]) {
+            qualificationPaths.push(`/api/companies/${companyId}/qualifications/${key}/download`);
+            console.log(`添加资质证书: ${key}`);
+        }
+    }
+
+    if (qualificationPaths.length > 0) {
+        imageConfig.qualification_paths = qualificationPaths;
+    }
+
+    console.log('构建的image_config:', imageConfig);
+    return Object.keys(imageConfig).length > 0 ? imageConfig : null;
+}
 
 // 加载历史文件列表
 function loadBusinessFilesList() {
@@ -332,7 +570,10 @@ function loadBusinessFilesList() {
                                     <h6 class="mb-1">${file.name}</h6>
                                     <small class="text-muted">${file.date} | ${file.size}</small>
                                 </div>
-                                <div>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="previewBusinessDocument('${file.download_url}')">
+                                        <i class="bi bi-eye"></i> 预览
+                                    </button>
                                     <a href="${file.download_url}" class="btn btn-sm btn-primary">
                                         <i class="bi bi-download"></i> 下载
                                     </a>
