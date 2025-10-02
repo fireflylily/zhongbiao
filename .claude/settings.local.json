@@ -113,7 +113,8 @@
       "Bash(pip3 show:*)",
       "Read(//tmp/**)",
       "Bash(xargs:*)",
-      "mcp__playwright__browser_network_requests"
+      "mcp__playwright__browser_network_requests",
+      "Bash(FLASK_RUN_PORT=8080 python3 -m ai_tender_system.web.app)"
     ],
     "deny": [],
     "ask": []

@@ -964,6 +964,329 @@ class KnowledgeBaseDB:
             logger.error(f"删除资质文件失败: {e}")
             return False
 
+    # =========================
+    # 标书智能处理系统相关方法
+    # =========================
+
+    # --- 文档分块管理 ---
+    def create_tender_chunk(self, project_id: int, chunk_index: int, chunk_type: str,
+                           content: str, metadata: Dict = None) -> int:
+        """创建标书文档分块"""
+        metadata_json = json.dumps(metadata, ensure_ascii=False) if metadata else None
+
+        query = """
+        INSERT INTO tender_document_chunks
+        (project_id, chunk_index, chunk_type, content, metadata)
+        VALUES (?, ?, ?, ?, ?)
+        """
+        return self.execute_query(query, (project_id, chunk_index, chunk_type, content, metadata_json))
+
+    def get_tender_chunks(self, project_id: int, valuable_only: bool = False) -> List[Dict]:
+        """获取标书文档分块列表"""
+        if valuable_only:
+            query = """
+            SELECT * FROM tender_document_chunks
+            WHERE project_id = ? AND is_valuable = TRUE
+            ORDER BY chunk_index
+            """
+        else:
+            query = """
+            SELECT * FROM tender_document_chunks
+            WHERE project_id = ?
+            ORDER BY chunk_index
+            """
+        return self.execute_query(query, (project_id,))
+
+    def update_chunk_filter_result(self, chunk_id: int, is_valuable: bool,
+                                   confidence: float = None, model: str = None) -> bool:
+        """更新分块的筛选结果"""
+        query = """
+        UPDATE tender_document_chunks
+        SET is_valuable = ?, filter_confidence = ?, filter_model = ?,
+            filtered_at = CURRENT_TIMESTAMP
+        WHERE chunk_id = ?
+        """
+        result = self.execute_query(query, (is_valuable, confidence, model, chunk_id))
+        return result is not None
+
+    def batch_create_tender_chunks(self, chunks_data: List[Dict]) -> bool:
+        """批量创建标书文档分块"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                for chunk in chunks_data:
+                    metadata_json = json.dumps(chunk.get('metadata', {}), ensure_ascii=False)
+                    cursor.execute("""
+                        INSERT INTO tender_document_chunks
+                        (project_id, chunk_index, chunk_type, content, metadata)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (chunk['project_id'], chunk['chunk_index'], chunk['chunk_type'],
+                          chunk['content'], metadata_json))
+
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"批量创建分块失败: {e}")
+            return False
+
+    # --- 要求提取管理 ---
+    def create_tender_requirement(self, project_id: int, constraint_type: str,
+                                  category: str, detail: str, chunk_id: int = None,
+                                  subcategory: str = None, source_location: str = None,
+                                  priority: str = 'medium', extraction_confidence: float = None,
+                                  extraction_model: str = None) -> int:
+        """创建标书要求记录"""
+        query = """
+        INSERT INTO tender_requirements
+        (project_id, chunk_id, constraint_type, category, subcategory, detail,
+         source_location, priority, extraction_confidence, extraction_model,
+         extracted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """
+        return self.execute_query(query, (
+            project_id, chunk_id, constraint_type, category, subcategory, detail,
+            source_location, priority, extraction_confidence, extraction_model
+        ))
+
+    def get_tender_requirements(self, project_id: int, constraint_type: str = None,
+                               category: str = None) -> List[Dict]:
+        """获取标书要求列表"""
+        conditions = ["project_id = ?"]
+        params = [project_id]
+
+        if constraint_type:
+            conditions.append("constraint_type = ?")
+            params.append(constraint_type)
+
+        if category:
+            conditions.append("category = ?")
+            params.append(category)
+
+        where_clause = " AND ".join(conditions)
+
+        query = f"""
+        SELECT * FROM tender_requirements
+        WHERE {where_clause}
+        ORDER BY
+            CASE constraint_type
+                WHEN 'mandatory' THEN 1
+                WHEN 'scoring' THEN 2
+                WHEN 'optional' THEN 3
+            END,
+            category, extraction_confidence DESC
+        """
+        return self.execute_query(query, tuple(params))
+
+    def update_requirement_verification(self, requirement_id: int, is_verified: bool,
+                                       verified_by: str = None, notes: str = None) -> bool:
+        """更新要求的验证状态"""
+        query = """
+        UPDATE tender_requirements
+        SET is_verified = ?, verified_by = ?, verified_at = CURRENT_TIMESTAMP, notes = ?
+        WHERE requirement_id = ?
+        """
+        result = self.execute_query(query, (is_verified, verified_by, notes, requirement_id))
+        return result is not None
+
+    def batch_create_tender_requirements(self, requirements_data: List[Dict]) -> bool:
+        """批量创建标书要求"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                for req in requirements_data:
+                    cursor.execute("""
+                        INSERT INTO tender_requirements
+                        (project_id, chunk_id, constraint_type, category, subcategory,
+                         detail, source_location, priority, extraction_confidence,
+                         extraction_model, extracted_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    """, (req.get('project_id'), req.get('chunk_id'), req.get('constraint_type'),
+                          req.get('category'), req.get('subcategory'), req.get('detail'),
+                          req.get('source_location'), req.get('priority', 'medium'),
+                          req.get('extraction_confidence'), req.get('extraction_model')))
+
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"批量创建要求失败: {e}")
+            return False
+
+    def get_requirements_summary(self, project_id: int) -> Dict:
+        """获取要求汇总统计"""
+        query = """
+        SELECT * FROM v_requirements_summary
+        WHERE project_id = ?
+        """
+        results = self.execute_query(query, (project_id,))
+
+        summary = {
+            'by_type': {},
+            'by_category': {},
+            'total': 0
+        }
+
+        for row in results:
+            key = f"{row['constraint_type']}/{row['category']}"
+            summary['by_type'][row['constraint_type']] = summary['by_type'].get(row['constraint_type'], 0) + row['count']
+            summary['by_category'][row['category']] = summary['by_category'].get(row['category'], 0) + row['count']
+            summary['total'] += row['count']
+
+        return summary
+
+    # --- 处理任务管理 ---
+    def create_processing_task(self, project_id: int, task_id: str,
+                              pipeline_config: Dict = None, options: Dict = None) -> bool:
+        """创建处理任务"""
+        config_json = json.dumps(pipeline_config, ensure_ascii=False) if pipeline_config else None
+        options_json = json.dumps(options, ensure_ascii=False) if options else None
+
+        query = """
+        INSERT INTO tender_processing_tasks
+        (task_id, project_id, pipeline_config, options)
+        VALUES (?, ?, ?, ?)
+        """
+        result = self.execute_query(query, (task_id, project_id, config_json, options_json))
+        return result is not None
+
+    def get_processing_task(self, task_id: str) -> Optional[Dict]:
+        """获取处理任务信息"""
+        query = "SELECT * FROM tender_processing_tasks WHERE task_id = ?"
+        return self.execute_query(query, (task_id,), fetch_one=True)
+
+    def update_processing_task(self, task_id: str, overall_status: str = None,
+                              current_step: str = None, progress_percentage: float = None,
+                              total_chunks: int = None, valuable_chunks: int = None,
+                              total_requirements: int = None) -> bool:
+        """更新处理任务状态"""
+        updates = []
+        params = []
+
+        if overall_status:
+            updates.append("overall_status = ?")
+            params.append(overall_status)
+            if overall_status == 'running' and current_step:
+                updates.append("started_at = CURRENT_TIMESTAMP")
+            elif overall_status in ['completed', 'failed', 'cancelled']:
+                updates.append("completed_at = CURRENT_TIMESTAMP")
+
+        if current_step:
+            updates.append("current_step = ?")
+            params.append(current_step)
+
+        if progress_percentage is not None:
+            updates.append("progress_percentage = ?")
+            params.append(progress_percentage)
+
+        if total_chunks is not None:
+            updates.append("total_chunks = ?")
+            params.append(total_chunks)
+
+        if valuable_chunks is not None:
+            updates.append("valuable_chunks = ?")
+            params.append(valuable_chunks)
+
+        if total_requirements is not None:
+            updates.append("total_requirements = ?")
+            params.append(total_requirements)
+
+        if not updates:
+            return False
+
+        params.append(task_id)
+        query = f"UPDATE tender_processing_tasks SET {', '.join(updates)} WHERE task_id = ?"
+        result = self.execute_query(query, tuple(params))
+        return result is not None
+
+    # --- 处理日志管理 ---
+    def create_processing_log(self, project_id: int, task_id: str, step: str) -> int:
+        """创建处理日志"""
+        query = """
+        INSERT INTO tender_processing_logs
+        (project_id, task_id, step, status, started_at)
+        VALUES (?, ?, ?, 'pending', CURRENT_TIMESTAMP)
+        """
+        return self.execute_query(query, (project_id, task_id, step))
+
+    def update_processing_log(self, log_id: int, status: str = None,
+                             processed_items: int = None, success_items: int = None,
+                             failed_items: int = None, actual_cost: float = None,
+                             api_calls: int = None, total_tokens: int = None,
+                             error_message: str = None) -> bool:
+        """更新处理日志"""
+        updates = []
+        params = []
+
+        if status:
+            updates.append("status = ?")
+            params.append(status)
+            if status in ['completed', 'failed', 'cancelled']:
+                updates.append("completed_at = CURRENT_TIMESTAMP")
+
+        if processed_items is not None:
+            updates.append("processed_items = ?")
+            params.append(processed_items)
+
+        if success_items is not None:
+            updates.append("success_items = ?")
+            params.append(success_items)
+
+        if failed_items is not None:
+            updates.append("failed_items = ?")
+            params.append(failed_items)
+
+        if actual_cost is not None:
+            updates.append("actual_cost = ?")
+            params.append(actual_cost)
+
+        if api_calls is not None:
+            updates.append("api_calls = ?")
+            params.append(api_calls)
+
+        if total_tokens is not None:
+            updates.append("total_tokens = ?")
+            params.append(total_tokens)
+
+        if error_message:
+            updates.append("error_message = ?")
+            params.append(error_message)
+
+        if not updates:
+            return False
+
+        params.append(log_id)
+        query = f"UPDATE tender_processing_logs SET {', '.join(updates)} WHERE log_id = ?"
+        result = self.execute_query(query, tuple(params))
+        return result is not None
+
+    def get_processing_logs(self, task_id: str = None, project_id: int = None) -> List[Dict]:
+        """获取处理日志列表"""
+        conditions = []
+        params = []
+
+        if task_id:
+            conditions.append("task_id = ?")
+            params.append(task_id)
+
+        if project_id:
+            conditions.append("project_id = ?")
+            params.append(project_id)
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+        query = f"""
+        SELECT * FROM tender_processing_logs
+        WHERE {where_clause}
+        ORDER BY created_at DESC
+        """
+        return self.execute_query(query, tuple(params))
+
+    def get_processing_statistics(self, task_id: str) -> Optional[Dict]:
+        """获取处理统计信息"""
+        query = "SELECT * FROM v_processing_statistics WHERE task_id = ?"
+        return self.execute_query(query, (task_id,), fetch_one=True)
+
 
 # 全局数据库实例
 _db_instance = None
