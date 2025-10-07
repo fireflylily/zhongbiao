@@ -145,19 +145,24 @@ def search_knowledge():
         if product_id:
             filter_dict['product_id'] = product_id
 
-        # 执行检索
+        # 执行检索（三层混合搜索）
         engine = get_rag_engine()
         results = engine.search(
             query=query,
             k=k,
-            filter_dict=filter_dict if filter_dict else None
+            filter_dict=filter_dict if filter_dict else None,
+            include_toc=True  # 启用目录搜索
         )
 
         return jsonify({
             'success': True,
             'query': query,
-            'results': results,
-            'count': len(results)
+            'toc_results': results.get('toc_results', []),
+            'content_results': results.get('content_results', []),
+            'total_count': results.get('total_count', 0),
+            # 兼容旧版API，保留results字段
+            'results': results.get('content_results', []),
+            'count': results.get('total_count', 0)
         })
 
     except Exception as e:

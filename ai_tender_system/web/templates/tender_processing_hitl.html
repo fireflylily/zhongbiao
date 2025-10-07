@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标书智能处理 - HITL流程 - AI标书系统</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="/static/css/tender-processing-hitl.css">
+
+    <style>
+        body {
+            background-color: #f5f5f5;
+            padding-top: 70px;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.3rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-file-earmark-text me-2"></i>AI标书系统
+            </a>
+            <div class="d-flex align-items-center">
+                <a href="/" class="btn btn-sm btn-outline-light me-2">
+                    <i class="bi bi-house"></i> 首页
+                </a>
+                <a href="/knowledge_base" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-database"></i> 知识库
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="container-fluid" style="max-width: 1400px;">
+        <!-- 页面标题 -->
+        <div class="section-card">
+            <h2>
+                <i class="bi bi-magic text-primary me-2"></i>标书智能处理 - 人工确认流程
+            </h2>
+            <p class="text-muted mb-0">
+                三步智能处理：<strong>章节选择</strong> → <strong>AI筛选复核</strong> → <strong>精准要求提取</strong>
+            </p>
+        </div>
+
+        <!-- 步骤指示器 -->
+        <div class="step-indicator">
+            <div class="step active" id="stepIndicator1">
+                <div class="step-number">1</div>
+                <div class="step-label">章节选择</div>
+            </div>
+            <div class="step" id="stepIndicator2">
+                <div class="step-number">2</div>
+                <div class="step-label">AI筛选复核</div>
+            </div>
+            <div class="step" id="stepIndicator3">
+                <div class="step-number">3</div>
+                <div class="step-label">要求提取编辑</div>
+            </div>
+        </div>
+
+        <!-- ==================== -->
+        <!-- 上传文件区域 -->
+        <!-- ==================== -->
+        <div id="uploadSection" class="section-card">
+            <h4 class="section-title">
+                <i class="bi bi-upload me-2"></i>上传标书文档
+            </h4>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <label for="projectId" class="form-label">项目ID <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="projectId" placeholder="输入项目ID" value="1">
+                </div>
+                <div class="col-md-6">
+                    <label for="tenderDocFile" class="form-label">标书文档 <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" id="tenderDocFile" accept=".docx,.doc">
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button class="btn btn-primary" id="parseStructureBtn">
+                    <i class="bi bi-file-earmark-code me-2"></i>解析文档结构
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== -->
+        <!-- 步骤1：章节选择 -->
+        <!-- ==================== -->
+        <div id="chapterSelectionSection" class="section-card" style="display: none;">
+            <h4 class="section-title">
+                <i class="bi bi-list-nested me-2"></i>步骤1：选择需要处理的章节
+            </h4>
+
+            <!-- 统计信息 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">总章节数</div>
+                    <div class="stat-value" id="statTotalChapters">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">已选择</div>
+                    <div class="stat-value text-success" id="statSelectedChapters">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">选中字数</div>
+                    <div class="stat-value text-info" id="statSelectedWords">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">预估成本</div>
+                    <div class="stat-value text-warning" id="statEstCost">$0.00</div>
+                </div>
+            </div>
+
+            <!-- 批量操作 -->
+            <div class="batch-operations">
+                <button class="btn btn-sm btn-outline-primary" id="selectAllBtn">
+                    <i class="bi bi-check-all"></i> 全选
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="unselectAllBtn">
+                    <i class="bi bi-x"></i> 全不选
+                </button>
+                <button class="btn btn-sm btn-outline-success" id="selectTechBtn">
+                    <i class="bi bi-cpu"></i> 仅选技术章节
+                </button>
+                <button class="btn btn-sm btn-outline-danger" id="excludeContractBtn">
+                    <i class="bi bi-file-x"></i> 排除合同条款
+                </button>
+            </div>
+
+            <div class="row">
+                <!-- 左侧：章节树 -->
+                <div class="col-md-8">
+                    <div class="chapter-search mb-3">
+                        <input type="text"
+                               class="form-control"
+                               id="chapterSearch"
+                               placeholder="🔍 搜索章节...">
+                    </div>
+
+                    <div class="chapter-tree-container" id="chapterTreeContainer">
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-folder2-open" style="font-size: 3rem;"></i>
+                            <p class="mt-3">等待文档解析...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：预览区 -->
+                <div class="col-md-4">
+                    <h6 class="mb-3">章节预览</h6>
+                    <div id="chapterPreview">
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-eye" style="font-size: 3rem;"></i>
+                            <p class="mt-3">点击"预览"按钮查看章节内容</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 确认按钮 -->
+            <div class="mt-4 text-center">
+                <button class="btn btn-primary btn-lg me-3" id="exportSelectedChaptersBtn" disabled>
+                    <i class="bi bi-download me-2"></i>导出选中章节
+                </button>
+                <button class="btn btn-success btn-lg" id="confirmSelectionBtn">
+                    <i class="bi bi-check-circle me-2"></i>确认选择并继续
+                </button>
+            </div>
+
+            <!-- 完成消息 -->
+            <div id="step1CompleteMessage" style="display: none;"></div>
+        </div>
+
+        <!-- ==================== -->
+        <!-- 步骤2：章节要求预览 -->
+        <!-- ==================== -->
+        <div id="step2Section" class="section-card" style="display: none;">
+            <h4 class="section-title">
+                <i class="bi bi-list-check me-2"></i>步骤2：章节要求预览
+            </h4>
+
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                AI已从选中的章节中提取要求。您可以查看每个章节的要求数量，取消不需要的章节。
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="stats-grid mb-4">
+                <div class="stat-card">
+                    <div class="stat-label">总章节数</div>
+                    <div class="stat-value" id="statTotalChapters">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">已选章节</div>
+                    <div class="stat-value text-success" id="statSelectedChapters">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">提取要求数</div>
+                    <div class="stat-value text-primary" id="statTotalRequirementsStep2">0</div>
+                </div>
+            </div>
+
+            <!-- 章节列表 -->
+            <div id="chapterRequirementsContainer" style="max-height: 600px; overflow-y: auto;">
+                <div class="text-center text-muted py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-3">正在加载章节数据...</p>
+                </div>
+            </div>
+
+            <!-- 确认继续按钮 -->
+            <div class="mt-4 text-center">
+                <button class="btn btn-success btn-lg" id="confirmStep2Btn">
+                    <i class="bi bi-arrow-right me-2"></i>确认并继续步骤3
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== -->
+        <!-- 步骤3：可编辑表格 -->
+        <!-- ==================== -->
+        <div id="step3Section" class="section-card" style="display: none;">
+            <h4 class="section-title">
+                <i class="bi bi-table me-2"></i>步骤3：要求提取与编辑
+            </h4>
+
+            <!-- 统计信息 -->
+            <div class="stats-grid mb-4">
+                <div class="stat-card">
+                    <div class="stat-label">总要求数</div>
+                    <div class="stat-value" id="statTotalRequirements">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">强制性</div>
+                    <div class="stat-value text-danger" id="statMandatory">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">加分项</div>
+                    <div class="stat-value text-warning" id="statScoring">0</div>
+                </div>
+            </div>
+
+            <!-- 操作栏 -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-secondary active" data-type-filter="all">
+                        全部
+                    </button>
+                    <button class="btn btn-outline-danger" data-type-filter="mandatory">
+                        强制性
+                    </button>
+                    <button class="btn btn-outline-warning" data-type-filter="scoring">
+                        加分项
+                    </button>
+                    <button class="btn btn-outline-info" data-type-filter="optional">
+                        可选
+                    </button>
+                </div>
+
+                <div>
+                    <button class="btn btn-sm btn-primary" id="addRequirementBtn">
+                        <i class="bi bi-plus-circle"></i> 新增要求
+                    </button>
+                    <button class="btn btn-sm btn-success" id="exportExcelBtn">
+                        <i class="bi bi-file-excel"></i> 导出Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- 可编辑表格 -->
+            <div style="overflow-x: auto; max-height: 600px; overflow-y: auto;">
+                <table class="table table-bordered table-hover editable-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">ID</th>
+                            <th style="width: 120px;">类型</th>
+                            <th style="width: 100px;">分类</th>
+                            <th style="width: 120px;">子分类</th>
+                            <th style="min-width: 300px;">详细描述</th>
+                            <th style="width: 100px;">优先级</th>
+                            <th style="width: 80px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requirementsTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-3">正在加载...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 保存并完成 -->
+            <div class="mt-4 text-center">
+                <button class="btn btn-success btn-lg" id="saveAndCompleteBtn">
+                    <i class="bi bi-check-circle me-2"></i>保存并完成
+                </button>
+            </div>
+
+            <!-- 完成消息 -->
+            <div id="step3CompleteMessage" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 步骤1脚本 -->
+    <script src="/static/js/pages/tender-processing-step1.js"></script>
+
+    <!-- 步骤2脚本 -->
+    <script src="/static/js/pages/tender-processing-step2.js"></script>
+
+    <!-- 步骤3脚本 -->
+    <script src="/static/js/pages/tender-processing-step3.js"></script>
+</body>
+</html>

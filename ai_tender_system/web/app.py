@@ -253,6 +253,11 @@ def register_routes(app: Flask, config, logger):
         """标书智能处理页面"""
         return render_template('tender_processing.html')
 
+    @app.route('/tender_processing_hitl')
+    def tender_processing_hitl():
+        """标书智能处理页面 - HITL流程"""
+        return render_template('tender_processing_hitl.html')
+
     # ===================
     # 静态资源路由
     # ===================
@@ -2867,6 +2872,15 @@ def register_routes(app: Flask, config, logger):
         except Exception as e:
             logger.error(f"导出要求失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ===================
+    # HITL（Human-in-the-Loop）API - 三步人工确认流程
+    # ===================
+
+    # 注册 HITL API 路由
+    from web.api_tender_processing_hitl import register_hitl_routes
+    register_hitl_routes(app)
+    logger.info("HITL API 路由已注册")
 
     # ===================
     # 错误处理

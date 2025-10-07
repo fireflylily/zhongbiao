@@ -52,12 +52,12 @@ class RAGEngine:
             encode_kwargs={'normalize_embeddings': True}
         )
 
-        # 初始化文本切分器
+        # 初始化文本切分器（优化参数以提升搜索质量）
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,  # 每个文本块500字符
-            chunk_overlap=50,  # 重叠50字符保持语义连贯
+            chunk_size=800,  # 每个文本块800字符（增加以保留更完整上下文）
+            chunk_overlap=150,  # 重叠150字符保持语义连贯（增加以提升语义连续性）
             length_function=len,
-            separators=["\n\n", "\n", "。", "！", "？", "；", "，", " ", ""]
+            separators=["\n\n", "\n", "。", "！", "？", "；", "，", " ", ""]  # 优先按段落和句子分割
         )
 
         # 初始化或加载向量存储
@@ -133,11 +133,52 @@ class RAGEngine:
             # 持久化
             self.vectorstore.persist()
 
+            # 提取文档目录（如果提供了document_id）
+            toc_count = 0
+            if metadata and 'document_id' in metadata:
+                try:
+                    from .toc_extractor import TOCExtractor
+                    from ...common.database import get_knowledge_base_db
+
+                    doc_id = metadata['document_id']
+                    extractor = TOCExtractor()
+                    toc_entries = extractor.extract_toc(file_path, doc_id)
+
+                    if toc_entries:
+                        db = get_knowledge_base_db()
+                        # 删除旧的目录条目
+                        db.delete_toc_by_doc(doc_id)
+
+                        # 插入新的目录条目（需要先插入以获取toc_id，然后更新parent关系）
+                        toc_id_map = {}  # sequence_order -> toc_id
+                        for entry in toc_entries:
+                            toc_id = db.insert_toc_entry(
+                                doc_id=entry['doc_id'],
+                                heading_level=entry['heading_level'],
+                                heading_text=entry['heading_text'],
+                                section_number=entry.get('section_number'),
+                                keywords=entry.get('keywords'),
+                                page_number=entry.get('page_number'),
+                                parent_toc_id=None,  # 第一次插入先不设置parent
+                                sequence_order=entry['sequence_order']
+                            )
+                            toc_id_map[entry['sequence_order']] = toc_id
+
+                        # TODO: 更新parent_toc_id关系（需要UPDATE语句）
+                        # 暂时先不实现parent关系，后续可以通过heading_level重建
+
+                        toc_count = len(toc_entries)
+                        logger.info(f"提取了 {toc_count} 个目录条目")
+
+                except Exception as e:
+                    logger.warning(f"提取目录失败，但不影响向量化: {e}")
+
             return {
                 'success': True,
                 'file_path': file_path,
                 'chunks_count': len(splits),
-                'vector_ids': ids
+                'vector_ids': ids,
+                'toc_count': toc_count
             }
 
         except Exception as e:
@@ -151,46 +192,232 @@ class RAGEngine:
         self,
         query: str,
         k: int = 5,
-        filter_dict: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+        filter_dict: Optional[Dict[str, Any]] = None,
+        hybrid: bool = True,
+        include_toc: bool = True
+    ) -> Dict[str, Any]:
         """
-        智能检索
+        三层混合搜索（目录 + 向量）
 
         Args:
             query: 查询问题
             k: 返回结果数量
             filter_dict: 过滤条件（如指定公司ID）
+            hybrid: 是否使用混合搜索（关键词+语义）
+            include_toc: 是否包含目录搜索
 
         Returns:
-            检索结果列表
+            {
+                'toc_results': [...],  # 目录搜索结果
+                'content_results': [...],  # 内容搜索结果
+                'total_count': int
+            }
         """
         try:
-            # 执行相似度搜索
+            all_results = {
+                'toc_results': [],
+                'content_results': [],
+                'total_count': 0
+            }
+
+            # 第一层 & 第二层：目录搜索（如果启用）
+            if include_toc:
+                try:
+                    toc_results = self._search_toc(query, filter_dict, k)
+                    all_results['toc_results'] = toc_results
+                    logger.info(f"目录搜索到 {len(toc_results)} 条结果")
+                except Exception as e:
+                    logger.warning(f"目录搜索失败: {e}")
+
+            # 第三层：向量语义搜索（获取更多候选用于重排序）
+            search_k = min(k * 10, 50) if hybrid else k
+
             if filter_dict:
                 results = self.vectorstore.similarity_search_with_score(
                     query,
-                    k=k,
+                    k=search_k,
                     filter=filter_dict
                 )
             else:
-                results = self.vectorstore.similarity_search_with_score(query, k=k)
+                results = self.vectorstore.similarity_search_with_score(query, k=search_k)
 
-            # 格式化结果
+            # 格式化向量搜索结果
             formatted_results = []
             for doc, score in results:
                 formatted_results.append({
                     'content': doc.page_content,
-                    'score': float(1 - score),  # 转换为相似度分数
+                    'score': float(1 / (1 + score)),
                     'metadata': doc.metadata,
                     'source': doc.metadata.get('source', '未知来源')
                 })
 
-            logger.info(f"检索完成，查询: {query}, 返回{len(formatted_results)}条结果")
-            return formatted_results
+            # 如果启用混合搜索，进行关键词加权重排
+            if hybrid and formatted_results:
+                formatted_results = self._rerank_with_keywords(formatted_results, query, k)
+
+            all_results['content_results'] = formatted_results
+            all_results['total_count'] = len(all_results['toc_results']) + len(formatted_results)
+
+            logger.info(f"检索完成，查询: {query}, 目录结果:{len(all_results['toc_results'])}, "
+                       f"内容结果:{len(formatted_results)}")
+            return all_results
 
         except Exception as e:
             logger.error(f"检索失败: {e}")
-            return []
+            return {
+                'toc_results': [],
+                'content_results': [],
+                'total_count': 0
+            }
+
+    def _search_toc(self, query: str, filter_dict: Optional[Dict], k: int = 5) -> List[Dict]:
+        """
+        搜索文档目录
+
+        Returns:
+            目录搜索结果列表
+        """
+        import re
+        from ...common.database import get_knowledge_base_db
+
+        db = get_knowledge_base_db()
+        toc_results = []
+
+        # 提取查询关键词
+        keywords = []
+        # 提取数字（接口编号）
+        numbers = re.findall(r'\d{3,}', query)
+        keywords.extend(numbers)
+        # 提取中文关键词
+        chinese_words = re.findall(r'[\u4e00-\u9fa5]{2,8}', query)
+        keywords.extend(chinese_words[:3])  # 最多取3个中文关键词
+
+        # 第一层：关键词精确匹配（权重90%）
+        if keywords:
+            try:
+                doc_id = filter_dict.get('document_id') if filter_dict else None
+                keyword_matches = db.search_toc_by_keywords(keywords, doc_id)
+                for match in keyword_matches:
+                    # 计算匹配度：统计匹配了多少个关键词
+                    import json
+                    stored_keywords = json.loads(match.get('keywords', '[]'))
+                    matched_count = 0
+
+                    # 统计有多少个查询关键词在存储的关键词中
+                    for kw in keywords:
+                        if any(kw in sk for sk in stored_keywords):
+                            matched_count += 1
+
+                    # 根据匹配数量计算分数
+                    # 匹配所有关键词=0.95, 匹配大部分=0.9, 匹配少数=0.7
+                    if matched_count == len(keywords):
+                        score = 0.95
+                    elif matched_count >= len(keywords) * 0.6:
+                        score = 0.9
+                    else:
+                        score = 0.7
+
+                    toc_results.append({
+                        'toc_id': match['toc_id'],
+                        'heading_text': match['heading_text'],
+                        'section_number': match.get('section_number'),
+                        'page_number': match.get('page_number'),
+                        'heading_level': match['heading_level'],
+                        'score': score,
+                        'match_type': 'keyword',
+                        'matched_keywords': matched_count  # 调试信息
+                    })
+            except Exception as e:
+                logger.warning(f"关键词目录搜索失败: {e}")
+
+        # 第二层：文本模糊匹配（权重70%）
+        try:
+            doc_id = filter_dict.get('document_id') if filter_dict else None
+            text_matches = db.search_toc_by_text(query, doc_id)
+            for match in text_matches:
+                # 去重：如果已经通过关键词匹配到了，跳过
+                if any(r['toc_id'] == match['toc_id'] for r in toc_results):
+                    continue
+
+                toc_results.append({
+                    'toc_id': match['toc_id'],
+                    'heading_text': match['heading_text'],
+                    'section_number': match.get('section_number'),
+                    'page_number': match.get('page_number'),
+                    'heading_level': match['heading_level'],
+                    'score': 0.7,  # 文本模糊匹配中等分数
+                    'match_type': 'fuzzy'
+                })
+        except Exception as e:
+            logger.warning(f"文本目录搜索失败: {e}")
+
+        # 排序并返回topK
+        toc_results.sort(key=lambda x: x['score'], reverse=True)
+        return toc_results[:k]
+
+    def _rerank_with_keywords(
+        self,
+        results: List[Dict[str, Any]],
+        query: str,
+        k: int
+    ) -> List[Dict[str, Any]]:
+        """
+        使用关键词匹配重新排序结果
+
+        Args:
+            results: 初始搜索结果
+            query: 查询文本
+            k: 返回结果数量
+
+        Returns:
+            重排序后的结果
+        """
+        import re
+
+        # 提取查询中的关键词（数字、中文词组）
+        keywords = []
+
+        # 提取数字（如接口编号300091）
+        numbers = re.findall(r'\d{3,}', query)
+        keywords.extend(numbers)
+
+        # 提取中文关键词（2-8个字的词组）
+        chinese_words = re.findall(r'[\u4e00-\u9fa5]{2,8}', query)
+        keywords.extend(chinese_words)
+
+        logger.info(f"提取关键词: {keywords}")
+
+        # 为每个结果计算关键词匹配分数
+        for result in results:
+            content = result['content']
+            keyword_score = 0
+
+            for keyword in keywords:
+                if keyword in content:
+                    # 精确匹配加分
+                    keyword_score += 0.3
+
+                    # 如果是数字且在前100个字符中出现，额外加分（可能是接口编号）
+                    if keyword.isdigit() and keyword in content[:100]:
+                        keyword_score += 0.4
+
+                    # 统计出现次数
+                    count = content.count(keyword)
+                    keyword_score += min(count * 0.1, 0.3)  # 最多加0.3分
+
+            # 限制keyword_score最大值为1.0，防止分数无限累加
+            keyword_score = min(keyword_score, 1.0)
+
+            # 综合分数：语义相似度(70%) + 关键词匹配(30%)，确保最终分数不超过1.0
+            result['original_score'] = result['score']
+            result['keyword_score'] = keyword_score
+            result['score'] = min(result['score'] * 0.7 + keyword_score * 0.3, 1.0)
+
+        # 按综合分数重新排序
+        results.sort(key=lambda x: x['score'], reverse=True)
+
+        # 返回前k个结果
+        return results[:k]
 
     def delete_by_metadata(self, filter_dict: Dict[str, Any]) -> Dict[str, Any]:
         """

@@ -613,6 +613,119 @@ class VectorSearchAPI:
                     'error': str(e)
                 }), 500
 
+        @self.blueprint.route('/analytics/performance_overview', methods=['GET'])
+        def get_performance_overview():
+            """获取性能监控总览"""
+            try:
+                # 确保系统已初始化
+                init_status = self._run_async(self._ensure_initialized())
+
+                overview = {
+                    'system_status': {
+                        'initialized': init_status,
+                        'timestamp': time.time()
+                    },
+                    'vector_store_stats': {},
+                    'document_stats': {},
+                    'search_performance': {},
+                    'recent_searches': []
+                }
+
+                # 向量存储统计
+                if init_status and self.vector_store:
+                    vector_stats = self.vector_store.get_stats()
+                    overview['vector_store_stats'] = {
+                        'total_documents': vector_stats.get('total_documents', 0),
+                        'total_vectors': vector_stats.get('total_vectors', 0),
+                        'storage_size': vector_stats.get('storage_size', 0),
+                        'index_type': vector_stats.get('index_type', 'Chroma')
+                    }
+
+                # 文档统计
+                doc_stats = self.db.get_vectorization_stats()
+                overview['document_stats'] = {
+                    'total': doc_stats.get('total_documents', 0),
+                    'vectorized': doc_stats.get('vectorized_documents', 0),
+                    'pending': doc_stats.get('pending_documents', 0),
+                    'failed': doc_stats.get('failed_documents', 0)
+                }
+
+                # 搜索性能统计（最近30天）
+                search_analytics = self.db.get_search_analytics(30)
+                if search_analytics:
+                    overview['search_performance'] = {
+                        'total_searches': search_analytics.get('total_searches', 0),
+                        'avg_search_time': search_analytics.get('avg_search_time', 0),
+                        'avg_results_count': search_analytics.get('avg_results_count', 0),
+                        'popular_queries': search_analytics.get('popular_queries', [])[:5]
+                    }
+
+                # 最近搜索记录
+                recent_searches_data = self.db.get_search_history(limit=10)
+                overview['recent_searches'] = recent_searches_data if recent_searches_data else []
+
+                return jsonify({
+                    'success': True,
+                    'data': overview
+                })
+
+            except Exception as e:
+                logger.error(f"获取性能总览失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
+        @self.blueprint.route('/analytics/search_time_series', methods=['GET'])
+        def get_search_time_series():
+            """获取搜索耗时时间序列数据"""
+            try:
+                days = min(request.args.get('days', 7, type=int), 30)
+                interval = request.args.get('interval', 'hour')  # hour, day
+
+                time_series = self.db.get_search_time_series(days, interval)
+
+                return jsonify({
+                    'success': True,
+                    'data': {
+                        'time_series': time_series,
+                        'days': days,
+                        'interval': interval
+                    }
+                })
+
+            except Exception as e:
+                logger.error(f"获取搜索时间序列失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
+        @self.blueprint.route('/analytics/hot_keywords', methods=['GET'])
+        def get_hot_keywords():
+            """获取热门搜索关键词"""
+            try:
+                limit = min(request.args.get('limit', 20, type=int), 100)
+                days = min(request.args.get('days', 7, type=int), 30)
+
+                hot_keywords = self.db.get_hot_search_keywords(days, limit)
+
+                return jsonify({
+                    'success': True,
+                    'data': {
+                        'keywords': hot_keywords,
+                        'days': days,
+                        'limit': limit
+                    }
+                })
+
+            except Exception as e:
+                logger.error(f"获取热门关键词失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
         # =========================
         # 标签管理API
         # =========================

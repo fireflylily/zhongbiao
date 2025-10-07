@@ -157,18 +157,10 @@ class DocumentManager {
                             ` : ''}
                         </div>
 
-                        <!-- 状态指示器 -->
+                        <!-- 状态指示器（只显示向量索引状态，隐藏解析状态） -->
                         <div class="mb-3">
                             <div class="row g-2">
-                                <div class="col-6">
-                                    <div class="d-flex align-items-center justify-content-center p-2 rounded ${doc.parse_status === 'completed' ? 'bg-success bg-opacity-10' : 'bg-warning bg-opacity-10'}">
-                                        <i class="bi ${doc.parse_status === 'completed' ? 'bi-check-circle text-success' : 'bi-clock text-warning'} me-1"></i>
-                                        <small class="${doc.parse_status === 'completed' ? 'text-success' : 'text-warning'}">
-                                            ${doc.parse_status === 'completed' ? '已解析' : '待处理'}
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="col-6">
+                                <div class="col-12">
                                     ${doc.vector_status === 'completed'
                                         ? `<div class="d-flex align-items-center justify-content-center p-2 rounded bg-info bg-opacity-10">
                                                <i class="bi bi-database text-info me-1"></i>
@@ -605,10 +597,11 @@ class DocumentManager {
                                     <strong>上传时间：</strong>${doc.upload_time ? new Date(doc.upload_time).toLocaleString() : '未知'}
                                 </div>
                                 <div class="col-md-6">
-                                    <strong>处理状态：</strong>
-                                    <span class="badge bg-${doc.parse_status === 'completed' ? 'success' : 'warning'}">${doc.parse_status || 'pending'}</span><br>
-                                    <strong>向量状态：</strong>
-                                    <span class="badge bg-${doc.vector_status === 'completed' ? 'success' : 'warning'}">${doc.vector_status || 'pending'}</span>
+                                    <strong>索引状态：</strong>
+                                    <span class="badge bg-${doc.vector_status === 'completed' ? 'success' : 'secondary'}">
+                                        ${doc.vector_status === 'completed' ? '✓ 已索引' : '未索引'}
+                                    </span>
+                                    ${doc.chunk_count ? `<small class="text-muted ms-2">(${doc.chunk_count} 个向量块)</small>` : ''}
                                 </div>
                             </div>
 
@@ -656,58 +649,107 @@ class DocumentManager {
     }
 
     /**
-     * 预览文档
+     * 预览文档（在新窗口打开）
      * @param {number} docId 文档ID
      */
     async previewDocument(docId) {
         try {
-            const response = await axios.get('/api/knowledge_base/documents/' + docId + '/preview');
-            if (response.data.success) {
-                this.showDocumentPreview(response.data.content);
+            // 首先获取文档信息
+            const docResponse = await axios.get('/api/knowledge_base/documents/' + docId);
+            if (!docResponse.data.success) {
+                throw new Error('获取文档信息失败');
             }
+
+            const document = docResponse.data.data;
+
+            // 打开新窗口并显示加载状态
+            const previewWindow = window.open('', '_blank', 'width=1000,height=800,menubar=no,toolbar=no');
+            if (!previewWindow) {
+                throw new Error('无法打开预览窗口，请检查浏览器弹窗拦截设置');
+            }
+
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>文档预览 - ${document.original_filename}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <link href="/static/css/base/variables.css" rel="stylesheet">
+                    <style>
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                        }
+                        .preview-header {
+                            position: sticky;
+                            top: 0;
+                            background: white;
+                            z-index: 1000;
+                            padding: 15px 0;
+                            border-bottom: 2px solid #e9ecef;
+                            margin-bottom: 20px;
+                        }
+                        .document-preview {
+                            max-width: 900px;
+                            margin: 0 auto;
+                            line-height: 1.8;
+                        }
+                        .loading-spinner {
+                            text-align: center;
+                            padding: 100px 0;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="preview-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">${document.original_filename}</h5>
+                            <button class="btn btn-secondary btn-sm" onclick="window.close()">
+                                <i class="bi bi-x-lg"></i> 关闭
+                            </button>
+                        </div>
+                    </div>
+                    <div class="loading-spinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3 text-muted">正在加载文档内容...</p>
+                    </div>
+                </body>
+                </html>
+            `);
+
+            // 获取预览内容
+            const response = await axios.get('/api/knowledge_base/documents/' + docId + '/preview');
+            if (!response.data.success) {
+                throw new Error(response.data.error || '获取预览内容失败');
+            }
+
+            // 渲染预览内容
+            const bodyContent = `
+                <div class="preview-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">${response.data.filename || document.original_filename}</h5>
+                        <button class="btn btn-secondary btn-sm" onclick="window.close()">
+                            <i class="bi bi-x-lg"></i> 关闭
+                        </button>
+                    </div>
+                </div>
+                <div class="document-preview">
+                    ${response.data.content}
+                </div>
+            `;
+
+            previewWindow.document.body.innerHTML = bodyContent;
+
         } catch (error) {
             console.error('预览文档失败:', error);
             if (window.showAlert) {
-                window.showAlert('预览文档失败', 'danger');
+                window.showAlert('预览文档失败: ' + error.message, 'danger');
             }
         }
-    }
-
-    /**
-     * 显示文档预览
-     * @param {string} content 文档内容
-     */
-    showDocumentPreview(content) {
-        const previewHtml = `
-            <div class="modal fade" id="documentPreviewModal" tabindex="-1">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">文档预览</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="document-preview" style="max-height: 500px; overflow-y: auto;">
-                                ${content}
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // 移除已存在的预览模态框
-        const existingModal = document.getElementById('documentPreviewModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-
-        // 添加新预览模态框并显示
-        document.body.insertAdjacentHTML('beforeend', previewHtml);
-        new bootstrap.Modal(document.getElementById('documentPreviewModal')).show();
     }
 
     /**

@@ -248,3 +248,24 @@ CREATE TABLE IF NOT EXISTS tender_projects (
 CREATE INDEX IF NOT EXISTS idx_tender_projects_company ON tender_projects(company_id);
 CREATE INDEX IF NOT EXISTS idx_tender_projects_status ON tender_projects(status);
 
+-- 13. 文档目录表 (Table of Contents)
+CREATE TABLE IF NOT EXISTS document_toc (
+    toc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    doc_id INTEGER NOT NULL,                    -- 关联文档ID
+    heading_level INTEGER NOT NULL,             -- 标题级别(1/2/3/4)
+    heading_text TEXT NOT NULL,                 -- 标题完整文本
+    section_number VARCHAR(50),                 -- 章节号(如"3.1.101"、"第一章")
+    keywords TEXT,                              -- JSON数组:提取的关键词(接口编号、产品名等)
+    page_number INTEGER,                        -- 页码
+    parent_toc_id INTEGER,                      -- 父级目录ID(构建树形结构)
+    sequence_order INTEGER,                     -- 在文档中的顺序
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doc_id) REFERENCES documents(doc_id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_toc_id) REFERENCES document_toc(toc_id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_toc_doc ON document_toc(doc_id);
+CREATE INDEX IF NOT EXISTS idx_toc_heading_text ON document_toc(heading_text);
+CREATE INDEX IF NOT EXISTS idx_toc_section_number ON document_toc(section_number);
+CREATE INDEX IF NOT EXISTS idx_toc_parent ON document_toc(parent_toc_id);
+

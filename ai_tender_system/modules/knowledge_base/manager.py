@@ -629,13 +629,66 @@ class KnowledgeBaseManager:
                     'error': f'文档 ID {doc_id} 不存在'
                 }
 
-            # 删除物理文件
+            # 1. 删除向量数据（如果已建立索引）
+            deleted_vector_count = 0
+            try:
+                from .rag_engine import get_rag_engine, LANGCHAIN_AVAILABLE
+                if LANGCHAIN_AVAILABLE and document.get('vector_status') == 'completed':
+                    engine = get_rag_engine()
+
+                    # 尝试方式1: 通过document_id删除（RAG API格式）
+                    delete_result = engine.delete_by_metadata({'document_id': doc_id})
+                    deleted_vector_count = delete_result.get('deleted_count', 0)
+
+                    # 尝试方式2: 如果方式1没有删除，通过source路径删除（Langchain格式）
+                    if deleted_vector_count == 0:
+                        file_path_str = str(document['file_path'])
+                        delete_result2 = engine.delete_by_metadata({'source': file_path_str})
+                        deleted_vector_count += delete_result2.get('deleted_count', 0)
+
+                    # 尝试方式3: 如果前两种都失败，使用SQL直接删除（Vector Search API格式）
+                    if deleted_vector_count == 0:
+                        try:
+                            import sqlite3
+                            chroma_db = Path(__file__).parent.parent / 'data' / 'chroma_db' / 'chroma.sqlite3'
+                            if chroma_db.exists():
+                                conn = sqlite3.connect(str(chroma_db))
+                                cursor = conn.cursor()
+                                # 查找该document_id的所有向量ID
+                                cursor.execute("""
+                                    SELECT DISTINCT e.id FROM embeddings e
+                                    JOIN embedding_metadata m ON e.id = m.id
+                                    WHERE m.key = 'document_id' AND m.int_value = ?
+                                """, (doc_id,))
+                                vector_ids = [row[0] for row in cursor.fetchall()]
+
+                                if vector_ids:
+                                    # 删除向量及其元数据
+                                    placeholders = ','.join(['?' for _ in vector_ids])
+                                    cursor.execute(f"DELETE FROM embeddings WHERE id IN ({placeholders})", vector_ids)
+                                    cursor.execute(f"DELETE FROM embedding_metadata WHERE id IN ({placeholders})", vector_ids)
+                                    conn.commit()
+                                    deleted_vector_count = len(vector_ids)
+                                    logger.info(f"通过SQL直接删除了 {deleted_vector_count} 个向量（Vector Search格式）")
+                                conn.close()
+                        except Exception as ve:
+                            logger.warning(f"SQL直接删除向量失败: {ve}")
+
+                    if deleted_vector_count > 0:
+                        logger.info(f"已删除文档 {doc_id} 的向量数据，删除数量: {deleted_vector_count}")
+                    else:
+                        logger.warning(f"未找到文档 {doc_id} 的向量数据")
+
+            except Exception as e:
+                logger.warning(f"删除向量数据时出错: {e}")
+
+            # 2. 删除物理文件
             file_path = Path(document['file_path'])
             if file_path.exists():
                 file_path.unlink()
                 logger.info(f"已删除物理文件: {file_path}")
 
-            # 删除数据库记录
+            # 3. 删除数据库记录
             result = self.db.delete_document(doc_id)
             if result:
                 logger.info(f"文档删除成功: doc_id={doc_id}, filename={document['original_filename']}")

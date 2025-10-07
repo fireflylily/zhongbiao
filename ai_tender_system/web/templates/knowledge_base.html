@@ -491,30 +491,37 @@ document_chunks (文档分块表)
     </nav>
 
     <!-- 主内容区域 -->
-    <div class="container-fluid" style="margin-top: 70px; min-height: calc(100vh - 70px);">
-        <div class="row g-0">
+    <div class="container-fluid main-container">
+        <div class="row g-0 full-height-row">
             <!-- 左侧分类树 -->
-            <div class="col-md-3 p-0">
-                <div class="card shadow-sm border-0 h-100" style="border-radius: 0;">
-                    <div class="card-body p-0" style="max-height: calc(100vh - 70px); overflow-y: auto;">
-                        <div class="p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0 text-primary">
-                                    <i class="bi bi-collection me-2"></i>企业知识库
-                                </h6>
-                                <div class="btn-group">
-                                    <button class="btn btn-outline-primary btn-sm" onclick="window.categoryManager.showAddCompanyModal()" title="添加企业">
-                                        <i class="bi bi-plus"></i>
-                                    </button>
-                                    <button class="btn btn-outline-info btn-sm" onclick="showAISearch()" title="AI智能检索">
-                                        <i class="bi bi-stars"></i>
-                                    </button>
-                                    <button class="btn btn-outline-success btn-sm" onclick="window.searchManager.showSearchModal()" title="搜索文档">
-                                        <i class="bi bi-search"></i>
-                                    </button>
-                                </div>
+            <div class="col-md-3 p-0 sidebar-column">
+                <div class="card shadow-sm border-0 sidebar-card">
+                    <!-- 固定顶部标题和按钮 -->
+                    <div class="card-header bg-white border-bottom p-3 fixed-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-primary">
+                                <i class="bi bi-collection me-2"></i>企业知识库
+                            </h6>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-primary btn-sm" onclick="window.categoryManager.showAddCompanyModal()" title="添加企业">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="showAISearch()" title="AI智能检索">
+                                    <i class="bi bi-stars"></i>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="window.searchManager.showSearchModal()" title="搜索文档">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" onclick="showPerformanceMonitor()" title="性能监控">
+                                    <i class="bi bi-speedometer2"></i>
+                                </button>
                             </div>
+                        </div>
+                    </div>
 
+                    <!-- 可滚动的企业树区域 -->
+                    <div class="card-body p-0 scrollable-body">
+                        <div class="p-3">
                             <div id="companyTree">
                                 <!-- 企业树形结构会在这里动态渲染 -->
                                 <div class="text-center py-5">
@@ -532,9 +539,9 @@ document_chunks (文档分块表)
             </div>
 
             <!-- 右侧主内容 -->
-            <div class="col-md-9 p-0">
-                <div class="card shadow-sm border-0 h-100" style="border-radius: 0;">
-                    <div class="card-body p-4" style="max-height: calc(100vh - 70px); overflow-y: auto;">
+            <div class="col-md-9 p-0 main-column">
+                <div class="card shadow-sm border-0 main-card">
+                    <div class="card-body p-4 main-content">
                         <!-- AI智能检索区域 -->
                         <div class="card mb-3 border-primary" id="aiSearchCard" style="display:none;">
                             <div class="card-header bg-primary text-white">
@@ -1343,6 +1350,186 @@ document_chunks (文档分块表)
         // 暴露到全局作用域供模块使用
         window.showAlert = showAlert;
         window.loadCompanies = loadCompanies;
+    </script>
+
+    <!-- 性能监控模态框 -->
+    <div class="modal fade" id="performanceMonitorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-speedometer2 me-2"></i>向量搜索性能监控
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 性能概览卡片 -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card border-primary h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-2"><i class="bi bi-hdd text-primary" style="font-size: 2rem;"></i></div>
+                                    <h6 class="text-muted mb-1">系统状态</h6>
+                                    <h4 id="system-status" class="mb-0">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-success h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-2"><i class="bi bi-file-earmark-text text-success" style="font-size: 2rem;"></i></div>
+                                    <h6 class="text-muted mb-1">文档总数</h6>
+                                    <h4 id="total-documents" class="mb-0">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-info h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-2"><i class="bi bi-vector-pen text-info" style="font-size: 2rem;"></i></div>
+                                    <h6 class="text-muted mb-1">向量总数</h6>
+                                    <h4 id="total-vectors" class="mb-0">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-warning h-100">
+                                <div class="card-body text-center">
+                                    <div class="mb-2"><i class="bi bi-search text-warning" style="font-size: 2rem;"></i></div>
+                                    <h6 class="text-muted mb-1">总搜索次数</h6>
+                                    <h4 id="total-searches" class="mb-0">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文档向量化进度 -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="bi bi-bar-chart me-2"></i>文档向量化进度
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center mb-3">
+                                <div class="col-3">
+                                    <small class="text-muted">总文档</small>
+                                    <h5 id="doc-total" class="mb-0">-</h5>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-muted">已向量化</small>
+                                    <h5 id="doc-vectorized" class="text-success mb-0">-</h5>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-muted">待处理</small>
+                                    <h5 id="doc-pending" class="text-warning mb-0">-</h5>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-muted">失败</small>
+                                    <h5 id="doc-failed" class="text-danger mb-0">-</h5>
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div id="vectorization-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 搜索性能统计 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <i class="bi bi-graph-up me-2"></i>搜索性能趋势
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="search-time-chart" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <i class="bi bi-fire me-2"></i>热门搜索关键词
+                                </div>
+                                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                    <ul id="hot-keywords-list" class="list-group list-group-flush">
+                                        <li class="list-group-item text-center text-muted">加载中...</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 搜索性能指标 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-speedometer2 me-2"></i>搜索性能指标（最近30天）
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <small class="text-muted">平均搜索耗时</small>
+                                    <h5 id="avg-search-time" class="mb-0">-</h5>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">平均结果数</small>
+                                    <h5 id="avg-results-count" class="mb-0">-</h5>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted">存储大小</small>
+                                    <h5 id="storage-size" class="mb-0">-</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" id="refresh-performance">
+                        <i class="bi bi-arrow-clockwise me-1"></i>刷新数据
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="export-report">
+                        <i class="bi bi-download me-1"></i>导出报告
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- 性能监控脚本 -->
+    <script src="{{ url_for('static', filename='js/pages/knowledge-base/performance-monitor.js') }}"></script>
+
+    <script>
+        let performanceMonitor = null;
+
+        /**
+         * 显示性能监控面板
+         */
+        function showPerformanceMonitor() {
+            const modal = new bootstrap.Modal(document.getElementById('performanceMonitorModal'));
+            modal.show();
+
+            // 初始化性能监控组件
+            if (!performanceMonitor) {
+                performanceMonitor = new PerformanceMonitor();
+                performanceMonitor.initialize();
+            } else {
+                // 已存在则刷新数据
+                performanceMonitor.loadPerformanceData();
+            }
+        }
+
+        // 模态框关闭时停止自动刷新
+        document.getElementById('performanceMonitorModal').addEventListener('hidden.bs.modal', function() {
+            if (performanceMonitor) {
+                performanceMonitor.stopAutoRefresh();
+            }
+        });
+
+        // 暴露到全局
+        window.showPerformanceMonitor = showPerformanceMonitor;
     </script>
 </body>
 </html>

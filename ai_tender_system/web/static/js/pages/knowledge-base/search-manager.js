@@ -226,11 +226,15 @@ class SearchManager {
                 const searchTime = Date.now() - startTime;
 
                 if (response.data.success) {
+                    // 获取TOC和内容结果
+                    const tocResults = response.data.toc_results || [];
+                    const contentResults = response.data.content_results || response.data.results || [];
+
                     // 转换RAG结果为前端格式
-                    results = this.transformRAGResults(response.data.results || []);
+                    results = this.transformRAGResults(contentResults);
                     this.currentSearchResults = results;
-                    this.displaySearchResults(results, searchMode, searchTime);
-                    this.addToSearchHistory(query, searchMode, results.length);
+                    this.displaySearchResults(results, searchMode, searchTime, tocResults);
+                    this.addToSearchHistory(query, searchMode, results.length + tocResults.length);
                 } else {
                     throw new Error(response.data.error || 'RAG搜索失败');
                 }
@@ -312,11 +316,14 @@ class SearchManager {
      * @param {Array} results 搜索结果
      * @param {string} searchMode 搜索模式
      * @param {number} searchTime 搜索时间（毫秒）
+     * @param {Array} tocResults 目录搜索结果（可选）
      */
-    displaySearchResults(results, searchMode = 'keyword', searchTime = 0) {
+    displaySearchResults(results, searchMode = 'keyword', searchTime = 0, tocResults = []) {
         const resultsContainer = document.getElementById('searchResults');
 
-        if (!results || results.length === 0) {
+        const totalCount = (tocResults?.length || 0) + (results?.length || 0);
+
+        if (totalCount === 0) {
             resultsContainer.innerHTML = `
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle me-2"></i>
@@ -342,7 +349,9 @@ class SearchManager {
                 <div>
                     <h6 class="mb-0">搜索结果</h6>
                     <small class="text-muted">
-                        找到 ${results.length} 个相关文档，用时 ${searchTime}ms（${searchModeText}）
+                        找到 ${totalCount} 个相关内容，用时 ${searchTime}ms（${searchModeText}）
+                        ${tocResults?.length > 0 ? `<span class="badge bg-primary ms-2">${tocResults.length}个目录匹配</span>` : ''}
+                        ${results?.length > 0 ? `<span class="badge bg-secondary ms-2">${results.length}个内容匹配</span>` : ''}
                     </small>
                 </div>
                 <div class="btn-group" role="group">
@@ -356,15 +365,78 @@ class SearchManager {
             </div>
         `;
 
-        html += '<div class="search-results-list">';
+        // 📑 目录匹配结果（优先显示）
+        if (tocResults && tocResults.length > 0) {
+            html += `
+            <div class="toc-results mb-4">
+                <h6 class="text-primary mb-3">
+                    <i class="bi bi-bookmarks-fill"></i> 目录匹配
+                </h6>`;
 
-        results.forEach((result, index) => {
-            html += this.renderSearchResultItem(result, index, searchMode);
-        });
+            tocResults.forEach((tocResult, index) => {
+                html += this.renderTocResultItem(tocResult, index);
+            });
 
-        html += '</div>';
+            html += '</div>';
+        }
+
+        // 📄 内容匹配结果
+        if (results && results.length > 0) {
+            html += `
+            <div class="content-results">
+                <h6 class="text-secondary mb-3">
+                    <i class="bi bi-file-text-fill"></i> 内容匹配
+                </h6>
+                <div class="search-results-list">`;
+
+            results.forEach((result, index) => {
+                html += this.renderSearchResultItem(result, index, searchMode);
+            });
+
+            html += '</div></div>';
+        }
 
         resultsContainer.innerHTML = html;
+    }
+
+    /**
+     * 渲染目录搜索结果项
+     * @param {Object} tocResult 目录搜索结果项
+     * @param {number} index 索引
+     */
+    renderTocResultItem(tocResult, index) {
+        // 计算相似度并限制上限
+        const similarity = Math.min((tocResult.score || 0) * 100, 100);
+        const badgeColor = tocResult.match_type === 'keyword' ? 'success' : 'primary';
+        const matchTypeText = tocResult.match_type === 'keyword' ? '关键词精确匹配' : '文本模糊匹配';
+
+        return `
+        <div class="card mb-2 shadow-sm border-primary" style="transition: transform 0.2s;">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">
+                            <i class="bi bi-bookmark-star-fill text-primary me-2"></i>
+                            <span class="fw-bold">${tocResult.section_number || ''}</span>
+                            <span class="ms-2">${tocResult.heading_text}</span>
+                        </h6>
+                        <small class="text-muted">
+                            <span class="badge bg-light text-dark me-2">
+                                <i class="bi bi-layers"></i> 级别 ${tocResult.heading_level}
+                            </span>
+                            <span class="badge bg-${badgeColor}">
+                                ${matchTypeText}
+                            </span>
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success fs-6">
+                            <i class="bi bi-star-fill"></i> ${similarity.toFixed(0)}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
     }
 
     /**
@@ -409,7 +481,7 @@ class SearchManager {
                                             ${categoryNames[category] || '其他'}
                                         </span>
                                         ${searchMode === 'semantic' && result.similarity_score ?
-                                            `<span class="badge bg-info">相似度: ${(result.similarity_score * 100).toFixed(1)}%</span>` :
+                                            `<span class="badge bg-info">相似度: ${Math.min(result.similarity_score * 100, 100).toFixed(1)}%</span>` :
                                             ''
                                         }
                                     </div>

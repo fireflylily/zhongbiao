@@ -701,6 +701,89 @@ class KnowledgeBaseDB:
         """
         return self.execute_query(query, (doc_id,))
 
+    # =========================
+    # 文档目录(TOC)相关方法
+    # =========================
+
+    def insert_toc_entry(self, doc_id: int, heading_level: int, heading_text: str,
+                        section_number: str = None, keywords: str = None,
+                        page_number: int = None, parent_toc_id: int = None,
+                        sequence_order: int = None) -> int:
+        """插入目录条目"""
+        query = """
+        INSERT INTO document_toc
+        (doc_id, heading_level, heading_text, section_number, keywords, page_number, parent_toc_id, sequence_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        return self.execute_query(query, (
+            doc_id, heading_level, heading_text, section_number,
+            keywords, page_number, parent_toc_id, sequence_order
+        ))
+
+    def get_toc_by_doc(self, doc_id: int) -> List[Dict]:
+        """获取文档的所有目录条目"""
+        query = """
+        SELECT * FROM document_toc
+        WHERE doc_id = ?
+        ORDER BY sequence_order
+        """
+        return self.execute_query(query, (doc_id,))
+
+    def search_toc_by_keywords(self, keywords: List[str], doc_id: int = None) -> List[Dict]:
+        """通过关键词搜索目录"""
+        if not keywords:
+            return []
+
+        # 构建关键词匹配条件(JSON数组中包含关键词) - 使用OR逻辑
+        keyword_conditions = []
+        params = []
+
+        for keyword in keywords:
+            keyword_conditions.append("keywords LIKE ?")
+            params.append(f'%{keyword}%')
+
+        # 组合关键词条件（OR）和文档ID条件（AND）
+        where_parts = [f"({' OR '.join(keyword_conditions)})"]
+
+        if doc_id:
+            where_parts.append("doc_id = ?")
+            params.append(doc_id)
+
+        where_clause = " AND ".join(where_parts)
+        query = f"""
+        SELECT * FROM document_toc
+        WHERE {where_clause}
+        ORDER BY sequence_order
+        """
+        return self.execute_query(query, tuple(params))
+
+    def search_toc_by_text(self, search_text: str, doc_id: int = None) -> List[Dict]:
+        """通过文本模糊搜索目录"""
+        params = [f'%{search_text}%', f'%{search_text}%']
+
+        if doc_id:
+            query = """
+            SELECT * FROM document_toc
+            WHERE (heading_text LIKE ? OR section_number LIKE ?)
+            AND doc_id = ?
+            ORDER BY sequence_order
+            """
+            params.append(doc_id)
+        else:
+            query = """
+            SELECT * FROM document_toc
+            WHERE heading_text LIKE ? OR section_number LIKE ?
+            ORDER BY sequence_order
+            """
+
+        return self.execute_query(query, tuple(params))
+
+    def delete_toc_by_doc(self, doc_id: int) -> bool:
+        """删除文档的所有目录条目"""
+        query = "DELETE FROM document_toc WHERE doc_id = ?"
+        result = self.execute_query(query, (doc_id,))
+        return result is not None
+
     def record_system_metric(self, metric_name: str, metric_value: float,
                             metric_unit: str = None, component: str = None) -> int:
         """记录系统性能指标"""
@@ -790,7 +873,71 @@ class KnowledgeBaseDB:
         if result:
             stats.update(result)
 
+        # 文档向量化统计
+        query = """
+        SELECT
+            COUNT(*) as total_documents,
+            COUNT(CASE WHEN vector_status = 'completed' THEN 1 END) as vectorized_documents,
+            COUNT(CASE WHEN vector_status = 'pending' OR vector_status IS NULL THEN 1 END) as pending_documents,
+            COUNT(CASE WHEN vector_status = 'failed' THEN 1 END) as failed_documents
+        FROM knowledge_base_documents
+        """
+        doc_result = self.execute_query(query, fetch_one=True)
+        if doc_result:
+            stats.update(doc_result)
+
         return stats
+
+    def get_search_history(self, limit: int = 50) -> List[Dict]:
+        """获取搜索历史记录"""
+        query = """
+        SELECT history_id, user_id, query_text, search_type,
+               result_count, search_time, created_at
+        FROM search_history
+        ORDER BY created_at DESC
+        LIMIT ?
+        """
+        return self.execute_query(query, (limit,))
+
+    def get_search_time_series(self, days: int = 7, interval: str = 'hour') -> List[Dict]:
+        """获取搜索耗时时间序列数据"""
+        if interval == 'hour':
+            time_format = '%Y-%m-%d %H:00:00'
+        else:  # day
+            time_format = '%Y-%m-%d'
+
+        query = """
+        SELECT
+            strftime('{}', created_at) as time_bucket,
+            COUNT(*) as search_count,
+            AVG(search_time) as avg_search_time,
+            MIN(search_time) as min_search_time,
+            MAX(search_time) as max_search_time
+        FROM search_history
+        WHERE created_at >= datetime('now', '-{} days')
+        GROUP BY time_bucket
+        ORDER BY time_bucket DESC
+        """.format(time_format, days)
+
+        return self.execute_query(query)
+
+    def get_hot_search_keywords(self, days: int = 7, limit: int = 20) -> List[Dict]:
+        """获取热门搜索关键词"""
+        query = """
+        SELECT
+            query_text,
+            COUNT(*) as search_count,
+            AVG(search_time) as avg_search_time,
+            AVG(result_count) as avg_result_count,
+            MAX(created_at) as last_searched
+        FROM search_history
+        WHERE created_at >= datetime('now', '-{} days')
+        GROUP BY query_text
+        ORDER BY search_count DESC
+        LIMIT ?
+        """.format(days)
+
+        return self.execute_query(query, (limit,))
 
     # =========================
     # 配置管理方法
@@ -1035,18 +1182,18 @@ class KnowledgeBaseDB:
                                   category: str, detail: str, chunk_id: int = None,
                                   subcategory: str = None, source_location: str = None,
                                   priority: str = 'medium', extraction_confidence: float = None,
-                                  extraction_model: str = None) -> int:
-        """创建标书要求记录"""
+                                  extraction_model: str = None, hitl_task_id: str = None) -> int:
+        """创建标书要求记录（新增hitl_task_id参数）"""
         query = """
         INSERT INTO tender_requirements
         (project_id, chunk_id, constraint_type, category, subcategory, detail,
          source_location, priority, extraction_confidence, extraction_model,
-         extracted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         hitl_task_id, extracted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         """
         return self.execute_query(query, (
             project_id, chunk_id, constraint_type, category, subcategory, detail,
-            source_location, priority, extraction_confidence, extraction_model
+            source_location, priority, extraction_confidence, extraction_model, hitl_task_id
         ))
 
     def get_tender_requirements(self, project_id: int, constraint_type: str = None,
@@ -1090,7 +1237,7 @@ class KnowledgeBaseDB:
         return result is not None
 
     def batch_create_tender_requirements(self, requirements_data: List[Dict]) -> bool:
-        """批量创建标书要求"""
+        """批量创建标书要求（支持hitl_task_id）"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
@@ -1100,12 +1247,13 @@ class KnowledgeBaseDB:
                         INSERT INTO tender_requirements
                         (project_id, chunk_id, constraint_type, category, subcategory,
                          detail, source_location, priority, extraction_confidence,
-                         extraction_model, extracted_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                         extraction_model, hitl_task_id, extracted_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     """, (req.get('project_id'), req.get('chunk_id'), req.get('constraint_type'),
                           req.get('category'), req.get('subcategory'), req.get('detail'),
                           req.get('source_location'), req.get('priority', 'medium'),
-                          req.get('extraction_confidence'), req.get('extraction_model')))
+                          req.get('extraction_confidence'), req.get('extraction_model'),
+                          req.get('hitl_task_id')))
 
                 conn.commit()
                 return True

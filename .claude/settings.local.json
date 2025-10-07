@@ -114,7 +114,14 @@
       "Read(//tmp/**)",
       "Bash(xargs:*)",
       "mcp__playwright__browser_network_requests",
-      "Bash(FLASK_RUN_PORT=8080 python3 -m ai_tender_system.web.app)"
+      "Bash(FLASK_RUN_PORT=8080 python3 -m ai_tender_system.web.app)",
+      "Bash(export FLASK_RUN_PORT=8110)",
+      "Read(//private/var/folders/8f/_q8tgg4x6nd33xch9rbg2msm0000gn/T/**)",
+      "Bash(jobs:*)",
+      "Bash(killall:*)",
+      "Bash(/dev/null killall -9 Python 2)",
+      "Bash(/dev/null lsof -ti:8110)",
+      "Bash(/dev/null sleep 3 ps aux)"
     ],
     "deny": [],
     "ask": []

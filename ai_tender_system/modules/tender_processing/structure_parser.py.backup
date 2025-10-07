@@ -1,0 +1,1123 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+文档结构解析器 - 用于 HITL 1 (人工章节选择)
+功能：
+- 解析 Word 文档的目录结构
+- 识别章节层级（H1/H2/H3）
+- 基于白名单自动推荐章节
+- 提供章节预览文本
+"""
+
+import re
+from typing import List, Dict, Optional, Tuple
+from pathlib import Path
+from dataclasses import dataclass, asdict
+from docx import Document
+
+from common import get_module_logger
+
+logger = get_module_logger("structure_parser")
+
+
+@dataclass
+class ChapterNode:
+    """章节节点数据类"""
+    id: str                      # 唯一ID，如 "ch_1_2_3"
+    level: int                   # 层级：1=H1, 2=H2, 3=H3
+    title: str                   # 章节标题
+    para_start_idx: int          # 起始段落索引
+    para_end_idx: int            # 结束段落索引（可能为None）
+    word_count: int              # 字数统计
+    preview_text: str            # 预览文本（前5行）
+    auto_selected: bool          # 是否自动选中（白名单匹配）
+    skip_recommended: bool       # 是否推荐跳过（黑名单匹配）
+    children: List['ChapterNode'] = None  # 子章节列表
+
+    def __post_init__(self):
+        if self.children is None:
+            self.children = []
+
+    def to_dict(self) -> Dict:
+        """转换为字典（用于JSON序列化）"""
+        data = asdict(self)
+        data['children'] = [child.to_dict() for child in self.children]
+        return data
+
+
+class DocumentStructureParser:
+    """文档结构解析器"""
+
+    def __init__(self):
+        """初始化解析器"""
+        self.logger = get_module_logger("structure_parser")
+
+        # 白名单：自动选中的关键词
+        self.WHITELIST_KEYWORDS = [
+            # 投标要求类
+            "投标须知", "供应商须知", "投标人须知", "资格要求", "资质要求",
+            "投标邀请", "招标公告", "项目概况",
+            # 技术要求类
+            "技术要求", "技术规格", "技术参数", "性能指标", "项目需求",
+            "需求说明", "技术标准", "功能要求", "技术规范", "技术方案",
+            # 商务要求类
+            "商务要求", "商务条款", "付款方式", "交付要求", "质保要求",
+            "价格要求", "报价要求",
+            # 评分标准类
+            "评分标准", "评标办法", "评分细则", "打分标准", "综合评分",
+            "评审标准", "评审办法",
+        ]
+
+        # 黑名单：推荐跳过的关键词（优先级高于白名单）
+        self.BLACKLIST_KEYWORDS = [
+            # 合同类（包含"合同"但非要求类的标题）
+            "合同条款", "合同文本", "合同范本", "合同格式", "合同协议",
+            "通用条款", "专用条款", "合同主要条款", "合同草稿", "拟签合同",
+            "服务合同", "采购合同", "买卖合同", "销售合同", "施工合同",
+            "分包合同", "劳务合同", "租赁合同", "委托合同", "代理合同",
+            # 合同元信息
+            "合同编号", "合同双方", "甲方", "乙方", "丙方",
+            "签订地点", "签订日期", "有效期", "合同期限",
+            # 项目和公司信息
+            "项目名称", "项目编号", "公司名称", "公司简介", "企业信息",
+            "采购人信息", "供应商信息", "投标人信息",
+            # 目录结构
+            "目录", "索引", "章节目录", "内容目录",
+            # 格式类
+            "投标文件格式", "文件格式", "格式要求", "编制要求", "封装要求",
+            "响应文件格式", "资料清单", "包装要求", "密封要求",
+            # 法律声明类
+            "法律声明", "免责声明", "投标承诺", "廉政承诺", "保密协议",
+            "诚信承诺", "声明函", "授权书", "委托书",
+            # 附件类
+            "附件", "附表", "附录", "样表", "模板", "格式范本", "空白表格",
+            # 说明性文字
+            "填写说明", "填表说明", "使用说明", "注意事项", "特别说明",
+            "备注", "参考样本", "示例", "仅供参考",
+        ]
+
+        # 标题样式名称映射（中英文）
+        self.HEADING_STYLES = {
+            1: ['Heading 1', '标题 1', 'heading 1', '1级标题'],
+            2: ['Heading 2', '标题 2', 'heading 2', '2级标题'],
+            3: ['Heading 3', '标题 3', 'heading 3', '3级标题'],
+        }
+
+    def parse_document_structure(self, doc_path: str) -> Dict:
+        """
+        解析文档结构
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [ChapterNode.to_dict(), ...],
+                "statistics": {
+                    "total_chapters": 10,
+                    "auto_selected": 5,
+                    "skip_recommended": 3,
+                    "total_words": 15000
+                },
+                "error": "错误信息（如果失败）"
+            }
+        """
+        try:
+            self.logger.info(f"开始解析文档结构: {doc_path}")
+
+            # 打开文档
+            doc = Document(doc_path)
+
+            # 1. 尝试检测目录
+            toc_idx = self._find_toc_section(doc)
+
+            if toc_idx is not None:
+                # 有目录：优先使用目录解析
+                self.logger.info("使用目录解析方案")
+                toc_items, toc_end_idx = self._parse_toc_items(doc, toc_idx)
+
+                if toc_items and len(toc_items) > 0:
+                    # 目录解析成功
+                    chapters = self._locate_chapters_by_toc(doc, toc_items, toc_end_idx)
+                else:
+                    # 目录解析失败，回退到标题样式识别
+                    self.logger.warning("目录解析失败，回退到标题样式识别方案")
+                    chapters = self._parse_chapters_from_doc(doc)
+                    chapters = self._locate_chapter_content(doc, chapters)
+            else:
+                # 无目录：使用标题样式识别
+                self.logger.info("使用标题样式识别方案")
+                chapters = self._parse_chapters_from_doc(doc)
+                chapters = self._locate_chapter_content(doc, chapters)
+
+            # 2. 构建层级树
+            chapter_tree = self._build_chapter_tree(chapters)
+
+            # 传播黑名单状态(父章节被跳过时,子章节也应跳过)
+            chapter_tree = self._propagate_skip_status(chapter_tree)
+
+            # 统计信息
+            stats = self._calculate_statistics(chapter_tree)
+
+            self.logger.info(f"结构解析完成: 找到 {stats['total_chapters']} 个章节")
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": stats
+            }
+
+        except Exception as e:
+            self.logger.error(f"文档结构解析失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return {
+                "success": False,
+                "chapters": [],
+                "statistics": {},
+                "error": str(e)
+            }
+
+    def _parse_chapters_from_doc(self, doc: Document) -> List[ChapterNode]:
+        """
+        从 Word 文档中解析章节
+
+        Args:
+            doc: python-docx Document 对象
+
+        Returns:
+            章节列表（扁平结构，未构建树）
+        """
+        chapters = []
+        chapter_counter = 0
+
+        for para_idx, paragraph in enumerate(doc.paragraphs):
+            # 检查是否为标题
+            level = self._get_heading_level(paragraph)
+
+            if level > 0:
+                title = paragraph.text.strip()
+
+                # 跳过空标题
+                if not title:
+                    continue
+
+                # 判断是否匹配白/黑名单
+                auto_selected = self._matches_whitelist(title)
+                skip_recommended = self._matches_blacklist(title)
+
+                # 如果在黑名单中，则不自动选中
+                if skip_recommended:
+                    auto_selected = False
+
+                chapter = ChapterNode(
+                    id=f"ch_{chapter_counter}",
+                    level=level,
+                    title=title,
+                    para_start_idx=para_idx,
+                    para_end_idx=None,  # 稍后计算
+                    word_count=0,       # 稍后计算
+                    preview_text="",    # 稍后提取
+                    auto_selected=auto_selected,
+                    skip_recommended=skip_recommended
+                )
+
+                chapters.append(chapter)
+                chapter_counter += 1
+
+                self.logger.debug(
+                    f"找到章节 [{level}级]: {title} "
+                    f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+                )
+
+        return chapters
+
+    def _get_heading_level(self, paragraph) -> int:
+        """
+        获取段落的标题层级
+
+        Args:
+            paragraph: python-docx Paragraph 对象
+
+        Returns:
+            0: 不是标题
+            1-3: 标题层级
+        """
+        # 方法1：通过样式名判断
+        if paragraph.style and paragraph.style.name:
+            style_name = paragraph.style.name
+            for level, style_names in self.HEADING_STYLES.items():
+                if any(sn.lower() in style_name.lower() for sn in style_names):
+                    return level
+
+        # 方法2：通过 XML 属性判断（更准确）
+        try:
+            pPr = paragraph._element.pPr
+            if pPr is not None:
+                pStyle = pPr.pStyle
+                if pStyle is not None:
+                    style_val = pStyle.val
+                    if 'heading1' in style_val.lower() or style_val.lower() == '1':
+                        return 1
+                    elif 'heading2' in style_val.lower() or style_val.lower() == '2':
+                        return 2
+                    elif 'heading3' in style_val.lower() or style_val.lower() == '3':
+                        return 3
+        except:
+            pass
+
+        # 方法3：通过文本格式启发式判断（加粗、字号大）
+        if paragraph.runs:
+            first_run = paragraph.runs[0]
+            if first_run.bold and first_run.font.size:
+                # 简单启发式：加粗 + 字号 >= 14pt 可能是标题
+                size_pt = first_run.font.size.pt if first_run.font.size else 0
+                if size_pt >= 16:
+                    return 1
+                elif size_pt >= 14:
+                    return 2
+
+        return 0
+
+    def _matches_whitelist(self, title: str) -> bool:
+        """检查标题是否匹配白名单"""
+        return any(keyword in title for keyword in self.WHITELIST_KEYWORDS)
+
+    def _matches_blacklist(self, title: str) -> bool:
+        """检查标题是否匹配黑名单"""
+        # 1. 关键词匹配
+        if any(keyword in title for keyword in self.BLACKLIST_KEYWORDS):
+            return True
+
+        # 2. 特殊模式匹配
+        special_patterns = [
+            # 匹配纯公司名称章节（如 "中国光大银行股份有限公司"、"XXX公司"）
+            r'^.{2,30}(有限公司|股份有限公司|集团有限公司|集团)$',
+            # 匹配甲乙丙方开头的章节
+            r'^(甲方|乙方|丙方)[:：]',
+            # 匹配纯项目名称章节（如 "XXX项目"，但不包括 "项目需求"、"项目概况" 等）
+            r'^.{1,20}项目$',  # 以"项目"结尾，前面是项目名称
+            # 匹配合同编号格式章节
+            r'.*编号[:：].{0,50}$',  # 包含 "编号:" 或 "编号："
+        ]
+
+        for pattern in special_patterns:
+            if re.match(pattern, title.strip()):
+                return True
+
+        # 3. 匹配空白或极短章节（< 3个字符，可能是格式错误）
+        if len(title.strip()) < 3:
+            return True
+
+        return False
+
+    def _find_toc_section(self, doc: Document) -> Optional[int]:
+        """
+        查找文档中的目录部分
+
+        Args:
+            doc: Word文档对象
+
+        Returns:
+            目录起始段落索引，如果未找到则返回None
+        """
+        for i, para in enumerate(doc.paragraphs[:50]):  # 只检查前50段
+            text = para.text.strip()
+
+            # 跳过空段落
+            if not text:
+                continue
+
+            # 检测目录标题（支持中英文）
+            if re.match(r'^(目\s*录|contents|索\s*引|table\s+of\s+contents)$', text, re.IGNORECASE):
+                self.logger.info(f"检测到目录标题，位于段落 {i}: {text}")
+                return i
+
+            # 检测TOC域（Word自动生成的目录）
+            # 通过检查段落的XML来识别
+            try:
+                xml_str = para._element.xml.decode() if isinstance(para._element.xml, bytes) else str(para._element.xml)
+                if 'TOC' in xml_str and 'fldChar' in xml_str:
+                    self.logger.info(f"检测到Word TOC域，位于段落 {i}")
+                    return i
+            except:
+                pass
+
+        self.logger.info("未检测到目录，将使用标题样式识别方案")
+        return None
+
+    def _detect_toc_level(self, para, title: str) -> int:
+        """
+        检测目录项的层级
+
+        Args:
+            para: python-docx Paragraph 对象
+            title: 标题文本
+
+        Returns:
+            1-3: 标题层级
+        """
+        # 方法1：通过段落缩进判断
+        try:
+            if para.paragraph_format.left_indent:
+                indent_pt = para.paragraph_format.left_indent.pt
+                if indent_pt > 40:
+                    return 3
+                elif indent_pt > 20:
+                    return 2
+        except:
+            pass
+
+        # 方法2：通过标题编号格式判断
+        # 三级：1.1.1, 1.1.1.1 等
+        if re.match(r'^\d+\.\d+\.\d+', title):
+            return 3
+        # 二级：1.1, 1.2 等
+        elif re.match(r'^\d+\.\d+[^\d]', title):
+            return 2
+        # 一级：第X部分、1.、2.、一、二、等
+        elif re.match(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章|\d+\.|[一二三四五六七八九十]+、)', title):
+            return 1
+
+        # 默认1级
+        return 1
+
+    def _parse_toc_items(self, doc: Document, toc_start_idx: int) -> Tuple[List[Dict], int]:
+        """
+        解析目录项
+
+        Args:
+            doc: Word文档对象
+            toc_start_idx: 目录起始段落索引
+
+        Returns:
+            (目录项列表, 目录结束索引)
+            目录项列表格式：[{'title': '...', 'page_num': 1, 'level': 1}, ...]
+        """
+        toc_items = []
+        consecutive_non_toc = 0  # 连续非目录项计数
+        toc_end_idx = toc_start_idx  # 目录结束位置
+
+        for i in range(toc_start_idx + 1, min(toc_start_idx + 100, len(doc.paragraphs))):
+            para = doc.paragraphs[i]
+            text = para.text.strip()
+
+            # 跳过空行
+            if not text:
+                continue
+
+            # 尝试匹配目录项格式
+            # 格式1: "标题文本    页码" (多个空格)
+            match = re.match(r'^(.+?)\s{2,}(\d+)$', text)
+            if not match:
+                # 格式2: "标题文本....页码" (点号填充)
+                match = re.match(r'^(.+?)\.{2,}(\d+)$', text)
+            if not match:
+                # 格式3: "标题文本\t页码" (制表符)
+                match = re.match(r'^(.+?)\t+(\d+)$', text)
+
+            if match:
+                title = match.group(1).strip()
+                page_num = int(match.group(2))
+
+                # 检测层级
+                level = self._detect_toc_level(para, title)
+
+                toc_items.append({
+                    'title': title,
+                    'page_num': page_num,
+                    'level': level
+                })
+
+                self.logger.debug(f"目录项 [{level}级]: {title} -> 第{page_num}页")
+
+                # 更新目录结束位置
+                toc_end_idx = i
+                # 重置计数
+                consecutive_non_toc = 0
+            else:
+                # 非目录项
+                consecutive_non_toc += 1
+                # 连续5行不匹配，认为目录结束
+                if consecutive_non_toc >= 5 and len(toc_items) > 0:
+                    self.logger.info(f"目录解析完成，共 {len(toc_items)} 项，结束于段落 {toc_end_idx}")
+                    break
+
+        return toc_items, toc_end_idx
+
+    def _find_paragraph_by_title(self, doc: Document, title: str, start_idx: int = 0) -> Optional[int]:
+        """
+        在文档中搜索与标题匹配的段落
+
+        Args:
+            doc: Word文档对象
+            title: 要搜索的标题文本
+            start_idx: 开始搜索的段落索引
+
+        Returns:
+            段落索引，如果未找到则返回None
+        """
+        def aggressive_normalize(text: str) -> str:
+            """激进文本规范化：移除所有分隔符、前缀、空格"""
+            # 移除"附件-"、"附件:"等前缀
+            text = re.sub(r'^附件[-:：]?', '', text)
+            # 移除连字符、下划线、制表符
+            text = re.sub(r'[-_\t]+', '', text)
+            # 移除所有空格
+            text = re.sub(r'\s+', '', text)
+            return text
+
+        def extract_core_keywords(text: str) -> str:
+            """提取核心关键词：去除编号和常见前缀"""
+            # 移除编号
+            text = re.sub(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章|\d+\.|\d+\.\d+|[一二三四五六七八九十]+、)\s*', '', text)
+            # 移除"附件"前缀
+            text = re.sub(r'^附件[-:：]?', '', text)
+            # 移除分隔符
+            text = re.sub(r'[-_\t]+', '', text)
+            # 移除空格
+            text = re.sub(r'\s+', '', text)
+            return text
+
+        def calculate_similarity(str1: str, str2: str) -> float:
+            """计算两个字符串的相似度（基于包含关系）"""
+            if not str1 or not str2:
+                return 0.0
+
+            shorter = str1 if len(str1) <= len(str2) else str2
+            longer = str2 if len(str1) <= len(str2) else str1
+
+            # 检查shorter是否被longer包含
+            if shorter in longer:
+                return len(shorter) / len(longer)
+
+            # 检查部分重叠
+            max_overlap = 0
+            for i in range(len(shorter)):
+                for j in range(i + 1, len(shorter) + 1):
+                    substr = shorter[i:j]
+                    if substr in longer and len(substr) > max_overlap:
+                        max_overlap = len(substr)
+
+            return max_overlap / max(len(str1), len(str2))
+
+        # 清理标题（移除多余空格）
+        clean_title = re.sub(r'\s+', '', title)
+
+        # 激进规范化的标题
+        aggressive_title = aggressive_normalize(title)
+
+        # 提取核心关键词
+        core_keywords = extract_core_keywords(aggressive_title)
+
+        self.logger.info(f"搜索标题: '{title}' (清理后: '{clean_title}', 核心: '{core_keywords}'), 从段落 {start_idx} 开始")
+
+        # 候选匹配列表（用于诊断）
+        candidates = []
+
+        for i in range(start_idx, len(doc.paragraphs)):
+            para = doc.paragraphs[i]
+            para_text = para.text.strip()
+
+            if not para_text:
+                continue
+
+            # 清理段落文本
+            clean_para = re.sub(r'\s+', '', para_text)
+
+            # 激进规范化的段落
+            aggressive_para = aggressive_normalize(para_text)
+
+            # 段落核心关键词
+            para_keywords = extract_core_keywords(aggressive_para)
+
+            # Level 1: 完全匹配或包含匹配
+            if clean_title == clean_para or clean_title in clean_para:
+                self.logger.info(f"  ✓ 找到匹配 (Level 1-完全): 段落 {i}: '{para_text}'")
+                return i
+
+            # Level 2: 激进规范化后的完全匹配
+            if aggressive_title == aggressive_para or aggressive_title in aggressive_para:
+                self.logger.info(f"  ✓ 找到匹配 (Level 2-规范化): 段落 {i}: '{para_text}'")
+                return i
+
+            # 检查标题和段落是否包含"第X部分"（用于Level 3和Level 4约束）
+            title_has_part_number = bool(re.search(r'第[一二三四五六七八九十\d]+部分', title))
+            para_has_part_number = bool(re.search(r'第[一二三四五六七八九十\d]+部分', para_text))
+
+            # Level 3: 去除编号后的匹配
+            # 支持多种编号格式：第X部分、第X章、1.、1.1、一、等
+            title_without_number = re.sub(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章|\d+\.|\d+\.\d+|[一二三四五六七八九十]+、)\s*', '', clean_title)
+            para_without_number = re.sub(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章|\d+\.|\d+\.\d+|[一二三四五六七八九十]+、)\s*', '', clean_para)
+
+            if title_without_number and para_without_number and title_without_number == para_without_number:
+                # 如果TOC标题有"第X部分"，则段落也必须有"第X部分"（避免匹配到TOC内的编号内容）
+                if title_has_part_number and not para_has_part_number:
+                    pass  # 跳过，不匹配
+                else:
+                    self.logger.info(f"  ✓ 找到匹配 (Level 3-去编号): 段落 {i}: '{para_text}'")
+                    return i
+
+            # Level 4: 核心关键词匹配（长度≥4字）
+            # 特别检查：如果原标题包含"第X部分",则段落也必须包含"第X部分"
+
+            if len(core_keywords) >= 4 and len(para_keywords) >= 4:
+                # 双向包含检查
+                if core_keywords in para_keywords or para_keywords in core_keywords:
+                    # 如果标题有"第X部分",则段落也必须有,且段落应该是短标题(≤50字)
+                    if title_has_part_number:
+                        if para_has_part_number and len(para_text) <= 50:
+                            self.logger.info(f"  ✓ 找到匹配 (Level 4-关键词+部分编号): 段落 {i}: '{para_text}' (核心词: '{para_keywords}')")
+                            return i
+                    else:
+                        # 标题没有"第X部分",普通关键词匹配
+                        self.logger.info(f"  ✓ 找到匹配 (Level 4-关键词): 段落 {i}: '{para_text}' (核心词: '{para_keywords}')")
+                        return i
+
+            # Level 4.5: 部分子串匹配（解决TOC与实际文本部分差异问题）
+            # 例如：TOC="单一来源采购谈判邀请" vs 实际="单一来源采购邀请" (少"谈判")
+            if len(core_keywords) >= 6 and title_has_part_number:
+                # 从长到短尝试提取子串
+                for substr_len in range(len(core_keywords), 5, -1):
+                    substr = core_keywords[:substr_len]
+                    if substr in para_keywords and len(substr) >= 6:
+                        # 找到大部分匹配，验证段落格式
+                        if para_has_part_number and len(para_text) <= 50:
+                            match_ratio = len(substr) / len(core_keywords)
+                            self.logger.info(f"  ✓ 找到匹配 (Level 4.5-部分子串{match_ratio:.0%}): 段落 {i}: '{para_text}' (匹配: '{substr}')")
+                            return i
+                        break  # 找到但格式不对，不继续尝试更短的
+
+            # Level 5: 相似度匹配（相似度≥80%，更严格）
+            if len(core_keywords) >= 4:
+                similarity = calculate_similarity(core_keywords, para_keywords)
+                if similarity >= 0.8:  # 提高阈值从70%到80%
+                    self.logger.info(f"  ✓ 找到匹配 (Level 5-相似度{similarity:.0%}): 段落 {i}: '{para_text}'")
+                    return i
+
+                # 记录高相似度候选
+                if similarity >= 0.6:  # 候选阈值也相应提高
+                    candidates.append((i, para_text, similarity, core_keywords, para_keywords))
+
+            # Level 6: 宽松关键词匹配（至少6字标题）
+            if len(title_without_number) >= 6:
+                # 检查段落是否包含标题去除编号后的大部分内容
+                if title_without_number in clean_para:
+                    self.logger.info(f"  ✓ 找到匹配 (Level 6-宽松): 段落 {i}: '{para_text}'")
+                    return i
+
+            # 额外尝试：将"第X部分"转换为"X."进行匹配
+            # 例如："第一部分 单一来源采购谈判邀请" 也可以匹配 "1.单一来源采购谈判邀请"
+            def convert_chinese_to_number(text):
+                """将第一/第二/第三等转换为1/2/3"""
+                mapping = {'一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
+                          '六': '6', '七': '7', '八': '8', '九': '9', '十': '10'}
+                # 匹配"第X部分"格式
+                match = re.match(r'^第([一二三四五六七八九十]+)部分(.*)$', text)
+                if match:
+                    num = mapping.get(match.group(1), match.group(1))
+                    return f"{num}.{match.group(2)}"
+                return text
+
+            # Level 7: 转换编号后匹配
+            converted_title = convert_chinese_to_number(clean_title)
+            if converted_title != clean_title and clean_para.startswith(converted_title[:3]):
+                # 转换后的标题开头与段落匹配
+                converted_para_without_num = re.sub(r'^\d+\.', '', clean_para)
+                converted_title_without_num = re.sub(r'^\d+\.', '', converted_title)
+                if converted_title_without_num == converted_para_without_num:
+                    self.logger.info(f"  ✓ 找到匹配 (Level 7-转换编号): 段落 {i}: '{para_text}'")
+                    return i
+
+            # 收集低相似度候选（用于诊断）
+            if i < start_idx + 100 and len(para_text) > 5 and len(para_text) < 100:
+                # 检查是否部分匹配
+                if title_without_number and para_without_number:
+                    # 如果标题去编号后的内容部分出现在段落中
+                    if len(title_without_number) >= 3:
+                        if title_without_number[:4] in para_without_number or para_without_number[:4] in title_without_number:
+                            if not any(c[0] == i for c in candidates):  # 避免重复
+                                candidates.append((i, para_text, 0.4, title_without_number, para_without_number))
+
+        # 未找到，输出诊断信息
+        self.logger.warning(f"未找到标题匹配: '{title}'")
+        if candidates:
+            # 按相似度排序
+            candidates.sort(key=lambda x: x[2] if isinstance(x[2], float) else 0.3, reverse=True)
+            self.logger.info(f"  可能的候选段落 (前{min(5, len(candidates))}个，按相似度排序):")
+            for idx, text, sim, title_key, para_key in candidates[:5]:
+                sim_str = f"{sim:.0%}" if isinstance(sim, float) else "低"
+                self.logger.info(f"    段落 {idx} (相似度{sim_str}): '{text[:50]}...' ")
+                self.logger.info(f"      标题核心: '{title_key}' vs 段落核心: '{para_key}'")
+
+        return None
+
+    def _parse_subsections_in_range(self, doc: Document, start_idx: int, end_idx: int,
+                                     parent_level: int, parent_id: str) -> List[ChapterNode]:
+        """
+        在指定段落范围内识别子章节
+
+        Args:
+            doc: Word文档对象
+            start_idx: 起始段落索引
+            end_idx: 结束段落索引
+            parent_level: 父章节层级
+            parent_id: 父章节ID
+
+        Returns:
+            子章节列表
+        """
+        subsections = []
+        counter = 0
+
+        for para_idx in range(start_idx + 1, end_idx + 1):
+            if para_idx >= len(doc.paragraphs):
+                break
+
+            paragraph = doc.paragraphs[para_idx]
+            level = self._get_heading_level(paragraph)
+
+            # 只识别比父章节层级更深的标题
+            if level > 0 and level > parent_level:
+                title = paragraph.text.strip()
+
+                if not title:
+                    continue
+
+                # 判断是否匹配白/黑名单
+                auto_selected = self._matches_whitelist(title)
+                skip_recommended = self._matches_blacklist(title)
+
+                if skip_recommended:
+                    auto_selected = False
+
+                subsection = ChapterNode(
+                    id=f"{parent_id}_{counter}",
+                    level=level,
+                    title=title,
+                    para_start_idx=para_idx,
+                    para_end_idx=None,  # 稍后计算
+                    word_count=0,       # 稍后计算
+                    preview_text="",    # 稍后提取
+                    auto_selected=auto_selected,
+                    skip_recommended=skip_recommended
+                )
+
+                subsections.append(subsection)
+                counter += 1
+
+                self.logger.debug(
+                    f"  └─ 找到子章节 [{level}级]: {title} "
+                    f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+                )
+
+        # 计算每个子章节的范围
+        for i, subsection in enumerate(subsections):
+            # 确定子章节结束位置
+            if i + 1 < len(subsections):
+                subsection.para_end_idx = subsections[i + 1].para_start_idx - 1
+            else:
+                subsection.para_end_idx = end_idx
+
+            # 提取子章节内容
+            content_paras = doc.paragraphs[subsection.para_start_idx + 1 : subsection.para_end_idx + 1]
+            content_text = '\n'.join(p.text for p in content_paras)
+            subsection.word_count = len(content_text.replace(' ', '').replace('\n', ''))
+
+            # 提取预览文本
+            preview_lines = []
+            for p in content_paras[:5]:
+                text = p.text.strip()
+                if text:
+                    preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
+                if len(preview_lines) >= 5:
+                    break
+
+            subsection.preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
+
+        return subsections
+
+    def _locate_chapters_by_toc(self, doc: Document, toc_items: List[Dict], toc_end_idx: int) -> List[ChapterNode]:
+        """
+        根据目录项定位章节在文档中的位置
+
+        Args:
+            doc: Word文档对象
+            toc_items: 目录项列表
+            toc_end_idx: 目录结束的段落索引
+
+        Returns:
+            章节列表
+        """
+        chapters = []
+        # 从目录结束位置之后开始搜索，避免将目录中的项误识别为章节标题
+        last_found_idx = toc_end_idx + 1
+        self.logger.info(f"目录结束于段落 {toc_end_idx}，从段落 {last_found_idx} 开始搜索章节正文")
+
+        for i, item in enumerate(toc_items):
+            title = item['title']
+            level = item['level']
+
+            # 从上一个位置之后开始搜索（章节按顺序出现）
+            para_idx = self._find_paragraph_by_title(doc, title, last_found_idx)
+
+            if para_idx is None:
+                self.logger.warning(f"未找到目录项对应的章节: {title}")
+                continue
+
+            # 更新搜索起点
+            last_found_idx = para_idx + 1
+
+            # 确定章节结束位置
+            para_end_idx = len(doc.paragraphs) - 1  # 默认到文档末尾
+
+            # 查找下一个目录项的位置
+            for j in range(i + 1, len(toc_items)):
+                next_para_idx = self._find_paragraph_by_title(doc, toc_items[j]['title'], last_found_idx)
+                if next_para_idx:
+                    para_end_idx = next_para_idx - 1
+                    break
+
+            # 提取章节内容
+            content_paras = doc.paragraphs[para_idx + 1 : para_end_idx + 1]
+            content_text = '\n'.join(p.text for p in content_paras)
+            word_count = len(content_text.replace(' ', '').replace('\n', ''))
+
+            # 提取预览文本
+            preview_lines = []
+            for p in content_paras[:5]:
+                text = p.text.strip()
+                if text:
+                    preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
+                if len(preview_lines) >= 5:
+                    break
+
+            preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
+
+            # 判断是否匹配白/黑名单
+            auto_selected = self._matches_whitelist(title)
+            skip_recommended = self._matches_blacklist(title)
+
+            if skip_recommended:
+                auto_selected = False
+
+            chapter = ChapterNode(
+                id=f"ch_{i}",
+                level=level,
+                title=title,
+                para_start_idx=para_idx,
+                para_end_idx=para_end_idx,
+                word_count=word_count,
+                preview_text=preview_text,
+                auto_selected=auto_selected,
+                skip_recommended=skip_recommended
+            )
+
+            # 在章节范围内识别子章节
+            self.logger.info(f"正在识别 '{title}' 的子章节 (段落范围: {para_idx}-{para_end_idx})")
+            subsections = self._parse_subsections_in_range(
+                doc, para_idx, para_end_idx, level, f"ch_{i}"
+            )
+
+            if subsections:
+                chapter.children = subsections
+
+                # 递归累加所有子章节的字数
+                def sum_word_count(node):
+                    total = node.word_count
+                    for child in node.children:
+                        total += sum_word_count(child)
+                    return total
+
+                chapter.word_count = sum_word_count(chapter)
+                self.logger.info(f"  └─ 识别到 {len(subsections)} 个子章节（总字数: {chapter.word_count}）")
+
+            chapters.append(chapter)
+
+            self.logger.debug(
+                f"定位章节 [{level}级]: {title} "
+                f"(段落 {para_idx}-{para_end_idx}, {word_count}字) "
+                f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+            )
+
+        return chapters
+
+    def _locate_chapter_content(self, doc: Document, chapters: List[ChapterNode]) -> List[ChapterNode]:
+        """
+        定位每个章节的内容范围
+
+        Args:
+            doc: Word 文档对象
+            chapters: 章节列表
+
+        Returns:
+            更新后的章节列表（包含 para_end_idx、word_count、preview_text）
+        """
+        total_paras = len(doc.paragraphs)
+
+        for i, chapter in enumerate(chapters):
+            # 确定章节结束位置（下一个同级或更高级标题的前一个段落）
+            next_start = total_paras  # 默认到文档末尾
+
+            for j in range(i + 1, len(chapters)):
+                if chapters[j].level <= chapter.level:
+                    next_start = chapters[j].para_start_idx
+                    break
+
+            chapter.para_end_idx = next_start - 1
+
+            # 提取章节内容
+            content_paras = doc.paragraphs[chapter.para_start_idx + 1 : chapter.para_end_idx + 1]
+
+            # 计算字数
+            content_text = '\n'.join(p.text for p in content_paras)
+            chapter.word_count = len(content_text.replace(' ', '').replace('\n', ''))
+
+            # 提取预览文本（前5行，每行最多100字符）
+            preview_lines = []
+            for p in content_paras[:5]:
+                text = p.text.strip()
+                if text:
+                    preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
+                if len(preview_lines) >= 5:
+                    break
+
+            chapter.preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
+
+        return chapters
+
+    def _build_chapter_tree(self, chapters: List[ChapterNode]) -> List[ChapterNode]:
+        """
+        构建章节层级树
+
+        Args:
+            chapters: 扁平章节列表
+
+        Returns:
+            根级章节列表（包含子章节）
+        """
+        if not chapters:
+            return []
+
+        # 使用栈来构建树
+        root_chapters = []
+        stack = []  # [(level, chapter), ...]
+
+        for chapter in chapters:
+            # 弹出所有层级 >= 当前章节层级的节点
+            while stack and stack[-1][0] >= chapter.level:
+                stack.pop()
+
+            if not stack:
+                # 当前是根级章节
+                root_chapters.append(chapter)
+            else:
+                # 当前是子章节，添加到父章节的 children
+                parent = stack[-1][1]
+                parent.children.append(chapter)
+                # 更新子章节ID（包含父级ID）
+                chapter.id = f"{parent.id}_{len(parent.children)}"
+
+            # 将当前章节入栈
+            stack.append((chapter.level, chapter))
+
+        return root_chapters
+
+    def _propagate_skip_status(self, chapter_tree: List[ChapterNode]) -> List[ChapterNode]:
+        """
+        递归传播父章节的 skip_recommended 状态到子章节
+        如果父章节被跳过，则所有子章节及其后代都应该被跳过
+
+        Args:
+            chapter_tree: 章节树
+
+        Returns:
+            更新后的章节树
+        """
+        propagated_count = 0
+
+        def propagate_recursive(chapter: ChapterNode):
+            """递归传播跳过状态"""
+            nonlocal propagated_count
+
+            # 如果当前章节被标记为跳过，传播到所有子章节和后代
+            if chapter.skip_recommended:
+                for child in chapter.children:
+                    if not child.skip_recommended:  # 避免重复计数
+                        child.skip_recommended = True
+                        child.auto_selected = False
+                        propagated_count += 1
+                        self.logger.debug(f"  └─ 传播skip状态: {chapter.title} -> {child.title}")
+                    # 递归传播到所有后代
+                    propagate_recursive(child)
+            else:
+                # 即使当前章节不被跳过，也要递归检查子章节
+                # （因为子章节可能自己匹配黑名单）
+                for child in chapter.children:
+                    propagate_recursive(child)
+
+        # 遍历所有根级章节
+        for root_chapter in chapter_tree:
+            propagate_recursive(root_chapter)
+
+        if propagated_count > 0:
+            self.logger.info(f"黑名单状态传播完成: 共传播到 {propagated_count} 个子章节")
+
+        return chapter_tree
+
+    def _calculate_statistics(self, chapter_tree: List[ChapterNode]) -> Dict:
+        """
+        计算统计信息
+
+        Args:
+            chapter_tree: 章节树
+
+        Returns:
+            统计字典
+        """
+        stats = {
+            "total_chapters": 0,
+            "auto_selected": 0,
+            "skip_recommended": 0,
+            "total_words": 0,
+            "estimated_processing_cost": 0.0
+        }
+
+        def traverse(chapters):
+            for ch in chapters:
+                stats["total_chapters"] += 1
+                if ch.auto_selected:
+                    stats["auto_selected"] += 1
+                if ch.skip_recommended:
+                    stats["skip_recommended"] += 1
+                stats["total_words"] += ch.word_count
+
+                # 递归遍历子章节
+                if ch.children:
+                    traverse(ch.children)
+
+        traverse(chapter_tree)
+
+        # 估算处理成本（基于字数）
+        # 假设：1000字 ≈ 1500 tokens ≈ $0.002（GPT-4o-mini）
+        stats["estimated_processing_cost"] = (stats["total_words"] / 1000) * 0.002
+
+        return stats
+
+    def get_selected_chapter_content(self, doc_path: str, selected_chapter_ids: List[str]) -> Dict:
+        """
+        根据用户选择的章节ID，提取对应的文本内容
+
+        Args:
+            doc_path: Word 文档路径
+            selected_chapter_ids: 选中的章节ID列表，如 ["ch_0", "ch_1_2"]
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [
+                    {
+                        "id": "ch_0",
+                        "title": "第一章 项目概述",
+                        "content": "完整章节文本内容...",
+                        "word_count": 1500
+                    },
+                    ...
+                ],
+                "total_words": 8000
+            }
+        """
+        try:
+            # 重新解析文档（获取完整章节信息）
+            result = self.parse_document_structure(doc_path)
+            if not result["success"]:
+                return result
+
+            chapters = self._flatten_chapters(result["chapters"])
+
+            # 打开文档
+            doc = Document(doc_path)
+
+            # 提取选中章节的内容
+            selected_chapters = []
+            total_words = 0
+
+            for chapter_dict in chapters:
+                if chapter_dict["id"] in selected_chapter_ids:
+                    # 提取内容
+                    start_idx = chapter_dict["para_start_idx"]
+                    end_idx = chapter_dict["para_end_idx"]
+
+                    content_paras = doc.paragraphs[start_idx : end_idx + 1]
+                    content = '\n'.join(p.text for p in content_paras)
+
+                    selected_chapters.append({
+                        "id": chapter_dict["id"],
+                        "title": chapter_dict["title"],
+                        "content": content,
+                        "word_count": len(content.replace(' ', '').replace('\n', ''))
+                    })
+
+                    total_words += selected_chapters[-1]["word_count"]
+
+            self.logger.info(f"提取了 {len(selected_chapters)} 个章节，共 {total_words} 字")
+
+            return {
+                "success": True,
+                "chapters": selected_chapters,
+                "total_words": total_words
+            }
+
+        except Exception as e:
+            self.logger.error(f"提取章节内容失败: {e}")
+            return {
+                "success": False,
+                "chapters": [],
+                "total_words": 0,
+                "error": str(e)
+            }
+
+    def _flatten_chapters(self, chapter_dicts: List[Dict]) -> List[Dict]:
+        """将章节树扁平化为列表"""
+        flat = []
+
+        def traverse(chapters):
+            for ch in chapters:
+                flat.append(ch)
+                if ch.get("children"):
+                    traverse(ch["children"])
+
+        traverse(chapter_dicts)
+        return flat
+
+
+if __name__ == '__main__':
+    # 测试代码
+    import sys
+
+    if len(sys.argv) > 1:
+        doc_path = sys.argv[1]
+    else:
+        print("用法: python structure_parser.py <word文档路径>")
+        sys.exit(1)
+
+    parser = DocumentStructureParser()
+    result = parser.parse_document_structure(doc_path)
+
+    if result["success"]:
+        print(f"\n✅ 解析成功！")
+        print(f"统计信息: {result['statistics']}")
+        print(f"\n章节结构:")
+
+        def print_tree(chapters, indent=0):
+            for ch in chapters:
+                prefix = "  " * indent
+                status = "✅" if ch["auto_selected"] else "❌" if ch["skip_recommended"] else "⚪"
+                print(f"{prefix}{status} [{ch['level']}级] {ch['title']} ({ch['word_count']}字)")
+                if ch.get("children"):
+                    print_tree(ch["children"], indent + 1)
+
+        print_tree(result["chapters"])
+    else:
+        print(f"\n❌ 解析失败: {result.get('error')}")

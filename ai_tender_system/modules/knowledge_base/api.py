@@ -412,6 +412,241 @@ class KnowledgeBaseAPI:
                     'error': str(e)
                 }), 500
 
+        @self.blueprint.route('/documents/<int:doc_id>/preview', methods=['GET'])
+        def preview_document(doc_id):
+            """预览文档内容（转换为HTML）"""
+            try:
+                from pathlib import Path
+                import html
+
+                # 获取文档信息
+                document = self.manager.get_document_by_id(doc_id)
+                if not document:
+                    return jsonify({
+                        'success': False,
+                        'error': '文档不存在'
+                    }), 404
+
+                file_path = Path(document['file_path'])
+                if not file_path.exists():
+                    return jsonify({
+                        'success': False,
+                        'error': '文件不存在'
+                    }), 404
+
+                file_extension = file_path.suffix.lower()
+
+                # Word文档预览
+                if file_extension in ['.docx', '.doc']:
+                    try:
+                        from docx import Document
+                        from docx.oxml.text.paragraph import CT_P
+                        from docx.oxml.table import CT_Tbl
+                        from docx.table import _Cell, Table
+                        from docx.text.paragraph import Paragraph
+
+                        doc = Document(file_path)
+                        html_content = ['<div class="document-preview">']
+
+                        # 按文档原始顺序遍历所有元素（段落和表格）
+                        def is_heading(paragraph):
+                            """判断段落是否为标题"""
+                            if not paragraph.text.strip():
+                                return None
+
+                            style_name = paragraph.style.name if paragraph.style else ''
+
+                            # 方法1: 通过样式名判断
+                            if 'Heading 1' in style_name or 'heading 1' in style_name.lower() or '标题 1' in style_name:
+                                return 1
+                            elif 'Heading 2' in style_name or 'heading 2' in style_name.lower() or '标题 2' in style_name:
+                                return 2
+                            elif 'Heading 3' in style_name or 'heading 3' in style_name.lower() or '标题 3' in style_name:
+                                return 3
+
+                            # 方法2: 通过字体大小和加粗判断（适用于手动格式化的标题）
+                            try:
+                                runs = paragraph.runs
+                                if runs:
+                                    first_run = runs[0]
+                                    if first_run.bold and first_run.font.size:
+                                        size_pt = first_run.font.size.pt
+                                        if size_pt >= 16:
+                                            return 1
+                                        elif size_pt >= 14:
+                                            return 2
+                                        elif size_pt >= 12:
+                                            return 3
+                            except:
+                                pass
+
+                            return None
+
+                        # 遍历文档的body元素，保持原始顺序
+                        for element in doc.element.body:
+                            # 处理段落
+                            if isinstance(element, CT_P):
+                                paragraph = Paragraph(element, doc)
+                                if paragraph.text.strip():
+                                    heading_level = is_heading(paragraph)
+                                    text = html.escape(paragraph.text)
+
+                                    if heading_level == 1:
+                                        html_content.append(f'<h1>{text}</h1>')
+                                    elif heading_level == 2:
+                                        html_content.append(f'<h2>{text}</h2>')
+                                    elif heading_level == 3:
+                                        html_content.append(f'<h3>{text}</h3>')
+                                    else:
+                                        html_content.append(f'<p>{text}</p>')
+
+                            # 处理表格
+                            elif isinstance(element, CT_Tbl):
+                                table = Table(element, doc)
+                                html_content.append('<table class="table table-bordered table-striped">')
+                                for i, row in enumerate(table.rows):
+                                    # 第一行作为表头
+                                    tag = 'th' if i == 0 else 'td'
+                                    html_content.append('<tr>')
+                                    for cell in row.cells:
+                                        cell_text = html.escape(cell.text)
+                                        html_content.append(f'<{tag}>{cell_text}</{tag}>')
+                                    html_content.append('</tr>')
+                                html_content.append('</table>')
+
+                        html_content.append('</div>')
+
+                        # 添加CSS样式
+                        css_styles = """
+                        <style>
+                            .document-preview {
+                                font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+                                line-height: 1.8;
+                                padding: 20px;
+                            }
+                            .table {
+                                margin: 20px 0;
+                                width: 100%;
+                                border-collapse: collapse;
+                            }
+                            .table th {
+                                background-color: #f8f9fa;
+                                font-weight: bold;
+                                padding: 12px;
+                                text-align: left;
+                            }
+                            .table td {
+                                padding: 10px;
+                            }
+                            h1 {
+                                color: #333;
+                                font-size: 2rem;
+                                margin: 30px 0 15px;
+                                font-weight: bold;
+                                border-bottom: 2px solid #007bff;
+                                padding-bottom: 10px;
+                            }
+                            h2 {
+                                color: #555;
+                                font-size: 1.5rem;
+                                margin: 25px 0 12px;
+                                font-weight: bold;
+                                border-bottom: 1px solid #ddd;
+                                padding-bottom: 8px;
+                            }
+                            h3 {
+                                color: #666;
+                                font-size: 1.25rem;
+                                margin: 20px 0 10px;
+                                font-weight: bold;
+                            }
+                            p {
+                                margin: 12px 0;
+                                text-align: justify;
+                                color: #333;
+                            }
+                        </style>
+                        """
+
+                        full_content = css_styles + ''.join(html_content)
+
+                        return jsonify({
+                            'success': True,
+                            'content': full_content,
+                            'filename': document['original_filename']
+                        })
+
+                    except Exception as e:
+                        logger.error(f"Word文档预览失败: {e}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'Word文档预览失败: {str(e)}'
+                        }), 500
+
+                # PDF文档预览
+                elif file_extension == '.pdf':
+                    try:
+                        import PyPDF2
+
+                        with open(file_path, 'rb') as pdf_file:
+                            pdf_reader = PyPDF2.PdfReader(pdf_file)
+                            text_content = []
+                            for page in pdf_reader.pages:
+                                text_content.append(page.extract_text())
+
+                        html_content = '<div class="document-preview"><pre style="white-space: pre-wrap; font-family: inherit;">'
+                        html_content += html.escape('\n\n'.join(text_content))
+                        html_content += '</pre></div>'
+
+                        return jsonify({
+                            'success': True,
+                            'content': html_content,
+                            'filename': document['original_filename']
+                        })
+
+                    except Exception as e:
+                        logger.error(f"PDF文档预览失败: {e}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'PDF文档预览失败: {str(e)}'
+                        }), 500
+
+                # 文本文件预览
+                elif file_extension in ['.txt', '.md', '.json', '.xml', '.csv']:
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            text_content = f.read()
+
+                        html_content = '<div class="document-preview"><pre style="white-space: pre-wrap; font-family: monospace;">'
+                        html_content += html.escape(text_content)
+                        html_content += '</pre></div>'
+
+                        return jsonify({
+                            'success': True,
+                            'content': html_content,
+                            'filename': document['original_filename']
+                        })
+
+                    except Exception as e:
+                        logger.error(f"文本文件预览失败: {e}")
+                        return jsonify({
+                            'success': False,
+                            'error': f'文本文件预览失败: {str(e)}'
+                        }), 500
+
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': f'不支持预览此文件类型: {file_extension}'
+                    }), 400
+
+            except Exception as e:
+                logger.error(f"文档预览失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
         @self.blueprint.route('/documents/<int:doc_id>', methods=['DELETE'])
         def delete_document(doc_id):
             """删除文档"""
