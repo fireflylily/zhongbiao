@@ -197,10 +197,29 @@ class TenderInfoExtractor:
                 '知识产权', '专利权'
             ],
             'audit_report': [
+                # 审计报告类
                 '审计报告', '财务审计', '年度审计报告',
                 '近三年审计报告', '审计', '会计师事务所',
                 '财务审计报告', '审计证明', '审计意见',
-                '审计师', '注册会计师'
+                '审计师', '注册会计师',
+
+                # 财务报表类（新增）
+                '资产负债表', '利润表', '损益表',
+                '现金流量表', '收入费用表', '财务报表',
+                '资产负债', '利润状况', '三大报表',
+                '财务会计报表', '会计报表',
+
+                # 财务证明类（新增）
+                '财务状况证明', '财务证明', '财务情况说明',
+                '银行资信证明', '资信证明',
+
+                # 财务制度类（新增）
+                '财务会计制度', '财务管理制度', '财务体系',
+                '会计制度', '会计核算体系', '财务管理体系',
+
+                # 财务能力描述（新增）
+                '财务状况良好', '良好的财务状况', '财务能力',
+                '财务健康', '具有履约能力的财务状况'
             ],
             'project_performance': [
                 '项目案例', '项目业绩', '业绩证明', '类似项目',
@@ -229,6 +248,30 @@ class TenderInfoExtractor:
                 '政府采购严重违法失信', '政府采购违法',
                 '政府采购失信', '采购严重违法', '政府采购黑名单',
                 '不得被列入.*政府采购', '未被列入.*政府采购'
+            ],
+
+            # 补充13条供应商资格要求中缺失的关键词
+            'tax_compliance': [
+                '依法纳税', '增值税', '纳税证明', '完税证明',
+                '税收缴纳', '纳税凭证', '税务证明', '缴税证明',
+                '增值税缴纳证明', '税收缴纳记录'
+            ],
+            'commitment_letter': [
+                '承诺函', '投标承诺', '承诺书', '投标人承诺',
+                '资格承诺', '诚信承诺', '投标承诺函', '承诺声明'
+            ],
+            'property_certificate': [
+                '房产证明', '办公场所', '营业场所', '场地证明',
+                '房屋产权', '租赁合同', '场所证明', '经营场所',
+                '办公场地', '房产证', '产权证明'
+            ],
+            'deposit_requirement': [
+                '保证金', '投标保证金', '履约保证金', '质量保证金',
+                '担保金', '押金', '保证金缴纳', '保证金金额'
+            ],
+            'purchaser_blacklist': [
+                '采购人黑名单', '黑名单', '禁入名单',
+                '不良行为记录', '政府采购黑名单', '采购黑名单'
             ]
         }
 
@@ -236,9 +279,22 @@ class TenderInfoExtractor:
         """
         使用关键字匹配提取资质要求
         替代LLM调用，提高性能和准确性
+
+        增强功能：
+        1. 否定词过滤 - 识别"本项目不适用"等排除性表述
+        2. 上下文验证 - 确保是真实的资格要求
         """
         try:
             self.logger.info("开始使用关键字匹配提取资质要求")
+
+            # 定义否定标记词
+            negation_markers = [
+                '本项目不适用', '不适用', '本次不适用', '本次采购不适用',
+                '免除', '无需提供', '不需要', '不要求', '不涉及',
+                '除外', '本项目除外', '已删除', '取消', '不作要求',
+                '删除', '暂不要求', '可不提供', '非必须',
+                '（不适用）', '【不适用】', '(不适用)', '[不适用]'
+            ]
 
             # 获取关键字匹配规则
             keywords_mapping = self._get_qualification_keywords()
@@ -257,11 +313,32 @@ class TenderInfoExtractor:
                 # 检查每个关键字
                 for keyword in keywords:
                     if keyword.lower() in text_lower:
+                        # 提取关键字周围的上下文（扩大到150字）
+                        context = self._extract_context_around_keyword(text, keyword, 150)
+
+                        # 检查上下文中是否有否定标记
+                        is_negated = False
+                        matched_negation = None
+                        for neg_marker in negation_markers:
+                            if neg_marker in context:
+                                is_negated = True
+                                matched_negation = neg_marker
+                                break
+
+                        if is_negated:
+                            # 跳过这个被否定的匹配
+                            self.logger.debug(
+                                f"跳过否定匹配 [{qual_key}]: "
+                                f"关键词='{keyword}', 否定词='{matched_negation}', "
+                                f"上下文='{context[:80]}...'"
+                            )
+                            continue
+
+                        # 正常记录
                         found_keywords.append(keyword)
                         qualification_required = True
 
-                        # 尝试提取关键字周围的上下文作为描述
-                        context = self._extract_context_around_keyword(text, keyword)
+                        # 提取关键字周围的上下文作为描述
                         if context:
                             description_parts.append(context)
 
@@ -275,8 +352,7 @@ class TenderInfoExtractor:
                     qualification_results[qual_key] = {
                         'required': True,
                         'keywords_found': found_keywords,
-                        'description': description,
-                        'confidence': len(found_keywords) / len(keywords)  # 匹配置信度
+                        'description': description
                     }
 
             # 构建返回结果
@@ -919,7 +995,156 @@ class TenderInfoExtractor:
         except Exception as e:
             self.logger.error(f"提取资质要求失败: {e}")
             return {}
-    
+
+    def extract_supplier_eligibility_checklist(self, text: str) -> List[Dict[str, Any]]:
+        """
+        提取13条供应商资格要求清单（关键词匹配）
+        返回固定13项清单，每项标记found=True/False
+
+        返回格式：
+        [
+            {
+                "checklist_id": 1,
+                "checklist_name": "营业执照信息",
+                "found": True,
+                "requirements": [{
+                    "summary": "需要提供营业执照",
+                    "detail": "供应商须提供有效的营业执照...",
+                    "constraint_type": "mandatory",
+                    "source_location": "第二章 投标人资格要求",
+                    "extraction_confidence": 0.85
+                }]
+            },
+            ...
+        ]
+        """
+        try:
+            self.logger.info("开始提取13条供应商资格要求清单")
+
+            # 调用关键词匹配方法
+            qual_results = self.extract_qualification_requirements_by_keywords(text)
+            qualifications = qual_results.get('qualifications', {})
+
+            # 定义13项清单与关键词的映射关系
+            checklist_mapping = [
+                {
+                    "checklist_id": 1,
+                    "checklist_name": "营业执照信息",
+                    "qual_keys": ["business_license"]  # 对应关键词类型
+                },
+                {
+                    "checklist_id": 2,
+                    "checklist_name": "财务要求",
+                    "qual_keys": ["audit_report"]
+                },
+                {
+                    "checklist_id": 3,
+                    "checklist_name": "依法纳税",
+                    "qual_keys": ["tax_compliance"]
+                },
+                {
+                    "checklist_id": 4,
+                    "checklist_name": "缴纳社保",
+                    "qual_keys": ["social_security"]
+                },
+                {
+                    "checklist_id": 5,
+                    "checklist_name": "失信被执行人",
+                    "qual_keys": ["credit_dishonest"]
+                },
+                {
+                    "checklist_id": 6,
+                    "checklist_name": "信用中国严重违法失信",
+                    "qual_keys": ["credit_tax"]
+                },
+                {
+                    "checklist_id": 7,
+                    "checklist_name": "严重违法失信行为记录名单",
+                    "qual_keys": ["credit_tax"]  # 与第6条共用
+                },
+                {
+                    "checklist_id": 8,
+                    "checklist_name": "信用中国重大税收违法",
+                    "qual_keys": ["credit_corruption"]
+                },
+                {
+                    "checklist_id": 9,
+                    "checklist_name": "采购人黑名单",
+                    "qual_keys": ["purchaser_blacklist"]
+                },
+                {
+                    "checklist_id": 10,
+                    "checklist_name": "承诺函",
+                    "qual_keys": ["commitment_letter"]
+                },
+                {
+                    "checklist_id": 11,
+                    "checklist_name": "营业办公场所房产证明",
+                    "qual_keys": ["property_certificate"]
+                },
+                {
+                    "checklist_id": 12,
+                    "checklist_name": "业绩案例要求",
+                    "qual_keys": ["project_performance"]
+                },
+                {
+                    "checklist_id": 13,
+                    "checklist_name": "保证金要求",
+                    "qual_keys": ["deposit_requirement"]
+                }
+            ]
+
+            # 构建13项清单结果
+            checklist_results = []
+
+            for item in checklist_mapping:
+                checklist_item = {
+                    "checklist_id": item["checklist_id"],
+                    "checklist_name": item["checklist_name"],
+                    "found": False,
+                    "requirements": []
+                }
+
+                # 检查是否找到相关资质
+                for qual_key in item["qual_keys"]:
+                    if qual_key in qualifications:
+                        qual_data = qualifications[qual_key]
+                        checklist_item["found"] = True
+
+                        # 构建requirement对象
+                        requirement = {
+                            "summary": f"需要提供{item['checklist_name']}",
+                            "detail": qual_data.get('description', ''),
+                            "constraint_type": "mandatory",
+                            "source_location": ""  # 关键词匹配无法确定具体位置
+                        }
+
+                        checklist_item["requirements"].append(requirement)
+
+                checklist_results.append(checklist_item)
+
+            # 统计
+            found_count = sum(1 for item in checklist_results if item["found"])
+            self.logger.info(f"13条清单提取完成：找到 {found_count} 项，未找到 {13 - found_count} 项")
+
+            return checklist_results
+
+        except Exception as e:
+            self.logger.error(f"提取13条供应商资格要求清单失败: {e}")
+            # 返回空清单
+            return [
+                {
+                    "checklist_id": i,
+                    "checklist_name": ["营业执照信息", "财务要求", "依法纳税", "缴纳社保",
+                                      "失信被执行人", "信用中国严重违法失信", "严重违法失信行为记录名单",
+                                      "信用中国重大税收违法", "采购人黑名单", "承诺函",
+                                      "营业办公场所房产证明", "业绩案例要求", "保证金要求"][i-1],
+                    "found": False,
+                    "requirements": []
+                }
+                for i in range(1, 14)
+            ]
+
     def extract_technical_scoring(self, text: str) -> Dict[str, Any]:
         """提取技术评分标准 - 使用提示词管理器"""
         try:

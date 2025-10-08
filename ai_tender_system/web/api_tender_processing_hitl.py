@@ -449,6 +449,142 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    @app.route('/api/tender-processing/extract-eligibility-requirements/<hitl_task_id>', methods=['POST'])
+    def extract_eligibility_requirements(hitl_task_id):
+        """
+        提取13条供应商资格要求（关键词匹配）
+        使用固定的13项清单模板，使用关键词匹配替代AI调用
+        """
+        try:
+            logger.info(f"开始提取13条供应商资格要求（关键词匹配）: hitl_task_id={hitl_task_id}")
+
+            # 查询任务信息
+            task_info = db.execute_query("""
+                SELECT project_id, step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (hitl_task_id,), fetch_one=True)
+
+            if not task_info:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            project_id = task_info['project_id']
+            step1_data = json.loads(task_info['step1_data']) if task_info.get('step1_data') else {}
+
+            doc_path = step1_data.get('file_path')
+            selected_ids = step1_data.get('selected_ids', [])
+
+            if not doc_path or not selected_ids:
+                return jsonify({'success': False, 'error': '缺少文档路径或选中章节'}), 400
+
+            # 检查是否已有资格要求数据，清空旧数据
+            existing_count = db.execute_query("""
+                SELECT COUNT(*) as count FROM tender_requirements
+                WHERE hitl_task_id = ? AND category = 'qualification'
+            """, (hitl_task_id,), fetch_one=True)
+
+            if existing_count and existing_count['count'] > 0:
+                db.execute_query("""
+                    DELETE FROM tender_requirements
+                    WHERE hitl_task_id = ? AND category = 'qualification'
+                """, (hitl_task_id,))
+                logger.info(f"清除了 {existing_count['count']} 个旧资格要求记录")
+
+            # 重新解析文档以获取章节内容
+            parser = DocumentStructureParser()
+            result = parser.parse_document_structure(doc_path)
+
+            if not result["success"]:
+                return jsonify({'success': False, 'error': '文档解析失败'}), 500
+
+            # 从解析结果中提取选中章节的内容
+            def find_chapter_by_id(chapters, target_id):
+                """递归查找章节"""
+                for ch in chapters:
+                    if ch.get('id') == target_id:
+                        return ch
+                    if ch.get('children'):
+                        found = find_chapter_by_id(ch['children'], target_id)
+                        if found:
+                            return found
+                return None
+
+            # 读取文档内容
+            from docx import Document
+            doc = Document(doc_path)
+            all_paragraphs = [p.text for p in doc.paragraphs]
+
+            # 获取选中章节的内容
+            selected_content = []
+            for chapter_id in selected_ids:
+                chapter_info = find_chapter_by_id(result["chapters"], chapter_id)
+                if chapter_info:
+                    start_idx = chapter_info.get('para_start_idx', 0)
+                    end_idx = chapter_info.get('para_end_idx', len(all_paragraphs))
+                    chapter_text = '\n'.join(all_paragraphs[start_idx:end_idx])
+
+                    selected_content.append({
+                        'chapter_id': chapter_id,
+                        'chapter_title': chapter_info.get('title', ''),
+                        'content': chapter_text
+                    })
+
+            logger.info(f"提取了 {len(selected_content)} 个章节的内容")
+
+            # 合并所有选中章节的内容为一个文本
+            full_text = '\n'.join([c['content'] for c in selected_content])
+            logger.info(f"合并文本总长度: {len(full_text)} 字")
+
+            # 使用关键词匹配提取13条资格要求
+            from modules.tender_info.extractor import TenderInfoExtractor
+            extractor = TenderInfoExtractor()
+
+            checklist_results = extractor.extract_supplier_eligibility_checklist(full_text)
+
+            # 保存到数据库
+            total_saved = 0
+            for checklist_item in checklist_results:
+                if checklist_item['found']:
+                    for req in checklist_item['requirements']:
+                        db.execute_query("""
+                            INSERT INTO tender_requirements (
+                                project_id, hitl_task_id, constraint_type, category,
+                                subcategory, detail, summary, source_location, priority,
+                                extraction_confidence
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            project_id,
+                            hitl_task_id,
+                            req.get('constraint_type', 'mandatory'),
+                            'qualification',
+                            checklist_item['checklist_name'],
+                            req.get('detail', ''),
+                            req.get('summary', ''),
+                            req.get('source_location', ''),
+                            'high',
+                            req.get('extraction_confidence', 0.8)
+                        ))
+                        total_saved += 1
+
+            # 统计找到的项数
+            found_count = sum(1 for item in checklist_results if item['found'])
+
+            logger.info(f"13条资格要求提取完成（关键词匹配）: 找到 {found_count} 项，未找到 {13 - found_count} 项，保存 {total_saved} 条要求")
+
+            return jsonify({
+                'success': True,
+                'checklist': checklist_results,
+                'method': 'keyword_matching',  # 标识使用关键词匹配
+                'requirements_saved': total_saved,
+                'found_count': found_count,
+                'not_found_count': 13 - found_count
+            })
+
+        except Exception as e:
+            logger.error(f"提取13条资格要求失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
     @app.route('/api/tender-processing/export-chapter/<task_id>/<chapter_id>', methods=['GET'])
     def export_chapter_as_template(task_id, chapter_id):
         """
@@ -1701,6 +1837,10 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    # ============================================
+    # 步骤3：保存和完成相关API
+    # ============================================
+
     @app.route('/api/tender-processing/save-basic-info/<task_id>', methods=['POST'])
     def save_basic_info(task_id):
         """保存基本信息到step3_data"""
@@ -1708,9 +1848,9 @@ def register_hitl_routes(app):
             data = request.get_json()
             basic_info = data.get('basic_info', {})
 
-            # 获取当前step3_data
+            # 获取当前step3_data和step1_data
             task_data = db.execute_query("""
-                SELECT step3_data FROM tender_hitl_tasks
+                SELECT step3_data, step1_data FROM tender_hitl_tasks
                 WHERE hitl_task_id = ?
             """, (task_id,), fetch_one=True)
 
@@ -1720,9 +1860,17 @@ def register_hitl_routes(app):
             # 解析现有step3_data
             step3_data = json.loads(task_data['step3_data']) if task_data['step3_data'] else {}
 
+            # 解析step1_data，获取应答文件信息
+            step1_data = json.loads(task_data['step1_data']) if task_data['step1_data'] else {}
+            response_file = step1_data.get('response_file')
+
             # 更新基本信息
             step3_data['basic_info'] = basic_info
             step3_data['basic_info_saved_at'] = datetime.now().isoformat()
+
+            # 如果有应答文件信息，也保存到step3_data
+            if response_file:
+                step3_data['response_file'] = response_file
 
             # 保存回数据库
             db.execute_query("""

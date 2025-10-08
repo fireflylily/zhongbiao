@@ -139,11 +139,11 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <select class="form-select" id="hitlAiModel" onchange="onHitlModelChange()">
                                         <optgroup label="OpenAI（推荐）">
-                                            <option value="gpt-4o-mini" selected>GPT-4O Mini</option>
+                                            <option value="gpt-4o-mini">GPT-4O Mini ✓</option>
                                             <option value="gpt-4o">GPT-4O</option>
                                         </optgroup>
                                         <optgroup label="联通元景">
-                                            <option value="yuanjing-deepseek-v3">DeepSeek-V3（智能提取）</option>
+                                            <option value="yuanjing-deepseek-v3">DeepSeek-V3（智能提取） ✓</option>
                                             <option value="yuanjing-pro">元景专业版</option>
                                         </optgroup>
                                     </select>
@@ -435,12 +435,6 @@
                                 <input type="text" class="form-control" id="winnerCount" name="winner_count">
                             </div>
                         </div>
-
-                        <div class="mt-4 text-center">
-                            <button type="button" class="btn btn-primary" id="saveBasicInfoBtn">
-                                <i class="bi bi-save me-2"></i>保存基本信息
-                            </button>
-                        </div>
                     </form>
                 </div>
 
@@ -676,7 +670,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- 步骤3增强版脚本（包含基本信息、资质要求、详细要求） - 必须先加载，因为步骤1需要调用proceedToStep3函数 -->
-    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=20251007i"></script>
+    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=20251008a"></script>
 
     <!-- 步骤1脚本 -->
     <script src="/static/js/pages/tender-processing-step1.js"></script>
@@ -843,10 +837,54 @@
             HITLConfigManager.loadModels();
         }
 
+        /**
+         * 初始化模型选择器
+         * - 从localStorage读取上次选择的模型
+         * - 如果没有，默认选择 yuanjing-deepseek-v3（更适合智能提取）
+         * - 保存用户选择到localStorage
+         */
+        function initModelSelector() {
+            const modelSelect = document.getElementById('hitlAiModel');
+            if (!modelSelect) {
+                console.warn('[initModelSelector] 未找到模型选择器');
+                return;
+            }
+
+            // 从localStorage读取上次选择
+            const STORAGE_KEY = 'hitl_selected_model';
+            let savedModel = localStorage.getItem(STORAGE_KEY);
+
+            // 如果没有保存的选择，使用智能默认值（DeepSeek-V3更适合提取任务）
+            if (!savedModel) {
+                savedModel = 'yuanjing-deepseek-v3';
+                console.log('[initModelSelector] 首次使用，默认选择:', savedModel);
+            } else {
+                console.log('[initModelSelector] 恢复上次选择:', savedModel);
+            }
+
+            // 设置选中状态
+            modelSelect.value = savedModel;
+
+            // 监听变化，保存到localStorage
+            modelSelect.addEventListener('change', function() {
+                const selectedModel = this.value;
+                localStorage.setItem(STORAGE_KEY, selectedModel);
+                console.log('[initModelSelector] 模型已更改并保存:', selectedModel);
+            });
+
+            // 触发一次change事件，更新模型状态显示
+            if (typeof onHitlModelChange === 'function') {
+                onHitlModelChange();
+            }
+        }
+
         // 页面加载时初始化（使用已存在的DOMContentLoaded事件）
         document.addEventListener('DOMContentLoaded', function() {
             console.log('[HITL] 初始化配置管理器');
             HITLConfigManager.init();
+
+            // 初始化AI模型选择器
+            initModelSelector();
 
             // 监听应答文件格式tab的shown事件
             const documentFormatTabEl = document.getElementById('document-format-tab');
@@ -866,5 +904,30 @@
             }
         });
     </script>
+
+    <!-- Mammoth.js - Word文档转HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+
+    <!-- 文档预览模态框 -->
+    <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentPreviewModalLabel">
+                        <i class="bi bi-eye"></i> 文档预览
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="documentPreviewContent" style="min-height: 500px; padding: 20px; background: white;">
+                        <!-- 预览内容将在这里显示 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

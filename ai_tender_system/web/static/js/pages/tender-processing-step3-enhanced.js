@@ -312,8 +312,9 @@ async function extractDetailedRequirements() {
         const modelSelect = document.getElementById('hitlAiModel');
         const selectedModel = modelSelect ? modelSelect.value : 'gpt-4o-mini';
 
-        console.log('[extractDetailedRequirements] 发起提取请求, 模型:', selectedModel);
-        const response = await fetch(`/api/tender-processing/extract-requirements/${currentTaskId}`, {
+        console.log('[extractDetailedRequirements] 发起13条资格要求提取请求, 模型:', selectedModel);
+        // 改为调用新的专用API
+        const response = await fetch(`/api/tender-processing/extract-eligibility-requirements/${currentTaskId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ model: selectedModel })
@@ -326,17 +327,11 @@ async function extractDetailedRequirements() {
             throw new Error(data.error || '提取失败');
         }
 
-        // 提取成功，加载需求并显示清单
-        alert(`✅ 提取成功！共提取 ${data.requirements_extracted} 条需求`);
+        // 提取成功，直接使用API返回的checklist显示
+        alert(`✅ 提取成功！找到 ${data.found_count} 项，未找到 ${data.not_found_count} 项`);
 
-        // 重新加载需求数据
-        const reqResponse = await fetch(`/api/tender-processing/requirements/${currentTaskId}`);
-        const reqData = await reqResponse.json();
-
-        if (reqData.success && reqData.requirements) {
-            // 显示13条资格清单
-            displayEligibilityChecklist(reqData.requirements);
-        }
+        // 直接显示API返回的13条清单
+        displayEligibilityChecklistFromAPI(data.checklist, data.found_count, data.not_found_count);
 
     } catch (error) {
         console.error('[extractDetailedRequirements] 提取失败:', error);
@@ -492,7 +487,70 @@ async function loadResponseFileInfo(taskId) {
 // 预览应答文件
 function previewResponseFile(taskId) {
     console.log('[previewResponseFile] 预览文件, taskId:', taskId);
-    window.open(`/api/tender-processing/preview-response-file/${taskId}`, '_blank');
+
+    const previewUrl = `/api/tender-processing/preview-response-file/${taskId}`;
+
+    // 显示加载状态
+    const previewContent = document.getElementById('documentPreviewContent');
+    if (previewContent) {
+        previewContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">正在加载文档...</p></div>';
+    }
+
+    // 显示预览模态框
+    const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
+    previewModal.show();
+
+    // 使用mammoth.js在前端直接转换Word文档
+    fetch(previewUrl)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            // 使用mammoth转换Word为HTML
+            return mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+        })
+        .then(result => {
+            if (previewContent) {
+                const html = result.value || '<p>文档内容为空</p>';
+                // 添加样式包装
+                previewContent.innerHTML = `
+                    <style>
+                        #documentPreviewContent {
+                            font-family: 'Microsoft YaHei', sans-serif;
+                            line-height: 1.8;
+                            padding: 20px;
+                        }
+                        #documentPreviewContent p { margin: 10px 0; }
+                        #documentPreviewContent h1, #documentPreviewContent h2, #documentPreviewContent h3 {
+                            color: #333;
+                            margin: 20px 0 10px 0;
+                        }
+                        #documentPreviewContent table {
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 20px 0;
+                        }
+                        #documentPreviewContent table td, #documentPreviewContent table th {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                        }
+                        #documentPreviewContent table th {
+                            background-color: #f2f2f2;
+                        }
+                    </style>
+                    <div>${html}</div>
+                `;
+
+                // 显示转换警告信息(如果有)
+                if (result.messages && result.messages.length > 0) {
+                    console.log('Mammoth转换消息:', result.messages);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('预览失败:', error);
+            if (previewContent) {
+                previewContent.innerHTML = '<div class="text-center text-danger"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">预览失败，请尝试下载文档</p></div>';
+            }
+        });
 }
 
 // 下载应答文件
@@ -684,9 +742,9 @@ async function extractBasicInfo() {
 
         const data = await response.json();
 
-        if (data.success && data.basic_info) {
+        if (data.success && data.data) {
             // 填充表单字段
-            const info = data.basic_info;
+            const info = data.data;
             if (info.project_name) document.getElementById('projectName').value = info.project_name;
             if (info.project_number) document.getElementById('projectNumber').value = info.project_number;
             if (info.tender_party) document.getElementById('tenderParty').value = info.tender_party;
@@ -950,6 +1008,77 @@ function displayEligibilityChecklist(requirements) {
     if (checklistContainer) checklistContainer.style.display = 'block';
 
     console.log('[displayEligibilityChecklist] 清单显示完成');
+}
+
+// 显示API返回的13条资格要求清单（新版本，使用API结构化数据）
+function displayEligibilityChecklistFromAPI(checklist, foundCount, notFoundCount) {
+    console.log('[displayEligibilityChecklistFromAPI] 显示API清单, 找到:', foundCount, '未找到:', notFoundCount);
+
+    // 更新统计显示
+    const foundCountEl = document.getElementById('eligFoundCount');
+    const notFoundCountEl = document.getElementById('eligNotFoundCount');
+    if (foundCountEl) foundCountEl.textContent = foundCount;
+    if (notFoundCountEl) notFoundCountEl.textContent = notFoundCount;
+
+    // 生成清单HTML
+    const container = document.getElementById('eligibilityChecklistItems');
+    if (!container) {
+        console.warn('[displayEligibilityChecklistFromAPI] 找不到清单项容器');
+        return;
+    }
+
+    let html = '';
+    checklist.forEach(item => {
+        const icon = item.found ? '✅' : '⚠️';
+        const statusClass = item.found ? 'found' : 'not-found';
+
+        html += `
+            <div class="checklist-item ${statusClass} mb-3">
+                <div class="d-flex align-items-start">
+                    <span class="me-2" style="font-size: 1.2em;">${icon}</span>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold mb-1">
+                            <span class="badge bg-secondary me-2">${item.checklist_id}</span>
+                            ${item.checklist_name}
+                        </div>
+        `;
+
+        if (item.found && item.requirements && item.requirements.length > 0) {
+            html += '<div class="ms-3">';
+            item.requirements.forEach(req => {
+                html += `
+                    <div class="mb-2 p-2 bg-light rounded">
+                        <div class="small text-muted mb-1">
+                            <span class="badge bg-${getConstraintTypeBadge(req.constraint_type)}">${getConstraintTypeLabel(req.constraint_type)}</span>
+                            ${req.source_location ? '<span class="ms-2 text-muted">来源: ' + req.source_location + '</span>' : ''}
+                        </div>
+                        <div class="fw-medium">${req.summary || req.detail}</div>
+                        ${req.summary && req.detail && req.detail !== req.summary ? '<div class="small text-secondary mt-1">' + req.detail + '</div>' : ''}
+                        ${req.extraction_confidence ? '<div class="small text-muted mt-1">置信度: ' + (req.extraction_confidence * 100).toFixed(0) + '%</div>' : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+        } else {
+            html += '<div class="ms-3 text-muted small">（未在文档中找到相关要求）</div>';
+        }
+
+        html += `
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+
+    // 隐藏空状态，显示清单容器
+    const emptyState = document.getElementById('eligibilityEmptyState');
+    const checklistContainer = document.getElementById('eligibilityChecklistContainer');
+    if (emptyState) emptyState.style.display = 'none';
+    if (checklistContainer) checklistContainer.style.display = 'block';
+
+    console.log('[displayEligibilityChecklistFromAPI] 清单显示完成');
 }
 
 // 辅助函数：获取约束类型徽章颜色
