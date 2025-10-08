@@ -10005,3 +10005,958 @@ ModuleNotFoundError: No module named 'common.llm_factory'
 2025-10-08 18:56:04,016 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
 2025-10-08 18:56:04,026 - werkzeug - WARNING -  * Debugger is active!
 2025-10-08 18:56:04,038 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 19:01:26,678 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:01:26] "GET /api/tender-processing/response-file-info/hitl_dfda7edf904e HTTP/1.1" 200 -
+2025-10-08 19:07:16,526 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-08 19:07:17,383 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 19:07:18,267 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 19:07:18,269 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 19:07:18,269 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 19:07:18,270 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:07:18,270 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 19:07:18,275 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 19:07:18,784 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 19:07:18,785 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 19:07:21,756 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 19:07:21,757 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 19:07:21,758 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:07:21,908 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 19:07:21,908 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 19:07:21,931 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 19:07:21,947 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 19:15:23,213 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:23] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:15:23,335 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:23] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 19:15:23,375 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:23] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 19:15:23,377 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:23] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 19:15:23,378 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:23] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 19:15:23,383 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:23] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 19:15:23,383 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:23] "GET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1" 200 -
+2025-10-08 19:15:24,980 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:15:24,982 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:24] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:15:25,062 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:25] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:15:32,492 - ai_tender_system.api_hitl - INFO - 文件已保存: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_191532_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_ef95200c.docx
+2025-10-08 19:15:32,494 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_191532_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_ef95200c.docx
+2025-10-08 19:15:32,640 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 19:15:32,640 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 19:15:32,848 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 19:15:32,849 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 19:15:32,849 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 19:15:32,849 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 19:15:32,850 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 19:15:33,708 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:15:33,709 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:15:33,710 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 19:15:33,711 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 19:15:34,609 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:15:34,609 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:15:34,610 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 19:15:34,611 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 19:15:35,524 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:15:35,524 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:15:35,525 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 19:15:35,526 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 19:15:36,426 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 19:15:36,426 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 19:15:36,427 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 19:15:36,428 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 19:15:36,962 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:15:36,962 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:15:36,974 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 19:15:36,983 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 19:15:37,032 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 19:15:37,037 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 19:15:37,064 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 19:15:37,064 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 19:15:37,064 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 19:15:37,078 - ai_tender_system.api_hitl - INFO - HITL任务已创建: hitl_904aebf0e2fc
+2025-10-08 19:15:37,079 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:37] "POST /api/tender-processing/parse-structure HTTP/1.1" 200 -
+2025-10-08 19:15:48,458 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_191532_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_ef95200c.docx
+2025-10-08 19:15:48,503 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 19:15:48,503 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 19:15:48,536 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 19:15:48,536 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 19:15:48,536 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 19:15:48,536 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 19:15:48,537 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 19:15:49,506 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:15:49,506 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:15:49,507 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 19:15:49,508 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 19:15:50,350 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:15:50,350 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:15:50,351 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 19:15:50,352 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 19:15:51,246 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:15:51,246 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:15:51,247 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 19:15:51,248 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 19:15:52,151 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 19:15:52,151 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 19:15:52,152 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 19:15:52,153 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 19:15:52,720 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:15:52,720 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:15:52,732 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 19:15:52,743 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 19:15:52,804 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 19:15:52,810 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 19:15:52,833 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 19:15:52,834 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 19:15:52,834 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 19:15:53,014 - ai_tender_system.structure_parser - INFO - 批量导出成功: 1个章节 -> /var/folders/8f/_q8tgg4x6nd33xch9rbg2msm0000gn/T/chapters_template_kow9ge27.docx
+2025-10-08 19:15:53,018 - ai_tender_system.api_hitl - INFO - 保存应答文件: 第五部分    谈判响应文件格式_应答模板_20251008_191553.docx (70798 bytes)
+2025-10-08 19:15:53,018 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:53] "POST /api/tender-processing/save-response-file/hitl_904aebf0e2fc HTTP/1.1" 200 -
+2025-10-08 19:15:56,749 - ai_tender_system.api_hitl - INFO - 步骤1完成: 选中 1 个章节, 3860 字
+2025-10-08 19:15:56,755 - ai_tender_system.api_hitl - INFO - 任务状态已更新到步骤2，等待用户在Tab 3触发AI提取
+2025-10-08 19:15:56,757 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:15:56] "POST /api/tender-processing/select-chapters HTTP/1.1" 200 -
+2025-10-08 19:16:07,900 - ai_tender_system.api_hitl - INFO - 开始提取13条供应商资格要求（关键词匹配）: hitl_task_id=hitl_904aebf0e2fc
+2025-10-08 19:16:07,910 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_191532_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_ef95200c.docx
+2025-10-08 19:16:07,947 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 19:16:07,947 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 19:16:08,022 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 19:16:08,022 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 19:16:08,022 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 19:16:08,022 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 19:16:08,023 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 19:16:09,008 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:16:09,009 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:16:09,010 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 19:16:09,011 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 19:16:09,916 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:16:09,916 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:16:09,917 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 19:16:09,918 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 19:16:10,799 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:16:10,799 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:16:10,800 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 19:16:10,801 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 19:16:11,716 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 19:16:11,716 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 19:16:11,717 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 19:16:11,718 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 19:16:12,259 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:16:12,259 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:16:12,271 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 19:16:12,280 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 19:16:12,328 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 19:16:12,333 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 19:16:12,354 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 19:16:12,354 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 19:16:12,354 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 19:16:12,475 - ai_tender_system.api_hitl - INFO - 提取了 1 个章节的内容
+2025-10-08 19:16:12,475 - ai_tender_system.api_hitl - INFO - 合并文本总长度: 4024 字
+2025-10-08 19:16:12,477 - common.prompt_manager - INFO - 提示词管理器初始化完成，提示词目录: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/prompts
+2025-10-08 19:16:12,477 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: gpt-4o-mini
+2025-10-08 19:16:12,477 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: gpt-4o-mini
+2025-10-08 19:16:12,478 - ai_tender_system.tender_info - INFO - 开始提取13条供应商资格要求清单
+2025-10-08 19:16:12,478 - ai_tender_system.tender_info - INFO - 开始使用关键字匹配提取资质要求
+2025-10-08 19:16:12,480 - ai_tender_system.tender_info - INFO - 关键字匹配完成，检测到12项资质要求
+2025-10-08 19:16:12,480 - ai_tender_system.tender_info - INFO - 13条清单提取完成：找到 10 项，未找到 3 项
+2025-10-08 19:16:12,499 - ai_tender_system.api_hitl - INFO - 13条资格要求提取完成（关键词匹配）: 找到 10 项，未找到 3 项，保存 10 条要求
+2025-10-08 19:16:12,500 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:16:12] "POST /api/tender-processing/extract-eligibility-requirements/hitl_904aebf0e2fc HTTP/1.1" 200 -
+2025-10-08 19:25:10,172 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-08 19:25:11,188 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 19:25:12,056 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 19:25:12,062 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 19:25:12,062 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 19:25:12,062 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:25:12,069 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 19:25:12,120 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 19:25:12,598 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 19:25:12,599 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 19:25:15,443 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 19:25:15,445 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 19:25:15,445 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:25:15,596 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 19:25:15,597 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 19:25:15,615 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 19:25:15,639 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 19:26:53,418 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-08 19:26:54,128 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 19:26:54,998 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 19:26:55,000 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 19:26:55,000 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 19:26:55,000 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:26:55,000 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 19:26:55,006 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 19:26:55,460 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 19:26:55,461 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 19:26:58,419 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 19:26:58,421 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 19:26:58,421 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:26:58,755 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 19:26:58,755 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 19:26:58,779 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 19:26:58,815 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 19:34:50,729 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:50] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:34:50,842 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:50] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 19:34:50,888 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:50] "GET /static/js/pages/tender-processing-step1.js HTTP/1.1" 200 -
+2025-10-08 19:34:50,888 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:50] "GET /static/css/tender-processing-hitl.css HTTP/1.1" 200 -
+2025-10-08 19:34:50,888 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:50] "GET /static/js/pages/tender-processing-step2.js HTTP/1.1" 200 -
+2025-10-08 19:34:50,888 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:50] "GET /static/css/tender-processing-step3-enhanced.css HTTP/1.1" 200 -
+2025-10-08 19:34:50,888 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:50] "GET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1" 200 -
+2025-10-08 19:34:52,559 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:34:52,563 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:52] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:34:52,625 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:52] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:34:53,799 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:53] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-10-08 19:34:55,641 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:55] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:34:55,683 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:55] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 19:34:55,698 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:55] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 19:34:55,699 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:55] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 19:34:55,699 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:55] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 19:34:55,700 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:55] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 19:34:55,701 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:55] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 19:34:56,933 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:34:56,952 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:56] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:34:56,971 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:34:56] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:35:02,342 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:02] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:35:02,400 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:02] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 19:35:02,410 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:02] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 19:35:02,411 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:02] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 19:35:02,413 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:02] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 19:35:02,413 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:02] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 19:35:02,413 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:02] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 19:35:03,609 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:35:03,621 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:03] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:35:03,647 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:35:03] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:36:10,125 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:10] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:36:10,183 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:10] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 19:36:10,200 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:10] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 19:36:10,201 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:10] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 19:36:10,201 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:10] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 19:36:10,202 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:10] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 19:36:10,202 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:10] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 19:36:11,449 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:36:11,452 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:11] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:36:11,492 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:11] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:36:14,463 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:14] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:36:14,529 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:14] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 19:36:14,544 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:14] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 19:36:14,546 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:14] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 19:36:14,547 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:14] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 19:36:14,555 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:14] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 19:36:14,569 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:14] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 19:36:15,825 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:36:15,834 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:15] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:36:15,853 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:36:15] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:41:37,369 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:37] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:41:37,474 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:37] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 19:41:37,492 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:37] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 19:41:37,494 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:37] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 19:41:37,497 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:37] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 19:41:37,498 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:37] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 19:41:37,500 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:37] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 19:41:38,950 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:41:38,951 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:38] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:41:39,021 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:41:39] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:50:53,419 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 19:50:53,420 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 19:50:53,420 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 19:50:53,420 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:50:53,421 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 19:50:53,426 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 19:50:53,871 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 19:50:53,872 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 19:50:56,755 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 19:50:56,756 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 19:50:56,756 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:50:56,906 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 19:50:56,906 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 19:50:57,126 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8110
+ * Running on http://192.168.0.103:8110
+2025-10-08 19:50:57,126 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-08 19:50:57,128 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 19:50:57,809 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 19:50:57,811 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 19:50:57,811 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 19:50:57,811 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:50:57,811 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 19:50:57,817 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 19:50:58,067 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 19:50:58,069 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 19:51:00,134 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 19:51:00,136 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 19:51:00,136 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 19:51:00,292 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 19:51:00,292 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 19:51:00,307 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 19:51:00,326 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 19:52:00,505 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:00] "GET / HTTP/1.1" 200 -
+2025-10-08 19:52:09,221 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:09] "GET /static/vendor/bootswatch/litera/bootstrap.min.css HTTP/1.1" 200 -
+2025-10-08 19:52:09,233 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:09] "GET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1" 200 -
+2025-10-08 19:52:09,244 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:09] "GET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+2025-10-08 19:52:09,255 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:09] "GET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1" 200 -
+2025-10-08 19:52:09,266 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:09] "GET /static/vendor/chart.js/chart.umd.min.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,408 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET / HTTP/1.1" 200 -
+2025-10-08 19:52:20,619 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/vendor/bootswatch/litera/bootstrap.min.css HTTP/1.1" 200 -
+2025-10-08 19:52:20,641 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1" 200 -
+2025-10-08 19:52:20,648 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/css/main.css HTTP/1.1" 200 -
+2025-10-08 19:52:20,653 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/css/components/universal-uploader.css HTTP/1.1" 200 -
+2025-10-08 19:52:20,656 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/css/components/qualifications.css HTTP/1.1" 200 -
+2025-10-08 19:52:20,658 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,660 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/vendor/chart.js/chart.umd.min.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,664 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/company-config.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,667 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/company-manager.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,673 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/timer-manager.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,676 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/progress-manager.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,694 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/core/api-client.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,725 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/core/validation.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,729 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/core/notification.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,763 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/components/file-upload.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,770 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/components/company-selector.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,777 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/components/modal-manager.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,785 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/components/company-state-manager.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,786 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/components/universal-uploader.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,794 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/components/company-project-display.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,794 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/word-editor.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,802 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,803 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/pages/index/proposal-generator.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,803 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/pages/index/page-utilities.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,807 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,809 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/pages/index/point-to-point-handler.js HTTP/1.1" 200 -
+2025-10-08 19:52:20,809 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:20] "GET /static/js/pages/index/business-response-handler.js HTTP/1.1" 200 -
+2025-10-08 19:52:21,839 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/base/bootstrap-overrides.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,840 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/base/animations.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,841 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/base/variables.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,841 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/components/cards.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,843 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/components/privacy-badges.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,845 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/components/buttons.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,845 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/components/modals.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,849 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/components/navigation.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,850 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/knowledge_base.css HTTP/1.1" 200 -
+2025-10-08 19:52:21,852 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:21] "GET /static/css/index.css HTTP/1.1" 200 -
+2025-10-08 19:52:23,089 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:23] "GET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1" 200 -
+2025-10-08 19:52:23,096 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:52:23,098 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:23] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:52:23,164 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:23] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:52:23,178 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:23] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:52:23,191 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:23] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:52:24,154 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:24] "GET /api/point-to-point/files HTTP/1.1" 200 -
+2025-10-08 19:52:24,214 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:24] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-10-08 19:52:37,722 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:52:37] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:53:37,471 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:53:37] "GET / HTTP/1.1" 200 -
+2025-10-08 19:54:05,523 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:05] "GET /tender_processing.html HTTP/1.1" 200 -
+2025-10-08 19:54:05,577 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:05] "GET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1" 200 -
+2025-10-08 19:54:05,580 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:05] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 19:54:05,580 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:05] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 19:54:05,581 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:05] "[36mGET /static/js/components/universal-uploader.js HTTP/1.1[0m" 304 -
+2025-10-08 19:54:06,007 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:06] "[36mGET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1[0m" 304 -
+2025-10-08 19:54:27,660 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:27] "GET / HTTP/1.1" 200 -
+2025-10-08 19:54:27,718 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:27] "GET /static/vendor/bootswatch/litera/bootstrap.min.css HTTP/1.1" 200 -
+2025-10-08 19:54:27,718 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:27] "GET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1" 200 -
+2025-10-08 19:54:27,719 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:27] "GET /static/css/main.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,005 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/components/universal-uploader.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,006 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/components/qualifications.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,009 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/vendor/chart.js/chart.umd.min.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,027 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/base/variables.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,028 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/base/bootstrap-overrides.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,033 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/base/animations.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,098 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/components/buttons.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,100 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/components/cards.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,101 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/components/privacy-badges.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,107 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/components/modals.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,116 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/components/navigation.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,116 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/knowledge_base.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,123 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/css/index.css HTTP/1.1" 200 -
+2025-10-08 19:54:29,151 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,152 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/company-config.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,160 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/company-manager.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,389 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/progress-manager.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,390 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/timer-manager.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,418 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/core/notification.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,418 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/core/api-client.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,426 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/core/validation.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,426 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/components/file-upload.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,435 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/components/company-selector.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,435 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/components/modal-manager.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,440 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/components/universal-uploader.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,443 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/components/company-state-manager.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,461 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/word-editor.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,461 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/components/company-project-display.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,465 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/pages/index/tender-processor.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,465 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/pages/index/proposal-generator.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,469 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/pages/index/business-response-handler.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,471 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/pages/index/point-to-point-handler.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,473 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/js/pages/index/page-utilities.js HTTP/1.1" 200 -
+2025-10-08 19:54:29,476 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:29] "GET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1" 200 -
+2025-10-08 19:54:33,667 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 19:54:33,764 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "GET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1" 200 -
+2025-10-08 19:54:33,767 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 19:54:33,767 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 19:54:33,768 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 19:54:33,769 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 19:54:33,771 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 19:54:33,772 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 19:54:33,773 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 19:54:33,774 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:33] "[36mGET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1[0m" 304 -
+2025-10-08 19:54:34,945 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:34] "GET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1" 200 -
+2025-10-08 19:54:34,974 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 19:54:34,986 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:34] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 19:54:35,032 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:35] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 19:54:45,463 - ai_tender_system.api_hitl - INFO - 文件已保存: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_195445_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_0541ec9f.docx
+2025-10-08 19:54:45,464 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_195445_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_0541ec9f.docx
+2025-10-08 19:54:45,527 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 19:54:45,527 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 19:54:45,771 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 19:54:45,771 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 19:54:45,771 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 19:54:45,771 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 19:54:45,772 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 19:54:46,658 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:54:46,658 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:54:46,659 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 19:54:46,660 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 19:54:48,120 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:54:48,120 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:54:48,121 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 19:54:48,122 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 19:54:48,944 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:54:48,945 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:54:48,946 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 19:54:48,946 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 19:54:49,909 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 19:54:49,909 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 19:54:49,910 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 19:54:49,911 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 19:54:50,504 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:54:50,504 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:54:50,516 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 19:54:50,527 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 19:54:50,579 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 19:54:50,584 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 19:54:50,605 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 19:54:50,605 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 19:54:50,605 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 19:54:50,618 - ai_tender_system.api_hitl - INFO - HITL任务已创建: hitl_7ce221a7db9d
+2025-10-08 19:54:50,619 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:54:50] "POST /api/tender-processing/parse-structure HTTP/1.1" 200 -
+2025-10-08 19:55:08,274 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_195445_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_0541ec9f.docx
+2025-10-08 19:55:08,322 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 19:55:08,323 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 19:55:08,352 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 19:55:08,352 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 19:55:08,353 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 19:55:08,353 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 19:55:08,353 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 19:55:09,239 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:55:09,239 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:55:09,240 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 19:55:09,241 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 19:55:10,126 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:55:10,126 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:55:10,127 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 19:55:10,128 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 19:55:11,001 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:55:11,001 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:55:11,002 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 19:55:11,003 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 19:55:11,877 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 19:55:11,877 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 19:55:11,878 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 19:55:11,879 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 19:55:12,417 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:55:12,417 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:55:12,429 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 19:55:12,438 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 19:55:12,486 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 19:55:12,491 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 19:55:12,512 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 19:55:12,514 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 19:55:12,514 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 19:55:12,702 - ai_tender_system.structure_parser - INFO - 批量导出成功: 1个章节 -> /var/folders/8f/_q8tgg4x6nd33xch9rbg2msm0000gn/T/chapters_template_jmt0vudj.docx
+2025-10-08 19:55:12,711 - ai_tender_system.api_hitl - INFO - 保存应答文件: 第五部分    谈判响应文件格式_应答模板_20251008_195512.docx (70798 bytes)
+2025-10-08 19:55:12,715 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:55:12] "POST /api/tender-processing/save-response-file/hitl_7ce221a7db9d HTTP/1.1" 200 -
+2025-10-08 19:55:13,813 - ai_tender_system.api_hitl - INFO - 步骤1完成: 选中 1 个章节, 3860 字
+2025-10-08 19:55:13,816 - ai_tender_system.api_hitl - INFO - 任务状态已更新到步骤2，等待用户在Tab 3触发AI提取
+2025-10-08 19:55:13,818 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:55:13] "POST /api/tender-processing/select-chapters HTTP/1.1" 200 -
+2025-10-08 19:55:18,165 - ai_tender_system.api_hitl - INFO - 开始提取13条供应商资格要求（关键词匹配）: hitl_task_id=hitl_7ce221a7db9d
+2025-10-08 19:55:18,171 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_195445_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_0541ec9f.docx
+2025-10-08 19:55:18,245 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 19:55:18,245 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 19:55:18,275 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 19:55:18,275 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 19:55:18,275 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 19:55:18,275 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 19:55:18,276 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 19:55:19,263 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:55:19,264 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 19:55:19,265 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 19:55:19,266 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 19:55:20,115 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:55:20,116 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 19:55:20,117 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 19:55:20,117 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 19:55:21,115 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:55:21,115 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 19:55:21,116 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 19:55:21,117 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 19:55:22,080 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 19:55:22,080 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 19:55:22,081 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 19:55:22,082 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 19:55:22,645 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:55:22,645 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 19:55:22,658 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 19:55:22,670 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 19:55:22,720 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 19:55:22,725 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 19:55:22,746 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 19:55:22,746 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 19:55:22,746 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 19:55:22,861 - ai_tender_system.api_hitl - INFO - 提取了 1 个章节的内容
+2025-10-08 19:55:22,861 - ai_tender_system.api_hitl - INFO - 合并文本总长度: 4024 字
+2025-10-08 19:55:22,862 - common.prompt_manager - INFO - 提示词管理器初始化完成，提示词目录: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/prompts
+2025-10-08 19:55:22,862 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: gpt-4o-mini
+2025-10-08 19:55:22,864 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: gpt-4o-mini
+2025-10-08 19:55:22,864 - ai_tender_system.tender_info - INFO - 开始提取13条供应商资格要求清单
+2025-10-08 19:55:22,865 - ai_tender_system.tender_info - INFO - 开始使用关键字匹配提取资质要求
+2025-10-08 19:55:22,869 - ai_tender_system.tender_info - INFO - 关键字匹配完成，检测到14项资质要求
+2025-10-08 19:55:22,869 - ai_tender_system.tender_info - INFO - 13条清单提取完成：找到 12 项，未找到 1 项
+2025-10-08 19:55:22,893 - ai_tender_system.api_hitl - INFO - 13条资格要求提取完成（关键词匹配）: 找到 12 项，未找到 1 项，保存 12 条要求
+2025-10-08 19:55:22,894 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:55:22] "POST /api/tender-processing/extract-eligibility-requirements/hitl_7ce221a7db9d HTTP/1.1" 200 -
+2025-10-08 19:56:32,852 - ai_tender_system.api_hitl - INFO - ✅ 保存基本信息成功: hitl_7ce221a7db9d
+2025-10-08 19:56:32,856 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:56:32] "POST /api/tender-processing/save-basic-info/hitl_7ce221a7db9d HTTP/1.1" 200 -
+2025-10-08 19:58:18,349 - ai_tender_system.api_hitl - INFO - ✅ HITL流程完成: hitl_7ce221a7db9d
+2025-10-08 19:58:18,353 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 19:58:18] "POST /api/tender-processing/complete-hitl/hitl_7ce221a7db9d HTTP/1.1" 200 -
+2025-10-08 20:10:10,162 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-08 20:10:11,358 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 20:10:12,218 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 20:10:12,220 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 20:10:12,220 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 20:10:12,220 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:10:12,220 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 20:10:12,226 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 20:10:12,715 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 20:10:12,716 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 20:10:15,773 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 20:10:15,774 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 20:10:15,775 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:10:15,934 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 20:10:15,934 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 20:10:15,953 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 20:10:15,971 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 20:10:53,321 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 20:10:53,405 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 20:10:53,405 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 20:10:53,406 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+2025-10-08 20:10:53,406 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 20:10:53,407 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 20:10:53,409 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "GET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1" 200 -
+2025-10-08 20:10:53,418 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 20:10:53,421 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 20:10:53,421 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:53] "[36mGET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1[0m" 304 -
+2025-10-08 20:10:54,782 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:54] "[36mGET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1[0m" 304 -
+2025-10-08 20:10:54,809 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 20:10:54,810 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:54] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 20:10:54,853 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:10:54] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 20:11:01,445 - ai_tender_system.api_hitl - INFO - 文件已保存: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_201101_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_967efee2.docx
+2025-10-08 20:11:01,446 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_201101_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_967efee2.docx
+2025-10-08 20:11:01,490 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 20:11:01,490 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 20:11:01,684 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 20:11:01,684 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 20:11:01,685 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 20:11:01,685 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 20:11:01,685 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 20:11:02,495 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 20:11:02,495 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 20:11:02,497 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 20:11:02,498 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 20:11:03,403 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 20:11:03,403 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 20:11:03,404 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 20:11:03,405 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 20:11:04,206 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 20:11:04,207 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 20:11:04,207 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 20:11:04,208 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 20:11:05,087 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 20:11:05,087 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 20:11:05,088 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 20:11:05,089 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 20:11:05,732 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 20:11:05,732 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 20:11:05,748 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 20:11:05,761 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 20:11:05,833 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 20:11:05,840 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 20:11:05,870 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 20:11:05,870 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 20:11:05,870 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 20:11:05,887 - ai_tender_system.api_hitl - INFO - HITL任务已创建: hitl_f70f594871be
+2025-10-08 20:11:05,888 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:11:05] "POST /api/tender-processing/parse-structure HTTP/1.1" 200 -
+2025-10-08 20:11:11,964 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_201101_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_967efee2.docx
+2025-10-08 20:11:12,006 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 20:11:12,006 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 20:11:12,037 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 20:11:12,037 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 20:11:12,037 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 20:11:12,037 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 20:11:12,038 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 20:11:12,874 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 20:11:12,874 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 20:11:12,875 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 20:11:12,876 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 20:11:13,782 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 20:11:13,783 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 20:11:13,783 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 20:11:13,784 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 20:11:14,663 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 20:11:14,663 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 20:11:14,664 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 20:11:14,665 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 20:11:15,485 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 20:11:15,485 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 20:11:15,486 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 20:11:15,487 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 20:11:16,022 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 20:11:16,022 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 20:11:16,034 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 20:11:16,043 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 20:11:16,092 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 20:11:16,097 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 20:11:16,118 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 20:11:16,118 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 20:11:16,118 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 20:11:16,290 - ai_tender_system.structure_parser - INFO - 批量导出成功: 1个章节 -> /var/folders/8f/_q8tgg4x6nd33xch9rbg2msm0000gn/T/chapters_template_xw8vfhnz.docx
+2025-10-08 20:11:16,293 - ai_tender_system.api_hitl - INFO - 保存应答文件: 第五部分    谈判响应文件格式_应答模板_20251008_201116.docx (70798 bytes)
+2025-10-08 20:11:16,294 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:11:16] "POST /api/tender-processing/save-response-file/hitl_f70f594871be HTTP/1.1" 200 -
+2025-10-08 20:11:17,560 - ai_tender_system.api_hitl - INFO - 步骤1完成: 选中 1 个章节, 3860 字
+2025-10-08 20:11:17,567 - ai_tender_system.api_hitl - INFO - 任务状态已更新到步骤2，等待用户在Tab 3触发AI提取
+2025-10-08 20:11:17,569 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:11:17] "POST /api/tender-processing/select-chapters HTTP/1.1" 200 -
+2025-10-08 20:11:22,355 - ai_tender_system.api_hitl - INFO - 开始提取13条供应商资格要求（关键词匹配）: hitl_task_id=hitl_f70f594871be
+2025-10-08 20:11:22,360 - ai_tender_system.structure_parser - INFO - 开始解析文档结构: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_201101_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_967efee2.docx
+2025-10-08 20:11:22,403 - ai_tender_system.structure_parser - INFO - 检测到目录标题，位于段落 28: 目    录
+2025-10-08 20:11:22,403 - ai_tender_system.structure_parser - INFO - 检测到目录，使用语义锚点解析方案
+2025-10-08 20:11:22,432 - ai_tender_system.structure_parser - INFO - 目录解析完成，共 5 项，结束于段落 40
+2025-10-08 20:11:22,432 - ai_tender_system.structure_parser - INFO - 开始按目录顺序解析章节，共 5 个目标
+2025-10-08 20:11:22,432 - ai_tender_system.structure_parser - INFO - 搜索起点: 段落 50 (目录结束于段落 40)
+2025-10-08 20:11:22,433 - ai_tender_system.structure_parser - INFO - 
+[1/5] 查找目录项: '第一部分    单一来源采购谈判邀请'
+2025-10-08 20:11:22,433 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 50 - 1444
+2025-10-08 20:11:23,468 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 20:11:23,469 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(89%): 段落54 '第一部分  单一来源采购邀请'
+2025-10-08 20:11:23,470 - ai_tender_system.structure_parser - INFO - 
+[2/5] 查找目录项: '第二部分    供应商须知'
+2025-10-08 20:11:23,471 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 55 - 1444
+2025-10-08 20:11:24,405 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 20:11:24,406 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(100%): 段落145 '第二部分  供应商须知'
+2025-10-08 20:11:24,406 - ai_tender_system.structure_parser - INFO - 
+[3/5] 查找目录项: '第三部分    合同条款'
+2025-10-08 20:11:24,407 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 146 - 1444
+2025-10-08 20:11:25,235 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 20:11:25,235 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落298 '第三部分-合同条款'
+2025-10-08 20:11:25,236 - ai_tender_system.structure_parser - INFO - 
+[4/5] 查找目录项: '第四部分    技术需求书'
+2025-10-08 20:11:25,237 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 299 - 1444
+2025-10-08 20:11:26,175 - ai_tender_system.structure_parser - INFO -   ✓ 选择无编号的匹配(80%): 段落916 '技术需求'
+2025-10-08 20:11:26,175 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(80%): 段落916 '技术需求'
+2025-10-08 20:11:26,176 - ai_tender_system.structure_parser - INFO - 
+[5/5] 查找目录项: '第五部分    谈判响应文件格式'
+2025-10-08 20:11:26,177 - ai_tender_system.structure_parser - INFO -   搜索范围: 段落 917 - 1444
+2025-10-08 20:11:26,706 - ai_tender_system.structure_parser - INFO -   ✓ 选择有编号的匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 20:11:26,706 - ai_tender_system.structure_parser - INFO -   ✓ 最佳匹配(73%): 段落968 '第五部分	 	附件-谈判响应文件格式'
+2025-10-08 20:11:26,718 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第一部分    单一来源采购谈判邀请 (✅自动选中) (段落 54-144, 3860字)
+2025-10-08 20:11:26,728 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第二部分    供应商须知 (✅自动选中) (段落 145-297, 4933字)
+2025-10-08 20:11:26,777 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第三部分    合同条款 (❌跳过) (段落 298-915, 24578字)
+2025-10-08 20:11:26,781 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第四部分    技术需求书 (✅自动选中) (段落 916-967, 1507字)
+2025-10-08 20:11:26,803 - ai_tender_system.structure_parser - INFO - 章节 [1级]: 第五部分    谈判响应文件格式 (❌跳过) (段落 968-1443, 5059字)
+2025-10-08 20:11:26,803 - ai_tender_system.structure_parser - INFO - 
+语义锚点解析完成，成功识别 5/5 个章节
+2025-10-08 20:11:26,803 - ai_tender_system.structure_parser - INFO - 结构解析完成: 找到 5 个章节
+2025-10-08 20:11:26,921 - ai_tender_system.api_hitl - INFO - 提取了 1 个章节的内容
+2025-10-08 20:11:26,921 - ai_tender_system.api_hitl - INFO - 合并文本总长度: 4024 字
+2025-10-08 20:11:26,922 - common.prompt_manager - INFO - 提示词管理器初始化完成，提示词目录: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/prompts
+2025-10-08 20:11:26,923 - ai_tender_system.llm_client - INFO - LLM客户端初始化完成，模型: gpt-4o-mini
+2025-10-08 20:11:26,924 - ai_tender_system.tender_info - INFO - 招标信息提取器初始化完成，使用模型: gpt-4o-mini
+2025-10-08 20:11:26,924 - ai_tender_system.tender_info - INFO - 开始提取13条供应商资格要求清单
+2025-10-08 20:11:26,924 - ai_tender_system.tender_info - INFO - 开始使用关键字匹配提取资质要求
+2025-10-08 20:11:26,929 - ai_tender_system.tender_info - INFO - 关键字匹配完成，检测到15项资质要求
+2025-10-08 20:11:26,929 - ai_tender_system.tender_info - INFO - 13条清单提取完成：找到 13 项，未找到 0 项
+2025-10-08 20:11:26,955 - ai_tender_system.api_hitl - INFO - 13条资格要求提取完成（关键词匹配）: 找到 13 项，未找到 0 项，保存 13 条要求
+2025-10-08 20:11:26,956 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:11:26] "POST /api/tender-processing/extract-eligibility-requirements/hitl_f70f594871be HTTP/1.1" 200 -
+2025-10-08 20:13:13,890 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-08 20:13:14,712 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 20:13:15,710 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 20:13:15,712 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 20:13:15,712 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 20:13:15,712 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:13:15,712 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 20:13:15,718 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 20:13:16,188 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 20:13:16,189 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 20:13:19,022 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 20:13:19,023 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 20:13:19,023 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:13:19,177 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 20:13:19,177 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 20:13:19,196 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 20:13:19,214 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 20:13:30,952 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-08 20:13:32,267 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 20:13:33,037 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 20:13:33,039 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 20:13:33,039 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 20:13:33,039 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:13:33,039 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 20:13:33,045 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 20:13:33,423 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 20:13:33,424 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 20:13:36,359 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 20:13:36,360 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 20:13:36,360 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:13:36,494 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 20:13:36,494 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 20:13:36,514 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 20:13:36,538 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 20:16:21,128 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/modules/tender_info/extractor.py', reloading
+2025-10-08 20:16:22,028 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 20:16:22,869 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 20:16:22,872 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 20:16:22,872 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 20:16:22,872 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:16:22,872 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 20:16:22,878 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 20:16:23,370 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 20:16:23,371 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 20:16:26,286 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 20:16:26,287 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 20:16:26,288 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 20:16:26,441 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 20:16:26,442 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 20:16:26,458 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 20:16:26,482 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 20:16:45,809 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 20:16:45,878 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,879 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,882 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,883 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,885 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,886 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,888 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,891 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1[0m" 304 -
+2025-10-08 20:16:45,891 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:45] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 20:16:47,081 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:47] "[36mGET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1[0m" 304 -
+2025-10-08 20:16:47,165 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 20:16:47,168 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:47] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 20:16:47,234 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 20:16:47] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 21:11:54,238 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/web/api_tender_processing_hitl.py', reloading
+2025-10-08 21:11:55,127 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 21:11:55,877 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 21:11:55,878 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 21:11:55,878 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 21:11:55,878 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:11:55,878 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 21:11:55,882 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 21:11:56,389 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 21:11:56,390 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 21:11:58,420 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 21:11:58,421 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 21:11:58,421 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:11:58,526 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 21:11:58,526 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:11:58,539 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 21:11:58,552 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 21:12:34,137 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 21:12:34,199 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "GET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1" 200 -
+2025-10-08 21:12:34,201 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:34,201 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:34,203 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:34,204 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:34,204 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:34,205 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:34,206 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:34,207 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:34] "[36mGET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:35,235 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:35] "[36mGET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1[0m" 304 -
+2025-10-08 21:12:35,254 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 21:12:35,255 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:35] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 21:12:35,298 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:35] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 21:12:54,067 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 21:12:54,108 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,108 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,109 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,112 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,112 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,113 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,114 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,115 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,116 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,318 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 21:12:54,319 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "[36mGET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1[0m" 304 -
+2025-10-08 21:12:54,319 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 21:12:54,336 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:12:54] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 21:14:06,529 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 21:14:06,568 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,569 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,569 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,570 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,573 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,574 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,575 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/js/pages/tender-processing-step1.js HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,576 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,576 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,770 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 21:14:06,771 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 21:14:06,772 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "[36mGET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1[0m" 304 -
+2025-10-08 21:14:06,795 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:06] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 21:14:16,975 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:16] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 21:14:16,978 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:16] "[36mGET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:16,982 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:16] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:16,982 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:16] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:16,984 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:16] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 21:14:17,950 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:17] "[33mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 404 -
+2025-10-08 21:14:17,986 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:14:17] "[33mGET /static/vendor/bootstrap/css/bootstrap.min.css.map HTTP/1.1[0m" 404 -
+2025-10-08 21:17:28,756 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/web/api_tender_processing_hitl.py', reloading
+2025-10-08 21:17:29,585 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 21:17:30,187 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 21:17:30,188 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 21:17:30,188 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 21:17:30,188 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:17:30,188 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 21:17:30,192 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 21:17:30,609 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 21:17:30,609 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 21:17:32,973 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 21:17:32,974 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 21:17:32,974 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:17:33,080 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 21:17:33,080 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:17:33,095 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 21:17:33,108 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 21:18:39,892 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:39] "GET /tender_processing_hitl HTTP/1.1" 200 -
+2025-10-08 21:18:39,988 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:39] "[33mGET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1[0m" 404 -
+2025-10-08 21:18:40,017 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/js/pages/tender-processing-step3-enhanced.js?v=20251008a HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,019 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,027 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/js/pages/tender-processing-step2.js HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,028 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "GET /static/js/pages/tender-processing-step1.js HTTP/1.1" 200 -
+2025-10-08 21:18:40,029 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/vendor/bootstrap/css/bootstrap.min.css HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,029 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/css/tender-processing-hitl.css HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,030 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/css/tender-processing-step3-enhanced.css HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,033 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/vendor/bootstrap-icons/font/bootstrap-icons.css HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,033 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/vendor/mammoth/mammoth.browser.min.js HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,809 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[33mGET /static/vendor/bootstrap/css/bootstrap.min.css.map HTTP/1.1[0m" 404 -
+2025-10-08 21:18:40,839 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[33mGET /static/vendor/bootstrap/js/bootstrap.bundle.min.js.map HTTP/1.1[0m" 404 -
+2025-10-08 21:18:40,856 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "[36mGET /static/vendor/bootstrap-icons/font/fonts/bootstrap-icons.woff2?1bb88866b4085542c8ed5fb61b9393dd HTTP/1.1[0m" 304 -
+2025-10-08 21:18:40,894 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 21:18:40,896 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "GET /api/models HTTP/1.1" 200 -
+2025-10-08 21:18:40,953 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:40] "GET /api/companies HTTP/1.1" 200 -
+2025-10-08 21:18:49,786 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:49] "GET /api/tender-projects?company_id=8 HTTP/1.1" 200 -
+2025-10-08 21:18:50,895 - ai_tender_system.api_hitl - INFO - 文件已保存: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/uploads/tender_processing/2025/10/20251008_211850_单一谈判文件-中国联通手机信息核验类外部数据服务采购项目-9-22(1)_68ee086b.docx
+2025-10-08 21:18:50,895 - ai_tender_system.api_hitl - INFO - 未提供project_id，自动创建新项目 (company_id: 8)
+2025-10-08 21:18:50,897 - ai_tender_system.database - ERROR - 数据库操作失败: datatype mismatch
+2025-10-08 21:18:50,898 - ai_tender_system.api_hitl - ERROR - 解析文档结构失败: datatype mismatch
+2025-10-08 21:18:50,901 - ai_tender_system.api_hitl - ERROR - Traceback (most recent call last):
+  File "/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/web/api_tender_processing_hitl.py", line 100, in parse_document_structure
+    db.execute_query("""
+    ~~~~~~~~~~~~~~~~^^^^
+        INSERT INTO tender_projects (
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+        'draft'
+        ^^^^^^^
+    ))
+    ^^
+  File "/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/common/database.py", line 145, in execute_query
+    cursor = conn.execute(query, params)
+sqlite3.IntegrityError: datatype mismatch
+
+2025-10-08 21:18:50,902 - werkzeug - INFO - 127.0.0.1 - - [08/Oct/2025 21:18:50] "[35m[1mPOST /api/tender-processing/parse-structure HTTP/1.1[0m" 500 -
+2025-10-08 21:19:35,935 - werkzeug - INFO -  * Detected change in '/Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/web/api_tender_processing_hitl.py', reloading
+2025-10-08 21:19:36,592 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 21:19:37,210 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 21:19:37,217 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 21:19:37,217 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 21:19:37,218 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:19:37,218 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 21:19:37,223 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 21:19:37,790 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 21:19:37,791 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 21:19:39,849 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 21:19:39,849 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 21:19:39,850 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:19:39,959 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 21:19:39,959 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:19:39,972 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 21:19:39,989 - werkzeug - INFO -  * Debugger PIN: 989-437-274
+2025-10-08 21:20:03,773 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 21:20:03,775 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 21:20:03,775 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 21:20:03,775 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:20:03,775 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 21:20:03,778 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 21:20:04,164 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 21:20:04,165 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 21:20:06,552 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 21:20:06,553 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 21:20:06,553 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:20:06,651 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 21:20:06,651 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:20:06,816 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8110
+ * Running on http://192.168.0.103:8110
+2025-10-08 21:20:06,817 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-10-08 21:20:06,818 - werkzeug - INFO -  * Restarting with stat
+2025-10-08 21:20:07,172 - ai_tender_system.database - INFO - 数据库表结构初始化完成
+2025-10-08 21:20:07,173 - ai_tender_system.database - INFO - 初始数据已存在，跳过数据加载
+2025-10-08 21:20:07,173 - ai_tender_system.database - INFO - 知识库数据库初始化完成: /Users/lvhe/Downloads/zhongbiao/zhongbiao/ai_tender_system/data/knowledge_base.db
+2025-10-08 21:20:07,173 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:20:07,173 - ai_tender_system.knowledge_base.api - INFO - 知识库API初始化完成
+2025-10-08 21:20:07,176 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 21:20:07,472 - ai_tender_system.vector_search.api - INFO - 向量搜索API初始化完成
+2025-10-08 21:20:07,473 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 21:20:09,349 - modules.knowledge_base.rag_api - INFO - RAG API模块加载完成
+2025-10-08 21:20:09,350 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 21:20:09,350 - ai_tender_system.knowledge_base.manager - INFO - 知识库管理器初始化完成
+2025-10-08 21:20:09,421 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 21:20:09,421 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:20:09,433 - werkzeug - WARNING -  * Debugger is active!
+2025-10-08 21:20:09,445 - werkzeug - INFO -  * Debugger PIN: 989-437-274

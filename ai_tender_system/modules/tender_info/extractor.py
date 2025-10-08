@@ -132,9 +132,22 @@ class TenderInfoExtractor:
         return {
             # 基础资质类（考虑三证合一）
             'business_license': [
+                # 营业执照相关
                 '营业执照', '三证合一', '企业法人营业执照',
                 '工商营业执照', '统一社会信用代码', '一照一码',
-                '企业法人', '工商登记'
+                '企业法人', '工商登记',
+
+                # 注册资本相关
+                '注册资金', '注册资本', '注册资本金', '实缴资本',
+                '认缴资本', '注册资本要求',
+
+                # 法人资格相关
+                '独立法人', '法人资格', '独立法人资格',
+                '独立承担民事责任', '民事责任能力',
+                '独立承担民事责任的能力',
+
+                # 成立时间相关
+                '成立时间', '成立年限', '注册时间'
             ],
             'legal_id_front': [
                 '法人身份证正面', '法定代表人身份证', '法人身份证',
@@ -184,9 +197,11 @@ class TenderInfoExtractor:
             ],
 
             # 行业资质类
-            'safety_production': [
-                '安全生产许可证', '安全生产', '安全许可', '生产许可',
-                '安全生产资质', '安全许可证'
+            'telecom_license': [
+                '基础电信业务许可证', '基础电信业务经营许可证', '基础电信许可证',
+                '增值电信业务许可证', '增值电信业务经营许可证', '增值电信许可证',
+                'ICP许可证', 'ICP经营许可证', 'ISP许可证', 'IDC许可证',
+                '电信业务许可证', '电信经营许可证', '电信业务经营许可'
             ],
             'software_copyright': [
                 '软件著作权', '软著', '计算机软件著作权', '软件版权',
@@ -313,8 +328,8 @@ class TenderInfoExtractor:
                 # 检查每个关键字
                 for keyword in keywords:
                     if keyword.lower() in text_lower:
-                        # 提取关键字周围的上下文（扩大到150字）
-                        context = self._extract_context_around_keyword(text, keyword, 150)
+                        # 使用句子提取方法，获取包含关键词的完整句子（更精准）
+                        context = self._extract_sentence_with_keyword(text, keyword)
 
                         # 检查上下文中是否有否定标记
                         is_negated = False
@@ -344,15 +359,30 @@ class TenderInfoExtractor:
 
                 # 如果找到关键字，记录结果
                 if found_keywords:
-                    # 生成描述
-                    description = f"需要提供{found_keywords[0]}"
-                    if description_parts:
-                        description = description_parts[0][:100] + "..." if len(description_parts[0]) > 100 else description_parts[0]
+                    # 去重并保留所有匹配的描述（支持多条匹配展示）
+                    unique_descriptions = []
+                    seen_descriptions = set()
+
+                    for desc in description_parts:
+                        # 截断到500字符
+                        desc_truncated = desc[:500] if len(desc) > 500 else desc
+                        # 去重（避免同一句子被重复添加）
+                        if desc_truncated not in seen_descriptions:
+                            unique_descriptions.append(desc_truncated)
+                            seen_descriptions.add(desc_truncated)
+
+                    # 如果有多条匹配，用换行符或特殊分隔符连接
+                    # 如果只有一条，直接使用
+                    if unique_descriptions:
+                        description = unique_descriptions[0] if len(unique_descriptions) == 1 else '\n'.join(unique_descriptions)
+                    else:
+                        description = f"需要提供{found_keywords[0]}"
 
                     qualification_results[qual_key] = {
                         'required': True,
                         'keywords_found': found_keywords,
-                        'description': description
+                        'description': description,
+                        'match_count': len(unique_descriptions)  # 新增：匹配数量
                     }
 
             # 构建返回结果
@@ -393,6 +423,65 @@ class TenderInfoExtractor:
         except Exception as e:
             self.logger.debug(f"提取上下文失败: {e}")
             return ""
+
+    def _extract_sentence_with_keyword(self, text: str, keyword: str) -> str:
+        """
+        提取包含关键词的完整句子（精准提取，避免过多上下文）
+
+        Args:
+            text: 完整文本
+            keyword: 关键词
+
+        Returns:
+            包含关键词的完整句子
+        """
+        try:
+            # 按句子分隔符分割文本（保留分隔符）
+            import re
+
+            # 使用正则表达式分割，但保留分隔符
+            sentences = re.split(r'([。；！？])', text)
+
+            # 重组句子（将分隔符附加回去）
+            complete_sentences = []
+            for i in range(0, len(sentences) - 1, 2):
+                if i + 1 < len(sentences):
+                    complete_sentences.append(sentences[i] + sentences[i + 1])
+
+            # 查找包含关键词的句子（优先查找最短的）
+            matching_sentences = []
+            for sentence in complete_sentences:
+                if keyword.lower() in sentence.lower():
+                    matching_sentences.append(sentence.strip())
+
+            # 如果找到匹配的句子，返回最短的那个（通常是最精准的）
+            if matching_sentences:
+                shortest = min(matching_sentences, key=len)
+                # 如果句子太长（>500字符），尝试进一步分割
+                if len(shortest) > 500:
+                    # 尝试在逗号处分割，找到包含关键词的最小片段
+                    parts = re.split(r'([，,])', shortest)
+                    for i in range(0, len(parts) - 1, 2):
+                        if i + 1 < len(parts):
+                            part = parts[i] + parts[i + 1]
+                            if keyword.lower() in part.lower():
+                                return part.strip()
+                return shortest
+
+            # 如果没找到完整句子，尝试使用正则表达式提取
+            # 针对"供应商...关键词..."这种常见格式
+            pattern = f'供应商[^。；]*{re.escape(keyword)}[^。；]*[。；]'
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(0).strip()
+
+            # 最后兜底：返回关键词周围100字符
+            self.logger.debug(f"未找到包含'{keyword}'的完整句子，使用上下文提取")
+            return self._extract_context_around_keyword(text, keyword, 100)
+
+        except Exception as e:
+            self.logger.debug(f"句子提取失败: {e}，回退到上下文提取")
+            return self._extract_context_around_keyword(text, keyword, 100)
 
     def _timeout_regex_search(self, pattern: str, text: str, timeout: int = 5):
         """带超时的正则表达式搜索，防止灾难性回溯"""

@@ -51,21 +51,25 @@ def register_hitl_routes(app):
 
         请求参数（FormData）：
         - file: Word文档文件
-        - project_id: 项目ID
+        - company_id: 公司ID（必填）
+        - project_id: 项目ID（可选，为空时自动创建新项目）
 
         返回：
         {
             "success": True/False,
             "task_id": "hitl_xxx",
+            "project_id": "proj_xxx",  # 新建或已有项目ID
             "chapters": [...],  # 章节树
             "statistics": {...}
         }
         """
         try:
             # 获取参数
-            project_id = request.form.get('project_id')
-            if not project_id:
-                return jsonify({'success': False, 'error': '缺少project_id参数'}), 400
+            company_id = request.form.get('company_id')
+            project_id = request.form.get('project_id')  # 可选
+
+            if not company_id:
+                return jsonify({'success': False, 'error': '缺少company_id参数'}), 400
 
             # 检查文件
             if 'file' not in request.files:
@@ -86,6 +90,36 @@ def register_hitl_routes(app):
 
             file_path = file_metadata.file_path
             logger.info(f"文件已保存: {file_path}")
+
+            # 如果没有提供project_id，创建新项目
+            if not project_id:
+                logger.info(f"未提供project_id，自动创建新项目 (company_id: {company_id})")
+
+                # 创建新项目记录（让数据库自动生成project_id）
+                db.execute_query("""
+                    INSERT INTO tender_projects (
+                        company_id, project_name,
+                        status, created_at
+                    ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                """, (
+                    company_id,
+                    f"标书项目_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    'draft'
+                ))
+
+                # 获取刚刚插入的project_id
+                result = db.execute_query("""
+                    SELECT project_id FROM tender_projects
+                    WHERE company_id = ?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (company_id,), fetch_one=True)
+
+                if result:
+                    project_id = result['project_id']
+                    logger.info(f"✅ 新项目已创建: {project_id}")
+                else:
+                    raise Exception("创建项目后无法获取project_id")
 
             # 解析文档结构
             parser = DocumentStructureParser()
@@ -118,11 +152,12 @@ def register_hitl_routes(app):
                 result["statistics"].get("estimated_processing_cost", 0.0)
             ))
 
-            logger.info(f"HITL任务已创建: {hitl_task_id}")
+            logger.info(f"HITL任务已创建: {hitl_task_id}, project_id: {project_id}")
 
             return jsonify({
                 'success': True,
                 'task_id': hitl_task_id,
+                'project_id': project_id,  # 返回项目ID（新建或已有）
                 'chapters': result["chapters"],
                 'statistics': result["statistics"]
             })
@@ -576,7 +611,7 @@ def register_hitl_routes(app):
                 'method': 'keyword_matching',  # 标识使用关键词匹配
                 'requirements_saved': total_saved,
                 'found_count': found_count,
-                'not_found_count': 13 - found_count
+                'not_found_count': 15 - found_count
             })
 
         except Exception as e:

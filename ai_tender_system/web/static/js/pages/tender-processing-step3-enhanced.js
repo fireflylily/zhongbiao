@@ -312,7 +312,7 @@ async function extractDetailedRequirements() {
         const modelSelect = document.getElementById('hitlAiModel');
         const selectedModel = modelSelect ? modelSelect.value : 'gpt-4o-mini';
 
-        console.log('[extractDetailedRequirements] 发起13条资格要求提取请求, 模型:', selectedModel);
+        console.log('[extractDetailedRequirements] 发起15条资格要求提取请求, 模型:', selectedModel);
         // 改为调用新的专用API
         const response = await fetch(`/api/tender-processing/extract-eligibility-requirements/${currentTaskId}`, {
             method: 'POST',
@@ -327,15 +327,17 @@ async function extractDetailedRequirements() {
             throw new Error(data.error || '提取失败');
         }
 
-        // 提取成功，直接使用API返回的checklist显示
-        alert(`✅ 提取成功！找到 ${data.found_count} 项，未找到 ${data.not_found_count} 项`);
-
-        // 直接显示API返回的13条清单
+        // 提取成功，直接显示API返回的15条清单（不使用弹窗）
+        console.log(`[extractDetailedRequirements] ✅ 提取成功！找到 ${data.found_count} 项，未找到 ${data.not_found_count} 项`);
         displayEligibilityChecklistFromAPI(data.checklist, data.found_count, data.not_found_count);
+
+        // 在页面顶部显示成功提示（3秒后自动消失）
+        showSuccessToast(`提取成功！找到 ${data.found_count} 项，未找到 ${data.not_found_count} 项`);
 
     } catch (error) {
         console.error('[extractDetailedRequirements] 提取失败:', error);
-        alert('提取失败: ' + error.message);
+        // 在页面顶部显示错误提示
+        showErrorToast('提取失败: ' + error.message);
     } finally {
         if (btn) {
             btn.disabled = false;
@@ -772,13 +774,16 @@ async function extractBasicInfo() {
 }
 
 // ============================================
-// 保存基本信息
+// 保存基本信息 - 统一保存到 tender_projects 表
 // ============================================
 async function saveBasicInfo() {
     console.log('[saveBasicInfo] 开始保存基本信息');
 
-    if (!currentTaskId) {
-        alert('缺少任务ID');
+    // 获取公司和项目配置
+    const config = HITLConfigManager.getConfig();
+
+    if (!config.companyId) {
+        showErrorToast('请先选择应答公司');
         return;
     }
 
@@ -789,43 +794,71 @@ async function saveBasicInfo() {
     }
 
     try {
-        // 从表单获取基本信息
+        // 收集基本信息
         const basicInfo = {
             project_name: document.getElementById('projectName')?.value || '',
             project_number: document.getElementById('projectNumber')?.value || '',
-            tender_party: document.getElementById('tenderParty')?.value || '',
-            tender_agent: document.getElementById('tenderAgent')?.value || '',
-            tender_method: document.getElementById('tenderMethod')?.value || '',
-            tender_location: document.getElementById('tenderLocation')?.value || '',
-            tender_deadline: document.getElementById('tenderDeadline')?.value || '',
-            winner_count: document.getElementById('winnerCount')?.value || ''
+            tenderer: document.getElementById('tenderParty')?.value || '',
+            agency: document.getElementById('tenderAgent')?.value || '',
+            bidding_method: document.getElementById('tenderMethod')?.value || '',
+            bidding_location: document.getElementById('tenderLocation')?.value || '',
+            bidding_time: document.getElementById('tenderDeadline')?.value || '',
+            winner_count: document.getElementById('winnerCount')?.value || '',
+            company_id: config.companyId,
+            tender_document_path: '',  // HITL从章节选择开始,无上传文件路径
+            original_filename: ''
         };
 
         console.log('[saveBasicInfo] 基本信息:', basicInfo);
+        console.log('[saveBasicInfo] 当前项目ID:', HITLConfigManager.currentProjectId);
 
-        // 保存到step3_data
-        const response = await fetch(`/api/tender-processing/save-basic-info/${currentTaskId}`, {
-            method: 'POST',
+        // 判断是创建还是更新
+        const isUpdate = HITLConfigManager.currentProjectId !== null && HITLConfigManager.currentProjectId !== '';
+        const url = isUpdate
+            ? `/api/tender-projects/${HITLConfigManager.currentProjectId}`
+            : '/api/tender-projects';
+        const method = isUpdate ? 'PUT' : 'POST';
+
+        console.log(`[saveBasicInfo] 执行${isUpdate ? '更新' : '创建'}操作，URL: ${url}`);
+
+        // 发送请求
+        const response = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ basic_info: basicInfo })
+            body: JSON.stringify(basicInfo)
         });
 
         const data = await response.json();
 
         if (data.success) {
-            alert('✅ 基本信息保存成功');
+            // 保存/更新项目ID
+            if (!isUpdate && data.project_id) {
+                HITLConfigManager.currentProjectId = data.project_id;
+                console.log('[saveBasicInfo] 新项目已创建，ID:', HITLConfigManager.currentProjectId);
+            }
+
+            showSuccessToast(isUpdate ? '项目更新成功' : '项目创建成功');
+
+            // 刷新项目列表
+            await HITLConfigManager.loadProjects();
+            const projectSelect = document.getElementById('hitlProjectSelect');
+            if (projectSelect && HITLConfigManager.currentProjectId) {
+                projectSelect.value = HITLConfigManager.currentProjectId;
+            }
+
+            // 更新按钮状态
             if (btn) {
                 btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>已保存';
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-success');
             }
         } else {
-            throw new Error(data.error || '保存失败');
+            throw new Error(data.message || '保存失败');
         }
 
     } catch (error) {
         console.error('[saveBasicInfo] 保存失败:', error);
-        alert('保存失败: ' + error.message);
+        showErrorToast('保存失败: ' + error.message);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-save me-2"></i>保存基本信息';
@@ -834,49 +867,59 @@ async function saveBasicInfo() {
 }
 
 // ============================================
-// 保存并完成
+// 保存并完成 - 保存完整项目数据到 tender_projects 表
 // ============================================
 async function saveAndComplete() {
     console.log('[saveAndComplete] 开始保存并完成');
 
-    if (!currentTaskId) {
-        alert('缺少任务ID');
+    // 获取公司和项目配置
+    const config = HITLConfigManager.getConfig();
+
+    if (!config.companyId) {
+        showErrorToast('请先选择应答公司');
         return;
     }
 
     const btn = document.getElementById('saveAndCompleteBtn');
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>保存并完成中...';
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>保存中...';
     }
 
     try {
-        // 先保存基本信息
+        // 1. 先保存基本信息(会创建或更新项目)
         await saveBasicInfo();
 
-        // 标记任务完成
-        const response = await fetch(`/api/tender-processing/complete-hitl/${currentTaskId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-        });
+        // 2. 如果有提取的资质要求、资格要求、评分办法等数据,也一并保存
+        // 注意: 这里的 extractedQualifications 等变量需要从对应的tab获取
+        // 当前简化版本只保存基本信息,后续可扩展
 
-        const data = await response.json();
+        // 3. 更新项目状态为完成(可选)
+        if (HITLConfigManager.currentProjectId) {
+            const updateResponse = await fetch(`/api/tender-projects/${HITLConfigManager.currentProjectId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'active'  // 标记为进行中
+                })
+            });
 
-        if (data.success) {
-            alert('✅ 所有数据已保存，HITL流程完成！');
-            if (btn) {
-                btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>已完成';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-secondary');
+            const updateData = await updateResponse.json();
+            if (!updateData.success) {
+                console.warn('[saveAndComplete] 更新项目状态失败:', updateData.message);
             }
-        } else {
-            throw new Error(data.error || '完成失败');
+        }
+
+        showSuccessToast('✅ 所有数据已保存，HITL流程完成！');
+        if (btn) {
+            btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>已完成';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-secondary');
         }
 
     } catch (error) {
         console.error('[saveAndComplete] 保存失败:', error);
-        alert('保存失败: ' + error.message);
+        showErrorToast('保存失败: ' + error.message);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>保存并完成';
@@ -885,7 +928,7 @@ async function saveAndComplete() {
 }
 
 // ============================================
-// 13条供应商资格要求清单
+// 15条供应商资格要求清单
 // ============================================
 const ELIGIBILITY_CHECKLIST = [
     {id: 1, name: "营业执照信息", keywords: ["营业执照", "注册", "法人", "注册资金", "注册资本", "注册时间", "成立时间"]},
@@ -900,10 +943,12 @@ const ELIGIBILITY_CHECKLIST = [
     {id: 10, name: "承诺函", keywords: ["承诺函", "承诺书"]},
     {id: 11, name: "营业办公场所房产证明", keywords: ["房产", "办公场所", "经营场所", "房产证明"]},
     {id: 12, name: "业绩案例要求", keywords: ["业绩", "类似项目", "同类项目", "项目经验"]},
-    {id: 13, name: "保证金要求", keywords: ["保证金", "投标保证金"]}
+    {id: 13, name: "保证金要求", keywords: ["保证金", "投标保证金"]},
+    {id: 14, name: "增值电信业务许可证", keywords: ["增值电信业务许可证", "ICP许可证", "IDC许可证", "ISP许可证", "CDN许可证", "增值电信"]},
+    {id: 15, name: "基础电信业务许可证", keywords: ["基础电信业务许可证", "电信业务经营许可证", "基础电信"]}
 ];
 
-// 显示13条资格要求清单
+// 显示15条资格要求清单
 function displayEligibilityChecklist(requirements) {
     console.log('[displayEligibilityChecklist] 显示资格清单, 需求数量:', requirements.length);
 
@@ -911,14 +956,14 @@ function displayEligibilityChecklist(requirements) {
     const qualificationReqs = requirements.filter(req => req.category === 'qualification');
     console.log('[displayEligibilityChecklist] 资格类需求数量:', qualificationReqs.length);
 
-    // 初始化13条清单数据
+    // 初始化15条清单数据
     const checklistData = ELIGIBILITY_CHECKLIST.map(item => ({
         ...item,
         found: false,
         requirements: []
     }));
 
-    // 将提取的需求匹配到13条清单
+    // 将提取的需求匹配到15条清单
     qualificationReqs.forEach(req => {
         const detail = (req.detail || '').toLowerCase();
         const summary = (req.summary || '').toLowerCase();
@@ -942,7 +987,7 @@ function displayEligibilityChecklist(requirements) {
 
     // 统计
     const foundCount = checklistData.filter(item => item.found).length;
-    const notFoundCount = 13 - foundCount;
+    const notFoundCount = 15 - foundCount;
 
     // 更新统计显示
     const foundCountEl = document.getElementById('eligFoundCount');
@@ -976,14 +1021,19 @@ function displayEligibilityChecklist(requirements) {
         if (item.found && item.requirements.length > 0) {
             html += '<div class="ms-3">';
             item.requirements.forEach(req => {
+                // 使用新的格式化函数处理detail字段，支持展开/收起
+                const formattedDetail = req.summary && req.detail !== req.summary
+                    ? `<div class="small text-secondary mt-1">${formatDetailTextWithToggle(req.detail, 150)}</div>`
+                    : '';
+
                 html += `
                     <div class="mb-2 p-2 bg-light rounded">
                         <div class="small text-muted mb-1">
                             <span class="badge bg-${getConstraintTypeBadge(req.constraint_type)}">${getConstraintTypeLabel(req.constraint_type)}</span>
                             ${req.subcategory ? '<span class="ms-2">' + req.subcategory + '</span>' : ''}
                         </div>
-                        <div class="fw-medium">${req.summary || req.detail}</div>
-                        ${req.summary && req.detail !== req.summary ? '<div class="small text-secondary mt-1">' + req.detail + '</div>' : ''}
+                        <div class="fw-medium">${req.summary || formatDetailTextWithToggle(req.detail, 150)}</div>
+                        ${formattedDetail}
                     </div>
                 `;
             });
@@ -1010,7 +1060,7 @@ function displayEligibilityChecklist(requirements) {
     console.log('[displayEligibilityChecklist] 清单显示完成');
 }
 
-// 显示API返回的13条资格要求清单（新版本，使用API结构化数据）
+// 显示API返回的15条资格要求清单（新版本，使用API结构化数据）
 function displayEligibilityChecklistFromAPI(checklist, foundCount, notFoundCount) {
     console.log('[displayEligibilityChecklistFromAPI] 显示API清单, 找到:', foundCount, '未找到:', notFoundCount);
 
@@ -1046,14 +1096,19 @@ function displayEligibilityChecklistFromAPI(checklist, foundCount, notFoundCount
         if (item.found && item.requirements && item.requirements.length > 0) {
             html += '<div class="ms-3">';
             item.requirements.forEach(req => {
+                // 使用新的格式化函数处理detail字段，支持展开/收起
+                const formattedDetail = req.summary && req.detail && req.detail !== req.summary
+                    ? `<div class="small text-secondary mt-1">${formatDetailTextWithToggle(req.detail, 150)}</div>`
+                    : '';
+
                 html += `
                     <div class="mb-2 p-2 bg-light rounded">
                         <div class="small text-muted mb-1">
                             <span class="badge bg-${getConstraintTypeBadge(req.constraint_type)}">${getConstraintTypeLabel(req.constraint_type)}</span>
                             ${req.source_location ? '<span class="ms-2 text-muted">来源: ' + req.source_location + '</span>' : ''}
                         </div>
-                        <div class="fw-medium">${req.summary || req.detail}</div>
-                        ${req.summary && req.detail && req.detail !== req.summary ? '<div class="small text-secondary mt-1">' + req.detail + '</div>' : ''}
+                        <div class="fw-medium">${req.summary || formatDetailTextWithToggle(req.detail, 150)}</div>
+                        ${formattedDetail}
                         ${req.extraction_confidence ? '<div class="small text-muted mt-1">置信度: ' + (req.extraction_confidence * 100).toFixed(0) + '%</div>' : ''}
                     </div>
                 `;
@@ -1099,4 +1154,242 @@ function getConstraintTypeLabel(type) {
         'scoring': '加分项'
     };
     return labels[type] || type;
+}
+
+// ============================================
+// 长文本展开/收起功能
+// ============================================
+
+/**
+ * 格式化detail文本，对于长文本添加展开/收起功能
+ * @param {string} text - 要显示的文本
+ * @param {number} maxLength - 默认显示的最大长度（默认150字符）
+ * @returns {string} 格式化后的HTML
+ */
+function formatDetailTextWithToggle(text, maxLength = 150) {
+    if (!text) return '';
+
+    // HTML转义
+    const escapeHtml = (str) => {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
+
+    const escapedText = escapeHtml(text);
+
+    // 如果文本长度小于等于最大长度，直接返回
+    if (text.length <= maxLength) {
+        return escapedText;
+    }
+
+    // 生成唯一ID
+    const uniqueId = 'detail_' + Math.random().toString(36).substr(2, 9);
+
+    // 智能截断：优先在句号、分号等强分隔符处截断
+    let shortText = text.substring( 0, maxLength);
+
+    // 定义标点符号优先级（从高到低）
+    const punctuations = [
+        { char: '。', priority: 5 },   // 句号 - 最高优先级
+        { char: '；', priority: 4 },   // 中文分号
+        { char: ';', priority: 4 },    // 英文分号
+        { char: '！', priority: 4 },   // 感叹号
+        { char: '？', priority: 4 },   // 问号
+        { char: '，', priority: 3 },   // 中文逗号
+        { char: ',', priority: 3 },    // 英文逗号
+        { char: '、', priority: 2 },   // 顿号
+        { char: '）', priority: 2 },   // 右括号
+        { char: ')', priority: 2 }     // 英文右括号
+    ];
+
+    // 查找所有标点符号的位置
+    let bestCutPoint = -1;
+    let bestPriority = 0;
+
+    for (const punct of punctuations) {
+        const pos = shortText.lastIndexOf(punct.char);
+        // 如果找到标点，且在合理范围内（至少显示50%的内容）
+        if (pos > maxLength * 0.5 && punct.priority > bestPriority) {
+            bestCutPoint = pos;
+            bestPriority = punct.priority;
+        }
+    }
+
+    // 如果找到了合适的截断点，在标点符号之后截断
+    if (bestCutPoint > 0) {
+        shortText = text.substring(0, bestCutPoint + 1);
+    }
+
+    const escapedShortText = escapeHtml(shortText);
+
+    return `
+        <span id="${uniqueId}_short">
+            ${escapedShortText}...
+            <a href="#" class="text-primary ms-1 small" onclick="toggleDetailText('${uniqueId}', event)" style="text-decoration:none;">
+                <i class="bi bi-chevron-down"></i> 展开
+            </a>
+        </span>
+        <span id="${uniqueId}_full" style="display:none;">
+            ${escapedText}
+            <a href="#" class="text-primary ms-1 small" onclick="toggleDetailText('${uniqueId}', event)" style="text-decoration:none;">
+                <i class="bi bi-chevron-up"></i> 收起
+            </a>
+        </span>
+    `;
+}
+
+/**
+ * 切换detail文本的展开/收起状态
+ * @param {string} id - 元素ID前缀
+ * @param {Event} event - 点击事件
+ */
+function toggleDetailText(id, event) {
+    event.preventDefault();
+    const shortEl = document.getElementById(id + '_short');
+    const fullEl = document.getElementById(id + '_full');
+
+    if (!shortEl || !fullEl) {
+        console.error('[toggleDetailText] 找不到元素:', id);
+        return;
+    }
+
+    if (shortEl.style.display === 'none') {
+        // 收起
+        shortEl.style.display = '';
+        fullEl.style.display = 'none';
+    } else {
+        // 展开
+        shortEl.style.display = 'none';
+        fullEl.style.display = '';
+    }
+}
+
+// ============================================
+// Toast 提示功能（替代alert弹窗）
+// ============================================
+
+/**
+ * 显示成功提示（绿色toast，3秒后自动消失）
+ * @param {string} message - 提示消息
+ */
+function showSuccessToast(message) {
+    showToast(message, 'success');
+}
+
+/**
+ * 显示错误提示（红色toast，5秒后自动消失）
+ * @param {string} message - 错误消息
+ */
+function showErrorToast(message) {
+    showToast(message, 'error', 5000);
+}
+
+/**
+ * 显示提示消息（通用函数）
+ * @param {string} message - 提示消息
+ * @param {string} type - 类型：'success', 'error', 'info', 'warning'
+ * @param {number} duration - 显示时长（毫秒），默认3000ms
+ */
+function showToast(message, type = 'info', duration = 3000) {
+    // 创建toast容器（如果不存在）
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        `;
+        document.body.appendChild(toastContainer);
+    }
+
+    // 创建toast元素
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+
+    // 根据类型设置样式和图标
+    let bgColor, icon;
+    switch (type) {
+        case 'success':
+            bgColor = '#28a745';
+            icon = '<i class="bi bi-check-circle-fill me-2"></i>';
+            break;
+        case 'error':
+            bgColor = '#dc3545';
+            icon = '<i class="bi bi-exclamation-circle-fill me-2"></i>';
+            break;
+        case 'warning':
+            bgColor = '#ffc107';
+            icon = '<i class="bi bi-exclamation-triangle-fill me-2"></i>';
+            break;
+        default:
+            bgColor = '#17a2b8';
+            icon = '<i class="bi bi-info-circle-fill me-2"></i>';
+    }
+
+    toast.style.cssText = `
+        background-color: ${bgColor};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        animation: slideIn 0.3s ease-out;
+        font-size: 14px;
+        line-height: 1.5;
+    `;
+
+    toast.innerHTML = `${icon}<span>${message}</span>`;
+
+    // 添加CSS动画（如果还没有添加）
+    if (!document.getElementById('toastAnimationStyles')) {
+        const style = document.createElement('style');
+        style.id = 'toastAnimationStyles';
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // 添加到容器
+    toastContainer.appendChild(toast);
+
+    // 自动移除
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+            // 如果容器为空，移除容器
+            if (toastContainer.children.length === 0) {
+                toastContainer.remove();
+            }
+        }, 300);
+    }, duration);
 }

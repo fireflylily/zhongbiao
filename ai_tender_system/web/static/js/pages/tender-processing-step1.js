@@ -42,17 +42,22 @@ class ChapterSelectionManager {
 
     async handleParseStructure() {
         const fileInput = document.getElementById('tenderDocFile');
-        const projectId = document.getElementById('projectId').value;
+
+        // 使用 HITLConfigManager 获取配置
+        const config = HITLConfigManager.getConfig();
 
         if (!fileInput.files || !fileInput.files[0]) {
             this.showNotification('请先选择文件', 'warning');
             return;
         }
 
-        if (!projectId) {
-            this.showNotification('请输入项目ID', 'warning');
+        // 验证必填项：company_id
+        if (!config.companyId) {
+            this.showNotification('请先选择应答公司', 'warning');
             return;
         }
+
+        // projectId 可以为空（新建项目）或有值（关联已有项目）
 
         const parseBtn = document.getElementById('parseStructureBtn');
         const originalText = parseBtn.innerHTML;
@@ -63,7 +68,12 @@ class ChapterSelectionManager {
             // 构建 FormData
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-            formData.append('project_id', projectId);
+            formData.append('company_id', config.companyId);
+
+            // 如果选择了项目，传递project_id；否则后端会创建新项目
+            if (config.projectId) {
+                formData.append('project_id', config.projectId);
+            }
 
             // 调用解析API
             const response = await fetch('/api/tender-processing/parse-structure', {
@@ -76,6 +86,13 @@ class ChapterSelectionManager {
             if (result.success) {
                 this.currentTaskId = result.task_id;
                 this.statistics = result.statistics;
+
+                // 如果后端返回了新的project_id（新建项目的情况），更新配置管理器
+                if (result.project_id && !config.projectId) {
+                    HITLConfigManager.currentProjectId = result.project_id;
+                    console.log(`✅ 新项目已创建并关联: ${result.project_id}`);
+                    this.showNotification(`新项目已创建: ${result.project_id}`, 'info');
+                }
 
                 // 扁平化章节树
                 this.chaptersData = this.flattenChapters(result.chapters);
