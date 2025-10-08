@@ -304,14 +304,19 @@ async function extractDetailedRequirements() {
     const btn = document.getElementById('extractRequirementsBtn');
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>提取中...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>AI提取中...';
     }
 
     try {
-        console.log('[extractDetailedRequirements] 发起提取请求...');
+        // 获取选择的模型
+        const modelSelect = document.getElementById('hitlAiModel');
+        const selectedModel = modelSelect ? modelSelect.value : 'gpt-4o-mini';
+
+        console.log('[extractDetailedRequirements] 发起提取请求, 模型:', selectedModel);
         const response = await fetch(`/api/tender-processing/extract-requirements/${currentTaskId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: selectedModel })
         });
 
         const data = await response.json();
@@ -321,9 +326,17 @@ async function extractDetailedRequirements() {
             throw new Error(data.error || '提取失败');
         }
 
-        // 提取成功，重新加载需求
-        alert(`✅ 提取成功！共提取 ${data.total_requirements} 条需求`);
-        await loadRequirements(currentTaskId, currentProjectId);
+        // 提取成功，加载需求并显示清单
+        alert(`✅ 提取成功！共提取 ${data.requirements_extracted} 条需求`);
+
+        // 重新加载需求数据
+        const reqResponse = await fetch(`/api/tender-processing/requirements/${currentTaskId}`);
+        const reqData = await reqResponse.json();
+
+        if (reqData.success && reqData.requirements) {
+            // 显示13条资格清单
+            displayEligibilityChecklist(reqData.requirements);
+        }
 
     } catch (error) {
         console.error('[extractDetailedRequirements] 提取失败:', error);
@@ -331,7 +344,7 @@ async function extractDetailedRequirements() {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-magic me-2"></i>AI提取详细要求';
+            btn.innerHTML = '<i class="fas fa-magic me-2"></i>AI提取资格要求';
         }
     }
 }
@@ -434,6 +447,9 @@ async function loadResponseFileInfo(taskId) {
                         <p class="mb-2"><strong>文件名:</strong> ${data.filename}</p>
                         <p class="mb-2"><strong>文件大小:</strong> ${fileSizeKB} KB</p>
                         <p class="mb-3"><strong>保存时间:</strong> ${savedDate}</p>
+                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="previewResponseFile('${taskId}')">
+                            <i class="bi bi-eye me-2"></i>预览
+                        </button>
                         <button class="btn btn-primary btn-sm" onclick="downloadResponseFile('${taskId}')">
                             <i class="bi bi-download me-2"></i>下载应答文件
                         </button>
@@ -471,6 +487,12 @@ async function loadResponseFileInfo(taskId) {
         console.error('[loadResponseFileInfo] 加载应答文件信息失败:', error);
         console.error('[loadResponseFileInfo] 错误堆栈:', error.stack);
     }
+}
+
+// 预览应答文件
+function previewResponseFile(taskId) {
+    console.log('[previewResponseFile] 预览文件, taskId:', taskId);
+    window.open(`/api/tender-processing/preview-response-file/${taskId}`, '_blank');
 }
 
 // 下载应答文件
@@ -567,22 +589,7 @@ function proceedToStep3(taskId, projectId) {
     // 初始化标签页管理器
     new TabManager();
 
-    // 加载当前激活的标签页数据
-    const activeTab = document.querySelector('.tab-pane.active');
-    if (activeTab) {
-        const tabId = activeTab.id.replace('Panel', '');
-        console.log('[proceedToStep3] 当前激活标签页:', tabId);
-
-        if (tabId === 'detailed-requirements') {
-            loadRequirements(taskId, projectId);
-        } else if (tabId === 'filtered-chunks') {
-            loadFilteredChunksData(taskId);
-        } else if (tabId === 'document-format') {
-            loadResponseFileInfo(taskId);
-        }
-    }
-
-    console.log('[proceedToStep3] 初始化完成');
+    console.log('[proceedToStep3] 初始化完成，Bootstrap会处理tab切换和数据加载');
 }
 
 // ============================================
@@ -624,5 +631,343 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.addEventListener('input', (e) => searchRequirements(e.target.value));
     }
 
+    // 绑定AI提取基本信息按钮
+    const extractBasicInfoBtn = document.getElementById('extractBasicInfoBtn');
+    if (extractBasicInfoBtn) {
+        extractBasicInfoBtn.addEventListener('click', extractBasicInfo);
+    }
+
+    // 绑定保存基本信息按钮
+    const saveBasicInfoBtn = document.getElementById('saveBasicInfoBtn');
+    if (saveBasicInfoBtn) {
+        saveBasicInfoBtn.addEventListener('click', saveBasicInfo);
+    }
+
+    // 绑定保存并完成按钮
+    const saveAndCompleteBtn = document.getElementById('saveAndCompleteBtn');
+    if (saveAndCompleteBtn) {
+        saveAndCompleteBtn.addEventListener('click', saveAndComplete);
+    }
+
     console.log('[DOMContentLoaded] 初始化完成');
 });
+
+// ============================================
+// AI提取基本信息
+// ============================================
+async function extractBasicInfo() {
+    console.log('[extractBasicInfo] 开始AI提取基本信息');
+
+    if (!currentTaskId) {
+        alert('缺少任务ID');
+        return;
+    }
+
+    const btn = document.getElementById('extractBasicInfoBtn');
+    const form = document.getElementById('basicInfoForm');
+    const loading = document.getElementById('basicInfoLoading');
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>AI提取中...';
+    }
+
+    if (form) form.style.display = 'none';
+    if (loading) loading.style.display = 'block';
+
+    try {
+        const response = await fetch(`/api/tender-processing/extract-basic-info/${currentTaskId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.basic_info) {
+            // 填充表单字段
+            const info = data.basic_info;
+            if (info.project_name) document.getElementById('projectName').value = info.project_name;
+            if (info.project_number) document.getElementById('projectNumber').value = info.project_number;
+            if (info.tender_party) document.getElementById('tenderParty').value = info.tender_party;
+            if (info.tender_agent) document.getElementById('tenderAgent').value = info.tender_agent;
+            if (info.tender_method) document.getElementById('tenderMethod').value = info.tender_method;
+            if (info.tender_location) document.getElementById('tenderLocation').value = info.tender_location;
+            if (info.tender_deadline) document.getElementById('tenderDeadline').value = info.tender_deadline;
+            if (info.winner_count) document.getElementById('winnerCount').value = info.winner_count;
+
+            alert('✅ AI提取基本信息完成!');
+        } else {
+            throw new Error(data.error || '提取失败');
+        }
+    } catch (error) {
+        console.error('[extractBasicInfo] 提取失败:', error);
+        alert('提取失败: ' + error.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-magic me-2"></i>AI提取基本信息';
+        }
+        if (form) form.style.display = 'block';
+        if (loading) loading.style.display = 'none';
+    }
+}
+
+// ============================================
+// 保存基本信息
+// ============================================
+async function saveBasicInfo() {
+    console.log('[saveBasicInfo] 开始保存基本信息');
+
+    if (!currentTaskId) {
+        alert('缺少任务ID');
+        return;
+    }
+
+    const btn = document.getElementById('saveBasicInfoBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>保存中...';
+    }
+
+    try {
+        // 从表单获取基本信息
+        const basicInfo = {
+            project_name: document.getElementById('projectName')?.value || '',
+            project_number: document.getElementById('projectNumber')?.value || '',
+            tender_party: document.getElementById('tenderParty')?.value || '',
+            tender_agent: document.getElementById('tenderAgent')?.value || '',
+            tender_method: document.getElementById('tenderMethod')?.value || '',
+            tender_location: document.getElementById('tenderLocation')?.value || '',
+            tender_deadline: document.getElementById('tenderDeadline')?.value || '',
+            winner_count: document.getElementById('winnerCount')?.value || ''
+        };
+
+        console.log('[saveBasicInfo] 基本信息:', basicInfo);
+
+        // 保存到step3_data
+        const response = await fetch(`/api/tender-processing/save-basic-info/${currentTaskId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ basic_info: basicInfo })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ 基本信息保存成功');
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>已保存';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+            }
+        } else {
+            throw new Error(data.error || '保存失败');
+        }
+
+    } catch (error) {
+        console.error('[saveBasicInfo] 保存失败:', error);
+        alert('保存失败: ' + error.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-save me-2"></i>保存基本信息';
+        }
+    }
+}
+
+// ============================================
+// 保存并完成
+// ============================================
+async function saveAndComplete() {
+    console.log('[saveAndComplete] 开始保存并完成');
+
+    if (!currentTaskId) {
+        alert('缺少任务ID');
+        return;
+    }
+
+    const btn = document.getElementById('saveAndCompleteBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>保存并完成中...';
+    }
+
+    try {
+        // 先保存基本信息
+        await saveBasicInfo();
+
+        // 标记任务完成
+        const response = await fetch(`/api/tender-processing/complete-hitl/${currentTaskId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ 所有数据已保存，HITL流程完成！');
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>已完成';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-secondary');
+            }
+        } else {
+            throw new Error(data.error || '完成失败');
+        }
+
+    } catch (error) {
+        console.error('[saveAndComplete] 保存失败:', error);
+        alert('保存失败: ' + error.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>保存并完成';
+        }
+    }
+}
+
+// ============================================
+// 13条供应商资格要求清单
+// ============================================
+const ELIGIBILITY_CHECKLIST = [
+    {id: 1, name: "营业执照信息", keywords: ["营业执照", "注册", "法人", "注册资金", "注册资本", "注册时间", "成立时间"]},
+    {id: 2, name: "财务要求", keywords: ["审计报告", "财务报表", "财务", "财务会计制度"]},
+    {id: 3, name: "依法纳税", keywords: ["增值税", "纳税", "税收", "税务"]},
+    {id: 4, name: "缴纳社保", keywords: ["社保", "社会保险", "缴费人数", "缴纳人数"]},
+    {id: 5, name: "失信被执行人", keywords: ["失信被执行人", "失信名单"]},
+    {id: 6, name: "信用中国：严重违法失信", keywords: ["信用中国", "严重违法失信", "违法失信"]},
+    {id: 7, name: "严重违法失信行为记录名单", keywords: ["违法失信", "记录名单", "失信行为"]},
+    {id: 8, name: "信用中国：重大税收违法", keywords: ["重大税收违法", "税收违法失信"]},
+    {id: 9, name: "采购人黑名单", keywords: ["黑名单", "采购人"]},
+    {id: 10, name: "承诺函", keywords: ["承诺函", "承诺书"]},
+    {id: 11, name: "营业办公场所房产证明", keywords: ["房产", "办公场所", "经营场所", "房产证明"]},
+    {id: 12, name: "业绩案例要求", keywords: ["业绩", "类似项目", "同类项目", "项目经验"]},
+    {id: 13, name: "保证金要求", keywords: ["保证金", "投标保证金"]}
+];
+
+// 显示13条资格要求清单
+function displayEligibilityChecklist(requirements) {
+    console.log('[displayEligibilityChecklist] 显示资格清单, 需求数量:', requirements.length);
+
+    // 过滤出资格类需求
+    const qualificationReqs = requirements.filter(req => req.category === 'qualification');
+    console.log('[displayEligibilityChecklist] 资格类需求数量:', qualificationReqs.length);
+
+    // 初始化13条清单数据
+    const checklistData = ELIGIBILITY_CHECKLIST.map(item => ({
+        ...item,
+        found: false,
+        requirements: []
+    }));
+
+    // 将提取的需求匹配到13条清单
+    qualificationReqs.forEach(req => {
+        const detail = (req.detail || '').toLowerCase();
+        const summary = (req.summary || '').toLowerCase();
+        const subcategory = (req.subcategory || '').toLowerCase();
+        const fullText = `${detail} ${summary} ${subcategory}`;
+
+        // 遍历13条清单，找到匹配的条目
+        for (let i = 0; i < checklistData.length; i++) {
+            const item = checklistData[i];
+            const matched = item.keywords.some(keyword =>
+                fullText.includes(keyword.toLowerCase())
+            );
+
+            if (matched) {
+                item.found = true;
+                item.requirements.push(req);
+                break; // 匹配到第一个就跳出
+            }
+        }
+    });
+
+    // 统计
+    const foundCount = checklistData.filter(item => item.found).length;
+    const notFoundCount = 13 - foundCount;
+
+    // 更新统计显示
+    const foundCountEl = document.getElementById('eligFoundCount');
+    const notFoundCountEl = document.getElementById('eligNotFoundCount');
+    if (foundCountEl) foundCountEl.textContent = foundCount;
+    if (notFoundCountEl) notFoundCountEl.textContent = notFoundCount;
+
+    // 生成清单HTML
+    const container = document.getElementById('eligibilityChecklistItems');
+    if (!container) {
+        console.warn('[displayEligibilityChecklist] 找不到清单项容器');
+        return;
+    }
+
+    let html = '';
+    checklistData.forEach(item => {
+        const icon = item.found ? '✅' : '⚠️';
+        const statusClass = item.found ? 'found' : 'not-found';
+
+        html += `
+            <div class="checklist-item ${statusClass} mb-3">
+                <div class="d-flex align-items-start">
+                    <span class="me-2" style="font-size: 1.2em;">${icon}</span>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold mb-1">
+                            <span class="badge bg-secondary me-2">${item.id}</span>
+                            ${item.name}
+                        </div>
+        `;
+
+        if (item.found && item.requirements.length > 0) {
+            html += '<div class="ms-3">';
+            item.requirements.forEach(req => {
+                html += `
+                    <div class="mb-2 p-2 bg-light rounded">
+                        <div class="small text-muted mb-1">
+                            <span class="badge bg-${getConstraintTypeBadge(req.constraint_type)}">${getConstraintTypeLabel(req.constraint_type)}</span>
+                            ${req.subcategory ? '<span class="ms-2">' + req.subcategory + '</span>' : ''}
+                        </div>
+                        <div class="fw-medium">${req.summary || req.detail}</div>
+                        ${req.summary && req.detail !== req.summary ? '<div class="small text-secondary mt-1">' + req.detail + '</div>' : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+        } else {
+            html += '<div class="ms-3 text-muted small">（未在文档中找到相关要求）</div>';
+        }
+
+        html += `
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+
+    // 隐藏空状态，显示清单容器
+    const emptyState = document.getElementById('eligibilityEmptyState');
+    const checklistContainer = document.getElementById('eligibilityChecklistContainer');
+    if (emptyState) emptyState.style.display = 'none';
+    if (checklistContainer) checklistContainer.style.display = 'block';
+
+    console.log('[displayEligibilityChecklist] 清单显示完成');
+}
+
+// 辅助函数：获取约束类型徽章颜色
+function getConstraintTypeBadge(type) {
+    const badges = {
+        'mandatory': 'danger',
+        'optional': 'info',
+        'scoring': 'success'
+    };
+    return badges[type] || 'secondary';
+}
+
+// 辅助函数：获取约束类型标签
+function getConstraintTypeLabel(type) {
+    const labels = {
+        'mandatory': '强制性',
+        'optional': '可选',
+        'scoring': '加分项'
+    };
+    return labels[type] || type;
+}

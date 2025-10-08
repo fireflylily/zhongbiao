@@ -387,7 +387,7 @@
                 <!-- ==================== -->
                 <!-- Tab 1: 基本信息 -->
                 <!-- ==================== -->
-                <div class="tab-pane show active" id="basicInfoPanel" role="tabpanel">
+                <div class="tab-pane fade show active" id="basicInfoPanel" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>项目基本信息</h5>
                         <button class="btn btn-sm btn-outline-primary" id="extractBasicInfoBtn">
@@ -447,7 +447,7 @@
                 <!-- ==================== -->
                 <!-- Tab 2: 资质要求 -->
                 <!-- ==================== -->
-                <div class="tab-pane" id="qualificationsPanel" role="tabpanel">
+                <div class="tab-pane fade" id="qualificationsPanel" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>资质要求匹配</h5>
                         <button class="btn btn-sm btn-outline-success" id="extractQualificationsBtn">
@@ -492,7 +492,7 @@
                 <!-- ==================== -->
                 <!-- Tab 3: 资格要求 -->
                 <!-- ==================== -->
-                <div class="tab-pane" id="eligibilityPanel" role="tabpanel">
+                <div class="tab-pane fade" id="eligibilityPanel" role="tabpanel">
                     <!-- AI提取按钮区域 -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="mb-0">资格要求</h5>
@@ -513,14 +513,42 @@
                     </div>
 
                     <!-- 空状态提示 -->
-                    <div id="requirementsEmptyState" class="alert alert-light border text-center py-5">
+                    <div id="eligibilityEmptyState" class="alert alert-light border text-center py-5">
                         <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">尚未提取详细要求</h5>
-                        <p class="text-muted mb-3">点击上方的"AI提取详细要求"按钮开始AI智能提取</p>
+                        <h5 class="text-muted">尚未提取供应商资格要求</h5>
+                        <p class="text-muted mb-3">点击上方的"AI提取资格要求"按钮开始智能提取</p>
                         <p class="small text-muted mb-0">
                             提取范围：您在步骤1中选中的章节<br>
-                            提取内容：强制性要求、可选要求、加分项等
+                            提取内容：营业执照、财务、纳税、社保等13条供应商资格要求
                         </p>
+                    </div>
+
+                    <!-- 13条资格要求清单容器 -->
+                    <div id="eligibilityChecklistContainer" style="display: none;">
+                        <!-- 统计卡片 -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h2 class="mb-0"><span id="eligFoundCount">0</span> 条</h2>
+                                        <div class="small">已找到</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h2 class="mb-0"><span id="eligNotFoundCount">13</span> 条</h2>
+                                        <div class="small">未找到</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 清单显示区域 -->
+                        <div id="eligibilityChecklistItems">
+                            <!-- 这里将由JavaScript动态生成13条清单 -->
+                        </div>
                     </div>
 
                     <!-- 要求表格容器 -->
@@ -593,11 +621,12 @@
                         </table>
                     </div>
                 </div>
+            </div>
 
                 <!-- ==================== -->
                 <!-- Tab 4: 评分办法 -->
                 <!-- ==================== -->
-                <div class="tab-pane" id="scoringPanel" role="tabpanel">
+                <div class="tab-pane fade" id="scoringPanel" role="tabpanel">
                     <div class="empty-state">
                         <i class="bi bi-clipboard2-data fs-1 text-muted"></i>
                         <h5 class="text-muted">评分办法</h5>
@@ -608,7 +637,7 @@
                 <!-- ==================== -->
                 <!-- Tab 5: 技术需求 -->
                 <!-- ==================== -->
-                <div class="tab-pane" id="technicalPanel" role="tabpanel">
+                <div class="tab-pane fade" id="technicalPanel" role="tabpanel">
                     <div class="empty-state">
                         <i class="bi bi-gear fs-1 text-muted"></i>
                         <h5 class="text-muted">技术需求</h5>
@@ -619,7 +648,7 @@
                 <!-- ==================== -->
                 <!-- Tab 6: 应答文件格式 -->
                 <!-- ==================== -->
-                <div class="tab-pane" id="documentFormatPanel" role="tabpanel">
+                <div class="tab-pane fade" id="documentFormatPanel" role="tabpanel">
                     <div id="responseFileContent" style="min-height: 200px; padding: 20px;">
                         <div class="empty-state" id="noResponseFileMessage">
                             <i class="bi bi-file-earmark-text fs-1 text-muted mb-3"></i>

@@ -602,10 +602,13 @@ def register_hitl_routes(app):
             if not result['success']:
                 return jsonify({"error": result.get('error', '导出失败')}), 500
 
-            # 创建存储目录
+            # 创建存储目录（使用绝对路径）
             now = datetime.now()
+            # 获取项目根目录（ai_tender_system）
+            project_root = Path(__file__).parent.parent
             save_dir = os.path.join(
-                'ai_tender_system/data/uploads/response_files',
+                project_root,
+                'data/uploads/response_files',
                 str(now.year),
                 f"{now.month:02d}",
                 task_id
@@ -691,6 +694,41 @@ def register_hitl_routes(app):
 
         except Exception as e:
             logger.error(f"下载应答文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tender-processing/preview-response-file/<task_id>', methods=['GET'])
+    def preview_response_file(task_id):
+        """预览已保存的应答文件"""
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            response_file = step1_data.get('response_file')
+
+            if not response_file:
+                return jsonify({"error": "应答文件不存在"}), 404
+
+            file_path = response_file['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            # 预览模式：as_attachment=False，浏览器会尝试在线打开
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=False,
+                download_name=response_file['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"预览应答文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
     @app.route('/api/tender-processing/response-file-info/<task_id>', methods=['GET'])
@@ -1662,6 +1700,75 @@ def register_hitl_routes(app):
             import traceback
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-processing/save-basic-info/<task_id>', methods=['POST'])
+    def save_basic_info(task_id):
+        """保存基本信息到step3_data"""
+        try:
+            data = request.get_json()
+            basic_info = data.get('basic_info', {})
+
+            # 获取当前step3_data
+            task_data = db.execute_query("""
+                SELECT step3_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            # 解析现有step3_data
+            step3_data = json.loads(task_data['step3_data']) if task_data['step3_data'] else {}
+
+            # 更新基本信息
+            step3_data['basic_info'] = basic_info
+            step3_data['basic_info_saved_at'] = datetime.now().isoformat()
+
+            # 保存回数据库
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET step3_data = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE hitl_task_id = ?
+            """, (json.dumps(step3_data, ensure_ascii=False), task_id))
+
+            logger.info(f"✅ 保存基本信息成功: {task_id}")
+            return jsonify({
+                "success": True,
+                "message": "基本信息保存成功"
+            })
+
+        except Exception as e:
+            logger.error(f"保存基本信息失败: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/tender-processing/complete-hitl/<task_id>', methods=['POST'])
+    def complete_hitl(task_id):
+        """完成HITL流程"""
+        try:
+            # 更新任务状态
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET step3_status = 'completed',
+                    step3_completed_at = CURRENT_TIMESTAMP,
+                    overall_status = 'completed',
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE hitl_task_id = ?
+            """, (task_id,))
+
+            logger.info(f"✅ HITL流程完成: {task_id}")
+            return jsonify({
+                "success": True,
+                "message": "HITL流程完成"
+            })
+
+        except Exception as e:
+            logger.error(f"完成HITL流程失败: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({"success": False, "error": str(e)}), 500
 
 
 # ============================================
