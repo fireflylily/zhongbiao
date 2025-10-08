@@ -14,6 +14,9 @@
     <!-- 自定义样式 -->
     <link rel="stylesheet" href="/static/css/tender-processing-hitl.css">
 
+    <!-- 步骤3增强版样式 -->
+    <link rel="stylesheet" href="/static/css/tender-processing-step3-enhanced.css">
+
     <style>
         body {
             background-color: #f5f5f5;
@@ -28,6 +31,34 @@
         .navbar-brand {
             font-weight: bold;
             font-size: 1.3rem;
+        }
+
+        /* 空白状态样式 */
+        .empty-state {
+            text-align: center;
+            padding: 120px 40px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+            min-height: 450px;
+        }
+
+        .empty-state i {
+            display: block;
+            opacity: 0.4;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h5 {
+            margin: 15px 0 10px 0;
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #adb5bd;
         }
     </style>
 </head>
@@ -57,8 +88,81 @@
                 <i class="bi bi-magic text-primary me-2"></i>标书智能处理 - 人工确认流程
             </h2>
             <p class="text-muted mb-0">
-                三步智能处理：<strong>章节选择</strong> → <strong>AI筛选复核</strong> → <strong>精准要求提取</strong>
+                两步智能处理：<strong>章节选择</strong> → <strong>信息提取与编辑</strong>
             </p>
+        </div>
+
+        <!-- 项目和模型配置区域 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="bi bi-gear"></i> 配置信息
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- 项目ID输入 -->
+                            <div class="col-md-4">
+                                <label for="projectId" class="form-label">
+                                    <i class="bi bi-folder2"></i> 项目ID <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="projectId" placeholder="输入项目ID" value="1">
+                                <small class="text-muted">用于关联此次处理任务</small>
+                            </div>
+
+                            <!-- 公司选择 -->
+                            <div class="col-md-4">
+                                <label for="hitlCompanySelect" class="form-label">
+                                    <i class="bi bi-building"></i> 应答公司 <span class="text-danger">*</span>
+                                </label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <select class="form-select" id="hitlCompanySelect" required>
+                                        <option value="">请选择公司...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="window.location.href='/knowledge_base?action=company_management';" title="管理公司">
+                                        <i class="bi bi-building"></i>
+                                    </button>
+                                </div>
+                                <div class="mt-1">
+                                    <small class="text-muted">当前：</small>
+                                    <span id="hitlSelectedCompanyName" class="text-muted">未选择</span>
+                                </div>
+                            </div>
+
+                            <!-- AI模型选择 -->
+                            <div class="col-md-4">
+                                <label for="hitlAiModel" class="form-label">
+                                    <i class="bi bi-cpu"></i> AI模型 <span class="text-danger">*</span>
+                                </label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <select class="form-select" id="hitlAiModel" onchange="onHitlModelChange()">
+                                        <optgroup label="OpenAI（推荐）">
+                                            <option value="gpt-4o-mini" selected>GPT-4O Mini</option>
+                                            <option value="gpt-4o">GPT-4O</option>
+                                        </optgroup>
+                                        <optgroup label="联通元景">
+                                            <option value="yuanjing-deepseek-v3">DeepSeek-V3（智能提取）</option>
+                                            <option value="yuanjing-pro">元景专业版</option>
+                                        </optgroup>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="refreshHitlModels()" title="刷新模型列表">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                                <!-- 模型状态显示 -->
+                                <div class="mt-1" id="hitlModelStatus" style="display: none;">
+                                    <small class="d-flex align-items-center">
+                                        <span id="hitlModelStatusIcon" class="me-1"></span>
+                                        <span id="hitlModelStatusText"></span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 步骤指示器 -->
@@ -67,13 +171,10 @@
                 <div class="step-number">1</div>
                 <div class="step-label">章节选择</div>
             </div>
-            <div class="step" id="stepIndicator2">
-                <div class="step-number">2</div>
-                <div class="step-label">AI筛选复核</div>
-            </div>
+            <!-- 步骤2已隐藏 -->
             <div class="step" id="stepIndicator3">
-                <div class="step-number">3</div>
-                <div class="step-label">要求提取编辑</div>
+                <div class="step-number">2</div>
+                <div class="step-label">信息提取与编辑</div>
             </div>
         </div>
 
@@ -86,13 +187,10 @@
             </h4>
 
             <div class="row">
-                <div class="col-md-6">
-                    <label for="projectId" class="form-label">项目ID <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" id="projectId" placeholder="输入项目ID" value="1">
-                </div>
-                <div class="col-md-6">
+                <div class="col-12">
                     <label for="tenderDocFile" class="form-label">标书文档 <span class="text-danger">*</span></label>
                     <input type="file" class="form-control" id="tenderDocFile" accept=".docx,.doc">
+                    <small class="text-muted">支持 .docx 和 .doc 格式</small>
                 </div>
             </div>
 
@@ -124,10 +222,6 @@
                 <div class="stat-card">
                     <div class="stat-label">选中字数</div>
                     <div class="stat-value text-info" id="statSelectedWords">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">预估成本</div>
-                    <div class="stat-value text-warning" id="statEstCost">$0.00</div>
                 </div>
             </div>
 
@@ -181,6 +275,9 @@
             <div class="mt-4 text-center">
                 <button class="btn btn-primary btn-lg me-3" id="exportSelectedChaptersBtn" disabled>
                     <i class="bi bi-download me-2"></i>导出选中章节
+                </button>
+                <button class="btn btn-info btn-lg me-3" id="saveAsResponseFileBtn" disabled>
+                    <i class="bi bi-file-earmark-arrow-down me-2"></i>另存为应答文件
                 </button>
                 <button class="btn btn-success btn-lg" id="confirmSelectionBtn">
                     <i class="bi bi-check-circle me-2"></i>确认选择并继续
@@ -237,82 +334,304 @@
         </div>
 
         <!-- ==================== -->
-        <!-- 步骤3：可编辑表格 -->
+        <!-- 步骤3：综合信息提取与编辑 -->
         <!-- ==================== -->
         <div id="step3Section" class="section-card" style="display: none;">
             <h4 class="section-title">
-                <i class="bi bi-table me-2"></i>步骤3：要求提取与编辑
+                <i class="bi bi-clipboard-data me-2"></i>步骤3：信息提取与编辑
             </h4>
 
-            <!-- 统计信息 -->
-            <div class="stats-grid mb-4">
-                <div class="stat-card">
-                    <div class="stat-label">总要求数</div>
-                    <div class="stat-value" id="statTotalRequirements">0</div>
+            <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                在此步骤中，您可以查看和编辑<strong>基本信息</strong>、<strong>资质要求</strong>、<strong>资格要求</strong>、<strong>评分办法</strong>、<strong>技术需求</strong>和<strong>应答文件格式</strong>。AI已自动提取这些信息，您可以根据需要修正。
+            </div>
+
+            <!-- Tab导航 -->
+            <ul class="nav nav-tabs mb-4" id="step3Tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab" data-bs-target="#basicInfoPanel" type="button" role="tab">
+                        <i class="bi bi-info-circle me-2"></i>基本信息
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="qualifications-tab" data-bs-toggle="tab" data-bs-target="#qualificationsPanel" type="button" role="tab">
+                        <i class="bi bi-award me-2"></i>资质要求
+                        <span class="badge bg-primary ms-1" id="qualBadge">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="eligibility-tab" data-bs-toggle="tab" data-bs-target="#eligibilityPanel" type="button" role="tab">
+                        <i class="bi bi-person-check me-2"></i>资格要求
+                        <span class="badge bg-success ms-1" id="eligBadge">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="scoring-tab" data-bs-toggle="tab" data-bs-target="#scoringPanel" type="button" role="tab">
+                        <i class="bi bi-graph-up me-2"></i>评分办法
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="technical-tab" data-bs-toggle="tab" data-bs-target="#technicalPanel" type="button" role="tab">
+                        <i class="bi bi-gear me-2"></i>技术需求
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="document-format-tab" data-bs-toggle="tab" data-bs-target="#documentFormatPanel" type="button" role="tab">
+                        <i class="bi bi-file-earmark-text me-2"></i>应答文件格式
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab内容 -->
+            <div class="tab-content" id="step3TabContent">
+                <!-- ==================== -->
+                <!-- Tab 1: 基本信息 -->
+                <!-- ==================== -->
+                <div class="tab-pane show active" id="basicInfoPanel" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-file-text me-2"></i>项目基本信息</h5>
+                        <button class="btn btn-sm btn-outline-primary" id="extractBasicInfoBtn">
+                            <i class="bi bi-magic me-2"></i>AI提取基本信息
+                        </button>
+                    </div>
+
+                    <div id="basicInfoLoading" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-3 text-muted">正在提取基本信息...</p>
+                    </div>
+
+                    <form id="basicInfoForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="projectName" class="form-label">项目名称</label>
+                                <input type="text" class="form-control" id="projectName" name="project_name">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="projectNumber" class="form-label">项目编号</label>
+                                <input type="text" class="form-control" id="projectNumber" name="project_number">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tenderParty" class="form-label">招标人</label>
+                                <input type="text" class="form-control" id="tenderParty" name="tender_party">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tenderAgent" class="form-label">招标代理</label>
+                                <input type="text" class="form-control" id="tenderAgent" name="tender_agent">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tenderMethod" class="form-label">投标方式</label>
+                                <input type="text" class="form-control" id="tenderMethod" name="tender_method">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tenderLocation" class="form-label">投标地点</label>
+                                <input type="text" class="form-control" id="tenderLocation" name="tender_location">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tenderDeadline" class="form-label">投标时间</label>
+                                <input type="text" class="form-control" id="tenderDeadline" name="tender_deadline">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="winnerCount" class="form-label">中标人数量</label>
+                                <input type="text" class="form-control" id="winnerCount" name="winner_count">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <button type="button" class="btn btn-primary" id="saveBasicInfoBtn">
+                                <i class="bi bi-save me-2"></i>保存基本信息
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">强制性</div>
-                    <div class="stat-value text-danger" id="statMandatory">0</div>
+
+                <!-- ==================== -->
+                <!-- Tab 2: 资质要求 -->
+                <!-- ==================== -->
+                <div class="tab-pane" id="qualificationsPanel" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>资质要求匹配</h5>
+                        <button class="btn btn-sm btn-outline-success" id="extractQualificationsBtn">
+                            <i class="bi bi-magic me-2"></i>AI提取资质要求
+                        </button>
+                    </div>
+
+                    <div id="qualificationsLoading" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-success" role="status"></div>
+                        <p class="mt-3 text-muted">正在提取资质要求...</p>
+                    </div>
+
+                    <!-- 资质匹配汇总 -->
+                    <div class="stats-grid mb-4" id="qualificationSummary" style="display: none;">
+                        <div class="stat-card">
+                            <div class="stat-label">要求总数</div>
+                            <div class="stat-value" id="qualRequiredCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">已上传</div>
+                            <div class="stat-value text-success" id="qualUploadedCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">缺失</div>
+                            <div class="stat-value text-danger" id="qualMissingCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">匹配度</div>
+                            <div class="stat-value text-primary" id="qualMatchRate">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- 资质详细列表 -->
+                    <div id="qualificationsContainer">
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-award" style="font-size: 3rem;"></i>
+                            <p class="mt-3">点击"AI提取资质要求"按钮开始提取</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">加分项</div>
-                    <div class="stat-value text-warning" id="statScoring">0</div>
+
+                <!-- ==================== -->
+                <!-- Tab 3: 资格要求 -->
+                <!-- ==================== -->
+                <div class="tab-pane" id="eligibilityPanel" role="tabpanel">
+                    <!-- AI提取按钮区域 -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0">资格要求</h5>
+                        <button class="btn btn-primary" id="extractRequirementsBtn">
+                            <i class="fas fa-magic me-2"></i>AI提取资格要求
+                        </button>
+                    </div>
+
+                    <!-- 提取进度提示 -->
+                    <div id="requirementsExtractionProgress" class="alert alert-info" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                            <div>
+                                <strong>AI正在提取要求...</strong>
+                                <p class="mb-0 small">这可能需要40-60秒，请耐心等待</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 空状态提示 -->
+                    <div id="requirementsEmptyState" class="alert alert-light border text-center py-5">
+                        <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">尚未提取详细要求</h5>
+                        <p class="text-muted mb-3">点击上方的"AI提取详细要求"按钮开始AI智能提取</p>
+                        <p class="small text-muted mb-0">
+                            提取范围：您在步骤1中选中的章节<br>
+                            提取内容：强制性要求、可选要求、加分项等
+                        </p>
+                    </div>
+
+                    <!-- 要求表格容器 -->
+                    <div id="requirementsTableContainer" style="display: none;">
+                        <!-- 统计信息 -->
+                        <div class="stats-grid mb-4">
+                            <div class="stat-card">
+                                <div class="stat-label">总要求数</div>
+                                <div class="stat-value" id="statTotalRequirements">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">强制性</div>
+                                <div class="stat-value text-danger" id="statMandatory">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">加分项</div>
+                                <div class="stat-value text-warning" id="statScoring">0</div>
+                            </div>
+                        </div>
+
+                        <!-- 操作栏 -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary active" data-type-filter="all">
+                                全部
+                            </button>
+                            <button class="btn btn-outline-danger" data-type-filter="mandatory">
+                                强制性
+                            </button>
+                            <button class="btn btn-outline-warning" data-type-filter="scoring">
+                                加分项
+                            </button>
+                            <button class="btn btn-outline-info" data-type-filter="optional">
+                                可选
+                            </button>
+                        </div>
+
+                        <div>
+                            <button class="btn btn-sm btn-primary" id="addRequirementBtn">
+                                <i class="bi bi-plus-circle"></i> 新增要求
+                            </button>
+                            <button class="btn btn-sm btn-success" id="exportExcelBtn">
+                                <i class="bi bi-file-excel"></i> 导出Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 可编辑表格 -->
+                    <div style="overflow-x: auto; max-height: 600px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover editable-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">ID</th>
+                                    <th style="width: 120px;">类型</th>
+                                    <th style="width: 100px;">分类</th>
+                                    <th style="width: 120px;">子分类</th>
+                                    <th style="min-width: 300px;">详细描述</th>
+                                    <th style="width: 100px;">优先级</th>
+                                    <th style="width: 80px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requirementsTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <p class="mt-3">正在加载...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ==================== -->
+                <!-- Tab 4: 评分办法 -->
+                <!-- ==================== -->
+                <div class="tab-pane" id="scoringPanel" role="tabpanel">
+                    <div class="empty-state">
+                        <i class="bi bi-clipboard2-data fs-1 text-muted"></i>
+                        <h5 class="text-muted">评分办法</h5>
+                        <p class="text-muted">内容待填充</p>
+                    </div>
+                </div>
+
+                <!-- ==================== -->
+                <!-- Tab 5: 技术需求 -->
+                <!-- ==================== -->
+                <div class="tab-pane" id="technicalPanel" role="tabpanel">
+                    <div class="empty-state">
+                        <i class="bi bi-gear fs-1 text-muted"></i>
+                        <h5 class="text-muted">技术需求</h5>
+                        <p class="text-muted">内容待填充</p>
+                    </div>
+                </div>
+
+                <!-- ==================== -->
+                <!-- Tab 6: 应答文件格式 -->
+                <!-- ==================== -->
+                <div class="tab-pane" id="documentFormatPanel" role="tabpanel">
+                    <div id="responseFileContent" style="min-height: 200px; padding: 20px;">
+                        <div class="empty-state" id="noResponseFileMessage">
+                            <i class="bi bi-file-earmark-text fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">应答文件格式</h5>
+                            <p class="text-muted">尚未保存应答文件模板</p>
+                            <p class="text-muted small">请在步骤1中选择章节后，点击"另存为应答文件"按钮</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 操作栏 -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="btn-group btn-group-sm" role="group">
-                    <button class="btn btn-outline-secondary active" data-type-filter="all">
-                        全部
-                    </button>
-                    <button class="btn btn-outline-danger" data-type-filter="mandatory">
-                        强制性
-                    </button>
-                    <button class="btn btn-outline-warning" data-type-filter="scoring">
-                        加分项
-                    </button>
-                    <button class="btn btn-outline-info" data-type-filter="optional">
-                        可选
-                    </button>
-                </div>
-
-                <div>
-                    <button class="btn btn-sm btn-primary" id="addRequirementBtn">
-                        <i class="bi bi-plus-circle"></i> 新增要求
-                    </button>
-                    <button class="btn btn-sm btn-success" id="exportExcelBtn">
-                        <i class="bi bi-file-excel"></i> 导出Excel
-                    </button>
-                </div>
-            </div>
-
-            <!-- 可编辑表格 -->
-            <div style="overflow-x: auto; max-height: 600px; overflow-y: auto;">
-                <table class="table table-bordered table-hover editable-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 60px;">ID</th>
-                            <th style="width: 120px;">类型</th>
-                            <th style="width: 100px;">分类</th>
-                            <th style="width: 120px;">子分类</th>
-                            <th style="min-width: 300px;">详细描述</th>
-                            <th style="width: 100px;">优先级</th>
-                            <th style="width: 80px;">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="requirementsTableBody">
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <div class="spinner-border text-primary" role="status"></div>
-                                <p class="mt-3">正在加载...</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- 保存并完成 -->
+            <!-- 统一保存按钮 -->
             <div class="mt-4 text-center">
                 <button class="btn btn-success btn-lg" id="saveAndCompleteBtn">
                     <i class="bi bi-check-circle me-2"></i>保存并完成
@@ -327,13 +646,196 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- 步骤3增强版脚本（包含基本信息、资质要求、详细要求） - 必须先加载，因为步骤1需要调用proceedToStep3函数 -->
+    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=20251007i"></script>
+
     <!-- 步骤1脚本 -->
     <script src="/static/js/pages/tender-processing-step1.js"></script>
 
     <!-- 步骤2脚本 -->
     <script src="/static/js/pages/tender-processing-step2.js"></script>
 
-    <!-- 步骤3脚本 -->
-    <script src="/static/js/pages/tender-processing-step3.js"></script>
+    <!-- HITL配置管理器 -->
+    <script>
+        // HITL页面的模型和公司管理
+        const HITLConfigManager = {
+            currentCompanyId: null,
+            currentModel: 'yuanjing-deepseek-v3',
+
+            // 初始化
+            init() {
+                console.log('[HITLConfigManager] 初始化配置管理器');
+
+                // 加载公司列表
+                this.loadCompanies();
+
+                // 加载模型列表
+                this.loadModels();
+
+                // 绑定事件
+                this.bindEvents();
+            },
+
+            // 加载公司列表
+            async loadCompanies() {
+                try {
+                    const response = await fetch('/api/companies');
+                    const data = await response.json();
+
+                    if (data.success && data.data) {
+                        const select = document.getElementById('hitlCompanySelect');
+                        const nameSpan = document.getElementById('hitlSelectedCompanyName');
+
+                        select.innerHTML = '<option value="">请选择公司...</option>';
+
+                        data.data.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company.company_id;
+                            option.textContent = company.company_name;
+                            select.appendChild(option);
+                        });
+
+                        console.log(`[HITLConfigManager] 加载了 ${data.data.length} 个公司`);
+                    }
+                } catch (error) {
+                    console.error('[HITLConfigManager] 加载公司列表失败:', error);
+                }
+            },
+
+            // 加载模型列表
+            async loadModels() {
+                try {
+                    const response = await fetch('/api/models');
+                    const data = await response.json();
+
+                    if (data.success && data.models) {
+                        this.updateModelSelect(data.models);
+                        console.log(`[HITLConfigManager] 加载了 ${data.count} 个AI模型`);
+                    }
+                } catch (error) {
+                    console.error('[HITLConfigManager] 加载模型列表失败:', error);
+                }
+            },
+
+            // 更新模型选择器
+            updateModelSelect(models) {
+                const select = document.getElementById('hitlAiModel');
+                if (!select) return;
+
+                const currentValue = select.value;
+
+                // 保持现有选项但更新状态
+                Array.from(select.options).forEach(option => {
+                    const model = models.find(m => m.name === option.value);
+                    if (model) {
+                        const baseText = option.textContent.replace(' ✓', '').replace(' (未配置)', '');
+                        if (model.status === 'available') {
+                            option.textContent = baseText + ' ✓';
+                            option.disabled = false;
+                        } else if (model.status === 'no_api_key') {
+                            option.textContent = baseText + ' (未配置)';
+                            option.disabled = true;
+                        }
+                    }
+                });
+
+                // 恢复选择
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+
+                this.updateModelStatus();
+            },
+
+            // 更新模型状态显示
+            updateModelStatus() {
+                const select = document.getElementById('hitlAiModel');
+                const statusDiv = document.getElementById('hitlModelStatus');
+                const icon = document.getElementById('hitlModelStatusIcon');
+                const text = document.getElementById('hitlModelStatusText');
+
+                if (!select || !statusDiv) return;
+
+                const selectedValue = select.value;
+
+                if (selectedValue) {
+                    statusDiv.style.display = 'block';
+                    icon.innerHTML = '<i class="bi bi-check-circle text-success"></i>';
+                    text.textContent = '模型可用';
+                    text.className = 'text-success';
+                } else {
+                    statusDiv.style.display = 'none';
+                }
+            },
+
+            // 绑定事件
+            bindEvents() {
+                // 公司选择变化
+                const companySelect = document.getElementById('hitlCompanySelect');
+                if (companySelect) {
+                    companySelect.addEventListener('change', (e) => {
+                        this.currentCompanyId = e.target.value;
+                        const nameSpan = document.getElementById('hitlSelectedCompanyName');
+                        const selectedText = e.target.options[e.target.selectedIndex].text;
+                        nameSpan.textContent = e.target.value ? selectedText : '未选择';
+                        nameSpan.className = e.target.value ? 'text-primary fw-bold' : 'text-muted';
+
+                        console.log(`[HITLConfigManager] 选择公司: ${selectedText} (ID: ${e.target.value})`);
+                    });
+                }
+
+                // 模型选择变化
+                const modelSelect = document.getElementById('hitlAiModel');
+                if (modelSelect) {
+                    modelSelect.addEventListener('change', (e) => {
+                        this.currentModel = e.target.value;
+                        this.updateModelStatus();
+                        console.log(`[HITLConfigManager] 选择模型: ${e.target.value}`);
+                    });
+                }
+            },
+
+            // 获取当前配置（供其他模块使用）
+            getConfig() {
+                return {
+                    companyId: this.currentCompanyId,
+                    model: this.currentModel,
+                    projectId: document.getElementById('projectId')?.value
+                };
+            }
+        };
+
+        // 全局函数（供HTML调用）
+        function onHitlModelChange() {
+            HITLConfigManager.updateModelStatus();
+        }
+
+        function refreshHitlModels() {
+            HITLConfigManager.loadModels();
+        }
+
+        // 页面加载时初始化（使用已存在的DOMContentLoaded事件）
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[HITL] 初始化配置管理器');
+            HITLConfigManager.init();
+
+            // 监听应答文件格式tab的shown事件
+            const documentFormatTabEl = document.getElementById('document-format-tab');
+            if (documentFormatTabEl) {
+                documentFormatTabEl.addEventListener('shown.bs.tab', function (event) {
+                    console.log('[HITL] 应答文件格式tab已显示，当前任务ID:', typeof currentHitlTaskId !== 'undefined' ? currentHitlTaskId : '未定义');
+                    if (typeof currentHitlTaskId !== 'undefined' && currentHitlTaskId) {
+                        if (typeof loadResponseFileInfo === 'function') {
+                            loadResponseFileInfo(currentHitlTaskId);
+                        } else {
+                            console.error('[HITL] loadResponseFileInfo函数未定义');
+                        }
+                    } else {
+                        console.warn('[HITL] 当前任务ID未设置，无法加载应答文件');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

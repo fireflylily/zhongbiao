@@ -241,9 +241,19 @@ class RAGEngine:
             else:
                 results = self.vectorstore.similarity_search_with_score(query, k=search_k)
 
-            # 格式化向量搜索结果
+            # 格式化向量搜索结果并去重
             formatted_results = []
+            seen_content = set()  # 用于内容去重
+
             for doc, score in results:
+                # 使用内容的前200个字符进行去重判断
+                content_hash = hash(doc.page_content[:200])
+
+                # 跳过重复内容
+                if content_hash in seen_content:
+                    continue
+                seen_content.add(content_hash)
+
                 formatted_results.append({
                     'content': doc.page_content,
                     'score': float(1 / (1 + score)),
@@ -278,19 +288,27 @@ class RAGEngine:
             目录搜索结果列表
         """
         import re
-        from ...common.database import get_knowledge_base_db
+        from ai_tender_system.common.database import get_knowledge_base_db
 
         db = get_knowledge_base_db()
         toc_results = []
 
+        # 定义停用词列表(通用词、无实际语义的词)
+        stopwords = {'查询', '接口', '验证', '检测', '监测', '信息', '数据', '服务', '平台', '系统'}
+
         # 提取查询关键词
         keywords = []
-        # 提取数字（接口编号）
+        # 提取数字（接口编号）- 数字是最重要的特征,不过滤
         numbers = re.findall(r'\d{3,}', query)
         keywords.extend(numbers)
-        # 提取中文关键词
+
+        # 提取中文关键词并过滤停用词
         chinese_words = re.findall(r'[\u4e00-\u9fa5]{2,8}', query)
-        keywords.extend(chinese_words[:3])  # 最多取3个中文关键词
+        for word in chinese_words[:5]:  # 最多取5个候选
+            if word not in stopwords:
+                keywords.append(word)
+                if len(keywords) >= 5:  # 最多保留5个关键词
+                    break
 
         # 第一层：关键词精确匹配（权重90%）
         if keywords:
@@ -304,9 +322,12 @@ class RAGEngine:
                     matched_count = 0
 
                     # 统计有多少个查询关键词在存储的关键词中
+                    # 支持双向匹配: kw包含sk 或 sk包含kw
                     for kw in keywords:
-                        if any(kw in sk for sk in stored_keywords):
-                            matched_count += 1
+                        for sk in stored_keywords:
+                            if kw in sk or sk in kw:
+                                matched_count += 1
+                                break  # 每个查询关键词最多匹配一次
 
                     # 根据匹配数量计算分数
                     # 匹配所有关键词=0.95, 匹配大部分=0.9, 匹配少数=0.7

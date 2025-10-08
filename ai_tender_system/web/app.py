@@ -254,6 +254,7 @@ def register_routes(app: Flask, config, logger):
         return render_template('tender_processing.html')
 
     @app.route('/tender_processing_hitl')
+    @app.route('/tender-processing')  # 友好的URL别名
     def tender_processing_hitl():
         """标书智能处理页面 - HITL流程"""
         return render_template('tender_processing_hitl.html')

@@ -34,11 +34,14 @@ class ChapterNode:
     preview_text: str            # 预览文本（前5行）
     auto_selected: bool          # 是否自动选中（白名单匹配）
     skip_recommended: bool       # 是否推荐跳过（黑名单匹配）
+    content_tags: List[str] = None  # 内容标签（基于内容关键词检测）
     children: List['ChapterNode'] = None  # 子章节列表
 
     def __post_init__(self):
         if self.children is None:
             self.children = []
+        if self.content_tags is None:
+            self.content_tags = []
 
     def to_dict(self) -> Dict:
         """转换为字典（用于JSON序列化）"""
@@ -83,9 +86,10 @@ class DocumentStructureParser:
         self.WHITELIST_KEYWORDS = [
             # 投标要求类
             "投标须知", "供应商须知", "投标人须知", "资格要求", "资质要求",
-            "投标邀请", "招标公告", "项目概况",
+            "投标邀请", "谈判邀请", "采购邀请", "招标公告", "项目概况",
+            "单一来源", "竞争性谈判", "询价公告",
             # 技术要求类
-            "技术要求", "技术规格", "技术参数", "性能指标", "项目需求",
+            "技术要求", "技术需求", "需求书", "技术规格", "技术参数", "性能指标", "项目需求",
             "需求说明", "技术标准", "功能要求", "技术规范", "技术方案",
             # 商务要求类
             "商务要求", "商务条款", "付款方式", "交付要求", "质保要求",
@@ -1770,6 +1774,41 @@ class DocumentStructureParser:
 
         return chapters
 
+    def _detect_content_tags(self, content_text: str) -> List[str]:
+        """
+        检测章节内容标签
+
+        基于内容关键词匹配，检测章节包含的信息类型
+
+        Args:
+            content_text: 章节内容文本
+
+        Returns:
+            标签列表（可能包含多个标签）
+        """
+        tags = []
+        content_lower = content_text.lower()
+
+        # 定义标签及其关键词
+        tag_rules = {
+            "评分办法": ["评分办法", "评分标准", "评审办法", "打分", "评分细则", "综合评分"],
+            "评分表": ["前附表", "评分表", "附表", "评审表"],
+            "供应商资质": ["供应商资质", "资质要求", "资格要求", "投标人资格", "供应商须知",
+                       "投标须知", "民事责任", "商业信誉", "技术能力"],
+            "文件格式": ["文件格式", "格式要求", "编制要求", "装订要求", "响应文件编制"],
+            "技术需求": ["技术规范", "技术说明", "技术需求", "技术要求", "技术参数",
+                       "性能指标", "功能要求", "需求说明"]
+        }
+
+        # 检测每个标签
+        for tag, keywords in tag_rules.items():
+            for keyword in keywords:
+                if keyword in content_lower:
+                    tags.append(tag)
+                    break  # 匹配到一个关键词即可，不需要继续检查该标签的其他关键词
+
+        return tags
+
     def _extract_chapter_content(self, doc: Document, chapter: ChapterNode):
         """
         提取章节内容、字数和预览文本
@@ -1795,6 +1834,9 @@ class DocumentStructureParser:
                 break
 
         chapter.preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
+
+        # 检测内容标签
+        chapter.content_tags = self._detect_content_tags(content_text)
 
 
 if __name__ == '__main__':

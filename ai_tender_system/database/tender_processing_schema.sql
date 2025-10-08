@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS tender_requirements (
 
     -- 要求内容
     detail TEXT NOT NULL,  -- 具体要求描述
+    summary VARCHAR(200),  -- 简洁摘要（60字以内），方便快速浏览
     source_location VARCHAR(255),  -- 来源位置（章节标题、页码）
     priority VARCHAR(10) DEFAULT 'medium',  -- high/medium/low
 

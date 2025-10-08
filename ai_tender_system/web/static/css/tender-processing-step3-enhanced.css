@@ -1,0 +1,250 @@
+/* 标书智能处理 - 步骤3增强版样式 */
+
+/* Tab导航美化 */
+#step3Tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#step3Tabs .nav-link:hover {
+    color: #007bff;
+    background-color: #f8f9fa;
+}
+
+#step3Tabs .nav-link.active {
+    color: #007bff;
+    border-bottom: 3px solid #007bff;
+    font-weight: 600;
+}
+
+#step3Tabs .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+}
+
+/* 基本信息表单美化 */
+#basicInfoForm .form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+#basicInfoForm .form-control {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#basicInfoForm .form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* 资质卡片美化 */
+#qualificationsContainer .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+}
+
+#qualificationsContainer .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#qualificationsContainer .card-body h6 {
+    color: #212529;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+#qualificationsContainer .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    font-weight: 500;
+}
+
+/* 资质卡片内的上下文引用块 */
+#qualificationsContainer .bg-light.border-start {
+    background-color: #f8f9fa !important;
+    padding: 0.75rem !important;
+    border-left: 3px solid #17a2b8 !important;
+    margin-top: 0.5rem;
+}
+
+#qualificationsContainer .fst-italic {
+    font-size: 0.85rem;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+/* 统计卡片美化 */
+.stats-grid .stat-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stats-grid .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stats-grid .stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.stats-grid .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #212529;
+}
+
+/* 加载动画 */
+#basicInfoLoading,
+#qualificationsLoading {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 可编辑表格美化 */
+.editable-table .editable-field.modified {
+    border-color: #ffc107;
+    background-color: #fff3cd;
+}
+
+.editable-table .editable-field:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* 按钮美化 */
+.btn-outline-primary:hover,
+.btn-outline-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    #step3Tabs .nav-link {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    #qualificationsContainer .col-md-6 {
+        margin-bottom: 1rem;
+    }
+}
+
+/* 保存按钮警告状态 */
+#saveAndCompleteBtn.btn-warning {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+    }
+}
+
+/* Tab内容区域 */
+.tab-content {
+    min-height: 400px;
+    padding: 1.5rem 0;
+}
+
+/* 资质匹配汇总区域 */
+#qualificationSummary .stat-card {
+    border-left: 4px solid;
+}
+
+#qualificationSummary .stat-card:nth-child(1) {
+    border-left-color: #007bff;
+}
+
+#qualificationSummary .stat-card:nth-child(2) {
+    border-left-color: #28a745;
+}
+
+#qualificationSummary .stat-card:nth-child(3) {
+    border-left-color: #dc3545;
+}
+
+#qualificationSummary .stat-card:nth-child(4) {
+    border-left-color: #17a2b8;
+}
+
+/* 完成消息美化 */
+#step3CompleteMessage .alert-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border: 2px solid #28a745;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+}
+
+/* 要求详情展开/收起样式 */
+.req-detail-container {
+    position: relative;
+}
+
+.req-summary {
+    line-height: 1.5;
+    color: #212529;
+}
+
+.req-full-detail {
+    margin-top: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.req-full-detail textarea {
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+}
+
+.expand-detail-btn,
+.collapse-detail-btn {
+    font-size: 0.85rem;
+    text-decoration: none;
+    padding: 0.25rem 0;
+    transition: color 0.2s ease;
+}
+
+.expand-detail-btn:hover,
+.collapse-detail-btn:hover {
+    color: #0056b3 !important;
+    text-decoration: underline;
+}
+
+.expand-detail-btn i,
+.collapse-detail-btn i {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.expand-detail-btn:hover i {
+    transform: translateY(2px);
+}
+
+.collapse-detail-btn:hover i {
+    transform: translateY(-2px);
+}

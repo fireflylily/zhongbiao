@@ -35,6 +35,9 @@ class ChapterSelectionManager {
 
         // 批量导出按钮
         document.getElementById('exportSelectedChaptersBtn')?.addEventListener('click', () => this.exportSelectedChapters());
+
+        // 另存为应答文件按钮
+        document.getElementById('saveAsResponseFileBtn')?.addEventListener('click', () => this.saveAsResponseFile());
     }
 
     async handleParseStructure() {
@@ -149,6 +152,23 @@ class ChapterSelectionManager {
             statusClass = 'skip-recommended';
         }
 
+        // 生成标签HTML
+        let tagsHtml = '';
+        if (chapter.content_tags && chapter.content_tags.length > 0) {
+            const tagColorMap = {
+                '评分办法': 'primary',
+                '评分表': 'warning text-dark',
+                '供应商资质': 'success',
+                '文件格式': 'secondary',
+                '技术需求': 'info'
+            };
+
+            tagsHtml = chapter.content_tags.map(tag => {
+                const colorClass = tagColorMap[tag] || 'secondary';
+                return `<span class="badge bg-${colorClass} ms-1">${tag}</span>`;
+            }).join('');
+        }
+
         div.innerHTML = `
             <div class="d-flex align-items-center chapter-row ${statusClass}">
                 <input type="checkbox"
@@ -159,6 +179,7 @@ class ChapterSelectionManager {
                 <label class="chapter-title flex-grow-1" for="ch-${chapter.id}">
                     ${chapter.title}
                     <small class="text-muted">(${chapter.word_count}字)</small>
+                    ${tagsHtml}
                 </label>
                 <button class="btn btn-sm btn-outline-secondary preview-btn"
                         data-chapter-id="${chapter.id}"
@@ -214,12 +235,17 @@ class ChapterSelectionManager {
         document.getElementById('statTotalChapters').textContent = this.chaptersData.length;
         document.getElementById('statSelectedChapters').textContent = selectedCount;
         document.getElementById('statSelectedWords').textContent = selectedWords;
-        document.getElementById('statEstCost').textContent = `$${((selectedWords / 1000) * 0.002).toFixed(4)}`;
 
         // 更新导出按钮状态
         const exportBtn = document.getElementById('exportSelectedChaptersBtn');
         if (exportBtn) {
             exportBtn.disabled = this.selectedChapterIds.size === 0;
+        }
+
+        // 更新另存为应答文件按钮状态
+        const saveBtn = document.getElementById('saveAsResponseFileBtn');
+        if (saveBtn) {
+            saveBtn.disabled = this.selectedChapterIds.size === 0;
         }
     }
 
@@ -278,6 +304,8 @@ class ChapterSelectionManager {
     }
 
     async confirmSelection() {
+        console.log('[Step1] confirmSelection 开始执行');
+
         if (this.selectedChapterIds.size === 0) {
             this.showNotification('请至少选择一个章节', 'warning');
             return;
@@ -289,6 +317,7 @@ class ChapterSelectionManager {
         confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>提交中...';
 
         try {
+            console.log('[Step1] 发送API请求，taskId:', this.currentTaskId);
             const response = await fetch('/api/tender-processing/select-chapters', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -299,29 +328,32 @@ class ChapterSelectionManager {
             });
 
             const result = await response.json();
+            console.log('[Step1] API响应结果:', result);
 
             if (result.success) {
-                this.showNotification('章节选择已确认！', 'success');
+                this.showNotification('章节选择已确认！正在进入下一步...', 'success');
 
-                // 触发步骤2（可以在这里调用步骤2的初始化）
-                // 暂时显示成功消息
-                document.getElementById('step1CompleteMessage').style.display = 'block';
-                document.getElementById('step1CompleteMessage').innerHTML = `
-                    <div class="alert alert-success">
-                        <h5>✅ 步骤1完成</h5>
-                        <p>已选择 ${result.selected_count} 个章节，共 ${result.selected_words} 字</p>
-                        <p>预估处理成本：$${result.estimated_cost.toFixed(4)}</p>
-                        <button class="btn btn-primary" onclick="proceedToStep2('${this.currentTaskId}')">
-                            下一步：AI筛选
-                        </button>
-                    </div>
-                `;
+                console.log('[Step1] 准备调用 proceedToStep3');
+                console.log('[Step1] proceedToStep3 是否存在:', typeof proceedToStep3);
+                console.log('[Step1] hitl_task_id:', result.hitl_task_id, 'project_id:', result.project_id);
+
+                // 直接进入步骤3，不显示提示框
+                setTimeout(() => {
+                    console.log('[Step1] 开始执行 proceedToStep3');
+                    if (typeof proceedToStep3 === 'function') {
+                        proceedToStep3(result.hitl_task_id, result.project_id);
+                    } else {
+                        console.error('[Step1] proceedToStep3 函数不存在！');
+                        alert('错误：proceedToStep3 函数未定义，请刷新页面重试');
+                    }
+                }, 500);
             } else {
                 throw new Error(result.error || '提交失败');
             }
 
         } catch (error) {
-            console.error('确认选择失败:', error);
+            console.error('[Step1] 确认选择失败:', error);
+            console.error('[Step1] 错误详情:', error.stack);
             this.showNotification('提交失败: ' + error.message, 'error');
         } finally {
             confirmBtn.disabled = false;
@@ -397,6 +429,41 @@ class ChapterSelectionManager {
         } catch (error) {
             console.error('导出失败:', error);
             this.showNotification(`导出失败: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * 另存为应答文件
+     */
+    async saveAsResponseFile() {
+        if (this.selectedChapterIds.size === 0) {
+            this.showNotification('请先选择要保存的章节', 'warning');
+            return;
+        }
+
+        try {
+            const chapterIds = Array.from(this.selectedChapterIds);
+            const apiUrl = `/api/tender-processing/save-response-file/${this.currentTaskId}`;
+
+            this.showNotification('正在保存应答文件...', 'info');
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chapter_ids: chapterIds })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || '保存失败');
+            }
+
+            this.showNotification(`✅ 应答文件已成功保存！文件名: ${result.filename}`, 'success');
+
+        } catch (error) {
+            console.error('保存失败:', error);
+            this.showNotification(`保存失败: ${error.message}`, 'error');
         }
     }
 

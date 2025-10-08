@@ -8,6 +8,8 @@
 import json
 import re
 import uuid
+import os
+import shutil
 from datetime import datetime
 from flask import request, jsonify, send_file, render_template
 from pathlib import Path
@@ -226,115 +228,26 @@ def register_hitl_routes(app):
 
             logger.info(f"步骤1完成: 选中 {stats['selected_count']} 个章节, {selected_words} 字")
 
-            # ========== 新增：提取选中章节内容并分块 ==========
-            # 获取文档路径
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+            # 更新任务状态到步骤2（移除自动提取逻辑）
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET current_step = 2,
+                    step2_status = 'in_progress'
+                WHERE hitl_task_id = ?
+            """, (hitl_task_id,))
+
+            logger.info(f"任务状态已更新到步骤2，等待用户在Tab 3触发AI提取")
+
+            # 获取project_id
+            project_info = db.execute_query("""
+                SELECT project_id FROM tender_hitl_tasks
                 WHERE hitl_task_id = ?
             """, (hitl_task_id,), fetch_one=True)
 
-            if task_data and task_data.get('step1_data'):
-                step1_data = json.loads(task_data['step1_data'])
-                doc_path = step1_data.get('file_path')
-
-                if doc_path:
-                    # 提取选中章节的内容
-                    parser = DocumentStructureParser()
-                    content_result = parser.get_selected_chapter_content(doc_path, selected_ids)
-
-                    if content_result.get('success'):
-                        # 对每个选中章节的内容进行分块
-                        from ai_tender_system.modules.tender_processing.chunker import DocumentChunker
-                        chunker = DocumentChunker(max_chunk_size=800, overlap_size=100)
-
-                        chunk_index = 0
-                        for chapter_data in content_result.get('chapters', []):
-                            chapter_content = chapter_data.get('content', '')
-                            chapter_title = chapter_data.get('title', '')
-
-                            # 分块处理
-                            chunks = chunker.chunk_document(
-                                chapter_content,
-                                metadata={'chapter_title': chapter_title}
-                            )
-
-                            # 保存分块到数据库
-                            project_id = db.execute_query("""
-                                SELECT project_id FROM tender_hitl_tasks
-                                WHERE hitl_task_id = ?
-                            """, (hitl_task_id,), fetch_one=True)['project_id']
-
-                            for chunk in chunks:
-                                db.execute_query("""
-                                    INSERT INTO tender_document_chunks (
-                                        project_id, hitl_task_id, chunk_index, chunk_type,
-                                        content, metadata
-                                    ) VALUES (?, ?, ?, ?, ?, ?)
-                                """, (
-                                    project_id,
-                                    hitl_task_id,
-                                    chunk_index,
-                                    chunk.chunk_type,
-                                    chunk.content,
-                                    json.dumps(chunk.metadata)
-                                ))
-                                chunk_index += 1
-
-                        logger.info(f"成功分块: 共 {chunk_index} 个文本块")
-
-                        # ========== AI筛选处理 ==========
-                        # 对每个文本块进行AI价值判断
-                        from ai_tender_system.modules.tender_processing.filter import TenderFilter
-                        content_filter = TenderFilter()
-
-                        # 查询所有分块
-                        chunks_to_filter = db.execute_query("""
-                            SELECT chunk_id, content, chunk_type
-                            FROM tender_document_chunks
-                            WHERE hitl_task_id = ?
-                            ORDER BY chunk_index
-                        """, (hitl_task_id,))
-
-                        filtered_count = 0
-                        for chunk in chunks_to_filter:
-                            # 使用AI判断块的价值
-                            filter_result = content_filter.filter_chunk(chunk)
-
-                            is_valuable = filter_result.is_valuable
-                            confidence = filter_result.confidence
-
-                            # 更新块的筛选状态
-                            db.execute_query("""
-                                UPDATE tender_document_chunks
-                                SET is_valuable = ?,
-                                    filter_confidence = ?,
-                                    filtered_at = CURRENT_TIMESTAMP
-                                WHERE chunk_id = ?
-                            """, (
-                                1 if is_valuable else 0,
-                                confidence,
-                                chunk['chunk_id']
-                            ))
-
-                            if not is_valuable:
-                                filtered_count += 1
-
-                        logger.info(f"AI筛选完成: 过滤掉 {filtered_count}/{chunk_index} 个低价值块")
-                        # ========== AI筛选处理结束 ==========
-
-                        # 更新任务状态到步骤2
-                        db.execute_query("""
-                            UPDATE tender_hitl_tasks
-                            SET current_step = 2,
-                                step2_status = 'in_progress'
-                            WHERE hitl_task_id = ?
-                        """, (hitl_task_id,))
-
-                        logger.info(f"任务状态已更新到步骤2")
-            # ========== 分块处理结束 ==========
-
             return jsonify({
                 'success': True,
+                'hitl_task_id': hitl_task_id,
+                'project_id': project_info['project_id'] if project_info else None,
                 'selected_count': stats['selected_count'],
                 'selected_words': selected_words,
                 'estimated_cost': estimated_cost
@@ -342,6 +255,196 @@ def register_hitl_routes(app):
 
         except Exception as e:
             logger.error(f"提交章节选择失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-processing/extract-requirements/<hitl_task_id>', methods=['POST'])
+    def extract_requirements_from_chapters(hitl_task_id):
+        """
+        AI提取详细要求（从选中的章节中提取）
+        在Tab 3中由用户手动触发
+        """
+        try:
+            # 获取请求中的模型参数
+            request_data = request.get_json() or {}
+            selected_model = request_data.get('model', 'yuanjing-deepseek-v3')
+
+            logger.info(f"开始AI提取要求: hitl_task_id={hitl_task_id}, model={selected_model}")
+
+            # 查询任务信息
+            task_info = db.execute_query("""
+                SELECT project_id, step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (hitl_task_id,), fetch_one=True)
+
+            if not task_info:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            project_id = task_info['project_id']
+            step1_data = json.loads(task_info['step1_data']) if task_info.get('step1_data') else {}
+
+            doc_path = step1_data.get('file_path')
+            selected_ids = step1_data.get('selected_ids', [])
+
+            if not doc_path or not selected_ids:
+                return jsonify({'success': False, 'error': '缺少文档路径或选中章节'}), 400
+
+            # 检查是否已有要求数据
+            existing_count = db.execute_query("""
+                SELECT COUNT(*) as count FROM tender_requirements
+                WHERE hitl_task_id = ?
+            """, (hitl_task_id,), fetch_one=True)
+
+            if existing_count and existing_count['count'] > 0:
+                # 已有数据，先清空
+                db.execute_query("""
+                    DELETE FROM tender_requirements
+                    WHERE hitl_task_id = ?
+                """, (hitl_task_id,))
+                logger.info(f"清除了 {existing_count['count']} 个旧要求记录")
+
+            # 重新解析文档以获取章节内容
+            parser = DocumentStructureParser()
+            result = parser.parse_document_structure(doc_path)
+
+            if not result["success"]:
+                return jsonify({'success': False, 'error': '文档解析失败'}), 500
+
+            # 从解析结果中提取选中章节的内容
+            def find_chapter_by_id(chapters, target_id):
+                """递归查找章节"""
+                for ch in chapters:
+                    if ch.get('id') == target_id:
+                        return ch
+                    if ch.get('children'):
+                        found = find_chapter_by_id(ch['children'], target_id)
+                        if found:
+                            return found
+                return None
+
+            # 读取文档内容
+            from docx import Document
+            doc = Document(doc_path)
+            all_paragraphs = [p.text for p in doc.paragraphs]
+
+            # 获取选中章节的内容
+            selected_content = []
+            for chapter_id in selected_ids:
+                chapter_info = find_chapter_by_id(result["chapters"], chapter_id)
+                if chapter_info:
+                    # 根据段落索引提取内容
+                    start_idx = chapter_info.get('para_start_idx', 0)
+                    end_idx = chapter_info.get('para_end_idx', len(all_paragraphs))
+
+                    chapter_text = '\n'.join(all_paragraphs[start_idx:end_idx])
+
+                    selected_content.append({
+                        'chapter_id': chapter_id,
+                        'chapter_title': chapter_info.get('title', ''),
+                        'content': chapter_text
+                    })
+
+            logger.info(f"提取了 {len(selected_content)} 个章节的内容")
+
+            # 使用优化的分块方式：大块处理，不筛选
+            from modules.tender_processing.chunker import DocumentChunker
+            from modules.tender_processing.requirement_extractor import RequirementExtractor
+
+            chunker = DocumentChunker(max_chunk_size=2000, overlap_size=200)
+            extractor = RequirementExtractor(model_name=selected_model)
+
+            total_extracted = 0
+            total_chunks = 0
+            chunks_succeeded = 0
+            chunks_failed = 0
+            failed_chunks = []  # 记录失败的块信息
+
+            for chapter_data in selected_content:
+                chapter_content = chapter_data.get('content', '')
+                chapter_title = chapter_data.get('chapter_title', '')
+
+                logger.info(f"开始处理章节 [{chapter_title}]，内容长度: {len(chapter_content)} 字")
+
+                # 分块处理（大块）
+                metadata = {'chapter_title': chapter_title}
+                chunks = chunker.chunk_document(chapter_content, metadata)
+
+                logger.info(f"章节 [{chapter_title}] 分成 {len(chunks)} 个大块")
+
+                # 直接提取每个块，不进行AI筛选
+                import time
+                for chunk_idx, chunk in enumerate(chunks):
+                    # chunk 是 DocumentChunk 对象，转换为字典
+                    chunk_dict = chunk.to_dict() if hasattr(chunk, 'to_dict') else chunk
+
+                    # 调用改进后的extract_chunk，返回(requirements, success, error_msg)
+                    requirements, success, error_msg = extractor.extract_chunk(chunk_dict)
+
+                    total_chunks += 1
+
+                    if success:
+                        chunks_succeeded += 1
+                        # 保存到数据库
+                        for req in requirements:
+                            db.execute_query("""
+                                INSERT INTO tender_requirements (
+                                    project_id, hitl_task_id, constraint_type, category,
+                                    subcategory, detail, summary, source_location, priority,
+                                    extraction_confidence
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                                project_id,
+                                hitl_task_id,
+                                req.constraint_type,
+                                req.category,
+                                req.subcategory,
+                                req.detail,
+                                req.summary,
+                                f"{chapter_title} - {req.source_location}" if req.source_location else chapter_title,
+                                req.priority,
+                                req.extraction_confidence
+                            ))
+                            total_extracted += 1
+                    else:
+                        chunks_failed += 1
+                        chunk_index = chunk_dict.get('chunk_index', total_chunks)
+                        failed_chunks.append({
+                            'chapter_title': chapter_title,
+                            'chunk_index': chunk_index,
+                            'error_msg': error_msg
+                        })
+                        logger.warning(f"章节 [{chapter_title}] 分块 {chunk_index} 提取失败: {error_msg}")
+
+                    # 在每个分块之间增加延迟，避免API限流
+                    # 除了最后一个分块外，每个分块处理后等待3秒
+                    if chunk_idx < len(chunks) - 1:
+                        wait_time = 3
+                        logger.info(f"等待 {wait_time} 秒以避免API限流...")
+                        time.sleep(wait_time)
+
+                logger.info(f"章节 [{chapter_title}] 提取完成")
+
+            logger.info(f"全部提取完成: 处理 {total_chunks} 个大块, 成功 {chunks_succeeded} 个, 失败 {chunks_failed} 个, 提取了 {total_extracted} 个要求")
+
+            # 返回详细统计，包括失败信息
+            result = {
+                'success': True,
+                'chunks_processed': total_chunks,
+                'chunks_succeeded': chunks_succeeded,
+                'chunks_failed': chunks_failed,
+                'requirements_extracted': total_extracted
+            }
+
+            # 如果有失败的块，返回失败详情
+            if chunks_failed > 0:
+                result['failed_chunks'] = failed_chunks
+                result['partial_success'] = True
+
+            return jsonify(result)
+
+        except Exception as e:
+            logger.error(f"AI提取要求失败: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -467,6 +570,166 @@ def register_hitl_routes(app):
         except Exception as e:
             logger.error(f"批量导出章节失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tender-processing/save-response-file/<task_id>', methods=['POST'])
+    def save_response_file(task_id):
+        """保存应答文件到服务器"""
+        try:
+            data = request.get_json()
+            chapter_ids = data.get('chapter_ids', [])
+            custom_filename = data.get('filename')
+
+            if not chapter_ids:
+                return jsonify({"error": "未提供章节ID"}), 400
+
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data, project_id FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            doc_path = step1_data.get('file_path')
+            project_id = task_data['project_id']
+
+            # 调用parser导出文件
+            parser = DocumentStructureParser()
+            result = parser.export_multiple_chapters_to_docx(doc_path, chapter_ids)
+
+            if not result['success']:
+                return jsonify({"error": result.get('error', '导出失败')}), 500
+
+            # 创建存储目录
+            now = datetime.now()
+            save_dir = os.path.join(
+                'ai_tender_system/data/uploads/response_files',
+                str(now.year),
+                f"{now.month:02d}",
+                task_id
+            )
+            os.makedirs(save_dir, exist_ok=True)
+
+            # 生成文件名
+            chapter_titles = result.get('chapter_titles', [])
+            safe_titles = '_'.join(chapter_titles[:2]) if chapter_titles else '应答文件'
+            safe_titles = re.sub(r'[^\w\s-]', '', safe_titles).strip()
+
+            if custom_filename:
+                filename = custom_filename if custom_filename.endswith('.docx') else f"{custom_filename}.docx"
+            else:
+                filename = f"{safe_titles}_应答模板_{now.strftime('%Y%m%d_%H%M%S')}.docx"
+
+            # 移动文件到目标位置
+            target_path = os.path.join(save_dir, filename)
+            shutil.move(result['file_path'], target_path)
+
+            # 计算文件大小
+            file_size = os.path.getsize(target_path)
+
+            # 更新任务的step1_data
+            response_file_info = {
+                "file_path": target_path,
+                "filename": filename,
+                "file_size": file_size,
+                "saved_at": now.isoformat()
+            }
+            step1_data['response_file'] = response_file_info
+
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET step1_data = ?
+                WHERE hitl_task_id = ?
+            """, (json.dumps(step1_data), task_id))
+
+            logger.info(f"保存应答文件: {filename} ({file_size} bytes)")
+
+            return jsonify({
+                "success": True,
+                "file_path": target_path,
+                "file_url": f"/api/tender-processing/download-response-file/{task_id}",
+                "filename": filename,
+                "file_size": file_size,
+                "saved_at": response_file_info['saved_at']
+            })
+
+        except Exception as e:
+            logger.error(f"保存应答文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tender-processing/download-response-file/<task_id>', methods=['GET'])
+    def download_response_file(task_id):
+        """下载已保存的应答文件"""
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            response_file = step1_data.get('response_file')
+
+            if not response_file:
+                return jsonify({"error": "应答文件不存在"}), 404
+
+            file_path = response_file['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=True,
+                download_name=response_file['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"下载应答文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tender-processing/response-file-info/<task_id>', methods=['GET'])
+    def get_response_file_info(task_id):
+        """获取应答文件信息"""
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            response_file = step1_data.get('response_file')
+
+            if not response_file:
+                return jsonify({
+                    "success": True,
+                    "has_file": False
+                })
+
+            # 检查文件是否存在
+            file_exists = os.path.exists(response_file['file_path'])
+
+            return jsonify({
+                "success": True,
+                "has_file": file_exists,
+                "filename": response_file.get('filename'),
+                "file_size": response_file.get('file_size'),
+                "saved_at": response_file.get('saved_at'),
+                "download_url": f"/api/tender-processing/download-response-file/{task_id}"
+            })
+
+        except Exception as e:
+            logger.error(f"获取应答文件信息失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
 
     # ============================================
     # 步骤2：章节要求预览相关API
@@ -1044,6 +1307,360 @@ def register_hitl_routes(app):
 
         except Exception as e:
             logger.error(f"导出草稿失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ============================================
+    # 步骤3增强：基本信息和资质信息提取API
+    # ============================================
+
+    @app.route('/api/tender-processing/extract-basic-info/<task_id>', methods=['POST'])
+    def extract_basic_info_step3(task_id):
+        """
+        提取基本信息（步骤3）
+
+        使用现有的 TenderInfoExtractor 提取项目基本信息
+
+        返回：
+        {
+            "success": True,
+            "data": {
+                "project_name": "...",
+                "project_number": "...",
+                "tender_party": "...",
+                ...
+            }
+        }
+        """
+        try:
+            from modules.tender_info.extractor import TenderInfoExtractor
+            from common import get_config
+
+            db = get_knowledge_base_db()
+
+            # 获取任务信息
+            hitl_task = db.execute_query("""
+                SELECT project_id, step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not hitl_task:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            # 获取文档路径
+            step1_data = json.loads(hitl_task['step1_data'])
+            doc_path = step1_data.get('file_path')
+
+            if not doc_path or not Path(doc_path).exists():
+                return jsonify({'success': False, 'error': '文档不存在'}), 404
+
+            # 创建提取器
+            config = get_config()
+            api_key = config.get_default_api_key()
+            extractor = TenderInfoExtractor(api_key=api_key, model_name='gpt-4o-mini')
+
+            # 读取文档内容
+            text = extractor.read_document(doc_path)
+
+            # 提取基本信息
+            basic_info = extractor.extract_basic_info(text)
+
+            logger.info(f"基本信息提取成功: {task_id}")
+
+            return jsonify({
+                'success': True,
+                'data': basic_info
+            })
+
+        except Exception as e:
+            logger.error(f"提取基本信息失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-processing/save-basic-info/<int:project_id>', methods=['POST'])
+    def save_basic_info_step3(project_id):
+        """
+        保存基本信息（步骤3）
+
+        将提取的基本信息保存到 tender_projects 表
+
+        请求参数（JSON）：
+        {
+            "task_id": "hitl_xxx",
+            "project_name": "...",
+            "project_number": "...",
+            ...
+        }
+
+        返回：
+        {
+            "success": True,
+            "project_id": 123
+        }
+        """
+        try:
+            data = request.get_json()
+            task_id = data.get('task_id')
+
+            if not data:
+                return jsonify({'success': False, 'error': '缺少数据'}), 400
+
+            db = get_knowledge_base_db()
+
+            # 检查项目是否已存在
+            existing_project = db.execute_query("""
+                SELECT project_id FROM tender_projects
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
+
+            if existing_project:
+                # 更新现有项目
+                db.execute_query("""
+                    UPDATE tender_projects
+                    SET project_name = ?,
+                        project_number = ?,
+                        tenderer = ?,
+                        agency = ?,
+                        bidding_method = ?,
+                        bidding_location = ?,
+                        bidding_time = ?,
+                        winner_count = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE project_id = ?
+                """, (
+                    data.get('project_name', ''),
+                    data.get('project_number', ''),
+                    data.get('tender_party', ''),
+                    data.get('tender_agent', ''),
+                    data.get('tender_method', ''),
+                    data.get('tender_location', ''),
+                    data.get('tender_deadline', ''),
+                    data.get('winner_count', ''),
+                    project_id
+                ))
+
+                logger.info(f"项目基本信息已更新: {project_id}")
+            else:
+                # 创建新项目（理论上不应该走这个分支，因为项目应该已经创建）
+                logger.warning(f"项目 {project_id} 不存在，跳过保存")
+                return jsonify({'success': False, 'error': '项目不存在'}), 404
+
+            return jsonify({
+                'success': True,
+                'project_id': project_id
+            })
+
+        except Exception as e:
+            logger.error(f"保存基本信息失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-processing/extract-qualifications/<task_id>', methods=['POST'])
+    def extract_qualifications_step3(task_id):
+        """
+        提取资质要求并对比公司状态（步骤3）
+
+        使用关键词匹配提取资质要求，并对比公司已上传的资质
+
+        请求参数（JSON）：
+        {
+            "project_id": 123
+        }
+
+        返回：
+        {
+            "success": True,
+            "data": {
+                "qualifications": {...},
+                "summary": {
+                    "required_count": 10,
+                    "uploaded_count": 8,
+                    "missing_count": 2
+                }
+            }
+        }
+        """
+        try:
+            from modules.tender_info.extractor import TenderInfoExtractor
+            from common import get_config
+
+            data = request.get_json()
+            project_id = data.get('project_id')
+
+            db = get_knowledge_base_db()
+
+            # 获取任务信息
+            hitl_task = db.execute_query("""
+                SELECT project_id, step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not hitl_task:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            # 使用提供的project_id或任务中的project_id
+            if not project_id:
+                project_id = hitl_task['project_id']
+
+            # 获取文档路径
+            step1_data = json.loads(hitl_task['step1_data'])
+            doc_path = step1_data.get('file_path')
+
+            if not doc_path or not Path(doc_path).exists():
+                return jsonify({'success': False, 'error': '文档不存在'}), 404
+
+            # 创建提取器
+            config = get_config()
+            api_key = config.get_default_api_key()
+            extractor = TenderInfoExtractor(api_key=api_key, model_name='gpt-4o-mini')
+
+            # 读取文档内容
+            text = extractor.read_document(doc_path)
+
+            # 提取资质要求（使用关键词匹配）
+            qualifications = extractor.extract_qualification_requirements(text)
+
+            # 获取公司ID（如果存在）
+            company_id = None
+            if project_id:
+                project_info = db.execute_query("""
+                    SELECT company_id FROM tender_projects
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
+
+                if project_info:
+                    company_id = project_info.get('company_id')
+
+            # 整合公司资质状态
+            if company_id:
+                # 导入资质对比函数
+                from web.app import enrich_qualification_with_company_status
+                enriched_data = enrich_qualification_with_company_status(qualifications, company_id)
+            else:
+                # 没有公司ID，只返回提取的资质要求
+                enriched_data = qualifications
+                # 添加空的公司状态
+                for key in enriched_data.get('qualifications', {}):
+                    enriched_data['qualifications'][key]['company_status'] = {
+                        'uploaded': False,
+                        'original_filename': None,
+                        'upload_time': None
+                    }
+
+                # 添加汇总信息
+                required_count = len([q for q in enriched_data.get('qualifications', {}).values()
+                                     if q.get('required')])
+                enriched_data['summary'] = {
+                    'required_count': required_count,
+                    'uploaded_count': 0,
+                    'missing_count': required_count
+                }
+
+            logger.info(f"资质要求提取成功: {task_id}, 检测到{len(enriched_data.get('qualifications', {}))}项资质")
+
+            return jsonify({
+                'success': True,
+                'data': enriched_data
+            })
+
+        except Exception as e:
+            logger.error(f"提取资质要求失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-processing/trigger-extraction/<task_id>', methods=['POST'])
+    def trigger_requirement_extraction(task_id):
+        """
+        手动触发要求提取（用于已有任务补充提取）
+
+        对指定的HITL任务，从已有的有价值文本块中提取详细要求
+        """
+        try:
+            db = get_knowledge_base_db()
+
+            # 检查任务是否存在
+            task_info = db.execute_query("""
+                SELECT hitl_task_id, project_id FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_info:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            project_id = task_info['project_id']
+
+            # 先清除该任务的旧要求
+            db.execute_query("""
+                DELETE FROM tender_requirements
+                WHERE hitl_task_id = ?
+            """, (task_id,))
+
+            # 提取要求
+            from modules.tender_processing.requirement_extractor import RequirementExtractor
+            extractor = RequirementExtractor()
+
+            # 查询有价值的文本块
+            valuable_chunks = db.execute_query("""
+                SELECT chunk_id, content, metadata
+                FROM tender_document_chunks
+                WHERE hitl_task_id = ? AND is_valuable = 1
+                ORDER BY chunk_index
+            """, (task_id,))
+
+            if not valuable_chunks:
+                return jsonify({
+                    'success': False,
+                    'error': '没有找到有价值的文本块，请先完成步骤1的章节选择'
+                }), 400
+
+            total_extracted = 0
+            for chunk in valuable_chunks:
+                # 提取要求（使用extract_chunk方法，需要传入字典格式）
+                chunk_dict = {
+                    'content': chunk['content'],
+                    'chunk_type': chunk.get('chunk_type', 'paragraph'),
+                    'metadata': json.loads(chunk['metadata']) if chunk.get('metadata') else {}
+                }
+                requirements = extractor.extract_chunk(chunk_dict)
+
+                # 解析metadata获取章节标题
+                metadata = json.loads(chunk['metadata']) if chunk.get('metadata') else {}
+                chapter_title = metadata.get('chapter_title', '未知章节')
+
+                # 保存到数据库
+                for req in requirements:
+                    db.execute_query("""
+                        INSERT INTO tender_requirements (
+                            project_id, hitl_task_id, constraint_type, category,
+                            subcategory, detail, summary, source_location, priority,
+                            extraction_confidence
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        project_id,
+                        task_id,
+                        req.constraint_type,
+                        req.category,
+                        req.subcategory,
+                        req.detail,
+                        req.summary,
+                        f"{chapter_title} - {req.source_location}" if req.source_location else chapter_title,
+                        req.priority,
+                        req.extraction_confidence
+                    ))
+                    total_extracted += 1
+
+            logger.info(f"手动触发提取完成: 从 {len(valuable_chunks)} 个块中提取了 {total_extracted} 个要求")
+
+            return jsonify({
+                'success': True,
+                'chunks_processed': len(valuable_chunks),
+                'requirements_extracted': total_extracted
+            })
+
+        except Exception as e:
+            logger.error(f"手动触发提取失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
 
