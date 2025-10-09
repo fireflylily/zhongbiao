@@ -892,3 +892,108 @@
 2025-10-08 21:20:09,350 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
 2025-10-08 21:20:09,421 - ai_tender_system.web_app - INFO - HITL API 路由已注册
 2025-10-08 21:20:09,421 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:23:50,101 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 21:50:25,246 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 21:50:27,440 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 21:50:32,739 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 21:50:32,929 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 21:50:32,929 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:50:33,574 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 21:50:33,778 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 21:50:34,985 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 21:50:35,056 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 21:50:35,056 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 21:52:06,275 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 21:53:46,977 - ai_tender_system.web_app - INFO - 更新项目成功，ID: 21
+2025-10-08 21:53:46,993 - ai_tender_system.web_app - ERROR - 更新项目失败: NOT NULL constraint failed: tender_projects.project_name
+2025-10-08 22:07:31,626 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:07:32,060 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:07:34,805 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:07:34,966 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:07:34,966 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:10:18,381 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 22:14:47,440 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 22:20:13,424 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:20:13,884 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:20:16,618 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:20:16,783 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:20:16,783 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:32:38,257 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 22:35:29,825 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:35:30,278 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:35:32,966 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:35:33,130 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:35:33,130 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:35:43,906 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:35:44,185 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:35:46,665 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:35:46,811 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:35:46,812 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:36:40,481 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:36:40,804 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:36:43,387 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:36:43,521 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:36:43,521 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:36:44,254 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:36:44,522 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:36:46,461 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:36:46,580 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:36:46,580 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:38:30,998 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 22:39:57,998 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:39:58,370 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:40:00,954 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:40:01,099 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:40:01,099 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:40:33,849 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:40:34,100 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:40:36,715 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:40:36,856 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:40:36,856 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:40:37,666 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:40:37,924 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:40:39,886 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:40:40,008 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:40:40,008 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:41:04,014 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-08 22:49:47,516 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:49:47,940 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:49:49,861 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:49:49,957 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:49:49,957 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:50:09,804 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:50:09,981 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:50:11,699 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:50:11,780 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:50:11,780 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:50:15,816 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:50:16,003 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:50:17,288 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:50:17,391 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:50:17,391 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:50:24,704 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:50:24,951 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:50:26,219 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:50:26,300 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:50:26,300 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:51:41,865 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:51:42,121 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:51:43,889 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:51:43,976 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:51:43,976 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:51:53,232 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:51:53,430 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:51:55,100 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:51:55,187 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:51:55,187 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:52:01,126 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:52:01,298 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:52:02,532 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:52:02,613 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:52:02,613 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-08 22:52:03,125 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-08 22:52:03,311 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-08 22:52:04,500 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-08 22:52:04,569 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-08 22:52:04,569 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-09 09:13:07,282 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型

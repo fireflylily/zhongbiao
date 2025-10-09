@@ -203,6 +203,20 @@ class TenderInfoExtractor:
                 'ICP许可证', 'ICP经营许可证', 'ISP许可证', 'IDC许可证',
                 '电信业务许可证', '电信经营许可证', '电信业务经营许可'
             ],
+            'value_added_telecom_license': [
+                '增值电信业务许可证', '增值电信业务经营许可证', '增值电信许可证',
+                'ICP许可证', 'ICP经营许可证', 'ISP许可证', 'IDC许可证', 'CDN许可证',
+                '增值电信', 'ICP', 'IDC', 'ISP', 'CDN'
+            ],
+            'basic_telecom_license': [
+                '基础电信业务许可证', '基础电信业务经营许可证', '基础电信许可证',
+                '电信业务经营许可证', '基础电信'
+            ],
+            'level_protection': [
+                '等保三级', '等级保护三级', '信息安全等级保护', '等保',
+                '三级等保', '等级保护备案', '等级保护', '网络安全等级保护',
+                '等保测评', '等保认证'
+            ],
             'software_copyright': [
                 '软件著作权', '软著', '计算机软件著作权', '软件版权',
                 '软件著作权登记证书', '著作权登记'
@@ -1114,7 +1128,7 @@ class TenderInfoExtractor:
             qual_results = self.extract_qualification_requirements_by_keywords(text)
             qualifications = qual_results.get('qualifications', {})
 
-            # 定义13项清单与关键词的映射关系
+            # 定义19项清单与关键词的映射关系
             checklist_mapping = [
                 {
                     "checklist_id": 1,
@@ -1180,10 +1194,40 @@ class TenderInfoExtractor:
                     "checklist_id": 13,
                     "checklist_name": "保证金要求",
                     "qual_keys": ["deposit_requirement"]
+                },
+                {
+                    "checklist_id": 14,
+                    "checklist_name": "增值电信业务许可证",
+                    "qual_keys": ["value_added_telecom_license"]
+                },
+                {
+                    "checklist_id": 15,
+                    "checklist_name": "基础电信业务许可证",
+                    "qual_keys": ["basic_telecom_license"]
+                },
+                {
+                    "checklist_id": 16,
+                    "checklist_name": "ISO9001质量管理体系认证",
+                    "qual_keys": ["iso9001"]
+                },
+                {
+                    "checklist_id": 17,
+                    "checklist_name": "ISO20000信息技术服务管理体系认证",
+                    "qual_keys": ["iso20000"]
+                },
+                {
+                    "checklist_id": 18,
+                    "checklist_name": "ISO27001信息安全管理体系认证",
+                    "qual_keys": ["iso27001"]
+                },
+                {
+                    "checklist_id": 19,
+                    "checklist_name": "等保三级认证",
+                    "qual_keys": ["level_protection"]
                 }
             ]
 
-            # 构建13项清单结果
+            # 构建19项清单结果
             checklist_results = []
 
             for item in checklist_mapping:
@@ -1214,12 +1258,12 @@ class TenderInfoExtractor:
 
             # 统计
             found_count = sum(1 for item in checklist_results if item["found"])
-            self.logger.info(f"13条清单提取完成：找到 {found_count} 项，未找到 {13 - found_count} 项")
+            self.logger.info(f"19条清单提取完成：找到 {found_count} 项，未找到 {19 - found_count} 项")
 
             return checklist_results
 
         except Exception as e:
-            self.logger.error(f"提取13条供应商资格要求清单失败: {e}")
+            self.logger.error(f"提取19条供应商资格要求清单失败: {e}")
             # 返回空清单
             return [
                 {

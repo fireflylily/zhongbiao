@@ -491,7 +491,7 @@ def register_hitl_routes(app):
         使用固定的13项清单模板，使用关键词匹配替代AI调用
         """
         try:
-            logger.info(f"开始提取13条供应商资格要求（关键词匹配）: hitl_task_id={hitl_task_id}")
+            logger.info(f"开始提取19条供应商资格要求（关键词匹配）: hitl_task_id={hitl_task_id}")
 
             # 查询任务信息
             task_info = db.execute_query("""
@@ -603,7 +603,7 @@ def register_hitl_routes(app):
             # 统计找到的项数
             found_count = sum(1 for item in checklist_results if item['found'])
 
-            logger.info(f"13条资格要求提取完成（关键词匹配）: 找到 {found_count} 项，未找到 {13 - found_count} 项，保存 {total_saved} 条要求")
+            logger.info(f"19条资格要求提取完成（关键词匹配）: 找到 {found_count} 项，未找到 {19 - found_count} 项，保存 {total_saved} 条要求")
 
             return jsonify({
                 'success': True,
@@ -938,6 +938,308 @@ def register_hitl_routes(app):
 
         except Exception as e:
             logger.error(f"获取应答文件信息失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    # ============================================
+    # 技术需求章节相关API
+    # ============================================
+
+    @app.route('/api/tender-processing/save-technical-chapters/<task_id>', methods=['POST'])
+    def save_technical_chapters(task_id):
+        """保存技术需求章节"""
+        try:
+            data = request.get_json()
+            chapter_ids = data.get('chapter_ids', [])
+
+            if not chapter_ids:
+                return jsonify({"success": False, "error": "未选择章节"}), 400
+
+            # 获取任务信息
+            task_info = db.execute_query("""
+                SELECT project_id, task_id, step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_info:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            project_id = task_info['project_id']
+            parsing_task_id = task_info['task_id']
+
+            # 获取原始文档路径
+            step1_data = json.loads(task_info['step1_data'])
+            doc_path = step1_data.get('file_path')  # 与应答文件API保持一致
+
+            if not doc_path or not os.path.exists(doc_path):
+                return jsonify({"success": False, "error": "原始文档不存在"}), 404
+
+            # 调用DocumentStructureParser导出章节
+            parser = DocumentStructureParser()
+            result = parser.export_multiple_chapters_to_docx(doc_path, chapter_ids)
+
+            if not result.get('success'):
+                return jsonify({"success": False, "error": result.get('error', '导出失败')}), 500
+
+            # 创建存储目录（使用绝对路径）
+            now = datetime.now()
+            # 获取项目根目录（ai_tender_system）
+            project_root = Path(__file__).parent.parent
+            save_dir = os.path.join(
+                project_root,
+                'data/uploads/technical_files',
+                str(now.year),
+                f"{now.month:02d}",
+                task_id
+            )
+            os.makedirs(save_dir, exist_ok=True)
+
+            # 生成文件名
+            chapter_titles = result.get('chapter_titles', [])
+            safe_titles = '_'.join(chapter_titles[:2]) if chapter_titles else '技术需求'
+            safe_titles = re.sub(r'[^\w\s-]', '', safe_titles).strip()
+            filename = f"{safe_titles}_技术需求_{now.strftime('%Y%m%d_%H%M%S')}.docx"
+
+            # 移动文件到目标位置
+            target_path = os.path.join(save_dir, filename)
+            shutil.move(result['file_path'], target_path)
+
+            # 计算文件大小
+            file_size = os.path.getsize(target_path)
+
+            # 更新step1_data，保存技术需求文件信息
+            technical_file_info = {
+                'filename': filename,
+                'file_path': target_path,
+                'file_size': file_size,
+                'saved_at': now.isoformat(),
+                'chapter_ids': chapter_ids
+            }
+            step1_data['technical_file'] = technical_file_info
+
+            # 更新数据库
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET step1_data = ?
+                WHERE hitl_task_id = ?
+            """, (json.dumps(step1_data, ensure_ascii=False), task_id))
+
+            logger.info(f"✅ 技术需求章节已保存: {filename} ({file_size} bytes)")
+
+            return jsonify({
+                "success": True,
+                "file_path": target_path,
+                "file_url": f"/api/tender-processing/download-technical-file/{task_id}",
+                "filename": filename,
+                "file_size": file_size,
+                "saved_at": technical_file_info['saved_at'],
+                "message": "技术需求章节已成功保存"
+            })
+
+        except Exception as e:
+            logger.error(f"保存技术需求章节失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/tender-processing/technical-file-info/<task_id>', methods=['GET'])
+    def get_technical_file_info(task_id):
+        """获取技术需求文件信息"""
+        try:
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            technical_file = step1_data.get('technical_file')
+
+            if not technical_file:
+                return jsonify({
+                    "success": True,
+                    "has_file": False
+                })
+
+            file_exists = os.path.exists(technical_file['file_path'])
+
+            return jsonify({
+                "success": True,
+                "has_file": file_exists,
+                "filename": technical_file.get('filename'),
+                "file_size": technical_file.get('file_size'),
+                "saved_at": technical_file.get('saved_at'),
+                "download_url": f"/api/tender-processing/download-technical-file/{task_id}"
+            })
+
+        except Exception as e:
+            logger.error(f"获取技术需求文件信息失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/tender-processing/download-technical-file/<task_id>', methods=['GET'])
+    def download_technical_file(task_id):
+        """下载技术需求文件"""
+        try:
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            technical_file = step1_data.get('technical_file')
+
+            if not technical_file:
+                return jsonify({"error": "技术需求文件不存在"}), 404
+
+            file_path = technical_file['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=True,
+                download_name=technical_file['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"下载技术需求文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tender-processing/preview-technical-file/<task_id>', methods=['GET'])
+    def preview_technical_file(task_id):
+        """预览技术需求文件"""
+        try:
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            technical_file = step1_data.get('technical_file')
+
+            if not technical_file:
+                return jsonify({"error": "技术需求文件不存在"}), 404
+
+            file_path = technical_file['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=False,
+                download_name=technical_file['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"预览技术需求文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    # ============================================
+    # 获取章节列表API（用于步骤3章节选择）
+    # ============================================
+
+    @app.route('/api/tender-processing/chapters/<task_id>', methods=['GET'])
+    def get_chapters_list(task_id):
+        """
+        获取任务的章节列表（从数据库读取）
+
+        用于步骤3的章节选择功能，当步骤1没有执行时也能获取章节数据
+
+        返回：
+        {
+            "success": True,
+            "chapters": [
+                {
+                    "id": "ch_1",
+                    "level": 1,
+                    "title": "第一章 项目概述",
+                    "word_count": 1500,
+                    "para_start_idx": 0,
+                    "para_end_idx": 10,
+                    "preview_text": "...",
+                    "auto_selected": True,
+                    "skip_recommended": False,
+                    "content_tags": ["技术需求"]
+                },
+                ...
+            ]
+        }
+        """
+        try:
+            db = get_knowledge_base_db()
+
+            # 获取任务关联的project_id
+            hitl_task = db.execute_query("""
+                SELECT project_id, task_id FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not hitl_task:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            project_id = hitl_task['project_id']
+            parsing_task_id = hitl_task['task_id']
+
+            # 从数据库获取章节列表
+            chapters_raw = db.execute_query("""
+                SELECT
+                    chapter_node_id,
+                    level,
+                    title,
+                    para_start_idx,
+                    para_end_idx,
+                    word_count,
+                    preview_text,
+                    is_selected,
+                    auto_selected,
+                    skip_recommended,
+                    parent_chapter_id
+                FROM tender_document_chapters
+                WHERE project_id = ? AND task_id = ?
+                ORDER BY para_start_idx ASC
+            """, (project_id, parsing_task_id))
+
+            if not chapters_raw:
+                return jsonify({
+                    'success': False,
+                    'error': '该任务还没有章节数据，请先在步骤1解析文档'
+                }), 404
+
+            # 转换为前端需要的格式
+            chapters = []
+            for ch in chapters_raw:
+                # 从chapter_node_id提取出简单的ID（如ch_1, ch_1_2等）
+                chapter_data = {
+                    'id': ch['chapter_node_id'],
+                    'level': ch['level'],
+                    'title': ch['title'],
+                    'word_count': ch['word_count'] or 0,
+                    'para_start_idx': ch['para_start_idx'],
+                    'para_end_idx': ch['para_end_idx'],
+                    'preview_text': ch['preview_text'] or '',
+                    'auto_selected': bool(ch['auto_selected']),
+                    'skip_recommended': bool(ch['skip_recommended']),
+                    'content_tags': []  # TODO: 如果有标签数据，从其他表获取
+                }
+                chapters.append(chapter_data)
+
+            logger.info(f"✅ 获取章节列表成功: {len(chapters)}个章节")
+
+            return jsonify({
+                'success': True,
+                'chapters': chapters,
+                'total': len(chapters)
+            })
+
+        except Exception as e:
+            logger.error(f"获取章节列表失败: {str(e)}")
             return jsonify({"success": False, "error": str(e)}), 500
 
     # ============================================

@@ -92,6 +92,14 @@ class ChapterSelectionManager {
                     HITLConfigManager.currentProjectId = result.project_id;
                     console.log(`✅ 新项目已创建并关联: ${result.project_id}`);
                     this.showNotification(`新项目已创建: ${result.project_id}`, 'info');
+
+                    // 刷新项目列表并更新选择器
+                    await HITLConfigManager.loadProjects();
+                    const projectSelect = document.getElementById('hitlProjectSelect');
+                    if (projectSelect) {
+                        projectSelect.value = result.project_id;
+                        console.log(`✅ 项目选择器已同步: ${result.project_id}`);
+                    }
                 }
 
                 // 扁平化章节树

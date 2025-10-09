@@ -6,7 +6,7 @@
 // 全局状态管理
 // ============================================
 let currentTaskId = null;
-let currentProjectId = null;
+// 注意：currentProjectId已移除，统一使用HITLConfigManager.currentProjectId
 let currentRequirements = [];
 let currentChunks = [];
 
@@ -39,8 +39,8 @@ class TabManager {
 
     loadDetailedRequirements() {
         console.log('[TabManager] 加载详细需求');
-        if (currentTaskId && currentProjectId) {
-            loadRequirements(currentTaskId, currentProjectId);
+        if (currentTaskId && HITLConfigManager.currentProjectId) {
+            loadRequirements(currentTaskId, HITLConfigManager.currentProjectId);
         }
     }
 
@@ -296,7 +296,7 @@ async function loadRequirements(taskId, projectId) {
 async function extractDetailedRequirements() {
     console.log('[extractDetailedRequirements] 开始提取需求');
 
-    if (!currentTaskId || !currentProjectId) {
+    if (!currentTaskId || !HITLConfigManager.currentProjectId) {
         alert('缺少任务ID或项目ID');
         return;
     }
@@ -312,7 +312,7 @@ async function extractDetailedRequirements() {
         const modelSelect = document.getElementById('hitlAiModel');
         const selectedModel = modelSelect ? modelSelect.value : 'gpt-4o-mini';
 
-        console.log('[extractDetailedRequirements] 发起15条资格要求提取请求, 模型:', selectedModel);
+        console.log('[extractDetailedRequirements] 发起19条资格要求提取请求, 模型:', selectedModel);
         // 改为调用新的专用API
         const response = await fetch(`/api/tender-processing/extract-eligibility-requirements/${currentTaskId}`, {
             method: 'POST',
@@ -327,7 +327,7 @@ async function extractDetailedRequirements() {
             throw new Error(data.error || '提取失败');
         }
 
-        // 提取成功，直接显示API返回的15条清单（不使用弹窗）
+        // 提取成功，直接显示API返回的19条清单（不使用弹窗）
         console.log(`[extractDetailedRequirements] ✅ 提取成功！找到 ${data.found_count} 项，未找到 ${data.not_found_count} 项`);
         displayEligibilityChecklistFromAPI(data.checklist, data.found_count, data.not_found_count);
 
@@ -617,7 +617,7 @@ function proceedToStep3(taskId, projectId) {
     // 保存taskId到全局变量
     currentHitlTaskId = taskId;
     currentTaskId = taskId;
-    currentProjectId = projectId;
+    HITLConfigManager.currentProjectId = projectId;
 
     // 隐藏步骤1和步骤2，显示步骤3（使用正确的ID）
     const step1Section = document.getElementById('chapterSelectionSection');
@@ -756,7 +756,7 @@ async function extractBasicInfo() {
             if (info.tender_deadline) document.getElementById('tenderDeadline').value = info.tender_deadline;
             if (info.winner_count) document.getElementById('winnerCount').value = info.winner_count;
 
-            alert('✅ AI提取基本信息完成!');
+            showSuccessToast('AI提取基本信息完成!');
         } else {
             throw new Error(data.error || '提取失败');
         }
@@ -928,7 +928,7 @@ async function saveAndComplete() {
 }
 
 // ============================================
-// 15条供应商资格要求清单
+// 19条供应商资格要求清单
 // ============================================
 const ELIGIBILITY_CHECKLIST = [
     {id: 1, name: "营业执照信息", keywords: ["营业执照", "注册", "法人", "注册资金", "注册资本", "注册时间", "成立时间"]},
@@ -945,10 +945,14 @@ const ELIGIBILITY_CHECKLIST = [
     {id: 12, name: "业绩案例要求", keywords: ["业绩", "类似项目", "同类项目", "项目经验"]},
     {id: 13, name: "保证金要求", keywords: ["保证金", "投标保证金"]},
     {id: 14, name: "增值电信业务许可证", keywords: ["增值电信业务许可证", "ICP许可证", "IDC许可证", "ISP许可证", "CDN许可证", "增值电信"]},
-    {id: 15, name: "基础电信业务许可证", keywords: ["基础电信业务许可证", "电信业务经营许可证", "基础电信"]}
+    {id: 15, name: "基础电信业务许可证", keywords: ["基础电信业务许可证", "电信业务经营许可证", "基础电信"]},
+    {id: 16, name: "ISO9001质量管理体系认证", keywords: ["ISO9001", "ISO 9001", "质量管理体系", "质量认证", "GB/T19001", "质量体系认证"]},
+    {id: 17, name: "ISO20000信息技术服务管理体系认证", keywords: ["ISO20000", "ISO 20000", "信息技术服务管理", "IT服务管理", "ISO/IEC 20000", "信息技术服务"]},
+    {id: 18, name: "ISO27001信息安全管理体系认证", keywords: ["ISO27001", "ISO 27001", "信息安全管理", "信息安全认证", "ISO/IEC 27001", "信息安全体系"]},
+    {id: 19, name: "等保三级认证", keywords: ["等保三级", "等级保护三级", "信息安全等级保护", "等保", "三级等保", "等级保护备案"]}
 ];
 
-// 显示15条资格要求清单
+// 显示19条资格要求清单
 function displayEligibilityChecklist(requirements) {
     console.log('[displayEligibilityChecklist] 显示资格清单, 需求数量:', requirements.length);
 
@@ -956,14 +960,14 @@ function displayEligibilityChecklist(requirements) {
     const qualificationReqs = requirements.filter(req => req.category === 'qualification');
     console.log('[displayEligibilityChecklist] 资格类需求数量:', qualificationReqs.length);
 
-    // 初始化15条清单数据
+    // 初始化19条清单数据
     const checklistData = ELIGIBILITY_CHECKLIST.map(item => ({
         ...item,
         found: false,
         requirements: []
     }));
 
-    // 将提取的需求匹配到15条清单
+    // 将提取的需求匹配到19条清单
     qualificationReqs.forEach(req => {
         const detail = (req.detail || '').toLowerCase();
         const summary = (req.summary || '').toLowerCase();
@@ -987,7 +991,7 @@ function displayEligibilityChecklist(requirements) {
 
     // 统计
     const foundCount = checklistData.filter(item => item.found).length;
-    const notFoundCount = 15 - foundCount;
+    const notFoundCount = 19 - foundCount;
 
     // 更新统计显示
     const foundCountEl = document.getElementById('eligFoundCount');
@@ -1060,7 +1064,7 @@ function displayEligibilityChecklist(requirements) {
     console.log('[displayEligibilityChecklist] 清单显示完成');
 }
 
-// 显示API返回的15条资格要求清单（新版本，使用API结构化数据）
+// 显示API返回的19条资格要求清单（新版本，使用API结构化数据）
 function displayEligibilityChecklistFromAPI(checklist, foundCount, notFoundCount) {
     console.log('[displayEligibilityChecklistFromAPI] 显示API清单, 找到:', foundCount, '未找到:', notFoundCount);
 
@@ -1393,3 +1397,558 @@ function showToast(message, type = 'info', duration = 3000) {
         }, 300);
     }, duration);
 }
+
+// ============================================
+// 章节选择通用功能（支持多个标签页复用）
+// ============================================
+
+// 章节选择配置（支持应答文件格式和技术需求两种类型）
+const CHAPTER_SELECTION_CONFIG = {
+    'response': {
+        prefix: 'inline',
+        confirmBtnId: 'confirmInlineSaveResponseFileBtn',
+        apiSave: '/api/tender-processing/save-response-file',
+        apiInfo: '/api/tender-processing/response-file-info',
+        apiDownload: '/api/tender-processing/download-response-file',
+        apiPreview: '/api/tender-processing/preview-response-file',
+        fileTypeName: '应答文件',
+        contentId: 'responseFileContent',
+        selectionAreaId: 'inlineChapterSelectionArea',
+        noFileMessageId: 'noResponseFileMessage'
+    },
+    'technical': {
+        prefix: 'technical',
+        confirmBtnId: 'confirmTechnicalSaveBtn',
+        apiSave: '/api/tender-processing/save-technical-chapters',
+        apiInfo: '/api/tender-processing/technical-file-info',
+        apiDownload: '/api/tender-processing/download-technical-file',
+        apiPreview: '/api/tender-processing/preview-technical-file',
+        fileTypeName: '技术需求',
+        contentId: 'technicalFileContent',
+        selectionAreaId: 'technicalChapterSelectionArea',
+        noFileMessageId: 'noTechnicalFileMessage'
+    }
+};
+
+// 使用Map存储不同类型的选中状态和章节数据
+const selectedChapterIdsMap = new Map();
+const chaptersDataMap = new Map();
+
+/**
+ * 显示章节选择区域（通用函数）
+ * @param {string} type - 类型：'response'（应答文件）或 'technical'（技术需求）
+ */
+async function showChapterSelection(type) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    console.log(`[showChapterSelection] 开始显示${config.fileTypeName}章节选择区域`);
+
+    // 先尝试从步骤1获取章节数据
+    let chaptersData = null;
+    if (typeof chapterSelectionManager !== 'undefined' && chapterSelectionManager.chaptersData && chapterSelectionManager.chaptersData.length > 0) {
+        console.log('[showChapterSelection] 从步骤1获取章节数据');
+        chaptersData = chapterSelectionManager.chaptersData;
+    } else {
+        // 步骤1没有数据，尝试从API加载
+        console.log('[showChapterSelection] 步骤1无数据，从API加载');
+        if (!currentTaskId) {
+            showErrorToast('任务ID不存在，请刷新页面重试');
+            return;
+        }
+
+        try {
+            chaptersData = await loadChaptersFromAPI(currentTaskId);
+            if (!chaptersData || chaptersData.length === 0) {
+                showErrorToast('未找到章节数据，请先在步骤1解析文档');
+                return;
+            }
+        } catch (error) {
+            showErrorToast(error.message || '加载章节数据失败');
+            return;
+        }
+    }
+
+    // 初始化并重置选中状态
+    if (!selectedChapterIdsMap.has(type)) {
+        selectedChapterIdsMap.set(type, new Set());
+    }
+    selectedChapterIdsMap.get(type).clear();
+
+    // 渲染章节树
+    renderChapterTree(type, chaptersData);
+
+    // 更新统计信息
+    updateStatistics(type, chaptersData);
+
+    // 隐藏文件信息区域，显示章节选择区域
+    const fileContent = document.getElementById(config.contentId);
+    const selectionArea = document.getElementById(config.selectionAreaId);
+    if (fileContent) fileContent.style.display = 'none';
+    if (selectionArea) selectionArea.style.display = 'block';
+
+    console.log(`[showChapterSelection] ${config.fileTypeName}章节选择区域已显示`);
+}
+
+// 向后兼容：保留旧函数名作为别名
+async function showChapterSelectionModalForResponseFile() {
+    return showChapterSelection('response');
+}
+
+/**
+ * 从API加载章节数据
+ */
+async function loadChaptersFromAPI(taskId) {
+    console.log('[loadChaptersFromAPI] 开始从API加载章节数据');
+
+    const response = await fetch(`/api/tender-processing/chapters/${taskId}`);
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || '加载失败');
+    }
+
+    console.log('[loadChaptersFromAPI] 成功加载', data.chapters.length, '个章节');
+    return data.chapters;
+}
+
+/**
+ * 在页面内渲染章节树（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ * @param {Array} chaptersData - 章节数据
+ */
+function renderChapterTree(type, chaptersData) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    console.log(`[renderChapterTree] 渲染${config.fileTypeName}章节树，章节数:`, chaptersData.length);
+
+    const container = document.getElementById(`${config.prefix}ChapterTreeContainer`);
+    if (!container) {
+        console.error(`[renderChapterTree] 找不到容器: ${config.prefix}ChapterTreeContainer`);
+        return;
+    }
+
+    container.innerHTML = '';
+
+    // 扁平化渲染所有章节
+    chaptersData.forEach(chapter => {
+        const chapterDiv = createChapterElement(type, chapter);
+        container.appendChild(chapterDiv);
+    });
+
+    console.log(`[renderChapterTree] ${config.fileTypeName}章节树渲染完成`);
+}
+
+/**
+ * 创建章节元素（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ * @param {Object} chapter - 章节数据
+ */
+function createChapterElement(type, chapter) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    const div = document.createElement('div');
+    div.className = `chapter-item level-${chapter.level}`;
+    div.dataset.chapterId = chapter.id;
+    div.style.marginLeft = `${(chapter.level - 1) * 20}px`;
+
+    // 章节状态标记
+    let statusIcon = '⚪';
+    let statusClass = '';
+    if (chapter.auto_selected) {
+        statusIcon = '✅';
+        statusClass = 'auto-selected';
+    } else if (chapter.skip_recommended) {
+        statusIcon = '❌';
+        statusClass = 'skip-recommended';
+    }
+
+    // 生成标签HTML
+    let tagsHtml = '';
+    if (chapter.content_tags && chapter.content_tags.length > 0) {
+        const tagColorMap = {
+            '评分办法': 'primary',
+            '评分表': 'warning text-dark',
+            '供应商资质': 'success',
+            '文件格式': 'secondary',
+            '技术需求': 'info'
+        };
+
+        tagsHtml = chapter.content_tags.map(tag => {
+            const colorClass = tagColorMap[tag] || 'secondary';
+            return `<span class="badge bg-${colorClass} ms-1">${tag}</span>`;
+        }).join('');
+    }
+
+    const checkboxId = `${config.prefix}-ch-${chapter.id}`;
+    div.innerHTML = `
+        <div class="d-flex align-items-center chapter-row ${statusClass} py-2">
+            <input type="checkbox"
+                   class="form-check-input me-2 ${config.prefix}-chapter-checkbox"
+                   id="${checkboxId}"
+                   data-chapter-id="${chapter.id}">
+            <span class="chapter-status me-2">${statusIcon}</span>
+            <label class="chapter-title flex-grow-1" for="${checkboxId}" style="cursor: pointer;">
+                ${chapter.title}
+                <small class="text-muted">(${chapter.word_count}字)</small>
+                ${tagsHtml}
+            </label>
+        </div>
+    `;
+
+    // 绑定复选框事件
+    const checkbox = div.querySelector(`.${config.prefix}-chapter-checkbox`);
+    checkbox.addEventListener('change', (e) => {
+        const selectedIds = selectedChapterIdsMap.get(type);
+        if (e.target.checked) {
+            selectedIds.add(chapter.id);
+        } else {
+            selectedIds.delete(chapter.id);
+        }
+        updateStatistics(type);
+    });
+
+    return div;
+}
+
+/**
+ * 更新统计信息（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ * @param {Array} chaptersData - 章节数据（可选，首次调用时传入）
+ */
+function updateStatistics(type, chaptersData) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+
+    // 如果传入了章节数据，更新Map
+    if (chaptersData) {
+        chaptersDataMap.set(type, chaptersData);
+    }
+
+    const data = chaptersDataMap.get(type) || [];
+    const selectedIds = selectedChapterIdsMap.get(type) || new Set();
+
+    const totalChapters = data.length;
+    const selectedCount = selectedIds.size;
+
+    // 计算选中章节的总字数
+    const selectedWords = data
+        .filter(ch => selectedIds.has(ch.id))
+        .reduce((sum, ch) => sum + ch.word_count, 0);
+
+    document.getElementById(`${config.prefix}StatTotalChapters`).textContent = totalChapters;
+    document.getElementById(`${config.prefix}StatSelectedChapters`).textContent = selectedCount;
+    document.getElementById(`${config.prefix}StatSelectedWords`).textContent = selectedWords;
+}
+
+/**
+ * 全选（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ */
+function selectAll(type) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    const data = chaptersDataMap.get(type) || [];
+    const selectedIds = selectedChapterIdsMap.get(type);
+
+    data.forEach(ch => {
+        if (!ch.skip_recommended) {
+            selectedIds.add(ch.id);
+            const checkbox = document.getElementById(`${config.prefix}-ch-${ch.id}`);
+            if (checkbox) checkbox.checked = true;
+        }
+    });
+    updateStatistics(type);
+}
+
+/**
+ * 全不选（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ */
+function unselectAll(type) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    const selectedIds = selectedChapterIdsMap.get(type);
+
+    selectedIds.clear();
+    document.querySelectorAll(`.${config.prefix}-chapter-checkbox`).forEach(cb => cb.checked = false);
+    updateStatistics(type);
+}
+
+/**
+ * 按关键词选择（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ * @param {string} keyword - 关键词
+ */
+function selectByKeyword(type, keyword) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    const data = chaptersDataMap.get(type) || [];
+    const selectedIds = selectedChapterIdsMap.get(type);
+
+    data.forEach(ch => {
+        if (ch.title.includes(keyword) && !ch.skip_recommended) {
+            selectedIds.add(ch.id);
+            const checkbox = document.getElementById(`${config.prefix}-ch-${ch.id}`);
+            if (checkbox) checkbox.checked = true;
+        }
+    });
+    updateStatistics(type);
+    showSuccessToast(`已选中包含"${keyword}"的章节`);
+}
+
+/**
+ * 排除关键词（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ * @param {string} keyword - 关键词
+ */
+function excludeByKeyword(type, keyword) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    const data = chaptersDataMap.get(type) || [];
+    const selectedIds = selectedChapterIdsMap.get(type);
+
+    data.forEach(ch => {
+        if (ch.title.includes(keyword)) {
+            selectedIds.delete(ch.id);
+            const checkbox = document.getElementById(`${config.prefix}-ch-${ch.id}`);
+            if (checkbox) checkbox.checked = false;
+        }
+    });
+    updateStatistics(type);
+    showSuccessToast(`已排除包含"${keyword}"的章节`);
+}
+
+/**
+ * 隐藏章节选择区域（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ */
+function hideChapterSelection(type) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    const fileContent = document.getElementById(config.contentId);
+    const selectionArea = document.getElementById(config.selectionAreaId);
+    if (fileContent) fileContent.style.display = 'block';
+    if (selectionArea) selectionArea.style.display = 'none';
+}
+
+/**
+ * 确认保存选中章节（通用函数）
+ * @param {string} type - 类型：'response'或'technical'
+ */
+async function confirmSave(type) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    console.log(`[confirmSave] 开始保存${config.fileTypeName}`);
+
+    const selectedIds = selectedChapterIdsMap.get(type);
+    if (!selectedIds || selectedIds.size === 0) {
+        showErrorToast('请至少选择一个章节');
+        return;
+    }
+
+    if (!currentTaskId) {
+        showErrorToast('任务ID不存在，请刷新页面重试');
+        return;
+    }
+
+    const btn = document.getElementById(config.confirmBtnId);
+    if (!btn) {
+        console.error(`找不到确认按钮: ${config.confirmBtnId}`);
+        return;
+    }
+
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>保存中...';
+
+    try {
+        const chapterIds = Array.from(selectedIds);
+        const apiUrl = `${config.apiSave}/${currentTaskId}`;
+
+        console.log(`[confirmSave] 发起API请求，章节数:`, chapterIds.length);
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chapter_ids: chapterIds })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || '保存失败');
+        }
+
+        showSuccessToast(`✅ ${config.fileTypeName}已成功保存！文件名: ${result.filename}`);
+
+        // 隐藏章节选择区域
+        hideChapterSelection(type);
+
+        // 刷新文件信息显示
+        setTimeout(() => {
+            loadFileInfo(type, currentTaskId);
+        }, 500);
+
+    } catch (error) {
+        console.error(`[confirmSave] 保存${config.fileTypeName}失败:`, error);
+        showErrorToast(`保存失败: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+// 通用文件信息加载函数
+async function loadFileInfo(type, taskId) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    console.log(`[loadFileInfo] 加载${config.fileTypeName}文件信息, taskId:`, taskId);
+
+    try {
+        const response = await fetch(`${config.apiInfo}/${taskId}`);
+        const data = await response.json();
+        console.log(`[loadFileInfo] API响应:`, data);
+
+        const contentDiv = document.getElementById(config.contentId);
+
+        if (data.success && data.has_file) {
+            console.log(`[loadFileInfo] 检测到已保存的${config.fileTypeName}文件`);
+
+            // 计算文件大小显示
+            const fileSizeKB = (data.file_size / 1024).toFixed(2);
+            const savedDate = new Date(data.saved_at).toLocaleString('zh-CN');
+
+            const htmlContent = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>已保存${config.fileTypeName}文件</strong>
+                    <div class="mt-3">
+                        <p class="mb-2"><strong>文件名:</strong> ${data.filename}</p>
+                        <p class="mb-2"><strong>文件大小:</strong> ${fileSizeKB} KB</p>
+                        <p class="mb-3"><strong>保存时间:</strong> ${savedDate}</p>
+                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="previewFile('${type}', '${taskId}')">
+                            <i class="bi bi-eye me-2"></i>预览
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="downloadFile('${type}', '${taskId}')">
+                            <i class="bi bi-download me-2"></i>下载
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (contentDiv) {
+                contentDiv.innerHTML = htmlContent;
+                contentDiv.style.display = 'block';
+            }
+        } else {
+            console.log(`[loadFileInfo] 未找到${config.fileTypeName}文件`);
+            const noFileMessage = document.getElementById(config.noFileMessageId);
+            if (noFileMessage) {
+                noFileMessage.style.display = 'block';
+            }
+            if (contentDiv) {
+                contentDiv.innerHTML = '';
+            }
+        }
+    } catch (error) {
+        console.error(`[loadFileInfo] 加载${config.fileTypeName}文件信息失败:`, error);
+    }
+}
+
+// 通用文件预览函数
+function previewFile(type, taskId) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    console.log(`[previewFile] 预览${config.fileTypeName}文件, taskId:`, taskId);
+
+    const previewUrl = `${config.apiPreview}/${taskId}`;
+
+    // 显示加载状态
+    const previewContent = document.getElementById('documentPreviewContent');
+    if (previewContent) {
+        previewContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">正在加载文档...</p></div>';
+    }
+
+    // 显示预览模态框
+    const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
+    previewModal.show();
+
+    // 使用mammoth.js在前端直接转换Word文档
+    fetch(previewUrl)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            return mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+        })
+        .then(result => {
+            if (previewContent) {
+                const html = result.value || '<p>文档内容为空</p>';
+                previewContent.innerHTML = `<div class="mammoth-preview-content">${html}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error(`[previewFile] 预览${config.fileTypeName}失败:`, error);
+            if (previewContent) {
+                previewContent.innerHTML = '<div class="alert alert-danger">预览失败，请稍后重试</div>';
+            }
+        });
+}
+
+// 通用文件下载函数
+function downloadFile(type, taskId) {
+    const config = CHAPTER_SELECTION_CONFIG[type];
+    console.log(`[downloadFile] 下载${config.fileTypeName}文件, taskId:`, taskId);
+    window.location.href = `${config.apiDownload}/${taskId}`;
+}
+
+// 向后兼容：保留旧函数名
+async function confirmInlineSaveResponseFile() {
+    return confirmSave('response');
+}
+
+// ============================================
+// 绑定章节选择事件（统一处理）
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[DOMContentLoaded] 绑定章节选择事件');
+
+    // ========== 应答文件格式标签页 ==========
+
+    // 绑定"从章节目录选择"按钮
+    const responseSelectBtn = document.getElementById('selectChaptersForResponseFileBtn');
+    if (responseSelectBtn) {
+        responseSelectBtn.addEventListener('click', () => showChapterSelection('response'));
+        console.log('[DOMContentLoaded] 已绑定应答文件"从章节目录选择"按钮');
+    }
+
+    // 绑定批量操作按钮
+    document.getElementById('inlineSelectAllBtn')?.addEventListener('click', () => selectAll('response'));
+    document.getElementById('inlineUnselectAllBtn')?.addEventListener('click', () => unselectAll('response'));
+    document.getElementById('inlineSelectTechBtn')?.addEventListener('click', () => selectByKeyword('response', '技术'));
+    document.getElementById('inlineExcludeContractBtn')?.addEventListener('click', () => excludeByKeyword('response', '合同'));
+
+    // 绑定确认保存按钮
+    const confirmResponseBtn = document.getElementById('confirmInlineSaveResponseFileBtn');
+    if (confirmResponseBtn) {
+        confirmResponseBtn.addEventListener('click', () => confirmSave('response'));
+        console.log('[DOMContentLoaded] 已绑定应答文件确认保存按钮');
+    }
+
+    // 绑定取消/隐藏按钮
+    document.getElementById('hideChapterSelectionBtn')?.addEventListener('click', () => hideChapterSelection('response'));
+    document.getElementById('cancelInlineSelectionBtn')?.addEventListener('click', () => hideChapterSelection('response'));
+
+    // ========== 技术需求标签页 ==========
+
+    // 绑定"从章节目录选择"按钮（技术需求）
+    const technicalSelectBtn = document.getElementById('selectChaptersForTechnicalBtn');
+    if (technicalSelectBtn) {
+        technicalSelectBtn.addEventListener('click', () => showChapterSelection('technical'));
+        console.log('[DOMContentLoaded] 已绑定技术需求"从章节目录选择"按钮');
+    }
+
+    // 绑定批量操作按钮（技术需求）
+    document.getElementById('technicalSelectAllBtn')?.addEventListener('click', () => selectAll('technical'));
+    document.getElementById('technicalUnselectAllBtn')?.addEventListener('click', () => unselectAll('technical'));
+    document.getElementById('technicalSelectTechBtn')?.addEventListener('click', () => selectByKeyword('technical', '技术'));
+    document.getElementById('technicalExcludeContractBtn')?.addEventListener('click', () => excludeByKeyword('technical', '合同'));
+
+    // 绑定确认保存按钮（技术需求）
+    const confirmTechnicalBtn = document.getElementById('confirmTechnicalSaveBtn');
+    if (confirmTechnicalBtn) {
+        confirmTechnicalBtn.addEventListener('click', () => confirmSave('technical'));
+        console.log('[DOMContentLoaded] 已绑定技术需求确认保存按钮');
+    }
+
+    // 绑定取消/隐藏按钮（技术需求）
+    document.getElementById('hideTechnicalChapterSelectionBtn')?.addEventListener('click', () => hideChapterSelection('technical'));
+    document.getElementById('cancelTechnicalSelectionBtn')?.addEventListener('click', () => hideChapterSelection('technical'));
+});
+
