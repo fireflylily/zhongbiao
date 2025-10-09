@@ -2466,58 +2466,6 @@ def register_hitl_routes(app):
     # ============================================
     # 填充应答文件API
     # ============================================
-
-
-
-# ============================================
-# 辅助函数（在 register_hitl_routes 之外）
-# ============================================
-
-def convert_image_urls_to_paths(image_config_urls, company_id, db):
-    """
-    将图片URL转换为实际文件路径
-
-    Args:
-        image_config_urls: 图片配置字典 {资质名称: 图片URL}
-        company_id: 公司ID
-        db: 数据库连接
-
-    Returns:
-        转换后的图片配置字典 {资质名称: 文件路径}
-    """
-    image_config = {}
-
-    for qual_name, image_url in image_config_urls.items():
-        try:
-            # URL格式通常是: /uploads/<company_id>/<qual_key>/<filename>
-            # 从URL中提取qualification_id
-            # 由于前端传递的是image_url，我们需要通过URL找到对应的资质记录
-
-            # 简单方法：通过image_url直接查询数据库
-            qualification = db.execute_query("""
-                SELECT file_path, image_path
-                FROM company_qualifications
-                WHERE company_id = ?
-                AND (image_url = ? OR image_path = ?)
-            """, (company_id, image_url, image_url), fetch_one=True)
-
-            if qualification:
-                # 优先使用file_path，如果没有则使用image_path
-                file_path = qualification.get('file_path') or qualification.get('image_path')
-                if file_path and os.path.exists(file_path):
-                    image_config[qual_name] = file_path
-                    logger.info(f"  转换资质 '{qual_name}': {image_url} -> {file_path}")
-                else:
-                    logger.warning(f"  资质 '{qual_name}' 文件不存在: {file_path}")
-            else:
-                logger.warning(f"  未找到资质 '{qual_name}' 对应的数据库记录: {image_url}")
-
-        except Exception as e:
-            logger.error(f"转换图片路径失败 ({qual_name}): {e}")
-            continue
-
-    return image_config
-
     # ============================================
     # 应答完成文件相关API (从商务应答同步)
     # ============================================
@@ -2717,3 +2665,57 @@ def convert_image_urls_to_paths(image_config_urls, company_id, db):
         except Exception as e:
             logger.error(f"预览应答完成文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
+
+
+
+
+# ============================================
+# 辅助函数（在 register_hitl_routes 之外）
+# ============================================
+
+def convert_image_urls_to_paths(image_config_urls, company_id, db):
+    """
+    将图片URL转换为实际文件路径
+
+    Args:
+        image_config_urls: 图片配置字典 {资质名称: 图片URL}
+        company_id: 公司ID
+        db: 数据库连接
+
+    Returns:
+        转换后的图片配置字典 {资质名称: 文件路径}
+    """
+    image_config = {}
+
+    for qual_name, image_url in image_config_urls.items():
+        try:
+            # URL格式通常是: /uploads/<company_id>/<qual_key>/<filename>
+            # 从URL中提取qualification_id
+            # 由于前端传递的是image_url，我们需要通过URL找到对应的资质记录
+
+            # 简单方法：通过image_url直接查询数据库
+            qualification = db.execute_query("""
+                SELECT file_path, image_path
+                FROM company_qualifications
+                WHERE company_id = ?
+                AND (image_url = ? OR image_path = ?)
+            """, (company_id, image_url, image_url), fetch_one=True)
+
+            if qualification:
+                # 优先使用file_path，如果没有则使用image_path
+                file_path = qualification.get('file_path') or qualification.get('image_path')
+                if file_path and os.path.exists(file_path):
+                    image_config[qual_name] = file_path
+                    logger.info(f"  转换资质 '{qual_name}': {image_url} -> {file_path}")
+                else:
+                    logger.warning(f"  资质 '{qual_name}' 文件不存在: {file_path}")
+            else:
+                logger.warning(f"  未找到资质 '{qual_name}' 对应的数据库记录: {image_url}")
+
+        except Exception as e:
+            logger.error(f"转换图片路径失败 ({qual_name}): {e}")
+            continue
+
+    return image_config
+
+

@@ -102,6 +102,14 @@ def create_app() -> Flask:
     except ImportError as e:
         logger.warning(f"RAG知识库API模块加载失败: {e}")
 
+    # 注册技术方案大纲生成API蓝图
+    try:
+        from web.api_outline_generator import api_outline_bp
+        app.register_blueprint(api_outline_bp)
+        logger.info("技术方案大纲生成API模块注册成功")
+    except ImportError as e:
+        logger.warning(f"技术方案大纲生成API模块加载失败: {e}")
+
     # 注册路由
     register_routes(app, config, logger)
     
@@ -848,25 +856,56 @@ def register_routes(app: Flask, config, logger):
             })
 
         try:
-            # 获取上传的文件
-            if 'file' not in request.files:
-                raise ValueError("没有选择文件")
+            # 检查是否使用HITL技术需求文件
+            use_hitl_file = request.form.get('use_hitl_technical_file') == 'true'
+            hitl_task_id = request.form.get('hitl_task_id')
 
-            file = request.files['file']
-            if file.filename == '':
-                raise ValueError("文件名为空")
+            if use_hitl_file and hitl_task_id:
+                # 从HITL任务获取技术需求文件
+                logger.info(f"使用HITL任务的技术需求文件: {hitl_task_id}")
 
-            # 保存文件 - 使用统一服务
-            from core.storage_service import storage_service
-            file_metadata = storage_service.store_file(
-                file_obj=file,
-                original_name=file.filename,
-                category='point_to_point',
-                business_type='point_to_point_response'
-            )
-            file_path = Path(file_metadata.file_path)
+                # 查询HITL任务的技术需求文件路径
+                # 技术需求文件保存在 technical_files/{year}/{month}/{task_id}/ 目录下
+                from datetime import datetime
+                now = datetime.now()
+                year = now.strftime('%Y')
+                month = now.strftime('%m')
 
-            logger.info(f"开始处理点对点应答: {file_metadata.original_name}")
+                technical_dir = Path(config.get_path('upload')) / 'technical_files' / year / month / hitl_task_id
+
+                if not technical_dir.exists():
+                    raise ValueError(f"HITL任务技术需求文件目录不存在: {technical_dir}")
+
+                # 查找目录中的docx文件
+                docx_files = list(technical_dir.glob('*.docx'))
+                if not docx_files:
+                    raise ValueError(f"HITL任务目录中没有找到技术需求文件: {technical_dir}")
+
+                # 使用第一个找到的docx文件
+                file_path = docx_files[0]
+                filename = file_path.name
+                logger.info(f"使用HITL技术需求文件: {filename}, 路径: {file_path}")
+            else:
+                # 获取上传的文件
+                if 'file' not in request.files:
+                    raise ValueError("没有选择文件")
+
+                file = request.files['file']
+                if file.filename == '':
+                    raise ValueError("文件名为空")
+
+                # 保存文件 - 使用统一服务
+                from core.storage_service import storage_service
+                file_metadata = storage_service.store_file(
+                    file_obj=file,
+                    original_name=file.filename,
+                    category='point_to_point',
+                    business_type='point_to_point_response'
+                )
+                file_path = Path(file_metadata.file_path)
+                filename = file_metadata.original_name
+
+            logger.info(f"开始处理点对点应答: {filename}")
 
             # 获取公司ID参数
             company_id = request.form.get('companyId')
@@ -939,8 +978,7 @@ def register_routes(app: Flask, config, logger):
             # 使用新的内联回复处理方法
             result_stats = processor.process_inline_reply(
                 str(file_path),
-                str(output_path),
-                response_mode
+                str(output_path)
             )
 
             if result_stats.get('success'):

@@ -30,7 +30,10 @@
             <div class="card-body">
                 <form id="uploadForm">
                     <!-- 隐藏的表单字段存储公司ID -->
-                    <input type="hidden" id="companySelect" name="companyId" value="">
+                    <input type="hidden" id="pointToPointCompanyId" name="companyId" value="">
+                    <!-- 隐藏字段：存储从HITL传递过来的技术需求文件信息 -->
+                    <input type="hidden" id="technicalFileTaskId" name="technicalFileTaskId" value="">
+                    <input type="hidden" id="technicalFileUrl" name="technicalFileUrl" value="">
 
                     <!-- 文件上传区域 -->
                     <div class="mb-4">
@@ -158,9 +161,15 @@
                 <div id="resultMessage" class="mb-3">
                     <!-- 处理结果信息将在这里显示 -->
                 </div>
-                <div class="text-center">
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-outline-primary" id="previewBtn">
+                        <i class="bi bi-eye"></i> 预览
+                    </button>
                     <button class="btn btn-success" id="downloadBtn">
                         <i class="bi bi-download"></i> 下载结果文件
+                    </button>
+                    <button class="btn btn-primary" id="confirmCompleteBtn">
+                        <i class="bi bi-check-circle"></i> 确认完成并返回主页
                     </button>
                 </div>
             </div>

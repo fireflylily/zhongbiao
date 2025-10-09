@@ -477,73 +477,91 @@
         // 页面加载时检查URL hash，自动切换到对应tab
         document.addEventListener('DOMContentLoaded', function() {
             const hash = window.location.hash;
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectName = urlParams.get('project_name');
+            const companyId = urlParams.get('company_id');
+            const companyName = urlParams.get('company_name');
+            const hitlTaskId = urlParams.get('hitl_task_id');
 
+            // 通用填充函数
+            function fillCompanyProjectInfo(section) {
+                if (projectName || companyId || companyName || hitlTaskId) {
+                    console.log(`[Index] ${section} - URL参数:`, { projectName, companyId, companyName, hitlTaskId });
+
+                    setTimeout(function() {
+                        // 填充公司名称
+                        if (companyName) {
+                            const companyNameDisplay = document.querySelector(`.companyNameDisplay[data-section="${section}"]`);
+                            if (companyNameDisplay) {
+                                companyNameDisplay.textContent = companyName;
+                                console.log(`[Index] ${section} - 已填充公司名称:`, companyName);
+                            }
+                        }
+
+                        // 填充项目名称
+                        if (projectName) {
+                            const projectNameDisplay = document.querySelector(`.projectNameDisplay[data-section="${section}"]`);
+                            if (projectNameDisplay) {
+                                projectNameDisplay.textContent = projectName;
+                                console.log(`[Index] ${section} - 已填充项目名称:`, projectName);
+                            }
+                        }
+
+                        // 填充公司ID（不同section可能有不同的ID字段名）
+                        if (companyId) {
+                            let companyIdInput;
+                            if (section === 'business') {
+                                companyIdInput = document.getElementById('businessCompanyId');
+                            } else if (section === 'point-to-point') {
+                                companyIdInput = document.getElementById('pointToPointCompanyId');
+                            } else if (section === 'tech-proposal') {
+                                companyIdInput = document.getElementById('techProposalCompanyId');
+                            }
+
+                            if (companyIdInput) {
+                                companyIdInput.value = companyId;
+                                console.log(`[Index] ${section} - 已填充公司ID:`, companyId);
+                            }
+                        }
+                    }, 100);
+                }
+            }
+
+            // 处理不同的hash
             if (hash === '#business-response') {
-                console.log('[Index] 检测到URL hash: #business-response，切换到商务应答tab');
+                console.log('[Index] 检测到URL hash: #business-response');
+                const nav = document.getElementById('business-response-nav');
+                if (nav) {
+                    new bootstrap.Tab(nav).show();
+                    fillCompanyProjectInfo('business');
 
-                // 激活商务应答tab
-                const businessResponseNav = document.getElementById('business-response-nav');
-                if (businessResponseNav) {
-                    const tab = new bootstrap.Tab(businessResponseNav);
-                    tab.show();
-                    console.log('[Index] 已切换到商务应答tab');
-
-                    // 获取URL参数
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const projectName = urlParams.get('project_name');
-                    const companyId = urlParams.get('company_id');
-                    const companyName = urlParams.get('company_name');
-                    const hitlTaskId = urlParams.get('hitl_task_id');
-
-                    if (projectName || companyId || companyName || hitlTaskId) {
-                        console.log('[Index] URL参数:', { projectName, companyId, companyName, hitlTaskId });
-
-                        // 等待tab内容完全渲染后再填充信息
-                        setTimeout(function() {
-                            // 填充公司项目信息卡片
-                            if (companyName) {
-                                const companyNameDisplay = document.querySelector('.companyNameDisplay[data-section="business"]');
-                                console.log('[Index] 查找公司名称显示元素:', companyNameDisplay);
-                                if (companyNameDisplay) {
-                                    companyNameDisplay.textContent = companyName;
-                                    console.log('[Index] 已填充公司名称:', companyName);
-                                } else {
-                                    console.error('[Index] 未找到公司名称显示元素 .companyNameDisplay[data-section="business"]');
-                                }
-                            }
-
-                            if (projectName) {
-                                const projectNameDisplay = document.querySelector('.projectNameDisplay[data-section="business"]');
-                                console.log('[Index] 查找项目名称显示元素:', projectNameDisplay);
-                                if (projectNameDisplay) {
-                                    projectNameDisplay.textContent = projectName;
-                                    console.log('[Index] 已填充项目名称:', projectName);
-                                } else {
-                                    console.error('[Index] 未找到项目名称显示元素 .projectNameDisplay[data-section="business"]');
-                                }
-                            }
-
-                            // 填充隐藏的公司ID字段
-                            if (companyId) {
-                                const companyIdInput = document.getElementById('businessCompanyId');
-                                console.log('[Index] 查找公司ID输入框:', companyIdInput);
-                                if (companyIdInput) {
-                                    companyIdInput.value = companyId;
-                                    console.log('[Index] 已填充公司ID:', companyId);
-                                } else {
-                                    console.error('[Index] 未找到公司ID输入框 #businessCompanyId');
-                                }
-                            }
-
-                            // 如果有HITL任务ID，自动加载应答文件
-                            if (hitlTaskId) {
-                                console.log('[Index] 开始加载HITL任务的应答文件...');
-                                loadResponseFileFromHITL(hitlTaskId);
-                            }
-                        }, 100); // 延迟100ms确保DOM已渲染
+                    // 如果有HITL任务ID，自动加载应答文件
+                    if (hitlTaskId) {
+                        setTimeout(() => loadResponseFileFromHITL(hitlTaskId), 200);
                     }
-                } else {
-                    console.error('[Index] 未找到商务应答导航按钮元素');
+                }
+            } else if (hash === '#point-to-point') {
+                console.log('[Index] 检测到URL hash: #point-to-point');
+                const nav = document.getElementById('point-to-point-nav');
+                if (nav) {
+                    new bootstrap.Tab(nav).show();
+                    fillCompanyProjectInfo('point-to-point');
+
+                    // 如果有技术需求文件信息，自动显示
+                    const technicalFileName = urlParams.get('technical_file_name');
+                    const technicalFileSize = urlParams.get('technical_file_size');
+                    const technicalFileUrl = urlParams.get('technical_file_url');
+
+                    if (technicalFileName && technicalFileSize) {
+                        setTimeout(() => loadTechnicalFileInfo(technicalFileName, technicalFileSize, technicalFileUrl), 200);
+                    }
+                }
+            } else if (hash === '#tech-proposal') {
+                console.log('[Index] 检测到URL hash: #tech-proposal');
+                const nav = document.getElementById('tech-proposal-nav');
+                if (nav) {
+                    new bootstrap.Tab(nav).show();
+                    fillCompanyProjectInfo('tech-proposal');
                 }
             }
         });
@@ -591,6 +609,80 @@
                 }
             } catch (error) {
                 console.error('[loadResponseFileFromHITL] 加载应答文件失败:', error);
+            }
+        }
+
+        /**
+         * 显示技术需求文件信息
+         * @param {string} fileName - 文件名
+         * @param {number} fileSize - 文件大小（字节）
+         * @param {string} fileUrl - 文件下载URL
+         */
+        function loadTechnicalFileInfo(fileName, fileSize, fileUrl) {
+            try {
+                console.log('[loadTechnicalFileInfo] 显示技术需求文件:', { fileName, fileSize, fileUrl });
+
+                // 获取点对点应答页面的文件信息显示元素
+                const fileInfo = document.getElementById('fileInfo');
+                const fileNameElement = document.getElementById('fileName');
+                const fileSizeElement = document.getElementById('fileSize');
+                const uploadArea = document.getElementById('uploadArea');
+
+                if (fileNameElement && fileSizeElement && fileInfo) {
+                    // 显示文件信息
+                    fileNameElement.textContent = fileName;
+                    fileSizeElement.textContent = `(${(fileSize / 1024 / 1024).toFixed(2)} MB)`;
+                    fileInfo.classList.remove('d-none');
+
+                    // 隐藏上传区域（因为已经有文件了）
+                    if (uploadArea) {
+                        uploadArea.style.display = 'none';
+                    }
+
+                    console.log('[loadTechnicalFileInfo] 技术需求文件信息已显示');
+
+                    // 可选：添加一个提示，说明这是从HITL页面传递过来的
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-info mt-2';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>已自动加载技术需求文件：</strong> ${fileName}
+                        ${fileUrl ? `<a href="${fileUrl}" class="btn btn-sm btn-outline-primary ms-2" target="_blank">
+                            <i class="bi bi-download me-1"></i>下载
+                        </a>` : ''}
+                    `;
+
+                    // 将提示添加到文件信息下方
+                    if (fileInfo.parentNode) {
+                        fileInfo.parentNode.insertBefore(alertDiv, fileInfo.nextSibling);
+                    }
+
+                    // 填充隐藏字段
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const hitlTaskId = urlParams.get('hitl_task_id');
+                    const technicalFileTaskIdInput = document.getElementById('technicalFileTaskId');
+                    const technicalFileUrlInput = document.getElementById('technicalFileUrl');
+
+                    if (technicalFileTaskIdInput && hitlTaskId) {
+                        technicalFileTaskIdInput.value = hitlTaskId;
+                    }
+                    if (technicalFileUrlInput && fileUrl) {
+                        technicalFileUrlInput.value = fileUrl;
+                    }
+
+                    console.log('[loadTechnicalFileInfo] 已设置隐藏字段:', {
+                        taskId: hitlTaskId,
+                        fileUrl: fileUrl
+                    });
+
+                    // 触发自定义事件，通知按钮状态更新
+                    const event = new CustomEvent('technicalFileLoaded', {
+                        detail: { fileName, fileSize, fileUrl, hitlTaskId }
+                    });
+                    document.dispatchEvent(event);
+                }
+            } catch (error) {
+                console.error('[loadTechnicalFileInfo] 显示技术需求文件信息失败:', error);
             }
         }
     </script>

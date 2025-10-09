@@ -148,20 +148,35 @@ function initFileUpload() {
     }
 
     function updateProcessButton() {
-        const companySelect = document.getElementById('companySelect');
-        const hasFile = fileInput.files.length > 0;
+        const companySelect = document.getElementById('pointToPointCompanyId');
+        const technicalFileTaskId = document.getElementById('technicalFileTaskId');
+
+        // 检查是否有上传的文件或从HITL传递过来的技术需求文件
+        const hasFile = fileInput.files.length > 0 || (technicalFileTaskId && technicalFileTaskId.value);
         const hasCompany = companySelect && companySelect.value;
 
         if (processBtn) {
             processBtn.disabled = !(hasFile && hasCompany);
         }
+
+        console.log('[updateProcessButton] 按钮状态更新:', {
+            hasFile,
+            hasCompany,
+            disabled: !(hasFile && hasCompany)
+        });
     }
 
     // 公司选择变化时也要更新按钮状态
-    const companySelect = document.getElementById('companySelect');
+    const companySelect = document.getElementById('pointToPointCompanyId');
     if (companySelect) {
         companySelect.addEventListener('change', updateProcessButton);
     }
+
+    // 监听技术需求文件加载事件
+    document.addEventListener('technicalFileLoaded', function(e) {
+        console.log('[point-to-point] 收到技术需求文件加载事件:', e.detail);
+        updateProcessButton();
+    });
 }
 
 // 防止默认拖拽行为
@@ -187,18 +202,24 @@ function initFormSubmission() {
 // 提交点对点应答表单
 function submitPointToPointForm() {
     const fileInput = document.getElementById('fileInput');
-    const companySelect = document.getElementById('companySelect');
+    const companySelect = document.getElementById('pointToPointCompanyId');
     const responseFrequency = document.getElementById('responseFrequency');
     const responseMode = document.getElementById('responseMode');
     const aiModel = document.getElementById('aiModel');
+    const technicalFileTaskId = document.getElementById('technicalFileTaskId');
+    const technicalFileUrl = document.getElementById('technicalFileUrl');
+
+    // 检查是否有上传的文件或从HITL传递的技术需求文件
+    const hasUploadedFile = fileInput.files[0];
+    const hasTechnicalFile = technicalFileTaskId && technicalFileTaskId.value;
 
     // 验证必填字段
-    if (!fileInput.files[0]) {
-        alert('请选择文件');
+    if (!hasUploadedFile && !hasTechnicalFile) {
+        alert('请选择文件或从HITL页面传递技术需求文件');
         return;
     }
 
-    if (!companySelect.value) {
+    if (!companySelect || !companySelect.value) {
         alert('请选择公司');
         return;
     }
@@ -215,7 +236,17 @@ function submitPointToPointForm() {
 
     // 构建FormData
     const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
+
+    // 如果有上传的文件，使用上传的文件
+    if (hasUploadedFile) {
+        formData.append('file', fileInput.files[0]);
+    }
+    // 否则，传递HITL任务ID，让后端从HITL任务中获取技术需求文件
+    else if (hasTechnicalFile) {
+        formData.append('hitl_task_id', technicalFileTaskId.value);
+        formData.append('use_hitl_technical_file', 'true');
+    }
+
     formData.append('companyId', companySelect.value);
     formData.append('responseFrequency', responseFrequency?.value || 'every_paragraph');
     formData.append('responseMode', responseMode?.value || 'simple');
@@ -273,11 +304,37 @@ function submitPointToPointForm() {
                 };
             }
 
+            // 设置预览按钮事件
+            const previewBtn = document.getElementById('previewBtn');
+            if (data.download_url && previewBtn) {
+                previewBtn.onclick = function(e) {
+                    e.preventDefault();
+                    // 在新窗口打开预览
+                    window.open(data.download_url, '_blank');
+                };
+            }
+
+            // 设置"确认完成并返回主页"按钮事件
+            const confirmCompleteBtn = document.getElementById('confirmCompleteBtn');
+            if (confirmCompleteBtn) {
+                confirmCompleteBtn.onclick = function(e) {
+                    e.preventDefault();
+                    // 返回主页
+                    window.location.href = '/';
+                };
+            }
+
             if (resultArea) resultArea.classList.remove('d-none');
         } else {
             const errorMessage = document.getElementById('errorMessage');
-            if (errorMessage) errorMessage.textContent = data.error || '处理失败';
+            // 处理错误信息，如果是对象则转换为字符串
+            let errorText = data.error || data.message || '处理失败';
+            if (typeof errorText === 'object') {
+                errorText = JSON.stringify(errorText, null, 2);
+            }
+            if (errorMessage) errorMessage.textContent = errorText;
             if (errorArea) errorArea.classList.remove('d-none');
+            console.error('[submitPointToPointForm] 处理失败:', data);
         }
     })
     .catch(error => {
@@ -296,6 +353,7 @@ function submitPointToPointForm() {
         const errorMessage = document.getElementById('errorMessage');
         if (errorMessage) errorMessage.textContent = errorMsg;
         if (errorArea) errorArea.classList.remove('d-none');
+        console.error('[submitPointToPointForm] 请求失败:', error);
     })
     .finally(() => {
         setTimeout(() => {

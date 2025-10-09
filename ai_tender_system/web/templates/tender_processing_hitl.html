@@ -392,11 +392,6 @@
                         <i class="bi bi-file-earmark-text me-2"></i>应答文件格式
                     </button>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="completed-response-tab" data-bs-toggle="tab" data-bs-target="#completedResponsePanel" type="button" role="tab">
-                        <i class="bi bi-file-earmark-check me-2"></i>应答完成文件
-                    </button>
-                </li>
             </ul>
 
             <!-- Tab内容 -->
@@ -738,6 +733,37 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- 技术需求快捷操作区域 -->
+                    <div class="mt-4" id="technicalQuickActions" style="display: none;">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-lightning-charge me-2"></i>快捷操作
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    已保存技术需求章节，您可以使用以下功能对技术需求进行处理：
+                                </p>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-primary w-100" id="goToPointToPointBtn" onclick="goToPointToPoint()">
+                                            <i class="bi bi-chat-dots me-2"></i>点对点应答
+                                            <p class="small mb-0 mt-1 text-muted">针对具体技术问题进行详细应答</p>
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button class="btn btn-outline-success w-100" id="goToTechProposalBtn" onclick="goToTechProposal()">
+                                            <i class="bi bi-file-earmark-code me-2"></i>技术方案编写
+                                            <p class="small mb-0 mt-1 text-muted">生成完整的技术方案文档</p>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- ==================== -->
@@ -833,19 +859,16 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- ==================== -->
-                <!-- Tab 7: 应答完成文件 -->
-                <!-- ==================== -->
-                <div class="tab-pane fade" id="completedResponsePanel" role="tabpanel">
-                    <!-- 已保存的应答完成文件显示区域 -->
-                    <div id="completedResponseContent" style="min-height: 200px; padding: 20px;">
+                    <!-- 应答完成文件区域（放在应答文件格式下方） -->
+                    <div id="completedResponseContent" style="margin-top: 30px; padding: 20px; border-top: 2px solid #e9ecef;">
+                        <h5 class="mb-3">
+                            <i class="bi bi-file-earmark-check me-2 text-success"></i>应答完成文件
+                        </h5>
                         <div class="empty-state" id="noCompletedResponseMessage">
                             <i class="bi bi-file-earmark-check fs-1 text-muted mb-3"></i>
-                            <h5 class="text-muted">应答完成文件</h5>
                             <p class="text-muted">尚未生成应答完成文件</p>
-                            <p class="text-muted small">在商务应答页面完成处理后,点击"同步到投标项目"按钮,文件将自动同步到这里</p>
+                            <p class="text-muted small">在商务应答页面完成处理后，点击"保存并完成"按钮，文件将自动同步到这里</p>
                         </div>
                     </div>
                 </div>
@@ -867,7 +890,7 @@
     <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- 步骤3增强版脚本（包含基本信息、资质要求、详细要求） - 必须先加载，因为步骤1需要调用proceedToStep3函数 -->
-    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=20251009n"></script>
+    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=1760001321"></script>
 
     <!-- 步骤1脚本 -->
     <script src="/static/js/pages/tender-processing-step1.js"></script>
@@ -1040,6 +1063,27 @@
                             projectName.textContent = `已加载: ${project.project_name}`;
                             projectInfo.style.display = 'block';
                         }
+
+                        // 保存项目和公司信息到全局变量（供快捷跳转使用）
+                        window.currentProjectName = project.project_name || '';
+                        window.currentCompanyId = project.company_id || '';
+
+                        // 从公司选择器获取公司名称
+                        let companyName = '';
+                        const companySelect = document.getElementById('hitlCompanySelect');
+                        if (companySelect && companySelect.value) {
+                            const selectedOption = companySelect.options[companySelect.selectedIndex];
+                            if (selectedOption) {
+                                companyName = selectedOption.text;
+                            }
+                        }
+                        window.currentCompanyName = companyName;
+
+                        console.log('[HITLConfigManager] 已保存全局变量:', {
+                            projectName: window.currentProjectName,
+                            companyId: window.currentCompanyId,
+                            companyName: window.currentCompanyName
+                        });
 
                         console.log('[HITLConfigManager] 项目基本信息已加载:', project);
 
@@ -1397,6 +1441,70 @@
 
             // Tab数据已在选择项目时自动加载，无需监听tab切换事件
         });
+
+        /**
+         * 跳转到点对点应答页面
+         */
+        async function goToPointToPoint() {
+            // 获取当前项目和公司信息
+            const projectName = window.currentProjectName || '';
+            const companyId = window.currentCompanyId || '';
+            const companyName = window.currentCompanyName || '';
+            const hitlTaskId = window.currentHitlTaskId || '';
+
+            console.log('[goToPointToPoint] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
+
+            // 构建URL参数
+            const params = new URLSearchParams();
+            if (projectName) params.append('project_name', projectName);
+            if (companyId) params.append('company_id', companyId);
+            if (companyName) params.append('company_name', companyName);
+            if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
+
+            // 获取技术需求文件信息
+            if (hitlTaskId) {
+                try {
+                    const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
+                    const data = await response.json();
+
+                    if (data.success && data.has_file) {
+                        // 将技术需求文件信息添加到URL参数
+                        params.append('technical_file_name', data.filename);
+                        params.append('technical_file_size', data.file_size);
+                        params.append('technical_file_url', data.download_url);
+                        console.log('[goToPointToPoint] 已获取技术需求文件信息:', data);
+                    }
+                } catch (error) {
+                    console.error('[goToPointToPoint] 获取技术需求文件信息失败:', error);
+                }
+            }
+
+            // 跳转到首页的点对点应答标签页
+            window.location.href = `/?${params.toString()}#point-to-point`;
+        }
+
+        /**
+         * 跳转到技术方案编写页面
+         */
+        function goToTechProposal() {
+            // 获取当前项目和公司信息
+            const projectName = window.currentProjectName || '';
+            const companyId = window.currentCompanyId || '';
+            const companyName = window.currentCompanyName || '';
+            const hitlTaskId = window.currentHitlTaskId || '';
+
+            console.log('[goToTechProposal] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
+
+            // 构建URL参数
+            const params = new URLSearchParams();
+            if (projectName) params.append('project_name', projectName);
+            if (companyId) params.append('company_id', companyId);
+            if (companyName) params.append('company_name', companyName);
+            if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
+
+            // 跳转到首页的技术方案生成标签页
+            window.location.href = `/?${params.toString()}#tech-proposal`;
+        }
     </script>
 
     <!-- Mammoth.js - Word文档转HTML -->

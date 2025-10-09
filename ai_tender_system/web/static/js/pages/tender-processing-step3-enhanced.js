@@ -493,10 +493,27 @@ async function loadFileInfo(type, taskId) {
                 fileContent.innerHTML = htmlContent;
                 console.log(`[loadFileInfo] ${type}文件内容已更新`);
             }
+
+            // 如果是技术需求文件，显示快捷操作按钮
+            if (type === 'technical') {
+                const quickActions = document.getElementById('technicalQuickActions');
+                if (quickActions) {
+                    quickActions.style.display = 'block';
+                    console.log('[loadFileInfo] 已显示技术需求快捷操作按钮');
+                }
+            }
         } else {
             // 显示空状态
             if (noFileMessage) {
                 noFileMessage.style.display = 'block';
+            }
+
+            // 如果是技术需求文件且没有文件，隐藏快捷操作按钮
+            if (type === 'technical') {
+                const quickActions = document.getElementById('technicalQuickActions');
+                if (quickActions) {
+                    quickActions.style.display = 'none';
+                }
             }
         }
     } catch (error) {
@@ -1965,6 +1982,15 @@ async function loadFileInfo(type, taskId) {
                 contentDiv.style.display = 'block';
             }
 
+            // 如果是技术需求文件，显示快捷操作按钮
+            if (type === 'technical') {
+                const quickActions = document.getElementById('technicalQuickActions');
+                if (quickActions) {
+                    quickActions.style.display = 'block';
+                    console.log('[loadFileInfo] 已显示技术需求快捷操作按钮');
+                }
+            }
+
         } else {
             console.log(`[loadFileInfo] 未找到${config.fileTypeName}文件`);
             const noFileMessage = document.getElementById(config.noFileMessageId);
@@ -1973,6 +1999,14 @@ async function loadFileInfo(type, taskId) {
             }
             if (contentDiv) {
                 contentDiv.innerHTML = '';
+            }
+
+            // 如果是技术需求文件且没有文件，隐藏快捷操作按钮
+            if (type === 'technical') {
+                const quickActions = document.getElementById('technicalQuickActions');
+                if (quickActions) {
+                    quickActions.style.display = 'none';
+                }
             }
         }
     } catch (error) {
