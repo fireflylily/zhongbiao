@@ -486,6 +486,14 @@ class ChapterSelectionManager {
 
             this.showNotification(`✅ 应答文件已成功保存！文件名: ${result.filename}`, 'success');
 
+            // 保存成功后，显示填充应答信息区域
+            if (typeof showFillSection === 'function') {
+                console.log('[saveAsResponseFile] 调用 showFillSection 显示填充区域');
+                showFillSection();
+            } else {
+                console.warn('[saveAsResponseFile] showFillSection 函数未定义');
+            }
+
         } catch (error) {
             console.error('保存失败:', error);
             this.showNotification(`保存失败: ${error.message}`, 'error');

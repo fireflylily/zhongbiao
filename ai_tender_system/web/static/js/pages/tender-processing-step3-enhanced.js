@@ -102,7 +102,7 @@ class RequirementsTableManager {
     }
 
     render() {
-        const tbody = document.querySelector('#requirementsTable tbody');
+        const tbody = document.getElementById('requirementsTableBody');
         if (!tbody) {
             console.error('[RequirementsTableManager] 未找到表格tbody');
             return;
@@ -121,9 +121,7 @@ class RequirementsTableManager {
 
         tbody.innerHTML = this.filteredRequirements.map((req, index) => `
             <tr data-req-id="${req.requirement_id || index}">
-                <td class="text-center">
-                    <input type="checkbox" class="form-check-input req-checkbox" value="${req.requirement_id || index}">
-                </td>
+                <td class="text-center">${req.requirement_id || (index + 1)}</td>
                 <td><span class="badge bg-${this.getConstraintTypeColor(req.constraint_type)}">${this.getConstraintTypeLabel(req.constraint_type)}</span></td>
                 <td><span class="badge bg-${this.getCategoryColor(req.category)}">${this.getCategoryLabel(req.category)}</span></td>
                 <td>${req.subcategory || '-'}</td>
@@ -244,17 +242,17 @@ const requirementsTableManager = new RequirementsTableManager();
 async function loadRequirements(taskId, projectId) {
     console.log('[loadRequirements] 开始加载需求, taskId:', taskId, 'projectId:', projectId);
 
-    const loadingEl = document.getElementById('requirementsLoading');
-    const contentEl = document.getElementById('requirementsContent');
-    const emptyEl = document.getElementById('requirementsEmpty');
-    const neverExtractedEl = document.getElementById('requirementsNeverExtracted');
+    const loadingEl = document.getElementById('requirementsExtractionProgress');
+    const emptyStateEl = document.getElementById('eligibilityEmptyState');
+    const checklistContainer = document.getElementById('eligibilityChecklistContainer');
+    const tableContainer = document.getElementById('requirementsTableContainer');
 
     try {
         // 显示加载状态
-        if (loadingEl) loadingEl.classList.remove('d-none');
-        if (contentEl) contentEl.classList.add('d-none');
-        if (emptyEl) emptyEl.classList.add('d-none');
-        if (neverExtractedEl) neverExtractedEl.classList.add('d-none');
+        if (loadingEl) loadingEl.style.display = 'block';
+        if (emptyStateEl) emptyStateEl.style.display = 'none';
+        if (checklistContainer) checklistContainer.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'none';
 
         console.log('[loadRequirements] 发起API请求...');
         const response = await fetch(`/api/tender-processing/requirements/${projectId}`);
@@ -262,32 +260,47 @@ async function loadRequirements(taskId, projectId) {
         console.log('[loadRequirements] API响应:', data);
 
         // 隐藏加载状态
-        if (loadingEl) loadingEl.classList.add('d-none');
+        if (loadingEl) loadingEl.style.display = 'none';
 
         if (!response.ok) {
             throw new Error(data.error || '加载失败');
         }
 
         // 判断是从未提取过，还是提取了但为空
-        if (!data.has_extracted) {
-            // 从未提取过
-            console.log('[loadRequirements] 从未提取过需求');
-            if (neverExtractedEl) neverExtractedEl.classList.remove('d-none');
-        } else if (data.requirements.length === 0) {
-            // 提取过但为空
-            console.log('[loadRequirements] 提取过但结果为空');
-            if (emptyEl) emptyEl.classList.remove('d-none');
+        if (!data.has_extracted || data.requirements.length === 0) {
+            // 从未提取过或提取后为空
+            console.log('[loadRequirements] 没有数据，显示空状态');
+            if (emptyStateEl) emptyStateEl.style.display = 'block';
         } else {
-            // 有数据
+            // 有数据 - 显示表格
             console.log('[loadRequirements] 加载到', data.requirements.length, '条需求');
             currentRequirements = data.requirements;
-            requirementsTableManager.setRequirements(data.requirements);
-            if (contentEl) contentEl.classList.remove('d-none');
+
+            // 显示表格容器
+            if (tableContainer) {
+                tableContainer.style.display = 'block';
+                console.log('[loadRequirements] 显示表格容器');
+            }
+
+            // 使用 requirementsTableManager 渲染数据
+            if (typeof requirementsTableManager !== 'undefined') {
+                requirementsTableManager.setRequirements(data.requirements);
+                console.log('[loadRequirements] 调用requirementsTableManager渲染数据');
+            } else {
+                console.warn('[loadRequirements] requirementsTableManager未定义');
+            }
+
+            // 更新Tab上的badge数字
+            const eligBadge = document.getElementById('eligBadge');
+            if (eligBadge) {
+                eligBadge.textContent = data.requirements.length;
+                console.log('[loadRequirements] 更新badge数字为', data.requirements.length);
+            }
         }
 
     } catch (error) {
         console.error('[loadRequirements] 加载失败:', error);
-        if (loadingEl) loadingEl.classList.add('d-none');
+        if (loadingEl) loadingEl.style.display = 'none';
         alert('加载需求失败: ' + error.message);
     }
 }
@@ -361,7 +374,7 @@ async function loadFilteredChunksData(taskId) {
         if (emptyEl) emptyEl.classList.add('d-none');
 
         console.log('[loadFilteredChunksData] 发起API请求...');
-        const response = await fetch(`/api/tender-processing/filtered-chunks/${taskId}`);
+        const response = await fetch(`/api/tender-processing/filtered-blocks/${taskId}`);
         const data = await response.json();
         console.log('[loadFilteredChunksData] API响应:', data);
 
@@ -372,13 +385,16 @@ async function loadFilteredChunksData(taskId) {
             throw new Error(data.error || '加载失败');
         }
 
-        if (data.chunks.length === 0) {
+        // 后端返回的是 filtered_blocks，不是 chunks
+        const blocks = data.filtered_blocks || [];
+
+        if (blocks.length === 0) {
             console.log('[loadFilteredChunksData] 没有筛选后的段落');
             if (emptyEl) emptyEl.classList.remove('d-none');
         } else {
-            console.log('[loadFilteredChunksData] 加载到', data.chunks.length, '个段落');
-            currentChunks = data.chunks;
-            renderFilteredChunks(data.chunks);
+            console.log('[loadFilteredChunksData] 加载到', blocks.length, '个段落');
+            currentChunks = blocks;
+            renderFilteredChunks(blocks);
             if (contentEl) contentEl.classList.remove('d-none');
         }
 
@@ -413,77 +429,84 @@ function renderFilteredChunks(chunks) {
     `).join('');
 }
 
-// 加载应答文件信息
-async function loadResponseFileInfo(taskId) {
-    console.log('[loadResponseFileInfo] 开始执行, taskId:', taskId);
-    try {
-        console.log('[loadResponseFileInfo] 发起API请求...');
-        const response = await fetch(`/api/tender-processing/response-file-info/${taskId}`);
-        const data = await response.json();
-        console.log('[loadResponseFileInfo] API响应数据:', data);
+// 通用文件信息加载函数
+async function loadFileInfo(type, taskId) {
+    const configs = {
+        response: {
+            api: `/api/tender-processing/response-file-info/${taskId}`,
+            contentId: 'responseFileContent',
+            noFileMessageId: 'noResponseFileMessage',
+            title: '已保存应答文件模板',
+            previewFunc: 'previewResponseFile',
+            downloadFunc: 'downloadResponseFile',
+            downloadText: '下载应答文件'
+        },
+        technical: {
+            api: `/api/tender-processing/technical-file-info/${taskId}`,
+            contentId: 'technicalFileContent',
+            noFileMessageId: 'noTechnicalFileMessage',
+            title: '已保存技术需求文件',
+            previewFunc: 'previewTechnicalFile',
+            downloadFunc: 'downloadTechnicalFile',
+            downloadText: '下载技术文件'
+        }
+    };
 
-        const noFileMessage = document.getElementById('noResponseFileMessage');
-        const fileInfoDiv = document.getElementById('responseFileInfo');
-        console.log('[loadResponseFileInfo] DOM元素查找结果:');
-        console.log('  - noResponseFileMessage:', noFileMessage);
-        console.log('  - responseFileInfo:', fileInfoDiv);
+    const config = configs[type];
+    if (!config) {
+        console.error(`[loadFileInfo] 未知的文件类型: ${type}`);
+        return;
+    }
+
+    console.log(`[loadFileInfo] 开始加载${type}文件, taskId:`, taskId);
+    try {
+        const response = await fetch(config.api);
+        const data = await response.json();
+        console.log(`[loadFileInfo] ${type}文件API响应:`, data);
+
+        const noFileMessage = document.getElementById(config.noFileMessageId);
+        const fileContent = document.getElementById(config.contentId);
 
         if (data.success && data.has_file) {
-            console.log('[loadResponseFileInfo] 检测到有文件，准备显示文件信息');
-
-            // 计算文件大小显示
             const fileSizeKB = (data.file_size / 1024).toFixed(2);
             const savedDate = new Date(data.saved_at).toLocaleString('zh-CN');
-            console.log('[loadResponseFileInfo] 文件信息 - 名称:', data.filename, '大小:', fileSizeKB, 'KB');
 
             const htmlContent = `
                 <div class="alert alert-success">
                     <i class="bi bi-check-circle me-2"></i>
-                    <strong>已保存应答文件模板</strong>
+                    <strong>${config.title}</strong>
                     <div class="mt-3">
                         <p class="mb-2"><strong>文件名:</strong> ${data.filename}</p>
                         <p class="mb-2"><strong>文件大小:</strong> ${fileSizeKB} KB</p>
                         <p class="mb-3"><strong>保存时间:</strong> ${savedDate}</p>
-                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="previewResponseFile('${taskId}')">
+                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="${config.previewFunc}('${taskId}')">
                             <i class="bi bi-eye me-2"></i>预览
                         </button>
-                        <button class="btn btn-primary btn-sm" onclick="downloadResponseFile('${taskId}')">
-                            <i class="bi bi-download me-2"></i>下载应答文件
+                        <button class="btn btn-primary btn-sm" onclick="${config.downloadFunc}('${taskId}')">
+                            <i class="bi bi-download me-2"></i>${config.downloadText}
                         </button>
                     </div>
                 </div>
             `;
 
-            // 获取响应文件内容容器并直接替换内容
-            const responseFileContent = document.getElementById('responseFileContent');
-
-            if (responseFileContent) {
-                console.log('[loadResponseFileInfo] 直接替换responseFileContent的内容');
-                responseFileContent.innerHTML = htmlContent;
-                console.log('[loadResponseFileInfo] 替换完成，HTML长度:', responseFileContent.innerHTML.length);
-
-                // 不要修改tab panel的classes，让Bootstrap自己管理tab切换
-                console.log('[loadResponseFileInfo] 内容已更新，Bootstrap会自动处理tab显示');
-            } else {
-                console.error('[loadResponseFileInfo] responseFileContent元素不存在！');
+            if (fileContent) {
+                fileContent.innerHTML = htmlContent;
+                console.log(`[loadFileInfo] ${type}文件内容已更新`);
             }
         } else {
-            console.log('[loadResponseFileInfo] 没有文件或API返回失败，显示空状态');
-            // 没有文件，显示空状态
+            // 显示空状态
             if (noFileMessage) {
                 noFileMessage.style.display = 'block';
-                console.log('[loadResponseFileInfo] 显示空消息提示');
-            }
-            if (fileInfoDiv) {
-                fileInfoDiv.style.display = 'none';
-                console.log('[loadResponseFileInfo] 隐藏文件信息区域');
             }
         }
-        console.log('[loadResponseFileInfo] 函数执行完成');
     } catch (error) {
-        console.error('[loadResponseFileInfo] 加载应答文件信息失败:', error);
-        console.error('[loadResponseFileInfo] 错误堆栈:', error.stack);
+        console.error(`[loadFileInfo] 加载${type}文件失败:`, error);
     }
+}
+
+// 保持向后兼容
+async function loadResponseFileInfo(taskId) {
+    return loadFileInfo('response', taskId);
 }
 
 // 预览应答文件
@@ -776,8 +799,18 @@ async function extractBasicInfo() {
 // ============================================
 // 保存基本信息 - 统一保存到 tender_projects 表
 // ============================================
+
+// 防重复提交标志
+let isSavingBasicInfo = false;
+
 async function saveBasicInfo() {
     console.log('[saveBasicInfo] 开始保存基本信息');
+
+    // 【新增】防止重复提交
+    if (isSavingBasicInfo) {
+        console.warn('[saveBasicInfo] 正在保存中，忽略重复请求');
+        return;
+    }
 
     // 获取公司和项目配置
     const config = HITLConfigManager.getConfig();
@@ -792,6 +825,9 @@ async function saveBasicInfo() {
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>保存中...';
     }
+
+    // 【新增】设置保存中标志
+    isSavingBasicInfo = true;
 
     try {
         // 收集基本信息
@@ -863,14 +899,27 @@ async function saveBasicInfo() {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-save me-2"></i>保存基本信息';
         }
+    } finally {
+        // 【新增】清除保存中标志
+        isSavingBasicInfo = false;
     }
 }
 
 // ============================================
 // 保存并完成 - 保存完整项目数据到 tender_projects 表
 // ============================================
+
+// 防重复提交标志
+let isSavingComplete = false;
+
 async function saveAndComplete() {
     console.log('[saveAndComplete] 开始保存并完成');
+
+    // 【新增】防止重复提交
+    if (isSavingComplete) {
+        console.warn('[saveAndComplete] 正在保存中，忽略重复请求');
+        return;
+    }
 
     // 获取公司和项目配置
     const config = HITLConfigManager.getConfig();
@@ -886,27 +935,53 @@ async function saveAndComplete() {
         btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>保存中...';
     }
 
+    // 【新增】设置保存中标志
+    isSavingComplete = true;
+
     try {
         // 1. 先保存基本信息(会创建或更新项目)
         await saveBasicInfo();
 
-        // 2. 如果有提取的资质要求、资格要求、评分办法等数据,也一并保存
-        // 注意: 这里的 extractedQualifications 等变量需要从对应的tab获取
-        // 当前简化版本只保存基本信息,后续可扩展
+        // 2. 收集并同步资格要求、技术需求、评分办法等数据
+        console.log('[saveAndComplete] 开始收集各类数据...');
 
-        // 3. 更新项目状态为完成(可选)
+        const qualificationsData = await collectQualificationsData();
+        const technicalData = await collectTechnicalData();
+        const scoringData = await collectScoringData();
+
+        console.log('[saveAndComplete] 数据收集完成:', {
+            qualifications: Object.keys(qualificationsData).length,
+            technical: Object.keys(technicalData).length,
+            scoring: Object.keys(scoringData).length
+        });
+
+        // 3. 更新项目表，同步汇总数据
         if (HITLConfigManager.currentProjectId) {
+            const updatePayload = {
+                status: 'active'  // 标记为进行中
+            };
+
+            // 只有当数据不为空时才添加到payload
+            if (Object.keys(qualificationsData).length > 0) {
+                updatePayload.qualifications_data = qualificationsData;
+            }
+            if (Object.keys(scoringData).length > 0) {
+                updatePayload.scoring_data = scoringData;
+            }
+
+            console.log('[saveAndComplete] 准备更新项目数据:', updatePayload);
+
             const updateResponse = await fetch(`/api/tender-projects/${HITLConfigManager.currentProjectId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: 'active'  // 标记为进行中
-                })
+                body: JSON.stringify(updatePayload)
             });
 
             const updateData = await updateResponse.json();
             if (!updateData.success) {
-                console.warn('[saveAndComplete] 更新项目状态失败:', updateData.message);
+                console.warn('[saveAndComplete] 更新项目数据失败:', updateData.message);
+            } else {
+                console.log('[saveAndComplete] 项目数据更新成功');
             }
         }
 
@@ -924,6 +999,9 @@ async function saveAndComplete() {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>保存并完成';
         }
+    } finally {
+        // 【新增】清除保存中标志
+        isSavingComplete = false;
     }
 }
 
@@ -1951,4 +2029,464 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('hideTechnicalChapterSelectionBtn')?.addEventListener('click', () => hideChapterSelection('technical'));
     document.getElementById('cancelTechnicalSelectionBtn')?.addEventListener('click', () => hideChapterSelection('technical'));
 });
+
+// ============================================
+// 数据收集和同步功能（新增）
+// ============================================
+
+/**
+ * 收集资格要求数据
+ * @returns {Promise<Object>} 资格要求JSON数据
+ */
+async function collectQualificationsData() {
+    console.log('[collectQualificationsData] 开始收集资格要求数据');
+
+    try {
+        if (!HITLConfigManager.currentProjectId) {
+            console.warn('[collectQualificationsData] 项目ID不存在，返回空数据');
+            return {};
+        }
+
+        const response = await fetch(
+            `/api/tender-processing/requirements/${HITLConfigManager.currentProjectId}?category=qualification`
+        );
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || '获取资格要求失败');
+        }
+
+        console.log(`[collectQualificationsData] 获取到 ${data.requirements.length} 条资格要求`);
+
+        // 转换为JSON格式
+        return convertRequirementsToJSON(data.requirements);
+
+    } catch (error) {
+        console.error('[collectQualificationsData] 收集资格要求数据失败:', error);
+        return {};
+    }
+}
+
+/**
+ * 收集技术需求数据
+ * @returns {Promise<Object>} 技术需求JSON数据
+ */
+async function collectTechnicalData() {
+    console.log('[collectTechnicalData] 开始收集技术需求数据');
+
+    try {
+        if (!HITLConfigManager.currentProjectId) {
+            console.warn('[collectTechnicalData] 项目ID不存在，返回空数据');
+            return {};
+        }
+
+        const response = await fetch(
+            `/api/tender-processing/requirements/${HITLConfigManager.currentProjectId}?category=technical`
+        );
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || '获取技术需求失败');
+        }
+
+        console.log(`[collectTechnicalData] 获取到 ${data.requirements.length} 条技术需求`);
+
+        // 转换为JSON格式
+        return convertRequirementsToJSON(data.requirements);
+
+    } catch (error) {
+        console.error('[collectTechnicalData] 收集技术需求数据失败:', error);
+        return {};
+    }
+}
+
+/**
+ * 收集评分办法数据
+ * @returns {Promise<Object>} 评分办法JSON数据
+ */
+async function collectScoringData() {
+    console.log('[collectScoringData] 开始收集评分办法数据');
+
+    try {
+        if (!HITLConfigManager.currentProjectId) {
+            console.warn('[collectScoringData] 项目ID不存在，返回空数据');
+            return {};
+        }
+
+        const response = await fetch(
+            `/api/tender-processing/requirements/${HITLConfigManager.currentProjectId}?category=commercial`
+        );
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || '获取评分办法失败');
+        }
+
+        console.log(`[collectScoringData] 获取到 ${data.requirements.length} 条评分办法`);
+
+        // 转换为JSON格式
+        return convertRequirementsToJSON(data.requirements);
+
+    } catch (error) {
+        console.error('[collectScoringData] 收集评分办法数据失败:', error);
+        return {};
+    }
+}
+
+/**
+ * 将需求数组转换为JSON对象格式
+ * @param {Array} requirements - 需求数组
+ * @returns {Object} JSON格式的需求数据
+ */
+function convertRequirementsToJSON(requirements) {
+    const result = {};
+
+    if (!requirements || requirements.length === 0) {
+        return result;
+    }
+
+    requirements.forEach(req => {
+        // 使用 subcategory 作为key，如果没有则用 summary 或 requirement_id
+        const key = req.subcategory || req.summary || `requirement_${req.requirement_id}`;
+
+        result[key] = {
+            requirement_id: req.requirement_id,
+            constraint_type: req.constraint_type,
+            detail: req.detail,
+            summary: req.summary,
+            source_location: req.source_location,
+            priority: req.priority,
+            extraction_confidence: req.extraction_confidence,
+            is_verified: req.is_verified || false,
+            created_at: req.created_at
+        };
+    });
+
+    console.log(`[convertRequirementsToJSON] 转换了 ${requirements.length} 条需求为JSON格式`);
+    return result;
+}
+
+// ============================================
+// 填充应答文件功能
+// ============================================
+
+/**
+ * 显示填充应答信息区域
+ * 在保存应答文件格式后调用
+ */
+function showFillSection() {
+    console.log('[showFillSection] 显示填充应答信息区域');
+
+    const fillSection = document.getElementById('responseFileFillSection');
+    if (!fillSection) {
+        console.error('[showFillSection] 未找到填充区域元素');
+        return;
+    }
+
+    // 显示填充区域
+    fillSection.classList.remove('d-none');
+
+    // 自动填充项目信息
+    const projectNameInput = document.getElementById('fillProjectName');
+    const tenderNoInput = document.getElementById('fillTenderNo');
+    const dateInput = document.getElementById('fillDate');
+
+    // 从基本信息表单获取数据
+    const projectNameFromForm = document.getElementById('hitlProjectName');
+    const tenderNoFromForm = document.getElementById('hitlTenderNo');
+
+    if (projectNameInput && projectNameFromForm) {
+        projectNameInput.value = projectNameFromForm.value || '';
+    }
+
+    if (tenderNoInput && tenderNoFromForm) {
+        tenderNoInput.value = tenderNoFromForm.value || '';
+    }
+
+    // 设置默认日期为当前日期（格式：YYYY年MM月DD日）
+    if (dateInput) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${year}年${month}月${day}日`;
+    }
+
+    // 加载公司资质信息
+    if (HITLConfigManager.currentCompanyId) {
+        loadQualificationsForFill(HITLConfigManager.currentCompanyId);
+    } else {
+        console.warn('[showFillSection] 当前未选择公司，无法加载资质信息');
+    }
+
+    // 滚动到填充区域
+    fillSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/**
+ * 加载公司资质信息用于填充
+ * @param {number} companyId - 公司ID
+ */
+async function loadQualificationsForFill(companyId) {
+    console.log(`[loadQualificationsForFill] 加载公司 ${companyId} 的资质信息`);
+
+    try {
+        const response = await fetch(`/api/knowledge-base/company/${companyId}/qualifications`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.qualifications) {
+            console.log(`[loadQualificationsForFill] 成功加载 ${data.qualifications.length} 条资质`);
+            renderQualificationCheckboxes(data.qualifications);
+        } else {
+            console.warn('[loadQualificationsForFill] 未找到资质信息');
+            renderQualificationCheckboxes([]);
+        }
+    } catch (error) {
+        console.error('[loadQualificationsForFill] 加载资质失败:', error);
+        showErrorMessage('fillQualificationsList', '加载资质信息失败，请重试');
+    }
+}
+
+/**
+ * 渲染资质复选框列表
+ * @param {Array} qualifications - 资质列表
+ */
+function renderQualificationCheckboxes(qualifications) {
+    console.log(`[renderQualificationCheckboxes] 渲染 ${qualifications.length} 个资质复选框`);
+
+    const container = document.getElementById('fillQualificationsList');
+    if (!container) {
+        console.error('[renderQualificationCheckboxes] 未找到容器元素');
+        return;
+    }
+
+    if (qualifications.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                当前公司暂无资质证明图片
+            </div>
+        `;
+        return;
+    }
+
+    // 按类别分组
+    const grouped = {};
+    qualifications.forEach(qual => {
+        const category = qual.category || '其他';
+        if (!grouped[category]) {
+            grouped[category] = [];
+        }
+        grouped[category].push(qual);
+    });
+
+    let html = '';
+
+    // 渲染各个类别
+    Object.keys(grouped).sort().forEach(category => {
+        html += `
+            <div class="mb-3">
+                <h6 class="text-primary mb-2">${category}</h6>
+                <div class="row g-2">
+        `;
+
+        grouped[category].forEach(qual => {
+            const imageUrl = qual.image_url || qual.image_path || '';
+            const thumbUrl = imageUrl.replace('/uploads/', '/uploads/thumbnails/') || imageUrl;
+
+            html += `
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               id="qual_${qual.qualification_id}"
+                               name="selected_qualifications"
+                               value="${qual.qualification_id}"
+                               data-image-url="${imageUrl}"
+                               data-name="${qual.name || ''}">
+                        <label class="form-check-label d-flex align-items-center" for="qual_${qual.qualification_id}">
+                            ${thumbUrl ? `<img src="${thumbUrl}" class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" onerror="this.src='/static/images/no-image.png'">` : ''}
+                            <span>${qual.name || '未命名资质'}</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+/**
+ * 开始填充应答文件
+ */
+async function startFillResponseFile() {
+    console.log('[startFillResponseFile] 开始填充应答文件');
+
+    // 获取表单数据
+    const projectName = document.getElementById('fillProjectName')?.value;
+    const tenderNo = document.getElementById('fillTenderNo')?.value;
+    const dateText = document.getElementById('fillDate')?.value;
+
+    // 验证必填项
+    if (!projectName || !tenderNo || !dateText) {
+        showErrorMessage('fillErrorMessage', '请填写完整的项目信息');
+        return;
+    }
+
+    // 获取选中的资质
+    const imageConfig = buildImageConfigFromCheckboxes();
+
+    if (Object.keys(imageConfig).length === 0) {
+        showErrorMessage('fillErrorMessage', '请至少选择一个资质证明图片');
+        return;
+    }
+
+    // 构建请求数据
+    const formData = {
+        project_name: projectName,
+        tender_no: tenderNo,
+        date_text: dateText,
+        image_config: imageConfig
+    };
+
+    console.log('[startFillResponseFile] 请求数据:', formData);
+
+    // 显示进度条
+    const progressBar = document.getElementById('fillProgress');
+    const progressBarInner = progressBar?.querySelector('.progress-bar');
+    if (progressBar) {
+        progressBar.classList.remove('d-none');
+        if (progressBarInner) {
+            progressBarInner.style.width = '30%';
+        }
+    }
+
+    // 隐藏之前的结果
+    document.getElementById('fillResult')?.classList.add('d-none');
+    document.getElementById('fillError')?.classList.add('d-none');
+
+    try {
+        const response = await fetch(`/api/tender-processing/fill-response-file/${currentTaskId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (progressBarInner) {
+            progressBarInner.style.width = '60%';
+        }
+
+        const data = await response.json();
+
+        if (progressBarInner) {
+            progressBarInner.style.width = '100%';
+        }
+
+        if (data.success) {
+            console.log('[startFillResponseFile] 填充成功:', data);
+
+            // 显示成功消息
+            const resultCard = document.getElementById('fillResult');
+            const resultMessage = document.getElementById('fillResultMessage');
+
+            if (resultCard && resultMessage) {
+                resultMessage.textContent = data.message || '应答文件填充完成！';
+                resultCard.classList.remove('d-none');
+            }
+
+            // 设置下载链接
+            if (data.download_url) {
+                const downloadLink = document.getElementById('fillDownloadLink');
+                if (downloadLink) {
+                    downloadLink.href = data.download_url;
+                }
+            }
+
+            // 隐藏进度条
+            setTimeout(() => {
+                if (progressBar) {
+                    progressBar.classList.add('d-none');
+                }
+            }, 1000);
+
+        } else {
+            throw new Error(data.message || '填充失败');
+        }
+
+    } catch (error) {
+        console.error('[startFillResponseFile] 填充失败:', error);
+
+        if (progressBar) {
+            progressBar.classList.add('d-none');
+        }
+
+        showErrorMessage('fillErrorMessage', error.message || '填充应答文件时发生错误，请重试');
+    }
+}
+
+/**
+ * 从复选框构建图片配置
+ * @returns {Object} 图片配置对象
+ */
+function buildImageConfigFromCheckboxes() {
+    const imageConfig = {};
+    const checkboxes = document.querySelectorAll('input[name="selected_qualifications"]:checked');
+
+    checkboxes.forEach((checkbox, index) => {
+        const imageUrl = checkbox.getAttribute('data-image-url');
+        const qualName = checkbox.getAttribute('data-name');
+
+        if (imageUrl) {
+            // 使用资质名称作为key，如果没有则使用序号
+            const key = qualName || `image_${index + 1}`;
+            imageConfig[key] = imageUrl;
+        }
+    });
+
+    console.log(`[buildImageConfigFromCheckboxes] 构建了 ${Object.keys(imageConfig).length} 个图片配置`);
+    return imageConfig;
+}
+
+/**
+ * 预览填充后的文档
+ */
+function previewFilledDocument() {
+    console.log('[previewFilledDocument] 预览填充后的文档');
+
+    const downloadLink = document.getElementById('fillDownloadLink');
+    if (!downloadLink || !downloadLink.href) {
+        alert('无法预览：未找到文件链接');
+        return;
+    }
+
+    // 使用与预览应答文件格式相同的逻辑
+    // 可以复用现有的预览功能或新建预览窗口
+    window.open(downloadLink.href, '_blank');
+}
+
+/**
+ * 显示错误消息的辅助函数
+ * @param {string} elementId - 错误消息元素ID
+ * @param {string} message - 错误消息
+ */
+function showErrorMessage(elementId, message) {
+    const errorCard = document.getElementById('fillError');
+    const errorMessage = document.getElementById(elementId);
+
+    if (errorCard && errorMessage) {
+        errorMessage.textContent = message;
+        errorCard.classList.remove('d-none');
+    }
+}
 

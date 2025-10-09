@@ -2266,42 +2266,42 @@ def register_hitl_routes(app):
 # 辅助函数
 # ============================================
 
-    def _save_chapters_to_db(db, chapters, project_id, task_id, hitl_task_id, parent_id=None):
-        """递归保存章节树到数据库"""
-        chapter_ids = []
+def _save_chapters_to_db(db, chapters, project_id, task_id, hitl_task_id, parent_id=None):
+    """递归保存章节树到数据库"""
+    chapter_ids = []
 
-        for chapter in chapters:
-            # 插入章节
-            chapter_db_id = db.execute_query("""
-                INSERT INTO tender_document_chapters (
-                    project_id, task_id, chapter_node_id, level, title,
-                    para_start_idx, para_end_idx, word_count, preview_text,
-                    is_selected, auto_selected, skip_recommended, parent_chapter_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                project_id, task_id, chapter['id'], chapter['level'], chapter['title'],
-                chapter['para_start_idx'], chapter.get('para_end_idx'),
-                chapter.get('word_count', 0), chapter.get('preview_text', ''),
-                False, chapter.get('auto_selected', False),
-                chapter.get('skip_recommended', False), parent_id
-            ))
+    for chapter in chapters:
+        # 插入章节
+        chapter_db_id = db.execute_query("""
+            INSERT INTO tender_document_chapters (
+                project_id, task_id, chapter_node_id, level, title,
+                para_start_idx, para_end_idx, word_count, preview_text,
+                is_selected, auto_selected, skip_recommended, parent_chapter_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            project_id, task_id, chapter['id'], chapter['level'], chapter['title'],
+            chapter['para_start_idx'], chapter.get('para_end_idx'),
+            chapter.get('word_count', 0), chapter.get('preview_text', ''),
+            False, chapter.get('auto_selected', False),
+            chapter.get('skip_recommended', False), parent_id
+        ))
 
-            # execute_query 已经返回 lastrowid
-            chapter_ids.append(chapter_db_id)
+        # execute_query 已经返回 lastrowid
+        chapter_ids.append(chapter_db_id)
 
-            # 递归保存子章节
-            if chapter.get('children'):
-                child_ids = _save_chapters_to_db(
-                    db, chapter['children'], project_id, task_id, hitl_task_id, chapter_db_id
-                )
-                chapter_ids.extend(child_ids)
+        # 递归保存子章节
+        if chapter.get('children'):
+            child_ids = _save_chapters_to_db(
+                db, chapter['children'], project_id, task_id, hitl_task_id, chapter_db_id
+            )
+            chapter_ids.extend(child_ids)
 
-        return chapter_ids
+    return chapter_ids
 
 
-        # ============================================
-        # 数据同步相关API（新增）
-        # ============================================
+    # ============================================
+    # 数据同步相关API（新增）
+    # ============================================
 
     @app.route('/api/tender-processing/requirements/<int:project_id>', methods=['GET'])
     def get_project_requirements(project_id):

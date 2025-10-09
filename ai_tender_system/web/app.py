@@ -2261,6 +2261,33 @@ def register_routes(app: Flask, config, logger):
             import json
             data = request.get_json()
 
+            # 【新增】检查是否存在相同项目（防止重复创建）
+            company_id = data.get('company_id')
+            project_name = data.get('project_name')
+            project_number = data.get('project_number')
+
+            if company_id and project_name:
+                check_query = """
+                    SELECT project_id FROM tender_projects
+                    WHERE company_id = ? AND project_name = ?
+                """
+                check_params = [company_id, project_name]
+
+                if project_number:
+                    check_query += " AND project_number = ?"
+                    check_params.append(project_number)
+
+                existing = kb_manager.db.execute_query(check_query, check_params, fetch_one=True)
+
+                if existing:
+                    logger.warning(f"项目已存在，返回已有项目ID: {existing['project_id']}")
+                    return jsonify({
+                        'success': True,
+                        'project_id': existing['project_id'],
+                        'message': '项目已存在',
+                        'is_existing': True
+                    })
+
             # 序列化资质和评分数据为JSON
             qualifications_json = None
             scoring_json = None
@@ -2765,7 +2792,8 @@ def register_routes(app: Flask, config, logger):
                 'success': True,
                 'requirements': requirements,
                 'total': len(requirements),
-                'summary': summary
+                'summary': summary,
+                'has_extracted': len(requirements) > 0
             })
 
         except Exception as e:
