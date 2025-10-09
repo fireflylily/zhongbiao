@@ -473,6 +473,126 @@
                 }
             });
         });
+
+        // 页面加载时检查URL hash，自动切换到对应tab
+        document.addEventListener('DOMContentLoaded', function() {
+            const hash = window.location.hash;
+
+            if (hash === '#business-response') {
+                console.log('[Index] 检测到URL hash: #business-response，切换到商务应答tab');
+
+                // 激活商务应答tab
+                const businessResponseNav = document.getElementById('business-response-nav');
+                if (businessResponseNav) {
+                    const tab = new bootstrap.Tab(businessResponseNav);
+                    tab.show();
+                    console.log('[Index] 已切换到商务应答tab');
+
+                    // 获取URL参数
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const projectName = urlParams.get('project_name');
+                    const companyId = urlParams.get('company_id');
+                    const companyName = urlParams.get('company_name');
+                    const hitlTaskId = urlParams.get('hitl_task_id');
+
+                    if (projectName || companyId || companyName || hitlTaskId) {
+                        console.log('[Index] URL参数:', { projectName, companyId, companyName, hitlTaskId });
+
+                        // 等待tab内容完全渲染后再填充信息
+                        setTimeout(function() {
+                            // 填充公司项目信息卡片
+                            if (companyName) {
+                                const companyNameDisplay = document.querySelector('.companyNameDisplay[data-section="business"]');
+                                console.log('[Index] 查找公司名称显示元素:', companyNameDisplay);
+                                if (companyNameDisplay) {
+                                    companyNameDisplay.textContent = companyName;
+                                    console.log('[Index] 已填充公司名称:', companyName);
+                                } else {
+                                    console.error('[Index] 未找到公司名称显示元素 .companyNameDisplay[data-section="business"]');
+                                }
+                            }
+
+                            if (projectName) {
+                                const projectNameDisplay = document.querySelector('.projectNameDisplay[data-section="business"]');
+                                console.log('[Index] 查找项目名称显示元素:', projectNameDisplay);
+                                if (projectNameDisplay) {
+                                    projectNameDisplay.textContent = projectName;
+                                    console.log('[Index] 已填充项目名称:', projectName);
+                                } else {
+                                    console.error('[Index] 未找到项目名称显示元素 .projectNameDisplay[data-section="business"]');
+                                }
+                            }
+
+                            // 填充隐藏的公司ID字段
+                            if (companyId) {
+                                const companyIdInput = document.getElementById('businessCompanyId');
+                                console.log('[Index] 查找公司ID输入框:', companyIdInput);
+                                if (companyIdInput) {
+                                    companyIdInput.value = companyId;
+                                    console.log('[Index] 已填充公司ID:', companyId);
+                                } else {
+                                    console.error('[Index] 未找到公司ID输入框 #businessCompanyId');
+                                }
+                            }
+
+                            // 如果有HITL任务ID，自动加载应答文件
+                            if (hitlTaskId) {
+                                console.log('[Index] 开始加载HITL任务的应答文件...');
+                                loadResponseFileFromHITL(hitlTaskId);
+                            }
+                        }, 100); // 延迟100ms确保DOM已渲染
+                    }
+                } else {
+                    console.error('[Index] 未找到商务应答导航按钮元素');
+                }
+            }
+        });
+
+        /**
+         * 从HITL任务加载应答文件
+         * @param {string} hitlTaskId - HITL任务ID
+         */
+        async function loadResponseFileFromHITL(hitlTaskId) {
+            try {
+                console.log('[loadResponseFileFromHITL] 加载任务ID:', hitlTaskId);
+
+                // 调用API获取应答文件信息
+                const response = await fetch(`/api/tender-processing/response-file-info/${hitlTaskId}`);
+                const data = await response.json();
+
+                console.log('[loadResponseFileFromHITL] API响应:', data);
+
+                if (data.success && data.has_file) {
+                    // 显示文件已加载的提示
+                    const fileNameDisplay = document.getElementById('businessTemplateFileName');
+                    if (fileNameDisplay) {
+                        fileNameDisplay.innerHTML = `
+                            <div class="alert alert-info d-flex align-items-center">
+                                <i class="bi bi-file-earmark-word me-2"></i>
+                                <div class="flex-grow-1">
+                                    <strong>已自动加载应答文件：</strong> ${data.filename}
+                                    <br><small class="text-muted">文件大小: ${(data.file_size / 1024).toFixed(2)} KB | 保存时间: ${new Date(data.saved_at).toLocaleString('zh-CN')}</small>
+                                </div>
+                                <a href="${data.download_url}" class="btn btn-sm btn-outline-primary ms-2" target="_blank">
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            </div>
+                        `;
+                        console.log('[loadResponseFileFromHITL] 已显示文件信息');
+                    }
+
+                    // 存储文件URL供后续使用
+                    window.businessResponseFileUrl = data.download_url;
+                    window.businessResponseFileName = data.filename;
+
+                    console.log('[loadResponseFileFromHITL] 应答文件加载成功');
+                } else {
+                    console.warn('[loadResponseFileFromHITL] 该HITL任务没有应答文件');
+                }
+            } catch (error) {
+                console.error('[loadResponseFileFromHITL] 加载应答文件失败:', error);
+            }
+        }
     </script>
 </body>
 </html>

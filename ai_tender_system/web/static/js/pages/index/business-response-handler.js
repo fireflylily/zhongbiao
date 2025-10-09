@@ -24,10 +24,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 商务应答表单提交处理
     const businessResponseForm = document.getElementById('businessResponseForm');
     if (businessResponseForm) {
-        businessResponseForm.addEventListener('submit', function(e) {
+        businessResponseForm.addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const templateFile = document.getElementById('businessTemplateFile').files[0];
+            let templateFile = document.getElementById('businessTemplateFile').files[0];
             const companyId = document.getElementById('businessCompanyId').value;
             const tenderNo = document.getElementById('businessTenderNo').value;
             const dateText = document.getElementById('businessDate').value;
@@ -37,8 +37,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const companyData = window.companyStateManager ? window.companyStateManager.getSelectedCompany() : null;
             const projectName = companyData && companyData.project_name ? companyData.project_name : '';
 
-            // 验证必填字段
-            if (!templateFile) {
+            // 检查是否有从HITL加载的文件URL
+            const hasLoadedFile = window.businessResponseFileUrl && window.businessResponseFileName;
+
+            // 验证必填字段 - 需要上传文件或已加载文件
+            if (!templateFile && !hasLoadedFile) {
                 alert('请选择商务应答模板');
                 return;
             }
@@ -59,31 +62,43 @@ document.addEventListener('DOMContentLoaded', function() {
             if (error) error.classList.add('d-none');
             if (stats) stats.classList.add('d-none');
 
-            // 构建FormData
-            const formData = new FormData();
-            formData.append('template_file', templateFile);
-            formData.append('company_id', companyId);
-            formData.append('project_name', projectName);
-            formData.append('tender_no', tenderNo);
-            formData.append('date_text', dateText);
-            formData.append('use_mcp', useMcp);
+            try {
+                // 如果使用已加载的文件，先下载文件
+                if (!templateFile && hasLoadedFile) {
+                    console.log('[Business] 从URL下载文件:', window.businessResponseFileUrl);
+                    const fileResponse = await fetch(window.businessResponseFileUrl);
+                    const fileBlob = await fileResponse.blob();
+                    templateFile = new File([fileBlob], window.businessResponseFileName, {
+                        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    });
+                    console.log('[Business] 文件下载完成:', templateFile.name);
+                }
 
-            // 构建并添加图片配置
-            const imageConfig = buildImageConfig(companyId);
-            if (imageConfig) {
-                formData.append('image_config', JSON.stringify(imageConfig));
-                console.log('添加图片配置到请求:', imageConfig);
-            } else {
-                console.log('没有可用的图片配置');
-            }
+                // 构建FormData
+                const formData = new FormData();
+                formData.append('template_file', templateFile);
+                formData.append('company_id', companyId);
+                formData.append('project_name', projectName);
+                formData.append('tender_no', tenderNo);
+                formData.append('date_text', dateText);
+                formData.append('use_mcp', useMcp);
 
-            // 发送请求
-            fetch('/process-business-response', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
+                // 构建并添加图片配置
+                const imageConfig = buildImageConfig(companyId);
+                if (imageConfig) {
+                    formData.append('image_config', JSON.stringify(imageConfig));
+                    console.log('添加图片配置到请求:', imageConfig);
+                } else {
+                    console.log('没有可用的图片配置');
+                }
+
+                // 发送请求
+                const response = await fetch('/process-business-response', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
                 if (progress) progress.style.display = 'none';
 
                 if (data.success) {
@@ -119,6 +134,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
 
+                    // 检查是否从HITL页面跳转过来,如果是则显示"同步到投标项目"按钮
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const hitlTaskId = urlParams.get('hitl_task_id');
+
+                    if (hitlTaskId) {
+                        console.log('[Business] 检测到HITL任务ID,显示同步按钮:', hitlTaskId);
+                        const syncBtn = document.getElementById('syncToHitlBtn');
+                        if (syncBtn) {
+                            syncBtn.style.display = 'inline-block';
+                            // 绑定点击事件,传递任务ID和输出文件路径
+                            syncBtn.onclick = () => syncToHitlProject(hitlTaskId, data.output_file);
+                        }
+                    }
+
                     // 刷新文件列表
                     if (typeof loadBusinessFilesList === 'function') {
                         loadBusinessFilesList();
@@ -130,19 +159,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (errorMessage) errorMessage.textContent = errorMsg;
                     if (error) error.classList.remove('d-none');
                 }
-            })
-            .catch(err => {
+            } catch (err) {
                 if (progress) progress.style.display = 'none';
                 // 处理网络错误
                 const errorMsg = '网络错误：' + err.message;
                 const errorMessage = document.getElementById('businessErrorMessage');
                 if (errorMessage) errorMessage.textContent = errorMsg;
                 if (error) error.classList.remove('d-none');
-                console.error('商务应答处理失败:', err);
-            });
+                console.error('[Business] 处理失败:', err);
+            }
         });
     }
-
     // 下一步按钮处理
     const businessNextStepBtn = document.getElementById('businessNextStepBtn');
     if (businessNextStepBtn) {
@@ -595,4 +622,83 @@ function loadBusinessFilesList() {
                 filesList.innerHTML = '<p class="text-danger">加载失败</p>';
             }
         });
+}
+
+/**
+ * 将商务应答生成的文件同步到HITL投标项目
+ * @param {string} hitlTaskId - HITL任务ID
+ * @param {string} filePath - 商务应答生成的文件路径
+ */
+async function syncToHitlProject(hitlTaskId, filePath) {
+    console.log('[syncToHitlProject] 开始同步文件到HITL项目');
+    console.log('[syncToHitlProject] 任务ID:', hitlTaskId);
+    console.log('[syncToHitlProject] 文件路径:', filePath);
+
+    const btn = document.getElementById('syncToHitlBtn');
+    if (!btn) {
+        console.error('[syncToHitlProject] 未找到同步按钮');
+        return;
+    }
+
+    // 确认对话框
+    if (!confirm('确认将此文件同步到投标项目吗?\n\n同步后,您可以在HITL投标项目的"应答完成文件"标签页中查看此文件。')) {
+        return;
+    }
+
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>同步中...';
+
+    try {
+        const response = await fetch(`/api/tender-processing/sync-business-response/${hitlTaskId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_path: filePath
+            })
+        });
+
+        const data = await response.json();
+        console.log('[syncToHitlProject] API响应:', data);
+
+        if (data.success) {
+            // 显示成功状态
+            btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>已同步';
+            btn.classList.remove('btn-info');
+            btn.classList.add('btn-outline-success');
+
+            // 显示成功通知
+            if (typeof showNotification === 'function') {
+                showNotification(data.message || '文件已成功同步到投标项目', 'success');
+            } else {
+                alert(data.message || '文件已成功同步到投标项目');
+            }
+
+            console.log('[syncToHitlProject] 同步成功');
+
+            // 3秒后恢复按钮(允许重新同步)
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-outline-success');
+                btn.classList.add('btn-info');
+                btn.disabled = false;
+            }, 3000);
+        } else {
+            throw new Error(data.error || '同步失败');
+        }
+    } catch (error) {
+        console.error('[syncToHitlProject] 同步失败:', error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+
+        // 显示错误通知
+        const errorMsg = '同步失败: ' + error.message;
+        if (typeof showNotification === 'function') {
+            showNotification(errorMsg, 'error');
+        } else {
+            alert(errorMsg);
+        }
+    }
 }

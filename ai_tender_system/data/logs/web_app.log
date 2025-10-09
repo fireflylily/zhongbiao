@@ -1096,3 +1096,74 @@
 2025-10-09 12:47:19,692 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
 2025-10-09 12:51:08,154 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
 2025-10-09 12:53:30,200 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:06:32,945 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:07:28,273 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:09:11,565 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:13:27,833 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:15:42,984 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:24:25,548 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:28:36,230 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:29:41,909 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:33:20,126 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:34:10,080 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:46:17,991 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:49:03,818 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:52:17,734 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-09 13:52:18,219 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-09 13:52:21,107 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-09 13:52:21,513 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-09 13:52:21,513 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-09 13:52:51,100 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:53:15,031 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:58:35,725 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 13:58:37,561 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:00:47,273 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:00:52,308 - ai_tender_system.web_app - INFO - 更新项目成功，ID: 1
+2025-10-09 14:00:52,345 - ai_tender_system.web_app - ERROR - 更新项目失败: NOT NULL constraint failed: tender_projects.project_name
+2025-10-09 14:00:54,594 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:03:03,607 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:03:10,938 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:08:12,602 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:08:18,626 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:22:43,015 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:25:55,438 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:26:02,293 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:27:48,123 - ai_tender_system.web_app - INFO - 开始处理商务应答: 第五部分    谈判响应文件格式_应答模板_20251009_102120.docx
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 项目名称: 
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 招标编号: 
+2025-10-09 14:27:48,124 - ai_tender_system.web_app - INFO -   - 日期文本: 
+2025-10-09 14:27:48,786 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-10-09 14:27:48,786 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-10-09 14:27:48,786 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-10-09 14:27:50,781 - ai_tender_system.web_app - INFO - 文件下载: business_response_8_20251009_142748_第五部分    谈判响应文件格式_应答模板_20251009_102120_50940fef.docx
+2025-10-09 14:28:47,974 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:28:51,999 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:28:58,245 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:34:55,862 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:35:07,616 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 14:35:13,019 - ai_tender_system.web_app - INFO - 开始处理商务应答: 第五部分    谈判响应文件格式_应答模板_20251009_102120.docx
+2025-10-09 14:35:13,020 - ai_tender_system.web_app - INFO - 公司数据验证:
+2025-10-09 14:35:13,020 - ai_tender_system.web_app - INFO -   - 公司名称: 智慧足迹数据科技有限公司
+2025-10-09 14:35:13,021 - ai_tender_system.web_app - INFO -   - 联系电话: 010-63271000
+2025-10-09 14:35:13,021 - ai_tender_system.web_app - INFO -   - 电子邮件: lvhe@smartsteps.com
+2025-10-09 14:35:13,021 - ai_tender_system.web_app - INFO -   - 公司地址: N/A
+2025-10-09 14:35:13,021 - ai_tender_system.web_app - INFO -   - 传真号码: 010-63271000
+2025-10-09 14:35:13,021 - ai_tender_system.web_app - INFO -   - 项目名称: 
+2025-10-09 14:35:13,021 - ai_tender_system.web_app - INFO -   - 招标编号: 
+2025-10-09 14:35:13,021 - ai_tender_system.web_app - INFO -   - 日期文本: 
+2025-10-09 14:35:13,623 - ai_tender_system.web_app - INFO - 新架构处理器执行成功: 填充了6个信息字段
+2025-10-09 14:35:13,624 - ai_tender_system.web_app - INFO - 处理统计: {}
+2025-10-09 14:35:13,624 - ai_tender_system.web_app - INFO - 商务应答处理完成
+2025-10-09 14:46:32,381 - ai_tender_system.web_app - INFO - 知识库API模块注册成功
+2025-10-09 14:46:32,983 - ai_tender_system.web_app - INFO - 向量搜索API模块注册成功
+2025-10-09 14:46:36,028 - ai_tender_system.web_app - INFO - RAG知识库API模块注册成功
+2025-10-09 14:46:36,204 - ai_tender_system.web_app - INFO - HITL API 路由已注册
+2025-10-09 14:46:36,204 - ai_tender_system.web_app - INFO - AI标书系统Web应用初始化完成
+2025-10-09 15:25:04,795 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型
+2025-10-09 15:25:14,180 - ai_tender_system.web_app - INFO - 获取模型列表成功，共 10 个模型

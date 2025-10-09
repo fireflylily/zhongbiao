@@ -392,6 +392,11 @@
                         <i class="bi bi-file-earmark-text me-2"></i>应答文件格式
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="completed-response-tab" data-bs-toggle="tab" data-bs-target="#completedResponsePanel" type="button" role="tab">
+                        <i class="bi bi-file-earmark-check me-2"></i>应答完成文件
+                    </button>
+                </li>
             </ul>
 
             <!-- Tab内容 -->
@@ -752,92 +757,6 @@
                         </div>
                     </div>
 
-                    <!-- 【新增】信息填充区域 (默认隐藏) -->
-                    <div class="card mt-3 d-none" id="responseFileFillSection">
-                        <div class="card-header bg-light" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#fillFormCollapse">
-                            <h6 class="mb-0">
-                                <i class="bi bi-pencil-square me-2"></i>
-                                填充应答信息
-                                <i class="bi bi-chevron-down float-end" id="fillChevron"></i>
-                            </h6>
-                            <small class="text-muted">在应答文件模板上填写项目信息并插入资质图片</small>
-                        </div>
-                        <div class="collapse" id="fillFormCollapse">
-                            <div class="card-body">
-                                <!-- 自动填充信息显示 -->
-                                <div class="alert alert-info">
-                                    <strong><i class="bi bi-info-circle me-2"></i>自动填充信息：</strong>
-                                    <ul class="mb-0 mt-2">
-                                        <li>项目名称: <span id="fillProjectName" class="text-primary fw-bold"></span></li>
-                                        <li>招标编号: <span id="fillTenderNo" class="text-primary fw-bold"></span></li>
-                                    </ul>
-                                </div>
-
-                                <!-- 日期输入 -->
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        <i class="bi bi-calendar me-1"></i>日期
-                                    </label>
-                                    <input type="date" class="form-control" id="fillDateText"
-                                           placeholder="YYYY-MM-DD">
-                                    <small class="text-muted">默认为当前日期，可修改</small>
-                                </div>
-
-                                <!-- 资质图片选择 -->
-                                <div class="mb-3">
-                                    <label class="form-label">
-                                        <i class="bi bi-images me-1"></i>选择要插入的资质图片
-                                    </label>
-                                    <div class="card">
-                                        <div class="card-body" id="fillQualificationsSelector">
-                                            <div class="text-center text-muted py-3">
-                                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                                                正在加载资质信息...
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- 操作按钮 -->
-                                <div class="d-grid gap-2">
-                                    <button type="button" class="btn btn-success btn-lg"
-                                            id="startFillBtn" onclick="startFillResponseFile()">
-                                        <i class="bi bi-play-fill me-2"></i> 开始填充
-                                    </button>
-                                </div>
-
-                                <!-- 进度条 -->
-                                <div class="progress mt-3 d-none" id="fillProgress" style="height: 25px;">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                         style="width: 100%">
-                                        正在填充文档...
-                                    </div>
-                                </div>
-
-                                <!-- 填充结果 -->
-                                <div class="alert alert-success mt-3 d-none" id="fillResult">
-                                    <h6><i class="bi bi-check-circle me-2"></i> 填充完成！</h6>
-                                    <p class="mb-2">应答文件已成功填充项目信息和资质图片</p>
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <a href="#" id="fillDownloadLink" class="btn btn-primary">
-                                            <i class="bi bi-download me-1"></i> 下载完整应答文件
-                                        </a>
-                                        <button type="button" class="btn btn-success"
-                                                onclick="previewFilledDocument()">
-                                            <i class="bi bi-eye me-1"></i> 预览
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- 错误提示 -->
-                                <div class="alert alert-danger mt-3 d-none" id="fillError">
-                                    <i class="bi bi-exclamation-triangle me-2"></i>
-                                    <span id="fillErrorMessage"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- 章节选择区域（默认隐藏） -->
                     <div id="inlineChapterSelectionArea" style="display: none; margin-top: 20px;">
                         <div class="card">
@@ -915,6 +834,21 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ==================== -->
+                <!-- Tab 7: 应答完成文件 -->
+                <!-- ==================== -->
+                <div class="tab-pane fade" id="completedResponsePanel" role="tabpanel">
+                    <!-- 已保存的应答完成文件显示区域 -->
+                    <div id="completedResponseContent" style="min-height: 200px; padding: 20px;">
+                        <div class="empty-state" id="noCompletedResponseMessage">
+                            <i class="bi bi-file-earmark-check fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">应答完成文件</h5>
+                            <p class="text-muted">尚未生成应答完成文件</p>
+                            <p class="text-muted small">在商务应答页面完成处理后,点击"同步到投标项目"按钮,文件将自动同步到这里</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 统一保存按钮 -->
@@ -933,7 +867,7 @@
     <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- 步骤3增强版脚本（包含基本信息、资质要求、详细要求） - 必须先加载，因为步骤1需要调用proceedToStep3函数 -->
-    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=20251008a"></script>
+    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=20251009n"></script>
 
     <!-- 步骤1脚本 -->
     <script src="/static/js/pages/tender-processing-step1.js"></script>
@@ -1154,17 +1088,30 @@
 
                         // 【修改】主动加载所有Tab的数据
                         console.log('[HITLConfigManager] 开始加载所有Tab数据...');
+                        console.log('[HITLConfigManager] loadFileInfo是否已定义:', typeof loadFileInfo);
 
                         // 1. 加载应答文件格式
                         if (typeof loadFileInfo === 'function') {
                             console.log('[HITLConfigManager] 加载应答文件信息...');
                             await loadFileInfo('response', hitlTask.hitl_task_id);
+                        } else {
+                            console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载应答文件');
                         }
 
                         // 2. 加载技术需求文件
                         if (typeof loadFileInfo === 'function') {
                             console.log('[HITLConfigManager] 加载技术需求文件...');
                             await loadFileInfo('technical', hitlTask.hitl_task_id);
+                        } else {
+                            console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载技术需求文件');
+                        }
+
+                        // 2.5. 加载应答完成文件
+                        if (typeof loadFileInfo === 'function') {
+                            console.log('[HITLConfigManager] 加载应答完成文件...');
+                            await loadFileInfo('completed', hitlTask.hitl_task_id);
+                        } else {
+                            console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载应答完成文件');
                         }
 
                         // 3. 加载资格要求（qualifications）
@@ -1448,22 +1395,7 @@
             // 初始化AI模型选择器
             initModelSelector();
 
-            // 监听应答文件格式tab的shown事件
-            const documentFormatTabEl = document.getElementById('document-format-tab');
-            if (documentFormatTabEl) {
-                documentFormatTabEl.addEventListener('shown.bs.tab', function (event) {
-                    console.log('[HITL] 应答文件格式tab已显示，当前任务ID:', typeof currentHitlTaskId !== 'undefined' ? currentHitlTaskId : '未定义');
-                    if (typeof currentHitlTaskId !== 'undefined' && currentHitlTaskId) {
-                        if (typeof loadResponseFileInfo === 'function') {
-                            loadResponseFileInfo(currentHitlTaskId);
-                        } else {
-                            console.error('[HITL] loadResponseFileInfo函数未定义');
-                        }
-                    } else {
-                        console.warn('[HITL] 当前任务ID未设置，无法加载应答文件');
-                    }
-                });
-            }
+            // Tab数据已在选择项目时自动加载，无需监听tab切换事件
         });
     </script>
 

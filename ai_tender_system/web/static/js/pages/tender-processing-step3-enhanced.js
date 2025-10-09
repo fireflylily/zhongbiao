@@ -538,27 +538,58 @@ function previewResponseFile(taskId) {
                 // 添加样式包装
                 previewContent.innerHTML = `
                     <style>
+                        #documentPreviewContent,
+                        #documentPreviewContent * {
+                            font-family: 'SimSun', 'Microsoft YaHei', serif !important;
+                            font-size: 10.5pt !important;
+                            line-height: 1.8 !important;
+                        }
                         #documentPreviewContent {
-                            font-family: 'Microsoft YaHei', sans-serif;
-                            line-height: 1.8;
                             padding: 20px;
                         }
-                        #documentPreviewContent p { margin: 10px 0; }
-                        #documentPreviewContent h1, #documentPreviewContent h2, #documentPreviewContent h3 {
-                            color: #333;
-                            margin: 20px 0 10px 0;
+                        #documentPreviewContent p {
+                            margin: 10px 0 !important;
+                            font-size: 10.5pt !important;
+                        }
+                        #documentPreviewContent h1 {
+                            color: #333 !important;
+                            margin: 20px 0 10px 0 !important;
+                            font-size: 16pt !important;
+                            font-weight: bold !important;
+                        }
+                        #documentPreviewContent h2 {
+                            color: #333 !important;
+                            margin: 20px 0 10px 0 !important;
+                            font-size: 14pt !important;
+                            font-weight: bold !important;
+                        }
+                        #documentPreviewContent h3 {
+                            color: #333 !important;
+                            margin: 20px 0 10px 0 !important;
+                            font-size: 12pt !important;
+                            font-weight: bold !important;
                         }
                         #documentPreviewContent table {
-                            border-collapse: collapse;
-                            width: 100%;
-                            margin: 20px 0;
+                            border-collapse: collapse !important;
+                            width: 100% !important;
+                            margin: 20px 0 !important;
+                            font-size: 10.5pt !important;
                         }
-                        #documentPreviewContent table td, #documentPreviewContent table th {
-                            border: 1px solid #ddd;
-                            padding: 8px;
+                        #documentPreviewContent table td,
+                        #documentPreviewContent table th {
+                            border: 1px solid #ddd !important;
+                            padding: 8px !important;
+                            font-size: 10.5pt !important;
                         }
                         #documentPreviewContent table th {
-                            background-color: #f2f2f2;
+                            background-color: #f2f2f2 !important;
+                            font-weight: bold !important;
+                        }
+                        #documentPreviewContent ul,
+                        #documentPreviewContent ol,
+                        #documentPreviewContent li {
+                            font-size: 10.5pt !important;
+                            line-height: 1.8 !important;
                         }
                     </style>
                     <div>${html}</div>
@@ -1505,6 +1536,18 @@ const CHAPTER_SELECTION_CONFIG = {
         contentId: 'technicalFileContent',
         selectionAreaId: 'technicalChapterSelectionArea',
         noFileMessageId: 'noTechnicalFileMessage'
+    },
+    'completed': {
+        prefix: 'completed',
+        confirmBtnId: null, // 无确认按钮,由商务应答自动生成
+        apiSave: null, // 无保存API,通过商务应答同步
+        apiInfo: '/api/tender-processing/completed-response-info',
+        apiDownload: '/api/tender-processing/download-completed-response',
+        apiPreview: '/api/tender-processing/preview-completed-response',
+        fileTypeName: '应答完成文件',
+        contentId: 'completedResponseContent',
+        selectionAreaId: null, // 无章节选择
+        noFileMessageId: 'noCompletedResponseMessage'
     }
 };
 
@@ -1885,6 +1928,25 @@ async function loadFileInfo(type, taskId) {
             const fileSizeKB = (data.file_size / 1024).toFixed(2);
             const savedDate = new Date(data.saved_at).toLocaleString('zh-CN');
 
+            // 构建按钮HTML
+            let buttonsHtml = `
+                <button class="btn btn-outline-secondary btn-sm me-2" onclick="previewFile('${type}', '${taskId}')">
+                    <i class="bi bi-eye me-2"></i>预览
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="downloadFile('${type}', '${taskId}')">
+                    <i class="bi bi-download me-2"></i>下载
+                </button>
+            `;
+
+            // 如果是应答文件，添加"开始应答"按钮
+            if (type === 'response') {
+                buttonsHtml += `
+                <button class="btn btn-success btn-sm ms-2" onclick="openBusinessResponse()">
+                    <i class="bi bi-pencil-square me-2"></i>开始应答
+                </button>
+                `;
+            }
+
             const htmlContent = `
                 <div class="alert alert-success">
                     <i class="bi bi-check-circle me-2"></i>
@@ -1893,12 +1955,7 @@ async function loadFileInfo(type, taskId) {
                         <p class="mb-2"><strong>文件名:</strong> ${data.filename}</p>
                         <p class="mb-2"><strong>文件大小:</strong> ${fileSizeKB} KB</p>
                         <p class="mb-3"><strong>保存时间:</strong> ${savedDate}</p>
-                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="previewFile('${type}', '${taskId}')">
-                            <i class="bi bi-eye me-2"></i>预览
-                        </button>
-                        <button class="btn btn-primary btn-sm" onclick="downloadFile('${type}', '${taskId}')">
-                            <i class="bi bi-download me-2"></i>下载
-                        </button>
+                        ${buttonsHtml}
                     </div>
                 </div>
             `;
@@ -1907,6 +1964,7 @@ async function loadFileInfo(type, taskId) {
                 contentDiv.innerHTML = htmlContent;
                 contentDiv.style.display = 'block';
             }
+
         } else {
             console.log(`[loadFileInfo] 未找到${config.fileTypeName}文件`);
             const noFileMessage = document.getElementById(config.noFileMessageId);
@@ -1948,7 +2006,64 @@ function previewFile(type, taskId) {
         .then(result => {
             if (previewContent) {
                 const html = result.value || '<p>文档内容为空</p>';
-                previewContent.innerHTML = `<div class="mammoth-preview-content">${html}</div>`;
+                previewContent.innerHTML = `
+                    <style>
+                        #documentPreviewContent .mammoth-preview-content,
+                        #documentPreviewContent .mammoth-preview-content * {
+                            font-family: 'SimSun', 'Microsoft YaHei', serif !important;
+                            font-size: 10.5pt !important;
+                            line-height: 1.8 !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content {
+                            padding: 20px;
+                        }
+                        #documentPreviewContent .mammoth-preview-content p {
+                            margin: 10px 0 !important;
+                            font-size: 10.5pt !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content h1 {
+                            color: #333 !important;
+                            margin: 20px 0 10px 0 !important;
+                            font-size: 16pt !important;
+                            font-weight: bold !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content h2 {
+                            color: #333 !important;
+                            margin: 20px 0 10px 0 !important;
+                            font-size: 14pt !important;
+                            font-weight: bold !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content h3 {
+                            color: #333 !important;
+                            margin: 20px 0 10px 0 !important;
+                            font-size: 12pt !important;
+                            font-weight: bold !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content table {
+                            border-collapse: collapse !important;
+                            width: 100% !important;
+                            margin: 20px 0 !important;
+                            font-size: 10.5pt !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content table td,
+                        #documentPreviewContent .mammoth-preview-content table th {
+                            border: 1px solid #ddd !important;
+                            padding: 8px !important;
+                            font-size: 10.5pt !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content table th {
+                            background-color: #f2f2f2 !important;
+                            font-weight: bold !important;
+                        }
+                        #documentPreviewContent .mammoth-preview-content ul,
+                        #documentPreviewContent .mammoth-preview-content ol,
+                        #documentPreviewContent .mammoth-preview-content li {
+                            font-size: 10.5pt !important;
+                            line-height: 1.8 !important;
+                        }
+                    </style>
+                    <div class="mammoth-preview-content">${html}</div>
+                `;
             }
         })
         .catch(error => {
@@ -2167,326 +2282,46 @@ function convertRequirementsToJSON(requirements) {
 }
 
 // ============================================
-// 填充应答文件功能
+// 商务应答跳转功能
 // ============================================
 
 /**
- * 显示填充应答信息区域
- * 在保存应答文件格式后调用
+ * 打开商务应答页面，并传递项目和公司信息
  */
-function showFillSection() {
-    console.log('[showFillSection] 显示填充应答信息区域');
+function openBusinessResponse() {
+    console.log('[openBusinessResponse] 准备跳转到商务应答页面');
 
-    const fillSection = document.getElementById('responseFileFillSection');
-    if (!fillSection) {
-        console.error('[showFillSection] 未找到填充区域元素');
-        return;
-    }
+    // 获取项目名称
+    const projectNameEl = document.getElementById('hitlProjectName');
+    const projectName = projectNameEl ? projectNameEl.textContent.replace('已加载: ', '').trim() : '';
 
-    // 显示填充区域
-    fillSection.classList.remove('d-none');
+    // 获取公司ID和名称
+    const companyId = HITLConfigManager.currentCompanyId || '';
+    const companySelect = document.getElementById('hitlCompanySelect');
+    const companyName = companySelect ? companySelect.options[companySelect.selectedIndex]?.text || '' : '';
 
-    // 自动填充项目信息
-    const projectNameInput = document.getElementById('fillProjectName');
-    const tenderNoInput = document.getElementById('fillTenderNo');
-    const dateInput = document.getElementById('fillDate');
+    // 获取当前HITL任务ID
+    const hitlTaskId = window.currentHitlTaskId || window.currentTaskId || '';
 
-    // 从基本信息表单获取数据
-    const projectNameFromForm = document.getElementById('hitlProjectName');
-    const tenderNoFromForm = document.getElementById('hitlTenderNo');
+    console.log('[openBusinessResponse] 项目名称:', projectName);
+    console.log('[openBusinessResponse] 公司ID:', companyId);
+    console.log('[openBusinessResponse] 公司名称:', companyName);
+    console.log('[openBusinessResponse] HITL任务ID:', hitlTaskId);
 
-    if (projectNameInput && projectNameFromForm) {
-        projectNameInput.value = projectNameFromForm.value || '';
-    }
+    // 构建URL参数
+    const params = new URLSearchParams();
+    if (projectName) params.append('project_name', projectName);
+    if (companyId) params.append('company_id', companyId);
+    if (companyName) params.append('company_name', companyName);
+    if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
 
-    if (tenderNoInput && tenderNoFromForm) {
-        tenderNoInput.value = tenderNoFromForm.value || '';
-    }
-
-    // 设置默认日期为当前日期（格式：YYYY年MM月DD日）
-    if (dateInput) {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        dateInput.value = `${year}年${month}月${day}日`;
-    }
-
-    // 加载公司资质信息
-    if (HITLConfigManager.currentCompanyId) {
-        loadQualificationsForFill(HITLConfigManager.currentCompanyId);
-    } else {
-        console.warn('[showFillSection] 当前未选择公司，无法加载资质信息');
-    }
-
-    // 滚动到填充区域
-    fillSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 打开新标签页
+    const url = `/?${params.toString()}#business-response`;
+    console.log('[openBusinessResponse] 跳转URL:', url);
+    window.open(url, '_blank');
 }
 
-/**
- * 加载公司资质信息用于填充
- * @param {number} companyId - 公司ID
- */
-async function loadQualificationsForFill(companyId) {
-    console.log(`[loadQualificationsForFill] 加载公司 ${companyId} 的资质信息`);
-
-    try {
-        const response = await fetch(`/api/knowledge-base/company/${companyId}/qualifications`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.qualifications) {
-            console.log(`[loadQualificationsForFill] 成功加载 ${data.qualifications.length} 条资质`);
-            renderQualificationCheckboxes(data.qualifications);
-        } else {
-            console.warn('[loadQualificationsForFill] 未找到资质信息');
-            renderQualificationCheckboxes([]);
-        }
-    } catch (error) {
-        console.error('[loadQualificationsForFill] 加载资质失败:', error);
-        showErrorMessage('fillQualificationsList', '加载资质信息失败，请重试');
-    }
-}
-
-/**
- * 渲染资质复选框列表
- * @param {Array} qualifications - 资质列表
- */
-function renderQualificationCheckboxes(qualifications) {
-    console.log(`[renderQualificationCheckboxes] 渲染 ${qualifications.length} 个资质复选框`);
-
-    const container = document.getElementById('fillQualificationsList');
-    if (!container) {
-        console.error('[renderQualificationCheckboxes] 未找到容器元素');
-        return;
-    }
-
-    if (qualifications.length === 0) {
-        container.innerHTML = `
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                当前公司暂无资质证明图片
-            </div>
-        `;
-        return;
-    }
-
-    // 按类别分组
-    const grouped = {};
-    qualifications.forEach(qual => {
-        const category = qual.category || '其他';
-        if (!grouped[category]) {
-            grouped[category] = [];
-        }
-        grouped[category].push(qual);
-    });
-
-    let html = '';
-
-    // 渲染各个类别
-    Object.keys(grouped).sort().forEach(category => {
-        html += `
-            <div class="mb-3">
-                <h6 class="text-primary mb-2">${category}</h6>
-                <div class="row g-2">
-        `;
-
-        grouped[category].forEach(qual => {
-            const imageUrl = qual.image_url || qual.image_path || '';
-            const thumbUrl = imageUrl.replace('/uploads/', '/uploads/thumbnails/') || imageUrl;
-
-            html += `
-                <div class="col-md-6">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox"
-                               id="qual_${qual.qualification_id}"
-                               name="selected_qualifications"
-                               value="${qual.qualification_id}"
-                               data-image-url="${imageUrl}"
-                               data-name="${qual.name || ''}">
-                        <label class="form-check-label d-flex align-items-center" for="qual_${qual.qualification_id}">
-                            ${thumbUrl ? `<img src="${thumbUrl}" class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" onerror="this.src='/static/images/no-image.png'">` : ''}
-                            <span>${qual.name || '未命名资质'}</span>
-                        </label>
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `
-                </div>
-            </div>
-        `;
-    });
-
-    container.innerHTML = html;
-}
-
-/**
- * 开始填充应答文件
- */
-async function startFillResponseFile() {
-    console.log('[startFillResponseFile] 开始填充应答文件');
-
-    // 获取表单数据
-    const projectName = document.getElementById('fillProjectName')?.value;
-    const tenderNo = document.getElementById('fillTenderNo')?.value;
-    const dateText = document.getElementById('fillDate')?.value;
-
-    // 验证必填项
-    if (!projectName || !tenderNo || !dateText) {
-        showErrorMessage('fillErrorMessage', '请填写完整的项目信息');
-        return;
-    }
-
-    // 获取选中的资质
-    const imageConfig = buildImageConfigFromCheckboxes();
-
-    if (Object.keys(imageConfig).length === 0) {
-        showErrorMessage('fillErrorMessage', '请至少选择一个资质证明图片');
-        return;
-    }
-
-    // 构建请求数据
-    const formData = {
-        project_name: projectName,
-        tender_no: tenderNo,
-        date_text: dateText,
-        image_config: imageConfig
-    };
-
-    console.log('[startFillResponseFile] 请求数据:', formData);
-
-    // 显示进度条
-    const progressBar = document.getElementById('fillProgress');
-    const progressBarInner = progressBar?.querySelector('.progress-bar');
-    if (progressBar) {
-        progressBar.classList.remove('d-none');
-        if (progressBarInner) {
-            progressBarInner.style.width = '30%';
-        }
-    }
-
-    // 隐藏之前的结果
-    document.getElementById('fillResult')?.classList.add('d-none');
-    document.getElementById('fillError')?.classList.add('d-none');
-
-    try {
-        const response = await fetch(`/api/tender-processing/fill-response-file/${currentTaskId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
-
-        if (progressBarInner) {
-            progressBarInner.style.width = '60%';
-        }
-
-        const data = await response.json();
-
-        if (progressBarInner) {
-            progressBarInner.style.width = '100%';
-        }
-
-        if (data.success) {
-            console.log('[startFillResponseFile] 填充成功:', data);
-
-            // 显示成功消息
-            const resultCard = document.getElementById('fillResult');
-            const resultMessage = document.getElementById('fillResultMessage');
-
-            if (resultCard && resultMessage) {
-                resultMessage.textContent = data.message || '应答文件填充完成！';
-                resultCard.classList.remove('d-none');
-            }
-
-            // 设置下载链接
-            if (data.download_url) {
-                const downloadLink = document.getElementById('fillDownloadLink');
-                if (downloadLink) {
-                    downloadLink.href = data.download_url;
-                }
-            }
-
-            // 隐藏进度条
-            setTimeout(() => {
-                if (progressBar) {
-                    progressBar.classList.add('d-none');
-                }
-            }, 1000);
-
-        } else {
-            throw new Error(data.message || '填充失败');
-        }
-
-    } catch (error) {
-        console.error('[startFillResponseFile] 填充失败:', error);
-
-        if (progressBar) {
-            progressBar.classList.add('d-none');
-        }
-
-        showErrorMessage('fillErrorMessage', error.message || '填充应答文件时发生错误，请重试');
-    }
-}
-
-/**
- * 从复选框构建图片配置
- * @returns {Object} 图片配置对象
- */
-function buildImageConfigFromCheckboxes() {
-    const imageConfig = {};
-    const checkboxes = document.querySelectorAll('input[name="selected_qualifications"]:checked');
-
-    checkboxes.forEach((checkbox, index) => {
-        const imageUrl = checkbox.getAttribute('data-image-url');
-        const qualName = checkbox.getAttribute('data-name');
-
-        if (imageUrl) {
-            // 使用资质名称作为key，如果没有则使用序号
-            const key = qualName || `image_${index + 1}`;
-            imageConfig[key] = imageUrl;
-        }
-    });
-
-    console.log(`[buildImageConfigFromCheckboxes] 构建了 ${Object.keys(imageConfig).length} 个图片配置`);
-    return imageConfig;
-}
-
-/**
- * 预览填充后的文档
- */
-function previewFilledDocument() {
-    console.log('[previewFilledDocument] 预览填充后的文档');
-
-    const downloadLink = document.getElementById('fillDownloadLink');
-    if (!downloadLink || !downloadLink.href) {
-        alert('无法预览：未找到文件链接');
-        return;
-    }
-
-    // 使用与预览应答文件格式相同的逻辑
-    // 可以复用现有的预览功能或新建预览窗口
-    window.open(downloadLink.href, '_blank');
-}
-
-/**
- * 显示错误消息的辅助函数
- * @param {string} elementId - 错误消息元素ID
- * @param {string} message - 错误消息
- */
-function showErrorMessage(elementId, message) {
-    const errorCard = document.getElementById('fillError');
-    const errorMessage = document.getElementById(elementId);
-
-    if (errorCard && errorMessage) {
-        errorMessage.textContent = message;
-        errorCard.classList.remove('d-none');
-    }
-}
+// ============================================
+// 填充应答文件功能
+// ============================================
 

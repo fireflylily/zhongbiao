@@ -2467,195 +2467,6 @@ def register_hitl_routes(app):
     # 填充应答文件API
     # ============================================
 
-    @app.route('/api/tender-processing/fill-response-file/<int:hitl_task_id>', methods=['POST'])
-    def fill_response_file(hitl_task_id):
-        """
-        填充应答文件：在已保存的应答文件格式中填充项目信息和插入资质图片
-
-        请求参数:
-        - project_name: 项目名称
-        - tender_no: 招标编号
-        - date_text: 日期文本
-        - image_config: 图片配置 {资质名称: 图片URL}
-
-        返回:
-        - success: 是否成功
-        - message: 消息
-        - download_url: 下载链接
-        - stats: 处理统计
-        """
-        try:
-            # 获取请求数据
-            data = request.get_json()
-            project_name = data.get('project_name', '')
-            tender_no = data.get('tender_no', '')
-            date_text = data.get('date_text', '')
-            image_config_urls = data.get('image_config', {})
-
-            logger.info(f"[fill_response_file] 开始填充应答文件，任务ID: {hitl_task_id}")
-            logger.info(f"  - 项目名称: {project_name}")
-            logger.info(f"  - 招标编号: {tender_no}")
-            logger.info(f"  - 日期: {date_text}")
-            logger.info(f"  - 图片配置(URL): {image_config_urls}")
-
-            # 验证必填参数
-            if not all([project_name, tender_no, date_text]):
-                raise ValueError("项目名称、招标编号和日期为必填项")
-
-            if not image_config_urls:
-                raise ValueError("请至少选择一个资质证明图片")
-
-            # 获取HITL任务信息
-            task = db.execute_query("""
-                SELECT * FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (hitl_task_id,), fetch_one=True)
-
-            if not task:
-                raise ValueError(f"未找到任务ID: {hitl_task_id}")
-
-            # 获取项目信息
-            project_id = task['project_id']
-            project = db.execute_query("""
-                SELECT * FROM tender_projects
-                WHERE project_id = ?
-            """, (project_id,), fetch_one=True)
-
-            if not project:
-                raise ValueError(f"未找到项目ID: {project_id}")
-
-            # 获取公司信息
-            company_id = project['company_id']
-            if not company_id:
-                raise ValueError("项目未关联公司")
-
-            # 解析step3_data获取保存的应答文件路径
-            step3_data = json.loads(task.get('step3_data', '{}'))
-            response_file_info = step3_data.get('response_file', {})
-            response_file_path = response_file_info.get('file_path')
-
-            if not response_file_path or not os.path.exists(response_file_path):
-                raise ValueError("未找到已保存的应答文件模板，请先在步骤1中保存应答文件格式")
-
-            logger.info(f"找到应答文件模板: {response_file_path}")
-
-            # 将图片URL转换为实际文件路径
-            image_config = convert_image_urls_to_paths(image_config_urls, company_id, db)
-            logger.info(f"转换后的图片配置: {image_config}")
-
-            # 获取公司详细信息
-            from core.knowledge_base import KnowledgeBaseManager
-            kb_manager = KnowledgeBaseManager()
-            company_db_data = kb_manager.get_company_detail(int(company_id))
-
-            if not company_db_data:
-                raise ValueError(f"未找到公司信息: {company_id}")
-
-            # 转换公司数据格式为处理器期望的格式
-            field_mapping = {
-                'companyName': 'company_name',
-                'establishDate': 'establish_date',
-                'legalRepresentative': 'legal_representative',
-                'legalRepresentativePosition': 'legal_representative_position',
-                'socialCreditCode': 'social_credit_code',
-                'registeredCapital': 'registered_capital',
-                'companyType': 'company_type',
-                'registeredAddress': 'registered_address',
-                'businessScope': 'business_scope',
-                'companyDescription': 'description',
-                'fixedPhone': 'fixed_phone',
-                'fax': 'fax',
-                'postalCode': 'postal_code',
-                'email': 'email',
-                'officeAddress': 'office_address',
-                'employeeCount': 'employee_count',
-                'bankName': 'bank_name',
-                'bankAccount': 'bank_account'
-            }
-            reverse_mapping = {v: k for k, v in field_mapping.items()}
-            company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
-
-            # 构建输出文件路径
-            from config import config
-            from common.file_utils import ensure_dir
-            output_dir = ensure_dir(config.get_path('output'))
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_filename = f"filled_response_{company_id}_{timestamp}.docx"
-            output_path = output_dir / output_filename
-
-            logger.info(f"输出文件路径: {output_path}")
-
-            # 调用商务应答处理器进行填充
-            # 检查是否可用
-            try:
-                from modules.business_response.processor import BusinessResponseProcessor
-                BUSINESS_RESPONSE_AVAILABLE = True
-            except ImportError:
-                BUSINESS_RESPONSE_AVAILABLE = False
-                logger.warning("商务应答模块不可用")
-
-            if not BUSINESS_RESPONSE_AVAILABLE:
-                raise ValueError("商务应答处理模块不可用，无法填充文件")
-
-            processor = BusinessResponseProcessor()
-            result_stats = processor.process_business_response(
-                str(response_file_path),
-                str(output_path),
-                company_data,
-                project_name,
-                tender_no,
-                date_text,
-                image_config
-            )
-
-            # 检查处理结果
-            if not result_stats.get('success'):
-                raise ValueError(result_stats.get('error', '填充失败'))
-
-            logger.info(f"填充成功: {result_stats.get('message', '无消息')}")
-            logger.info(f"处理统计: {result_stats.get('stats', {})}")
-
-            # 更新任务的step3_data，记录填充后的文件
-            step3_data['filled_response_file'] = {
-                'file_path': str(output_path),
-                'filename': output_filename,
-                'timestamp': timestamp,
-                'project_name': project_name,
-                'tender_no': tender_no,
-                'date_text': date_text
-            }
-
-            db.execute_query("""
-                UPDATE tender_hitl_tasks
-                SET step3_data = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE hitl_task_id = ?
-            """, (json.dumps(step3_data, ensure_ascii=False), hitl_task_id))
-
-            # 返回成功结果
-            return jsonify({
-                'success': True,
-                'message': '应答文件填充完成！',
-                'download_url': f'/download/{output_filename}',
-                'stats': result_stats.get('stats', {}),
-                'output_file': str(output_path)
-            })
-
-        except ValueError as e:
-            logger.warning(f"[fill_response_file] 参数错误: {e}")
-            return jsonify({
-                'success': False,
-                'message': str(e)
-            }), 400
-
-        except Exception as e:
-            logger.error(f"[fill_response_file] 填充应答文件失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            return jsonify({
-                'success': False,
-                'message': f'填充失败: {str(e)}'
-            }), 500
 
 
 # ============================================
@@ -2706,3 +2517,203 @@ def convert_image_urls_to_paths(image_config_urls, company_id, db):
             continue
 
     return image_config
+
+    # ============================================
+    # 应答完成文件相关API (从商务应答同步)
+    # ============================================
+
+    @app.route('/api/tender-processing/sync-business-response/<task_id>', methods=['POST'])
+    def sync_business_response_to_hitl(task_id):
+        """
+        将商务应答生成的文件同步到HITL投标项目
+        接收商务应答生成的文件路径,复制到HITL任务目录,保存为"应答完成文件"
+        """
+        try:
+            data = request.get_json()
+            source_file_path = data.get('file_path')
+
+            if not source_file_path:
+                return jsonify({"success": False, "error": "未提供文件路径"}), 400
+
+            # 检查源文件是否存在
+            if not os.path.exists(source_file_path):
+                return jsonify({"success": False, "error": "源文件不存在"}), 404
+
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+
+            # 创建存储目录
+            now = datetime.now()
+            project_root = Path(__file__).parent.parent
+            save_dir = os.path.join(
+                project_root,
+                'data/uploads/completed_response_files',
+                str(now.year),
+                f"{now.month:02d}",
+                task_id
+            )
+            os.makedirs(save_dir, exist_ok=True)
+
+            # 生成文件名
+            source_filename = os.path.basename(source_file_path)
+            # 从源文件名提取,如果包含时间戳则保留,否则添加时间戳
+            if '_' in source_filename:
+                base_name = source_filename.rsplit('.', 1)[0]
+                filename = f"{base_name}_应答完成.docx"
+            else:
+                filename = f"应答完成_{now.strftime('%Y%m%d_%H%M%S')}.docx"
+
+            # 复制文件到目标位置
+            target_path = os.path.join(save_dir, filename)
+            shutil.copy2(source_file_path, target_path)
+
+            # 计算文件大小
+            file_size = os.path.getsize(target_path)
+
+            # 更新任务的step1_data
+            completed_response_info = {
+                "file_path": target_path,
+                "filename": filename,
+                "file_size": file_size,
+                "saved_at": now.isoformat(),
+                "source": "business_response",
+                "source_file": source_file_path
+            }
+            step1_data['completed_response_file'] = completed_response_info
+
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET step1_data = ?
+                WHERE hitl_task_id = ?
+            """, (json.dumps(step1_data), task_id))
+
+            logger.info(f"同步商务应答文件到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
+
+            return jsonify({
+                "success": True,
+                "message": "文件已成功同步到投标项目",
+                "file_path": target_path,
+                "filename": filename,
+                "file_size": file_size,
+                "saved_at": completed_response_info['saved_at']
+            })
+
+        except Exception as e:
+            logger.error(f"同步商务应答文件失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/tender-processing/completed-response-info/<task_id>', methods=['GET'])
+    def get_completed_response_info(task_id):
+        """获取应答完成文件信息"""
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            completed_response = step1_data.get('completed_response_file')
+
+            if not completed_response:
+                return jsonify({
+                    "success": True,
+                    "has_file": False
+                })
+
+            # 检查文件是否存在
+            file_exists = os.path.exists(completed_response['file_path'])
+
+            return jsonify({
+                "success": True,
+                "has_file": file_exists,
+                "filename": completed_response.get('filename'),
+                "file_size": completed_response.get('file_size'),
+                "saved_at": completed_response.get('saved_at'),
+                "source": completed_response.get('source', 'unknown'),
+                "download_url": f"/api/tender-processing/download-completed-response/{task_id}"
+            })
+
+        except Exception as e:
+            logger.error(f"获取应答完成文件信息失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/tender-processing/download-completed-response/<task_id>', methods=['GET'])
+    def download_completed_response(task_id):
+        """下载应答完成文件"""
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            completed_response = step1_data.get('completed_response_file')
+
+            if not completed_response:
+                return jsonify({"error": "应答完成文件不存在"}), 404
+
+            file_path = completed_response['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=True,
+                download_name=completed_response['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"下载应答完成文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tender-processing/preview-completed-response/<task_id>', methods=['GET'])
+    def preview_completed_response(task_id):
+        """预览应答完成文件"""
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            completed_response = step1_data.get('completed_response_file')
+
+            if not completed_response:
+                return jsonify({"error": "应答完成文件不存在"}), 404
+
+            file_path = completed_response['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            # 预览模式：as_attachment=False，浏览器会尝试在线打开
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=False,
+                download_name=completed_response['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"预览应答完成文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
