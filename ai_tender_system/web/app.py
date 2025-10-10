@@ -11,6 +11,8 @@ import tempfile
 import hashlib
 import time
 import re
+import urllib.parse
+from datetime import datetime
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
 from flask_cors import CORS
@@ -595,7 +597,91 @@ def register_routes(app: Flask, config, logger):
     # ===================
     # 商务应答相关路由（暂时占位）
     # ===================
-    
+
+    def build_image_config_from_db(company_id: int) -> dict:
+        """
+        从数据库加载公司资质信息并构建图片配置
+
+        Args:
+            company_id: 公司ID
+
+        Returns:
+            图片配置字典，包含：
+            - seal_path: 公章图片路径
+            - license_path: 营业执照图片路径
+            - qualification_paths: 资质证书图片路径列表
+        """
+        try:
+            # 从数据库获取公司的所有资质
+            qualifications = kb_manager.db.get_company_qualifications(company_id)
+
+            if not qualifications:
+                logger.warning(f"公司 {company_id} 没有上传任何资质文件")
+                return {}
+
+            logger.info(f"从数据库加载公司 {company_id} 的资质信息，共 {len(qualifications)} 个资质")
+
+            image_config = {}
+            qualification_paths = []
+
+            # 遍历所有资质，按类型分类
+            for qual in qualifications:
+                qual_key = qual.get('qualification_key')
+                file_path = qual.get('file_path')
+
+                if not file_path:
+                    continue
+
+                # 营业执照
+                if qual_key == 'business_license':
+                    image_config['license_path'] = file_path
+                    logger.info(f"  - 营业执照: {file_path}")
+
+                # 公章
+                elif qual_key == 'company_seal':
+                    image_config['seal_path'] = file_path
+                    logger.info(f"  - 公章: {file_path}")
+
+                # 资质证书 - 包括各类ISO认证、CMMI等
+                elif qual_key in ['iso9001', 'iso14001', 'iso20000', 'iso27001',
+                                 'cmmi', 'itss', 'safety_production',
+                                 'software_copyright', 'patent_certificate']:
+                    qualification_paths.append(file_path)
+                    logger.info(f"  - 资质证书 ({qual_key}): {file_path}")
+
+            # 添加资质证书列表
+            if qualification_paths:
+                image_config['qualification_paths'] = qualification_paths
+
+            logger.info(f"构建的图片配置: {len(image_config)} 个类型，{len(qualification_paths)} 个资质证书")
+            return image_config
+
+        except Exception as e:
+            logger.error(f"从数据库构建图片配置失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return {}
+
+    def generate_output_filename(project_name: str, file_type: str, timestamp: str = None) -> str:
+        """
+        生成统一格式的输出文件名: {项目名称}_{类型}_{时间戳}.docx
+
+        Args:
+            project_name: 项目名称
+            file_type: 文件类型（如：商务应答、点对点应答、技术方案）
+            timestamp: 时间戳，如果未提供则自动生成
+
+        Returns:
+            格式化的文件名
+        """
+        if not timestamp:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        # 使用safe_filename确保项目名称安全
+        safe_project = safe_filename(project_name) if project_name else "未命名项目"
+
+        return f"{safe_project}_{file_type}_{timestamp}.docx"
+
     @app.route('/process-business-response', methods=['POST'])
     def process_business_response():
         """处理商务应答"""
@@ -622,60 +708,22 @@ def register_routes(app: Flask, config, logger):
             date_text = data.get('date_text', '')
             use_mcp = data.get('use_mcp', 'false').lower() == 'true'
 
-            # 获取图片配置
-            image_config = None
-            image_config_str = data.get('image_config', '')
-            if image_config_str:
-                try:
-                    import json
-                    image_config_urls = json.loads(image_config_str)
-                    logger.info(f"接收到图片配置(URL): {image_config_urls}")
-
-                    # 将URL转换为实际文件路径
-                    image_config = {}
-
-                    # 转换公章路径
-                    if 'seal_path' in image_config_urls:
-                        qual_key = image_config_urls['seal_path'].split('/')[-2]
-                        qual = kb_manager.db.get_qualification_by_key(int(company_id), qual_key)
-                        if qual:
-                            image_config['seal_path'] = qual['file_path']
-                            logger.info(f"公章路径: {image_config['seal_path']}")
-
-                    # 转换营业执照路径
-                    if 'license_path' in image_config_urls:
-                        qual_key = image_config_urls['license_path'].split('/')[-2]
-                        qual = kb_manager.db.get_qualification_by_key(int(company_id), qual_key)
-                        if qual:
-                            image_config['license_path'] = qual['file_path']
-                            logger.info(f"营业执照路径: {image_config['license_path']}")
-
-                    # 转换资质证书路径
-                    if 'qualification_paths' in image_config_urls:
-                        qualification_paths = []
-                        for url in image_config_urls['qualification_paths']:
-                            qual_key = url.split('/')[-2]
-                            qual = kb_manager.db.get_qualification_by_key(int(company_id), qual_key)
-                            if qual:
-                                qualification_paths.append(qual['file_path'])
-                                logger.info(f"资质证书路径: {qual['file_path']}")
-                        if qualification_paths:
-                            image_config['qualification_paths'] = qualification_paths
-
-                    logger.info(f"转换后的图片配置: {image_config}")
-
-                except json.JSONDecodeError as e:
-                    logger.warning(f"图片配置JSON解析失败: {e}")
-                except Exception as e:
-                    logger.error(f"图片配置转换失败: {e}")
-                    image_config = None
-
             # 验证必填字段
             if not company_id:
                 raise ValueError("请选择应答公司")
-            
-            # 从数据库获取公司信息
+
+            # 转换公司ID为整数
             company_id_int = int(company_id)
+
+            # 从数据库直接加载图片配置（新方案：消除前端时序问题）
+            image_config = build_image_config_from_db(company_id_int)
+
+            if image_config:
+                logger.info(f"成功从数据库加载图片配置，包含 {len(image_config)} 个类型")
+            else:
+                logger.warning(f"公司 {company_id} 没有可用的资质图片")
+
+            # 从数据库获取公司信息
             company_db_data = kb_manager.get_company_detail(company_id_int)
             if not company_db_data:
                 raise ValueError(f"未找到公司信息: {company_id}")
@@ -720,7 +768,8 @@ def register_routes(app: Flask, config, logger):
             
             # 公共的输出文件路径设置（移到外面，两个分支都需要）
             output_dir = ensure_dir(config.get_path('output'))
-            output_filename = f"business_response_{company_id}_{filename}"
+            # 使用新的文件命名规则：{项目名称}_商务应答_{时间戳}.docx
+            output_filename = generate_output_filename(project_name, "商务应答")
             output_path = output_dir / output_filename
             
             logger.info(f"公司数据验证:")
@@ -972,7 +1021,9 @@ def register_routes(app: Flask, config, logger):
             # 生成输出文件路径
             output_dir = ensure_dir(config.get_path('output'))
             base_name = Path(filename).stem
-            output_filename = f"{base_name}-内联应答.docx"
+            # 使用新的文件命名规则：{项目名称}_点对点应答_{时间戳}.docx
+            # 对于点对点应答，如果没有项目名称，使用原文件名作为项目名称
+            output_filename = generate_output_filename(base_name, "点对点应答")
             output_path = output_dir / output_filename
 
             # 使用新的内联回复处理方法
@@ -1091,7 +1142,10 @@ def register_routes(app: Flask, config, logger):
             
             # 生成输出文件路径
             output_dir = ensure_dir(config.get_path('output'))
-            output_filename = f"tech_response_{company_id}_{filename}"
+            # 使用新的文件命名规则：{项目名称}_技术方案_{时间戳}.docx
+            # 对于技术需求回复，使用原文件名作为项目名称（因为没有单独的project_name字段）
+            base_name = Path(file_metadata.original_name).stem
+            output_filename = generate_output_filename(base_name, "技术方案")
             output_path = output_dir / output_filename
             
             # 处理技术需求
@@ -1131,15 +1185,14 @@ def register_routes(app: Flask, config, logger):
     # 文档预览和编辑API
     @app.route('/api/document/preview/<filename>', methods=['GET'])
     def preview_document(filename):
-        """预览文档内容（转换为HTML）- 支持.doc和.docx格式"""
+        """预览文档内容 - 直接返回.docx文件供前端mammoth.js转换"""
         try:
-            import html
-            from pathlib import Path
+            # URL解码文件名（处理中文字符等）
+            filename = urllib.parse.unquote(filename)
 
-            # 直接使用传入的文件名，因为这应该是从系统生成的安全文件名
             # 只进行基本的安全检查，避免路径遍历攻击
             if '..' in filename or '/' in filename or '\\' in filename:
-                raise ValueError("非法文件名")
+                return jsonify({'success': False, 'error': '非法文件名'}), 400
 
             # 先尝试从output目录查找，如果不存在则从upload目录查找
             file_path = config.get_path('output') / filename
@@ -1148,60 +1201,35 @@ def register_routes(app: Flask, config, logger):
                 file_path = config.get_path('upload') / filename
 
             if not file_path.exists():
-                raise FileNotFoundError(f"文档不存在: {filename}")
+                return jsonify({'success': False, 'error': f'文档不存在: {filename}'}), 404
 
-            file_ext = Path(file_path).suffix.lower()
+            file_ext = file_path.suffix.lower()
 
             # 只处理Word文档
             if file_ext not in ['.doc', '.docx']:
-                raise ValueError(f"不支持的文件格式: {file_ext}")
+                return jsonify({'success': False, 'error': f'不支持的文件格式: {file_ext}'}), 400
 
-            # 使用TenderInfoExtractor的文档读取功能（支持.doc和.docx）
-            from modules.tender_info.extractor import TenderInfoExtractor
-            extractor = TenderInfoExtractor()
+            # 如果是.doc格式，提示需要转换
+            if file_ext == '.doc':
+                return jsonify({
+                    'success': False,
+                    'error': '旧版.doc格式预览失败。建议：\n1. 将文件另存为.docx格式\n2. 或直接进行信息提取（系统会自动处理）'
+                }), 400
 
-            # 读取文档内容（自动处理.doc和.docx）
-            text_content = extractor.read_document(str(file_path))
-
-            # 将纯文本转换为HTML（保留段落结构）
-            html_content = ['<div class="document-preview">']
-
-            # 按段落分割文本
-            paragraphs = text_content.split('\n')
-            for para in paragraphs:
-                para = para.strip()
-                if para:
-                    # 简单的标题检测（全大写或以数字开头）
-                    if para.isupper() and len(para) < 100:
-                        html_content.append(f'<h3>{html.escape(para)}</h3>')
-                    elif re.match(r'^\d+[\.\、]', para):
-                        html_content.append(f'<h4>{html.escape(para)}</h4>')
-                    else:
-                        html_content.append(f'<p>{html.escape(para)}</p>')
-
-            html_content.append('</div>')
-
-            return jsonify({
-                'success': True,
-                'html_content': ''.join(html_content),
-                'filename': filename,
-                'format': file_ext
-            })
+            # 直接返回.docx文件，让前端mammoth.js处理
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=False,
+                download_name=filename
+            )
 
         except Exception as e:
             logger.error(f"文档预览失败: {e}")
-            error_msg = str(e)
-
-            # 提供友好的错误提示
-            if 'WPS Office' in error_msg:
-                error_msg = 'WPS格式文档预览失败。建议：\n1. 使用WPS或Word将文件另存为.docx格式\n2. 或直接进行信息提取'
-            elif '.doc' in error_msg or 'antiword' in error_msg:
-                error_msg = '旧版.doc格式预览失败。建议：\n1. 将文件另存为.docx格式\n2. 或直接进行信息提取（系统会自动处理）'
-
             return jsonify({
                 'success': False,
-                'error': error_msg
-            })
+                'error': str(e)
+            }), 500
     
     @app.route('/api/editor/load-document', methods=['POST'])
     def load_document_for_edit():
@@ -1908,11 +1936,8 @@ def register_routes(app: Flask, config, logger):
 
     @app.route('/api/point-to-point/preview')
     def preview_point_to_point_document():
-        """预览点对点应答文档"""
+        """预览点对点应答文档 - 直接返回.docx文件供前端mammoth.js转换"""
         try:
-            from docx import Document
-            import html
-
             # 获取参数
             file_id = request.args.get('file_id')
             file_path = request.args.get('file_path')
@@ -1943,67 +1968,20 @@ def register_routes(app: Flask, config, logger):
             # 根据文件类型进行预览
             file_extension = target_file.suffix.lower()
 
-            if file_extension in ['.docx', '.doc']:
-                # Word文档预览
-                try:
-                    doc = Document(target_file)
-                    html_content = ['<div class="document-preview">']
+            if file_extension == '.docx':
+                # 直接返回.docx文件，让前端mammoth.js处理
+                return send_file(
+                    target_file,
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    as_attachment=False,
+                    download_name=target_file.name
+                )
 
-                    # 处理段落
-                    for paragraph in doc.paragraphs:
-                        if paragraph.text.strip():
-                            style_name = paragraph.style.name if paragraph.style else ''
-                            text = html.escape(paragraph.text)
-
-                            # 检查段落是否有灰色背景（点对点应答标记）
-                            is_response = any(keyword in paragraph.text.lower() for keyword in ['应答', '回复', '答复'])
-                            style_class = 'response-paragraph' if is_response else ''
-
-                            if 'Heading 1' in style_name or 'heading 1' in style_name.lower():
-                                html_content.append(f'<h1 class="{style_class}">{text}</h1>')
-                            elif 'Heading 2' in style_name or 'heading 2' in style_name.lower():
-                                html_content.append(f'<h2 class="{style_class}">{text}</h2>')
-                            elif 'Heading 3' in style_name or 'heading 3' in style_name.lower():
-                                html_content.append(f'<h3 class="{style_class}">{text}</h3>')
-                            else:
-                                html_content.append(f'<p class="{style_class}">{text}</p>')
-
-                    # 处理表格
-                    for table in doc.tables:
-                        html_content.append('<table class="table table-bordered table-striped">')
-                        for i, row in enumerate(table.rows):
-                            tag = 'th' if i == 0 else 'td'
-                            html_content.append('<tr>')
-                            for cell in row.cells:
-                                cell_text = html.escape(cell.text)
-                                html_content.append(f'<{tag}>{cell_text}</{tag}>')
-                            html_content.append('</tr>')
-                        html_content.append('</table>')
-
-                    html_content.append('</div>')
-
-                    # 添加CSS样式
-                    css_styles = """
-                    <style>
-                        .document-preview { font-family: 'Microsoft YaHei', sans-serif; line-height: 1.6; }
-                        .response-paragraph { background-color: #d9d9d9; padding: 8px; margin: 4px 0; border-left: 4px solid #007bff; }
-                        .table { margin: 20px 0; }
-                        h1, h2, h3 { color: #333; margin: 20px 0 10px 0; }
-                        p { margin: 10px 0; }
-                    </style>
-                    """
-
-                    full_content = css_styles + ''.join(html_content)
-
-                    return jsonify({
-                        'success': True,
-                        'content': full_content,
-                        'filename': target_file.name
-                    })
-
-                except Exception as e:
-                    logger.error(f"Word文档预览失败: {e}")
-                    return jsonify({'success': False, 'error': f'Word文档预览失败: {str(e)}'}), 500
+            elif file_extension == '.doc':
+                return jsonify({
+                    'success': False,
+                    'error': '旧版.doc格式预览失败。建议：\n1. 将文件另存为.docx格式\n2. 或直接进行信息提取（系统会自动处理）'
+                }), 400
 
             elif file_extension == '.pdf':
                 # PDF预览（简单实现，返回提示信息）

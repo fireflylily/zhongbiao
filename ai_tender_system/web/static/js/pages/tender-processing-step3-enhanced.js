@@ -552,61 +552,45 @@ function previewResponseFile(taskId) {
         .then(result => {
             if (previewContent) {
                 const html = result.value || '<p>文档内容为空</p>';
-                // 添加样式包装
+                // 添加样式包装（保留原文档字体大小，只添加必要的布局样式）
                 previewContent.innerHTML = `
                     <style>
-                        #documentPreviewContent,
-                        #documentPreviewContent * {
-                            font-family: 'SimSun', 'Microsoft YaHei', serif !important;
-                            font-size: 10.5pt !important;
-                            line-height: 1.8 !important;
-                        }
                         #documentPreviewContent {
+                            font-family: 'SimSun', 'Microsoft YaHei', serif;
+                            line-height: 1.8;
                             padding: 20px;
+                            color: #333;
                         }
                         #documentPreviewContent p {
-                            margin: 10px 0 !important;
-                            font-size: 10.5pt !important;
+                            margin: 10px 0;
                         }
-                        #documentPreviewContent h1 {
-                            color: #333 !important;
-                            margin: 20px 0 10px 0 !important;
-                            font-size: 16pt !important;
-                            font-weight: bold !important;
-                        }
-                        #documentPreviewContent h2 {
-                            color: #333 !important;
-                            margin: 20px 0 10px 0 !important;
-                            font-size: 14pt !important;
-                            font-weight: bold !important;
-                        }
-                        #documentPreviewContent h3 {
-                            color: #333 !important;
-                            margin: 20px 0 10px 0 !important;
-                            font-size: 12pt !important;
-                            font-weight: bold !important;
+                        #documentPreviewContent h1,
+                        #documentPreviewContent h2,
+                        #documentPreviewContent h3,
+                        #documentPreviewContent h4,
+                        #documentPreviewContent h5,
+                        #documentPreviewContent h6 {
+                            margin: 20px 0 10px 0;
+                            font-weight: bold;
                         }
                         #documentPreviewContent table {
-                            border-collapse: collapse !important;
-                            width: 100% !important;
-                            margin: 20px 0 !important;
-                            font-size: 10.5pt !important;
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 20px 0;
                         }
                         #documentPreviewContent table td,
                         #documentPreviewContent table th {
-                            border: 1px solid #ddd !important;
-                            padding: 8px !important;
-                            font-size: 10.5pt !important;
+                            border: 1px solid #ddd;
+                            padding: 8px;
                         }
                         #documentPreviewContent table th {
-                            background-color: #f2f2f2 !important;
-                            font-weight: bold !important;
+                            background-color: #f2f2f2;
+                            font-weight: bold;
                         }
                         #documentPreviewContent ul,
-                        #documentPreviewContent ol,
-                        #documentPreviewContent li {
-                            font-size: 10.5pt !important;
-                            line-height: 1.8 !important;
+                        #documentPreviewContent ol {
+                            margin: 10px 0;
+                            padding-left: 30px;
                         }
                     </style>
                     <div>${html}</div>
@@ -2040,60 +2024,45 @@ function previewFile(type, taskId) {
         .then(result => {
             if (previewContent) {
                 const html = result.value || '<p>文档内容为空</p>';
+                // 添加样式包装（保留原文档字体大小，只添加必要的布局样式）
                 previewContent.innerHTML = `
                     <style>
-                        #documentPreviewContent .mammoth-preview-content,
-                        #documentPreviewContent .mammoth-preview-content * {
-                            font-family: 'SimSun', 'Microsoft YaHei', serif !important;
-                            font-size: 10.5pt !important;
-                            line-height: 1.8 !important;
-                        }
                         #documentPreviewContent .mammoth-preview-content {
+                            font-family: 'SimSun', 'Microsoft YaHei', serif;
+                            line-height: 1.8;
                             padding: 20px;
+                            color: #333;
                         }
                         #documentPreviewContent .mammoth-preview-content p {
-                            margin: 10px 0 !important;
-                            font-size: 10.5pt !important;
+                            margin: 10px 0;
                         }
-                        #documentPreviewContent .mammoth-preview-content h1 {
-                            color: #333 !important;
-                            margin: 20px 0 10px 0 !important;
-                            font-size: 16pt !important;
-                            font-weight: bold !important;
-                        }
-                        #documentPreviewContent .mammoth-preview-content h2 {
-                            color: #333 !important;
-                            margin: 20px 0 10px 0 !important;
-                            font-size: 14pt !important;
-                            font-weight: bold !important;
-                        }
-                        #documentPreviewContent .mammoth-preview-content h3 {
-                            color: #333 !important;
-                            margin: 20px 0 10px 0 !important;
-                            font-size: 12pt !important;
-                            font-weight: bold !important;
+                        #documentPreviewContent .mammoth-preview-content h1,
+                        #documentPreviewContent .mammoth-preview-content h2,
+                        #documentPreviewContent .mammoth-preview-content h3,
+                        #documentPreviewContent .mammoth-preview-content h4,
+                        #documentPreviewContent .mammoth-preview-content h5,
+                        #documentPreviewContent .mammoth-preview-content h6 {
+                            margin: 20px 0 10px 0;
+                            font-weight: bold;
                         }
                         #documentPreviewContent .mammoth-preview-content table {
-                            border-collapse: collapse !important;
-                            width: 100% !important;
-                            margin: 20px 0 !important;
-                            font-size: 10.5pt !important;
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 20px 0;
                         }
                         #documentPreviewContent .mammoth-preview-content table td,
                         #documentPreviewContent .mammoth-preview-content table th {
-                            border: 1px solid #ddd !important;
-                            padding: 8px !important;
-                            font-size: 10.5pt !important;
+                            border: 1px solid #ddd;
+                            padding: 8px;
                         }
                         #documentPreviewContent .mammoth-preview-content table th {
-                            background-color: #f2f2f2 !important;
-                            font-weight: bold !important;
+                            background-color: #f2f2f2;
+                            font-weight: bold;
                         }
                         #documentPreviewContent .mammoth-preview-content ul,
-                        #documentPreviewContent .mammoth-preview-content ol,
-                        #documentPreviewContent .mammoth-preview-content li {
-                            font-size: 10.5pt !important;
-                            line-height: 1.8 !important;
+                        #documentPreviewContent .mammoth-preview-content ol {
+                            margin: 10px 0;
+                            padding-left: 30px;
                         }
                     </style>
                     <div class="mammoth-preview-content">${html}</div>

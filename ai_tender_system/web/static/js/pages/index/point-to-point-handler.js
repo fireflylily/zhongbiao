@@ -306,11 +306,11 @@ function submitPointToPointForm() {
 
             // 设置预览按钮事件
             const previewBtn = document.getElementById('previewBtn');
-            if (data.download_url && previewBtn) {
+            if (data.filename && previewBtn) {
                 previewBtn.onclick = function(e) {
                     e.preventDefault();
-                    // 在新窗口打开预览
-                    window.open(data.download_url, '_blank');
+                    // 使用预览API而不是直接打开下载URL，避免触发文件下载
+                    previewPointToPointResultDocument(data.filename);
                 };
             }
 
@@ -644,52 +644,243 @@ function previewPointDocument(button) {
         </html>
     `);
 
-    // 获取预览内容
+    // 使用mammoth.js在前端转换Word文档
     fetch(previewUrl)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP错误! 状态: ${response.status}`);
-            }
-            return response.json();
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            // 使用mammoth转换Word为HTML
+            return mammoth.convertToHtml({arrayBuffer: arrayBuffer});
         })
-        .then(data => {
-            if (data.success) {
-                const content = data.content || data.html || '无法显示预览内容';
-                previewWindow.document.open();
-                previewWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>预览: ${filename || '文档'}</title>
-                        <meta charset="utf-8">
-                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
-                        <style>
-                            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-                            .preview-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000; }
-                            .preview-content { padding: 2rem; max-width: 900px; margin: 0 auto; }
-                            .highlight { background-color: #d4edda; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="preview-header">
+        .then(result => {
+            const html = result.value || '<p>文档内容为空</p>';
+
+            // 显示转换警告信息(如果有)
+            if (result.messages && result.messages.length > 0) {
+                console.log('Mammoth转换消息:', result.messages);
+            }
+
+            previewWindow.document.open();
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>预览: ${filename || '文档'}</title>
+                    <meta charset="utf-8">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+                    <style>
+                        body { font-family: 'SimSun', 'Microsoft YaHei', serif; }
+                        .preview-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000; }
+                        .preview-content {
+                            padding: 2rem;
+                            max-width: 900px;
+                            margin: 0 auto;
+                            line-height: 1.8;
+                        }
+                        .preview-content p { margin: 10px 0; }
+                        .preview-content h1,
+                        .preview-content h2,
+                        .preview-content h3,
+                        .preview-content h4,
+                        .preview-content h5,
+                        .preview-content h6 {
+                            margin: 20px 0 10px 0;
+                            font-weight: bold;
+                        }
+                        .preview-content table {
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 20px 0;
+                        }
+                        .preview-content table td,
+                        .preview-content table th {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                        }
+                        .preview-content table th {
+                            background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        .preview-content ul,
+                        .preview-content ol {
+                            margin: 10px 0;
+                            padding-left: 30px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="preview-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>${filename || '文档预览'}</h5>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="window.close()">
+                                <i class="bi bi-x-lg"></i> 关闭
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preview-content">
+                        ${html}
+                    </div>
+                </body>
+                </html>
+            `);
+            previewWindow.document.close();
+        })
+        .catch(error => {
+            console.error('文档预览失败:', error);
+            previewWindow.document.open();
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>预览错误</title>
+                    <meta charset="utf-8">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+                </head>
+                <body>
+                    <div class="container mt-5">
+                        <div class="alert alert-danger">
+                            <h5><i class="bi bi-exclamation-triangle me-2"></i>预览失败</h5>
+                            <p>无法预览此文档: ${error.message}</p>
+                            <button class="btn btn-outline-secondary" onclick="window.close()">关闭</button>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            previewWindow.document.close();
+        });
+}
+
+// 预览点对点处理结果文档（处理完成后的预览按钮）
+function previewPointToPointResultDocument(filename) {
+    if (!filename) {
+        alert('无法获取文件信息');
+        return;
+    }
+
+    console.log('预览点对点结果文档:', filename);
+
+    // 使用预览API而不是直接下载URL
+    const previewApiUrl = `/api/document/preview/${encodeURIComponent(filename)}`;
+
+    // 在新窗口中打开预览
+    const previewWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+    if (!previewWindow) {
+        alert('浏览器阻止了弹出窗口，请检查弹出窗口设置');
+        return;
+    }
+
+    // 显示加载状态
+    previewWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>预览: ${filename}</title>
+            <meta charset="utf-8">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container-fluid">
+                <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3">正在加载文档预览...</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+
+    // 使用mammoth.js在前端转换Word文档
+    fetch(previewApiUrl)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+            // 使用mammoth转换Word为HTML
+            return mammoth.convertToHtml({arrayBuffer: arrayBuffer});
+        })
+        .then(result => {
+            const html = result.value || '<p>文档内容为空</p>';
+
+            // 显示转换警告信息(如果有)
+            if (result.messages && result.messages.length > 0) {
+                console.log('Mammoth转换消息:', result.messages);
+            }
+
+            previewWindow.document.open();
+            previewWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>预览: ${filename}</title>
+                    <meta charset="utf-8">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+                    <style>
+                        body { font-family: 'SimSun', 'Microsoft YaHei', serif; }
+                        .preview-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000; }
+                        .preview-content {
+                            padding: 2rem;
+                            max-width: 900px;
+                            margin: 0 auto;
+                            line-height: 1.8;
+                        }
+                        .preview-content p { margin: 10px 0; }
+                        .preview-content h1,
+                        .preview-content h2,
+                        .preview-content h3,
+                        .preview-content h4,
+                        .preview-content h5,
+                        .preview-content h6 {
+                            margin: 20px 0 10px 0;
+                            font-weight: bold;
+                        }
+                        .preview-content table {
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 20px 0;
+                        }
+                        .preview-content table td,
+                        .preview-content table th {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                        }
+                        .preview-content table th {
+                            background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        .preview-content ul,
+                        .preview-content ol {
+                            margin: 10px 0;
+                            padding-left: 30px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="preview-header">
+                        <div class="container-fluid">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>${filename || '文档预览'}</h5>
-                                <button class="btn btn-outline-secondary btn-sm" onclick="window.close()">
-                                    <i class="bi bi-x-lg"></i> 关闭
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>${filename}</h5>
+                                <button class="btn btn-secondary btn-sm" onclick="window.close()">
+                                    <i class="bi bi-x-lg me-1"></i>关闭
                                 </button>
                             </div>
                         </div>
+                    </div>
+                    <div class="container">
                         <div class="preview-content">
-                            ${content}
+                            ${html}
                         </div>
-                    </body>
-                    </html>
-                `);
-                previewWindow.document.close();
-            } else {
-                throw new Error(data.error || '预览失败');
-            }
+                    </div>
+                </body>
+                </html>
+            `);
+            previewWindow.document.close();
         })
         .catch(error => {
             console.error('文档预览失败:', error);

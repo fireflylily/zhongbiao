@@ -11,6 +11,29 @@ __pycache__/
 # Ignore log files
 *.log
 logs/
+ai_tender_system/data/logs/
+
+# Ignore database files
+*.db
+*.sqlite
+*.sqlite3
+ai_tender_system/data/knowledge_base.db
+ai_tender_system/modules/data/chroma_db/
+
+# Ignore runtime generated files
+company_configs/*.json
+!company_configs/example.json
+ai_tender_system/data/uploads/
+ai_tender_system/data/output/
+
+# Ignore system files
+.DS_Store
+.vscode/
+.idea/
+
+# Ignore temporary scripts
+fix_*.py
+temp_*.py
 
 # Ignore test files (optional, you may want to keep some)
 test_*.py

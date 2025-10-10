@@ -1,8 +1,5 @@
 // 商务应答功能处理
 
-// 存储当前公司的资质信息
-let currentCompanyQualifications = null;
-
 document.addEventListener('DOMContentLoaded', function() {
     // 从全局状态管理器加载公司和项目信息
     loadBusinessCompanyInfo();
@@ -83,14 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('date_text', dateText);
                 formData.append('use_mcp', useMcp);
 
-                // 构建并添加图片配置
-                const imageConfig = buildImageConfig(companyId);
-                if (imageConfig) {
-                    formData.append('image_config', JSON.stringify(imageConfig));
-                    console.log('添加图片配置到请求:', imageConfig);
-                } else {
-                    console.log('没有可用的图片配置');
-                }
+                // 注意：图片配置现在由后端自动从数据库加载，无需前端传递
 
                 // 发送请求
                 const response = await fetch('/process-business-response', {
@@ -189,10 +179,10 @@ let wordEditor = null; // WordEditor实例
 
 // 预览商务应答文档
 function previewBusinessDocument(customUrl = null) {
-    // 确定预览URL：优先使用传入的customUrl，否则从下载按钮获取
-    let previewUrl;
+    // 确定文件名：优先使用传入的customUrl，否则从下载按钮获取
+    let downloadUrl;
     if (customUrl) {
-        previewUrl = customUrl;
+        downloadUrl = customUrl;
     } else {
         const downloadLink = document.getElementById('businessDownloadLink');
         if (!downloadLink || !downloadLink.href) {
@@ -203,11 +193,11 @@ function previewBusinessDocument(customUrl = null) {
             }
             return;
         }
-        previewUrl = downloadLink.href;
+        downloadUrl = downloadLink.href;
     }
 
-    // 从URL获取文件路径
-    const url = new URL(previewUrl, window.location.href);
+    // 从URL获取文件名
+    const url = new URL(downloadUrl, window.location.href);
     const filename = url.pathname.split('/').pop();
     currentDocumentPath = filename;
 
@@ -221,8 +211,11 @@ function previewBusinessDocument(customUrl = null) {
     const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
     previewModal.show();
 
+    // 使用预览API获取Word文件，然后用mammoth.js转换
+    const previewApiUrl = `/api/document/preview/${encodeURIComponent(filename)}`;
+
     // 使用mammoth.js在前端直接转换Word文档
-    fetch(previewUrl)
+    fetch(previewApiUrl)
         .then(response => response.arrayBuffer())
         .then(arrayBuffer => {
             // 使用mammoth转换Word为HTML
@@ -231,30 +224,45 @@ function previewBusinessDocument(customUrl = null) {
         .then(result => {
             if (previewContent) {
                 const html = result.value || '<p>文档内容为空</p>';
-                // 添加样式包装
+                // 添加样式包装（保留原文档字体大小，只添加必要的布局样式）
                 previewContent.innerHTML = `
                     <style>
                         #documentPreviewContent {
-                            font-family: 'Microsoft YaHei', sans-serif;
+                            font-family: 'SimSun', 'Microsoft YaHei', serif;
                             line-height: 1.8;
                             padding: 20px;
-                        }
-                        #documentPreviewContent p { margin: 10px 0; }
-                        #documentPreviewContent h1, #documentPreviewContent h2, #documentPreviewContent h3 {
                             color: #333;
+                        }
+                        #documentPreviewContent p {
+                            margin: 10px 0;
+                        }
+                        #documentPreviewContent h1,
+                        #documentPreviewContent h2,
+                        #documentPreviewContent h3,
+                        #documentPreviewContent h4,
+                        #documentPreviewContent h5,
+                        #documentPreviewContent h6 {
                             margin: 20px 0 10px 0;
+                            font-weight: bold;
                         }
                         #documentPreviewContent table {
                             border-collapse: collapse;
                             width: 100%;
                             margin: 20px 0;
                         }
-                        #documentPreviewContent table td, #documentPreviewContent table th {
+                        #documentPreviewContent table td,
+                        #documentPreviewContent table th {
                             border: 1px solid #ddd;
                             padding: 8px;
                         }
                         #documentPreviewContent table th {
                             background-color: #f2f2f2;
+                            font-weight: bold;
+                        }
+                        #documentPreviewContent ul,
+                        #documentPreviewContent ol {
+                            margin: 10px 0;
+                            padding-left: 30px;
                         }
                     </style>
                     <div>${html}</div>
@@ -269,7 +277,7 @@ function previewBusinessDocument(customUrl = null) {
         .catch(error => {
             console.error('预览失败:', error);
             if (previewContent) {
-                previewContent.innerHTML = `<div class="alert alert-danger">预览失败: ${error.message}</div>`;
+                previewContent.innerHTML = '<div class="text-center text-danger"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">预览失败，请尝试下载文档</p></div>';
             }
         });
 }
@@ -510,74 +518,10 @@ function updateBusinessHiddenFields() {
     // 可以在这里添加招标编号和日期的同步逻辑（如果需要的话）
 
     console.log('商务应答页面：表单字段已更新', companyData);
-
-    // 获取公司资质信息
-    if (companyData && companyData.company_id) {
-        fetchCompanyQualifications(companyData.company_id);
-    }
 }
 
-// 获取公司资质信息
-function fetchCompanyQualifications(companyId) {
-    console.log('正在获取公司资质信息:', companyId);
-
-    fetch(`/api/companies/${companyId}/qualifications`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                currentCompanyQualifications = data.qualifications;
-                console.log('获取到公司资质:', currentCompanyQualifications);
-            } else {
-                console.warn('获取公司资质失败:', data.error);
-                currentCompanyQualifications = null;
-            }
-        })
-        .catch(error => {
-            console.error('获取公司资质时发生错误:', error);
-            currentCompanyQualifications = null;
-        });
-}
-
-// 构建图片配置对象
-function buildImageConfig(companyId) {
-    if (!currentCompanyQualifications || Object.keys(currentCompanyQualifications).length === 0) {
-        console.log('没有可用的资质信息');
-        return null;
-    }
-
-    const imageConfig = {};
-
-    // 营业执照
-    if (currentCompanyQualifications.business_license) {
-        imageConfig.license_path = `/api/companies/${companyId}/qualifications/business_license/download`;
-        console.log('添加营业执照路径:', imageConfig.license_path);
-    }
-
-    // 公章 (如果有的话)
-    if (currentCompanyQualifications.company_seal) {
-        imageConfig.seal_path = `/api/companies/${companyId}/qualifications/company_seal/download`;
-        console.log('添加公章路径:', imageConfig.seal_path);
-    }
-
-    // 资质证书 - 收集所有ISO认证和其他资质
-    const qualificationPaths = [];
-    const qualificationKeys = ['iso9001', 'iso14001', 'iso20000', 'iso27001', 'cmmi', 'itss',
-                               'safety_production', 'software_copyright', 'patent_certificate'];
-
-    for (const key of qualificationKeys) {
-        if (currentCompanyQualifications[key]) {
-            qualificationPaths.push(`/api/companies/${companyId}/qualifications/${key}/download`);
-            console.log(`添加资质证书: ${key}`);
-        }
-    }
-
-    if (qualificationPaths.length > 0) {
-        imageConfig.qualification_paths = qualificationPaths;
-    }
-
-    console.log('构建的image_config:', imageConfig);
-    return Object.keys(imageConfig).length > 0 ? imageConfig : null;
-}
+// 注意：图片配置相关函数已移除
+// 图片配置现在由后端自动从数据库加载，提高可靠性并消除前端时序问题
 
 // 加载历史文件列表
 function loadBusinessFilesList() {

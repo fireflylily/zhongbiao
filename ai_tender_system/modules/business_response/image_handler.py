@@ -25,20 +25,18 @@ class ImageHandler:
         
         # 图片类型关键词映射
         self.image_keywords = {
-            'seal': ['公章', '盖章', '印章', '公司章'],
             'license': ['营业执照', '营业执照副本', '执照'],
             'qualification': ['资质证书', '资质', '认证证书'],
             'authorization': ['授权书', '授权委托书', '法人授权'],
             'certificate': ['证书', '认证', '资格证']
         }
-        
+
         # 默认图片尺寸（英寸）
         self.default_sizes = {
-            'seal': (1.5, 1.5),  # 公章
-            'license': (4, 5),    # 营业执照
-            'qualification': (4, 5),  # 资质证书
-            'authorization': (4, 5),   # 授权书
-            'certificate': (4, 5)      # 其他证书
+            'license': (6, 0),    # 营业执照：宽6英寸（约15.24厘米）
+            'qualification': (6, 0),  # 资质证书：宽6英寸（约15.24厘米）
+            'authorization': (6, 0),   # 授权书：宽6英寸（约15.24厘米）
+            'certificate': (6, 0)      # 其他证书：宽6英寸（约15.24厘米）
         }
     
     def insert_images(self, doc: Document, image_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -69,15 +67,7 @@ class ImageHandler:
         
         # 扫描文档，查找图片插入位置
         insert_points = self._scan_insert_points(doc)
-        
-        # 插入公章
-        if image_config.get('seal_path'):
-            if self._insert_seal(doc, image_config['seal_path'], insert_points.get('seal')):
-                stats['images_inserted'] += 1
-                stats['images_types'].append('公章')
-            else:
-                stats['errors'].append('公章插入失败')
-        
+
         # 插入营业执照
         if image_config.get('license_path'):
             if self._insert_license(doc, image_config['license_path'], insert_points.get('license')):
@@ -105,18 +95,7 @@ class ImageHandler:
         
         for para_idx, paragraph in enumerate(doc.paragraphs):
             text = paragraph.text.strip()
-            
-            # 查找公章位置
-            for keyword in self.image_keywords['seal']:
-                if keyword in text and '处' in text:
-                    insert_points['seal'] = {
-                        'type': 'paragraph',
-                        'index': para_idx,
-                        'paragraph': paragraph
-                    }
-                    self.logger.debug(f"找到公章插入点: 段落#{para_idx}")
-                    break
-            
+
             # 查找营业执照位置
             for keyword in self.image_keywords['license']:
                 if keyword in text:
@@ -158,119 +137,148 @@ class ImageHandler:
                                     self.logger.debug(f"找到{img_type}插入点: 表格#{table_idx}")
         
         return insert_points
-    
-    def _insert_seal(self, doc: Document, image_path: str, insert_point: Optional[Dict]) -> bool:
-        """插入公章"""
-        try:
-            if not os.path.exists(image_path):
-                self.logger.error(f"公章图片不存在: {image_path}")
-                return False
-            
-            if insert_point:
-                if insert_point['type'] == 'paragraph':
-                    # 在段落后插入
-                    paragraph = insert_point['paragraph']
-                    # 添加新段落用于插入图片
-                    new_para = doc.add_paragraph()
-                    new_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT  # 公章通常右对齐
-                    run = new_para.add_run()
-                    run.add_picture(image_path, width=Inches(self.default_sizes['seal'][0]))
-                    
-                    # 将新段落移动到目标位置
-                    self._move_paragraph_after(doc, new_para, paragraph)
-                    
-                elif insert_point['type'] == 'table_cell':
-                    # 在表格单元格中插入
-                    cell = insert_point['cell']
-                    # 清空单元格
-                    for paragraph in cell.paragraphs:
-                        paragraph.clear()
-                    # 添加图片
-                    paragraph = cell.add_paragraph()
-                    run = paragraph.add_run()
-                    run.add_picture(image_path, width=Inches(self.default_sizes['seal'][0]))
-                
-                self.logger.info(f"成功插入公章: {image_path}")
-                return True
-            else:
-                # 没有找到特定位置，在文档末尾添加
-                paragraph = doc.add_paragraph()
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-                run = paragraph.add_run()
-                run.add_picture(image_path, width=Inches(self.default_sizes['seal'][0]))
-                self.logger.info(f"在文档末尾插入公章: {image_path}")
-                return True
-                
-        except Exception as e:
-            self.logger.error(f"插入公章失败: {e}")
-            return False
-    
+
+    def _insert_paragraph_after(self, target_para):
+        """在目标段落后插入新段落
+
+        Args:
+            target_para: 目标段落对象
+
+        Returns:
+            新创建的段落对象
+        """
+        # 使用底层XML操作在目标段落后插入新段落
+        new_p_element = target_para._element.makeelement('w:p', nsmap=target_para._element.nsmap)
+        target_para._element.addnext(new_p_element)
+
+        # 获取文档中的段落列表，找到新插入的段落
+        parent = target_para._parent
+        target_index = parent.paragraphs._values.index(target_para)
+        parent.paragraphs._values.insert(target_index + 1, None)  # 强制刷新缓存
+
+        # 返回新段落对象
+        return parent.paragraphs[target_index + 1]
+
     def _insert_license(self, doc: Document, image_path: str, insert_point: Optional[Dict]) -> bool:
         """插入营业执照"""
         try:
             if not os.path.exists(image_path):
                 self.logger.error(f"营业执照图片不存在: {image_path}")
                 return False
-            
-            # 添加分页符
-            doc.add_page_break()
-            
-            # 添加标题
-            title = doc.add_paragraph("营业执照副本")
-            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if title.runs:
-                title.runs[0].font.bold = True
-            
-            # 插入图片
-            paragraph = doc.add_paragraph()
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = paragraph.add_run()
-            run.add_picture(image_path, width=Inches(self.default_sizes['license'][0]))
-            
-            self.logger.info(f"成功插入营业执照: {image_path}")
-            return True
-            
+
+            if insert_point and insert_point['type'] == 'paragraph':
+                # 在找到的段落位置插入
+                target_para = insert_point['paragraph']
+
+                # 插入分页符
+                page_break_para = self._insert_paragraph_after(target_para)
+                page_break_para.add_run().add_break()
+
+                # 插入标题
+                title = self._insert_paragraph_after(page_break_para)
+                title.text = "营业执照副本"
+                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if title.runs:
+                    title.runs[0].font.bold = True
+
+                # 插入图片
+                img_para = self._insert_paragraph_after(title)
+                img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = img_para.add_run()
+                run.add_picture(image_path, width=Inches(self.default_sizes['license'][0]))
+
+                self.logger.info(f"成功在指定位置插入营业执照: {image_path}")
+                return True
+            else:
+                # 降级：添加到文档末尾
+                doc.add_page_break()
+
+                title = doc.add_paragraph("营业执照副本")
+                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if title.runs:
+                    title.runs[0].font.bold = True
+
+                paragraph = doc.add_paragraph()
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = paragraph.add_run()
+                run.add_picture(image_path, width=Inches(self.default_sizes['license'][0]))
+
+                self.logger.info(f"在文档末尾插入营业执照: {image_path}")
+                return True
+
         except Exception as e:
             self.logger.error(f"插入营业执照失败: {e}")
             return False
     
-    def _insert_qualification(self, doc: Document, image_path: str, 
+    def _insert_qualification(self, doc: Document, image_path: str,
                             insert_point: Optional[Dict], index: int) -> bool:
         """插入资质证书"""
         try:
             if not os.path.exists(image_path):
                 self.logger.error(f"资质证书图片不存在: {image_path}")
                 return False
-            
-            # 添加分页符（如果不是第一个资质证书）
-            if index == 0:
+
+            if insert_point and insert_point['type'] == 'paragraph' and index == 0:
+                # 第一个资质证书：在找到的段落位置插入
+                target_para = insert_point['paragraph']
+
+                # 插入分页符
+                page_break_para = self._insert_paragraph_after(target_para)
+                page_break_para.add_run().add_break()
+
+                # 插入标题
+                title = self._insert_paragraph_after(page_break_para)
+                title.text = f"资质证书 {index + 1}"
+                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if title.runs:
+                    title.runs[0].font.bold = True
+
+                # 插入图片
+                img_para = self._insert_paragraph_after(title)
+                img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = img_para.add_run()
+                run.add_picture(image_path, width=Inches(self.default_sizes['qualification'][0]))
+
+                self.logger.info(f"成功在指定位置插入资质证书{index+1}: {image_path}")
+                return True
+
+            elif index > 0:
+                # 后续资质证书：直接添加到文档末尾（跟在第一个资质证书后面）
+                title = doc.add_paragraph(f"资质证书 {index + 1}")
+                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if title.runs:
+                    title.runs[0].font.bold = True
+
+                paragraph = doc.add_paragraph()
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = paragraph.add_run()
+                run.add_picture(image_path, width=Inches(self.default_sizes['qualification'][0]))
+
+                self.logger.info(f"成功插入资质证书{index+1}: {image_path}")
+                return True
+
+            else:
+                # 降级：第一个资质证书但没找到插入点，添加到文档末尾
                 doc.add_page_break()
-            
-            # 添加标题
-            title = doc.add_paragraph(f"资质证书 {index + 1}")
-            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            if title.runs:
-                title.runs[0].font.bold = True
-            
-            # 插入图片
-            paragraph = doc.add_paragraph()
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = paragraph.add_run()
-            run.add_picture(image_path, width=Inches(self.default_sizes['qualification'][0]))
-            
-            self.logger.info(f"成功插入资质证书{index+1}: {image_path}")
-            return True
-            
+
+                title = doc.add_paragraph(f"资质证书 {index + 1}")
+                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if title.runs:
+                    title.runs[0].font.bold = True
+
+                paragraph = doc.add_paragraph()
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = paragraph.add_run()
+                run.add_picture(image_path, width=Inches(self.default_sizes['qualification'][0]))
+
+                self.logger.info(f"在文档末尾插入资质证书{index+1}: {image_path}")
+                return True
+
         except Exception as e:
             self.logger.error(f"插入资质证书失败: {e}")
             return False
-    
-    def _move_paragraph_after(self, doc: Document, para_to_move, target_para):
-        """将段落移动到目标段落之后"""
-        # 这是一个简化的实现，实际可能需要更复杂的XML操作
-        # 由于python-docx的限制，这里只是将段落添加到文档末尾
-        pass
-    
+
+
     def validate_images(self, image_paths: List[str]) -> Dict[str, Any]:
         """验证图片文件"""
         validation_result = {
