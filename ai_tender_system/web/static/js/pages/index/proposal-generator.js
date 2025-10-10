@@ -19,6 +19,7 @@ class ProposalGenerator {
         this.bindElements();
         this.bindEvents();
         this.loadCompanies();
+        this.parseUrlParams(); // 解析URL参数并自动填充
     }
 
     /**
@@ -95,6 +96,14 @@ class ProposalGenerator {
                 }
             });
         }
+
+        // 监听公司状态变化,同步到下拉框
+        window.addEventListener('companyChanged', (e) => {
+            if (e.detail && e.detail.company_id && this.techCompanySelect) {
+                console.log('[ProposalGenerator] 收到公司变化事件:', e.detail);
+                this.techCompanySelect.value = e.detail.company_id;
+            }
+        });
     }
 
     /**
@@ -501,6 +510,46 @@ class ProposalGenerator {
     }
 
     /**
+     * 解析URL参数并自动填充表单
+     */
+    parseUrlParams() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const companyId = urlParams.get('company_id');
+            const companyName = urlParams.get('company_name');
+            const projectId = urlParams.get('project_id');
+            const projectName = urlParams.get('project_name');
+            const hitlTaskId = urlParams.get('hitl_task_id');
+
+            console.log('[ProposalGenerator] 解析URL参数:', {
+                companyId, companyName, projectId, projectName, hitlTaskId
+            });
+
+            // 如果有公司和项目信息,通过companyStateManager设置
+            if (companyId && companyName && window.companyStateManager) {
+                console.log('[ProposalGenerator] 设置公司和项目信息到状态管理器');
+                window.companyStateManager.selectCompany({
+                    company_id: parseInt(companyId),
+                    company_name: companyName,
+                    project_id: projectId ? parseInt(projectId) : null,
+                    project_name: projectName || null
+                });
+            }
+
+            // 保存hitl_task_id供后续使用(如果需要同步回HITL)
+            if (hitlTaskId) {
+                this.hitlTaskId = hitlTaskId;
+                console.log('[ProposalGenerator] 保存HITL任务ID:', hitlTaskId);
+            }
+
+            // 保存URL参数供loadCompanies使用
+            this.urlCompanyId = companyId;
+        } catch (error) {
+            console.error('[ProposalGenerator] 解析URL参数失败:', error);
+        }
+    }
+
+    /**
      * 加载公司列表
      */
     async loadCompanies() {
@@ -530,6 +579,12 @@ class ProposalGenerator {
                 });
 
                 console.log(`技术方案成功加载 ${data.data.length} 家公司`);
+
+                // 加载完成后,如果有URL参数中的company_id,自动选中
+                if (this.urlCompanyId) {
+                    this.techCompanySelect.value = this.urlCompanyId;
+                    console.log('[ProposalGenerator] 自动选中URL传递的公司ID:', this.urlCompanyId);
+                }
             } else {
                 console.log('技术方案没有找到公司数据');
                 this.techCompanySelect.innerHTML = '<option value="">暂无公司数据</option>';
