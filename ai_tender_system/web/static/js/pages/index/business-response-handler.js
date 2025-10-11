@@ -31,8 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const useMcp = 'true'; // 默认使用MCP处理器
 
             // 从全局状态管理器获取项目名称
-            const companyData = window.companyStateManager ? window.companyStateManager.getSelectedCompany() : null;
-            const projectName = companyData && companyData.project_name ? companyData.project_name : '';
+            const projectName = window.companyStateManager ? window.companyStateManager.getProjectName() : '';
 
             // 检查是否有从HITL加载的文件URL
             const hasLoadedFile = window.businessResponseFileUrl && window.businessResponseFileName;

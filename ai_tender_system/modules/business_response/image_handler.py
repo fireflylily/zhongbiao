@@ -104,9 +104,9 @@ class ImageHandler:
                         'index': para_idx,
                         'paragraph': paragraph
                     }
-                    self.logger.debug(f"找到营业执照插入点: 段落#{para_idx}")
+                    self.logger.info(f"✅ 找到营业执照插入点: 段落#{para_idx}, 文本='{text[:50]}'")
                     break
-            
+
             # 查找资质证书位置
             for keyword in self.image_keywords['qualification']:
                 if keyword in text:
@@ -115,7 +115,7 @@ class ImageHandler:
                         'index': para_idx,
                         'paragraph': paragraph
                     }
-                    self.logger.debug(f"找到资质证书插入点: 段落#{para_idx}")
+                    self.logger.info(f"✅ 找到资质证书插入点: 段落#{para_idx}, 文本='{text[:50]}'")
                     break
         
         # 扫描表格中的插入点
@@ -134,8 +134,10 @@ class ImageHandler:
                                         'table_index': table_idx,
                                         'cell': cell
                                     }
-                                    self.logger.debug(f"找到{img_type}插入点: 表格#{table_idx}")
-        
+                                    self.logger.info(f"✅ 找到{img_type}插入点: 表格#{table_idx}, 单元格文本='{cell_text[:30]}'")
+
+        # 输出扫描总结
+        self.logger.info(f"📊 扫描完成: 找到 {len(insert_points)} 个插入点 - {list(insert_points.keys())}")
         return insert_points
 
     def _insert_paragraph_after(self, target_para):
@@ -147,17 +149,29 @@ class ImageHandler:
         Returns:
             新创建的段落对象
         """
-        # 使用底层XML操作在目标段落后插入新段落
-        new_p_element = target_para._element.makeelement('w:p', nsmap=target_para._element.nsmap)
-        target_para._element.addnext(new_p_element)
+        try:
+            from lxml.etree import QName
+            from docx.text.paragraph import Paragraph
 
-        # 获取文档中的段落列表，找到新插入的段落
-        parent = target_para._parent
-        target_index = parent.paragraphs._values.index(target_para)
-        parent.paragraphs._values.insert(target_index + 1, None)  # 强制刷新缓存
+            # 使用底层XML操作在目标段落后插入新段落
+            # 注意：makeelement 需要使用 QName 来指定带命名空间的标签
+            w_namespace = target_para._element.nsmap.get('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main')
+            new_p_element = target_para._element.makeelement(QName(w_namespace, 'p'), nsmap=target_para._element.nsmap)
+            target_para._element.addnext(new_p_element)
 
-        # 返回新段落对象
-        return parent.paragraphs[target_index + 1]
+            # 将新创建的 XML 元素包装为 Paragraph 对象并返回
+            parent = target_para._parent
+            new_paragraph = Paragraph(new_p_element, parent)
+
+            return new_paragraph
+
+        except Exception as e:
+            # 输出详细错误信息用于调试
+            self.logger.error(f"❌ 在段落后插入新段落失败: {e}")
+            self.logger.error(f"  目标段落文本: '{target_para.text[:100] if target_para.text else ''}'")
+            self.logger.error(f"  父容器类型: {type(target_para._parent).__name__}")
+            self.logger.error(f"  段落对象: {target_para}")
+            raise
 
     def _insert_license(self, doc: Document, image_path: str, insert_point: Optional[Dict]) -> bool:
         """插入营业执照"""

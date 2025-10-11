@@ -491,6 +491,26 @@
                     console.log(`[Index] ${section} - URL参数:`, { projectName, companyId, companyName, hitlTaskId });
 
                     setTimeout(function() {
+                        // 保存到全局状态管理器（优先于显示，确保后续表单提交能获取到数据）
+                        if (window.companyStateManager && (companyId || companyName)) {
+                            // 保存公司信息
+                            if (companyId && companyName) {
+                                window.companyStateManager.setSelectedCompany({
+                                    company_id: companyId,
+                                    company_name: companyName
+                                });
+                                console.log(`[Index] ${section} - 已保存公司信息到状态管理器`);
+                            }
+
+                            // 保存项目信息
+                            if (projectName) {
+                                window.companyStateManager.setProjectInfo({
+                                    project_name: projectName
+                                });
+                                console.log(`[Index] ${section} - 已保存项目名称到状态管理器:`, projectName);
+                            }
+                        }
+
                         // 填充公司名称
                         if (companyName) {
                             const companyNameDisplay = document.querySelector(`.companyNameDisplay[data-section="${section}"]`);

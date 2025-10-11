@@ -95,6 +95,7 @@ def generate_proposal():
 
         # 2. 获取参数
         company_id = request.form.get('companyId')
+        project_name = request.form.get('projectName', '')  # 获取项目名称
         output_prefix = request.form.get('output_prefix', '技术方案')
 
         options = {
@@ -164,8 +165,19 @@ def generate_proposal():
 
         output_files = {}
 
+        # 智能文件命名：有项目名称时使用"项目名_类型_时间"，无项目名称时使用"前缀_时间"
+        if project_name:
+            proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
+            analysis_filename = f"{project_name}_需求分析_{timestamp}.docx"
+            mapping_filename = f"{project_name}_需求匹配表_{timestamp}.xlsx"
+            summary_filename = f"{project_name}_生成报告_{timestamp}.txt"
+        else:
+            proposal_filename = f"{output_prefix}_{timestamp}.docx"
+            analysis_filename = f"{output_prefix}_需求分析_{timestamp}.docx"
+            mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
+            summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
+
         # 导出主方案
-        proposal_filename = f"{output_prefix}_{timestamp}.docx"
         proposal_path = output_dir / proposal_filename
         exporter.export_proposal(proposal, str(proposal_path))
         output_files['proposal'] = f"/downloads/{proposal_filename}"
@@ -174,7 +186,6 @@ def generate_proposal():
 
         # 导出附件
         if options['include_analysis']:
-            analysis_filename = f"{output_prefix}_需求分析_{timestamp}.docx"
             analysis_path = output_dir / analysis_filename
             exporter.export_analysis_report(analysis_result, str(analysis_path))
             output_files['analysis'] = f"/downloads/{analysis_filename}"
@@ -182,7 +193,6 @@ def generate_proposal():
             logger.info(f"需求分析报告已导出: {analysis_path}")
 
         if options['include_mapping']:
-            mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
             mapping_path = output_dir / mapping_filename
 
             mapping_data = []
@@ -197,7 +207,6 @@ def generate_proposal():
             logger.info(f"需求匹配表已导出: {mapping_path}")
 
         if options['include_summary']:
-            summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
             summary_path = output_dir / summary_filename
 
             summary_data = {}

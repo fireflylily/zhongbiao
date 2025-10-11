@@ -204,6 +204,14 @@ class ProposalGenerator {
                 formData.append('companyId', companyId);
             }
 
+            // 添加项目名称（如果有）
+            if (window.companyStateManager) {
+                const projectName = window.companyStateManager.getProjectName();
+                if (projectName) {
+                    formData.append('projectName', projectName);
+                }
+            }
+
             // 创建超时控制器
             this.currentController = new AbortController();
             const timeoutId = setTimeout(() => {
@@ -376,24 +384,24 @@ class ProposalGenerator {
                 text: '下载技术方案'
             },
             analysis: {
-                class: 'btn-info',
+                class: 'btn-success',
                 icon: 'bi-file-earmark-text',
                 text: '下载需求分析'
             },
             mapping: {
-                class: 'btn-warning',
+                class: 'btn-success',
                 icon: 'bi-file-earmark-spreadsheet',
                 text: '下载匹配表'
             },
             summary: {
-                class: 'btn-secondary',
+                class: 'btn-success',
                 icon: 'bi-file-earmark-pdf',
                 text: '下载生成报告'
             }
         };
 
         return configs[fileType] || {
-            class: 'btn-primary',
+            class: 'btn-success',
             icon: 'bi-download',
             text: '下载文件'
         };
