@@ -1910,8 +1910,8 @@ def register_routes(app: Flask, config, logger):
 
             if output_dir.exists():
                 for filename in os.listdir(output_dir):
-                    # 过滤点对点应答文件（通常包含特定关键词）
-                    if filename.endswith(('.docx', '.doc', '.pdf')) and any(keyword in filename.lower() for keyword in ['点对点', 'point', 'p2p', '应答', 'reply']):
+                    # 过滤点对点应答文件（只匹配包含"点对点应答"或"点对点"的文件）
+                    if filename.endswith(('.docx', '.doc', '.pdf')) and ('点对点应答' in filename or '点对点' in filename or 'point-to-point' in filename.lower()):
                         file_path = output_dir / filename
                         try:
                             stat = file_path.stat()
