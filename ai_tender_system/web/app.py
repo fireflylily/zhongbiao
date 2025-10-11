@@ -1875,7 +1875,8 @@ def register_routes(app: Flask, config, logger):
 
             if output_dir.exists():
                 for filename in os.listdir(output_dir):
-                    if filename.endswith(('.docx', '.doc', '.pdf')):
+                    # 过滤商务应答文件（只匹配包含"商务应答"的文件）
+                    if filename.endswith(('.docx', '.doc', '.pdf')) and '商务应答' in filename:
                         file_path = output_dir / filename
                         try:
                             stat = file_path.stat()
