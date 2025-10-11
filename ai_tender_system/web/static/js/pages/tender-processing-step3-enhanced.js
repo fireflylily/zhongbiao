@@ -542,64 +542,31 @@ function previewResponseFile(taskId) {
     const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
     previewModal.show();
 
-    // 使用mammoth.js在前端直接转换Word文档
+    // 使用docx-preview在前端直接转换Word文档，保留原始格式
     fetch(previewUrl)
         .then(response => response.arrayBuffer())
         .then(arrayBuffer => {
-            // 使用mammoth转换Word为HTML
-            return mammoth.convertToHtml({arrayBuffer: arrayBuffer});
-        })
-        .then(result => {
             if (previewContent) {
-                const html = result.value || '<p>文档内容为空</p>';
-                // 添加样式包装（保留原文档字体大小，只添加必要的布局样式）
-                previewContent.innerHTML = `
-                    <style>
-                        #documentPreviewContent {
-                            font-family: 'SimSun', 'Microsoft YaHei', serif;
-                            line-height: 1.8;
-                            padding: 20px;
-                            color: #333;
-                        }
-                        #documentPreviewContent p {
-                            margin: 10px 0;
-                        }
-                        #documentPreviewContent h1,
-                        #documentPreviewContent h2,
-                        #documentPreviewContent h3,
-                        #documentPreviewContent h4,
-                        #documentPreviewContent h5,
-                        #documentPreviewContent h6 {
-                            margin: 20px 0 10px 0;
-                            font-weight: bold;
-                        }
-                        #documentPreviewContent table {
-                            border-collapse: collapse;
-                            width: 100%;
-                            margin: 20px 0;
-                        }
-                        #documentPreviewContent table td,
-                        #documentPreviewContent table th {
-                            border: 1px solid #ddd;
-                            padding: 8px;
-                        }
-                        #documentPreviewContent table th {
-                            background-color: #f2f2f2;
-                            font-weight: bold;
-                        }
-                        #documentPreviewContent ul,
-                        #documentPreviewContent ol {
-                            margin: 10px 0;
-                            padding-left: 30px;
-                        }
-                    </style>
-                    <div>${html}</div>
-                `;
+                // 清空容器
+                previewContent.innerHTML = '';
 
-                // 显示转换警告信息(如果有)
-                if (result.messages && result.messages.length > 0) {
-                    console.log('Mammoth转换消息:', result.messages);
-                }
+                // 使用docx-preview渲染，保留所有原始格式包括字体大小
+                docx.renderAsync(arrayBuffer, previewContent, null, {
+                    className: 'docx-preview',
+                    inWrapper: true,
+                    ignoreWidth: false,
+                    ignoreHeight: false,
+                    ignoreFonts: false,  // 保留字体格式
+                    breakPages: true,
+                    ignoreLastRenderedPageBreak: true,
+                    experimental: true,
+                    trimXmlDeclaration: true
+                }).then(() => {
+                    console.log('文档预览成功');
+                }).catch(err => {
+                    console.error('docx-preview渲染失败:', err);
+                    previewContent.innerHTML = '<div class="text-center text-danger"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">文档渲染失败，请尝试下载文档</p></div>';
+                });
             }
         })
         .catch(error => {
@@ -2015,58 +1982,31 @@ function previewFile(type, taskId) {
     const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
     previewModal.show();
 
-    // 使用mammoth.js在前端直接转换Word文档
+    // 使用docx-preview在前端直接转换Word文档，保留原始格式
     fetch(previewUrl)
         .then(response => response.arrayBuffer())
         .then(arrayBuffer => {
-            return mammoth.convertToHtml({arrayBuffer: arrayBuffer});
-        })
-        .then(result => {
             if (previewContent) {
-                const html = result.value || '<p>文档内容为空</p>';
-                // 添加样式包装（保留原文档字体大小，只添加必要的布局样式）
-                previewContent.innerHTML = `
-                    <style>
-                        #documentPreviewContent .mammoth-preview-content {
-                            font-family: 'SimSun', 'Microsoft YaHei', serif;
-                            line-height: 1.8;
-                            padding: 20px;
-                            color: #333;
-                        }
-                        #documentPreviewContent .mammoth-preview-content p {
-                            margin: 10px 0;
-                        }
-                        #documentPreviewContent .mammoth-preview-content h1,
-                        #documentPreviewContent .mammoth-preview-content h2,
-                        #documentPreviewContent .mammoth-preview-content h3,
-                        #documentPreviewContent .mammoth-preview-content h4,
-                        #documentPreviewContent .mammoth-preview-content h5,
-                        #documentPreviewContent .mammoth-preview-content h6 {
-                            margin: 20px 0 10px 0;
-                            font-weight: bold;
-                        }
-                        #documentPreviewContent .mammoth-preview-content table {
-                            border-collapse: collapse;
-                            width: 100%;
-                            margin: 20px 0;
-                        }
-                        #documentPreviewContent .mammoth-preview-content table td,
-                        #documentPreviewContent .mammoth-preview-content table th {
-                            border: 1px solid #ddd;
-                            padding: 8px;
-                        }
-                        #documentPreviewContent .mammoth-preview-content table th {
-                            background-color: #f2f2f2;
-                            font-weight: bold;
-                        }
-                        #documentPreviewContent .mammoth-preview-content ul,
-                        #documentPreviewContent .mammoth-preview-content ol {
-                            margin: 10px 0;
-                            padding-left: 30px;
-                        }
-                    </style>
-                    <div class="mammoth-preview-content">${html}</div>
-                `;
+                // 清空容器
+                previewContent.innerHTML = '';
+
+                // 使用docx-preview渲染，保留所有原始格式包括字体大小
+                docx.renderAsync(arrayBuffer, previewContent, null, {
+                    className: 'docx-preview',
+                    inWrapper: true,
+                    ignoreWidth: false,
+                    ignoreHeight: false,
+                    ignoreFonts: false,  // 保留字体格式
+                    breakPages: true,
+                    ignoreLastRenderedPageBreak: true,
+                    experimental: true,
+                    trimXmlDeclaration: true
+                }).then(() => {
+                    console.log(`[previewFile] ${config.fileTypeName}预览成功`);
+                }).catch(err => {
+                    console.error(`[previewFile] docx-preview渲染失败:`, err);
+                    previewContent.innerHTML = '<div class="alert alert-danger">文档渲染失败，请尝试下载文档</div>';
+                });
             }
         })
         .catch(error => {
