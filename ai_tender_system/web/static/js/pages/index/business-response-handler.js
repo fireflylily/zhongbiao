@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 从全局状态管理器加载公司和项目信息
     loadBusinessCompanyInfo();
 
+    // 延迟加载历史文件列表（确保DOM完全加载）
+    setTimeout(() => {
+        loadBusinessFilesList();
+    }, 500);
+
     // 商务应答文件上传处理
     const businessTemplateFile = document.getElementById('businessTemplateFile');
     if (businessTemplateFile) {
@@ -491,47 +496,107 @@ function updateBusinessHiddenFields() {
 
 // 加载历史文件列表
 function loadBusinessFilesList() {
+    console.log('开始加载商务应答历史文件列表...');
+
+    const tableBody = document.getElementById('businessFilesTableBody');
+    const noFilesDiv = document.getElementById('businessNoFiles');
+
+    if (!tableBody) {
+        console.error('找不到商务应答文件列表表格体');
+        return;
+    }
+
+    // 显示加载状态
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="3" class="text-center text-muted">
+                <i class="bi bi-hourglass-split"></i> 加载中...
+            </td>
+        </tr>
+    `;
+
+    // 隐藏空状态
+    if (noFilesDiv) {
+        noFilesDiv.classList.add('d-none');
+    }
+
     fetch('/api/business-files')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP错误! 状态: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            const filesList = document.getElementById('businessFilesList');
-            if (!filesList) return;
+            console.log('商务应答文件列表API返回:', data);
 
             if (data.success && data.files && data.files.length > 0) {
-                let html = '<div class="list-group">';
-                data.files.forEach(file => {
-                    html += `
-                        <div class="list-group-item">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">${file.name}</h6>
-                                    <small class="text-muted">${file.date} | ${file.size}</small>
-                                </div>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-sm btn-success" onclick="previewBusinessDocument('${file.download_url}')">
-                                        <i class="bi bi-eye"></i> 预览
-                                    </button>
-                                    <a href="${file.download_url}" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-download"></i> 下载
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                filesList.innerHTML = html;
+                displayBusinessFilesList(data.files);
             } else {
-                filesList.innerHTML = '<p class="text-muted">暂无历史文件</p>';
+                // 显示空状态
+                tableBody.innerHTML = '';
+                if (noFilesDiv) {
+                    noFilesDiv.classList.remove('d-none');
+                }
             }
         })
         .catch(error => {
-            console.error('加载历史文件失败:', error);
-            const filesList = document.getElementById('businessFilesList');
-            if (filesList) {
-                filesList.innerHTML = '<p class="text-danger">加载失败</p>';
-            }
+            console.error('加载商务应答文件列表失败:', error);
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="text-center text-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 加载失败: ${error.message}
+                        <br>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadBusinessFilesList()">
+                            <i class="bi bi-arrow-clockwise"></i> 重试
+                        </button>
+                    </td>
+                </tr>
+            `;
         });
+}
+
+// 显示商务应答文件列表
+function displayBusinessFilesList(files) {
+    const tableBody = document.getElementById('businessFilesTableBody');
+    const template = document.getElementById('businessFileRowTemplate');
+
+    if (!tableBody || !template) {
+        console.error('找不到表格体或行模板元素');
+        return;
+    }
+
+    // 清空表格
+    tableBody.innerHTML = '';
+
+    files.forEach(file => {
+        // 克隆模板
+        const row = template.content.cloneNode(true);
+
+        // 填充数据
+        row.querySelector('.file-name').textContent = file.name || '未知文件';
+        row.querySelector('.process-time').textContent = file.date || '未知时间';
+
+        // 设置按钮
+        const previewBtn = row.querySelector('.preview-btn');
+        const downloadBtn = row.querySelector('.download-btn');
+
+        if (previewBtn) {
+            previewBtn.setAttribute('data-download-url', file.download_url);
+            previewBtn.onclick = function() {
+                previewBusinessDocument(file.download_url);
+            };
+        }
+
+        if (downloadBtn) {
+            downloadBtn.setAttribute('href', file.download_url);
+        }
+
+        // 添加到表格
+        tableBody.appendChild(row);
+    });
+
+    console.log(`成功显示 ${files.length} 个商务应答文件`);
 }
 
 /**
@@ -547,11 +612,6 @@ async function syncToHitlProject(hitlTaskId, filePath) {
     const btn = document.getElementById('syncToHitlBtn');
     if (!btn) {
         console.error('[syncToHitlProject] 未找到同步按钮');
-        return;
-    }
-
-    // 确认对话框
-    if (!confirm('确认将此文件同步到投标项目吗?\n\n同步后,您可以在HITL投标项目的"应答完成文件"标签页中查看此文件。')) {
         return;
     }
 

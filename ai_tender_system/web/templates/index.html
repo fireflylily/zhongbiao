@@ -584,6 +584,21 @@
                 if (nav) {
                     new bootstrap.Tab(nav).show();
                     fillCompanyProjectInfo('tech-proposal');
+
+                    // 如果有技术需求文件信息，自动显示
+                    const technicalFileName = urlParams.get('technical_file_name');
+                    const technicalFileSize = urlParams.get('technical_file_size');
+                    const technicalFileUrl = urlParams.get('technical_file_url');
+                    const hitlTaskId = urlParams.get('hitl_task_id');
+
+                    if (technicalFileName && technicalFileSize) {
+                        setTimeout(() => loadTechnicalFileInfoForTechProposal(
+                            technicalFileName,
+                            technicalFileSize,
+                            technicalFileUrl,
+                            hitlTaskId
+                        ), 200);
+                    }
                 }
             }
         });
@@ -635,7 +650,7 @@
         }
 
         /**
-         * 显示技术需求文件信息
+         * 显示技术需求文件信息（点对点应答）
          * @param {string} fileName - 文件名
          * @param {number} fileSize - 文件大小（字节）
          * @param {string} fileUrl - 文件下载URL
@@ -705,6 +720,75 @@
                 }
             } catch (error) {
                 console.error('[loadTechnicalFileInfo] 显示技术需求文件信息失败:', error);
+            }
+        }
+
+        /**
+         * 显示技术需求文件信息（技术方案）
+         * @param {string} fileName - 文件名
+         * @param {number} fileSize - 文件大小（字节）
+         * @param {string} fileUrl - 文件下载URL
+         * @param {string} taskId - HITL任务ID
+         */
+        function loadTechnicalFileInfoForTechProposal(fileName, fileSize, fileUrl, taskId) {
+            try {
+                console.log('[loadTechnicalFileInfoForTechProposal] 显示技术需求文件:', {
+                    fileName, fileSize, fileUrl, taskId
+                });
+
+                // 直接获取并操作技术方案页面的DOM元素（与点对点应答一致）
+                const techTechnicalFileDisplay = document.getElementById('techTechnicalFileDisplay');
+                const techTechnicalFileDisplayName = document.getElementById('techTechnicalFileDisplayName');
+                const techTechnicalFileDisplaySize = document.getElementById('techTechnicalFileDisplaySize');
+                const techTenderUpload = document.getElementById('techTenderUpload');
+                const techTechnicalFileTaskId = document.getElementById('techTechnicalFileTaskId');
+                const techTechnicalFileUrl = document.getElementById('techTechnicalFileUrl');
+
+                // 显示文件名
+                if (techTechnicalFileDisplayName) {
+                    techTechnicalFileDisplayName.textContent = fileName;
+                }
+
+                // 显示文件大小
+                if (techTechnicalFileDisplaySize && fileSize) {
+                    const sizeInMB = (fileSize / 1024 / 1024).toFixed(2);
+                    techTechnicalFileDisplaySize.textContent = ` (${sizeInMB} MB)`;
+                }
+
+                // 显示技术需求文件提示框
+                if (techTechnicalFileDisplay) {
+                    techTechnicalFileDisplay.classList.remove('d-none');
+                    console.log('[loadTechnicalFileInfoForTechProposal] 已显示文件信息提示框');
+                }
+
+                // 隐藏上传区域
+                if (techTenderUpload) {
+                    techTenderUpload.style.display = 'none';
+                    console.log('[loadTechnicalFileInfoForTechProposal] 已隐藏上传区域');
+                }
+
+                // 填充隐藏字段
+                if (techTechnicalFileTaskId && taskId) {
+                    techTechnicalFileTaskId.value = taskId;
+                }
+                if (techTechnicalFileUrl && fileUrl) {
+                    techTechnicalFileUrl.value = fileUrl;
+                }
+
+                console.log('[loadTechnicalFileInfoForTechProposal] 已设置隐藏字段:', {
+                    taskId: taskId,
+                    fileUrl: fileUrl
+                });
+
+                // 触发自定义事件，通知ProposalGenerator更新表单状态
+                const event = new CustomEvent('technicalFileLoadedForTechProposal', {
+                    detail: { fileName, fileSize, fileUrl, taskId }
+                });
+                document.dispatchEvent(event);
+
+                console.log('[loadTechnicalFileInfoForTechProposal] 技术需求文件信息加载完成');
+            } catch (error) {
+                console.error('[loadTechnicalFileInfoForTechProposal] 显示技术需求文件信息失败:', error);
             }
         }
     </script>

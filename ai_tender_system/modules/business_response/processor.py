@@ -141,7 +141,7 @@ class BusinessResponseProcessor:
                 'message': '处理失败'
             }
     
-    def process_inline_reply(self, input_file: str, output_file: Optional[str] = None) -> Dict[str, Any]:
+    def process_inline_reply(self, input_file: str, output_file: Optional[str] = None, use_ai: bool = True) -> Dict[str, Any]:
         """
         处理内联回复（原地插入应答）
 
@@ -153,6 +153,7 @@ class BusinessResponseProcessor:
         Args:
             input_file: 输入文档路径
             output_file: 输出文档路径（可选）
+            use_ai: 是否使用AI生成应答（False则使用简单模板）
 
         Returns:
             dict: 处理结果
@@ -161,14 +162,17 @@ class BusinessResponseProcessor:
             self.logger.info(f"开始处理内联回复文档")
             self.logger.info(f"输入文件: {input_file}")
             self.logger.info(f"使用模型: {self.model_name}")
+            self.logger.info(f"应答模式: {'AI智能应答' if use_ai else '简单模板应答'}")
 
-            # 调用内联处理器
-            result_file = self.inline_processor.process_document(input_file, output_file)
+            # 调用内联处理器，传递use_ai参数
+            result = self.inline_processor.process_document(input_file, output_file, use_ai)
 
             return {
                 'success': True,
-                'output_file': result_file,
+                'output_file': result['output_file'],
                 'model_used': self.model_name,
+                'requirements_count': result.get('requirements_count', 0),
+                'responses_count': result.get('responses_count', 0),
                 'features': {
                     'inline_reply': True,
                     'gray_shading': True,

@@ -303,6 +303,29 @@ function submitPointToPointForm() {
             const resultMessage = document.getElementById('resultMessage');
             if (resultMessage) resultMessage.textContent = data.message;
 
+            // 显示处理统计（如果有）
+            if (data.stats || data.requirements_count !== undefined) {
+                const pointStatsContent = document.getElementById('pointStatsContent');
+                const pointStatsDetails = document.getElementById('pointStatsDetails');
+                if (pointStatsDetails) {
+                    let statsHtml = '';
+                    const reqCount = data.requirements_count || data.stats?.requirements_count || 0;
+                    const responseCount = data.responses_count || data.stats?.responses_count || 0;
+                    const mode = data.response_mode || data.stats?.response_mode || 'unknown';
+                    const modelName = data.model_name || data.stats?.model_name || '未知';
+
+                    statsHtml += `<p class="mb-1"><strong>识别需求：</strong>${reqCount} 条</p>`;
+                    statsHtml += `<p class="mb-1"><strong>成功应答：</strong>${responseCount} 条</p>`;
+                    statsHtml += `<p class="mb-1"><strong>应答方式：</strong>${mode === 'ai' ? 'AI智能应答' : '简单模板应答'}</p>`;
+                    if (mode === 'ai') {
+                        statsHtml += `<p class="mb-0"><strong>使用模型：</strong>${modelName}</p>`;
+                    }
+
+                    pointStatsDetails.innerHTML = statsHtml;
+                    if (pointStatsContent) pointStatsContent.classList.remove('d-none');
+                }
+            }
+
             // 设置下载按钮事件
             const downloadBtn = document.getElementById('downloadBtn');
             if (data.download_url && data.filename && downloadBtn) {
@@ -322,14 +345,56 @@ function submitPointToPointForm() {
                 };
             }
 
-            // 设置"确认完成并返回主页"按钮事件
-            const confirmCompleteBtn = document.getElementById('confirmCompleteBtn');
-            if (confirmCompleteBtn) {
-                confirmCompleteBtn.onclick = function(e) {
+            // 设置"下一步：技术方案"按钮事件
+            const pointNextStepBtn = document.getElementById('pointNextStepBtn');
+            if (pointNextStepBtn) {
+                pointNextStepBtn.onclick = function(e) {
                     e.preventDefault();
-                    // 返回主页
-                    window.location.href = '/';
+                    // 切换到技术方案选项卡
+                    const techProposalNav = document.querySelector('[data-bs-target="#tech-proposal"]');
+                    if (techProposalNav) {
+                        techProposalNav.click();
+                    }
                 };
+            }
+
+            // 检查是否从HITL页面跳转过来,如果是则显示"同步到投标项目"按钮
+            const urlParams = new URLSearchParams(window.location.search);
+            const hitlTaskId = urlParams.get('hitl_task_id');
+
+            if (hitlTaskId) {
+                console.log('[Point-to-Point] 检测到HITL任务ID,显示同步按钮:', hitlTaskId);
+                const syncBtn = document.getElementById('syncPointToHitlBtn');
+                if (syncBtn) {
+                    syncBtn.style.display = 'inline-block';
+                    // 绑定点击事件,传递任务ID和输出文件路径
+                    syncBtn.onclick = () => syncPointToPointToHitl(hitlTaskId, data.output_file || data.filename);
+                }
+
+                // 如果从HITL跳转，改变"确认完成"按钮行为
+                const confirmCompleteBtn = document.getElementById('confirmCompleteBtn');
+                if (confirmCompleteBtn) {
+                    confirmCompleteBtn.innerHTML = '<i class="bi bi-arrow-left"></i> 返回HITL';
+                    confirmCompleteBtn.onclick = function(e) {
+                        e.preventDefault();
+                        window.location.href = `/hitl?task_id=${hitlTaskId}`;
+                    };
+                }
+            } else {
+                // 设置"完成"按钮事件
+                const confirmCompleteBtn = document.getElementById('confirmCompleteBtn');
+                if (confirmCompleteBtn) {
+                    confirmCompleteBtn.onclick = function(e) {
+                        e.preventDefault();
+                        // 返回主页
+                        window.location.href = '/';
+                    };
+                }
+            }
+
+            // 刷新文件列表
+            if (typeof loadPointToPointFilesList === 'function') {
+                loadPointToPointFilesList();
             }
 
             if (resultArea) resultArea.classList.remove('d-none');
@@ -500,7 +565,7 @@ function loadPointToPointFilesList() {
             console.error('加载点对点应答文件列表失败:', error);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center text-danger">
+                    <td colspan="3" class="text-center text-danger">
                         <i class="bi bi-exclamation-triangle"></i> 加载失败: ${error.message}
                         <br>
                         <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadPointToPointFilesList()">
@@ -531,20 +596,7 @@ function displayPointToPointFilesList(files) {
 
         // 填充数据
         row.querySelector('.file-name').textContent = file.original_filename || file.filename || '未知文件';
-        row.querySelector('.company-name').textContent = file.company_name || '未知公司';
         row.querySelector('.process-time').textContent = formatDateTime(file.created_at || file.process_time);
-
-        // 设置状态
-        const statusCell = row.querySelector('.status');
-        if (file.status === 'completed' || file.status === 'success') {
-            statusCell.innerHTML = '<span class="badge bg-success">已完成</span>';
-        } else if (file.status === 'processing') {
-            statusCell.innerHTML = '<span class="badge bg-warning">处理中</span>';
-        } else if (file.status === 'failed' || file.status === 'error') {
-            statusCell.innerHTML = '<span class="badge bg-danger">失败</span>';
-        } else {
-            statusCell.innerHTML = '<span class="badge bg-secondary">未知</span>';
-        }
 
         // 设置按钮的数据属性
         const previewBtn = row.querySelector('.preview-btn');
@@ -1045,6 +1097,76 @@ function downloadPointDocument(button) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// 同步点对点应答文件到HITL项目
+async function syncPointToPointToHitl(hitlTaskId, filePath) {
+    console.log('[syncPointToPointToHitl] 开始同步文件到HITL项目');
+    console.log('[syncPointToPointToHitl] 任务ID:', hitlTaskId);
+    console.log('[syncPointToPointToHitl] 文件路径:', filePath);
+
+    const btn = document.getElementById('syncPointToHitlBtn');
+    if (!btn) {
+        console.error('[syncPointToPointToHitl] 未找到同步按钮');
+        return;
+    }
+
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>同步中...';
+
+    try {
+        const response = await fetch(`/api/tender-processing/sync-point-to-point/${hitlTaskId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_path: filePath
+            })
+        });
+
+        const data = await response.json();
+        console.log('[syncPointToPointToHitl] API响应:', data);
+
+        if (data.success) {
+            // 显示成功状态
+            btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>已同步';
+            btn.classList.remove('btn-info');
+            btn.classList.add('btn-outline-success');
+
+            // 显示成功通知
+            if (typeof showNotification === 'function') {
+                showNotification(data.message || '文件已成功同步到投标项目', 'success');
+            } else {
+                alert(data.message || '文件已成功同步到投标项目');
+            }
+
+            console.log('[syncPointToPointToHitl] 同步成功');
+
+            // 3秒后恢复按钮(允许重新同步)
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-outline-success');
+                btn.classList.add('btn-info');
+                btn.disabled = false;
+            }, 3000);
+        } else {
+            throw new Error(data.error || '同步失败');
+        }
+    } catch (error) {
+        console.error('[syncPointToPointToHitl] 同步失败:', error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+
+        // 显示错误通知
+        const errorMsg = '同步失败: ' + error.message;
+        if (typeof showNotification === 'function') {
+            showNotification(errorMsg, 'error');
+        } else {
+            alert(errorMsg);
+        }
+    }
 }
 
 // 在页面加载完成后自动加载历史文件列表

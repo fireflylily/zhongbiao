@@ -94,8 +94,8 @@
                                 <i class="bi bi-cpu"></i> 应答方式
                             </label>
                             <select class="form-select" id="responseMode" name="responseMode">
-                                <option value="ai" selected>AI智能应答</option>
-                                <option value="simple">简单应答</option>
+                                <option value="ai">AI智能应答</option>
+                                <option value="simple" selected>简单应答</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -161,15 +161,32 @@
                 <div id="resultMessage" class="mb-3">
                     <!-- 处理结果信息将在这里显示 -->
                 </div>
-                <div class="d-flex justify-content-center gap-2">
+                <!-- 处理统计信息 -->
+                <div id="pointStatsContent" class="mb-3 d-none">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-bar-chart"></i> 处理统计</h6>
+                            <div id="pointStatsDetails"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <!-- 标准按钮顺序：预览 → 下载 → 编辑 → 下一步/完成 → 同步HITL -->
                     <button class="btn btn-outline-primary" id="previewBtn">
                         <i class="bi bi-eye"></i> 预览
                     </button>
                     <button class="btn btn-success" id="downloadBtn">
-                        <i class="bi bi-download"></i> 下载结果文件
+                        <i class="bi bi-download"></i> 下载
                     </button>
-                    <button class="btn btn-primary" id="confirmCompleteBtn">
-                        <i class="bi bi-check-circle"></i> 确认完成并返回主页
+                    <button class="btn btn-primary" id="pointNextStepBtn">
+                        <i class="bi bi-arrow-right"></i> 下一步：技术方案
+                    </button>
+                    <button class="btn btn-outline-secondary" id="confirmCompleteBtn">
+                        <i class="bi bi-check-circle"></i> 完成
+                    </button>
+                    <!-- 同步到投标项目按钮 (仅当从HITL页面跳转时显示) -->
+                    <button type="button" class="btn btn-info" id="syncPointToHitlBtn" style="display: none;">
+                        <i class="bi bi-cloud-upload me-2"></i>同步到投标项目
                     </button>
                 </div>
             </div>
@@ -221,15 +238,13 @@
                         <thead>
                             <tr>
                                 <th>文件名</th>
-                                <th>公司</th>
                                 <th>处理时间</th>
-                                <th>状态</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="pointToPointFilesTableBody">
                             <tr>
-                                <td colspan="5" class="text-center text-muted">
+                                <td colspan="3" class="text-center text-muted">
                                     <i class="bi bi-hourglass-split"></i> 加载中...
                                 </td>
                             </tr>
@@ -241,9 +256,7 @@
                 <template id="pointToPointFileRowTemplate">
                     <tr>
                         <td class="file-name"></td>
-                        <td class="company-name"></td>
                         <td class="process-time"></td>
-                        <td class="status"></td>
                         <td>
                             <div class="btn-group btn-group-sm" role="group">
                                 <button type="button" class="btn btn-outline-primary preview-btn"

@@ -462,7 +462,7 @@ class InlineReplyProcessor:
             self.logger.error(traceback.format_exc())
             return None
 
-    def process_document(self, input_file: str, output_file: Optional[str] = None, use_ai: bool = True) -> str:
+    def process_document(self, input_file: str, output_file: Optional[str] = None, use_ai: bool = True) -> Dict[str, Any]:
         """
         处理文档，插入内联回复
 
@@ -472,7 +472,12 @@ class InlineReplyProcessor:
             use_ai: 是否使用AI生成应答（False则使用简单模板）
 
         Returns:
-            处理后的文档路径
+            dict: 包含输出文件路径和统计信息
+            {
+                'output_file': str,
+                'requirements_count': int,
+                'responses_count': int
+            }
 
         Raises:
             BusinessResponseError: 处理失败
@@ -531,7 +536,11 @@ class InlineReplyProcessor:
             self.logger.info(f"  成功插入应答: {processed_count}")
             self.logger.info(f"  输出文件: {output_file}")
 
-            return output_file
+            return {
+                'output_file': output_file,
+                'requirements_count': requirement_count,
+                'responses_count': processed_count
+            }
 
         except Exception as e:
             self.logger.error(f"文档处理失败: {e}")

@@ -38,6 +38,15 @@ class ProposalGenerator {
         this.productFileInfo = document.getElementById('productFileInfo');
         this.productFileName = document.getElementById('productFileName');
 
+        // HITL相关元素
+        this.techTechnicalFileTaskId = document.getElementById('techTechnicalFileTaskId');
+        this.techTechnicalFileUrl = document.getElementById('techTechnicalFileUrl');
+        this.techTechnicalFileDisplay = document.getElementById('techTechnicalFileDisplay');
+        this.techTechnicalFileDisplayName = document.getElementById('techTechnicalFileDisplayName');
+        this.techTechnicalFileDisplaySize = document.getElementById('techTechnicalFileDisplaySize');
+        this.techClearTechnicalFile = document.getElementById('techClearTechnicalFile');
+        this.techTenderUpload = document.getElementById('techTenderUpload');
+
         // 按钮
         this.generateProposalBtn = document.getElementById('generateProposalBtn');
 
@@ -97,12 +106,25 @@ class ProposalGenerator {
             });
         }
 
+        // 清除技术需求文件按钮
+        if (this.techClearTechnicalFile) {
+            this.techClearTechnicalFile.addEventListener('click', () => {
+                this.clearTechnicalFile();
+            });
+        }
+
         // 监听公司状态变化,同步到下拉框
         window.addEventListener('companyChanged', (e) => {
             if (e.detail && e.detail.company_id && this.techCompanySelect) {
                 console.log('[ProposalGenerator] 收到公司变化事件:', e.detail);
                 this.techCompanySelect.value = e.detail.company_id;
             }
+        });
+
+        // 监听技术需求文件加载事件
+        document.addEventListener('technicalFileLoadedForTechProposal', (e) => {
+            console.log('[ProposalGenerator] 收到技术需求文件加载事件:', e.detail);
+            this.checkFormReady();
         });
     }
 
@@ -164,12 +186,21 @@ class ProposalGenerator {
      * 检查表单是否就绪
      */
     checkFormReady() {
-        const hasTenderFile = this.techTenderFileInput && this.techTenderFileInput.files.length > 0;
+        // 检查是否有招标文件（可以是上传的文件或从HITL传递的技术需求文件）
+        const hasTenderFile = (this.techTenderFileInput && this.techTenderFileInput.files.length > 0) ||
+                             (this.techTechnicalFileTaskId && this.techTechnicalFileTaskId.value);
         const hasProductFile = this.productFileInput && this.productFileInput.files.length > 0;
 
+        // 只要有招标文件即可启用按钮，产品文件是可选的
         if (this.generateProposalBtn) {
-            this.generateProposalBtn.disabled = !(hasTenderFile && hasProductFile);
+            this.generateProposalBtn.disabled = !hasTenderFile;
         }
+
+        console.log('[ProposalGenerator.checkFormReady] 表单状态:', {
+            hasTenderFile,
+            hasProductFile,
+            disabled: !hasTenderFile
+        });
     }
 
     /**
@@ -181,11 +212,16 @@ class ProposalGenerator {
             return;
         }
 
-        // 验证文件
-        if (!this.techTenderFileInput.files[0] || !this.productFileInput.files[0]) {
-            window.notifications?.error('请选择招标文件和产品文件');
+        // 验证招标文件（可以是上传的文件或从HITL传递的技术需求文件）
+        const hasUploadedTenderFile = this.techTenderFileInput.files[0];
+        const hasTechnicalFile = this.techTechnicalFileTaskId && this.techTechnicalFileTaskId.value;
+
+        if (!hasUploadedTenderFile && !hasTechnicalFile) {
+            window.notifications?.error('请选择招标文件');
             return;
         }
+
+        // 产品文件是可选的，不再强制要求
 
         this.isGenerating = true;
         this.showProgress();
@@ -194,8 +230,22 @@ class ProposalGenerator {
         try {
             // 创建表单数据
             const formData = new FormData();
-            formData.append('tender_file', this.techTenderFileInput.files[0]);
-            formData.append('product_file', this.productFileInput.files[0]);
+
+            // 如果有上传的招标文件，使用上传的文件
+            if (hasUploadedTenderFile) {
+                formData.append('tender_file', this.techTenderFileInput.files[0]);
+            }
+            // 否则，传递HITL任务ID，让后端从HITL任务中获取技术需求文件
+            else if (hasTechnicalFile) {
+                formData.append('hitl_task_id', this.techTechnicalFileTaskId.value);
+                formData.append('use_hitl_technical_file', 'true');
+            }
+
+            // 产品文件是可选的，只有上传时才添加到FormData
+            if (this.productFileInput.files[0]) {
+                formData.append('product_file', this.productFileInput.files[0]);
+            }
+
             formData.append('output_prefix', this.outputPrefix?.value?.trim() || '技术方案');
 
             // 添加公司信息
@@ -321,6 +371,17 @@ class ProposalGenerator {
         // 生成下载按钮
         if (this.techDownloadArea && data.output_files) {
             this.createDownloadButtons(data.output_files);
+
+            // 如果有HITL任务ID，添加同步按钮
+            if (this.hitlTaskId) {
+                console.log('[ProposalGenerator] 检测到HITL任务ID,添加同步按钮:', this.hitlTaskId);
+                const syncBtn = document.createElement('button');
+                syncBtn.className = 'btn btn-info me-2 mb-2';
+                syncBtn.id = 'syncTechProposalToHitlBtn';
+                syncBtn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>同步到投标项目';
+                syncBtn.onclick = () => this.syncToHitl(this.hitlTaskId, data.output_files);
+                this.techDownloadArea.appendChild(syncBtn);
+            }
         }
 
         if (this.techResultArea) {
@@ -354,6 +415,21 @@ class ProposalGenerator {
     createDownloadButtons(outputFiles) {
         this.techDownloadArea.innerHTML = '';
 
+        // 标准按钮顺序：预览 → 下载 → 完成 → 同步HITL
+
+        // 1. 添加预览按钮（针对技术方案主文件）
+        if (outputFiles.proposal) {
+            const previewBtn = document.createElement('button');
+            previewBtn.className = 'btn btn-outline-primary me-2 mb-2';
+            previewBtn.innerHTML = '<i class="bi bi-eye"></i> 预览';
+            previewBtn.onclick = (e) => {
+                e.preventDefault();
+                this.previewProposal(outputFiles.proposal);
+            };
+            this.techDownloadArea.appendChild(previewBtn);
+        }
+
+        // 2. 添加下载按钮
         Object.keys(outputFiles).forEach(fileType => {
             const filePath = outputFiles[fileType];
             const fileName = filePath.split('/').pop();
@@ -371,6 +447,21 @@ class ProposalGenerator {
 
             this.techDownloadArea.appendChild(button);
         });
+
+        // 3. 添加"完成"按钮
+        const completeBtn = document.createElement('button');
+        completeBtn.className = 'btn btn-outline-secondary me-2 mb-2';
+        completeBtn.innerHTML = '<i class="bi bi-check-circle"></i> 完成';
+        completeBtn.onclick = (e) => {
+            e.preventDefault();
+            // 返回主页或HITL
+            if (this.hitlTaskId) {
+                window.location.href = `/hitl?task_id=${this.hitlTaskId}`;
+            } else {
+                window.location.href = '/';
+            }
+        };
+        this.techDownloadArea.appendChild(completeBtn);
     }
 
     /**
@@ -601,6 +692,213 @@ class ProposalGenerator {
             console.error('技术方案加载公司列表失败:', error);
             this.techCompanySelect.innerHTML = '<option value="">加载失败，请刷新重试</option>';
         }
+    }
+
+    /**
+     * 预览技术方案
+     */
+    previewProposal(filePath) {
+        console.log('[previewProposal] 预览文件:', filePath);
+
+        // 从文件路径获取文件名
+        const filename = filePath.split('/').pop();
+
+        // 打开预览模态框（如果页面中有docx preview组件）
+        // 使用与商务应答类似的预览逻辑
+        const previewModal = document.getElementById('documentPreviewModal');
+        if (!previewModal) {
+            // 如果没有预览模态框，使用新窗口预览
+            window.open(`/api/document/preview/${encodeURIComponent(filename)}`, '_blank');
+            return;
+        }
+
+        // 显示加载状态
+        const previewContent = document.getElementById('documentPreviewContent');
+        if (previewContent) {
+            previewContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">正在加载文档...</p></div>';
+        }
+
+        // 显示预览模态框
+        const modal = new bootstrap.Modal(previewModal);
+        modal.show();
+
+        // 获取文档并渲染
+        const previewApiUrl = `/api/document/preview/${encodeURIComponent(filename)}`;
+
+        fetch(previewApiUrl)
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => {
+                if (previewContent) {
+                    // 清空容器
+                    previewContent.innerHTML = '';
+
+                    // 使用docx-preview渲染
+                    if (typeof docx !== 'undefined' && docx.renderAsync) {
+                        docx.renderAsync(arrayBuffer, previewContent, null, {
+                            className: 'docx-preview',
+                            inWrapper: true,
+                            ignoreWidth: false,
+                            ignoreHeight: false,
+                            ignoreFonts: false,
+                            breakPages: true,
+                            ignoreLastRenderedPageBreak: true,
+                            experimental: true,
+                            trimXmlDeclaration: true
+                        }).then(() => {
+                            console.log('[previewProposal] 文档预览成功');
+                        }).catch(err => {
+                            console.error('[previewProposal] docx-preview渲染失败:', err);
+                            previewContent.innerHTML = '<div class="text-center text-danger"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">文档渲染失败，请尝试下载文档</p></div>';
+                        });
+                    } else {
+                        previewContent.innerHTML = '<div class="text-center text-warning"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">预览组件未加载，请尝试下载文档</p></div>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('[previewProposal] 预览失败:', error);
+                if (previewContent) {
+                    previewContent.innerHTML = '<div class="text-center text-danger"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">预览失败，请尝试下载文档</p></div>';
+                }
+            });
+    }
+
+    /**
+     * 同步技术方案到HITL项目
+     */
+    async syncToHitl(hitlTaskId, outputFiles) {
+        console.log('[syncToHitl] 开始同步技术方案到HITL项目');
+        console.log('[syncToHitl] 任务ID:', hitlTaskId);
+        console.log('[syncToHitl] 输出文件:', outputFiles);
+
+        const btn = document.getElementById('syncTechProposalToHitlBtn');
+        if (!btn) {
+            console.error('[syncToHitl] 未找到同步按钮');
+            return;
+        }
+
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>同步中...';
+
+        try {
+            // 使用第一个输出文件（通常是技术方案主文件）
+            const filePath = outputFiles.proposal || Object.values(outputFiles)[0];
+
+            const response = await fetch(`/api/tender-processing/sync-tech-proposal/${hitlTaskId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    file_path: filePath,
+                    output_files: outputFiles
+                })
+            });
+
+            const data = await response.json();
+            console.log('[syncToHitl] API响应:', data);
+
+            if (data.success) {
+                // 显示成功状态
+                btn.innerHTML = '<i class="bi bi-check-circle me-2"></i>已同步';
+                btn.classList.remove('btn-info');
+                btn.classList.add('btn-outline-success');
+
+                // 显示成功通知
+                window.notifications?.success(data.message || '技术方案已成功同步到投标项目');
+
+                console.log('[syncToHitl] 同步成功');
+
+                // 3秒后恢复按钮(允许重新同步)
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-outline-success');
+                    btn.classList.add('btn-info');
+                    btn.disabled = false;
+                }, 3000);
+            } else {
+                throw new Error(data.error || '同步失败');
+            }
+        } catch (error) {
+            console.error('[syncToHitl] 同步失败:', error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+            // 显示错误通知
+            window.notifications?.error('同步失败: ' + error.message);
+        }
+    }
+
+    /**
+     * 加载技术需求文件信息（从HITL跳转时）
+     */
+    loadTechnicalFileInfo(fileName, fileSize, fileUrl, taskId) {
+        console.log('[ProposalGenerator.loadTechnicalFileInfo] 加载技术需求文件:', {
+            fileName, fileSize, fileUrl, taskId
+        });
+
+        // 填充隐藏字段
+        if (this.techTechnicalFileTaskId) {
+            this.techTechnicalFileTaskId.value = taskId || '';
+        }
+        if (this.techTechnicalFileUrl) {
+            this.techTechnicalFileUrl.value = fileUrl || '';
+        }
+
+        // 显示技术需求文件信息
+        if (this.techTechnicalFileDisplayName) {
+            this.techTechnicalFileDisplayName.textContent = fileName;
+        }
+        if (this.techTechnicalFileDisplaySize && fileSize) {
+            this.techTechnicalFileDisplaySize.textContent = ` (${fileSize})`;
+        }
+
+        // 显示技术需求文件显示区域
+        if (this.techTechnicalFileDisplay) {
+            this.techTechnicalFileDisplay.classList.remove('d-none');
+        }
+
+        // 隐藏上传区域
+        if (this.techTenderUpload) {
+            this.techTenderUpload.style.display = 'none';
+        }
+
+        // 触发表单就绪检查
+        this.checkFormReady();
+
+        // 触发自定义事件
+        document.dispatchEvent(new CustomEvent('technicalFileLoadedForTechProposal', {
+            detail: { fileName, fileSize, fileUrl, taskId }
+        }));
+    }
+
+    /**
+     * 清除技术需求文件
+     */
+    clearTechnicalFile() {
+        console.log('[ProposalGenerator.clearTechnicalFile] 清除技术需求文件');
+
+        // 清空隐藏字段
+        if (this.techTechnicalFileTaskId) {
+            this.techTechnicalFileTaskId.value = '';
+        }
+        if (this.techTechnicalFileUrl) {
+            this.techTechnicalFileUrl.value = '';
+        }
+
+        // 隐藏技术需求文件显示区域
+        if (this.techTechnicalFileDisplay) {
+            this.techTechnicalFileDisplay.classList.add('d-none');
+        }
+
+        // 显示上传区域
+        if (this.techTenderUpload) {
+            this.techTenderUpload.style.display = 'block';
+        }
+
+        // 触发表单就绪检查
+        this.checkFormReady();
     }
 
     /**

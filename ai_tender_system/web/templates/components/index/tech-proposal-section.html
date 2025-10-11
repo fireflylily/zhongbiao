@@ -16,13 +16,30 @@
                 <form id="techProposalForm">
                     <!-- 隐藏的表单字段存储公司ID -->
                     <input type="hidden" id="techProposalCompanyId" name="companyId" value="">
+                    <!-- 隐藏字段：存储从HITL传递过来的技术需求文件信息 -->
+                    <input type="hidden" id="techTechnicalFileTaskId" name="technicalFileTaskId" value="">
+                    <input type="hidden" id="techTechnicalFileUrl" name="technicalFileUrl" value="">
                     <!-- 文件上传区域 -->
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label class="form-label">
-                                <i class="bi bi-file-earmark-text"></i> 招标文件
+                                <i class="bi bi-file-earmark-text"></i> 招标文件（技术需求）
                                 <span class="text-danger">*</span>
                             </label>
+                            <!-- 技术需求文件加载显示区域（从HITL跳转时显示） -->
+                            <div class="alert alert-info d-none" id="techTechnicalFileDisplay">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <i class="bi bi-file-earmark-check me-2"></i>
+                                        <strong>已从投标项目加载技术需求文件：</strong><br>
+                                        <span id="techTechnicalFileDisplayName" class="text-muted small"></span>
+                                        <span id="techTechnicalFileDisplaySize" class="text-muted small"></span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="techClearTechnicalFile">
+                                        <i class="bi bi-x"></i> 重新上传
+                                    </button>
+                                </div>
+                            </div>
                             <div class="upload-area small-upload" id="techTenderUpload">
                                 <i class="bi bi-cloud-upload text-primary"></i>
                                 <p class="mb-2">选择招标文件</p>
@@ -40,14 +57,14 @@
                         <div class="col-md-6">
                             <label class="form-label">
                                 <i class="bi bi-file-earmark-code"></i> 产品文件
-                                <span class="text-danger">*</span>
+                                <span class="text-muted small">(可选)</span>
                             </label>
                             <div class="upload-area small-upload" id="productUpload">
                                 <i class="bi bi-cloud-upload text-primary"></i>
                                 <p class="mb-2">选择产品文件</p>
-                                <small class="text-muted">支持 .doc, .docx, .pdf</small>
+                                <small class="text-muted">可选，如不上传则从知识库自动匹配产品文档<br>支持 .doc, .docx, .pdf</small>
                                 <input type="file" class="d-none" id="productFileInput"
-                                       accept=".doc,.docx,.pdf" required>
+                                       accept=".doc,.docx,.pdf">
                             </div>
                             <div class="file-info d-none" id="productFileInfo">
                                 <small class="text-success">
@@ -152,8 +169,8 @@
                 <div id="techResultMessage" class="mb-3">
                     <!-- 生成统计信息将在这里显示 -->
                 </div>
-                <div id="techDownloadArea">
-                    <!-- 下载按钮将在这里显示 -->
+                <div id="techDownloadArea" class="d-flex justify-content-center gap-2 flex-wrap">
+                    <!-- 下载按钮将在这里显示，包括同步到HITL按钮（当从HITL跳转时） -->
                 </div>
             </div>
         </div>

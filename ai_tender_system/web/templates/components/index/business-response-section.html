@@ -68,16 +68,17 @@
                     <div class="card-body">
                         <p class="mb-3" id="businessResultMessage"></p>
                         <div class="d-flex gap-2 flex-wrap">
-                            <a href="#" id="businessDownloadLink" class="btn btn-success">
-                                <i class="bi bi-download"></i> 下载文件
-                            </a>
+                            <!-- 标准按钮顺序：预览 → 下载 → 编辑 → 下一步 → 同步HITL -->
                             <button type="button" class="btn btn-outline-primary" id="businessPreviewBtn" onclick="previewBusinessDocument()">
-                                <i class="bi bi-eye"></i> 预览文档
+                                <i class="bi bi-eye"></i> 预览
                             </button>
+                            <a href="#" id="businessDownloadLink" class="btn btn-success">
+                                <i class="bi bi-download"></i> 下载
+                            </a>
                             <button type="button" class="btn btn-outline-warning" id="businessEditBtn" onclick="editBusinessDocument()">
-                                <i class="bi bi-pencil-square"></i> 编辑文档
+                                <i class="bi bi-pencil-square"></i> 编辑
                             </button>
-                            <button type="button" class="btn btn-outline-light border" id="businessNextStepBtn">
+                            <button type="button" class="btn btn-primary" id="businessNextStepBtn">
                                 <i class="bi bi-arrow-right"></i> 下一步：点对点应答
                             </button>
                             <!-- 同步到投标项目按钮 (仅当从HITL页面跳转时显示) -->
@@ -116,15 +117,66 @@
     </div>
 </div>
 
-<!-- 历史文件 -->
+<!-- 历史文件列表 -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header">
-                <h5><i class="bi bi-files"></i> 历史文件</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="bi bi-clock-history"></i> 历史处理文件
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadBusinessFilesList()">
+                    <i class="bi bi-arrow-clockwise"></i> 刷新列表
+                </button>
             </div>
             <div class="card-body">
-                <div id="businessFilesList"></div>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="businessFilesTable">
+                        <thead>
+                            <tr>
+                                <th>文件名</th>
+                                <th>处理时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="businessFilesTableBody">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">
+                                    <i class="bi bi-hourglass-split"></i> 加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 隐藏的表格行模板，用于JavaScript动态生成 -->
+                <template id="businessFileRowTemplate">
+                    <tr>
+                        <td class="file-name"></td>
+                        <td class="process-time"></td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary preview-btn"
+                                        data-download-url=""
+                                        title="预览文档">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <a class="btn btn-success download-btn"
+                                   href=""
+                                   title="下载文档">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+
+                <!-- 空状态显示 -->
+                <div class="text-center text-muted d-none" id="businessNoFiles">
+                    <i class="bi bi-inbox display-4"></i>
+                    <p class="mt-3">暂无历史处理文件</p>
+                    <p class="small">处理完成的文件将在这里显示</p>
+                </div>
             </div>
         </div>
     </div>

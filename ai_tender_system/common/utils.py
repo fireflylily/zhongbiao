@@ -5,6 +5,7 @@
 """
 
 import os
+import re
 import hashlib
 import tempfile
 import shutil
@@ -26,14 +27,25 @@ def generate_file_hash(file_path: Union[str, Path]) -> str:
     return hash_md5.hexdigest()
 
 def safe_filename(filename: str, timestamp: bool = True) -> str:
-    """生成安全的文件名"""
+    """
+    生成安全的文件名，支持中文
+
+    Args:
+        filename: 原始文件名
+        timestamp: 是否添加时间戳前缀
+
+    Returns:
+        安全的文件名，保留中文但移除文件系统危险字符
+    """
     # 先提取原始文件的扩展名
     original_name, original_ext = os.path.splitext(filename)
 
-    # 使用werkzeug的secure_filename确保安全，但只处理文件名部分
-    safe_name_part = secure_filename(original_name)
+    # 移除文件系统危险字符：/ \ : * ? " < > |
+    # 但保留中文、字母、数字、空格、下划线、连字符、圆括号
+    safe_name_part = re.sub(r'[/\\:*?"<>|]', '', original_name)
+    safe_name_part = safe_name_part.strip()
 
-    # 如果secure_filename处理后为空（比如纯中文文件名），使用默认名称
+    # 如果处理后为空，使用默认名称
     if not safe_name_part:
         safe_name_part = "document"
 

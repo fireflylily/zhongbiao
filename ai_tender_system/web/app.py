@@ -677,8 +677,8 @@ def register_routes(app: Flask, config, logger):
         if not timestamp:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-        # 使用safe_filename确保项目名称安全
-        safe_project = safe_filename(project_name) if project_name else "未命名项目"
+        # 使用safe_filename确保项目名称安全，但不添加时间戳（避免重复）
+        safe_project = safe_filename(project_name, timestamp=False) if project_name else "未命名项目"
 
         return f"{safe_project}_{file_type}_{timestamp}.docx"
 
@@ -771,7 +771,13 @@ def register_routes(app: Flask, config, logger):
             # 使用新的文件命名规则：{项目名称}_商务应答_{时间戳}.docx
             output_filename = generate_output_filename(project_name, "商务应答")
             output_path = output_dir / output_filename
-            
+
+            # 添加调试日志
+            logger.info(f"[文件命名调试] project_name参数: {project_name}")
+            logger.info(f"[文件命名调试] 生成的文件名: {output_filename}")
+            logger.info(f"[文件命名调试] 输出目录: {output_dir}")
+            logger.info(f"[文件命名调试] 完整输出路径: {output_path}")
+
             logger.info(f"公司数据验证:")
             logger.info(f"  - 公司名称: {company_data.get('companyName', 'N/A')}")
             logger.info(f"  - 联系电话: {company_data.get('fixedPhone', 'N/A')}")
@@ -1029,10 +1035,15 @@ def register_routes(app: Flask, config, logger):
             output_filename = generate_output_filename(base_name, "点对点应答")
             output_path = output_dir / output_filename
 
+            # 判断是否使用AI（根据应答方式）
+            use_ai = response_mode == 'ai'
+            logger.info(f"处理模式: {'AI智能应答' if use_ai else '简单模板应答'}")
+
             # 使用新的内联回复处理方法
             result_stats = processor.process_inline_reply(
                 str(file_path),
-                str(output_path)
+                str(output_path),
+                use_ai=use_ai
             )
 
             if result_stats.get('success'):
@@ -1046,12 +1057,21 @@ def register_routes(app: Flask, config, logger):
                     'message': '内联回复处理完成，应答已插入到原文档中（灰色底纹标记）',
                     'download_url': download_url,
                     'filename': output_filename,
+                    'output_file': str(output_path),
                     'model_used': actual_model,
+                    'requirements_count': result_stats.get('requirements_count', 0),
+                    'responses_count': result_stats.get('responses_count', 0),
+                    'response_mode': response_mode,
+                    'model_name': actual_model if use_ai else None,
                     'features': result_stats.get('features', {}),
                     'stats': {
                         'inline_reply': True,
                         'gray_shading': True,
-                        'format_preserved': True
+                        'format_preserved': True,
+                        'requirements_count': result_stats.get('requirements_count', 0),
+                        'responses_count': result_stats.get('responses_count', 0),
+                        'response_mode': response_mode,
+                        'model_name': actual_model if use_ai else None
                     }
                 })
             else:
@@ -2947,6 +2967,230 @@ def register_routes(app: Flask, config, logger):
     @app.errorhandler(413)
     def file_too_large(error):
         return jsonify({'error': '文件太大'}), 413
+
+    @app.route('/api/tender-processing/sync-point-to-point/<task_id>', methods=['POST'])
+    def sync_point_to_point_to_hitl(task_id):
+        """
+        同步点对点应答文件到HITL投标项目
+        接收点对点应答生成的文件路径,复制到HITL任务目录,保存为"应答完成文件"
+        """
+        try:
+            import json
+            import shutil
+            from common.database import get_knowledge_base_db
+
+            data = request.get_json()
+            source_file_path = data.get('file_path')
+
+            if not source_file_path:
+                return jsonify({
+                    'success': False,
+                    'error': '未提供文件路径'
+                }), 400
+
+            # 检查源文件是否存在
+            if not os.path.exists(source_file_path):
+                return jsonify({
+                    'success': False,
+                    'error': '源文件不存在'
+                }), 404
+
+            logger.info(f"同步点对点应答文件到HITL项目: task_id={task_id}, file_path={source_file_path}")
+
+            # 获取数据库实例
+            db = get_knowledge_base_db()
+
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({
+                    'success': False,
+                    'error': '任务不存在'
+                }), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+
+            # 创建存储目录
+            now = datetime.now()
+            project_root = Path(__file__).parent.parent
+            save_dir = os.path.join(
+                project_root,
+                'data/uploads/completed_response_files',
+                str(now.year),
+                f"{now.month:02d}",
+                task_id
+            )
+            os.makedirs(save_dir, exist_ok=True)
+
+            # 生成文件名
+            source_filename = os.path.basename(source_file_path)
+            # 从源文件名提取,如果包含时间戳则保留,否则添加时间戳
+            if '_' in source_filename:
+                base_name = source_filename.rsplit('.', 1)[0]
+                filename = f"{base_name}_应答完成.docx"
+            else:
+                filename = f"点对点应答_{now.strftime('%Y%m%d_%H%M%S')}_应答完成.docx"
+
+            # 复制文件到目标位置
+            target_path = os.path.join(save_dir, filename)
+            shutil.copy2(source_file_path, target_path)
+
+            # 计算文件大小
+            file_size = os.path.getsize(target_path)
+
+            # 更新任务的step1_data
+            completed_response_info = {
+                "file_path": target_path,
+                "filename": filename,
+                "file_size": file_size,
+                "saved_at": now.isoformat(),
+                "source": "point_to_point",  # 标识来源为点对点应答
+                "source_file": source_file_path
+            }
+            step1_data['completed_response_file'] = completed_response_info
+
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET step1_data = ?
+                WHERE hitl_task_id = ?
+            """, (json.dumps(step1_data), task_id))
+
+            logger.info(f"同步点对点应答文件到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
+
+            return jsonify({
+                'success': True,
+                'message': '点对点应答文件已成功同步到投标项目',
+                'file_path': target_path,
+                'filename': filename,
+                'file_size': file_size,
+                'saved_at': completed_response_info['saved_at']
+            })
+
+        except Exception as e:
+            logger.error(f"同步点对点应答文件失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({
+                'success': False,
+                'error': f'同步失败: {str(e)}'
+            }), 500
+
+    @app.route('/api/tender-processing/sync-tech-proposal/<task_id>', methods=['POST'])
+    def sync_tech_proposal_to_hitl(task_id):
+        """
+        同步技术方案文件到HITL投标项目
+        接收技术方案生成的文件路径,复制到HITL任务目录,保存为"应答完成文件"
+        """
+        try:
+            import json
+            import shutil
+            from common.database import get_knowledge_base_db
+
+            data = request.get_json()
+            source_file_path = data.get('file_path')
+            output_files = data.get('output_files', {})  # 可能包含多个输出文件
+
+            if not source_file_path:
+                return jsonify({
+                    'success': False,
+                    'error': '未提供文件路径'
+                }), 400
+
+            # 检查源文件是否存在
+            if not os.path.exists(source_file_path):
+                return jsonify({
+                    'success': False,
+                    'error': '源文件不存在'
+                }), 404
+
+            logger.info(f"同步技术方案文件到HITL项目: task_id={task_id}, file_path={source_file_path}")
+
+            # 获取数据库实例
+            db = get_knowledge_base_db()
+
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({
+                    'success': False,
+                    'error': '任务不存在'
+                }), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+
+            # 创建存储目录
+            now = datetime.now()
+            project_root = Path(__file__).parent.parent
+            save_dir = os.path.join(
+                project_root,
+                'data/uploads/completed_response_files',
+                str(now.year),
+                f"{now.month:02d}",
+                task_id
+            )
+            os.makedirs(save_dir, exist_ok=True)
+
+            # 生成文件名
+            source_filename = os.path.basename(source_file_path)
+            # 从源文件名提取,如果包含时间戳则保留,否则添加时间戳
+            if '_' in source_filename:
+                base_name = source_filename.rsplit('.', 1)[0]
+                filename = f"{base_name}_应答完成.docx"
+            else:
+                filename = f"技术方案_{now.strftime('%Y%m%d_%H%M%S')}_应答完成.docx"
+
+            # 复制文件到目标位置
+            target_path = os.path.join(save_dir, filename)
+            shutil.copy2(source_file_path, target_path)
+
+            # 计算文件大小
+            file_size = os.path.getsize(target_path)
+
+            # 更新任务的step1_data
+            completed_response_info = {
+                "file_path": target_path,
+                "filename": filename,
+                "file_size": file_size,
+                "saved_at": now.isoformat(),
+                "source": "tech_proposal",  # 标识来源为技术方案
+                "source_file": source_file_path,
+                "output_files": output_files  # 保存所有输出文件信息
+            }
+            step1_data['completed_response_file'] = completed_response_info
+
+            db.execute_query("""
+                UPDATE tender_hitl_tasks
+                SET step1_data = ?
+                WHERE hitl_task_id = ?
+            """, (json.dumps(step1_data), task_id))
+
+            logger.info(f"同步技术方案文件到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
+
+            return jsonify({
+                'success': True,
+                'message': '技术方案文件已成功同步到投标项目',
+                'file_path': target_path,
+                'filename': filename,
+                'file_size': file_size,
+                'saved_at': completed_response_info['saved_at']
+            })
+
+        except Exception as e:
+            logger.error(f"同步技术方案文件失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({
+                'success': False,
+                'error': f'同步失败: {str(e)}'
+            }), 500
 
 def main():
     """主函数"""

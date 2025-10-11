@@ -868,7 +868,11 @@
                         <div class="empty-state" id="noCompletedResponseMessage">
                             <i class="bi bi-file-earmark-check fs-1 text-muted mb-3"></i>
                             <p class="text-muted">尚未生成应答完成文件</p>
-                            <p class="text-muted small">在商务应答页面完成处理后，点击"保存并完成"按钮，文件将自动同步到这里</p>
+                            <p class="text-muted small">
+                                您可以通过以下方式同步文件到这里：<br>
+                                • 在<strong>商务应答</strong>页面完成处理后，点击"同步到投标项目"按钮<br>
+                                • 在<strong>技术方案生成</strong>页面完成后，点击"同步到投标项目"按钮
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -1486,7 +1490,7 @@
         /**
          * 跳转到技术方案编写页面
          */
-        function goToTechProposal() {
+        async function goToTechProposal() {
             // 获取当前项目和公司信息
             const projectName = window.currentProjectName || '';
             const companyId = window.currentCompanyId || '';
@@ -1501,6 +1505,24 @@
             if (companyId) params.append('company_id', companyId);
             if (companyName) params.append('company_name', companyName);
             if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
+
+            // 获取技术需求文件信息
+            if (hitlTaskId) {
+                try {
+                    const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
+                    const data = await response.json();
+
+                    if (data.success && data.has_file) {
+                        // 将技术需求文件信息添加到URL参数
+                        params.append('technical_file_name', data.filename);
+                        params.append('technical_file_size', data.file_size);
+                        params.append('technical_file_url', data.download_url);
+                        console.log('[goToTechProposal] 已获取技术需求文件信息:', data);
+                    }
+                } catch (error) {
+                    console.error('[goToTechProposal] 获取技术需求文件信息失败:', error);
+                }
+            }
 
             // 跳转到首页的技术方案生成标签页
             window.location.href = `/?${params.toString()}#tech-proposal`;
