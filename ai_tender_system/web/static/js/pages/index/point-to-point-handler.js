@@ -251,6 +251,14 @@ function submitPointToPointForm() {
     formData.append('responseFrequency', responseFrequency?.value || 'every_paragraph');
     formData.append('responseMode', responseMode?.value || 'simple');
 
+    // 添加项目名称（如果有）
+    if (window.companyStateManager) {
+        const projectName = window.companyStateManager.getProjectName();
+        if (projectName) {
+            formData.append('projectName', projectName);
+        }
+    }
+
     if (responseMode?.value === 'ai' && aiModel) {
         formData.append('aiModel', aiModel.value);
     }

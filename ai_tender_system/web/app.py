@@ -1018,11 +1018,14 @@ def register_routes(app: Flask, config, logger):
             # 创建商务应答处理器（使用内联回复功能）
             processor = BusinessResponseProcessor(model_name=actual_model)
 
+            # 获取项目名称参数
+            project_name = request.form.get('projectName')
+
             # 生成输出文件路径
             output_dir = ensure_dir(config.get_path('output'))
-            base_name = Path(filename).stem
             # 使用新的文件命名规则：{项目名称}_点对点应答_{时间戳}.docx
-            # 对于点对点应答，如果没有项目名称，使用原文件名作为项目名称
+            # 如果有项目名称，使用项目名称；否则使用原文件名
+            base_name = project_name if project_name else Path(filename).stem
             output_filename = generate_output_filename(base_name, "点对点应答")
             output_path = output_dir / output_filename
 
