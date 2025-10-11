@@ -121,7 +121,13 @@
       "Bash(killall:*)",
       "Bash(/dev/null killall -9 Python 2)",
       "Bash(/dev/null lsof -ti:8110)",
-      "Bash(/dev/null sleep 3 ps aux)"
+      "Bash(/dev/null sleep 3 ps aux)",
+      "Bash(git -C /Users/lvhe/Downloads/zhongbiao/zhongbiao status --short)",
+      "Bash(git -C /Users/lvhe/Downloads/zhongbiao/zhongbiao status)",
+      "Bash(git -C /Users/lvhe/Downloads/zhongbiao/zhongbiao diff .claude/settings.local.json)",
+      "Bash(git -C /Users/lvhe/Downloads/zhongbiao/zhongbiao ls-files)",
+      "Bash(git -C /Users/lvhe/Downloads/zhongbiao/zhongbiao check-ignore -v ai_tender_system/data/knowledge_base.db)",
+      "Bash(git -C /Users/lvhe/Downloads/zhongbiao/zhongbiao ls-files ai_tender_system/database/*.sql)"
     ],
     "deny": [],
     "ask": []
