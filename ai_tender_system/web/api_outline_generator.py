@@ -72,26 +72,73 @@ def generate_proposal():
     try:
         logger.info("收到技术方案生成请求")
 
-        # 1. 验证请求
-        if 'tender_file' not in request.files:
-            return jsonify({
-                'success': False,
-                'error': '缺少技术需求文档文件'
-            }), 400
+        # 1. 验证请求 - 支持两种文件来源：直接上传或从HITL传递
+        use_hitl_file = request.form.get('use_hitl_technical_file', 'false').lower() == 'true'
+        hitl_task_id = request.form.get('hitl_task_id')
 
-        tender_file = request.files['tender_file']
+        if use_hitl_file and hitl_task_id:
+            # 使用HITL传递的技术需求文件
+            logger.info(f"使用HITL任务的技术需求文件: {hitl_task_id}")
 
-        if tender_file.filename == '':
-            return jsonify({
-                'success': False,
-                'error': '未选择技术需求文档文件'
-            }), 400
+            # 在technical_files目录下搜索HITL任务目录（不依赖日期）
+            technical_files_base = config.get_path('data') / 'uploads' / 'technical_files'
 
-        if not allowed_file(tender_file.filename):
-            return jsonify({
-                'success': False,
-                'error': '不支持的文件格式，请上传 .doc, .docx, .pdf, .xlsx 或 .xls 文件'
-            }), 400
+            # 递归查找HITL任务目录
+            tender_path = None
+            for year_dir in technical_files_base.glob('*'):
+                if not year_dir.is_dir():
+                    continue
+                for month_dir in year_dir.glob('*'):
+                    if not month_dir.is_dir():
+                        continue
+                    task_dir = month_dir / hitl_task_id
+                    if task_dir.exists():
+                        # 查找技术需求文件（第一个文件）
+                        technical_files = list(task_dir.glob('*.*'))
+                        if technical_files:
+                            tender_path = technical_files[0]
+                            logger.info(f"找到HITL技术需求文件: {tender_path.name}, 路径: {tender_path}")
+                            break
+                if tender_path:
+                    break
+
+            if not tender_path:
+                return jsonify({
+                    'success': False,
+                    'error': f'未找到HITL任务的技术需求文件: {hitl_task_id}'
+                }), 400
+        else:
+            # 使用上传的文件
+            if 'tender_file' not in request.files:
+                return jsonify({
+                    'success': False,
+                    'error': '缺少技术需求文档文件'
+                }), 400
+
+            tender_file = request.files['tender_file']
+
+            if tender_file.filename == '':
+                return jsonify({
+                    'success': False,
+                    'error': '未选择技术需求文档文件'
+                }), 400
+
+            if not allowed_file(tender_file.filename):
+                return jsonify({
+                    'success': False,
+                    'error': '不支持的文件格式，请上传 .doc, .docx, .pdf, .xlsx 或 .xls 文件'
+                }), 400
+
+            # 保存上传的文件
+            upload_dir = config.get_path('uploads')
+            upload_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            tender_filename = secure_filename(f"{timestamp}_{tender_file.filename}")
+            tender_path = upload_dir / tender_filename
+
+            tender_file.save(str(tender_path))
+            logger.info(f"需求文档已保存: {tender_path}")
 
         # 2. 获取参数
         company_id = request.form.get('companyId')
@@ -105,17 +152,6 @@ def generate_proposal():
         }
 
         logger.info(f"生成选项: {options}")
-
-        # 3. 保存上传的文件
-        upload_dir = config.get_path('uploads')
-        upload_dir.mkdir(parents=True, exist_ok=True)
-
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        tender_filename = secure_filename(f"{timestamp}_{tender_file.filename}")
-        tender_path = upload_dir / tender_filename
-
-        tender_file.save(str(tender_path))
-        logger.info(f"需求文档已保存: {tender_path}")
 
         # 4. 阶段1：需求分析
         logger.info("开始阶段1：需求分析...")

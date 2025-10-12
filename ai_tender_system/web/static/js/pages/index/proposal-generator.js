@@ -269,7 +269,7 @@ class ProposalGenerator {
             }, 600000); // 10分钟超时
 
             // 发送请求
-            const response = await window.apiClient?.post('/generate-proposal', formData);
+            const response = await window.apiClient?.post('/api/generate-proposal', formData);
 
             clearTimeout(timeoutId);
 
@@ -639,6 +639,29 @@ class ProposalGenerator {
             if (hitlTaskId) {
                 this.hitlTaskId = hitlTaskId;
                 console.log('[ProposalGenerator] 保存HITL任务ID:', hitlTaskId);
+
+                // 填充隐藏字段
+                if (this.techTechnicalFileTaskId) {
+                    this.techTechnicalFileTaskId.value = hitlTaskId;
+                }
+
+                // 显示HITL文件加载提示
+                if (this.techTechnicalFileDisplay) {
+                    this.techTechnicalFileDisplay.classList.remove('d-none');
+                }
+                if (this.techTechnicalFileDisplayName) {
+                    this.techTechnicalFileDisplayName.textContent = '技术需求文件';
+                }
+                if (this.techTechnicalFileDisplaySize) {
+                    this.techTechnicalFileDisplaySize.textContent = ' (已从投标项目加载)';
+                }
+
+                // 隐藏上传区域
+                if (this.techTenderUpload) {
+                    this.techTenderUpload.style.display = 'none';
+                }
+
+                console.log('[ProposalGenerator] HITL技术需求文件信息已加载');
             }
 
             // 保存URL参数供loadCompanies使用

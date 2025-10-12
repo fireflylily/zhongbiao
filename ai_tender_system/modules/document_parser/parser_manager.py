@@ -199,6 +199,66 @@ class ParserManager:
                 parse_time=parse_time
             )
 
+    def parse_document_simple(self, file_path: str) -> str:
+        """
+        同步简化版本的文档解析（仅返回文本内容）
+        适用于不需要完整ParseResult对象的场景，如需求分析
+
+        Args:
+            file_path: 文档路径
+
+        Returns:
+            提取的文本内容
+
+        Raises:
+            ValueError: 不支持的文档格式
+            FileNotFoundError: 文件不存在
+            Exception: 解析失败
+        """
+        import asyncio
+        import concurrent.futures
+
+        self.logger.info(f"开始简化解析文档: {file_path}")
+
+        try:
+            # 检测文档类型
+            doc_type = self._detect_document_type(file_path)
+            if doc_type == DocumentType.UNKNOWN:
+                raise ValueError(f"不支持的文档格式: {file_path}")
+
+            # 获取对应的解析器
+            parser = self._get_parser(doc_type)
+
+            # 在同步上下文中执行异步解析
+            try:
+                # 尝试获取当前事件循环
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # 如果已有事件循环在运行，在新线程中创建新循环
+                    self.logger.debug("检测到运行中的事件循环，在新线程中执行解析")
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        future = pool.submit(asyncio.run, parser.parse(file_path))
+                        text, metadata = future.result(timeout=300)  # 5分钟超时
+                else:
+                    # 没有运行的事件循环，直接使用asyncio.run
+                    self.logger.debug("使用asyncio.run执行解析")
+                    text, metadata = asyncio.run(parser.parse(file_path))
+            except RuntimeError:
+                # 没有事件循环，创建新的
+                self.logger.debug("创建新事件循环执行解析")
+                text, metadata = asyncio.run(parser.parse(file_path))
+
+            if not text or not text.strip():
+                raise ValueError("文档内容为空")
+
+            self.logger.info(f"简化解析完成，内容长度: {len(text)} 字符")
+            return text
+
+        except Exception as e:
+            error_msg = f"文档解析失败: {str(e)}"
+            self.logger.error(error_msg)
+            raise
+
     def _update_parse_status(self, doc_id: int, status: ParseStatus, error_message: str = ""):
         """更新文档解析状态"""
         try:

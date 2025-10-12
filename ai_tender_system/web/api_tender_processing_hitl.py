@@ -2526,16 +2526,15 @@ def register_hitl_routes(app):
             # 计算文件大小
             file_size = os.path.getsize(target_path)
 
-            # 更新任务的step1_data
-            completed_response_info = {
+            # 更新任务的step1_data - 使用独立字段存储商务应答文件
+            business_response_info = {
                 "file_path": target_path,
                 "filename": filename,
                 "file_size": file_size,
                 "saved_at": now.isoformat(),
-                "source": "business_response",
                 "source_file": source_file_path
             }
-            step1_data['completed_response_file'] = completed_response_info
+            step1_data['business_response_file'] = business_response_info
 
             db.execute_query("""
                 UPDATE tender_hitl_tasks
@@ -2551,7 +2550,7 @@ def register_hitl_routes(app):
                 "file_path": target_path,
                 "filename": filename,
                 "file_size": file_size,
-                "saved_at": completed_response_info['saved_at']
+                "saved_at": business_response_info['saved_at']
             })
 
         except Exception as e:
@@ -2664,6 +2663,155 @@ def register_hitl_routes(app):
 
         except Exception as e:
             logger.error(f"预览应答完成文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    # ============================================
+    # 新的三种文件类型的获取API
+    # ============================================
+
+    def _get_file_info(task_id, field_name, file_display_name):
+        """
+        通用的文件信息获取函数
+
+        Args:
+            task_id: HITL任务ID
+            field_name: step1_data中的字段名（如 'technical_point_to_point_file'）
+            file_display_name: 文件显示名称（用于日志和错误提示）
+
+        Returns:
+            JSON响应
+        """
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            file_info = step1_data.get(field_name)
+
+            if not file_info:
+                return jsonify({
+                    "success": True,
+                    "has_file": False
+                })
+
+            # 检查文件是否存在
+            file_exists = os.path.exists(file_info['file_path'])
+
+            return jsonify({
+                "success": True,
+                "has_file": file_exists,
+                "filename": file_info.get('filename'),
+                "file_size": file_info.get('file_size'),
+                "saved_at": file_info.get('saved_at'),
+                "download_url": f"/api/tender-processing/download-file/{task_id}/{field_name}"
+            })
+
+        except Exception as e:
+            logger.error(f"获取{file_display_name}信息失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route('/api/tender-processing/technical-point-to-point-info/<task_id>', methods=['GET'])
+    def get_technical_point_to_point_info(task_id):
+        """获取技术需求点对点应答文件信息"""
+        return _get_file_info(task_id, 'technical_point_to_point_file', '技术需求点对点应答文件')
+
+    @app.route('/api/tender-processing/technical-proposal-info/<task_id>', methods=['GET'])
+    def get_technical_proposal_info(task_id):
+        """获取技术方案文件信息"""
+        return _get_file_info(task_id, 'technical_proposal_file', '技术方案文件')
+
+    @app.route('/api/tender-processing/business-response-info/<task_id>', methods=['GET'])
+    def get_business_response_info(task_id):
+        """获取商务应答文件信息"""
+        return _get_file_info(task_id, 'business_response_file', '商务应答文件')
+
+    # ============================================
+    # 统一的文件下载和预览API
+    # ============================================
+
+    @app.route('/api/tender-processing/download-file/<task_id>/<field_name>', methods=['GET'])
+    def download_unified_file(task_id, field_name):
+        """统一的文件下载接口"""
+        try:
+            # 验证field_name合法性（防止SQL注入）
+            valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'business_response_file']
+            if field_name not in valid_fields:
+                return jsonify({"error": "无效的文件类型"}), 400
+
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            file_info = step1_data.get(field_name)
+
+            if not file_info:
+                return jsonify({"error": "文件不存在"}), 404
+
+            file_path = file_info['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=True,
+                download_name=file_info['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"下载文件失败: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tender-processing/preview-file/<task_id>/<field_name>', methods=['GET'])
+    def preview_unified_file(task_id, field_name):
+        """统一的文件预览接口"""
+        try:
+            # 验证field_name合法性
+            valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'business_response_file']
+            if field_name not in valid_fields:
+                return jsonify({"error": "无效的文件类型"}), 400
+
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+            file_info = step1_data.get(field_name)
+
+            if not file_info:
+                return jsonify({"error": "文件不存在"}), 404
+
+            file_path = file_info['file_path']
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件已被删除"}), 404
+
+            # 预览模式：as_attachment=False
+            return send_file(
+                file_path,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=False,
+                download_name=file_info['filename']
+            )
+
+        except Exception as e:
+            logger.error(f"预览文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
 

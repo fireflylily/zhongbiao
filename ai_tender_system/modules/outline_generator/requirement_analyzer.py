@@ -78,8 +78,8 @@ class RequirementAnalyzer:
         try:
             self.logger.info("解析文档内容...")
 
-            # 使用文档解析管理器
-            text = self.parser_manager.parse_document(file_path)
+            # 使用文档解析管理器（简化同步版本）
+            text = self.parser_manager.parse_document_simple(file_path)
 
             if not text or not text.strip():
                 raise ValueError("文档内容为空")

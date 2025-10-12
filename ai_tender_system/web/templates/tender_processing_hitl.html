@@ -764,6 +764,38 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- 点对点应答完成文件区域 -->
+                    <div style="margin-top: 30px; padding: 20px; border-top: 2px solid #e9ecef;">
+                        <h5 class="mb-3">
+                            <i class="bi bi-chat-dots me-2 text-primary"></i>点对点应答完成文件
+                        </h5>
+                        <div id="pointToPointResponseContent" style="min-height: 150px;">
+                            <div class="empty-state" id="noPointToPointResponseMessage">
+                                <i class="bi bi-chat-dots fs-1 text-muted mb-3"></i>
+                                <p class="text-muted">尚未生成点对点应答文件</p>
+                                <p class="text-muted small">
+                                    在<strong>点对点应答</strong>页面完成处理后，点击"同步到投标项目"按钮，文件将显示在这里
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 技术方案完成文件区域 -->
+                    <div style="margin-top: 30px; padding: 20px; border-top: 2px solid #e9ecef;">
+                        <h5 class="mb-3">
+                            <i class="bi bi-file-earmark-code me-2 text-success"></i>技术方案完成文件
+                        </h5>
+                        <div id="techProposalResponseContent" style="min-height: 150px;">
+                            <div class="empty-state" id="noTechProposalResponseMessage">
+                                <i class="bi bi-file-earmark-code fs-1 text-muted mb-3"></i>
+                                <p class="text-muted">尚未生成技术方案文件</p>
+                                <p class="text-muted small">
+                                    在<strong>技术方案生成</strong>页面完成后，点击"同步到投标项目"按钮，文件将显示在这里
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- ==================== -->
@@ -860,19 +892,19 @@
                         </div>
                     </div>
 
-                    <!-- 应答完成文件区域（放在应答文件格式下方） -->
-                    <div id="completedResponseContent" style="margin-top: 30px; padding: 20px; border-top: 2px solid #e9ecef;">
+                    <!-- 商务应答完成文件区域（放在应答文件格式下方） -->
+                    <div style="margin-top: 30px; padding: 20px; border-top: 2px solid #e9ecef;">
                         <h5 class="mb-3">
-                            <i class="bi bi-file-earmark-check me-2 text-success"></i>应答完成文件
+                            <i class="bi bi-briefcase-fill me-2 text-info"></i>商务应答完成文件
                         </h5>
-                        <div class="empty-state" id="noCompletedResponseMessage">
-                            <i class="bi bi-file-earmark-check fs-1 text-muted mb-3"></i>
-                            <p class="text-muted">尚未生成应答完成文件</p>
-                            <p class="text-muted small">
-                                您可以通过以下方式同步文件到这里：<br>
-                                • 在<strong>商务应答</strong>页面完成处理后，点击"同步到投标项目"按钮<br>
-                                • 在<strong>技术方案生成</strong>页面完成后，点击"同步到投标项目"按钮
-                            </p>
+                        <div id="businessResponseContent" style="min-height: 150px;">
+                            <div class="empty-state" id="noBusinessResponseMessage">
+                                <i class="bi bi-briefcase-fill fs-1 text-muted mb-3"></i>
+                                <p class="text-muted">尚未生成商务应答完成文件</p>
+                                <p class="text-muted small">
+                                    在<strong>商务应答</strong>页面完成处理后，点击"同步到投标项目"按钮，文件将显示在这里
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1154,12 +1186,28 @@
                             console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载技术需求文件');
                         }
 
-                        // 2.5. 加载应答完成文件
+                        // 2.5. 加载点对点应答完成文件
                         if (typeof loadFileInfo === 'function') {
-                            console.log('[HITLConfigManager] 加载应答完成文件...');
-                            await loadFileInfo('completed', hitlTask.hitl_task_id);
+                            console.log('[HITLConfigManager] 加载点对点应答文件...');
+                            await loadFileInfo('point_to_point', hitlTask.hitl_task_id);
                         } else {
-                            console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载应答完成文件');
+                            console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载点对点应答文件');
+                        }
+
+                        // 2.6. 加载技术方案完成文件
+                        if (typeof loadFileInfo === 'function') {
+                            console.log('[HITLConfigManager] 加载技术方案文件...');
+                            await loadFileInfo('tech_proposal', hitlTask.hitl_task_id);
+                        } else {
+                            console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载技术方案文件');
+                        }
+
+                        // 2.7. 加载商务应答完成文件
+                        if (typeof loadFileInfo === 'function') {
+                            console.log('[HITLConfigManager] 加载商务应答文件...');
+                            await loadFileInfo('business_response', hitlTask.hitl_task_id);
+                        } else {
+                            console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载商务应答文件');
                         }
 
                         // 3. 加载资格要求（qualifications）

@@ -1505,17 +1505,44 @@ const CHAPTER_SELECTION_CONFIG = {
         selectionAreaId: 'technicalChapterSelectionArea',
         noFileMessageId: 'noTechnicalFileMessage'
     },
-    'completed': {
-        prefix: 'completed',
-        confirmBtnId: null, // 无确认按钮,由商务应答自动生成
-        apiSave: null, // 无保存API,通过商务应答同步
-        apiInfo: '/api/tender-processing/completed-response-info',
-        apiDownload: '/api/tender-processing/download-completed-response',
-        apiPreview: '/api/tender-processing/preview-completed-response',
-        fileTypeName: '应答完成文件',
-        contentId: 'completedResponseContent',
+    'point_to_point': {
+        prefix: 'pointToPoint',
+        confirmBtnId: null, // 无确认按钮,由点对点应答同步生成
+        apiSave: null, // 无保存API,通过点对点应答同步
+        apiInfo: '/api/tender-processing/technical-point-to-point-info',
+        apiDownload: '/api/tender-processing/download-file',
+        apiPreview: '/api/tender-processing/preview-file',
+        fieldName: 'technical_point_to_point_file', // 用于统一API
+        fileTypeName: '点对点应答文件',
+        contentId: 'pointToPointResponseContent',
         selectionAreaId: null, // 无章节选择
-        noFileMessageId: 'noCompletedResponseMessage'
+        noFileMessageId: 'noPointToPointResponseMessage'
+    },
+    'tech_proposal': {
+        prefix: 'techProposal',
+        confirmBtnId: null, // 无确认按钮,由技术方案同步生成
+        apiSave: null, // 无保存API,通过技术方案同步
+        apiInfo: '/api/tender-processing/technical-proposal-info',
+        apiDownload: '/api/tender-processing/download-file',
+        apiPreview: '/api/tender-processing/preview-file',
+        fieldName: 'technical_proposal_file', // 用于统一API
+        fileTypeName: '技术方案文件',
+        contentId: 'techProposalResponseContent',
+        selectionAreaId: null, // 无章节选择
+        noFileMessageId: 'noTechProposalResponseMessage'
+    },
+    'business_response': {
+        prefix: 'businessResponse',
+        confirmBtnId: null, // 无确认按钮,由商务应答同步生成
+        apiSave: null, // 无保存API,通过商务应答同步
+        apiInfo: '/api/tender-processing/business-response-info',
+        apiDownload: '/api/tender-processing/download-file',
+        apiPreview: '/api/tender-processing/preview-file',
+        fieldName: 'business_response_file', // 用于统一API
+        fileTypeName: '商务应答文件',
+        contentId: 'businessResponseContent',
+        selectionAreaId: null, // 无章节选择
+        noFileMessageId: 'noBusinessResponseMessage'
     }
 };
 
@@ -1970,7 +1997,10 @@ function previewFile(type, taskId) {
     const config = CHAPTER_SELECTION_CONFIG[type];
     console.log(`[previewFile] 预览${config.fileTypeName}文件, taskId:`, taskId);
 
-    const previewUrl = `${config.apiPreview}/${taskId}`;
+    // 如果使用统一API（有fieldName字段），拼接fieldName参数
+    const previewUrl = config.fieldName
+        ? `${config.apiPreview}/${taskId}/${config.fieldName}`
+        : `${config.apiPreview}/${taskId}`;
 
     // 显示加载状态
     const previewContent = document.getElementById('documentPreviewContent');
@@ -2021,7 +2051,14 @@ function previewFile(type, taskId) {
 function downloadFile(type, taskId) {
     const config = CHAPTER_SELECTION_CONFIG[type];
     console.log(`[downloadFile] 下载${config.fileTypeName}文件, taskId:`, taskId);
-    window.location.href = `${config.apiDownload}/${taskId}`;
+
+    // 如果使用统一API（有fieldName字段），拼接fieldName参数
+    if (config.fieldName) {
+        window.location.href = `${config.apiDownload}/${taskId}/${config.fieldName}`;
+    } else {
+        // 旧API格式（response和technical）
+        window.location.href = `${config.apiDownload}/${taskId}`;
+    }
 }
 
 // 向后兼容：保留旧函数名

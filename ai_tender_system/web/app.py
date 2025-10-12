@@ -1460,18 +1460,6 @@ def register_routes(app: Flask, config, logger):
             return jsonify(format_error_response(e))
     
     # ===================
-    # 技术方案相关路由（暂时占位）
-    # ===================
-    
-    @app.route('/generate-proposal', methods=['POST'])
-    def generate_proposal():
-        """生成技术方案"""
-        # TODO: 实现技术方案生成功能
-        return jsonify({
-            'success': False,
-            'message': '技术方案生成功能正在迁移中'
-        })
-    
     # ===================
     # 公司管理API
     # ===================
@@ -3042,16 +3030,15 @@ def register_routes(app: Flask, config, logger):
             # 计算文件大小
             file_size = os.path.getsize(target_path)
 
-            # 更新任务的step1_data
-            completed_response_info = {
+            # 更新任务的step1_data - 使用独立字段存储点对点应答文件
+            point_to_point_file_info = {
                 "file_path": target_path,
                 "filename": filename,
                 "file_size": file_size,
                 "saved_at": now.isoformat(),
-                "source": "point_to_point",  # 标识来源为点对点应答
                 "source_file": source_file_path
             }
-            step1_data['completed_response_file'] = completed_response_info
+            step1_data['technical_point_to_point_file'] = point_to_point_file_info
 
             db.execute_query("""
                 UPDATE tender_hitl_tasks
@@ -3067,7 +3054,7 @@ def register_routes(app: Flask, config, logger):
                 'file_path': target_path,
                 'filename': filename,
                 'file_size': file_size,
-                'saved_at': completed_response_info['saved_at']
+                'saved_at': point_to_point_file_info['saved_at']
             })
 
         except Exception as e:
@@ -3154,17 +3141,16 @@ def register_routes(app: Flask, config, logger):
             # 计算文件大小
             file_size = os.path.getsize(target_path)
 
-            # 更新任务的step1_data
-            completed_response_info = {
+            # 更新任务的step1_data - 使用独立字段存储技术方案文件
+            tech_proposal_file_info = {
                 "file_path": target_path,
                 "filename": filename,
                 "file_size": file_size,
                 "saved_at": now.isoformat(),
-                "source": "tech_proposal",  # 标识来源为技术方案
                 "source_file": source_file_path,
                 "output_files": output_files  # 保存所有输出文件信息
             }
-            step1_data['completed_response_file'] = completed_response_info
+            step1_data['technical_proposal_file'] = tech_proposal_file_info
 
             db.execute_query("""
                 UPDATE tender_hitl_tasks
@@ -3180,7 +3166,7 @@ def register_routes(app: Flask, config, logger):
                 'file_path': target_path,
                 'filename': filename,
                 'file_size': file_size,
-                'saved_at': completed_response_info['saved_at']
+                'saved_at': tech_proposal_file_info['saved_at']
             })
 
         except Exception as e:
