@@ -27,7 +27,7 @@ RUN if [ -f requirements-prod.txt ]; then \
 COPY . .
 
 # 暴露端口(Railway会动态设置)
-EXPOSE $PORT
+EXPOSE 8080
 
-# 启动命令
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 main:app
+# 启动命令 - 使用shell形式以支持环境变量
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 4 --timeout 120 main:app"]
