@@ -11,9 +11,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 【新增】监听从 HITL Tab 切换过来的事件
     window.addEventListener('loadBusinessResponse', function(event) {
+        console.log('[Business Response] loadBusinessResponse 事件触发，event.detail:', event.detail);
         if (event.detail && event.detail.fromHITL) {
+            console.log('[Business Response] 条件满足（fromHITL=true），准备调用 loadFromHITL()');
             console.log('[Business Response] 收到来自 HITL 的加载事件:', event.detail);
-            loadFromHITL();
+
+            // 【修复】延迟执行，确保Tab切换完成后再操作DOM
+            console.log('[Business Response] 延迟200ms执行 loadFromHITL()，等待Tab渲染完成...');
+            setTimeout(() => {
+                console.log('[Business Response] 即将执行 loadBusinessResponseFromHITL()...');
+                loadBusinessResponseFromHITL();
+                console.log('[Business Response] loadBusinessResponseFromHITL() 调用完成');
+            }, 200);
+        } else {
+            console.warn('[Business Response] 条件不满足，不调用 loadFromHITL()，event.detail:', event.detail);
+        }
+    });
+
+    // 【新增】监听商务应答Tab显示事件（Bootstrap Tab的shown事件）
+    document.addEventListener('shown.bs.tab', function(event) {
+        if (event.target.getAttribute('data-bs-target') === '#business-response') {
+            console.log('[Business Response] Tab已显示，检查是否需要重新加载文件信息');
+
+            // 检查是否有待显示的文件信息
+            if (window.projectDataBridge) {
+                const businessFile = window.projectDataBridge.getFileInfo('business');
+                if (businessFile?.fileUrl && businessFile?.fileName) {
+                    console.log('[Business Response] 检测到有文件信息，重新执行显示逻辑');
+                    setTimeout(() => {
+                        loadBusinessResponseFromHITL();
+                    }, 100);
+                }
+            }
         }
     });
 
@@ -683,8 +712,9 @@ async function syncToHitlProject(hitlTaskId, filePath) {
 
 /**
  * 【新增】从HITL投标管理加载数据
+ * 【重要】使用独特的函数名避免与其他模块冲突
  */
-function loadFromHITL() {
+function loadBusinessResponseFromHITL() {
     console.log('[Business Response] 开始从HITL加载数据');
 
     if (!window.projectDataBridge) {
@@ -714,16 +744,32 @@ function loadFromHITL() {
 
     // 2. 【修改】从 projectDataBridge 加载应答文件信息（替代全局变量）
     const businessFile = bridge.getFileInfo('business');
+    console.log('[Business Response] ====== 文件信息诊断开始 ======');
+    console.log('[Business Response] bridge.getFileInfo("business") 返回值:', businessFile);
+    console.log('[Business Response] businessFile?.fileUrl:', businessFile?.fileUrl);
+    console.log('[Business Response] businessFile?.fileName:', businessFile?.fileName);
+    console.log('[Business Response] 条件检查: fileUrl存在?', !!businessFile?.fileUrl, ', fileName存在?', !!businessFile?.fileName);
+
     if (businessFile?.fileUrl && businessFile?.fileName) {
+        console.log('[Business Response] [PASS] 条件检查通过，准备显示文件');
         console.log('[Business Response] 找到应答文件:', businessFile.fileName);
 
         // 【重要】保存到全局变量供表单提交时使用
         window.businessResponseFileUrl = businessFile.fileUrl;
         window.businessResponseFileName = businessFile.fileName;
+        console.log('[Business Response] 已保存到全局变量:', {
+            fileUrl: window.businessResponseFileUrl,
+            fileName: window.businessResponseFileName
+        });
 
         // 显示文件信息
         const fileNameDiv = document.getElementById('businessTemplateFileName');
+        console.log('[Business Response] 查找 businessTemplateFileName 元素:', fileNameDiv);
+
         if (fileNameDiv) {
+            console.log('[Business Response] [FOUND] 找到 businessTemplateFileName 元素，准备设置 innerHTML');
+            console.log('[Business Response] 设置前 innerHTML:', fileNameDiv.innerHTML);
+
             fileNameDiv.innerHTML = `
                 <div class="alert alert-success py-2 d-flex align-items-center">
                     <i class="bi bi-file-earmark-word me-2"></i>
@@ -731,18 +777,44 @@ function loadFromHITL() {
                     <span class="badge bg-success ms-2">已从投标项目加载</span>
                 </div>
             `;
+
+            console.log('[Business Response] [SUCCESS] innerHTML 已设置成功');
+            console.log('[Business Response] 设置后 innerHTML:', fileNameDiv.innerHTML);
+            console.log('[Business Response] 设置后 innerHTML.length:', fileNameDiv.innerHTML.length);
+
+            // 【验证】立即检查DOM中是否真的有内容
+            setTimeout(() => {
+                const checkDiv = document.getElementById('businessTemplateFileName');
+                console.log('[Business Response] [VERIFY] 100ms后验证，元素内容:', checkDiv?.innerHTML);
+                console.log('[Business Response] [VERIFY] 100ms后验证，元素是否可见:', checkDiv?.offsetParent !== null);
+
+                if (!checkDiv || checkDiv.innerHTML.trim() === '') {
+                    console.error('[Business Response] [ERROR] 验证失败！innerHTML被清空了！');
+                } else {
+                    console.log('[Business Response] [VERIFY] 验证成功，内容仍然存在');
+                }
+            }, 100);
+        } else {
+            console.error('[Business Response] [ERROR] 未找到 businessTemplateFileName 元素，无法显示文件信息');
         }
 
         // 隐藏上传区域
         const uploadArea = document.getElementById('businessTemplateFile');
+        console.log('[Business Response] 查找 businessTemplateFile 元素:', uploadArea);
         if (uploadArea) {
             uploadArea.style.display = 'none';
+            console.log('[Business Response] [SUCCESS] 已隐藏上传区域');
+        } else {
+            console.warn('[Business Response] [WARN] 未找到 businessTemplateFile 元素');
         }
 
         console.log('[Business Response] 文件信息已显示，已保存到全局变量');
     } else {
-        console.warn('[Business Response] 未找到应答文件信息');
+        console.warn('[Business Response] [FAIL] 条件检查失败，未找到应答文件信息');
+        console.warn('[Business Response] businessFile 完整对象:', JSON.stringify(businessFile, null, 2));
     }
+
+    console.log('[Business Response] ====== 文件信息诊断结束 ======');
 
     console.log('[Business Response] 从HITL加载数据完成');
 }

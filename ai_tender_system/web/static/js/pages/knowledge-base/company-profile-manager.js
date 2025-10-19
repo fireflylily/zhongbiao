@@ -528,6 +528,18 @@ class CompanyProfileManager {
                         <input type="text" class="form-control" id="prof-legalRepresentativePosition" value="${data.legal_representative_position || ''}">
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label">法定代表人性别</label>
+                        <select class="form-select" id="prof-legalRepresentativeGender">
+                            <option value="">请选择</option>
+                            <option value="男" ${data.legal_representative_gender === '男' ? 'selected' : ''}>男</option>
+                            <option value="女" ${data.legal_representative_gender === '女' ? 'selected' : ''}>女</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">法定代表人年龄</label>
+                        <input type="number" class="form-control" id="prof-legalRepresentativeAge" value="${data.legal_representative_age || ''}" min="18" max="100">
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label">统一社会信用代码</label>
                         <input type="text" class="form-control" id="prof-socialCreditCode" value="${data.social_credit_code || ''}">
                     </div>
@@ -857,6 +869,8 @@ class CompanyProfileManager {
             establishDate: document.getElementById('prof-establishDate').value,
             legalRepresentative: document.getElementById('prof-legalRepresentative').value,
             legalRepresentativePosition: document.getElementById('prof-legalRepresentativePosition').value,
+            legalRepresentativeGender: document.getElementById('prof-legalRepresentativeGender').value,
+            legalRepresentativeAge: document.getElementById('prof-legalRepresentativeAge').value,
             socialCreditCode: document.getElementById('prof-socialCreditCode').value,
             registeredCapital: document.getElementById('prof-registeredCapital').value,
             companyType: document.getElementById('prof-companyType').value,

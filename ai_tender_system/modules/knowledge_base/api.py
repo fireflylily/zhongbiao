@@ -507,8 +507,8 @@ class KnowledgeBaseAPI:
                                             return 2
                                         elif size_pt >= 12:
                                             return 3
-                            except:
-                                pass
+                            except (AttributeError, IndexError, TypeError):
+                                pass  # 无法获取字体信息时返回None
 
                             return None
 

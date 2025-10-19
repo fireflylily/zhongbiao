@@ -345,8 +345,8 @@ class BiddingDocumentExtractor:
                             return 2
                         elif size_pt >= 12:
                             return 3
-        except:
-            pass
+        except (AttributeError, IndexError, TypeError):
+            pass  # 无法获取字体信息时忽略
 
         return 0  # 普通段落
 
@@ -565,8 +565,8 @@ class BiddingDocumentExtractor:
                                         new_para.alignment = element.alignment
                                     if hasattr(element, 'style') and element.style:
                                         new_para.style = element.style
-                                except:
-                                    pass  # 格式应用失败不影响内容
+                                except (AttributeError, TypeError) as e:
+                                    logger.debug(f"应用段落格式失败: {e}")  # 格式应用失败不影响内容
 
                                 logger.debug(f"添加段落: '{text[:30]}...'")
                             else:
@@ -608,9 +608,8 @@ class BiddingDocumentExtractor:
                         text = getattr(element, 'text', str(element))
                         if text and text.strip():
                             new_doc.add_paragraph(text.strip())
-                    except:
-                        logger.error(f"元素 {idx+1} 完全无法处理")
-                        pass
+                    except (AttributeError, TypeError) as fallback_error:
+                        logger.error(f"元素 {idx+1} 完全无法处理: {fallback_error}")
 
             # 保存文档
             new_doc.save(str(file_path))

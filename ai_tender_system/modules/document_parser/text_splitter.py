@@ -487,8 +487,8 @@ class IntelligentTextSplitter:
         if self.tokenizer:
             try:
                 return len(self.tokenizer.encode(text))
-            except:
-                pass
+            except (AttributeError, TypeError, ValueError) as e:
+                self.logger.debug(f"Tokenizer编码失败，使用估算方法: {e}")
 
         # 简单估算：中文字符按1.5个token计算，英文单词按1个token
         chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', text))

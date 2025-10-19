@@ -584,13 +584,13 @@ class KnowledgeBaseManager:
                 if doc.get('tags'):
                     try:
                         doc['tags'] = json.loads(doc['tags'])
-                    except:
+                    except (json.JSONDecodeError, TypeError):
                         doc['tags'] = []
 
                 if doc.get('metadata'):
                     try:
                         doc['metadata'] = json.loads(doc['metadata'])
-                    except:
+                    except (json.JSONDecodeError, TypeError):
                         doc['metadata'] = {}
 
             return documents
@@ -858,7 +858,8 @@ class KnowledgeBaseManager:
             """
             results = self.db.execute_query(query)
             return {item['library_type']: item['count'] for item in results}
-        except:
+        except Exception as e:
+            self.logger.error(f"统计案例库类型失败: {e}")
             return {}
 
     def _get_documents_by_privacy_level(self) -> Dict:
@@ -871,7 +872,8 @@ class KnowledgeBaseManager:
             """
             results = self.db.execute_query(query)
             return {str(item['privacy_classification']): item['count'] for item in results}
-        except:
+        except Exception as e:
+            self.logger.error(f"统计隐私级别失败: {e}")
             return {}
 
     def search_documents(self, query: str, category: str = None, privacy_level: int = 1) -> List[Dict]:

@@ -112,8 +112,8 @@ class DocumentChunker:
         if self.tokenizer:
             try:
                 return len(self.tokenizer.encode(text))
-            except:
-                pass
+            except (AttributeError, TypeError, ValueError):
+                pass  # Tokenizer失败时使用估算方法
         # 简单估算：中文1字约1.5 token，英文1词约1 token
         chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', text))
         english_words = len(re.findall(r'[a-zA-Z]+', text))

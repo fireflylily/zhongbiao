@@ -13,10 +13,17 @@ from typing import Dict, Any, Optional, List
 from docx import Document
 
 # 导入子模块
-from .info_filler import InfoFiller
+from .smart_filler import SmartDocumentFiller  # 新：智能文档填写器
 from .table_processor import TableProcessor
 from .image_handler import ImageHandler
 from .inline_processor import InlineReplyProcessor
+
+# 保持向后兼容：导入旧的 InfoFiller（如果需要的话）
+try:
+    from .info_filler import InfoFiller
+    LEGACY_INFO_FILLER_AVAILABLE = True
+except ImportError:
+    LEGACY_INFO_FILLER_AVAILABLE = False
 
 # 导入公共模块
 import sys
@@ -39,7 +46,7 @@ class BusinessResponseProcessor:
         self.api_key = api_key or api_config['api_key']
 
         # 初始化子模块
-        self.info_filler = InfoFiller()
+        self.smart_filler = SmartDocumentFiller()  # 新：使用智能填写器
         self.table_processor = TableProcessor()
         self.image_handler = ImageHandler()
 
@@ -87,19 +94,33 @@ class BusinessResponseProcessor:
             # 打开文档
             doc = Document(output_file)
             
-            # 准备项目信息
-            project_info = {
+            # 准备所有数据（合并公司信息和项目信息）
+            all_data = {
+                **company_info,  # 公司信息
                 'projectName': project_name,
                 'projectNumber': tender_no,
                 'date': date_text
             }
-            
-            # 第1步：信息填写（核心功能）
-            self.logger.info("第1步：执行信息填写")
-            info_stats = self.info_filler.fill_info(doc, company_info, project_info)
+
+            # 第1步：信息填写（使用新的智能填写器）
+            self.logger.info("第1步：执行智能信息填写")
+            smart_stats = self.smart_filler.fill_document(doc, all_data)
+
+            # 转换统计格式以保持兼容
+            info_stats = {
+                'total_replacements': smart_stats.get('total_filled', 0),
+                'pattern_counts': smart_stats.get('pattern_counts', {}),
+                'unfilled_fields': smart_stats.get('unfilled_fields', [])
+            }
             
             # 第2步：表格处理
             self.logger.info("第2步：执行表格处理")
+            # 准备项目信息（保持表格处理器兼容性）
+            project_info = {
+                'name': project_name,
+                'number': tender_no,
+                'date': date_text
+            }
             table_stats = self.table_processor.process_tables(doc, company_info, project_info)
             
             # 第3步：图片插入（如果有配置）

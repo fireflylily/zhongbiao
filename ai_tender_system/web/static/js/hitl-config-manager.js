@@ -57,12 +57,26 @@ const HITLConfigManager = {
     // 加载模型列表
     async loadModels() {
         try {
+            // 【修改】优先从全局状态获取模型列表
+            if (window.projectDataBridge && window.projectDataBridge.getModels().length > 0) {
+                const models = window.projectDataBridge.getModels();
+                this.updateModelSelect(models);
+                console.log(`[HITLConfigManager] 从全局状态加载了 ${models.length} 个AI模型`);
+                return;
+            }
+
+            // 如果全局状态没有数据，从API加载
             const response = await fetch('/api/models');
             const data = await response.json();
 
             if (data.success && data.models) {
+                // 【新增】保存到全局状态
+                if (window.projectDataBridge) {
+                    window.projectDataBridge.setModels(data.models);
+                }
+
                 this.updateModelSelect(data.models);
-                console.log(`[HITLConfigManager] 加载了 ${data.count} 个AI模型`);
+                console.log(`[HITLConfigManager] 从API加载了 ${data.count} 个AI模型`);
             }
         } catch (error) {
             console.error('[HITLConfigManager] 加载模型列表失败:', error);
@@ -469,6 +483,12 @@ const HITLConfigManager = {
         if (modelSelect) {
             modelSelect.addEventListener('change', (e) => {
                 this.currentModel = e.target.value;
+
+                // 【新增】保存到全局状态
+                if (window.projectDataBridge) {
+                    window.projectDataBridge.setSelectedModel(e.target.value);
+                }
+
                 this.updateModelStatus();
                 console.log(`[HITLConfigManager] 选择模型: ${e.target.value}`);
             });

@@ -671,7 +671,8 @@ class TenderInfoExtractor:
                     if result.returncode == 0:
                         libreoffice_cmd = path
                         break
-                except:
+                except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError, FileNotFoundError) as e:
+                    self.logger.debug(f"检测LibreOffice路径 {path} 失败: {e}")
                     continue
 
             if not libreoffice_cmd:
@@ -738,13 +739,13 @@ class TenderInfoExtractor:
             if temp_docx and temp_docx.exists():
                 try:
                     os.remove(temp_docx)
-                except:
-                    pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"清理临时文件失败 {temp_docx}: {e}")
             if temp_dir and os.path.exists(temp_dir):
                 try:
                     os.rmdir(temp_dir)
-                except:
-                    pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"清理临时目录失败 {temp_dir}: {e}")
 
     def _detect_office_suite(self, file_path: Path) -> str:
         """检测文档的创建软件"""
@@ -761,7 +762,7 @@ class TenderInfoExtractor:
                 except UnicodeDecodeError:
                     try:
                         file_info = result.stdout.decode('utf-8', errors='ignore').lower()
-                    except:
+                    except (UnicodeDecodeError, AttributeError):
                         file_info = result.stdout.decode('latin-1', errors='ignore').lower()
 
                 if 'wps' in file_info:
@@ -895,8 +896,8 @@ class TenderInfoExtractor:
                 try:
                     os.remove(temp_file)
                     self.logger.info(f"已清理临时文件: {temp_file}")
-                except:
-                    pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"清理临时文件失败 {temp_file}: {e}")
             # 重新抛出已知的文件处理错误
             raise
         except Exception as e:
@@ -905,8 +906,8 @@ class TenderInfoExtractor:
                 try:
                     os.remove(temp_file)
                     self.logger.info(f"已清理临时文件: {temp_file}")
-                except:
-                    pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"清理临时文件失败 {temp_file}: {e}")
             # 针对特定的docx错误提供更详细的信息
             error_msg = str(e)
             if "no relationship of type" in error_msg:
@@ -1025,16 +1026,16 @@ class TenderInfoExtractor:
             if temp_file and os.path.exists(temp_file):
                 try:
                     os.remove(temp_file)
-                except:
-                    pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"清理临时文件失败 {temp_file}: {e}")
             raise
         except Exception as e:
             # 清理临时文件
             if temp_file and os.path.exists(temp_file):
                 try:
                     os.remove(temp_file)
-                except:
-                    pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"清理临时文件失败 {temp_file}: {e}")
             raise FileProcessingError(f"备用Word文档读取方法失败: {str(e)}")
 
     def _read_text(self, file_path: Path) -> str:
@@ -1056,8 +1057,8 @@ class TenderInfoExtractor:
                     text = file.read()
                 self.logger.info(f"使用GBK编码读取文本文件成功")
                 return text
-            except:
-                raise FileProcessingError("文本文件编码不支持")
+            except (UnicodeDecodeError, LookupError):
+                raise FileProcessingError("文本文件编码不支持（尝试了UTF-8、GBK编码）")
         except Exception as e:
             raise FileProcessingError(f"文本文件读取失败: {str(e)}")
     

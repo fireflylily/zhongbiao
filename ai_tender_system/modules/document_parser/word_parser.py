@@ -134,8 +134,8 @@ class WordParser:
                 try:
                     os.remove(temp_file)
                     self.logger.info(f"已清理临时文件: {temp_file}")
-                except:
-                    pass
+                except (OSError, PermissionError) as e:
+                    self.logger.warning(f"清理临时文件失败 {temp_file}: {e}")
             raise ValueError(f"无法打开Word文档: {e}")
 
         # 提取文档内容

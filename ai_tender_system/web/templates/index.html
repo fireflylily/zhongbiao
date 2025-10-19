@@ -6,6 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>元景AI智能标书生成平台</title>
     <link href="/static/vendor/bootswatch/litera/bootstrap.min.css" rel="stylesheet">
     <link href="/static/vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
@@ -34,6 +35,9 @@
     <!-- Docx-Preview - Word文档预览（保留原始格式） -->
     <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
 
+    <!-- CSRF 保护 - 必须最先加载 -->
+    <script src="/static/js/csrf-protection.js"></script>
+
     <!-- 模块化JavaScript架构 -->
     <script src="/static/js/company-config.js"></script>
     <script src="/static/js/timer-manager.js"></script>
@@ -58,10 +62,10 @@
     <script src="/static/js/word-editor.js"></script>
 
     <!-- 页面特定模块 -->
-    <script src="/static/js/pages/index/proposal-generator.js"></script>
-    <script src="/static/js/pages/index/business-response-handler.js"></script>
-    <script src="/static/js/pages/index/point-to-point-handler.js"></script>
-    <script src="/static/js/pages/index/page-utilities.js"></script>
+    <script src="/static/js/pages/index/proposal-generator.js?v=1760864668"></script>
+    <script src="/static/js/pages/index/business-response-handler.js?v=1760864668"></script>
+    <script src="/static/js/pages/index/point-to-point-handler.js?v=1760864668"></script>
+    <script src="/static/js/pages/index/page-utilities.js?v=1760864668"></script>
 
     <!-- 全局状态管理对象 - 用于 HITL 和其他页面间的数据共享 -->
     <script>
@@ -74,6 +78,12 @@
         window.projectDataBridge = {
             // HITL 任务信息
             hitlTaskId: null,
+
+            // 【新增】AI模型管理
+            aiModels: {
+                currentModels: [],           // 所有可用模型列表
+                selectedModel: 'unicom-yuanjing'  // 当前选中的模型
+            },
 
             // 技术需求文件信息
             technicalFile: {
@@ -150,6 +160,36 @@
             },
 
             /**
+             * 【新增】设置AI模型列表
+             */
+            setModels(models) {
+                this.aiModels.currentModels = models;
+                console.log('[ProjectDataBridge] AI模型列表已更新，共', models.length, '个模型');
+            },
+
+            /**
+             * 【新增】获取AI模型列表
+             */
+            getModels() {
+                return this.aiModels.currentModels;
+            },
+
+            /**
+             * 【新增】设置选中的AI模型
+             */
+            setSelectedModel(modelName) {
+                this.aiModels.selectedModel = modelName;
+                console.log('[ProjectDataBridge] 已选择AI模型:', modelName);
+            },
+
+            /**
+             * 【新增】获取选中的AI模型
+             */
+            getSelectedModel() {
+                return this.aiModels.selectedModel;
+            },
+
+            /**
              * 清空所有数据
              */
             clearAll() {
@@ -166,6 +206,7 @@
                     response: { fileName: null, filePath: null, fileSize: null },
                     business: { fileUrl: null, fileName: null }
                 };
+                // 保留AI模型信息（不清空，因为这是全局配置）
                 console.log('[ProjectDataBridge] 所有数据已清空');
             }
         };
@@ -383,16 +424,22 @@
 
                     if (data.success && data.models) {
                         this.currentModels = data.models;
+
+                        // 【新增】保存到全局 projectDataBridge
+                        if (window.projectDataBridge) {
+                            window.projectDataBridge.setModels(data.models);
+                        }
+
                         this.updateModelSelect();
-                        console.log(`加载了 ${data.count} 个AI模型`);
+                        console.log(`[ModelManager] 加载了 ${data.count} 个AI模型`);
                     } else {
-                        console.error('加载模型列表失败:', data.error);
+                        console.error('[ModelManager] 加载模型列表失败:', data.error);
                         if (typeof showNotification === 'function') {
                             showNotification('加载模型列表失败', 'error');
                         }
                     }
                 } catch (error) {
-                    console.error('获取模型列表失败:', error);
+                    console.error('[ModelManager] 获取模型列表失败:', error);
                     if (typeof showNotification === 'function') {
                         showNotification('获取模型列表失败', 'error');
                     }
@@ -403,6 +450,7 @@
             updateModelSelect() {
                 const aiModelSelect = document.getElementById('aiModel');
                 const tenderAiModelSelect = document.getElementById('tenderAiModel');
+                const hitlAiModelSelect = document.getElementById('hitlAiModel');
 
                 // 更新点对点页面的模型选择器
                 if (aiModelSelect) {
@@ -412,6 +460,11 @@
                 // 更新招标上传页面的模型选择器
                 if (tenderAiModelSelect) {
                     this.updateSingleModelSelect(tenderAiModelSelect, 'tenderAiModel');
+                }
+
+                // 【新增】更新投标管理页面的模型选择器
+                if (hitlAiModelSelect) {
+                    this.updateSingleModelSelect(hitlAiModelSelect, 'hitlAiModel');
                 }
             },
 
@@ -462,6 +515,9 @@
 
                 // 更新招标上传页面的模型状态
                 this.updateSingleModelStatus('tenderAiModel', 'tenderModelStatus', 'tenderModelStatusIcon', 'tenderModelStatusText');
+
+                // 【新增】更新投标管理页面的模型状态
+                this.updateSingleModelStatus('hitlAiModel', 'hitlModelStatus', 'hitlModelStatusIcon', 'hitlModelStatusText');
             },
 
             // 更新单个模型状态显示
@@ -518,6 +574,10 @@
                 if (aiModelSelect) {
                     aiModelSelect.addEventListener('change', () => {
                         this.currentModel = aiModelSelect.value;
+                        // 【新增】保存到全局状态
+                        if (window.projectDataBridge) {
+                            window.projectDataBridge.setSelectedModel(aiModelSelect.value);
+                        }
                         this.updateModelStatus();
                     });
                 }
@@ -527,6 +587,23 @@
                 if (tenderAiModelSelect) {
                     tenderAiModelSelect.addEventListener('change', () => {
                         this.currentModel = tenderAiModelSelect.value;
+                        // 【新增】保存到全局状态
+                        if (window.projectDataBridge) {
+                            window.projectDataBridge.setSelectedModel(tenderAiModelSelect.value);
+                        }
+                        this.updateModelStatus();
+                    });
+                }
+
+                // 【新增】绑定投标管理模型选择器事件
+                const hitlAiModelSelect = document.getElementById('hitlAiModel');
+                if (hitlAiModelSelect) {
+                    hitlAiModelSelect.addEventListener('change', () => {
+                        this.currentModel = hitlAiModelSelect.value;
+                        // 保存到全局状态
+                        if (window.projectDataBridge) {
+                            window.projectDataBridge.setSelectedModel(hitlAiModelSelect.value);
+                        }
                         this.updateModelStatus();
                     });
                 }
@@ -574,10 +651,14 @@
 
         // 切换选项卡函数
         function switchToTab(tabId) {
-            // 移除所有活跃状态
-            document.querySelectorAll('.list-group-item-action').forEach(item => {
+            console.log('[switchToTab] 切换到Tab:', tabId);
+
+            // 移除所有导航项的活跃状态（包括一级和二级菜单）
+            document.querySelectorAll('.list-group-item-action[data-bs-toggle="pill"]').forEach(item => {
                 item.classList.remove('active');
             });
+
+            // 移除所有tab内容的活跃状态
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.remove('show', 'active');
             });
@@ -589,15 +670,98 @@
             if (navItem && tabPane) {
                 navItem.classList.add('active');
                 tabPane.classList.add('show', 'active');
+                console.log('[switchToTab] 已激活Tab:', tabId);
+            } else {
+                console.warn('[switchToTab] 未找到Tab:', tabId);
             }
+        }
+
+        // 【新增】导航状态管理 - 确保同一时间只有一个导航项处于激活状态
+        function initNavigationManager() {
+            console.log('[Navigation] 初始化导航状态管理器');
+
+            // 获取所有导航链接（一级和二级）
+            const allNavLinks = document.querySelectorAll('.list-group-item-action[data-bs-toggle="pill"]');
+
+            allNavLinks.forEach(navLink => {
+                navLink.addEventListener('click', function(e) {
+                    // 清除所有导航项的active状态
+                    allNavLinks.forEach(link => {
+                        link.classList.remove('active');
+                    });
+
+                    // 设置当前点击的导航项为active
+                    this.classList.add('active');
+
+                    console.log('[Navigation] 已激活:', this.getAttribute('data-bs-target'));
+                });
+
+                // 监听Bootstrap Tab显示事件（确保状态同步）
+                navLink.addEventListener('shown.bs.tab', function(event) {
+                    // 再次确保只有当前项是active
+                    allNavLinks.forEach(link => {
+                        if (link !== event.target) {
+                            link.classList.remove('active');
+                        }
+                    });
+
+                    console.log('[Navigation] Tab已显示:', this.getAttribute('data-bs-target'));
+                });
+            });
+
+            // 确保知识库管理折叠菜单本身不会被标记为active
+            const knowledgeToggle = document.querySelector('[data-bs-target="#knowledgeSubmenu"]');
+            if (knowledgeToggle) {
+                knowledgeToggle.addEventListener('click', function(e) {
+                    // 移除自身的active状态（它只是折叠触发器）
+                    this.classList.remove('active');
+                });
+            }
+
+            console.log('[Navigation] 导航状态管理器初始化完成');
         }
 
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
             console.log('AI标书系统初始化完成 - 恢复原版布局');
 
+            // 【新增】初始化导航状态管理器
+            initNavigationManager();
+
             // 初始化模型管理器
             ModelManager.init();
+
+            // 【新增】监听所有Tab切换，实时同步AI模型选择
+            document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tabLink => {
+                tabLink.addEventListener('shown.bs.tab', function(event) {
+                    const targetTab = event.target.getAttribute('data-bs-target');
+                    console.log(`[Index] Tab切换到: ${targetTab}`);
+
+                    // 同步模型选择到当前tab
+                    if (window.projectDataBridge && ModelManager) {
+                        const selectedModel = window.projectDataBridge.getSelectedModel();
+                        let currentModelSelect = null;
+
+                        // 根据不同tab获取对应的模型选择器
+                        if (targetTab === '#point-to-point') {
+                            currentModelSelect = document.getElementById('aiModel');
+                        } else if (targetTab === '#tender-management') {
+                            currentModelSelect = document.getElementById('hitlAiModel');
+                        }
+
+                        // 同步模型选择
+                        if (currentModelSelect && selectedModel && currentModelSelect.value !== selectedModel) {
+                            currentModelSelect.value = selectedModel;
+                            console.log(`[Index] 已同步模型到 ${targetTab}:`, selectedModel);
+
+                            // 更新状态显示
+                            if (ModelManager.updateModelStatus) {
+                                ModelManager.updateModelStatus();
+                            }
+                        }
+                    }
+                });
+            });
 
             // 初始化投标管理配置管理器
             if (typeof HITLConfigManager !== 'undefined') {
@@ -644,6 +808,24 @@
                                 }
                             }
                         }, 100);
+                    }
+
+                    // 【新增】同步AI模型选择
+                    if (bridge && ModelManager) {
+                        setTimeout(() => {
+                            const selectedModel = bridge.getSelectedModel();
+                            const hitlModelSelect = document.getElementById('hitlAiModel');
+
+                            if (hitlModelSelect && selectedModel) {
+                                hitlModelSelect.value = selectedModel;
+                                console.log('[Index] 投标管理tab - 已同步AI模型选择:', selectedModel);
+
+                                // 更新模型状态显示
+                                if (ModelManager.updateModelStatus) {
+                                    ModelManager.updateModelStatus();
+                                }
+                            }
+                        }, 150);
                     }
                 });
             }

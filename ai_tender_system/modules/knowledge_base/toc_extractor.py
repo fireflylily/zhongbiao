@@ -147,8 +147,8 @@ class TOCExtractor:
             try:
                 level = int(style_name.split()[-1])
                 return min(level, 4)  # 最多4级
-            except:
-                pass
+            except (ValueError, IndexError):
+                pass  # 无法解析标题级别时使用其他方法
 
         # 方法2: 字体大小+加粗判断
         if paragraph.runs:

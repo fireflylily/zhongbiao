@@ -303,8 +303,8 @@ class DocumentStructureParser:
                         return 2
                     elif 'heading3' in style_val.lower() or style_val.lower() == '3':
                         return 3
-        except:
-            pass
+        except (AttributeError, TypeError):
+            pass  # XML属性不可用时使用其他方法
 
         # 方法3：通过文本格式启发式判断（加粗、字号大）
         if paragraph.runs:
@@ -380,8 +380,8 @@ class DocumentStructureParser:
                 if 'TOC' in xml_str and 'fldChar' in xml_str:
                     self.logger.info(f"检测到Word TOC域，位于段落 {i}")
                     return i
-            except:
-                pass
+            except (AttributeError, UnicodeDecodeError, TypeError):
+                pass  # 无法获取XML或解析失败时跳过该段落
 
         self.logger.info("未检测到目录，将使用标题样式识别方案")
         return None
@@ -405,8 +405,8 @@ class DocumentStructureParser:
                     return 3
                 elif indent_pt > 20:
                     return 2
-        except:
-            pass
+        except (AttributeError, TypeError):
+            pass  # 无法获取缩进信息时使用其他方法
 
         # 方法2：通过标题编号格式判断
         # 三级：1.1.1, 1.1.1.1 等

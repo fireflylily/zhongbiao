@@ -17,6 +17,7 @@ from pathlib import Path
 from functools import wraps
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.utils import secure_filename
 
 # 添加项目根目录到Python路径
@@ -84,7 +85,18 @@ def create_app() -> Flask:
         logger.info("开发模式：已禁用静态文件缓存")
 
     # 启用CORS
-    CORS(app)
+    CORS(app, supports_credentials=True)
+
+    # 启用CSRF保护
+    csrf = CSRFProtect(app)
+    logger.info("CSRF保护已启用")
+
+    # 提供CSRF token的API端点
+    @app.route('/api/csrf-token', methods=['GET'])
+    def get_csrf_token():
+        """获取CSRF token（用于AJAX请求）"""
+        token = generate_csrf()
+        return jsonify({'csrf_token': token})
 
     # 注册知识库API蓝图
     try:
@@ -747,6 +759,37 @@ def register_routes(app: Flask, config, logger):
             # 转换公司ID为整数
             company_id_int = int(company_id)
 
+            # 从数据库获取项目相关信息（如果有项目名称）
+            purchaser_name = ''
+            db_project_number = ''
+            authorized_rep_name = ''
+            authorized_rep_position = ''
+            if project_name:
+                try:
+                    query = """SELECT tenderer, project_number,
+                               authorized_representative_name,
+                               authorized_representative_position
+                               FROM tender_projects WHERE project_name = ? LIMIT 1"""
+                    result = kb_manager.db.execute_query(query, [project_name])
+                    if result and len(result) > 0:
+                        purchaser_name = result[0].get('tenderer', '')
+                        db_project_number = result[0].get('project_number', '')
+                        authorized_rep_name = result[0].get('authorized_representative_name', '')
+                        authorized_rep_position = result[0].get('authorized_representative_position', '')
+                        if purchaser_name:
+                            logger.info(f"从数据库获取采购人信息: {purchaser_name}")
+                        if db_project_number:
+                            logger.info(f"从数据库获取项目编号: {db_project_number}")
+                        if authorized_rep_name:
+                            logger.info(f"从数据库获取授权人信息: {authorized_rep_name} ({authorized_rep_position})")
+                except Exception as e:
+                    logger.warning(f"查询项目信息失败: {e}")
+
+            # 如果表单没有提供项目编号，使用数据库中的项目编号
+            if not tender_no and db_project_number:
+                tender_no = db_project_number
+                logger.info(f"使用数据库项目编号: {tender_no}")
+
             # 从数据库直接加载图片配置（新方案：消除前端时序问题）
             image_config = build_image_config_from_db(company_id_int)
 
@@ -766,6 +809,8 @@ def register_routes(app: Flask, config, logger):
                 'establishDate': 'establish_date',
                 'legalRepresentative': 'legal_representative',
                 'legalRepresentativePosition': 'legal_representative_position',
+                'legalRepresentativeGender': 'legal_representative_gender',
+                'legalRepresentativeAge': 'legal_representative_age',
                 'socialCreditCode': 'social_credit_code',
                 'registeredCapital': 'registered_capital',
                 'companyType': 'company_type',
@@ -783,7 +828,17 @@ def register_routes(app: Flask, config, logger):
             }
             reverse_mapping = {v: k for k, v in field_mapping.items()}
             company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
-            
+
+            # 添加采购人信息到company_data（采购人是项目信息，但为了方便传递，加到这里）
+            if purchaser_name:
+                company_data['purchaserName'] = purchaser_name
+
+            # 添加授权人信息到company_data
+            if authorized_rep_name:
+                company_data['representativeName'] = authorized_rep_name
+            if authorized_rep_position:
+                company_data['representativeTitle'] = authorized_rep_position
+
             # 保存模板文件 - 使用统一服务
             from core.storage_service import storage_service
             file_metadata = storage_service.store_file(
@@ -1017,6 +1072,8 @@ def register_routes(app: Flask, config, logger):
                 'establishDate': 'establish_date',
                 'legalRepresentative': 'legal_representative',
                 'legalRepresentativePosition': 'legal_representative_position',
+                'legalRepresentativeGender': 'legal_representative_gender',
+                'legalRepresentativeAge': 'legal_representative_age',
                 'socialCreditCode': 'social_credit_code',
                 'registeredCapital': 'registered_capital',
                 'companyType': 'company_type',
@@ -1172,6 +1229,8 @@ def register_routes(app: Flask, config, logger):
                 'establishDate': 'establish_date',
                 'legalRepresentative': 'legal_representative',
                 'legalRepresentativePosition': 'legal_representative_position',
+                'legalRepresentativeGender': 'legal_representative_gender',
+                'legalRepresentativeAge': 'legal_representative_age',
                 'socialCreditCode': 'social_credit_code',
                 'registeredCapital': 'registered_capital',
                 'companyType': 'company_type',
@@ -2544,7 +2603,8 @@ def register_routes(app: Flask, config, logger):
                     # 这里可以添加模型可用性检查的逻辑
                     model['status'] = 'available' if model['has_api_key'] else 'no_api_key'
                     model['status_message'] = '已配置' if model['has_api_key'] else '未配置API密钥'
-                except:
+                except (KeyError, TypeError, AttributeError) as e:
+                    logger.warning(f"处理模型状态时出错: {e}")
                     model['status'] = 'unknown'
                     model['status_message'] = '状态未知'
 
@@ -2816,8 +2876,9 @@ def register_routes(app: Flask, config, logger):
                 if chunk.get('metadata'):
                     try:
                         chunk['metadata'] = json.loads(chunk['metadata'])
-                    except:
-                        pass
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"解析chunk metadata失败: {e}")
+                        chunk['metadata'] = {}
 
             return jsonify({
                 'success': True,

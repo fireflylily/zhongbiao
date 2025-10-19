@@ -170,8 +170,8 @@ class OutlineGenerator:
                         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
                             f.write(json_str)
                             self.logger.error(f"原始JSON已保存到: {f.name}")
-                    except:
-                        pass
+                    except (OSError, IOError) as e:
+                        self.logger.error(f"无法保存调试JSON文件: {e}")
                     return None
 
         return None
