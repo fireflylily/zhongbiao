@@ -10,7 +10,7 @@ import json
 import traceback
 from datetime import datetime
 from pathlib import Path
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, Response, stream_with_context
 from werkzeug.utils import secure_filename
 
 # 导入核心模块
@@ -216,7 +216,7 @@ def generate_proposal():
         # 导出主方案
         proposal_path = output_dir / proposal_filename
         exporter.export_proposal(proposal, str(proposal_path))
-        output_files['proposal'] = f"/downloads/{proposal_filename}"
+        output_files['proposal'] = f"/api/downloads/{proposal_filename}"
 
         logger.info(f"主方案已导出: {proposal_path}")
 
@@ -224,7 +224,7 @@ def generate_proposal():
         if options['include_analysis']:
             analysis_path = output_dir / analysis_filename
             exporter.export_analysis_report(analysis_result, str(analysis_path))
-            output_files['analysis'] = f"/downloads/{analysis_filename}"
+            output_files['analysis'] = f"/api/downloads/{analysis_filename}"
 
             logger.info(f"需求分析报告已导出: {analysis_path}")
 
@@ -238,7 +238,7 @@ def generate_proposal():
                     break
 
             exporter.export_mapping_table(mapping_data, str(mapping_path))
-            output_files['mapping'] = f"/downloads/{mapping_filename}"
+            output_files['mapping'] = f"/api/downloads/{mapping_filename}"
 
             logger.info(f"需求匹配表已导出: {mapping_path}")
 
@@ -252,7 +252,7 @@ def generate_proposal():
                     break
 
             exporter.export_summary_report(summary_data, str(summary_path))
-            output_files['summary'] = f"/downloads/{summary_filename}"
+            output_files['summary'] = f"/api/downloads/{summary_filename}"
 
             logger.info(f"生成报告已导出: {summary_path}")
 
@@ -283,6 +283,259 @@ def generate_proposal():
             'error': str(e),
             'trace': error_trace if config.get('debug', False) else None
         }), 500
+
+
+@api_outline_bp.route('/generate-proposal-stream', methods=['POST'])
+def generate_proposal_stream():
+    """
+    生成技术方案API（流式SSE版本）
+    实时推送生成进度
+
+    请求参数（multipart/form-data）:
+    - tender_file: 技术需求文档文件
+    - product_file: 产品文档文件（可选）
+    - outputPrefix: 输出文件名前缀
+    - companyId: 公司ID
+    - projectName: 项目名称（可选，从HITL传递）
+    - technicalFileTaskId: HITL任务ID（可选）
+    - includeAnalysis: 是否包含需求分析
+    - includeMapping: 是否生成匹配表
+    - includeSummary: 是否生成总结报告
+
+    返回: text/event-stream
+    """
+
+    def generate_events():
+        """生成SSE事件流"""
+        try:
+            # 发送初始进度
+            yield f"data: {json.dumps({'stage': 'init', 'progress': 0, 'message': '准备生成技术方案...'}, ensure_ascii=False)}\n\n"
+
+            # 1. 参数解析（复用原有逻辑）
+            yield f"data: {json.dumps({'stage': 'init', 'progress': 5, 'message': '解析请求参数...'}, ensure_ascii=False)}\n\n"
+
+            tender_file = request.files.get('tender_file')
+            product_file = request.files.get('product_file')
+            output_prefix = request.form.get('outputPrefix', '技术方案')
+            company_id = request.form.get('companyId')
+            project_name = request.form.get('projectName', '')
+            hitl_task_id = request.form.get('technicalFileTaskId', '')
+
+            # 生成选项
+            options = {
+                'include_analysis': request.form.get('includeAnalysis', 'false').lower() == 'true',
+                'include_mapping': request.form.get('includeMapping', 'false').lower() == 'true',
+                'include_summary': request.form.get('includeSummary', 'false').lower() == 'true'
+            }
+
+            # 2. 获取技术需求文件路径
+            if hitl_task_id:
+                # 从HITL任务加载
+                yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': f'从投标项目加载技术需求文件 ({hitl_task_id})...'}, ensure_ascii=False)}\n\n"
+
+                # 搜索HITL技术需求文件
+                technical_files_base = config.get_path('upload') / 'technical_files'
+                tender_path = None
+
+                logger.info(f"搜索HITL任务文件, task_id: {hitl_task_id}, 搜索路径: {technical_files_base}")
+
+                for year_dir in technical_files_base.glob('*'):
+                    if not year_dir.is_dir():
+                        continue
+                    logger.debug(f"检查年份目录: {year_dir}")
+                    for month_dir in year_dir.glob('*'):
+                        if not month_dir.is_dir():
+                            continue
+                        logger.debug(f"检查月份目录: {month_dir}")
+                        task_dir = month_dir / hitl_task_id
+                        logger.debug(f"检查任务目录: {task_dir}, 是否存在: {task_dir.exists()}")
+                        if task_dir.exists():
+                            # 查找技术需求文件（第一个文件）
+                            technical_files = list(task_dir.glob('*.*'))
+                            logger.debug(f"找到的文件: {technical_files}")
+                            if technical_files:
+                                tender_path = technical_files[0]
+                                logger.info(f"找到HITL技术需求文件: {tender_path.name}, 路径: {tender_path}")
+                                break
+                    if tender_path:
+                        break
+
+                if not tender_path:
+                    # 添加详细的错误信息
+                    logger.error(f'未找到HITL任务的技术需求文件: {hitl_task_id}')
+                    logger.error(f'搜索路径: {technical_files_base}')
+                    # 列出所有可用的任务目录
+                    available_tasks = []
+                    for year_dir in technical_files_base.glob('*'):
+                        if year_dir.is_dir():
+                            for month_dir in year_dir.glob('*'):
+                                if month_dir.is_dir():
+                                    for task_dir in month_dir.glob('hitl_*'):
+                                        if task_dir.is_dir():
+                                            available_tasks.append(str(task_dir))
+                    logger.error(f'可用的任务目录: {available_tasks}')
+                    raise ValueError(f'未找到HITL任务的技术需求文件: {hitl_task_id}')
+            elif tender_file:
+                # 上传文件
+                yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': '保存上传的技术需求文件...'}, ensure_ascii=False)}\n\n"
+                if not allowed_file(tender_file.filename):
+                    raise ValueError('文件类型不支持')
+
+                upload_dir = config.get_path('uploads') / 'tender_processing' / datetime.now().strftime('%Y/%m')
+                upload_dir.mkdir(parents=True, exist_ok=True)
+
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = secure_filename(f"{timestamp}_{tender_file.filename}")
+                tender_path = upload_dir / filename
+                tender_file.save(str(tender_path))
+            else:
+                raise ValueError('未提供技术需求文档文件')
+
+            # 3. 阶段1：需求分析
+            yield f"data: {json.dumps({'stage': 'analysis', 'progress': 15, 'message': '🔍 正在分析技术需求文档...'}, ensure_ascii=False)}\n\n"
+
+            analyzer = RequirementAnalyzer()
+            analysis_result = analyzer.analyze_document(str(tender_path))
+
+            yield f"data: {json.dumps({'stage': 'analysis', 'progress': 30, 'message': '✓ 需求分析完成'}, ensure_ascii=False)}\n\n"
+
+            # 发送完整的需求分析结果供前端展示
+            try:
+                # 确保analysis_result可以被JSON序列化
+                analysis_result_serializable = json.loads(json.dumps(analysis_result, ensure_ascii=False, default=str))
+                yield f"data: {json.dumps({'stage': 'analysis_completed', 'analysis_result': analysis_result_serializable}, ensure_ascii=False)}\n\n"
+            except Exception as e:
+                logger.warning(f"无法序列化需求分析结果: {e}, 跳过前端展示")
+                # 继续执行,不影响后续流程
+
+            # 4. 阶段2：大纲生成
+            yield f"data: {json.dumps({'stage': 'outline', 'progress': 35, 'message': '📝 正在生成技术方案大纲...'}, ensure_ascii=False)}\n\n"
+
+            outline_gen = OutlineGenerator()
+            outline_data = outline_gen.generate_outline(
+                analysis_result,
+                project_name=output_prefix
+            )
+
+            yield f"data: {json.dumps({'stage': 'outline', 'progress': 55, 'message': '✓ 大纲生成完成'}, ensure_ascii=False)}\n\n"
+
+            # 5. 阶段3：产品文档匹配
+            yield f"data: {json.dumps({'stage': 'matching', 'progress': 60, 'message': '🔗 正在匹配产品文档...'}, ensure_ascii=False)}\n\n"
+
+            matcher = ProductMatcher()
+            matched_docs = matcher.match_documents(
+                analysis_result.get('requirement_categories', []),
+                company_id=int(company_id) if company_id else None
+            )
+
+            matches_count = sum(len(v) for v in matched_docs.values())
+            yield f"data: {json.dumps({'stage': 'matching', 'progress': 70, 'message': f'✓ 文档匹配完成（匹配到 {matches_count} 份文档）'}, ensure_ascii=False)}\n\n"
+
+            # 6. 阶段4：方案组装
+            yield f"data: {json.dumps({'stage': 'assembly', 'progress': 75, 'message': '⚙️ 正在组装技术方案...'}, ensure_ascii=False)}\n\n"
+
+            assembler = ProposalAssembler()
+            proposal = assembler.assemble_proposal(
+                outline_data,
+                analysis_result,
+                matched_docs,
+                options
+            )
+
+            yield f"data: {json.dumps({'stage': 'assembly', 'progress': 85, 'message': '✓ 方案组装完成'}, ensure_ascii=False)}\n\n"
+
+            # 7. 导出文件
+            yield f"data: {json.dumps({'stage': 'export', 'progress': 90, 'message': '💾 正在导出文件...'}, ensure_ascii=False)}\n\n"
+
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_dir = config.get_path('output')
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            exporter = WordExporter()
+            output_files = {}
+
+            # 文件命名
+            if project_name:
+                proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
+                analysis_filename = f"{project_name}_需求分析_{timestamp}.docx"
+                mapping_filename = f"{project_name}_需求匹配表_{timestamp}.xlsx"
+                summary_filename = f"{project_name}_生成报告_{timestamp}.txt"
+            else:
+                proposal_filename = f"{output_prefix}_{timestamp}.docx"
+                analysis_filename = f"{output_prefix}_需求分析_{timestamp}.docx"
+                mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
+                summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
+
+            # 导出主方案
+            proposal_path = output_dir / proposal_filename
+            exporter.export_proposal(proposal, str(proposal_path))
+            output_files['proposal'] = f"/api/downloads/{proposal_filename}"
+
+            # 导出附件
+            if options['include_analysis']:
+                analysis_path = output_dir / analysis_filename
+                exporter.export_analysis_report(analysis_result, str(analysis_path))
+                output_files['analysis'] = f"/api/downloads/{analysis_filename}"
+
+            if options['include_mapping']:
+                mapping_path = output_dir / mapping_filename
+                mapping_data = []
+                for attachment in proposal.get('attachments', []):
+                    if attachment['type'] == 'mapping':
+                        mapping_data = attachment['data']
+                        break
+                exporter.export_mapping_table(mapping_data, str(mapping_path))
+                output_files['mapping'] = f"/api/downloads/{mapping_filename}"
+
+            if options['include_summary']:
+                summary_path = output_dir / summary_filename
+                summary_data = {}
+                for attachment in proposal.get('attachments', []):
+                    if attachment['type'] == 'summary':
+                        summary_data = attachment['data']
+                        break
+                exporter.export_summary_report(summary_data, str(summary_path))
+                output_files['summary'] = f"/api/downloads/{summary_filename}"
+
+            # 统计信息
+            requirements_count = analysis_result.get('document_summary', {}).get('total_requirements', 0)
+            sections_count = len(outline_data.get('chapters', []))
+
+            # 8. 完成
+            result = {
+                'stage': 'completed',
+                'progress': 100,
+                'message': '✅ 技术方案生成成功！',
+                'success': True,
+                'requirements_count': requirements_count,
+                'features_count': 0,
+                'sections_count': sections_count,
+                'matches_count': matches_count,
+                'output_files': output_files
+            }
+
+            yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"
+            logger.info("技术方案生成成功（SSE流式）")
+
+        except Exception as e:
+            logger.error(f"技术方案生成失败（SSE流式）: {e}", exc_info=True)
+            error_data = {
+                'stage': 'error',
+                'progress': 0,
+                'message': f'生成失败: {str(e)}',
+                'success': False,
+                'error': str(e)
+            }
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+
+    return Response(
+        stream_with_context(generate_events()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        }
+    )
 
 
 @api_outline_bp.route('/downloads/<filename>', methods=['GET'])

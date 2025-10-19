@@ -14,7 +14,8 @@ import re
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, request, jsonify, render_template, send_file, send_from_directory
+from functools import wraps
+from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
@@ -76,7 +77,12 @@ def create_app() -> Flask:
         'SECRET_KEY': web_config['secret_key'],
         'MAX_CONTENT_LENGTH': config.get_upload_config()['max_file_size']
     })
-    
+
+    # 开发模式下禁用静态文件缓存
+    if app.debug:
+        app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+        logger.info("开发模式：已禁用静态文件缓存")
+
     # 启用CORS
     CORS(app)
 
@@ -112,6 +118,14 @@ def create_app() -> Flask:
     except ImportError as e:
         logger.warning(f"技术方案大纲生成API模块加载失败: {e}")
 
+    # 注册案例库API蓝图
+    try:
+        from modules.case_library.api import case_library_api
+        app.register_blueprint(case_library_api.get_blueprint())
+        logger.info("案例库API模块注册成功")
+    except ImportError as e:
+        logger.warning(f"案例库API模块加载失败: {e}")
+
     # 注册路由
     register_routes(app, config, logger)
     
@@ -128,6 +142,15 @@ def register_routes(app: Flask, config, logger):
     # ===================
     # 辅助函数
     # ===================
+
+    def login_required(f):
+        """登录验证装饰器"""
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'logged_in' not in session:
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+        return decorated_function
 
     def enrich_qualification_with_company_status(tender_requirements: dict, company_id: str = None) -> dict:
         """
@@ -226,10 +249,49 @@ def register_routes(app: Flask, config, logger):
     # ===================
     # 静态页面路由
     # ===================
-    
+
     @app.route('/')
     def index():
-        """主页"""
+        """主页 - 检查登录状态"""
+        if 'logged_in' in session:
+            return redirect(url_for('dashboard'))
+        return redirect(url_for('login'))
+
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        """登录页面"""
+        if request.method == 'POST':
+            data = request.get_json()
+            username = data.get('username', '').strip()
+            password = data.get('password', '').strip()
+
+            # 简单的用户名密码验证
+            if username == 'admin' and password == 'admin123':
+                session['logged_in'] = True
+                session['username'] = username
+                logger.info(f"用户 {username} 登录成功")
+                return jsonify({'success': True, 'message': '登录成功'})
+            else:
+                logger.warning(f"用户 {username} 登录失败：密码错误")
+                return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
+
+        # GET请求显示登录页面
+        if 'logged_in' in session:
+            return redirect(url_for('dashboard'))
+        return render_template('login.html')
+
+    @app.route('/logout')
+    def logout():
+        """退出登录"""
+        username = session.get('username', 'Unknown')
+        session.clear()
+        logger.info(f"用户 {username} 已退出登录")
+        return redirect(url_for('login'))
+
+    @app.route('/dashboard')
+    @login_required
+    def dashboard():
+        """主仪表板（原index页面）"""
         return render_template('index.html')
     
     
@@ -244,11 +306,13 @@ def register_routes(app: Flask, config, logger):
         return render_template('system_status.html')
 
     @app.route('/knowledge_base.html')
+    @login_required
     def knowledge_base_html():
         """知识库管理页面（HTML路径）"""
         return render_template('knowledge_base.html')
 
     @app.route('/knowledge_base')
+    @login_required
     def knowledge_base():
         """知识库管理页面"""
         return render_template('knowledge_base.html')
@@ -333,39 +397,7 @@ def register_routes(app: Flask, config, logger):
         except Exception as e:
             logger.error(f"获取API配置失败: {e}")
             return jsonify(format_error_response(e))
-    
-    @app.route('/api/get-default-api-key', methods=['GET'])
-    def get_default_api_key():
-        """获取默认API密钥（仅返回前10位）"""
-        try:
-            api_key = config.get_default_api_key()
-            return jsonify({
-                'success': True,
-                'api_key': api_key[:10] + '...' if api_key else '',
-                'has_key': bool(api_key)
-            })
-        except Exception as e:
-            logger.error(f"获取默认API密钥失败: {e}")
-            return jsonify(format_error_response(e))
-    
-    @app.route('/api/save-key', methods=['POST'])
-    def save_api_key():
-        """保存API密钥"""
-        try:
-            data = request.get_json()
-            api_key = data.get('api_key', '').strip()
-            
-            if not api_key:
-                raise ValueError("API密钥不能为空")
-            
-            config.set_api_key(api_key)
-            logger.info("API密钥已更新")
-            
-            return jsonify({'success': True, 'message': 'API密钥保存成功'})
-        except Exception as e:
-            logger.error(f"保存API密钥失败: {e}")
-            return jsonify(format_error_response(e))
-    
+
     # ===================
     # 文件处理路由
     # ===================
@@ -2976,6 +3008,16 @@ def register_routes(app: Flask, config, logger):
                     'error': '未提供文件路径'
                 }), 400
 
+            # 如果传入的是下载URL(以/api/downloads/或/downloads/开头),转换为实际文件路径
+            if source_file_path.startswith('/api/downloads/') or source_file_path.startswith('/downloads/'):
+                filename = source_file_path.replace('/api/downloads/', '').replace('/downloads/', '')
+                # 使用URL解码处理中文文件名
+                from urllib.parse import unquote
+                filename = unquote(filename)
+                project_root = Path(__file__).parent.parent
+                source_file_path = os.path.join(project_root, 'data/outputs', filename)
+                logger.info(f"从下载URL转换为文件路径: {source_file_path}")
+
             # 检查源文件是否存在
             if not os.path.exists(source_file_path):
                 return jsonify({
@@ -3086,6 +3128,16 @@ def register_routes(app: Flask, config, logger):
                     'success': False,
                     'error': '未提供文件路径'
                 }), 400
+
+            # 如果传入的是下载URL(以/api/downloads/开头),转换为实际文件路径
+            if source_file_path.startswith('/api/downloads/'):
+                filename = source_file_path.replace('/api/downloads/', '')
+                # 使用URL解码处理中文文件名
+                from urllib.parse import unquote
+                filename = unquote(filename)
+                project_root = Path(__file__).parent.parent
+                source_file_path = os.path.join(project_root, 'data/outputs', filename)
+                logger.info(f"从下载URL转换为文件路径: {source_file_path}")
 
             # 检查源文件是否存在
             if not os.path.exists(source_file_path):

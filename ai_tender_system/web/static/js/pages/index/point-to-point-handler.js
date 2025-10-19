@@ -13,6 +13,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化表单提交
     initFormSubmission();
+
+    // 监听从 HITL Tab 切换过来的事件
+    window.addEventListener('loadPointToPoint', function(event) {
+        if (event.detail && event.detail.fromHITL) {
+            console.log('[Point-to-Point] 收到来自 HITL 的加载事件:', event.detail);
+            loadFromHITL();
+        }
+    });
 });
 
 // 初始化应答方式切换逻辑
@@ -1176,3 +1184,78 @@ document.addEventListener('DOMContentLoaded', function() {
         loadPointToPointFilesList();
     }, 1000);
 });
+
+/**
+ * 从 HITL Tab 加载数据
+ * 当用户从 HITL Tab 点击快捷按钮切换到点对点应答 Tab 时调用
+ */
+function loadFromHITL() {
+    if (!window.projectDataBridge) {
+        console.warn('[Point-to-Point] projectDataBridge 未定义,无法加载 HITL 数据');
+        return;
+    }
+
+    const bridge = window.projectDataBridge;
+    console.log('[Point-to-Point] 开始从 HITL 加载数据:', bridge);
+
+    // 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
+    if (window.companyStateManager) {
+        const companyData = window.companyStateManager.getSelectedCompany();
+        if (companyData) {
+            console.log('[Point-to-Point] 公司和项目信息:', {
+                companyId: companyData.company_id,
+                companyName: companyData.company_name,
+                projectName: companyData.project_name
+            });
+        }
+    }
+
+    // 加载技术需求文件信息
+    const techFile = bridge.getTechnicalFile();
+    if (techFile && techFile.taskId) {
+        console.log('[Point-to-Point] 加载技术需求文件信息:', techFile);
+
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadArea = document.getElementById('uploadArea');
+        const processBtn = document.getElementById('processBtn');
+
+        if (fileInfo && fileName && fileSize) {
+            // 显示文件信息
+            fileInfo.classList.remove('d-none');
+            fileName.textContent = techFile.fileName;
+
+            if (techFile.fileSize) {
+                const sizeKB = (parseInt(techFile.fileSize) / 1024).toFixed(2);
+                fileSize.textContent = `(${sizeKB} KB)`;
+            }
+
+            // 隐藏上传区域
+            if (uploadArea) {
+                uploadArea.classList.add('d-none');
+            }
+
+            // 启用处理按钮
+            if (processBtn) {
+                processBtn.disabled = false;
+            }
+
+            // 存储 HITL 任务 ID 以供后续使用
+            if (window.pointToPointHitlTaskId !== undefined) {
+                window.pointToPointHitlTaskId = techFile.taskId;
+            } else {
+                window.pointToPointHitlTaskId = techFile.taskId;
+            }
+
+            console.log('[Point-to-Point] 从 HITL 加载的技术需求文件信息已显示:', {
+                fileName: techFile.fileName,
+                fileSize: techFile.fileSize,
+                taskId: techFile.taskId
+            });
+        }
+    } else {
+        console.log('[Point-to-Point] 未找到技术需求文件信息');
+    }
+}

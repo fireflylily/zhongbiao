@@ -7,6 +7,11 @@ class CompanyProfileManager {
     constructor() {
         this.currentCompanyId = null;
         this.currentTab = 'basic';
+        this.allCompanies = [];
+        this.currentFilters = {
+            industry: null,
+            searchKeyword: ''
+        };
     }
 
     /**
@@ -22,6 +27,354 @@ class CompanyProfileManager {
      */
     setCurrentCompanyId(companyId) {
         this.currentCompanyId = companyId;
+    }
+
+    /**
+     * 渲染企业列表视图
+     */
+    async renderCompanyListView() {
+        console.log('渲染企业列表视图...');
+
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) {
+            console.error('未找到主内容区域');
+            return;
+        }
+
+        // 渲染列表界面
+        const html = `
+            <!-- 顶部操作栏 + 统计 -->
+            <div class="case-library-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-3">
+                        <h4 class="mb-0">
+                            <i class="bi bi-building me-2"></i>企业信息库管理
+                        </h4>
+                        <span class="badge bg-primary" style="font-size: 0.9rem; padding: 8px 16px;">
+                            总企业数：<strong id="companyTotalCount">0</strong>
+                        </span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" onclick="window.categoryManager.showAddCompanyModal()">
+                            <i class="bi bi-plus-circle me-1"></i>新建企业
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选器区域 -->
+            <div class="case-filters-horizontal">
+                <div class="row g-2 align-items-end">
+                    <div class="col-lg-4 col-md-6">
+                        <label class="form-label small text-muted mb-1">搜索</label>
+                        <input type="text" class="form-control" id="companySearchInput"
+                               placeholder="搜索企业名称、统一社会信用代码..."
+                               onkeyup="window.companyProfileManager.handleSearch()">
+                    </div>
+                    <div class="col-lg-3 col-md-4">
+                        <label class="form-label small text-muted mb-1">行业类型</label>
+                        <select class="form-select" id="companyFilterIndustry"
+                                onchange="window.companyProfileManager.handleFilterChange()">
+                            <option value="">全部行业</option>
+                            <option value="technology">科技</option>
+                            <option value="manufacturing">制造业</option>
+                            <option value="finance">金融</option>
+                            <option value="education">教育</option>
+                            <option value="healthcare">医疗</option>
+                            <option value="retail">零售</option>
+                            <option value="construction">建筑</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-2">
+                        <button class="btn btn-secondary w-100" onclick="window.companyProfileManager.resetFilters()" title="重置筛选">
+                            <i class="bi bi-arrow-counterclockwise"></i> 重置
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 企业列表 -->
+            <div class="case-list-full-width">
+                <div id="companyListContainer">
+                    <!-- 企业列表将动态渲染在这里 -->
+                    <div class="case-loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3 text-muted">正在加载企业...</p>
+                    </div>
+                </div>
+
+                <!-- 空状态 -->
+                <div id="companyEmptyState" class="case-empty-state" style="display: none;">
+                    <i class="bi bi-building-x"></i>
+                    <h5>暂无企业</h5>
+                    <p class="text-muted">点击右上角"新建企业"按钮创建第一个企业</p>
+                </div>
+            </div>
+        `;
+
+        mainContent.innerHTML = html;
+
+        // 加载数据
+        await this.loadCompanies();
+    }
+
+    /**
+     * 加载企业列表
+     */
+    async loadCompanies() {
+        try {
+            const response = await axios.get('/api/companies');
+
+            if (response.data.success) {
+                this.allCompanies = response.data.data || [];
+
+                // 同时加载每个企业的资质信息
+                for (let company of this.allCompanies) {
+                    try {
+                        const qualResp = await axios.get(`/api/companies/${company.company_id}/qualifications`);
+                        if (qualResp.data.success) {
+                            company.qualifications = qualResp.data.qualifications || {};
+                        }
+                    } catch (error) {
+                        console.error(`加载企业${company.company_id}的资质信息失败:`, error);
+                        company.qualifications = {};
+                    }
+                }
+
+                this.renderCompanyList(this.allCompanies);
+            } else {
+                throw new Error(response.data.error || '加载失败');
+            }
+        } catch (error) {
+            console.error('加载企业列表失败:', error);
+            if (window.showAlert) {
+                window.showAlert('加载企业列表失败: ' + error.message, 'danger');
+            }
+            this.renderCompanyList([]);
+        }
+    }
+
+    /**
+     * 渲染企业列表
+     */
+    renderCompanyList(companies) {
+        const container = document.getElementById('companyListContainer');
+        const emptyState = document.getElementById('companyEmptyState');
+
+        if (!container) return;
+
+        // 应用筛选
+        let filteredCompanies = companies;
+
+        // 行业筛选
+        if (this.currentFilters.industry) {
+            filteredCompanies = filteredCompanies.filter(c =>
+                c.industry_type === this.currentFilters.industry
+            );
+        }
+
+        // 搜索关键词筛选
+        if (this.currentFilters.searchKeyword) {
+            const keyword = this.currentFilters.searchKeyword.toLowerCase();
+            filteredCompanies = filteredCompanies.filter(c =>
+                (c.company_name && c.company_name.toLowerCase().includes(keyword)) ||
+                (c.company_code && c.company_code.toLowerCase().includes(keyword)) ||
+                (c.social_credit_code && c.social_credit_code.toLowerCase().includes(keyword))
+            );
+        }
+
+        // 显示空状态或企业列表
+        if (filteredCompanies.length === 0) {
+            container.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        container.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'none';
+
+        // 渲染企业卡片
+        const html = filteredCompanies.map(company => this.renderCompanyCard(company)).join('');
+        container.innerHTML = html;
+
+        // 更新统计数字
+        const countElement = document.getElementById('companyTotalCount');
+        if (countElement) {
+            countElement.textContent = filteredCompanies.length;
+        }
+    }
+
+    /**
+     * 渲染单个企业卡片
+     */
+    renderCompanyCard(company) {
+        // 计算资质完成度
+        const qualProgress = this.calculateQualificationProgress(company.qualifications || {});
+        const progressPercent = (qualProgress.completed / qualProgress.total * 100).toFixed(0);
+
+        // 行业类型映射
+        const industryMap = {
+            'technology': '科技',
+            'manufacturing': '制造业',
+            'finance': '金融',
+            'education': '教育',
+            'healthcare': '医疗',
+            'retail': '零售',
+            'construction': '建筑',
+            'other': '其他'
+        };
+        const industryLabel = industryMap[company.industry_type] || company.industry_type || '未知';
+
+        return `
+            <div class="case-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h5>${this.escapeHtml(company.company_name)}</h5>
+                        <div class="case-meta">
+                            <i class="bi bi-tag"></i>行业: ${this.escapeHtml(industryLabel)}
+                            ${company.establish_date ? `<span class="ms-2"><i class="bi bi-calendar"></i>成立: ${company.establish_date}</span>` : ''}
+                            ${company.social_credit_code ? `<span class="ms-2"><i class="bi bi-credit-card"></i>${this.escapeHtml(company.social_credit_code)}</span>` : ''}
+                        </div>
+                        <div class="case-meta mt-2">
+                            <i class="bi bi-award"></i>资质完成度:
+                            <div class="progress d-inline-block ms-2" style="width: 150px; height: 20px; vertical-align: middle;">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                     style="width: ${progressPercent}%"
+                                     aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100">
+                                    ${progressPercent}%
+                                </div>
+                            </div>
+                            <span class="ms-2 text-muted">${qualProgress.completed}/${qualProgress.total}</span>
+                        </div>
+                    </div>
+                    <div class="case-actions">
+                        <button type="button" class="btn btn-sm btn-primary"
+                                onclick="window.companyProfileManager.viewCompanyDetail(${company.company_id})"
+                                title="查看详情">
+                            <i class="bi bi-eye"></i> 查看详情
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger"
+                                onclick="window.companyProfileManager.deleteCompany(${company.company_id})"
+                                title="删除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * 计算资质完成度
+     */
+    calculateQualificationProgress(qualifications) {
+        // 标准资质类型总数（基于现有的标准资质列表）
+        const standardQualificationTypes = [
+            'business_license', 'legal_id_front', 'legal_id_back',
+            'iso9001', 'iso14001', 'iso45001', 'iso20000', 'iso27001',
+            'credit_dishonest', 'credit_corruption', 'credit_tax', 'credit_procurement',
+            'software_copyright', 'patent_certificate', 'high_tech', 'software_enterprise', 'cmmi'
+        ];
+
+        const total = standardQualificationTypes.length;
+        const completed = Object.keys(qualifications).length;
+
+        return { completed, total };
+    }
+
+    /**
+     * 查看企业详情
+     */
+    async viewCompanyDetail(companyId) {
+        await this.renderCompanyProfile(companyId);
+    }
+
+    /**
+     * 删除企业
+     */
+    async deleteCompany(companyId) {
+        if (!confirm('确定要删除这个企业吗？此操作将同时删除企业的所有产品和文档，且不可恢复。')) {
+            return;
+        }
+
+        try {
+            const response = await axios.delete(`/api/companies/${companyId}`);
+
+            if (response.data.success) {
+                if (window.showAlert) {
+                    window.showAlert(response.data.message || '删除成功', 'success');
+                }
+                await this.loadCompanies();
+            } else {
+                throw new Error(response.data.error || '删除失败');
+            }
+        } catch (error) {
+            console.error('删除企业失败:', error);
+            if (window.showAlert) {
+                window.showAlert('删除企业失败: ' + error.message, 'danger');
+            }
+        }
+    }
+
+    /**
+     * 返回企业列表
+     */
+    async backToCompanyList() {
+        await this.renderCompanyListView();
+    }
+
+    /**
+     * 处理筛选器变更
+     */
+    handleFilterChange() {
+        const industryFilter = document.getElementById('companyFilterIndustry');
+        if (industryFilter) {
+            this.currentFilters.industry = industryFilter.value || null;
+        }
+
+        this.renderCompanyList(this.allCompanies);
+    }
+
+    /**
+     * 处理搜索
+     */
+    handleSearch() {
+        const searchInput = document.getElementById('companySearchInput');
+        if (searchInput) {
+            this.currentFilters.searchKeyword = searchInput.value.trim();
+            this.renderCompanyList(this.allCompanies);
+        }
+    }
+
+    /**
+     * 重置筛选器
+     */
+    resetFilters() {
+        const industryFilter = document.getElementById('companyFilterIndustry');
+        const searchInput = document.getElementById('companySearchInput');
+
+        if (industryFilter) industryFilter.value = '';
+        if (searchInput) searchInput.value = '';
+
+        this.currentFilters = {
+            industry: null,
+            searchKeyword: ''
+        };
+
+        this.renderCompanyList(this.allCompanies);
+    }
+
+    /**
+     * HTML转义
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**
@@ -50,6 +403,21 @@ class CompanyProfileManager {
         // 渲染界面
         const html = `
             <div class="container-fluid px-0">
+                <!-- 顶部导航栏 -->
+                <div class="case-edit-header mb-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-outline-secondary me-3"
+                                    onclick="window.companyProfileManager.backToCompanyList()">
+                                <i class="bi bi-arrow-left me-1"></i>返回列表
+                            </button>
+                            <h4 class="mb-0">
+                                <i class="bi bi-building text-primary me-2"></i>${companyData.company_name || '企业信息'}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tab导航 -->
                 <ul class="nav nav-tabs mb-3" id="companyProfileTabs">
                     <li class="nav-item">

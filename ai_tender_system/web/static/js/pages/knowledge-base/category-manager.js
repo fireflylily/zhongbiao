@@ -15,36 +15,120 @@ class CategoryManager {
      * @param {Array} companies 企业列表
      */
     renderCompanyTree(companies) {
-        const treeHtml = companies.map(company => {
-            return '<div class="list-group mb-3">' +
-                '<!-- 企业节点 -->' +
-                '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"' +
-                     ' onclick="window.categoryManager.toggleCompanyNode(' + company.company_id + ', \'' + company.company_name + '\')">' +
-                    '<div class="d-flex align-items-center">' +
-                        '<i class="bi bi-chevron-right tree-toggle me-2" id="toggle-' + company.company_id + '"></i>' +
-                        '<i class="bi bi-building text-primary me-2"></i>' +
-                        '<span class="fw-medium">' + company.company_name + '</span>' +
-                        '<span class="badge bg-secondary ms-2">' + (company.product_count || 0) + '</span>' +
-                    '</div>' +
+        // 顶级企业信息库节点
+        const companyLibraryNode = '<div class="list-group mb-3">' +
+            '<div class="list-group-item list-group-item-action" ' +
+                 'onclick="window.categoryManager.selectCompanyLibrary()" id="company-library-node">' +
+                '<div class="d-flex align-items-center">' +
+                    '<i class="bi bi-building text-primary me-2"></i>' +
+                    '<span class="fw-medium">企业信息库</span>' +
                 '</div>' +
-                '<!-- 企业子菜单 -->' +
-                '<div class="list-group-item d-none" id="company-profile-' + company.company_id + '">' +
-                    '<div class="list-group">' +
-                        '<div class="list-group-item list-group-item-action" onclick="window.categoryManager.selectCompanyProfile(' + company.company_id + ')">' +
-                            '<div class="d-flex align-items-center">' +
-                                '<i class="bi bi-person-workspace text-info me-2"></i>' +
-                                '<span>企业信息库</span>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="list-group" id="products-' + company.company_id + '">' +
-                            '<!-- 产品列表将在这里动态加载 -->' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
-        }).join('');
+            '</div>' +
+        '</div>';
 
-        document.getElementById('companyTree').innerHTML = treeHtml;
+        // 顶级案例库节点
+        const caseLibraryNode = '<div class="list-group mb-3">' +
+            '<div class="list-group-item list-group-item-action" ' +
+                 'onclick="window.categoryManager.selectCaseLibrary()" id="case-library-node">' +
+                '<div class="d-flex align-items-center">' +
+                    '<i class="bi bi-folder2-open text-warning me-2"></i>' +
+                    '<span class="fw-medium">案例库</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+        // 顶级文档库节点
+        const documentLibraryNode = '<div class="list-group mb-3">' +
+            '<div class="list-group-item list-group-item-action" ' +
+                 'onclick="window.categoryManager.selectDocumentLibrary()" id="document-library-node">' +
+                '<div class="d-flex align-items-center">' +
+                    '<i class="bi bi-folder text-info me-2"></i>' +
+                    '<span class="fw-medium">文档库</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+        // 企业节点 - 已隐藏，不再显示企业列表
+        // const companiesHtml = companies.map(company => {
+        //     return '<div class="list-group mb-3">' +
+        //         '<!-- 企业节点 -->' +
+        //         '<div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"' +
+        //              ' onclick="window.categoryManager.toggleCompanyNode(' + company.company_id + ', \'' + company.company_name + '\')">' +
+        //             '<div class="d-flex align-items-center">' +
+        //                 '<i class="bi bi-chevron-right tree-toggle me-2" id="toggle-' + company.company_id + '"></i>' +
+        //                 '<i class="bi bi-building text-primary me-2"></i>' +
+        //                 '<span class="fw-medium">' + company.company_name + '</span>' +
+        //                 '<span class="badge bg-secondary ms-2">' + (company.product_count || 0) + '</span>' +
+        //             '</div>' +
+        //         '</div>' +
+        //         '<!-- 企业子菜单 -->' +
+        //         '<div class="list-group-item d-none" id="company-profile-' + company.company_id + '">' +
+        //             '<div class="list-group" id="products-' + company.company_id + '">' +
+        //                 '<!-- 产品列表将在这里动态加载 -->' +
+        //             '</div>' +
+        //         '</div>' +
+        //     '</div>';
+        // }).join('');
+
+        // 组合：企业信息库节点 + 案例库节点 + 文档库节点（不再显示企业列表）
+        document.getElementById('companyTree').innerHTML = companyLibraryNode + caseLibraryNode + documentLibraryNode;
+    }
+
+    /**
+     * 选择企业信息库
+     */
+    async selectCompanyLibrary() {
+        console.log('选择企业信息库');
+
+        // 更新活动状态
+        document.querySelectorAll('.list-group-item-action').forEach(node => node.classList.remove('active'));
+        const companyLibraryNode = document.getElementById('company-library-node');
+        if (companyLibraryNode) {
+            companyLibraryNode.classList.add('active');
+        }
+
+        // 调用企业信息库列表视图
+        if (window.companyProfileManager) {
+            await window.companyProfileManager.renderCompanyListView();
+        }
+    }
+
+    /**
+     * 选择案例库
+     */
+    async selectCaseLibrary() {
+        console.log('选择案例库');
+
+        // 更新活动状态
+        document.querySelectorAll('.list-group-item-action').forEach(node => node.classList.remove('active'));
+        const caseLibraryNode = document.getElementById('case-library-node');
+        if (caseLibraryNode) {
+            caseLibraryNode.classList.add('active');
+        }
+
+        // 触发案例库选择回调
+        if (this.onCaseLibrarySelected) {
+            await this.onCaseLibrarySelected();
+        }
+    }
+
+    /**
+     * 选择文档库
+     */
+    async selectDocumentLibrary() {
+        console.log('选择文档库');
+
+        // 更新活动状态
+        document.querySelectorAll('.list-group-item-action').forEach(node => node.classList.remove('active'));
+        const documentLibraryNode = document.getElementById('document-library-node');
+        if (documentLibraryNode) {
+            documentLibraryNode.classList.add('active');
+        }
+
+        // 调用文档管理器的列表视图
+        if (window.documentManager) {
+            await window.documentManager.renderDocumentLibraryView();
+        }
     }
 
     /**
@@ -204,18 +288,20 @@ class CategoryManager {
     }
 
     /**
-     * 选择企业信息库
-     * @param {number} companyId 企业ID
+     * 选择企业信息库 - 显示企业列表
+     * @param {number} companyId 企业ID（保留参数以兼容，但不使用）
      */
     async selectCompanyProfile(companyId) {
-        this.currentCompanyId = companyId;
+        this.currentCompanyId = null;
         this.currentProductId = null;
 
         // 更新活动状态
-        this.updateActiveState('[onclick*="selectCompanyProfile(' + companyId + '"]');
+        this.updateActiveState('[onclick*="selectCompanyProfile"]');
 
-        // 通知其他模块企业信息库已选择
-        this.onCompanyProfileSelected(companyId);
+        // 调用企业信息库列表视图
+        if (window.companyProfileManager) {
+            await window.companyProfileManager.renderCompanyListView();
+        }
     }
 
     /**

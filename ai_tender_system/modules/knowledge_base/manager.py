@@ -1164,3 +1164,108 @@ class KnowledgeBaseManager:
         except Exception as e:
             logger.error(f"获取资质类型定义失败: {e}", exc_info=True)
             return []
+
+    def get_all_documents_with_filters(self, company_id=None, product_id=None,
+                                       document_category=None, privacy_classification=None):
+        """
+        获取所有文档（带筛选）- 文档库视图专用
+
+        Args:
+            company_id: 公司ID
+            product_id: 产品ID
+            document_category: 文档类型（tech/impl/service等）
+            privacy_classification: 隐私级别
+
+        Returns:
+            list: 文档列表，每个文档包含公司名称和产品名称
+        """
+        try:
+            # 构建SQL查询
+            # 支持两种类型的文档库：产品文档库(owner_type='product')和企业信息库(owner_type='companies'或'company_profile')
+            query = """
+                SELECT
+                    d.doc_id,
+                    d.library_id,
+                    d.filename,
+                    d.original_filename,
+                    d.file_path,
+                    d.file_type,
+                    d.file_size,
+                    d.privacy_classification,
+                    d.tags,
+                    d.document_category,
+                    d.upload_status,
+                    d.parse_status,
+                    d.vector_status,
+                    d.upload_time,
+                    COALESCE(c1.company_id, c2.company_id) as company_id,
+                    COALESCE(c1.company_name, c2.company_name) as company_name,
+                    p.product_id,
+                    p.product_name
+                FROM documents d
+                INNER JOIN document_libraries dl ON d.library_id = dl.library_id
+                LEFT JOIN products p ON dl.owner_type = 'product' AND dl.owner_id = p.product_id
+                LEFT JOIN companies c1 ON p.company_id = c1.company_id
+                LEFT JOIN companies c2 ON (dl.owner_type = 'companies' OR dl.owner_type = 'company_profile') AND dl.owner_id = c2.company_id
+                WHERE 1=1
+            """
+
+            params = []
+
+            # 添加筛选条件
+            if company_id:
+                query += " AND (c1.company_id = ? OR c2.company_id = ?)"
+                params.append(company_id)
+                params.append(company_id)
+
+            if product_id:
+                query += " AND p.product_id = ?"
+                params.append(product_id)
+
+            if document_category:
+                query += " AND d.document_category = ?"
+                params.append(document_category)
+
+            if privacy_classification:
+                query += " AND d.privacy_classification = ?"
+                params.append(privacy_classification)
+
+            # 按上传时间降序排序
+            query += " ORDER BY d.upload_time DESC"
+
+            # 执行查询
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+
+                documents = []
+                for row in rows:
+                    doc = {
+                        'doc_id': row['doc_id'],
+                        'library_id': row['library_id'],
+                        'filename': row['filename'],
+                        'original_filename': row['original_filename'],
+                        'file_path': row['file_path'],
+                        'file_type': row['file_type'],
+                        'file_size': row['file_size'],
+                        'privacy_classification': row['privacy_classification'],
+                        'tags': row['tags'],
+                        'document_category': row['document_category'],
+                        'upload_status': row['upload_status'],
+                        'parse_status': row['parse_status'],
+                        'vector_status': row['vector_status'],
+                        'upload_time': row['upload_time'],
+                        'company_id': row['company_id'],
+                        'company_name': row['company_name'],
+                        'product_id': row['product_id'],
+                        'product_name': row['product_name']
+                    }
+                    documents.append(doc)
+
+                logger.info(f"获取文档列表成功，共 {len(documents)} 个文档")
+                return documents
+
+        except Exception as e:
+            logger.error(f"获取文档列表失败: {e}", exc_info=True)
+            return []

@@ -91,10 +91,11 @@ class OutlineGenerator:
             # 生成提示词
             prompt = prompt_template.format(analysis=analysis_json)
 
-            # 调用LLM
+            # 调用LLM (增加max_tokens以确保返回完整的大纲JSON)
             response = self.llm_client.call(
                 prompt=prompt,
                 temperature=0.7,
+                max_tokens=4000,  # 增加到4000以支持完整的大纲生成
                 max_retries=3,
                 purpose="大纲生成"
             )
@@ -139,12 +140,38 @@ class OutlineGenerator:
                 return json.loads(json_str)
             except json.JSONDecodeError as e:
                 self.logger.warning(f"JSON解析失败: {e}")
-                # 尝试修复常见的JSON错误
+                self.logger.warning(f"原始JSON（前500字符）: {json_str[:500]}")
+                self.logger.warning(f"原始JSON（后500字符）: {json_str[-500:]}")
+
+                # 尝试多种修复策略
+                json_str_fixed = json_str
+
                 try:
-                    # 移除尾部的逗号
-                    json_str_fixed = re.sub(r',\s*([\]}])', r'\1', json_str)
-                    return json.loads(json_str_fixed)
-                except:
+                    # 策略1: 移除尾部的逗号
+                    json_str_fixed = re.sub(r',\s*([\]}])', r'\1', json_str_fixed)
+
+                    # 策略2: 修复缺失逗号的情况 (在 } 或 ] 后面紧跟 " 的情况)
+                    json_str_fixed = re.sub(r'([\]}])\s*"', r'\1,"', json_str_fixed)
+
+                    # 策略3: 修复缺失逗号的情况 (在 " 后面紧跟 " 的情况)
+                    json_str_fixed = re.sub(r'"\s*"', r'","', json_str_fixed)
+
+                    # 策略4: 修复双逗号
+                    json_str_fixed = re.sub(r',,+', r',', json_str_fixed)
+
+                    result = json.loads(json_str_fixed)
+                    self.logger.info("JSON修复成功")
+                    return result
+                except Exception as fix_error:
+                    self.logger.error(f"JSON修复失败: {fix_error}")
+                    # 保存失败的JSON到文件以便调试
+                    try:
+                        import tempfile
+                        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                            f.write(json_str)
+                            self.logger.error(f"原始JSON已保存到: {f.name}")
+                    except:
+                        pass
                     return None
 
         return None

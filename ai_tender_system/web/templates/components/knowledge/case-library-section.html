@@ -1,0 +1,99 @@
+<!-- 案例库管理界面 - 全屏视图（对齐 knowledge_base.html） -->
+<div class="knowledge-base-content" id="caseLibraryContent" style="width: 100%; min-height: 500px;">
+    <!-- 主内容容器 - CaseLibraryManager会在这里渲染完整的案例库视图 -->
+    <div id="caseLibraryMainContent" style="width: 100%; min-height: 500px;">
+        <!-- 初始加载提示 -->
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+            <p class="text-muted">正在加载案例库...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // 当tab被激活时，初始化案例库
+    const caseLibraryTab = document.getElementById('case-library-nav');
+    if (caseLibraryTab) {
+        caseLibraryTab.addEventListener('shown.bs.tab', async function() {
+            console.log('案例库tab已激活');
+            await initializeCaseLibrary();
+        });
+    }
+
+    // 初始化案例库
+    async function initializeCaseLibrary() {
+        console.log('[INIT] 开始初始化案例库...');
+        try {
+            // 检查案例库管理器是否已加载
+            console.log('[INIT] 检查案例库管理器:', window.caseLibraryManager);
+            if (!window.caseLibraryManager) {
+                console.error('[INIT] CaseLibraryManager未加载');
+                showError('案例库功能未正确加载，请刷新页面重试');
+                return;
+            }
+
+            // 初始化管理器（如果尚未初始化）
+            console.log('[INIT] 检查initialize方法:', typeof window.caseLibraryManager.initialize);
+            if (typeof window.caseLibraryManager.initialize === 'function') {
+                console.log('[INIT] 调用initialize...');
+                await window.caseLibraryManager.initialize();
+                console.log('[INIT] initialize完成');
+            }
+
+            // 渲染案例库视图（全屏覆盖）
+            console.log('[INIT] 检查renderCaseLibraryView方法:', typeof window.caseLibraryManager.renderCaseLibraryView);
+            if (typeof window.caseLibraryManager.renderCaseLibraryView === 'function') {
+                console.log('[INIT] 调用renderCaseLibraryView...');
+                await window.caseLibraryManager.renderCaseLibraryView();
+                console.log('[INIT] renderCaseLibraryView完成');
+            } else {
+                console.error('[INIT] renderCaseLibraryView方法不存在');
+                showFallbackView();
+            }
+
+        } catch (error) {
+            console.error('[INIT] 初始化案例库失败:', error);
+            showError('加载案例库失败: ' + error.message);
+        }
+    }
+
+    // 显示错误信息
+    function showError(message) {
+        const html = `
+            <div class="alert alert-danger m-4">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                ${message}
+            </div>
+        `;
+        const mainContent = document.getElementById('mainContent');
+        if (mainContent) {
+            mainContent.innerHTML = html;
+        }
+    }
+
+    // 显示备用视图（当管理器不可用时）
+    function showFallbackView() {
+        const html = `
+            <div class="text-center py-5">
+                <i class="bi bi-folder2-open text-warning" style="font-size: 4rem;"></i>
+                <h5 class="mt-3 text-muted">案例库</h5>
+                <p class="text-muted">管理和检索项目中标案例，提供案例复用和参考</p>
+                <div class="mt-4">
+                    <button class="btn btn-primary btn-lg" onclick="window.location.href='/knowledge_base'">
+                        <i class="bi bi-box-arrow-up-right me-2"></i>打开知识库页面
+                    </button>
+                </div>
+            </div>
+        `;
+        const mainContent = document.getElementById('mainContent');
+        if (mainContent) {
+            mainContent.innerHTML = html;
+        }
+    }
+})();
+</script>

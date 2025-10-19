@@ -299,6 +299,36 @@ class KnowledgeBaseAPI:
         # 文档管理API
         # =========================
 
+        @self.blueprint.route('/documents/all', methods=['GET'])
+        def get_all_documents():
+            """获取所有文档（带筛选） - 文档库视图专用"""
+            try:
+                # 获取筛选参数
+                company_id = request.args.get('company_id', type=int)
+                product_id = request.args.get('product_id', type=int)
+                document_category = request.args.get('document_category')
+                privacy_classification = request.args.get('privacy_classification', type=int)
+
+                # 调用manager获取文档列表
+                documents = self.manager.get_all_documents_with_filters(
+                    company_id=company_id,
+                    product_id=product_id,
+                    document_category=document_category,
+                    privacy_classification=privacy_classification
+                )
+
+                return jsonify({
+                    'success': True,
+                    'data': documents
+                })
+
+            except Exception as e:
+                logger.error(f"获取文档列表失败: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+
         @self.blueprint.route('/libraries/<int:library_id>/documents', methods=['POST'])
         def upload_document(library_id):
             """上传文档到文档库 - 简化版（统一服务已处理验证）"""

@@ -1,8 +1,12 @@
 <!-- 技术方案生成功能区域 -->
 
-<!-- 公司项目信息展示卡片 - 使用共用组件 -->
+<!-- 公司项目信息展示卡片 - 使用统一组件 -->
 {% set section = 'tech-proposal' %}
-{% include 'components/common/company-project-info-card.html' %}
+{% set mode = 'readonly' %}
+{% set showProject = true %}
+{% set showCompany = true %}
+{% set showModel = true %}
+{% include 'components/common/company-project-selector.html' %}
 
 <div class="row mb-4">
     <div class="col-12">
@@ -75,69 +79,6 @@
                         </div>
                     </div>
 
-                    <!-- 生成配置 -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <label for="outputPrefix" class="form-label">
-                                <i class="bi bi-tag"></i> 输出前缀
-                            </label>
-                            <input type="text" class="form-control" id="outputPrefix"
-                                   value="技术方案" placeholder="请输入输出文件名前缀">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="techCompanySelect" class="form-label">
-                                <i class="bi bi-building"></i> 选择公司
-                            </label>
-                            <select class="form-select" id="techCompanySelect">
-                                <option value="">请选择公司...</option>
-                                <!-- 公司选项将通过JavaScript动态加载 -->
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 高级选项 -->
-                    <div class="mb-4">
-                        <div class="card border-light">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-gear"></i> 高级选项
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="includeAnalysis" checked>
-                                            <label class="form-check-label" for="includeAnalysis">
-                                                包含需求分析
-                                            </label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="includeMapping" checked>
-                                            <label class="form-check-label" for="includeMapping">
-                                                生成匹配表
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="includeSummary" checked>
-                                            <label class="form-check-label" for="includeSummary">
-                                                生成总结报告
-                                            </label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="optimizeFormat">
-                                            <label class="form-check-label" for="optimizeFormat">
-                                                优化文档格式
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- 生成按钮 -->
                     <div class="text-center">
                         <button type="submit" class="btn btn-primary btn-lg" id="generateProposalBtn" disabled>
@@ -154,6 +95,48 @@
 <div class="progress mb-3 d-none" id="techProgressBar">
     <div class="progress-bar progress-bar-striped progress-bar-animated"
          role="progressbar" style="width: 0%"></div>
+</div>
+
+<!-- 需求分析结果展示区域 -->
+<div class="row mb-4 d-none" id="analysisResultArea">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-clipboard-data"></i> 需求分析结果
+                    <button type="button" class="btn btn-sm btn-outline-light float-end"
+                            id="toggleAnalysisDetail">
+                        <i class="bi bi-chevron-down"></i> 展开/收起
+                    </button>
+                </h6>
+            </div>
+            <div class="card-body" id="analysisResultContent">
+                <!-- 文档摘要 -->
+                <div class="mb-4">
+                    <h6 class="text-primary"><i class="bi bi-file-earmark-text"></i> 文档摘要</h6>
+                    <div class="row" id="analysisSummary">
+                        <!-- 动态填充摘要数据 -->
+                    </div>
+                </div>
+
+                <!-- 需求分类 -->
+                <div class="mb-3">
+                    <h6 class="text-primary"><i class="bi bi-folder2-open"></i> 需求分类</h6>
+                    <div id="requirementCategories">
+                        <!-- 动态填充需求分类 -->
+                    </div>
+                </div>
+
+                <!-- 特别关注事项 -->
+                <div class="mb-2" id="specialAttentionSection" style="display: none;">
+                    <h6 class="text-warning"><i class="bi bi-exclamation-triangle"></i> 特别关注</h6>
+                    <ul id="specialAttentionList" class="list-unstyled">
+                        <!-- 动态填充特别关注事项 -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- 生成结果 -->

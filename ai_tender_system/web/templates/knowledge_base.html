@@ -436,6 +436,7 @@ document_chunks (文档分块表)
     <link href="/static/css/components/privacy-badges.css" rel="stylesheet">
     <link href="/static/css/components/universal-uploader.css" rel="stylesheet">
     <link href="/static/css/components/qualifications.css" rel="stylesheet">
+    <link href="/static/css/components/case-library.css" rel="stylesheet">
 </head>
 <body>
     <!-- 导航栏 -->
@@ -494,7 +495,7 @@ document_chunks (文档分块表)
     <div class="container-fluid main-container">
         <div class="row g-0 full-height-row">
             <!-- 左侧分类树 -->
-            <div class="col-md-3 p-0 sidebar-column">
+            <div class="col-lg-3 col-md-4 p-0 sidebar-column">
                 <div class="card shadow-sm border-0 sidebar-card">
                     <!-- 固定顶部标题和按钮 -->
                     <div class="card-header bg-white border-bottom p-3 fixed-header">
@@ -539,7 +540,7 @@ document_chunks (文档分块表)
             </div>
 
             <!-- 右侧主内容 -->
-            <div class="col-md-9 p-0 main-column">
+            <div class="col-lg-9 col-md-8 p-0 main-column">
                 <div class="card shadow-sm border-0 main-card">
                     <div class="card-body p-4 main-content">
                         <!-- AI智能检索区域 -->
@@ -785,6 +786,67 @@ document_chunks (文档分块表)
         </div>
     </div>
 
+    <!-- 案例库：案例详情模态框 -->
+    <div class="modal fade" id="caseDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header case-modal-header">
+                    <h5 class="modal-title">案例详情</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="caseDetailContent">
+                    <!-- 详情内容将通过JavaScript动态加载 -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 案例库：文档导入模态框 -->
+    <div class="modal fade" id="caseDocumentImportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header case-modal-header">
+                    <h5 class="modal-title">从文档导入案例</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">选择案例文档 <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="caseDocumentFile"
+                               accept=".doc,.docx,.pdf">
+                        <small class="text-muted">支持 DOC、DOCX、PDF 格式，文件大小不超过10MB</small>
+                    </div>
+
+                    <!-- 提取进度 -->
+                    <div id="extractionProgress" style="display: none;">
+                        <div class="alert alert-info mb-0">
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-2" role="status">
+                                    <span class="visually-hidden">提取中...</span>
+                                </div>
+                                <span id="extractionStatusText">正在解析文档...</span>
+                            </div>
+                            <div class="progress mt-2" style="height: 4px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="startExtractionBtn"
+                            onclick="window.caseLibraryManager.handleDocumentImport()">
+                        <i class="bi bi-magic me-1"></i>开始提取
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 通知容器 -->
     <div id="alertContainer" style="position: fixed; top: 80px; right: 20px; z-index: 1050; width: 350px;"></div>
 
@@ -808,6 +870,7 @@ document_chunks (文档分块表)
     <script src="/static/js/pages/knowledge-base/rag-integration.js"></script>
     <script src="/static/js/pages/knowledge-base/ai-search-manager.js"></script>
     <script src="/static/js/pages/knowledge-base/document-viewer.js"></script>
+    <script src="/static/js/pages/knowledge-base/case-library-manager.js"></script>
 
     <!-- 页面初始化脚本 -->
     <script>
@@ -848,6 +911,14 @@ document_chunks (文档分块表)
                         showAlert('加载企业详情失败：' + error.message, 'danger');
                     }
                 };
+
+                // 添加案例库选择回调
+                window.categoryManager.onCaseLibrarySelected = async function() {
+                    console.log('切换到案例库视图');
+                    if (window.caseLibraryManager) {
+                        await window.caseLibraryManager.renderCaseLibraryView();
+                    }
+                };
             }
 
             if (window.documentManager) {
@@ -860,6 +931,11 @@ document_chunks (文档分块表)
 
             if (window.companyProfileManager) {
                 window.companyProfileManager.init();
+            }
+
+            // 初始化案例库管理器
+            if (window.caseLibraryManager) {
+                window.caseLibraryManager.initialize();
             }
 
             // 加载企业列表

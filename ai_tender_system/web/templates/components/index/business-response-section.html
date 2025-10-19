@@ -1,8 +1,12 @@
 <!-- 商务应答选项卡 -->
 
-<!-- 公司项目信息展示卡片 - 使用共用组件 -->
+<!-- 公司项目信息展示卡片 - 使用统一组件 -->
 {% set section = 'business' %}
-{% include 'components/common/company-project-info-card.html' %}
+{% set mode = 'readonly' %}
+{% set showProject = true %}
+{% set showCompany = true %}
+{% set showModel = true %}
+{% include 'components/common/company-project-selector.html' %}
 
 <div class="row">
     <div class="col-12">

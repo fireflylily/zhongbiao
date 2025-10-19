@@ -9,6 +9,16 @@ class DocumentManager {
         this.currentProductId = null;
         this.currentLibraryId = null;
         this.currentCompanyId = null;
+
+        // 文档库筛选器
+        this.docFilters = {
+            companyId: null,
+            productId: null,
+            category: null,
+            privacy: null,
+            searchKeyword: ''
+        };
+        this.allDocuments = [];
     }
 
     /**
@@ -930,6 +940,409 @@ class DocumentManager {
 
     setCurrentCompanyId(companyId) {
         this.currentCompanyId = companyId;
+    }
+
+    // =========================
+    // 文档库视图相关方法
+    // =========================
+
+    /**
+     * 渲染文档库主界面
+     */
+    async renderDocumentLibraryView() {
+        console.log('渲染文档库视图...');
+
+        const mainContent = document.getElementById('documentLibraryMainContent');
+        if (!mainContent) {
+            console.error('未找到文档库主内容区域');
+            return;
+        }
+
+        // 确保容器有尺寸
+        mainContent.style.width = '100%';
+        mainContent.style.minHeight = '500px';
+        mainContent.style.display = 'block';
+
+        // 清空主内容区
+        mainContent.innerHTML = '';
+
+        // 渲染文档库界面（复用案例库样式）
+        const html = `
+            <!-- 顶部操作栏 + 统计 -->
+            <div class="case-library-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-3">
+                        <h4 class="mb-0">
+                            <i class="bi bi-folder me-2"></i>文档库管理
+                        </h4>
+                        <span class="badge bg-primary" style="font-size: 0.9rem; padding: 8px 16px;">
+                            总文档数：<strong id="docTotalCount">0</strong>
+                        </span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-primary" onclick="window.documentManager.showUploadModalForLibrary()">
+                            <i class="bi bi-plus-circle me-1"></i>上传文档
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选器区域（水平布局） -->
+            <div class="case-filters-horizontal">
+                <div class="row g-2 align-items-end">
+                    <div class="col-lg-3 col-md-4">
+                        <label class="form-label small text-muted mb-1">搜索</label>
+                        <input type="text" class="form-control" id="docSearchInput"
+                               placeholder="搜索文档名称、公司、产品..."
+                               onkeyup="window.documentManager.handleDocSearch()">
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label small text-muted mb-1">公司</label>
+                        <select class="form-select" id="docFilterCompany"
+                                onchange="window.documentManager.handleDocFilterChange()">
+                            <option value="">全部公司</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label small text-muted mb-1">产品</label>
+                        <select class="form-select" id="docFilterProduct"
+                                onchange="window.documentManager.handleDocFilterChange()">
+                            <option value="">全部产品</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label small text-muted mb-1">技术类型</label>
+                        <select class="form-select" id="docFilterCategory"
+                                onchange="window.documentManager.handleDocFilterChange()">
+                            <option value="">全部类型</option>
+                            <option value="tech">技术文档</option>
+                            <option value="impl">实施方案</option>
+                            <option value="service">服务文档</option>
+                            <option value="product">产品文档</option>
+                            <option value="manual">使用手册</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label small text-muted mb-1">隐私级别</label>
+                        <select class="form-select" id="docFilterPrivacy"
+                                onchange="window.documentManager.handleDocFilterChange()">
+                            <option value="">全部级别</option>
+                            <option value="1">公开</option>
+                            <option value="2">内部</option>
+                            <option value="3">机密</option>
+                            <option value="4">绝密</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-1 col-md-3">
+                        <button class="btn btn-secondary w-100" onclick="window.documentManager.resetDocFilters()" title="重置筛选">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文档列表（全宽显示） -->
+            <div class="case-list-full-width">
+                <div id="docListContainer">
+                    <!-- 文档列表将动态渲染在这里 -->
+                    <div class="case-loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-3 text-muted">正在加载文档...</p>
+                    </div>
+                </div>
+
+                <!-- 空状态 -->
+                <div id="docEmptyState" class="case-empty-state" style="display: none;">
+                    <i class="bi bi-folder-x"></i>
+                    <h5>暂无文档</h5>
+                    <p class="text-muted">点击右上角"上传文档"按钮上传第一个文档</p>
+                </div>
+            </div>
+        `;
+
+        mainContent.innerHTML = html;
+
+        // 强制设置子元素的宽度（修复布局问题）
+        const header = mainContent.querySelector('.case-library-header');
+        const filters = mainContent.querySelector('.case-filters-horizontal');
+        const listContainer = mainContent.querySelector('.case-list-full-width');
+
+        if (header) header.style.width = '100%';
+        if (filters) filters.style.width = '100%';
+        if (listContainer) listContainer.style.width = '100%';
+
+        // 加载数据
+        await this.loadCompanyFiltersForDocs();
+        await this.loadAllDocuments();
+    }
+
+    /**
+     * 加载公司筛选器（文档库用）
+     */
+    async loadCompanyFiltersForDocs() {
+        try {
+            const response = await axios.get('/api/companies');
+            if (response.data.success) {
+                const companies = response.data.data || [];
+                const filterSelect = document.getElementById('docFilterCompany');
+                if (filterSelect) {
+                    let options = '<option value="">全部公司</option>';
+                    companies.forEach(company => {
+                        options += `<option value="${company.company_id}">${this.escapeHtml(company.company_name)}</option>`;
+                    });
+                    filterSelect.innerHTML = options;
+                }
+            }
+        } catch (error) {
+            console.error('加载公司筛选器失败:', error);
+        }
+    }
+
+    /**
+     * 加载产品筛选器（文档库用）
+     */
+    async loadProductFiltersForDocs(companyId) {
+        try {
+            const response = await axios.get(`/api/knowledge_base/companies/${companyId}/products`);
+            if (response.data.success) {
+                const products = response.data.data || [];
+                const filterSelect = document.getElementById('docFilterProduct');
+                if (filterSelect) {
+                    let options = '<option value="">全部产品</option>';
+                    products.forEach(product => {
+                        options += `<option value="${product.product_id}">${this.escapeHtml(product.product_name)}</option>`;
+                    });
+                    filterSelect.innerHTML = options;
+                }
+            }
+        } catch (error) {
+            console.error('加载产品筛选器失败:', error);
+        }
+    }
+
+    /**
+     * 加载所有文档（带筛选）
+     */
+    async loadAllDocuments() {
+        try {
+            // 构建查询参数
+            const params = new URLSearchParams();
+            if (this.docFilters.companyId) {
+                params.append('company_id', this.docFilters.companyId);
+            }
+            if (this.docFilters.productId) {
+                params.append('product_id', this.docFilters.productId);
+            }
+            if (this.docFilters.category) {
+                params.append('document_category', this.docFilters.category);
+            }
+            if (this.docFilters.privacy) {
+                params.append('privacy_classification', this.docFilters.privacy);
+            }
+
+            const url = `/api/knowledge_base/documents/all?${params.toString()}`;
+            const response = await axios.get(url);
+
+            if (response.data.success) {
+                this.allDocuments = response.data.data || [];
+                this.renderDocumentList(this.allDocuments);
+            } else {
+                throw new Error(response.data.error || '加载失败');
+            }
+        } catch (error) {
+            console.error('加载文档列表失败:', error);
+            if (window.showAlert) {
+                window.showAlert('加载文档列表失败: ' + error.message, 'danger');
+            }
+            this.renderDocumentList([]);
+        }
+    }
+
+    /**
+     * 渲染文档列表
+     */
+    renderDocumentList(documents) {
+        const container = document.getElementById('docListContainer');
+        const emptyState = document.getElementById('docEmptyState');
+
+        if (!container) return;
+
+        // 应用搜索关键词过滤
+        let filteredDocs = documents;
+        if (this.docFilters.searchKeyword) {
+            const keyword = this.docFilters.searchKeyword.toLowerCase();
+            filteredDocs = documents.filter(doc =>
+                (doc.original_filename && doc.original_filename.toLowerCase().includes(keyword)) ||
+                (doc.company_name && doc.company_name.toLowerCase().includes(keyword)) ||
+                (doc.product_name && doc.product_name.toLowerCase().includes(keyword)) ||
+                (doc.filename && doc.filename.toLowerCase().includes(keyword))
+            );
+        }
+
+        // 显示空状态或文档列表
+        if (filteredDocs.length === 0) {
+            container.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+
+        container.style.display = 'block';
+        if (emptyState) emptyState.style.display = 'none';
+
+        // 渲染文档卡片
+        const html = filteredDocs.map(doc => this.renderDocumentCardForLibrary(doc)).join('');
+        container.innerHTML = html;
+
+        // 更新统计数字
+        const countElement = document.getElementById('docTotalCount');
+        if (countElement) {
+            countElement.textContent = filteredDocs.length;
+        }
+    }
+
+    /**
+     * 渲染单个文档卡片（文档库专用）
+     */
+    renderDocumentCardForLibrary(doc) {
+        // 技术类型标签
+        const categoryLabels = {
+            'tech': '技术文档',
+            'impl': '实施方案',
+            'service': '服务文档',
+            'product': '产品文档',
+            'manual': '使用手册',
+            'other': '其他'
+        };
+
+        // 隐私级别标签和样式
+        const privacyLabels = ['', '🌐 公开', '🏢 内部', '🔒 机密', '🚫 绝密'];
+        const privacyClass = ['', 'case-status-success', 'case-status-progress', 'case-status-pending', 'case-status-pending'];
+
+        const category = doc.document_category || 'tech';
+        const privacy = doc.privacy_classification || 1;
+        const fileSize = doc.file_size ? (doc.file_size / (1024 * 1024)).toFixed(2) : '0';
+
+        return `
+            <div class="case-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h5>${this.escapeHtml(doc.original_filename)}</h5>
+                        <div class="case-meta">
+                            <i class="bi bi-building"></i>公司: ${this.escapeHtml(doc.company_name || '未知')}
+                            <span class="ms-2"><i class="bi bi-box-seam"></i>产品: ${this.escapeHtml(doc.product_name || '未知')}</span>
+                        </div>
+                        <div class="case-meta">
+                            <i class="bi bi-tag"></i>${categoryLabels[category]}
+                            <span class="ms-2"><i class="bi bi-file-earmark"></i>${(doc.file_type || 'pdf').toUpperCase()}</span>
+                            <span class="ms-2"><i class="bi bi-hdd"></i>${fileSize} MB</span>
+                        </div>
+                        <div class="case-meta mt-2">
+                            <span class="case-status-badge ${privacyClass[privacy]}">${privacyLabels[privacy]}</span>
+                            <span class="ms-2 text-muted">
+                                <i class="bi bi-calendar"></i>${doc.upload_time ? new Date(doc.upload_time).toLocaleDateString() : ''}
+                            </span>
+                            ${doc.vector_status === 'completed' ? '<span class="ms-2"><i class="bi bi-database text-info"></i>已索引</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="case-actions">
+                        <button type="button" class="btn btn-sm btn-info" onclick="window.documentManager.previewDocument(${doc.doc_id})" title="预览">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success" onclick="window.documentManager.downloadDocument(${doc.doc_id})" title="下载">
+                            <i class="bi bi-download"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="window.documentManager.deleteDocument(${doc.doc_id})" title="删除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * 处理筛选器变更
+     */
+    handleDocFilterChange() {
+        this.docFilters.companyId = document.getElementById('docFilterCompany').value || null;
+        this.docFilters.productId = document.getElementById('docFilterProduct').value || null;
+        this.docFilters.category = document.getElementById('docFilterCategory').value || null;
+        this.docFilters.privacy = document.getElementById('docFilterPrivacy').value || null;
+
+        // 当公司变化时，重新加载产品列表
+        if (this.docFilters.companyId) {
+            this.loadProductFiltersForDocs(this.docFilters.companyId);
+        } else {
+            // 清空产品筛选器
+            const productSelect = document.getElementById('docFilterProduct');
+            if (productSelect) {
+                productSelect.innerHTML = '<option value="">全部产品</option>';
+            }
+            this.docFilters.productId = null;
+        }
+
+        this.loadAllDocuments();
+    }
+
+    /**
+     * 处理搜索
+     */
+    handleDocSearch() {
+        const searchInput = document.getElementById('docSearchInput');
+        if (searchInput) {
+            this.docFilters.searchKeyword = searchInput.value.trim();
+            this.renderDocumentList(this.allDocuments);
+        }
+    }
+
+    /**
+     * 重置筛选器
+     */
+    resetDocFilters() {
+        document.getElementById('docFilterCompany').value = '';
+        document.getElementById('docFilterProduct').value = '';
+        document.getElementById('docFilterCategory').value = '';
+        document.getElementById('docFilterPrivacy').value = '';
+        document.getElementById('docSearchInput').value = '';
+
+        // 重置产品下拉列表
+        const productSelect = document.getElementById('docFilterProduct');
+        if (productSelect) {
+            productSelect.innerHTML = '<option value="">全部产品</option>';
+        }
+
+        this.docFilters = {
+            companyId: null,
+            productId: null,
+            category: null,
+            privacy: null,
+            searchKeyword: ''
+        };
+
+        this.loadAllDocuments();
+    }
+
+    /**
+     * 显示上传文档模态框（文档库专用）
+     */
+    showUploadModalForLibrary() {
+        // 提示用户先选择公司和产品
+        if (window.showAlert) {
+            window.showAlert('请先在左侧导航选择公司和产品，然后通过产品节点上传文档', 'info');
+        }
+    }
+
+    /**
+     * HTML转义（如果不存在）
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

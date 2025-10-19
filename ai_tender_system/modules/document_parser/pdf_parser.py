@@ -3,12 +3,14 @@
 """
 PDF文档解析器
 使用PyMuPDF和pdfplumber进行高质量PDF解析
+支持OCR识别扫描PDF
 """
 
 import fitz  # PyMuPDF
 import pdfplumber
 import re
 import asyncio
+import os
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 from datetime import datetime
@@ -26,11 +28,48 @@ logger = get_module_logger("document_parser.pdf")
 
 
 class PDFParser:
-    """PDF文档解析器"""
+    """PDF文档解析器 - 支持原生PDF和扫描PDF(OCR)"""
 
-    def __init__(self):
+    def __init__(self, enable_ocr: bool = None, ocr_min_chars: int = None):
+        """
+        初始化PDF解析器
+
+        Args:
+            enable_ocr: 是否启用OCR（None=从环境变量读取，默认True）
+            ocr_min_chars: 触发OCR的最小字符数阈值（None=从环境变量读取，默认50）
+        """
         self.logger = logger
         self.max_file_size = 100 * 1024 * 1024  # 100MB限制
+
+        # OCR配置
+        if enable_ocr is None:
+            enable_ocr = os.getenv('ENABLE_OCR', 'true').lower() == 'true'
+        if ocr_min_chars is None:
+            ocr_min_chars = int(os.getenv('OCR_MIN_CHARS_PER_PAGE', '50'))
+
+        self.enable_ocr = enable_ocr
+        self.ocr_min_chars = ocr_min_chars
+        self._ocr_parser = None
+
+        if self.enable_ocr:
+            self.logger.info(f"OCR功能已启用 (阈值: {self.ocr_min_chars}字符/页)")
+
+    def _get_ocr_parser(self):
+        """延迟初始化OCR解析器（仅在需要时加载）"""
+        if self._ocr_parser is None and self.enable_ocr:
+            try:
+                from .ocr_parser import OCRParser
+
+                use_gpu = os.getenv('OCR_USE_GPU', 'false').lower() == 'true'
+                lang = os.getenv('OCR_LANG', 'ch')
+
+                self._ocr_parser = OCRParser(use_gpu=use_gpu, lang=lang)
+                self.logger.info("OCR解析器初始化完成")
+            except Exception as e:
+                self.logger.warning(f"OCR解析器初始化失败，将禁用OCR: {e}")
+                self.enable_ocr = False
+
+        return self._ocr_parser
 
     async def parse(self, file_path: str) -> Tuple[str, Dict]:
         """
@@ -86,7 +125,7 @@ class PDFParser:
             raise
 
     async def _extract_text_with_fitz(self, file_path: str) -> Tuple[str, Dict]:
-        """使用PyMuPDF提取文本和结构信息"""
+        """使用PyMuPDF提取文本和结构信息，对扫描页自动启用OCR"""
 
         def extract_text():
             doc = fitz.open(file_path)
@@ -94,7 +133,8 @@ class PDFParser:
             structure_info = {
                 'pages': [],
                 'headings': [],
-                'total_chars': 0
+                'total_chars': 0,
+                'scanned_pages': []  # 记录扫描页
             }
 
             try:
@@ -103,16 +143,24 @@ class PDFParser:
 
                     # 提取文本
                     page_text = page.get_text()
-                    text_content += f"\n--- 第{page_num + 1}页 ---\n"
-                    text_content += page_text
 
                     # 提取页面结构信息
                     page_info = {
                         'page_num': page_num + 1,
                         'char_count': len(page_text),
                         'images': len(page.get_images()),
-                        'links': len(page.get_links())
+                        'links': len(page.get_links()),
+                        'is_scanned': False
                     }
+
+                    # 检测是否为扫描页（文字过少）
+                    if len(page_text.strip()) < self.ocr_min_chars:
+                        page_info['is_scanned'] = True
+                        structure_info['scanned_pages'].append(page_num)
+                        self.logger.debug(f"🔍 检测到扫描页: 第{page_num + 1}页 (仅{len(page_text)}字符)")
+
+                    text_content += f"\n--- 第{page_num + 1}页 ---\n"
+                    text_content += page_text
 
                     # 提取标题（基于字体大小和样式）
                     blocks = page.get_text("dict")
@@ -129,7 +177,38 @@ class PDFParser:
 
         # 在线程池中运行，避免阻塞
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, extract_text)
+        text_content, structure_info = await loop.run_in_executor(None, extract_text)
+
+        # 如果检测到扫描页且OCR已启用，进行OCR识别
+        scanned_pages = structure_info.get('scanned_pages', [])
+        if scanned_pages and self.enable_ocr:
+            self.logger.info(f"🔄 检测到 {len(scanned_pages)} 个扫描页面，启动OCR识别...")
+
+            ocr_parser = self._get_ocr_parser()
+            if ocr_parser:
+                try:
+                    # 对扫描页进行OCR识别
+                    ocr_results = await ocr_parser.ocr_pdf(file_path, scanned_pages)
+
+                    # 将OCR结果合并到文本中
+                    if ocr_results:
+                        text_content = self._merge_ocr_results(
+                            text_content,
+                            ocr_results,
+                            structure_info
+                        )
+
+                        # 更新字符统计
+                        total_ocr_chars = sum(len(text) for text in ocr_results.values())
+                        structure_info['total_chars'] += total_ocr_chars
+                        structure_info['ocr_chars'] = total_ocr_chars
+
+                        self.logger.info(f"✅ OCR识别完成，额外提取 {total_ocr_chars} 字符")
+
+                except Exception as e:
+                    self.logger.error(f"OCR识别失败: {e}")
+
+        return text_content, structure_info
 
     async def _extract_tables_with_pdfplumber(self, file_path: str) -> List[Dict]:
         """使用pdfplumber提取表格"""
@@ -327,5 +406,41 @@ class PDFParser:
                         merged_lines.append(f"\n[表格 {table['table_index'] + 1}]")
                         merged_lines.append(table['text_representation'])
                         merged_lines.append("")
+
+        return '\n'.join(merged_lines)
+
+    def _merge_ocr_results(self, text_content: str, ocr_results: Dict[int, str], structure_info: Dict) -> str:
+        """
+        将OCR识别结果合并到原文本中
+
+        Args:
+            text_content: 原始文本内容
+            ocr_results: OCR识别结果 {页码: OCR文本}
+            structure_info: 结构信息
+
+        Returns:
+            str: 合并后的文本
+        """
+        lines = text_content.split('\n')
+        merged_lines = []
+
+        for line in lines:
+            merged_lines.append(line)
+
+            # 检查是否是页面分割线
+            if line.startswith('--- 第') and line.endswith('页 ---'):
+                # 提取页码
+                page_match = re.search(r'第(\d+)页', line)
+                if page_match:
+                    page_num = int(page_match.group(1)) - 1  # 转换为从0开始的索引
+
+                    # 如果该页有OCR结果，插入OCR文本
+                    if page_num in ocr_results:
+                        ocr_text = ocr_results[page_num]
+                        if ocr_text.strip():
+                            merged_lines.append(f"\n[OCR识别内容]")
+                            merged_lines.append(ocr_text)
+                            merged_lines.append("")
+                            self.logger.debug(f"已插入第{page_num + 1}页的OCR内容 ({len(ocr_text)}字符)")
 
         return '\n'.join(merged_lines)

@@ -76,6 +76,7 @@ class LLMClient:
              prompt: str,
              system_prompt: Optional[str] = None,
              temperature: float = 0.7,
+             max_tokens: Optional[int] = None,
              max_retries: int = 3,
              purpose: str = "LLM调用") -> str:
         """
@@ -85,6 +86,7 @@ class LLMClient:
             prompt: 用户提示词
             system_prompt: 系统提示词
             temperature: 温度参数
+            max_tokens: 最大生成token数（None则使用默认值）
             max_retries: 最大重试次数
             purpose: 调用目的（用于日志）
 
@@ -94,10 +96,13 @@ class LLMClient:
         Raises:
             APIError: API调用失败
         """
+        # 使用传入的max_tokens或默认值
+        actual_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+
         if self.model_name.startswith('unicom') or self.model_name.startswith('yuanjing'):
             try:
                 return self._call_unicom_yuanjing(
-                    prompt, system_prompt, temperature, max_retries, purpose
+                    prompt, system_prompt, temperature, actual_max_tokens, max_retries, purpose
                 )
             except APIError as e:
                 # 如果联通元景API不可用，尝试使用默认的OpenAI兼容API作为fallback
@@ -105,7 +110,7 @@ class LLMClient:
                 if "服务暂时不可用" in error_str or "code: 14" in error_str:
                     self.logger.warning(f"联通元景API不可用，尝试使用默认API作为fallback: {e}")
                     return self._call_openai_compatible_fallback(
-                        prompt, system_prompt, temperature, max_retries, f"{purpose} (fallback)"
+                        prompt, system_prompt, temperature, actual_max_tokens, max_retries, f"{purpose} (fallback)"
                     )
                 else:
                     raise  # 对于其他错误，直接抛出
@@ -113,17 +118,18 @@ class LLMClient:
             # 始皇API使用OpenAI兼容格式，但使用配置的温度参数
             actual_temperature = self.temperature if hasattr(self, 'temperature') else temperature
             return self._call_openai_compatible(
-                prompt, system_prompt, actual_temperature, max_retries, purpose
+                prompt, system_prompt, actual_temperature, actual_max_tokens, max_retries, purpose
             )
         else:
             return self._call_openai_compatible(
-                prompt, system_prompt, temperature, max_retries, purpose
+                prompt, system_prompt, temperature, actual_max_tokens, max_retries, purpose
             )
 
     def _call_openai_compatible(self,
                                prompt: str,
                                system_prompt: Optional[str] = None,
                                temperature: float = 0.7,
+                               max_tokens: int = None,
                                max_retries: int = 3,
                                purpose: str = "OpenAI兼容调用") -> str:
         """
@@ -139,10 +145,12 @@ class LLMClient:
             messages.append({'role': 'system', 'content': system_prompt})
         messages.append({'role': 'user', 'content': prompt})
 
+        actual_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+
         data = {
             'model': self.actual_model_name,
             'messages': messages,
-            'max_completion_tokens': self.max_tokens,
+            'max_completion_tokens': actual_max_tokens,
             'temperature': temperature
         }
 
@@ -154,6 +162,7 @@ class LLMClient:
                                         prompt: str,
                                         system_prompt: Optional[str] = None,
                                         temperature: float = 0.7,
+                                        max_tokens: int = None,
                                         max_retries: int = 3,
                                         purpose: str = "OpenAI兼容fallback调用") -> str:
         """
@@ -181,10 +190,12 @@ class LLMClient:
             messages.append({'role': 'system', 'content': system_prompt})
         messages.append({'role': 'user', 'content': prompt})
 
+        actual_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+
         data = {
             'model': fallback_model,
             'messages': messages,
-            'max_tokens': self.max_tokens,
+            'max_tokens': actual_max_tokens,
             'temperature': temperature
         }
 
@@ -230,6 +241,7 @@ class LLMClient:
                              prompt: str,
                              system_prompt: Optional[str] = None,
                              temperature: float = 0.7,
+                             max_tokens: int = None,
                              max_retries: int = 3,
                              purpose: str = "联通元景调用") -> str:
         """
@@ -253,7 +265,9 @@ class LLMClient:
                 messages.append({'role': 'system', 'content': system_prompt})
             messages.append({'role': 'user', 'content': prompt})
 
-            self.logger.info(f"{purpose} - 使用模型: {self.actual_model_name}")
+            actual_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+
+            self.logger.info(f"{purpose} - 使用模型: {self.actual_model_name}, max_tokens: {actual_max_tokens}")
 
             for attempt in range(max_retries):
                 try:
@@ -267,7 +281,7 @@ class LLMClient:
                     completion = client.chat.completions.create(
                         model=self.actual_model_name,
                         messages=messages,
-                        max_tokens=self.max_tokens,
+                        max_tokens=actual_max_tokens,
                         temperature=temperature
                     )
 

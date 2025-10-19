@@ -9,6 +9,14 @@ document.addEventListener('DOMContentLoaded', function() {
         loadBusinessFilesList();
     }, 500);
 
+    // 【新增】监听从 HITL Tab 切换过来的事件
+    window.addEventListener('loadBusinessResponse', function(event) {
+        if (event.detail && event.detail.fromHITL) {
+            console.log('[Business Response] 收到来自 HITL 的加载事件:', event.detail);
+            loadFromHITL();
+        }
+    });
+
     // 商务应答文件上传处理
     const businessTemplateFile = document.getElementById('businessTemplateFile');
     if (businessTemplateFile) {
@@ -671,4 +679,70 @@ async function syncToHitlProject(hitlTaskId, filePath) {
             alert(errorMsg);
         }
     }
+}
+
+/**
+ * 【新增】从HITL投标管理加载数据
+ */
+function loadFromHITL() {
+    console.log('[Business Response] 开始从HITL加载数据');
+
+    if (!window.projectDataBridge) {
+        console.warn('[Business Response] projectDataBridge 未定义');
+        return;
+    }
+
+    const bridge = window.projectDataBridge;
+
+    // 1. 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
+    if (window.companyStateManager) {
+        const companyData = window.companyStateManager.getSelectedCompany();
+        if (companyData) {
+            console.log('[Business Response] 公司和项目信息:', {
+                companyId: companyData.company_id,
+                companyName: companyData.company_name,
+                projectName: companyData.project_name
+            });
+
+            // 更新商务应答表单的公司ID
+            const companySelect = document.getElementById('businessCompanyId');
+            if (companySelect) {
+                companySelect.value = companyData.company_id || '';
+            }
+        }
+    }
+
+    // 2. 【修改】从 projectDataBridge 加载应答文件信息（替代全局变量）
+    const businessFile = bridge.getFileInfo('business');
+    if (businessFile?.fileUrl && businessFile?.fileName) {
+        console.log('[Business Response] 找到应答文件:', businessFile.fileName);
+
+        // 【重要】保存到全局变量供表单提交时使用
+        window.businessResponseFileUrl = businessFile.fileUrl;
+        window.businessResponseFileName = businessFile.fileName;
+
+        // 显示文件信息
+        const fileNameDiv = document.getElementById('businessTemplateFileName');
+        if (fileNameDiv) {
+            fileNameDiv.innerHTML = `
+                <div class="alert alert-success py-2 d-flex align-items-center">
+                    <i class="bi bi-file-earmark-word me-2"></i>
+                    <span>${businessFile.fileName}</span>
+                    <span class="badge bg-success ms-2">已从投标项目加载</span>
+                </div>
+            `;
+        }
+
+        // 隐藏上传区域
+        const uploadArea = document.getElementById('businessTemplateFile');
+        if (uploadArea) {
+            uploadArea.style.display = 'none';
+        }
+
+        console.log('[Business Response] 文件信息已显示，已保存到全局变量');
+    } else {
+        console.warn('[Business Response] 未找到应答文件信息');
+    }
+
+    console.log('[Business Response] 从HITL加载数据完成');
 }

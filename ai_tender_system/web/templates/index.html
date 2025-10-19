@@ -15,6 +15,16 @@
     <link href="/static/css/components/universal-uploader.css" rel="stylesheet">
     <!-- 资质组件样式 -->
     <link href="/static/css/components/qualifications.css" rel="stylesheet">
+    <!-- 知识库组件样式 -->
+    <link href="/static/css/components/buttons.css" rel="stylesheet">
+    <link href="/static/css/components/cards.css" rel="stylesheet">
+    <link href="/static/css/components/modals.css" rel="stylesheet">
+    <link href="/static/css/components/navigation.css" rel="stylesheet">
+    <link href="/static/css/components/privacy-badges.css" rel="stylesheet">
+    <link href="/static/css/components/case-library.css" rel="stylesheet">
+    <!-- 投标管理(HITL)专用样式 -->
+    <link href="/static/css/tender-processing-hitl.css" rel="stylesheet">
+    <link href="/static/css/tender-processing-step3-enhanced.css" rel="stylesheet">
 
     <!-- 外部库 -->
     <script src="/static/vendor/chart.js/chart.umd.min.js"></script>
@@ -26,7 +36,6 @@
 
     <!-- 模块化JavaScript架构 -->
     <script src="/static/js/company-config.js"></script>
-    <script src="/static/js/company-manager.js"></script>
     <script src="/static/js/timer-manager.js"></script>
     <script src="/static/js/progress-manager.js"></script>
 
@@ -49,11 +58,120 @@
     <script src="/static/js/word-editor.js"></script>
 
     <!-- 页面特定模块 -->
-    <script src="/static/js/pages/index/tender-processor.js"></script>
     <script src="/static/js/pages/index/proposal-generator.js"></script>
     <script src="/static/js/pages/index/business-response-handler.js"></script>
     <script src="/static/js/pages/index/point-to-point-handler.js"></script>
     <script src="/static/js/pages/index/page-utilities.js"></script>
+
+    <!-- 全局状态管理对象 - 用于 HITL 和其他页面间的数据共享 -->
+    <script>
+        /**
+         * 项目数据桥接器 - 用于在不同 Tab 之间传递数据
+         * 替代 URL 参数传递,实现更流畅的 Tab 内跳转
+         *
+         * 注意: 公司和项目信息已移至 companyStateManager 统一管理
+         */
+        window.projectDataBridge = {
+            // HITL 任务信息
+            hitlTaskId: null,
+
+            // 技术需求文件信息
+            technicalFile: {
+                taskId: null,
+                fileName: null,
+                fileSize: null,
+                fileUrl: null
+            },
+
+            // 【新增】文件信息管理
+            files: {
+                originalTender: { fileName: null, filePath: null },
+                technical: { fileName: null, filePath: null, fileSize: null },
+                response: { fileName: null, filePath: null, fileSize: null },
+                business: { fileUrl: null, fileName: null }
+            },
+
+            /**
+             * 设置技术需求文件信息
+             */
+            setTechnicalFile(taskId, fileName, fileSize, fileUrl) {
+                this.technicalFile = {
+                    taskId: taskId,
+                    fileName: fileName,
+                    fileSize: fileSize,
+                    fileUrl: fileUrl
+                };
+                this.hitlTaskId = taskId;
+                console.log('[ProjectDataBridge] 技术需求文件信息已设置:', this.technicalFile);
+            },
+
+            /**
+             * 清空技术需求文件信息
+             */
+            clearTechnicalFile() {
+                this.technicalFile = {
+                    taskId: null,
+                    fileName: null,
+                    fileSize: null,
+                    fileUrl: null
+                };
+                console.log('[ProjectDataBridge] 技术需求文件信息已清空');
+            },
+
+            /**
+             * 获取技术需求文件信息
+             */
+            getTechnicalFile() {
+                return this.technicalFile;
+            },
+
+            /**
+             * 【新增】设置文件信息
+             */
+            setFileInfo(fileType, fileData) {
+                console.log(`[ProjectDataBridge] 准备设置 ${fileType} 文件信息:`, fileData);
+                console.log(`[ProjectDataBridge] this.files[${fileType}] 当前值:`, this.files ? this.files[fileType] : 'files对象未定义');
+
+                if (!this.files) {
+                    console.error(`[ProjectDataBridge] files 对象未初始化`);
+                    return;
+                }
+
+                // 【修改】直接设置，不需要条件检查（与 setTechnicalFile 保持一致）
+                this.files[fileType] = { ...fileData };
+                console.log(`[ProjectDataBridge] ${fileType} 文件信息已设置:`, this.files[fileType]);
+            },
+
+            /**
+             * 【新增】获取文件信息
+             */
+            getFileInfo(fileType) {
+                return this.files[fileType] || {};
+            },
+
+            /**
+             * 清空所有数据
+             */
+            clearAll() {
+                this.companyId = null;
+                this.companyName = null;
+                this.projectId = null;
+                this.projectName = null;
+                this.hitlTaskId = null;
+                this.clearTechnicalFile();
+                // 清空文件信息
+                this.files = {
+                    originalTender: { fileName: null, filePath: null },
+                    technical: { fileName: null, filePath: null, fileSize: null },
+                    response: { fileName: null, filePath: null, fileSize: null },
+                    business: { fileUrl: null, fileName: null }
+                };
+                console.log('[ProjectDataBridge] 所有数据已清空');
+            }
+        };
+
+        console.log('[ProjectDataBridge] 全局状态管理器已初始化');
+    </script>
 </head>
 <body>
     <!-- 导航栏 -->
@@ -72,8 +190,8 @@
                                 <a href="#" class="list-group-item list-group-item-action active" id="home-nav" data-bs-toggle="pill" data-bs-target="#home">
                                     <i class="bi bi-house me-2"></i>首页
                                 </a>
-                                <a href="#" class="list-group-item list-group-item-action" id="tender-info-nav" data-bs-toggle="pill" data-bs-target="#tender-info">
-                                    <i class="bi bi-upload me-2"></i>上传标书
+                                <a href="#" class="list-group-item list-group-item-action" id="tender-management-nav" data-bs-toggle="pill" data-bs-target="#tender-management">
+                                    <i class="bi bi-clipboard-check me-2"></i>投标管理
                                 </a>
                                 <a href="#" class="list-group-item list-group-item-action" id="business-response-nav" data-bs-toggle="pill" data-bs-target="#business-response">
                                     <i class="bi bi-briefcase me-2"></i>商务应答
@@ -90,12 +208,31 @@
                                 <a href="#" class="list-group-item list-group-item-action" id="tender-scoring-nav" data-bs-toggle="pill" data-bs-target="#tender-scoring">
                                     <i class="bi bi-star me-2"></i>标书评分
                                 </a>
-                                <a href="/knowledge_base?action=company_management" class="list-group-item list-group-item-action">
-                                    <i class="bi bi-building me-2"></i>公司管理
+
+                                <!-- 知识库管理 - 可折叠二级菜单 -->
+                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                   data-bs-toggle="collapse" data-bs-target="#knowledgeSubmenu" aria-expanded="false">
+                                    <span>
+                                        <i class="bi bi-collection me-2"></i>知识库管理
+                                    </span>
+                                    <i class="bi bi-chevron-down"></i>
                                 </a>
-                                <a href="/knowledge_base" class="list-group-item list-group-item-action">
-                                    <i class="bi bi-collection me-2"></i>知识库管理
-                                </a>
+                                <div class="collapse" id="knowledgeSubmenu">
+                                    <div class="list-group list-group-flush ps-4">
+                                        <a href="#" class="list-group-item list-group-item-action border-0"
+                                           id="company-library-nav" data-bs-toggle="pill" data-bs-target="#knowledge-company-library">
+                                            <i class="bi bi-building text-primary me-2"></i>企业信息库
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action border-0"
+                                           id="case-library-nav" data-bs-toggle="pill" data-bs-target="#knowledge-case-library">
+                                            <i class="bi bi-folder2-open text-warning me-2"></i>案例库
+                                        </a>
+                                        <a href="#" class="list-group-item list-group-item-action border-0"
+                                           id="document-library-nav" data-bs-toggle="pill" data-bs-target="#knowledge-document-library">
+                                            <i class="bi bi-folder text-info me-2"></i>文档库
+                                        </a>
+                                    </div>
+                                </div>
                                 </div>
                             </div>
                         </div>
@@ -112,9 +249,9 @@
                             {% include 'components/index/home-dashboard.html' %}
                         </div>
 
-                        <!-- 上传标书选项卡 -->
-                        <div class="tab-pane fade" id="tender-info" role="tabpanel">
-                            {% include 'components/index/tender-upload-section.html' %}
+                        <!-- 投标管理选项卡 -->
+                        <div class="tab-pane fade" id="tender-management" role="tabpanel">
+                            {% include 'components/index/tender-management-section.html' %}
                         </div>
 
                         <!-- 商务应答选项卡 -->
@@ -175,6 +312,21 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 知识库 - 企业信息库选项卡 -->
+                        <div class="tab-pane fade" id="knowledge-company-library" role="tabpanel">
+                            {% include 'components/knowledge/company-library-section.html' %}
+                        </div>
+
+                        <!-- 知识库 - 案例库选项卡 -->
+                        <div class="tab-pane fade" id="knowledge-case-library" role="tabpanel">
+                            {% include 'components/knowledge/case-library-section.html' %}
+                        </div>
+
+                        <!-- 知识库 - 文档库选项卡 -->
+                        <div class="tab-pane fade" id="knowledge-document-library" role="tabpanel">
+                            {% include 'components/knowledge/document-library-section.html' %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -187,6 +339,29 @@
 
     <!-- Bootstrap JS -->
     <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Axios - HTTP请求库（知识库需要） -->
+    <script src="/static/vendor/axios/axios.min.js"></script>
+
+    <!-- Docx-Preview - Word文档预览（投标管理需要） -->
+    <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
+
+    <!-- 投标管理(HITL)脚本 - 按顺序加载 -->
+    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=1760001321"></script>
+    <script src="/static/js/pages/tender-processing-step1.js"></script>
+    <script src="/static/js/pages/tender-processing-step2.js"></script>
+    <!-- HITL配置管理器 -->
+    <script src="/static/js/hitl-config-manager.js"></script>
+
+    <!-- 知识库管理器模块 -->
+    <script src="/static/js/pages/knowledge-base/category-manager.js"></script>
+    <script src="/static/js/pages/knowledge-base/document-manager.js?v=20251019a"></script>
+    <script src="/static/js/pages/knowledge-base/search-manager.js"></script>
+    <script src="/static/js/pages/knowledge-base/company-profile-manager.js"></script>
+    <script src="/static/js/pages/knowledge-base/case-library-manager.js?v=20251019e"></script>
+    <script src="/static/js/pages/knowledge-base/rag-integration.js"></script>
+    <script src="/static/js/pages/knowledge-base/ai-search-manager.js"></script>
+    <script src="/static/js/pages/knowledge-base/document-viewer.js"></script>
 
     <!-- 页面初始化和功能脚本 -->
     <script>
@@ -424,6 +599,55 @@
             // 初始化模型管理器
             ModelManager.init();
 
+            // 初始化投标管理配置管理器
+            if (typeof HITLConfigManager !== 'undefined') {
+                console.log('[Index] 初始化 HITLConfigManager...');
+                HITLConfigManager.init();
+            } else {
+                console.warn('[Index] HITLConfigManager 未定义');
+            }
+
+            // 监听投标管理tab的显示事件，自动填充公司和项目信息
+            const tenderManagementTab = document.getElementById('tender-management-nav');
+            if (tenderManagementTab) {
+                tenderManagementTab.addEventListener('shown.bs.tab', function() {
+                    console.log('[Index] 投标管理tab已激活，检查全局变量...');
+
+                    // 从全局变量读取公司和项目信息
+                    const bridge = window.projectDataBridge;
+                    if (bridge && bridge.companyId) {
+                        setTimeout(() => {
+                            const companySelect = document.getElementById('hitlCompanySelect');
+                            if (companySelect && window.HITLConfigManager) {
+                                // 设置公司选择器
+                                companySelect.value = bridge.companyId;
+                                window.HITLConfigManager.currentCompanyId = bridge.companyId;
+
+                                // 更新公司名称显示
+                                const companyNameSpan = document.getElementById('hitlSelectedCompanyName');
+                                if (companyNameSpan && bridge.companyName) {
+                                    companyNameSpan.textContent = bridge.companyName;
+                                    companyNameSpan.className = 'text-primary fw-bold';
+                                }
+
+                                console.log('[Index] 投标管理tab - 已从全局变量填充公司信息:', {
+                                    companyId: bridge.companyId,
+                                    companyName: bridge.companyName
+                                });
+
+                                // 如果有项目信息，也记录下来
+                                if (bridge.projectId || bridge.projectName) {
+                                    console.log('[Index] 投标管理tab - 项目信息:', {
+                                        projectId: bridge.projectId,
+                                        projectName: bridge.projectName
+                                    });
+                                }
+                            }
+                        }, 100);
+                    }
+                });
+            }
+
             // 侧边栏切换功能 - 适配响应式网格布局
             const sidebarToggle = document.getElementById('sidebarToggle');
             if (sidebarToggle) {
@@ -550,7 +774,39 @@
             }
 
             // 处理不同的hash
-            if (hash === '#business-response') {
+            if (hash === '#tender-management') {
+                console.log('[Index] 检测到URL hash: #tender-management');
+                const nav = document.getElementById('tender-management-nav');
+                if (nav) {
+                    new bootstrap.Tab(nav).show();
+
+                    // 填充投标管理页面的公司和项目信息
+                    setTimeout(() => {
+                        if (companyId) {
+                            const companySelect = document.getElementById('hitlCompanySelect');
+                            if (companySelect && window.HITLConfigManager) {
+                                companySelect.value = companyId;
+                                window.HITLConfigManager.currentCompanyId = companyId;
+
+                                // 更新公司名称显示
+                                const companyNameSpan = document.getElementById('hitlSelectedCompanyName');
+                                if (companyNameSpan && companyName) {
+                                    companyNameSpan.textContent = companyName;
+                                    companyNameSpan.className = 'text-primary fw-bold';
+                                }
+
+                                console.log('[Index] 投标管理 - 已填充公司ID:', companyId);
+                            }
+                        }
+
+                        // 如果有项目信息，填充项目选择器
+                        if (projectName) {
+                            console.log('[Index] 投标管理 - 项目名称:', projectName);
+                            // 项目信息会在loadProjects之后自动匹配
+                        }
+                    }, 200);
+                }
+            } else if (hash === '#business-response') {
                 console.log('[Index] 检测到URL hash: #business-response');
                 const nav = document.getElementById('business-response-nav');
                 if (nav) {
@@ -792,5 +1048,102 @@
             }
         }
     </script>
+
+    <!-- 投标管理模态框 -->
+    <!-- 文档预览模态框 -->
+    <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="documentPreviewModalLabel">
+                        <i class="bi bi-eye"></i> 文档预览
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="documentPreviewContent" style="min-height: 500px; padding: 20px; background: white;">
+                        <!-- 预览内容将在这里显示 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 章节选择模态框（用于商务应答） -->
+    <div class="modal fade" id="chapterSelectionModal" tabindex="-1" aria-labelledby="chapterSelectionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="chapterSelectionModalLabel">
+                        <i class="bi bi-list-nested me-2"></i>选择章节作为商务应答格式
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 统计信息 -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center py-2">
+                                    <small class="text-muted">总章节数</small>
+                                    <h5 class="mb-0" id="modalStatTotalChapters">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center py-2">
+                                    <small>已选择</small>
+                                    <h5 class="mb-0" id="modalStatSelectedChapters">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center py-2">
+                                    <small>选中字数</small>
+                                    <h5 class="mb-0" id="modalStatSelectedWords">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 批量操作 -->
+                    <div class="mb-3">
+                        <button class="btn btn-sm btn-outline-primary" id="modalSelectAllBtn">
+                            <i class="bi bi-check-all"></i> 全选
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="modalUnselectAllBtn">
+                            <i class="bi bi-x"></i> 全不选
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" id="modalSelectTechBtn">
+                            <i class="bi bi-cpu"></i> 仅选技术章节
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" id="modalExcludeContractBtn">
+                            <i class="bi bi-file-x"></i> 排除合同条款
+                        </button>
+                    </div>
+
+                    <!-- 章节树容器 -->
+                    <div id="modalChapterTreeContainer" style="max-height: 500px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; background: #f8f9fa;">
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-folder2-open" style="font-size: 3rem;"></i>
+                            <p class="mt-3">正在加载章节...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" id="confirmSaveResponseFileBtn">
+                        <i class="bi bi-check-circle me-2"></i>确认保存为应答文件
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

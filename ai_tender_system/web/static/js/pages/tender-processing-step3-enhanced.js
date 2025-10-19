@@ -2269,36 +2269,106 @@ function convertRequirementsToJSON(requirements) {
  * 打开商务应答页面，并传递项目和公司信息
  */
 function openBusinessResponse() {
-    console.log('[openBusinessResponse] 准备跳转到商务应答页面');
+    console.log('[openBusinessResponse] 准备切换到商务应答Tab');
 
-    // 获取项目名称
-    const projectNameEl = document.getElementById('hitlProjectName');
-    const projectName = projectNameEl ? projectNameEl.textContent.replace('已加载: ', '').trim() : '';
+    // 检测是否在首页环境
+    const isInIndexPage = typeof window.projectDataBridge !== 'undefined';
 
-    // 获取公司ID和名称
-    const companyId = HITLConfigManager.currentCompanyId || '';
-    const companySelect = document.getElementById('hitlCompanySelect');
-    const companyName = companySelect ? companySelect.options[companySelect.selectedIndex]?.text || '' : '';
+    if (isInIndexPage) {
+        // 模式 1: Tab 切换模式 (首页内)
+        console.log('[openBusinessResponse] 使用 Tab 切换模式');
 
-    // 获取当前HITL任务ID
-    const hitlTaskId = window.currentHitlTaskId || window.currentTaskId || '';
+        // 【修改】从 companyStateManager 读取数据（统一数据源）
+        const companyData = window.companyStateManager.getSelectedCompany();
+        const projectName = companyData?.project_name || '';
+        const companyId = companyData?.company_id || '';
+        const companyName = companyData?.company_name || '';
+        const hitlTaskId = window.projectDataBridge.hitlTaskId || '';
 
-    console.log('[openBusinessResponse] 项目名称:', projectName);
-    console.log('[openBusinessResponse] 公司ID:', companyId);
-    console.log('[openBusinessResponse] 公司名称:', companyName);
-    console.log('[openBusinessResponse] HITL任务ID:', hitlTaskId);
+        console.log('[openBusinessResponse] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
 
-    // 构建URL参数
-    const params = new URLSearchParams();
-    if (projectName) params.append('project_name', projectName);
-    if (companyId) params.append('company_id', companyId);
-    if (companyName) params.append('company_name', companyName);
-    if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
+        // 【修改】设置应答文件信息到 projectDataBridge
+        const responseFile = window.projectDataBridge.getFileInfo('response');
+        console.log('[openBusinessResponse] 应答文件信息:', responseFile);
 
-    // 打开新标签页
-    const url = `/?${params.toString()}#business-response`;
-    console.log('[openBusinessResponse] 跳转URL:', url);
-    window.open(url, '_blank');
+        if (hitlTaskId && responseFile?.fileName) {
+            console.log('[openBusinessResponse] 使用商务应答格式:', responseFile.fileName);
+
+            // 【修复】构建正确的下载URL
+            let fileUrl;
+            if (responseFile.filePath) {
+                // filePath 是绝对路径，需要提取文件名
+                const fileName = responseFile.filePath.split('/').pop();
+                fileUrl = `/download/${fileName}`;
+            } else {
+                // 备用URL（如果filePath不存在）
+                fileUrl = `/download/${responseFile.fileName}`;
+            }
+
+            // 设置到 projectDataBridge 供商务应答使用
+            window.projectDataBridge.setFileInfo('business', {
+                fileUrl: fileUrl,
+                fileName: responseFile.fileName,
+                filePath: responseFile.filePath  // 保留原始路径
+            });
+            console.log('[openBusinessResponse] 商务应答格式信息已设置:', {
+                fileUrl: fileUrl,
+                fileName: responseFile.fileName
+            });
+        } else {
+            console.warn('[openBusinessResponse] 商务应答格式未保存,请先在商务应答格式Tab保存文件');
+            console.warn('[openBusinessResponse] hitlTaskId:', hitlTaskId);
+            console.warn('[openBusinessResponse] responseFile:', responseFile);
+        }
+
+        // 【修改】切换到商务应答 Tab（替代 window.open）
+        const businessResponseTab = document.querySelector('[data-bs-target="#business-response"]');
+        if (businessResponseTab) {
+            const tab = new bootstrap.Tab(businessResponseTab);
+            tab.show();
+
+            // 触发自定义事件通知商务应答组件加载数据
+            window.dispatchEvent(new CustomEvent('loadBusinessResponse', {
+                detail: {
+                    fromHITL: true,
+                    taskId: hitlTaskId
+                }
+            }));
+
+            console.log('[openBusinessResponse] 已切换到商务应答Tab');
+        } else {
+            console.error('[openBusinessResponse] 未找到商务应答Tab');
+        }
+    } else {
+        // 模式 2: URL 参数跳转模式 (独立 HITL 页面)
+        console.log('[openBusinessResponse] 使用 URL 参数跳转模式');
+
+        // 获取项目名称
+        const projectNameEl = document.getElementById('hitlProjectName');
+        const projectName = projectNameEl ? projectNameEl.textContent.replace('已加载: ', '').trim() : '';
+
+        // 获取公司ID和名称
+        const companyId = HITLConfigManager.currentCompanyId || '';
+        const companySelect = document.getElementById('hitlCompanySelect');
+        const companyName = companySelect ? companySelect.options[companySelect.selectedIndex]?.text || '' : '';
+
+        // 获取HITL任务ID
+        const hitlTaskId = (typeof window.projectDataBridge !== 'undefined' && window.projectDataBridge.hitlTaskId) || '';
+
+        console.log('[openBusinessResponse] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
+
+        // 构建URL参数
+        const params = new URLSearchParams();
+        if (projectName) params.append('project_name', projectName);
+        if (companyId) params.append('company_id', companyId);
+        if (companyName) params.append('company_name', companyName);
+        if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
+
+        // 跳转到首页的商务应答标签页
+        const url = `/?${params.toString()}#business-response`;
+        console.log('[openBusinessResponse] 跳转URL:', url);
+        window.location.href = url;
+    }
 }
 
 // ============================================
