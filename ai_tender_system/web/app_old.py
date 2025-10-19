@@ -138,11 +138,7 @@ def create_app() -> Flask:
     except ImportError as e:
         logger.warning(f"案例库API模块加载失败: {e}")
 
-    # 注册内部蓝图（新架构）
-    from web.blueprints import register_all_blueprints
-    register_all_blueprints(app, config, logger)
-
-    # 注册路由（旧架构 - 将逐步迁移）
+    # 注册路由
     register_routes(app, config, logger)
     
     logger.info("AI标书系统Web应用初始化完成")
@@ -263,110 +259,110 @@ def register_routes(app: Flask, config, logger):
         return enriched_data
 
     # ===================
-    # 静态页面路由 - 已迁移到 blueprints/auth_bp.py 和 blueprints/pages_bp.py
+    # 静态页面路由
     # ===================
 
-    # @app.route('/')
-    # def index():
-    #     """主页 - 检查登录状态"""
-    #     if 'logged_in' in session:
-    #         return redirect(url_for('dashboard'))
-    #     return redirect(url_for('login'))
+    @app.route('/')
+    def index():
+        """主页 - 检查登录状态"""
+        if 'logged_in' in session:
+            return redirect(url_for('dashboard'))
+        return redirect(url_for('login'))
 
-    # @app.route('/login', methods=['GET', 'POST'])
-    # def login():
-    #     """登录页面"""
-    #     if request.method == 'POST':
-    #         data = request.get_json()
-    #         username = data.get('username', '').strip()
-    #         password = data.get('password', '').strip()
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        """登录页面"""
+        if request.method == 'POST':
+            data = request.get_json()
+            username = data.get('username', '').strip()
+            password = data.get('password', '').strip()
 
-    #         # 简单的用户名密码验证
-    #         if username == 'admin' and password == 'admin123':
-    #             session['logged_in'] = True
-    #             session['username'] = username
-    #             logger.info(f"用户 {username} 登录成功")
-    #             return jsonify({'success': True, 'message': '登录成功'})
-    #         else:
-    #             logger.warning(f"用户 {username} 登录失败：密码错误")
-    #             return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
+            # 简单的用户名密码验证
+            if username == 'admin' and password == 'admin123':
+                session['logged_in'] = True
+                session['username'] = username
+                logger.info(f"用户 {username} 登录成功")
+                return jsonify({'success': True, 'message': '登录成功'})
+            else:
+                logger.warning(f"用户 {username} 登录失败：密码错误")
+                return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
 
-    #     # GET请求显示登录页面
-    #     if 'logged_in' in session:
-    #         return redirect(url_for('dashboard'))
-    #     return render_template('login.html')
+        # GET请求显示登录页面
+        if 'logged_in' in session:
+            return redirect(url_for('dashboard'))
+        return render_template('login.html')
 
-    # @app.route('/logout')
-    # def logout():
-    #     """退出登录"""
-    #     username = session.get('username', 'Unknown')
-    #     session.clear()
-    #     logger.info(f"用户 {username} 已退出登录")
-    #     return redirect(url_for('login'))
+    @app.route('/logout')
+    def logout():
+        """退出登录"""
+        username = session.get('username', 'Unknown')
+        session.clear()
+        logger.info(f"用户 {username} 已退出登录")
+        return redirect(url_for('login'))
 
-    # @app.route('/dashboard')
-    # @login_required
-    # def dashboard():
-    #     """主仪表板（原index页面）"""
-    #     return render_template('index.html')
+    @app.route('/dashboard')
+    @login_required
+    def dashboard():
+        """主仪表板（原index页面）"""
+        return render_template('index.html')
+    
+    
+    @app.route('/help.html')
+    def help():
+        """帮助页面"""
+        return render_template('help.html')
+    
+    @app.route('/system_status.html')
+    def system_status():
+        """系统状态页面"""
+        return render_template('system_status.html')
 
+    @app.route('/knowledge_base.html')
+    @login_required
+    def knowledge_base_html():
+        """知识库管理页面（HTML路径）"""
+        return render_template('knowledge_base.html')
 
-    # @app.route('/help.html')
-    # def help():
-    #     """帮助页面"""
-    #     return render_template('help.html')
+    @app.route('/knowledge_base')
+    @login_required
+    def knowledge_base():
+        """知识库管理页面"""
+        return render_template('knowledge_base.html')
 
-    # @app.route('/system_status.html')
-    # def system_status():
-    #     """系统状态页面"""
-    #     return render_template('system_status.html')
+    @app.route('/tender_processing.html')
+    def tender_processing_html():
+        """标书智能处理页面（HTML路径）"""
+        return render_template('tender_processing.html')
 
-    # @app.route('/knowledge_base.html')
-    # @login_required
-    # def knowledge_base_html():
-    #     """知识库管理页面（HTML路径）"""
-    #     return render_template('knowledge_base.html')
+    @app.route('/tender_processing')
+    def tender_processing():
+        """标书智能处理页面"""
+        return render_template('tender_processing.html')
 
-    # @app.route('/knowledge_base')
-    # @login_required
-    # def knowledge_base():
-    #     """知识库管理页面"""
-    #     return render_template('knowledge_base.html')
-
-    # @app.route('/tender_processing.html')
-    # def tender_processing_html():
-    #     """标书智能处理页面（HTML路径）"""
-    #     return render_template('tender_processing.html')
-
-    # @app.route('/tender_processing')
-    # def tender_processing():
-    #     """标书智能处理页面"""
-    #     return render_template('tender_processing.html')
-
-    # @app.route('/tender_processing_hitl')
-    # @app.route('/tender-processing')  # 友好的URL别名
-    # def tender_processing_hitl():
-    #     """标书智能处理页面 - HITL流程"""
-    #     return render_template('tender_processing_hitl.html')
+    @app.route('/tender_processing_hitl')
+    @app.route('/tender-processing')  # 友好的URL别名
+    def tender_processing_hitl():
+        """标书智能处理页面 - HITL流程"""
+        return render_template('tender_processing_hitl.html')
 
     # ===================
-    # 静态资源路由 - 已迁移到 blueprints/static_files_bp.py
+    # 静态资源路由
     # ===================
-
-    # @app.route('/css/<path:filename>')
-    # def serve_css(filename):
-    #     """提供CSS文件"""
-    #     return send_from_directory(config.get_path('static') / 'css', filename)
-
-    # @app.route('/js/<path:filename>')
-    # def serve_js(filename):
-    #     """提供JavaScript文件"""
-    #     return send_from_directory(config.get_path('static') / 'js', filename)
-
-    # @app.route('/images/<path:filename>')
-    # def serve_images(filename):
-    #     """提供图片文件"""
-    #     return send_from_directory(config.get_path('static') / 'images', filename)
+    
+    @app.route('/css/<path:filename>')
+    def serve_css(filename):
+        """提供CSS文件"""
+        return send_from_directory(config.get_path('static') / 'css', filename)
+    
+    @app.route('/js/<path:filename>')
+    def serve_js(filename):
+        """提供JavaScript文件"""
+        return send_from_directory(config.get_path('static') / 'js', filename)
+    
+    @app.route('/images/<path:filename>')
+    def serve_images(filename):
+        """提供图片文件"""
+        return send_from_directory(config.get_path('static') / 'images', filename)
     
     # ===================
     # API路由
