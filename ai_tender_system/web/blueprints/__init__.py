@@ -46,10 +46,48 @@ def register_all_blueprints(app: Flask, config, logger):
         logger.warning(f"静态文件蓝图加载失败: {e}")
 
     # 阶段2: 核心API蓝图
-    # (待实现)
+    try:
+        from .api_core_bp import api_core_bp
+        app.register_blueprint(api_core_bp)
+        logger.info("核心API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"核心API蓝图加载失败: {e}")
+
+    try:
+        from .api_files_bp import api_files_bp
+        app.register_blueprint(api_files_bp)
+        logger.info("文件管理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"文件管理API蓝图加载失败: {e}")
+
+    try:
+        from .api_tender_bp import api_tender_bp
+        app.register_blueprint(api_tender_bp)
+        logger.info("招标信息API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"招标信息API蓝图加载失败: {e}")
 
     # 阶段3: 业务API蓝图
-    # (待实现)
+    try:
+        from .api_business_bp import api_business_bp
+        app.register_blueprint(api_business_bp)
+        logger.info("商务应答API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"商务应答API蓝图加载失败: {e}")
+
+    try:
+        from .api_tech_bp import api_tech_bp
+        app.register_blueprint(api_tech_bp)
+        logger.info("技术需求API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"技术需求API蓝图加载失败: {e}")
+
+    try:
+        from .api_companies_bp import api_companies_bp
+        app.register_blueprint(api_companies_bp)
+        logger.info("公司管理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"公司管理API蓝图加载失败: {e}")
 
     # 阶段4: HITL任务处理蓝图
     # (待实现)

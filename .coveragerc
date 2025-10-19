@@ -1,0 +1,81 @@
+# Coverage.py 配置文件
+
+[run]
+# 运行配置
+source = ai_tender_system
+omit =
+    # 测试文件
+    */tests/*
+    */test_*.py
+    *_test.py
+    # 虚拟环境
+    */venv/*
+    */env/*
+    */.venv/*
+    # Python 缓存
+    */__pycache__/*
+    */.pytest_cache/*
+    # 第三方库
+    */site-packages/*
+    # 配置和脚本
+    setup.py
+    */migrations/*
+    # 临时文件
+    */temp/*
+    */tmp/*
+
+# 分支覆盖率
+branch = True
+
+# 并行运行
+parallel = True
+
+[report]
+# 报告配置
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+
+# 排除某些行不计入覆盖率
+exclude_lines =
+    # 默认排除
+    pragma: no cover
+    # 抽象方法
+    @abstract
+    @abc.abstractmethod
+    # 调试代码
+    def __repr__
+    def __str__
+    # 异常处理
+    raise AssertionError
+    raise NotImplementedError
+    # 类型检查
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+    # 主程序入口
+    if __name__ == .__main__.:
+    # Pass 语句
+    pass
+    # 省略号
+    \.\.\.
+
+# 忽略错误
+ignore_errors = False
+
+# 最小覆盖率要求
+fail_under = 80
+
+[html]
+# HTML 报告配置
+directory = htmlcov
+title = AI 标书系统测试覆盖率报告
+
+[xml]
+# XML 报告配置（用于 CI/CD）
+output = coverage.xml
+
+[json]
+# JSON 报告配置
+output = coverage.json
+pretty_print = True

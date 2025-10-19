@@ -1,0 +1,30 @@
+# 开发和测试依赖
+# 安装命令: pip install -r requirements-dev.txt
+
+# 测试框架
+pytest==7.4.3              # 测试框架
+pytest-cov==4.1.0          # 测试覆盖率
+pytest-mock==3.12.0        # Mock 支持
+pytest-asyncio==0.21.1     # 异步测试支持
+pytest-xdist==3.5.0        # 并行测试
+
+# 代码质量
+black==23.12.1             # 代码格式化
+flake8==6.1.0              # 代码检查
+pylint==3.0.3              # 代码分析
+mypy==1.7.1                # 类型检查
+isort==5.13.2              # import 排序
+
+# 测试工具
+faker==21.0.0              # 生成测试数据
+factory-boy==3.3.0         # 测试数据工厂
+responses==0.24.1          # HTTP Mock
+freezegun==1.4.0           # 时间Mock
+
+# 文档生成
+sphinx==7.2.6              # 文档生成
+sphinx-rtd-theme==2.0.0    # Read the Docs 主题
+
+# 调试工具
+ipython==8.19.0            # 增强的 Python Shell
+ipdb==0.13.13              # IPython debugger
