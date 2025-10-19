@@ -1,10 +1,10 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "pip install -r requirements.txt"
+    "builder": "NIXPACKS"
   },
   "deploy": {
+    "startCommand": "cd ai_tender_system && gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 'web.app:create_app()'",
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
