@@ -10,11 +10,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制依赖文件
-COPY requirements.txt .
+# 设置pip镜像源加速下载
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 复制依赖文件(优先使用生产环境依赖)
+COPY requirements-prod.txt requirements.txt* ./
+
+# 安装Python依赖(优先使用requirements-prod.txt)
+RUN if [ -f requirements-prod.txt ]; then \
+        pip install --no-cache-dir -r requirements-prod.txt; \
+    else \
+        pip install --no-cache-dir -r requirements.txt; \
+    fi
 
 # 复制应用代码
 COPY . .
