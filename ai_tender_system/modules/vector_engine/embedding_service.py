@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-文本嵌入服务
-支持多种向量化模型和批量处理
+文本嵌入服务 - API版本
+使用OpenAI Embeddings API代替本地模型
 """
 
 import asyncio
 import numpy as np
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional
 from dataclasses import dataclass
-from datetime import datetime
 import time
+import os
 
 import sys
 from pathlib import Path
@@ -20,33 +20,9 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from common.logger import get_module_logger
+import requests
 
 logger = get_module_logger("vector_engine.embedding")
-
-# 延迟导入以避免启动时加载
-_sentence_transformers = None
-_torch = None
-
-def get_sentence_transformers():
-    global _sentence_transformers
-    if _sentence_transformers is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            _sentence_transformers = SentenceTransformer
-        except ImportError:
-            raise ImportError("需要安装sentence-transformers: pip install sentence-transformers")
-    return _sentence_transformers
-
-def get_torch():
-    global _torch
-    if _torch is None:
-        try:
-            import torch
-            _torch = torch
-        except ImportError:
-            logger.warning("未安装PyTorch，将使用CPU模式")
-            _torch = None
-    return _torch
 
 
 @dataclass
@@ -60,103 +36,90 @@ class EmbeddingResult:
 
 
 class EmbeddingService:
-    """文本嵌入服务"""
+    """文本嵌入服务 - 使用OpenAI API"""
 
     # 支持的模型配置
     SUPPORTED_MODELS = {
-        "chinese": {
-            "model_name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-            "dimensions": 384,
-            "description": "多语言模型，支持中文"
+        "text-embedding-3-small": {
+            "model_name": "text-embedding-3-small",
+            "dimensions": 1536,
+            "description": "OpenAI最新小型嵌入模型,性价比高"
         },
-        "chinese-large": {
-            "model_name": "sentence-transformers/distiluse-base-multilingual-cased",
-            "dimensions": 512,
-            "description": "大型多语言模型，更高精度"
+        "text-embedding-3-large": {
+            "model_name": "text-embedding-3-large",
+            "dimensions": 3072,
+            "description": "OpenAI大型嵌入模型,精度更高"
         },
-        "english": {
-            "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-            "dimensions": 384,
-            "description": "英文专用轻量模型"
+        "text-embedding-ada-002": {
+            "model_name": "text-embedding-ada-002",
+            "dimensions": 1536,
+            "description": "OpenAI经典嵌入模型"
         }
     }
 
-    def __init__(self, model_type: str = "chinese", cache_dir: Optional[str] = None):
+    def __init__(self, model_type: str = "text-embedding-3-small", api_key: Optional[str] = None,
+                 api_endpoint: Optional[str] = None):
         self.logger = logger
         self.model_type = model_type
         self.model_config = self.SUPPORTED_MODELS.get(model_type)
 
         if not self.model_config:
-            raise ValueError(f"不支持的模型类型: {model_type}, 支持的类型: {list(self.SUPPORTED_MODELS.keys())}")
+            # 兼容旧配置,默认使用text-embedding-3-small
+            self.logger.warning(f"模型类型 {model_type} 不支持,使用默认模型 text-embedding-3-small")
+            self.model_type = "text-embedding-3-small"
+            self.model_config = self.SUPPORTED_MODELS[self.model_type]
 
-        self.cache_dir = cache_dir
-        self.model = None
-        self.device = "cpu"  # 默认使用CPU
+        # API配置
+        self.api_key = api_key or os.getenv("EMBEDDING_API_KEY") or os.getenv("OPENAI_API_KEY")
+        self.api_endpoint = api_endpoint or os.getenv("EMBEDDING_API_ENDPOINT") or os.getenv("OPENAI_API_ENDPOINT") or "https://api.openai.com/v1"
+
+        # 确保endpoint正确格式
+        if not self.api_endpoint.endswith("/embeddings"):
+            self.api_endpoint = self.api_endpoint.rstrip("/") + "/embeddings"
+
+        self.timeout = int(os.getenv("EMBEDDING_API_TIMEOUT", "30"))
+        self.initialized = False
 
         # 性能统计
         self.stats = {
             "total_embeddings": 0,
             "total_tokens": 0,
             "avg_processing_time": 0.0,
-            "model_load_time": 0.0
+            "api_calls": 0
         }
 
     async def initialize(self) -> bool:
         """初始化嵌入服务"""
         try:
-            self.logger.info(f"初始化嵌入服务: model_type={self.model_type}")
-            start_time = time.time()
+            if not self.api_key:
+                raise ValueError("未配置EMBEDDING_API_KEY或OPENAI_API_KEY环境变量")
 
-            # 在线程池中加载模型，避免阻塞
-            loop = asyncio.get_event_loop()
-            self.model = await loop.run_in_executor(None, self._load_model)
+            self.logger.info(f"初始化嵌入服务: model={self.model_type}, endpoint={self.api_endpoint}")
 
-            load_time = time.time() - start_time
-            self.stats["model_load_time"] = load_time
-
-            # 检测设备
-            torch = get_torch()
-            if torch and torch.cuda.is_available():
-                self.device = "cuda"
-                self.logger.info("使用GPU加速")
+            # 测试API连接
+            test_result = await self.embed_texts(["测试"], batch_size=1)
+            if test_result.vectors.shape[0] > 0:
+                self.initialized = True
+                self.logger.info(f"嵌入服务初始化成功: dimensions={test_result.dimensions}")
+                return True
             else:
-                self.device = "cpu"
-                self.logger.info("使用CPU模式")
-
-            self.logger.info(f"嵌入服务初始化完成: model={self.model_config['model_name']}, "
-                           f"device={self.device}, load_time={load_time:.2f}s")
-
-            return True
+                raise RuntimeError("API测试失败")
 
         except Exception as e:
             self.logger.error(f"嵌入服务初始化失败: {e}")
             return False
 
-    def _load_model(self):
-        """加载嵌入模型"""
-        SentenceTransformer = get_sentence_transformers()
-
-        model = SentenceTransformer(
-            self.model_config["model_name"],
-            cache_folder=self.cache_dir
-        )
-
-        return model
-
-    async def embed_texts(self, texts: List[str], batch_size: int = 32) -> EmbeddingResult:
+    async def embed_texts(self, texts: List[str], batch_size: int = 100) -> EmbeddingResult:
         """
         批量文本嵌入
 
         Args:
             texts: 待嵌入的文本列表
-            batch_size: 批处理大小
+            batch_size: 批处理大小(OpenAI API最大支持2048个文本)
 
         Returns:
             EmbeddingResult: 嵌入结果
         """
-        if not self.model:
-            raise RuntimeError("嵌入服务未初始化，请先调用initialize()")
-
         if not texts:
             return EmbeddingResult(
                 vectors=np.array([]),
@@ -174,12 +137,9 @@ class EmbeddingService:
             processed_texts = self._preprocess_texts(texts)
 
             # 批量处理
-            loop = asyncio.get_event_loop()
             if len(processed_texts) <= batch_size:
                 # 单批处理
-                vectors = await loop.run_in_executor(
-                    None, self._embed_batch, processed_texts
-                )
+                vectors = await self._embed_batch(processed_texts)
             else:
                 # 多批处理
                 vectors = await self._embed_large_batch(processed_texts, batch_size)
@@ -206,30 +166,65 @@ class EmbeddingService:
             self.logger.error(f"文本嵌入失败: {e}")
             raise
 
-    def _embed_batch(self, texts: List[str]) -> np.ndarray:
-        """单批嵌入"""
-        return self.model.encode(
-            texts,
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            show_progress_bar=False
-        )
+    async def _embed_batch(self, texts: List[str]) -> np.ndarray:
+        """单批嵌入 - 调用API"""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._call_embedding_api, texts)
+
+    def _call_embedding_api(self, texts: List[str]) -> np.ndarray:
+        """调用OpenAI Embeddings API"""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": self.model_config["model_name"],
+            "input": texts
+        }
+
+        try:
+            response = requests.post(
+                self.api_endpoint,
+                headers=headers,
+                json=payload,
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+
+            data = response.json()
+
+            # 提取向量
+            embeddings = []
+            for item in sorted(data["data"], key=lambda x: x["index"]):
+                embeddings.append(item["embedding"])
+
+            self.stats["api_calls"] += 1
+
+            return np.array(embeddings, dtype=np.float32)
+
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"API调用失败: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                self.logger.error(f"响应内容: {e.response.text}")
+            raise
 
     async def _embed_large_batch(self, texts: List[str], batch_size: int) -> np.ndarray:
         """大批量分批嵌入"""
         all_vectors = []
-        loop = asyncio.get_event_loop()
 
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i + batch_size]
-            batch_vectors = await loop.run_in_executor(
-                None, self._embed_batch, batch
-            )
+            batch_vectors = await self._embed_batch(batch)
             all_vectors.append(batch_vectors)
 
             # 记录进度
             progress = (i + len(batch)) / len(texts) * 100
             self.logger.info(f"嵌入进度: {progress:.1f}% ({i + len(batch)}/{len(texts)})")
+
+            # 短暂延迟避免API速率限制
+            if i + batch_size < len(texts):
+                await asyncio.sleep(0.1)
 
         return np.vstack(all_vectors) if all_vectors else np.array([])
 
@@ -239,14 +234,14 @@ class EmbeddingService:
 
         for text in texts:
             if not text or not text.strip():
-                processed.append("")
+                processed.append(" ")  # API不接受空字符串
                 continue
 
             # 清理和规范化
             cleaned = text.strip()
 
-            # 长度限制（避免超长文本影响性能）
-            max_length = 8192  # 模型通常支持的最大长度
+            # 长度限制 - OpenAI模型通常支持8191 tokens
+            max_length = 8000  # 保守估计,1个字符≈1个token
             if len(cleaned) > max_length:
                 cleaned = cleaned[:max_length]
                 self.logger.warning(f"文本被截断: 原长度={len(text)}, 新长度={max_length}")
@@ -286,9 +281,9 @@ class EmbeddingService:
             "model_name": self.model_config["model_name"],
             "dimensions": self.model_config["dimensions"],
             "description": self.model_config["description"],
-            "device": self.device,
+            "api_endpoint": self.api_endpoint,
             "stats": self.stats.copy(),
-            "is_initialized": self.model is not None
+            "is_initialized": self.initialized
         }
 
     def calculate_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
@@ -302,19 +297,10 @@ class EmbeddingService:
         Returns:
             float: 余弦相似度 (-1到1)
         """
-        # 确保向量是规范化的
-        vec1_norm = vec1 / (np.linalg.norm(vec1) + 1e-8)
-        vec2_norm = vec2 / (np.linalg.norm(vec2) + 1e-8)
-
-        return np.dot(vec1_norm, vec2_norm)
+        # OpenAI的embedding已经是规范化的,可以直接点积
+        return float(np.dot(vec1, vec2))
 
     async def cleanup(self):
         """清理资源"""
-        if self.model:
-            # 清理GPU内存
-            torch = get_torch()
-            if torch and torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-            self.model = None
-            self.logger.info("嵌入服务资源已清理")
+        self.logger.info("嵌入服务资源已清理")
+        self.initialized = False
