@@ -112,9 +112,10 @@ python -c "from database.db_manager import init_database; init_database()"
 
 ### Procfile
 ```
-web: gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 "web.app:create_app()"
+web: cd ai_tender_system && gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 "web.app:create_app()"
 ```
 
+- `cd ai_tender_system`: 切换到应用代码目录
 - `web`: 定义 web 服务
 - `--bind 0.0.0.0:$PORT`: 绑定到 Railway 提供的端口
 - `--workers 4`: 使用 4 个工作进程
