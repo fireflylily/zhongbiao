@@ -1,2 +1,0 @@
-[phases.setup]
-aptPkgs = ["gcc", "g++", "python3-dev"]
