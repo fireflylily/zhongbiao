@@ -1,11 +1,13 @@
 # AI标书系统核心依赖
 Flask==2.3.3
 Flask-CORS==4.0.0
+Flask-WTF==1.2.1           # CSRF保护
 Werkzeug==2.3.7
 requests==2.31.0
+gunicorn==21.2.0           # 生产环境WSGI服务器
 
 # 数据库相关
-sqlite3
+# sqlite3 是 Python 标准库，无需安装
 
 # 文档解析相关
 PyMuPDF>=1.23.0           # PDF解析
