@@ -89,6 +89,20 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"公司管理API蓝图加载失败: {e}")
 
+    try:
+        from .api_projects_bp import api_projects_bp
+        app.register_blueprint(api_projects_bp)
+        logger.info("招标项目管理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"招标项目管理API蓝图加载失败: {e}")
+
+    try:
+        from .api_editor_bp import api_editor_bp
+        app.register_blueprint(api_editor_bp)
+        logger.info("文档编辑器API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"文档编辑器API蓝图加载失败: {e}")
+
     # 阶段4: HITL任务处理蓝图
     # (待实现)
 
