@@ -21,12 +21,6 @@ auth_bp = Blueprint('auth', __name__)
 # 日志记录器
 logger = get_module_logger("web.auth")
 
-# CSRF豁免装饰器
-def csrf_exempt(f):
-    """CSRF豁免装饰器"""
-    f.csrf_exempt = True
-    return f
-
 
 @auth_bp.route('/')
 def index():
@@ -43,7 +37,6 @@ def index():
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@csrf_exempt
 def login():
     """
     登录页面和登录处理

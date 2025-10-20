@@ -49,20 +49,42 @@ except ImportError:
 # 辅助函数
 # ===================
 
-def build_image_config_from_db(company_id: int) -> dict:
+def build_image_config_from_db(company_id: int, project_name: str = None) -> dict:
     """
-    从数据库加载公司资质信息并构建图片配置
+    从数据库加载公司资质信息并构建图片配置（智能匹配项目资格要求）
 
     Args:
         company_id: 公司ID
+        project_name: 项目名称（可选）。如果提供，则只插入项目要求的资质
 
     Returns:
         图片配置字典，包含：
         - seal_path: 公章图片路径
         - license_path: 营业执照图片路径
         - qualification_paths: 资质证书图片路径列表
+        - qualification_details: 资质详细信息列表（用于精确插入）
     """
     try:
+        # 如果提供了项目名称，使用智能匹配
+        if project_name:
+            logger.info(f"🎯 为项目 '{project_name}' 智能匹配资质...")
+
+            # 导入资质匹配模块
+            from modules.business_response.qualification_matcher import match_qualifications_for_project
+
+            # 使用智能匹配
+            image_config = match_qualifications_for_project(company_id, project_name, kb_manager)
+
+            if image_config:
+                logger.info(f"✅ 智能匹配完成: {len(image_config)} 个类型")
+                return image_config
+            else:
+                logger.warning(f"⚠️  项目 '{project_name}' 无资质要求或匹配失败，不插入资质证书")
+                return {}
+
+        # 如果没有项目名称，使用旧逻辑（插入所有资质）
+        logger.info(f"📋 未指定项目，加载公司 {company_id} 的所有资质")
+
         # 从数据库获取公司的所有资质
         qualifications = kb_manager.db.get_company_qualifications(company_id)
 
@@ -203,13 +225,13 @@ def process_business_response():
             tender_no = db_project_number
             logger.info(f"使用数据库项目编号: {tender_no}")
 
-        # 从数据库直接加载图片配置（新方案：消除前端时序问题）
-        image_config = build_image_config_from_db(company_id_int)
+        # 从数据库直接加载图片配置（智能匹配项目资格要求）
+        image_config = build_image_config_from_db(company_id_int, project_name)
 
         if image_config:
             logger.info(f"成功从数据库加载图片配置，包含 {len(image_config)} 个类型")
         else:
-            logger.warning(f"公司 {company_id} 没有可用的资质图片")
+            logger.warning(f"公司 {company_id} 没有可用的资质图片或项目无资质要求")
 
         # 从数据库获取公司信息
         company_db_data = kb_manager.get_company_detail(company_id_int)
