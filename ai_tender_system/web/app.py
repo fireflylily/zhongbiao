@@ -86,6 +86,17 @@ def create_app() -> Flask:
 
     # 启用CSRF保护
     csrf = CSRFProtect(app)
+
+    # 配置CSRF豁免检查 - 在请求之前检查视图函数的csrf_exempt属性
+    @app.before_request
+    def check_csrf_exemption():
+        """检查视图是否需要豁免CSRF"""
+        if request.endpoint:
+            view = app.view_functions.get(request.endpoint)
+            if view and getattr(view, 'csrf_exempt', False):
+                # 跳过此视图的CSRF保护
+                csrf._exempt_views.add(request.endpoint)
+
     logger.info("CSRF保护已启用")
 
     # 提供CSRF token的API端点
@@ -138,10 +149,6 @@ def create_app() -> Flask:
     # 注册内部蓝图（新架构）
     from web.blueprints import register_all_blueprints
     register_all_blueprints(app, config, logger)
-
-    # 配置CSRF豁免路由（必须在蓝图注册之后）
-    csrf.exempt('auth.login')  # 登录端点豁免CSRF保护
-    logger.info("已配置登录端点CSRF豁免")
 
     # 注册路由（旧架构 - 将逐步迁移）
     register_routes(app, config, logger)
