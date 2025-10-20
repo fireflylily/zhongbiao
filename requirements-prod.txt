@@ -29,8 +29,10 @@ openpyxl>=3.1.0
 # ===================
 langchain>=0.1.0
 langchain-text-splitters>=0.0.1
+langchain-community>=0.0.1  # LangChain社区集成
 tiktoken>=0.5.0
 jieba>=0.42.1
+aiohttp>=3.8.0  # 异步HTTP客户端
 
 # ===================
 # 向量搜索
