@@ -86,6 +86,10 @@ def create_app() -> Flask:
 
     # 启用CSRF保护
     csrf = CSRFProtect(app)
+
+    # 配置CSRF豁免路由
+    csrf.exempt('auth.login')  # 登录端点豁免CSRF保护
+
     logger.info("CSRF保护已启用")
 
     # 提供CSRF token的API端点

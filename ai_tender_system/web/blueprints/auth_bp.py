@@ -8,7 +8,6 @@
 import sys
 from pathlib import Path
 from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
-from flask_wtf.csrf import csrf_exempt
 
 # 添加项目根目录到Python路径
 project_root = Path(__file__).parent.parent.parent
@@ -38,7 +37,6 @@ def index():
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@csrf_exempt  # 登录端点禁用CSRF保护
 def login():
     """
     登录页面和登录处理
