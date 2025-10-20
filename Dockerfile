@@ -26,5 +26,10 @@ COPY . .
 # 暴露端口(Railway会动态设置)
 EXPOSE 8080
 
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-8080}/api/health').read()" || exit 1
+
 # 启动命令 - 使用shell形式以支持环境变量
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 4 --timeout 120 main:app"]
+# 减少workers到2以加快启动,增加worker超时
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 300 --worker-class sync --preload main:app"]
