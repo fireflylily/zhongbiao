@@ -173,7 +173,7 @@ class CaseLibraryManager {
     async renderCaseEditView(caseId = null) {
         console.log('渲染案例编辑视图...', caseId);
 
-        const mainContent = document.getElementById('mainContent');
+        const mainContent = document.getElementById('caseLibraryMainContent');
         if (!mainContent) {
             console.error('未找到主内容区域');
             return;
@@ -764,6 +764,11 @@ class CaseLibraryManager {
                                 const typeLabel = this.getAttachmentTypeLabel(att.attachment_type);
                                 const fileIcon = this.getFileIcon(att.file_type);
                                 const sizeText = att.file_size_mb ? `${att.file_size_mb}MB` : '未知';
+                                const fileType = att.file_type?.toLowerCase();
+                                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileType);
+                                const isDoc = ['doc', 'docx'].includes(fileType);
+                                const isPdf = fileType === 'pdf';
+                                const canPreview = isImage || isDoc || isPdf;
                                 return `
                                     <div class="list-group-item d-flex justify-content-between align-items-center">
                                         <div>
@@ -772,6 +777,14 @@ class CaseLibraryManager {
                                             <span class="badge bg-info ms-2">${typeLabel}</span>
                                             <small class="text-muted ms-2">${sizeText}</small>
                                             ${att.attachment_description ? `<div class="text-muted small mt-1">${this.escapeHtml(att.attachment_description)}</div>` : ''}
+                                        </div>
+                                        <div class="btn-group">
+                                            ${canPreview ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="window.caseLibraryManager.previewAttachment(${att.attachment_id}, '${att.file_path}', '${fileType}')" title="预览">
+                                                <i class="bi bi-eye"></i> 预览
+                                            </button>` : ''}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.caseLibraryManager.downloadAttachment(${att.attachment_id}, '${att.file_path}', '${this.escapeHtml(att.original_filename)}')" title="下载">
+                                                <i class="bi bi-download"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 `;
@@ -858,6 +871,12 @@ class CaseLibraryManager {
      * 保存案例（创建或更新）
      */
     async saveCase() {
+        // 防止重复提交
+        if (this._saving) {
+            console.log('正在保存中，忽略重复点击');
+            return;
+        }
+
         const caseId = document.getElementById('caseId').value;
         const companyId = document.getElementById('caseCompanyId').value;
 
@@ -919,6 +938,14 @@ class CaseLibraryManager {
         };
 
         try {
+            // 设置保存中标志，禁用按钮
+            this._saving = true;
+            const saveBtn = document.querySelector('button[onclick*="saveCase"]');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>保存中...';
+            }
+
             const url = caseId ? `/api/case_library/cases/${caseId}` : '/api/case_library/cases';
             const method = caseId ? 'put' : 'post';
 
@@ -951,6 +978,14 @@ class CaseLibraryManager {
                 errorMessage = error.message;
             }
             showAlert('保存失败：' + errorMessage, 'danger');
+        } finally {
+            // 无论成功或失败，都要重置保存状态
+            this._saving = false;
+            const saveBtn = document.querySelector('button[onclick*="saveCase"]');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-save me-1"></i>保存案例';
+            }
         }
     }
 
@@ -1145,9 +1180,9 @@ class CaseLibraryManager {
             const importModal = bootstrap.Modal.getInstance(document.getElementById('caseDocumentImportModal'));
             if (importModal) importModal.hide();
 
-            // 4. 打开创建案例模态框并预填充数据
-            await this.showCreateCaseModal();
-            this.prefillCaseForm(caseData);
+            // 4. 切换到新建案例页面并预填充数据
+            await this.renderCaseEditView();  // 渲染新建案例表单
+            this.prefillCaseForm(caseData);   // 预填充提取的数据
 
             showAlert('✨ 案例信息提取成功！请检查并完善信息', 'success');
 
@@ -1395,160 +1430,26 @@ class CaseLibraryManager {
     }
 
     /**
-     * 预览附件（支持图片、Word、PDF）
+     * 预览附件（支持图片、Word、PDF）- 使用通用预览工具
      */
     previewAttachment(attachmentId, filePath, fileType) {
-        const fileName = filePath.split('/').pop();
+        console.log('[CaseLibrary] 预览附件:', { attachmentId, filePath, fileType });
 
-        if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileType)) {
-            // 图片预览
-            this.previewImage(fileName);
-        } else if (['doc', 'docx'].includes(fileType)) {
-            // Word文档预览
-            this.previewDocument(fileName);
-        } else if (fileType === 'pdf') {
-            // PDF预览
-            this.previewPDF(fileName);
-        }
-    }
-
-    /**
-     * 预览图片
-     */
-    previewImage(fileName) {
-        const fileUrl = `/uploads/case_attachments/${fileName}`;
-
-        const modalHtml = `
-            <div class="modal fade" id="attachmentPreviewModal" tabindex="-1">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title"><i class="bi bi-eye me-2"></i>图片预览</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body text-center" style="background: #f5f5f5; padding: 20px;">
-                            <img src="${fileUrl}" class="img-fluid" alt="附件预览" style="max-height: 70vh; object-fit: contain;">
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.showPreviewModal(modalHtml);
-    }
-
-    /**
-     * 预览Word文档
-     */
-    previewDocument(fileName) {
-        const modalHtml = `
-            <div class="modal fade" id="attachmentPreviewModal" tabindex="-1">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title"><i class="bi bi-file-word me-2"></i>文档预览</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body" id="documentPreviewContent" style="max-height: 70vh; overflow-y: auto; background: #f5f5f5;">
-                            <div class="text-center py-5">
-                                <div class="spinner-border text-primary" role="status"></div>
-                                <p class="mt-3">正在加载文档...</p>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.showPreviewModal(modalHtml);
-
-        // 使用docx-preview渲染Word文档
-        const previewUrl = `/uploads/case_attachments/${fileName}`;
-        fetch(previewUrl)
-            .then(response => response.arrayBuffer())
-            .then(arrayBuffer => {
-                const container = document.getElementById('documentPreviewContent');
-                if (container && typeof docx !== 'undefined') {
-                    container.innerHTML = '';
-                    docx.renderAsync(arrayBuffer, container, null, {
-                        className: 'docx-preview',
-                        inWrapper: true,
-                        ignoreWidth: false,
-                        ignoreHeight: false,
-                        ignoreFonts: false,
-                        breakPages: true
-                    }).catch(err => {
-                        console.error('文档渲染失败:', err);
-                        container.innerHTML = '<div class="alert alert-warning">文档预览失败，请尝试下载查看</div>';
-                    });
-                } else {
-                    container.innerHTML = '<div class="alert alert-warning">文档预览功能暂不可用，请下载后查看</div>';
-                }
-            })
-            .catch(error => {
-                console.error('加载文档失败:', error);
-                const container = document.getElementById('documentPreviewContent');
-                if (container) {
-                    container.innerHTML = '<div class="alert alert-danger">文档加载失败</div>';
-                }
-            });
-    }
-
-    /**
-     * 预览PDF
-     */
-    previewPDF(fileName) {
-        const pdfUrl = `/uploads/case_attachments/${fileName}`;
-
-        const modalHtml = `
-            <div class="modal fade" id="attachmentPreviewModal" tabindex="-1">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title"><i class="bi bi-file-pdf me-2"></i>PDF预览</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body p-0">
-                            <iframe src="${pdfUrl}" style="width: 100%; height: 70vh; border: none;"></iframe>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.showPreviewModal(modalHtml);
-    }
-
-    /**
-     * 显示预览模态框
-     */
-    showPreviewModal(modalHtml) {
-        // 移除旧的预览模态框
-        const oldModal = document.getElementById('attachmentPreviewModal');
-        if (oldModal) {
-            oldModal.remove();
+        // 检查通用预览工具是否已加载
+        if (!window.documentPreviewUtil) {
+            console.error('[CaseLibrary] DocumentPreviewUtil未加载');
+            alert('文档预览功能未正确加载，请刷新页面重试');
+            return;
         }
 
-        // 添加新的模态框
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        // 使用下载API构建文件URL (确保可以访问到文件)
+        const fileUrl = `/api/case_library/attachments/${attachmentId}/download`;
+        const fileName = filePath.split('/').pop() || `attachment_${attachmentId}`;
 
-        // 显示模态框
-        const previewModal = new bootstrap.Modal(document.getElementById('attachmentPreviewModal'));
-        previewModal.show();
+        console.log('[CaseLibrary] 预览文件URL:', fileUrl);
 
-        // 模态框关闭后移除
-        document.getElementById('attachmentPreviewModal').addEventListener('hidden.bs.modal', function() {
-            this.remove();
-        });
+        // 使用通用预览工具进行预览
+        window.documentPreviewUtil.preview(fileUrl, fileName, fileType);
     }
 
     /**

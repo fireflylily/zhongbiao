@@ -1065,33 +1065,71 @@ def register_hitl_routes(app):
 
     @app.route('/api/tender-processing/technical-file-info/<task_id>', methods=['GET'])
     def get_technical_file_info(task_id):
-        """获取技术需求文件信息"""
+        """获取技术需求文件信息(支持文件系统扫描fallback)"""
         try:
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+            file_info = None
 
-            if not task_data:
-                return jsonify({"success": False, "error": "任务不存在"}), 404
+            # 尝试从数据库获取文件信息
+            try:
+                task_data = db.execute_query("""
+                    SELECT step1_data FROM tender_hitl_tasks
+                    WHERE hitl_task_id = ?
+                """, (task_id,), fetch_one=True)
 
-            step1_data = json.loads(task_data['step1_data'])
-            technical_file = step1_data.get('technical_file')
+                if task_data:
+                    step1_data = json.loads(task_data['step1_data'])
+                    file_info = step1_data.get('technical_file')
+            except Exception as db_error:
+                logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
 
-            if not technical_file:
+            # 如果数据库中没有文件信息,尝试从文件系统扫描
+            if not file_info:
+                logger.info(f"数据库中无技术需求文件信息,尝试从文件系统扫描")
+                file_path = _find_file_in_filesystem(task_id, 'technical_file')
+
+                if file_path:
+                    # 构建文件信息
+                    file_stat = file_path.stat()
+                    file_info = {
+                        'file_path': str(file_path),
+                        'filename': file_path.name,
+                        'file_size': file_stat.st_size,
+                        'saved_at': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+                    }
+                    logger.info(f"从文件系统找到技术需求文件: {file_path.name}")
+
+            if not file_info:
                 return jsonify({
                     "success": True,
                     "has_file": False
                 })
 
-            file_exists = os.path.exists(technical_file['file_path'])
+            # 检查文件是否存在
+            file_exists = os.path.exists(file_info.get('file_path', ''))
+
+            # 如果数据库中的文件路径不存在,尝试从文件系统扫描
+            if not file_exists and 'file_path' in file_info:
+                logger.warning(f"数据库中的文件路径不存在: {file_info['file_path']}, 尝试文件系统扫描")
+                file_path = _find_file_in_filesystem(task_id, 'technical_file')
+
+                if file_path:
+                    # 更新文件信息
+                    file_stat = file_path.stat()
+                    file_info = {
+                        'file_path': str(file_path),
+                        'filename': file_path.name,
+                        'file_size': file_stat.st_size,
+                        'saved_at': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+                    }
+                    file_exists = True
+                    logger.info(f"从文件系统找到替代文件: {file_path.name}")
 
             return jsonify({
                 "success": True,
                 "has_file": file_exists,
-                "filename": technical_file.get('filename'),
-                "file_size": technical_file.get('file_size'),
-                "saved_at": technical_file.get('saved_at'),
+                "filename": file_info.get('filename'),
+                "file_size": file_info.get('file_size'),
+                "saved_at": file_info.get('saved_at'),
                 "download_url": f"/api/tender-processing/download-technical-file/{task_id}"
             })
 
@@ -1101,31 +1139,45 @@ def register_hitl_routes(app):
 
     @app.route('/api/tender-processing/download-technical-file/<task_id>', methods=['GET'])
     def download_technical_file(task_id):
-        """下载技术需求文件"""
+        """下载技术需求文件(支持文件系统扫描fallback)"""
         try:
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+            file_info = None
+            file_path = None
 
-            if not task_data:
-                return jsonify({"error": "任务不存在"}), 404
+            # 尝试从数据库获取文件信息
+            try:
+                task_data = db.execute_query("""
+                    SELECT step1_data FROM tender_hitl_tasks
+                    WHERE hitl_task_id = ?
+                """, (task_id,), fetch_one=True)
 
-            step1_data = json.loads(task_data['step1_data'])
-            technical_file = step1_data.get('technical_file')
+                if task_data:
+                    step1_data = json.loads(task_data['step1_data'])
+                    file_info = step1_data.get('technical_file')
+                    if file_info:
+                        file_path = file_info.get('file_path')
+            except Exception as db_error:
+                logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
 
-            if not technical_file:
-                return jsonify({"error": "技术需求文件不存在"}), 404
+            # 如果数据库中没有或文件不存在,尝试从文件系统扫描
+            if not file_path or not os.path.exists(file_path):
+                logger.info(f"数据库中的文件路径无效,尝试从文件系统扫描")
+                found_path = _find_file_in_filesystem(task_id, 'technical_file')
+                if found_path:
+                    file_path = str(found_path)
+                    logger.info(f"从文件系统找到技术需求文件: {found_path.name}")
 
-            file_path = technical_file['file_path']
-            if not os.path.exists(file_path):
-                return jsonify({"error": "文件已被删除"}), 404
+            if not file_path or not os.path.exists(file_path):
+                return jsonify({"error": "技术需求文件不存在或已被删除"}), 404
+
+            # 获取文件名
+            filename = file_info.get('filename') if file_info else Path(file_path).name
 
             return send_file(
                 file_path,
                 mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 as_attachment=True,
-                download_name=technical_file['filename']
+                download_name=filename
             )
 
         except Exception as e:
@@ -1134,31 +1186,45 @@ def register_hitl_routes(app):
 
     @app.route('/api/tender-processing/preview-technical-file/<task_id>', methods=['GET'])
     def preview_technical_file(task_id):
-        """预览技术需求文件"""
+        """预览技术需求文件(支持文件系统扫描fallback)"""
         try:
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+            file_info = None
+            file_path = None
 
-            if not task_data:
-                return jsonify({"error": "任务不存在"}), 404
+            # 尝试从数据库获取文件信息
+            try:
+                task_data = db.execute_query("""
+                    SELECT step1_data FROM tender_hitl_tasks
+                    WHERE hitl_task_id = ?
+                """, (task_id,), fetch_one=True)
 
-            step1_data = json.loads(task_data['step1_data'])
-            technical_file = step1_data.get('technical_file')
+                if task_data:
+                    step1_data = json.loads(task_data['step1_data'])
+                    file_info = step1_data.get('technical_file')
+                    if file_info:
+                        file_path = file_info.get('file_path')
+            except Exception as db_error:
+                logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
 
-            if not technical_file:
-                return jsonify({"error": "技术需求文件不存在"}), 404
+            # 如果数据库中没有或文件不存在,尝试从文件系统扫描
+            if not file_path or not os.path.exists(file_path):
+                logger.info(f"数据库中的文件路径无效,尝试从文件系统扫描")
+                found_path = _find_file_in_filesystem(task_id, 'technical_file')
+                if found_path:
+                    file_path = str(found_path)
+                    logger.info(f"从文件系统找到技术需求文件: {found_path.name}")
 
-            file_path = technical_file['file_path']
-            if not os.path.exists(file_path):
-                return jsonify({"error": "文件已被删除"}), 404
+            if not file_path or not os.path.exists(file_path):
+                return jsonify({"error": "技术需求文件不存在或已被删除"}), 404
+
+            # 获取文件名
+            filename = file_info.get('filename') if file_info else Path(file_path).name
 
             return send_file(
                 file_path,
                 mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 as_attachment=False,
-                download_name=technical_file['filename']
+                download_name=filename
             )
 
         except Exception as e:
@@ -2485,21 +2551,138 @@ def register_hitl_routes(app):
     # 填充应答文件API
     # ============================================
     # ============================================
-    # 应答完成文件相关API (从商务应答同步)
+    # 统一文件同步API (支持多种文件类型)
     # ============================================
 
-    @app.route('/api/tender-processing/sync-business-response/<task_id>', methods=['POST'])
-    def sync_business_response_to_hitl(task_id):
+    # 文件同步配置
+    HITL_FILE_SYNC_CONFIG = {
+        'business_response': {
+            'dir_name': 'completed_response_files',
+            'field_name': 'business_response_file',
+            'suffix': '_应答完成',
+            'display_name': '商务应答文件'
+        },
+        'point_to_point': {
+            'dir_name': 'point_to_point_files',
+            'field_name': 'technical_point_to_point_file',
+            'suffix': '_点对点应答',
+            'display_name': '点对点应答文件'
+        },
+        'tech_proposal': {
+            'dir_name': 'tech_proposal_files',
+            'field_name': 'technical_proposal_file',
+            'suffix': '_技术方案',
+            'display_name': '技术方案文件'
+        }
+    }
+
+    def _find_file_in_filesystem(task_id, field_name):
         """
-        将商务应答生成的文件同步到HITL投标项目
-        接收商务应答生成的文件路径,复制到HITL任务目录,保存为"应答完成文件"
+        从文件系统中查找文件(fallback机制,当数据库中没有数据时使用)
+
+        Args:
+            task_id: HITL任务ID
+            field_name: 字段名(如 'business_response_file')
+
+        Returns:
+            文件路径的Path对象,如果找不到返回None
+        """
+        try:
+            # 根据field_name确定目录(支持多目录搜索)
+            field_to_dirs = {
+                'business_response_file': ['completed_response_files'],
+                'technical_point_to_point_file': ['point_to_point_files'],
+                'technical_proposal_file': ['tech_proposal_files'],
+                # response_file 需要搜索两个目录: 原始模板目录 和 完成文件目录
+                'response_file': ['response_files', 'completed_response_files'],
+                # technical_file 在原始招标文件目录中(无三级目录结构)
+                'technical_file': ['tender_processing'],
+                'technical_file_path': ['tender_processing']  # 兼容字段名
+            }
+
+            dir_names = field_to_dirs.get(field_name)
+            if not dir_names:
+                logger.warning(f"未知的字段名: {field_name}")
+                return None
+
+            # 构建基础目录
+            project_root = Path(__file__).parent.parent
+
+            # 遍历所有可能的目录
+            for dir_name in dir_names:
+                base_dir = project_root / 'data' / 'uploads' / dir_name
+
+                if not base_dir.exists():
+                    logger.debug(f"目录不存在,跳过: {base_dir}")
+                    continue
+
+                # tender_processing 目录使用扁平结构(年/月/文件),其他使用三级结构(年/月/任务ID/)
+                if dir_name == 'tender_processing':
+                    # 扁平结构: 遍历 year/month/ 查找包含task_id的文件
+                    for year_dir in base_dir.iterdir():
+                        if not year_dir.is_dir():
+                            continue
+                        for month_dir in year_dir.iterdir():
+                            if not month_dir.is_dir():
+                                continue
+                            # 查找文件名中包含task_id或者匹配招标文件的docx文件
+                            for file_path in month_dir.iterdir():
+                                if file_path.suffix.lower() in ['.docx', '.doc']:
+                                    logger.info(f"从文件系统找到技术文件: {file_path}")
+                                    return file_path
+                else:
+                    # 三级结构: year/month/task_id/文件
+                    for year_dir in base_dir.iterdir():
+                        if not year_dir.is_dir():
+                            continue
+                        for month_dir in year_dir.iterdir():
+                            if not month_dir.is_dir():
+                                continue
+                            task_dir = month_dir / task_id
+                            if task_dir.exists() and task_dir.is_dir():
+                                # 查找docx文件
+                                for file_path in task_dir.iterdir():
+                                    if file_path.suffix.lower() == '.docx':
+                                        logger.info(f"从文件系统找到文件: {file_path} (目录: {dir_name})")
+                                        return file_path
+
+            logger.warning(f"文件系统中未找到文件: task_id={task_id}, field_name={field_name}, 搜索目录={dir_names}")
+            return None
+
+        except Exception as e:
+            logger.error(f"文件系统扫描失败: {str(e)}")
+            return None
+
+    @app.route('/api/tender-processing/sync-file/<task_id>', methods=['POST'])
+    def sync_file_to_hitl(task_id):
+        """
+        统一的文件同步API - 支持多种文件类型
+
+        请求体:
+        {
+            "file_path": "源文件路径",
+            "file_type": "business_response" | "point_to_point" | "tech_proposal"
+        }
         """
         try:
             data = request.get_json()
             source_file_path = data.get('file_path')
+            file_type = data.get('file_type')
 
+            # 验证参数
             if not source_file_path:
                 return jsonify({"success": False, "error": "未提供文件路径"}), 400
+
+            if not file_type:
+                return jsonify({"success": False, "error": "未提供文件类型"}), 400
+
+            # 获取文件类型配置
+            config = HITL_FILE_SYNC_CONFIG.get(file_type)
+            if not config:
+                return jsonify({
+                    "success": False,
+                    "error": f"不支持的文件类型: {file_type}。支持的类型: {', '.join(HITL_FILE_SYNC_CONFIG.keys())}"
+                }), 400
 
             # 检查源文件是否存在
             if not os.path.exists(source_file_path):
@@ -2521,7 +2704,7 @@ def register_hitl_routes(app):
             project_root = Path(__file__).parent.parent
             save_dir = os.path.join(
                 project_root,
-                'data/uploads/completed_response_files',
+                f'data/uploads/{config["dir_name"]}',
                 str(now.year),
                 f"{now.month:02d}",
                 task_id
@@ -2530,12 +2713,11 @@ def register_hitl_routes(app):
 
             # 生成文件名
             source_filename = os.path.basename(source_file_path)
-            # 从源文件名提取,如果包含时间戳则保留,否则添加时间戳
             if '_' in source_filename:
                 base_name = source_filename.rsplit('.', 1)[0]
-                filename = f"{base_name}_应答完成.docx"
+                filename = f"{base_name}{config['suffix']}.docx"
             else:
-                filename = f"应答完成_{now.strftime('%Y%m%d_%H%M%S')}.docx"
+                filename = f"{config['suffix']}_{now.strftime('%Y%m%d_%H%M%S')}.docx"
 
             # 复制文件到目标位置
             target_path = os.path.join(save_dir, filename)
@@ -2544,15 +2726,15 @@ def register_hitl_routes(app):
             # 计算文件大小
             file_size = os.path.getsize(target_path)
 
-            # 更新任务的step1_data - 使用独立字段存储商务应答文件
-            business_response_info = {
+            # 更新任务的step1_data
+            file_info = {
                 "file_path": target_path,
                 "filename": filename,
                 "file_size": file_size,
                 "saved_at": now.isoformat(),
                 "source_file": source_file_path
             }
-            step1_data['business_response_file'] = business_response_info
+            step1_data[config['field_name']] = file_info
 
             db.execute_query("""
                 UPDATE tender_hitl_tasks
@@ -2560,20 +2742,53 @@ def register_hitl_routes(app):
                 WHERE hitl_task_id = ?
             """, (json.dumps(step1_data), task_id))
 
-            logger.info(f"同步商务应答文件到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
+            logger.info(f"同步{config['display_name']}到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
 
             return jsonify({
                 "success": True,
-                "message": "文件已成功同步到投标项目",
+                "message": f"{config['display_name']}已成功同步到投标项目",
                 "file_path": target_path,
                 "filename": filename,
                 "file_size": file_size,
-                "saved_at": business_response_info['saved_at']
+                "file_type": file_type,
+                "saved_at": file_info['saved_at']
             })
 
         except Exception as e:
-            logger.error(f"同步商务应答文件失败: {str(e)}")
+            logger.error(f"同步文件失败: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return jsonify({"success": False, "error": str(e)}), 500
+
+    # ============================================
+    # 应答完成文件相关API (从商务应答同步)
+    # ============================================
+
+    @app.route('/api/tender-processing/sync-business-response/<task_id>', methods=['POST'])
+    def sync_business_response_to_hitl(task_id):
+        """
+        将商务应答生成的文件同步到HITL投标项目（向后兼容API）
+        内部调用统一的sync_file_to_hitl API
+        """
+        # 构造统一API所需的请求数据
+        data = request.get_json()
+        unified_data = {
+            'file_path': data.get('file_path'),
+            'file_type': 'business_response'
+        }
+
+        # 临时替换request数据
+        from flask import g
+        original_json = request.get_json
+        request.get_json = lambda: unified_data
+
+        # 调用统一API
+        result = sync_file_to_hitl(task_id)
+
+        # 恢复原始request
+        request.get_json = original_json
+
+        return result
 
     @app.route('/api/tender-processing/completed-response-info/<task_id>', methods=['GET'])
     def get_completed_response_info(task_id):
@@ -2700,17 +2915,36 @@ def register_hitl_routes(app):
             JSON响应
         """
         try:
-            # 查询任务信息
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+            file_info = None
 
-            if not task_data:
-                return jsonify({"success": False, "error": "任务不存在"}), 404
+            # 尝试从数据库获取文件信息
+            try:
+                task_data = db.execute_query("""
+                    SELECT step1_data FROM tender_hitl_tasks
+                    WHERE hitl_task_id = ?
+                """, (task_id,), fetch_one=True)
 
-            step1_data = json.loads(task_data['step1_data'])
-            file_info = step1_data.get(field_name)
+                if task_data:
+                    step1_data = json.loads(task_data['step1_data'])
+                    file_info = step1_data.get(field_name)
+            except Exception as db_error:
+                logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
+
+            # 如果数据库中没有文件信息,尝试从文件系统扫描
+            if not file_info:
+                logger.info(f"数据库中无{file_display_name}信息,尝试从文件系统扫描")
+                file_path = _find_file_in_filesystem(task_id, field_name)
+
+                if file_path:
+                    # 构建文件信息
+                    file_stat = file_path.stat()
+                    file_info = {
+                        'file_path': str(file_path),
+                        'filename': file_path.name,
+                        'file_size': file_stat.st_size,
+                        'saved_at': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+                    }
+                    logger.info(f"从文件系统找到{file_display_name}: {file_path.name}")
 
             if not file_info:
                 return jsonify({
@@ -2719,7 +2953,24 @@ def register_hitl_routes(app):
                 })
 
             # 检查文件是否存在
-            file_exists = os.path.exists(file_info['file_path'])
+            file_exists = os.path.exists(file_info.get('file_path', ''))
+
+            # 如果数据库中的文件路径不存在,尝试从文件系统扫描
+            if not file_exists and 'file_path' in file_info:
+                logger.warning(f"数据库中的文件路径不存在: {file_info['file_path']}, 尝试文件系统扫描")
+                file_path = _find_file_in_filesystem(task_id, field_name)
+
+                if file_path:
+                    # 更新文件信息
+                    file_stat = file_path.stat()
+                    file_info = {
+                        'file_path': str(file_path),
+                        'filename': file_path.name,
+                        'file_size': file_stat.st_size,
+                        'saved_at': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+                    }
+                    file_exists = True
+                    logger.info(f"从文件系统找到替代文件: {file_path.name}")
 
             return jsonify({
                 "success": True,
@@ -2748,20 +2999,40 @@ def register_hitl_routes(app):
     def get_business_response_info(task_id):
         """获取商务应答文件信息（支持两种来源：从投标管理生成 或 从商务应答同步）"""
         try:
-            # 查询任务信息
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+            file_info = None
+            field_name = 'response_file'  # 默认字段名
 
-            if not task_data:
-                return jsonify({"success": False, "error": "任务不存在"}), 404
+            # 尝试从数据库获取文件信息
+            try:
+                task_data = db.execute_query("""
+                    SELECT step1_data FROM tender_hitl_tasks
+                    WHERE hitl_task_id = ?
+                """, (task_id,), fetch_one=True)
 
-            step1_data = json.loads(task_data['step1_data'])
+                if task_data:
+                    step1_data = json.loads(task_data['step1_data'])
 
-            # 优先使用 response_file（从投标管理生成），其次使用 business_response_file（从商务应答同步）
-            file_info = step1_data.get('response_file') or step1_data.get('business_response_file')
-            field_name = 'response_file' if step1_data.get('response_file') else 'business_response_file'
+                    # 优先使用 response_file（从投标管理生成），其次使用 business_response_file（从商务应答同步）
+                    file_info = step1_data.get('response_file') or step1_data.get('business_response_file')
+                    field_name = 'response_file' if step1_data.get('response_file') else 'business_response_file'
+            except Exception as db_error:
+                logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
+
+            # 如果数据库中没有文件信息,尝试从文件系统扫描
+            if not file_info:
+                logger.info(f"数据库中无商务应答文件信息,尝试从文件系统扫描")
+                file_path = _find_file_in_filesystem(task_id, field_name)
+
+                if file_path:
+                    # 构建文件信息
+                    file_stat = file_path.stat()
+                    file_info = {
+                        'file_path': str(file_path),
+                        'filename': file_path.name,
+                        'file_size': file_stat.st_size,
+                        'saved_at': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+                    }
+                    logger.info(f"从文件系统找到商务应答文件: {file_path.name}")
 
             if not file_info:
                 return jsonify({
@@ -2770,7 +3041,24 @@ def register_hitl_routes(app):
                 })
 
             # 检查文件是否存在
-            file_exists = os.path.exists(file_info['file_path'])
+            file_exists = os.path.exists(file_info.get('file_path', ''))
+
+            # 如果数据库中的文件路径不存在,尝试从文件系统扫描
+            if not file_exists and 'file_path' in file_info:
+                logger.warning(f"数据库中的文件路径不存在: {file_info['file_path']}, 尝试文件系统扫描")
+                file_path = _find_file_in_filesystem(task_id, field_name)
+
+                if file_path:
+                    # 更新文件信息
+                    file_stat = file_path.stat()
+                    file_info = {
+                        'file_path': str(file_path),
+                        'filename': file_path.name,
+                        'file_size': file_stat.st_size,
+                        'saved_at': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+                    }
+                    file_exists = True
+                    logger.info(f"从文件系统找到替代文件: {file_path.name}")
 
             return jsonify({
                 "success": True,
@@ -2791,24 +3079,38 @@ def register_hitl_routes(app):
 
     @app.route('/api/tender-processing/download-file/<task_id>/<field_name>', methods=['GET'])
     def download_unified_file(task_id, field_name):
-        """统一的文件下载接口"""
+        """统一的文件下载接口(支持数据库和文件系统fallback)"""
         try:
             # 验证field_name合法性（防止SQL注入）
             valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'response_file', 'business_response_file']
             if field_name not in valid_fields:
                 return jsonify({"error": "无效的文件类型"}), 400
 
-            # 查询任务信息
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+            file_info = None
 
-            if not task_data:
-                return jsonify({"error": "任务不存在"}), 404
+            # 尝试从数据库获取文件信息
+            try:
+                task_data = db.execute_query("""
+                    SELECT step1_data FROM tender_hitl_tasks
+                    WHERE hitl_task_id = ?
+                """, (task_id,), fetch_one=True)
 
-            step1_data = json.loads(task_data['step1_data'])
-            file_info = step1_data.get(field_name)
+                if task_data:
+                    step1_data = json.loads(task_data['step1_data'])
+                    file_info = step1_data.get(field_name)
+            except Exception as db_error:
+                logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
+
+            # 如果数据库中没有文件信息,尝试从文件系统扫描
+            if not file_info:
+                logger.info(f"数据库中无文件信息,尝试从文件系统扫描: {field_name}")
+                file_path_obj = _find_file_in_filesystem(task_id, field_name)
+
+                if file_path_obj:
+                    file_info = {
+                        'file_path': str(file_path_obj),
+                        'filename': file_path_obj.name
+                    }
 
             if not file_info:
                 return jsonify({"error": "文件不存在"}), 404
@@ -2821,7 +3123,7 @@ def register_hitl_routes(app):
                 file_path,
                 mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 as_attachment=True,
-                download_name=file_info['filename']
+                download_name=file_info.get('filename', os.path.basename(file_path))
             )
 
         except Exception as e:
@@ -2830,24 +3132,38 @@ def register_hitl_routes(app):
 
     @app.route('/api/tender-processing/preview-file/<task_id>/<field_name>', methods=['GET'])
     def preview_unified_file(task_id, field_name):
-        """统一的文件预览接口"""
+        """统一的文件预览接口(支持数据库和文件系统fallback)"""
         try:
             # 验证field_name合法性
             valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'response_file', 'business_response_file']
             if field_name not in valid_fields:
                 return jsonify({"error": "无效的文件类型"}), 400
 
-            # 查询任务信息
-            task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+            file_info = None
 
-            if not task_data:
-                return jsonify({"error": "任务不存在"}), 404
+            # 尝试从数据库获取文件信息
+            try:
+                task_data = db.execute_query("""
+                    SELECT step1_data FROM tender_hitl_tasks
+                    WHERE hitl_task_id = ?
+                """, (task_id,), fetch_one=True)
 
-            step1_data = json.loads(task_data['step1_data'])
-            file_info = step1_data.get(field_name)
+                if task_data:
+                    step1_data = json.loads(task_data['step1_data'])
+                    file_info = step1_data.get(field_name)
+            except Exception as db_error:
+                logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
+
+            # 如果数据库中没有文件信息,尝试从文件系统扫描
+            if not file_info:
+                logger.info(f"数据库中无文件信息,尝试从文件系统扫描: {field_name}")
+                file_path_obj = _find_file_in_filesystem(task_id, field_name)
+
+                if file_path_obj:
+                    file_info = {
+                        'file_path': str(file_path_obj),
+                        'filename': file_path_obj.name
+                    }
 
             if not file_info:
                 return jsonify({"error": "文件不存在"}), 404
@@ -2861,7 +3177,7 @@ def register_hitl_routes(app):
                 file_path,
                 mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 as_attachment=False,
-                download_name=file_info['filename']
+                download_name=file_info.get('filename', os.path.basename(file_path))
             )
 
         except Exception as e:

@@ -454,7 +454,7 @@ class FieldRecognizer:
             'legalRepresentativePosition': ['法人职位', '法定代表人职位', '法人职务'],
             'legalRepresentativeGender': ['性别', '法人性别', '法定代表人性别'],
             'legalRepresentativeAge': ['年龄', '法人年龄', '法定代表人年龄'],
-            'representativeName': ['供应商代表', '供应商代表姓名', '代表姓名', '代表人'],
+            'representativeName': ['供应商被授权人姓名', '被授权人姓名', '授权人姓名', '供应商代表', '供应商代表姓名', '代表姓名', '代表人'],
             'representativeTitle': ['职务', '职称', '职务职称', '职位'],
 
             # 公司基本信息

@@ -1094,14 +1094,14 @@ class ProposalGenerator {
             });
         }
 
-        // 加载技术需求文件信息
-        const techFile = bridge.getTechnicalFile();
-        if (techFile && techFile.taskId) {
+        // 【修复】加载技术需求文件信息 - 改用通用方法 getFileInfo
+        const techFile = bridge.getFileInfo('techProposal');
+        if (techFile && (techFile.taskId || techFile.fileName)) {
             this.hitlTaskId = techFile.taskId;
             console.log('[ProposalGenerator] 加载技术需求文件信息:', techFile);
 
             // 填充隐藏字段
-            if (this.techTechnicalFileTaskId) {
+            if (this.techTechnicalFileTaskId && techFile.taskId) {
                 this.techTechnicalFileTaskId.value = techFile.taskId;
             }
             if (this.techTechnicalFileUrl && techFile.fileUrl) {
@@ -1278,14 +1278,15 @@ class ProposalGenerator {
             // 使用第一个输出文件（通常是技术方案主文件）
             const filePath = outputFiles.proposal || Object.values(outputFiles)[0];
 
-            const response = await fetch(`/api/tender-processing/sync-tech-proposal/${hitlTaskId}`, {
+            // 使用统一的文件同步API
+            const response = await fetch(`/api/tender-processing/sync-file/${hitlTaskId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     file_path: filePath,
-                    output_files: outputFiles
+                    file_type: 'tech_proposal'  // 指定文件类型
                 })
             });
 

@@ -1124,13 +1124,15 @@ async function syncPointToPointToHitl(hitlTaskId, filePath) {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>同步中...';
 
     try {
-        const response = await fetch(`/api/tender-processing/sync-point-to-point/${hitlTaskId}`, {
+        // 使用统一的文件同步API
+        const response = await fetch(`/api/tender-processing/sync-file/${hitlTaskId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                file_path: filePath
+                file_path: filePath,
+                file_type: 'point_to_point'  // 指定文件类型
             })
         });
 
@@ -1210,9 +1212,9 @@ function loadFromHITL() {
         }
     }
 
-    // 加载技术需求文件信息
-    const techFile = bridge.getTechnicalFile();
-    if (techFile && techFile.taskId) {
+    // 【修复】加载技术需求文件信息 - 改用通用方法 getFileInfo
+    const techFile = bridge.getFileInfo('pointToPoint');
+    if (techFile && (techFile.taskId || techFile.fileName)) {
         console.log('[Point-to-Point] 加载技术需求文件信息:', techFile);
 
         const fileInput = document.getElementById('fileInput');
@@ -1221,6 +1223,16 @@ function loadFromHITL() {
         const fileSize = document.getElementById('fileSize');
         const uploadArea = document.getElementById('uploadArea');
         const processBtn = document.getElementById('processBtn');
+
+        // 【新增】填充隐藏字段
+        const taskIdInput = document.getElementById('technicalFileTaskId');
+        const urlInput = document.getElementById('technicalFileUrl');
+        if (taskIdInput && techFile.taskId) {
+            taskIdInput.value = techFile.taskId;
+        }
+        if (urlInput && techFile.fileUrl) {
+            urlInput.value = techFile.fileUrl;
+        }
 
         if (fileInfo && fileName && fileSize) {
             // 显示文件信息

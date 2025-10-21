@@ -42,29 +42,6 @@ def system_status():
     return render_template('system_status.html')
 
 
-@pages_bp.route('/knowledge_base.html')
-@login_required
-def knowledge_base_html():
-    """
-    知识库管理页面（.html路径）
-
-    需要登录才能访问
-    提供两个路径以支持不同的访问方式
-    """
-    return render_template('knowledge_base.html')
-
-
-@pages_bp.route('/knowledge_base')
-@login_required
-def knowledge_base():
-    """
-    知识库管理页面（简洁路径）
-
-    需要登录才能访问
-    """
-    return render_template('knowledge_base.html')
-
-
 @pages_bp.route('/tender_processing.html')
 def tender_processing_html():
     """标书智能处理页面（.html路径）"""
@@ -75,19 +52,6 @@ def tender_processing_html():
 def tender_processing():
     """标书智能处理页面（简洁路径）"""
     return render_template('tender_processing.html')
-
-
-@pages_bp.route('/tender_processing_hitl')
-@pages_bp.route('/tender-processing')  # 友好的URL别名
-def tender_processing_hitl():
-    """
-    标书智能处理页面 - HITL流程
-
-    支持两个URL路径:
-    - /tender_processing_hitl (下划线风格)
-    - /tender-processing (短横线风格，更友好)
-    """
-    return render_template('tender_processing_hitl.html')
 
 
 __all__ = ['pages_bp']

@@ -650,21 +650,48 @@ async function goToPointToPoint() {
 
         console.log('[goToPointToPoint] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
 
-        // 【修复】使用技术需求文件
-        const techFile = window.projectDataBridge.getFileInfo('technical');
+        // 【修复】使用技术需求文件 - 添加 API fallback
+        let techFile = window.projectDataBridge.getFileInfo('technical');
+
+        // 如果 projectDataBridge 中没有数据,从 API 获取
+        if ((!techFile || !techFile.fileName) && hitlTaskId) {
+            console.log('[goToPointToPoint] projectDataBridge 中无技术文件,尝试从 API 获取');
+
+            try {
+                const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
+                const data = await response.json();
+
+                if (data.success && data.has_file && data.file) {
+                    techFile = {
+                        fileName: data.file.filename,
+                        fileSize: data.file.file_size || 0,
+                        filePath: data.file.file_path
+                    };
+                    // 保存到 projectDataBridge 供后续使用
+                    window.projectDataBridge.setFileInfo('technical', techFile);
+                    console.log('[goToPointToPoint] 从 API 获取到技术文件:', techFile.fileName);
+                } else {
+                    console.warn('[goToPointToPoint] API 返回无技术文件数据');
+                }
+            } catch (error) {
+                console.error('[goToPointToPoint] 从 API 获取技术文件失败:', error);
+            }
+        }
+
         if (hitlTaskId && techFile?.fileName) {
             console.log('[goToPointToPoint] 使用技术需求文件:', techFile.fileName);
 
-            // 设置到全局状态
-            window.projectDataBridge.setTechnicalFile(
-                hitlTaskId,
-                techFile.fileName,
-                techFile.fileSize || 0,
-                `/api/tender-processing/download-technical-file/${hitlTaskId}`
-            );
-            console.log('[goToPointToPoint] 技术需求文件信息已设置到全局状态');
+            // 【修复】设置到全局状态 - 改用通用方法 setFileInfo
+            window.projectDataBridge.setFileInfo('pointToPoint', {
+                taskId: hitlTaskId,
+                fileName: techFile.fileName,
+                fileSize: techFile.fileSize || 0,
+                fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`,
+                filePath: techFile.filePath
+            });
+            console.log('[goToPointToPoint] 技术需求文件信息已设置到全局状态 (pointToPoint)');
         } else {
-            console.warn('[goToPointToPoint] 技术需求文件未保存,请先在技术需求Tab保存章节');
+            console.warn('[goToPointToPoint] 技术需求文件未找到,请先上传技术需求文件');
         }
 
         // 切换到点对点应答 Tab
@@ -673,7 +700,7 @@ async function goToPointToPoint() {
             const tab = new bootstrap.Tab(pointToPointTab);
             tab.show();
 
-            // 触发自定义事件通知点对点组件加载数据
+            // 【修复】复制商务应答的成功模式 - 立即派发事件,接收端会延迟处理
             window.dispatchEvent(new CustomEvent('loadPointToPoint', {
                 detail: {
                     fromHITL: true,
@@ -737,36 +764,71 @@ async function goToTechProposal() {
 
         console.log('[goToTechProposal] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
 
-        // 【修复】使用技术需求文件
-        const techFile = window.projectDataBridge.getFileInfo('technical');
+        // 【修复】使用技术需求文件 - 添加 API fallback
+        let techFile = window.projectDataBridge.getFileInfo('technical');
+
+        // 如果 projectDataBridge 中没有数据,从 API 获取
+        if ((!techFile || !techFile.fileName) && hitlTaskId) {
+            console.log('[goToTechProposal] projectDataBridge 中无技术文件,尝试从 API 获取');
+
+            try {
+                const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
+                const data = await response.json();
+
+                if (data.success && data.has_file && data.file) {
+                    techFile = {
+                        fileName: data.file.filename,
+                        fileSize: data.file.file_size || 0,
+                        filePath: data.file.file_path
+                    };
+                    // 保存到 projectDataBridge 供后续使用
+                    window.projectDataBridge.setFileInfo('technical', techFile);
+                    console.log('[goToTechProposal] 从 API 获取到技术文件:', techFile.fileName);
+                } else {
+                    console.warn('[goToTechProposal] API 返回无技术文件数据');
+                }
+            } catch (error) {
+                console.error('[goToTechProposal] 从 API 获取技术文件失败:', error);
+            }
+        }
+
         if (hitlTaskId && techFile?.fileName) {
             console.log('[goToTechProposal] 使用技术需求文件:', techFile.fileName);
 
-            // 设置到全局状态
-            window.projectDataBridge.setTechnicalFile(
-                hitlTaskId,
-                techFile.fileName,
-                techFile.fileSize || 0,
-                `/api/tender-processing/download-technical-file/${hitlTaskId}`
-            );
-            console.log('[goToTechProposal] 技术需求文件信息已设置到全局状态');
+            // 【修复】设置到全局状态 - 改用通用方法 setFileInfo
+            window.projectDataBridge.setFileInfo('techProposal', {
+                taskId: hitlTaskId,
+                fileName: techFile.fileName,
+                fileSize: techFile.fileSize || 0,
+                fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`,
+                filePath: techFile.filePath
+            });
+            console.log('[goToTechProposal] 技术需求文件信息已设置到全局状态 (techProposal)');
         } else {
-            console.warn('[goToTechProposal] 技术需求文件未保存,请先在技术需求Tab保存章节');
+            console.warn('[goToTechProposal] 技术需求文件未找到,请先上传技术需求文件');
         }
 
         // 切换到技术方案 Tab
         const techProposalTab = document.querySelector('[data-bs-target="#tech-proposal"]');
         if (techProposalTab) {
+            // 【修复】监听tab完全显示后的事件,避免DOM元素未渲染导致显示失败
+            techProposalTab.addEventListener('shown.bs.tab', function handler(e) {
+                // 触发自定义事件通知技术方案组件加载数据
+                window.dispatchEvent(new CustomEvent('loadTechnicalProposal', {
+                    detail: {
+                        fromHITL: true,
+                        taskId: hitlTaskId
+                    }
+                }));
+
+                console.log('[goToTechProposal] Tab已完全显示,已派发loadTechnicalProposal事件');
+
+                // 移除事件监听器(只执行一次)
+                e.target.removeEventListener('shown.bs.tab', handler);
+            });
+
             const tab = new bootstrap.Tab(techProposalTab);
             tab.show();
-
-            // 触发自定义事件通知技术方案组件加载数据
-            window.dispatchEvent(new CustomEvent('loadTechnicalProposal', {
-                detail: {
-                    fromHITL: true,
-                    taskId: hitlTaskId
-                }
-            }));
 
             console.log('[goToTechProposal] 已切换到技术方案 Tab');
         } else {

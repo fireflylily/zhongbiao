@@ -116,7 +116,7 @@
                             <select class="form-select" id="hitlCompanySelect" required>
                                 <option value="">请选择公司...</option>
                             </select>
-                            <button type="button" class="btn btn-outline-info btn-sm" onclick="window.location.href='/knowledge_base?action=company_management';" title="管理公司">
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="navigateToCompanyLibrary();" title="管理公司">
                                 <i class="bi bi-building"></i>
                             </button>
                         </div>
@@ -172,3 +172,26 @@
     <strong>组件配置错误：</strong> 请指定有效的 mode 参数 ('readonly' 或 'editable')
 </div>
 {% endif %}
+
+<script>
+/**
+ * 跳转到企业信息库标签页
+ */
+function navigateToCompanyLibrary() {
+    // 1. 激活知识库主标签
+    const knowledgeTab = document.querySelector('[data-bs-target="#knowledge"]');
+    if (knowledgeTab) {
+        const tab = new bootstrap.Tab(knowledgeTab);
+        tab.show();
+    }
+
+    // 2. 稍等片刻后激活企业信息库子标签
+    setTimeout(() => {
+        const companyLibraryTab = document.querySelector('#company-library-nav');
+        if (companyLibraryTab) {
+            const subTab = new bootstrap.Tab(companyLibraryTab);
+            subTab.show();
+        }
+    }, 100);
+}
+</script>
