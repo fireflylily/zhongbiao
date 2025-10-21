@@ -811,24 +811,16 @@ async function goToTechProposal() {
         // 切换到技术方案 Tab
         const techProposalTab = document.querySelector('[data-bs-target="#tech-proposal"]');
         if (techProposalTab) {
-            // 【修复】监听tab完全显示后的事件,避免DOM元素未渲染导致显示失败
-            techProposalTab.addEventListener('shown.bs.tab', function handler(e) {
-                // 触发自定义事件通知技术方案组件加载数据
-                window.dispatchEvent(new CustomEvent('loadTechnicalProposal', {
-                    detail: {
-                        fromHITL: true,
-                        taskId: hitlTaskId
-                    }
-                }));
-
-                console.log('[goToTechProposal] Tab已完全显示,已派发loadTechnicalProposal事件');
-
-                // 移除事件监听器(只执行一次)
-                e.target.removeEventListener('shown.bs.tab', handler);
-            });
-
             const tab = new bootstrap.Tab(techProposalTab);
             tab.show();
+
+            // 【修复】复制商务应答的成功模式 - 立即派发事件,接收端会延迟处理
+            window.dispatchEvent(new CustomEvent('loadTechnicalProposal', {
+                detail: {
+                    fromHITL: true,
+                    taskId: hitlTaskId
+                }
+            }));
 
             console.log('[goToTechProposal] 已切换到技术方案 Tab');
         } else {

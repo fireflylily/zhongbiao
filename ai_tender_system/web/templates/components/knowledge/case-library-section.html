@@ -1,16 +1,13 @@
-<!-- 案例库管理界面 - 全屏视图（对齐 knowledge_base.html） -->
-<div class="knowledge-base-content" id="caseLibraryContent" style="width: 100%; min-height: 500px;">
-    <!-- 主内容容器 - CaseLibraryManager会在这里渲染完整的案例库视图 -->
-    <div id="caseLibraryMainContent" style="width: 100%; min-height: 500px;">
-        <!-- 初始加载提示 -->
-        <div class="text-center py-5">
-            <div class="mb-3">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">加载中...</span>
-                </div>
+<!-- 案例库管理界面 - 简化单层容器 -->
+<div id="caseLibraryContainer" style="width: 100%; min-height: 500px;">
+    <!-- 初始加载提示 -->
+    <div class="text-center py-5">
+        <div class="mb-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
             </div>
-            <p class="text-muted">正在加载案例库...</p>
         </div>
+        <p class="text-muted">正在加载案例库...</p>
     </div>
 </div>
 
@@ -70,9 +67,9 @@
                 ${message}
             </div>
         `;
-        const mainContent = document.getElementById('mainContent');
-        if (mainContent) {
-            mainContent.innerHTML = html;
+        const container = document.getElementById('caseLibraryContainer');
+        if (container) {
+            container.innerHTML = html;
         }
     }
 
@@ -85,9 +82,9 @@
                 <p class="text-muted">管理和检索项目中标案例，提供案例复用和参考</p>
             </div>
         `;
-        const mainContent = document.getElementById('mainContent');
-        if (mainContent) {
-            mainContent.innerHTML = html;
+        const container = document.getElementById('caseLibraryContainer');
+        if (container) {
+            container.innerHTML = html;
         }
     }
 })();

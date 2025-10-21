@@ -243,7 +243,7 @@ class CaseLibraryAPI:
                         'error': '文件名不能为空'
                     }), 400
 
-                attachment_type = request.form.get('attachment_type', 'other')
+                attachment_type = request.form.get('attachment_type', 'contract_order')
                 description = request.form.get('description', '')
 
                 result = self.manager.upload_attachment(

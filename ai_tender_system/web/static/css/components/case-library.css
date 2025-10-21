@@ -397,22 +397,15 @@
 }
 
 /* ==================== */
-/* 案例编辑视图样式 */
+/* 案例编辑视图样式（优化后：减少嵌套层级） */
 /* ==================== */
-
-.case-edit-view {
-    background: #f5f7f9;
-    min-height: calc(100vh - 80px);
-}
 
 .case-edit-header {
     background: white;
     padding: 20px 30px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    margin-bottom: 0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    margin-bottom: 20px;
+    border-radius: 8px;
 }
 
 .case-edit-header h4 {
@@ -421,13 +414,12 @@
     font-weight: 600;
 }
 
-.case-edit-container {
+.case-edit-content {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 30px;
 }
 
-.case-edit-container .case-form-section {
+.case-edit-content .case-form-section {
     background: white;
     padding: 25px;
     border-radius: 8px;
@@ -435,7 +427,7 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
-.case-edit-container .case-form-section h6 {
+.case-edit-content .case-form-section h6 {
     color: #2c3e50;
     font-weight: 600;
     margin-bottom: 20px;
@@ -445,34 +437,34 @@
 }
 
 /* 表单字段优化 */
-.case-edit-container .form-label {
+.case-edit-content .form-label {
     font-weight: 500;
     color: #495057;
     margin-bottom: 8px;
 }
 
-.case-edit-container .form-control,
-.case-edit-container .form-select {
+.case-edit-content .form-control,
+.case-edit-content .form-select {
     border-radius: 6px;
     border: 1px solid #d1d5db;
     padding: 10px 14px;
     font-size: 0.95rem;
 }
 
-.case-edit-container .form-control:focus,
-.case-edit-container .form-select:focus {
+.case-edit-content .form-control:focus,
+.case-edit-content .form-select:focus {
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 /* 必填标记 */
-.case-edit-container .text-danger {
+.case-edit-content .text-danger {
     color: #dc3545;
     font-weight: 600;
 }
 
 /* 辅助文字 */
-.case-edit-container small.text-muted {
+.case-edit-content small.text-muted {
     font-size: 0.85rem;
     color: #6c757d;
     display: block;

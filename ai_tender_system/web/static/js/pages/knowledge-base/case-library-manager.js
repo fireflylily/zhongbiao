@@ -32,19 +32,14 @@ class CaseLibraryManager {
     async renderCaseLibraryView() {
         console.log('渲染案例库视图...');
 
-        const mainContent = document.getElementById('caseLibraryMainContent');
-        if (!mainContent) {
-            console.error('未找到案例库主内容区域');
+        const container = document.getElementById('caseLibraryContainer');
+        if (!container) {
+            console.error('未找到案例库容器');
             return;
         }
 
-        // 确保容器有尺寸
-        mainContent.style.width = '100%';
-        mainContent.style.minHeight = '500px';
-        mainContent.style.display = 'block';
-
-        // 清空主内容区
-        mainContent.innerHTML = '';
+        // 清空容器
+        container.innerHTML = '';
 
         // 渲染案例库界面
         const html = `
@@ -150,16 +145,7 @@ class CaseLibraryManager {
             </div>
         `;
 
-        mainContent.innerHTML = html;
-
-        // 强制设置子元素的宽度（修复布局问题）
-        const header = mainContent.querySelector('.case-library-header');
-        const filters = mainContent.querySelector('.case-filters-horizontal');
-        const listContainer = mainContent.querySelector('.case-list-full-width');
-
-        if (header) header.style.width = '100%';
-        if (filters) filters.style.width = '100%';
-        if (listContainer) listContainer.style.width = '100%';
+        container.innerHTML = html;
 
         // 加载数据
         await this.loadCompanyFilters();
@@ -173,252 +159,211 @@ class CaseLibraryManager {
     async renderCaseEditView(caseId = null) {
         console.log('渲染案例编辑视图...', caseId);
 
-        const mainContent = document.getElementById('caseLibraryMainContent');
-        if (!mainContent) {
-            console.error('未找到主内容区域');
+        const container = document.getElementById('caseLibraryContainer');
+        if (!container) {
+            console.error('未找到案例库容器');
             return;
         }
 
         const isEdit = !!caseId;
         const pageTitle = isEdit ? '编辑案例' : '新建案例';
 
-        // 渲染编辑视图
+        // 渲染编辑视图（简化结构，减少嵌套）
         const html = `
-            <div class="case-edit-view">
-                <!-- 顶部操作栏 -->
-                <div class="case-edit-header">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <button type="button" class="btn btn-outline-secondary me-3" onclick="window.caseLibraryManager.showCaseListView()">
-                                <i class="bi bi-arrow-left me-1"></i>返回列表
-                            </button>
-                            <h4 class="mb-0">${pageTitle}</h4>
+            <!-- 顶部操作栏 -->
+            <div class="case-edit-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-outline-secondary me-3" onclick="window.caseLibraryManager.showCaseListView()">
+                            <i class="bi bi-arrow-left me-1"></i>返回列表
+                        </button>
+                        <h4 class="mb-0">${pageTitle}</h4>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary me-2" onclick="window.caseLibraryManager.showCaseListView()">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="window.caseLibraryManager.saveCase()">
+                            <i class="bi bi-save me-1"></i>保存案例
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 表单内容（扁平化结构，无需form标签包装） -->
+            <div class="case-edit-content">
+                <input type="hidden" id="caseId" value="${caseId || ''}">
+
+                <!-- 基本信息 -->
+                <div class="case-form-section">
+                    <h6>基本信息</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">所属公司 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="caseCompanyId" required>
+                                <option value="">请选择公司</option>
+                            </select>
                         </div>
-                        <div>
-                            <button type="button" class="btn btn-secondary me-2" onclick="window.caseLibraryManager.showCaseListView()">取消</button>
-                            <button type="button" class="btn btn-primary" onclick="window.caseLibraryManager.saveCase()">
-                                <i class="bi bi-save me-1"></i>保存案例
-                            </button>
+                        <div class="col-md-6">
+                            <label class="form-label">关联产品</label>
+                            <select class="form-select" id="caseProductId">
+                                <option value="">请选择产品（可选）</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">合同名称/案例标题 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="caseTitle" required placeholder="案例名称即合同名称">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">合同编号/案例编号</label>
+                            <input type="text" class="form-control" id="caseNumber">
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">甲方客户名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="caseCustomerName" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">所属行业</label>
+                            <select class="form-select" id="caseIndustry">
+                                <option value="">请选择</option>
+                                <option value="政府">政府</option>
+                                <option value="教育">教育</option>
+                                <option value="医疗">医疗</option>
+                                <option value="金融">金融</option>
+                                <option value="能源">能源</option>
+                                <option value="交通">交通</option>
+                                <option value="制造业">制造业</option>
+                                <option value="其他">其他</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- 表单内容 -->
-                <div class="case-edit-container">
-                    <form id="caseForm">
-                        <input type="hidden" id="caseId" value="${caseId || ''}">
+                <!-- 合同信息 -->
+                <div class="case-form-section">
+                    <h6>合同信息</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">合同类型 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="caseContractType"
+                                    onchange="window.caseLibraryManager.toggleFinalCustomerField()" required>
+                                <option value="">请选择</option>
+                                <option value="合同">合同</option>
+                                <option value="订单">订单</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">合同金额</label>
+                            <input type="text" class="form-control" id="caseContractAmount" placeholder="如: 100万元 或 百万级 或 500">
+                            <small class="text-muted">可填写具体金额（万元）或描述性文字（如"百万级"）</small>
+                        </div>
+                    </div>
+                    <div class="row mt-3" id="caseFinalCustomerRow" style="display: none;">
+                        <div class="col-md-12">
+                            <label class="form-label">最终客户名称</label>
+                            <input type="text" class="form-control" id="caseFinalCustomerName">
+                            <small class="text-muted">仅订单类型时填写</small>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">合同开始日期</label>
+                            <input type="date" class="form-control" id="caseContractStartDate">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">合同结束日期</label>
+                            <input type="date" class="form-control" id="caseContractEndDate">
+                        </div>
+                    </div>
+                </div>
 
-                        <!-- 基本信息 -->
-                        <div class="case-form-section">
-                            <h6>基本信息</h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="form-label">所属公司 <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="caseCompanyId" required>
-                                        <option value="">请选择公司</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">关联产品</label>
-                                    <select class="form-select" id="caseProductId">
-                                        <option value="">请选择产品（可选）</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">合同名称/案例标题 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="caseTitle" required placeholder="案例名称即合同名称">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">合同编号/案例编号</label>
-                                    <input type="text" class="form-control" id="caseNumber">
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">甲方客户名称 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="caseCustomerName" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">所属行业</label>
-                                    <select class="form-select" id="caseIndustry">
-                                        <option value="">请选择</option>
-                                        <option value="政府">政府</option>
-                                        <option value="教育">教育</option>
-                                        <option value="医疗">医疗</option>
-                                        <option value="金融">金融</option>
-                                        <option value="能源">能源</option>
-                                        <option value="交通">交通</option>
-                                        <option value="制造业">制造业</option>
-                                        <option value="其他">其他</option>
-                                    </select>
-                                </div>
+                <!-- 甲方客户信息（详细信息） -->
+                <div class="case-form-section">
+                    <h6>甲方客户详细信息</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">联系人姓名</label>
+                            <input type="text" class="form-control" id="casePartyAContactName">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">联系电话</label>
+                            <input type="tel" class="form-control" id="casePartyAContactPhone">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 乙方公司信息（详细信息） -->
+                <div class="case-form-section">
+                    <h6>乙方公司详细信息</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">联系人姓名</label>
+                            <input type="text" class="form-control" id="casePartyBContactName">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">联系电话</label>
+                            <input type="tel" class="form-control" id="casePartyBContactPhone">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 附件管理 -->
+                <div class="case-form-section" id="caseAttachmentsSection">
+                    <h6>
+                        <i class="bi bi-paperclip me-2"></i>案例附件
+                        <span class="badge bg-secondary ms-2" id="caseAttachmentCount">0</span>
+                    </h6>
+
+                    ${!isEdit ? `
+                    <!-- 新建模式提示 -->
+                    <div class="alert alert-info d-flex align-items-center" id="caseAttachmentNewTip">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <span>请先保存案例基本信息后，再上传附件</span>
+                    </div>
+                    ` : ''}
+
+                    <!-- 上传区域 -->
+                    <div class="case-attachment-upload-area" id="caseAttachmentUploadArea" ${!isEdit ? 'style="display: none;"' : ''}>
+                        <div class="upload-box">
+                            <input type="file" id="caseAttachmentInput" multiple
+                                   accept="image/*,.pdf,.doc,.docx" style="display: none;"
+                                   onchange="window.caseLibraryManager.handleAttachmentSelect(event)">
+                            <div class="upload-prompt" onclick="document.getElementById('caseAttachmentInput').click()">
+                                <i class="bi bi-cloud-upload text-primary" style="font-size: 2rem;"></i>
+                                <p class="mt-2 mb-1">点击或拖拽文件到这里上传</p>
+                                <small class="text-muted">支持图片、PDF、Word文档，单个文件不超过10MB</small>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- 合同信息 -->
-                        <div class="case-form-section">
-                            <h6>合同信息</h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="form-label">合同类型 <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="caseContractType"
-                                            onchange="window.caseLibraryManager.toggleFinalCustomerField()" required>
-                                        <option value="">请选择</option>
-                                        <option value="合同">合同</option>
-                                        <option value="订单">订单</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">合同金额</label>
-                                    <input type="text" class="form-control" id="caseContractAmount" placeholder="如: 100万元 或 百万级 或 500">
-                                    <small class="text-muted">可填写具体金额（万元）或描述性文字（如"百万级"）</small>
-                                </div>
-                            </div>
-                            <div class="row mt-3" id="caseFinalCustomerRow" style="display: none;">
-                                <div class="col-md-12">
-                                    <label class="form-label">最终客户名称</label>
-                                    <input type="text" class="form-control" id="caseFinalCustomerName">
-                                    <small class="text-muted">仅订单类型时填写</small>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">合同开始日期</label>
-                                    <input type="date" class="form-control" id="caseContractStartDate">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">合同结束日期</label>
-                                    <input type="date" class="form-control" id="caseContractEndDate">
-                                </div>
-                            </div>
+                    <!-- 附件类型选择 -->
+                    <div class="row mt-3" id="caseAttachmentTypeRow" ${!isEdit ? 'style="display: none;"' : ''}>
+                        <div class="col-md-6">
+                            <label class="form-label">附件类型</label>
+                            <select class="form-select" id="caseAttachmentType">
+                                <option value="contract_order">合同/订单</option>
+                                <option value="invoice">发票</option>
+                                <option value="statement">对账单</option>
+                            </select>
                         </div>
-
-                        <!-- 甲方客户信息（详细信息） -->
-                        <div class="case-form-section">
-                            <h6>甲方客户详细信息</h6>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <label class="form-label">甲方地址</label>
-                                    <input type="text" class="form-control" id="casePartyAAddress">
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">联系人姓名</label>
-                                    <input type="text" class="form-control" id="casePartyAContactName">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">联系电话</label>
-                                    <input type="tel" class="form-control" id="casePartyAContactPhone">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">联系邮箱</label>
-                                    <input type="email" class="form-control" id="casePartyAContactEmail">
-                                </div>
-                            </div>
+                        <div class="col-md-6">
+                            <label class="form-label">附件说明</label>
+                            <input type="text" class="form-control" id="caseAttachmentDescription"
+                                   placeholder="选填，简要说明附件内容">
                         </div>
+                    </div>
 
-                        <!-- 乙方公司信息（详细信息） -->
-                        <div class="case-form-section">
-                            <h6>乙方公司详细信息</h6>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <label class="form-label">乙方地址</label>
-                                    <input type="text" class="form-control" id="casePartyBAddress">
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">联系人姓名</label>
-                                    <input type="text" class="form-control" id="casePartyBContactName">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">联系电话</label>
-                                    <input type="tel" class="form-control" id="casePartyBContactPhone">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">联系邮箱</label>
-                                    <input type="email" class="form-control" id="casePartyBContactEmail">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 其他信息 -->
-                        <div class="case-form-section">
-                            <h6>其他信息</h6>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="form-label">案例状态</label>
-                                    <select class="form-select" id="caseStatus">
-                                        <option value="success">成功</option>
-                                        <option value="进行中">进行中</option>
-                                        <option value="待验收">待验收</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 附件管理 -->
-                        <div class="case-form-section" id="caseAttachmentsSection">
-                            <h6>
-                                <i class="bi bi-paperclip me-2"></i>案例附件
-                                <span class="badge bg-secondary ms-2" id="caseAttachmentCount">0</span>
-                            </h6>
-
-                            ${!isEdit ? `
-                            <!-- 新建模式提示 -->
-                            <div class="alert alert-info d-flex align-items-center" id="caseAttachmentNewTip">
-                                <i class="bi bi-info-circle me-2"></i>
-                                <span>请先保存案例基本信息后，再上传附件</span>
-                            </div>
-                            ` : ''}
-
-                            <!-- 上传区域 -->
-                            <div class="case-attachment-upload-area" id="caseAttachmentUploadArea" ${!isEdit ? 'style="display: none;"' : ''}>
-                                <div class="upload-box">
-                                    <input type="file" id="caseAttachmentInput" multiple
-                                           accept="image/*,.pdf,.doc,.docx" style="display: none;"
-                                           onchange="window.caseLibraryManager.handleAttachmentSelect(event)">
-                                    <div class="upload-prompt" onclick="document.getElementById('caseAttachmentInput').click()">
-                                        <i class="bi bi-cloud-upload text-primary" style="font-size: 2rem;"></i>
-                                        <p class="mt-2 mb-1">点击或拖拽文件到这里上传</p>
-                                        <small class="text-muted">支持图片、PDF、Word文档，单个文件不超过10MB</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 附件类型选择 -->
-                            <div class="row mt-3" id="caseAttachmentTypeRow" ${!isEdit ? 'style="display: none;"' : ''}>
-                                <div class="col-md-6">
-                                    <label class="form-label">附件类型</label>
-                                    <select class="form-select" id="caseAttachmentType">
-                                        <option value="contract">合同文件</option>
-                                        <option value="acceptance">验收证明</option>
-                                        <option value="testimony">客户证明</option>
-                                        <option value="photo">项目照片</option>
-                                        <option value="other">其他</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">附件说明</label>
-                                    <input type="text" class="form-control" id="caseAttachmentDescription"
-                                           placeholder="选填，简要说明附件内容">
-                                </div>
-                            </div>
-
-                            <!-- 附件列表 -->
-                            <div class="case-attachment-list mt-3" id="caseAttachmentList" ${!isEdit ? 'style="display: none;"' : ''}>
-                                <!-- 附件列表将动态渲染在这里 -->
-                            </div>
-                        </div>
-                    </form>
+                    <!-- 附件列表 -->
+                    <div class="case-attachment-list mt-3" id="caseAttachmentList" ${!isEdit ? 'style="display: none;"' : ''}>
+                        <!-- 附件列表将动态渲染在这里 -->
+                    </div>
                 </div>
             </div>
         `;
 
-        mainContent.innerHTML = html;
+        container.innerHTML = html;
 
         // 加载公司和产品选项
         await this.loadCompanyProductSelectOptions();
@@ -730,20 +675,16 @@ class CaseLibraryManager {
                 <div class="case-detail-section">
                     <h6>甲方信息</h6>
                     ${c.party_a_name ? `<p><strong>甲方名称:</strong> ${this.escapeHtml(c.party_a_name)}</p>` : ''}
-                    ${c.party_a_address ? `<p><strong>地址:</strong> ${this.escapeHtml(c.party_a_address)}</p>` : ''}
                     ${c.party_a_contact_name ? `<p><strong>联系人:</strong> ${this.escapeHtml(c.party_a_contact_name)}</p>` : ''}
                     ${c.party_a_contact_phone ? `<p><strong>电话:</strong> ${this.escapeHtml(c.party_a_contact_phone)}</p>` : ''}
-                    ${c.party_a_contact_email ? `<p><strong>邮箱:</strong> ${this.escapeHtml(c.party_a_contact_email)}</p>` : ''}
                 </div>
                 ` : ''}
                 ${c.party_b_name || c.party_b_contact_name ? `
                 <div class="case-detail-section">
                     <h6>乙方信息</h6>
                     ${c.party_b_name ? `<p><strong>乙方名称:</strong> ${this.escapeHtml(c.party_b_name)}</p>` : ''}
-                    ${c.party_b_address ? `<p><strong>地址:</strong> ${this.escapeHtml(c.party_b_address)}</p>` : ''}
                     ${c.party_b_contact_name ? `<p><strong>联系人:</strong> ${this.escapeHtml(c.party_b_contact_name)}</p>` : ''}
                     ${c.party_b_contact_phone ? `<p><strong>电话:</strong> ${this.escapeHtml(c.party_b_contact_phone)}</p>` : ''}
-                    ${c.party_b_contact_email ? `<p><strong>邮箱:</strong> ${this.escapeHtml(c.party_b_contact_email)}</p>` : ''}
                 </div>
                 ` : ''}
                 <div class="case-detail-section">
@@ -845,14 +786,10 @@ class CaseLibraryManager {
             document.getElementById('caseContractAmount').value = c.contract_amount || '';
             document.getElementById('caseContractStartDate').value = c.contract_start_date || '';
             document.getElementById('caseContractEndDate').value = c.contract_end_date || '';
-            document.getElementById('casePartyAAddress').value = c.party_a_address || '';
             document.getElementById('casePartyAContactName').value = c.party_a_contact_name || '';
             document.getElementById('casePartyAContactPhone').value = c.party_a_contact_phone || '';
-            document.getElementById('casePartyAContactEmail').value = c.party_a_contact_email || '';
-            document.getElementById('casePartyBAddress').value = c.party_b_address || '';
             document.getElementById('casePartyBContactName').value = c.party_b_contact_name || '';
             document.getElementById('casePartyBContactPhone').value = c.party_b_contact_phone || '';
-            document.getElementById('casePartyBContactEmail').value = c.party_b_contact_email || '';
             document.getElementById('caseStatus').value = c.case_status || 'success';
 
             // 触发合同类型变更以显示/隐藏最终客户字段
@@ -925,15 +862,15 @@ class CaseLibraryManager {
             party_a_customer_name: customerName,  // 甲方客户名称 = 客户名称
             party_b_company_name: '',  // 乙方公司名称（可从所属公司获取）
             party_a_name: customerName,  // 甲方名称 = 客户名称
-            party_a_address: document.getElementById('casePartyAAddress').value,
+            party_a_address: '',  // 地址字段已移除
             party_a_contact_name: document.getElementById('casePartyAContactName').value,
             party_a_contact_phone: document.getElementById('casePartyAContactPhone').value,
-            party_a_contact_email: document.getElementById('casePartyAContactEmail').value,
+            party_a_contact_email: '',  // 邮箱字段已移除
             party_b_name: '',  // 乙方名称（可从所属公司获取）
-            party_b_address: document.getElementById('casePartyBAddress').value,
+            party_b_address: '',  // 地址字段已移除
             party_b_contact_name: document.getElementById('casePartyBContactName').value,
             party_b_contact_phone: document.getElementById('casePartyBContactPhone').value,
-            party_b_contact_email: document.getElementById('casePartyBContactEmail').value,
+            party_b_contact_email: '',  // 邮箱字段已移除
             case_status: document.getElementById('caseStatus').value
         };
 
@@ -1219,17 +1156,13 @@ class CaseLibraryManager {
         if (data.contract_end_date) document.getElementById('caseContractEndDate').value = data.contract_end_date;
         // party_a_customer_name, party_b_company_name, party_a_name, party_b_name字段已移除
 
-        // 甲方信息
-        if (data.party_a_address) document.getElementById('casePartyAAddress').value = data.party_a_address;
+        // 甲方信息（地址和邮箱字段已移除）
         if (data.party_a_contact_name) document.getElementById('casePartyAContactName').value = data.party_a_contact_name;
         if (data.party_a_contact_phone) document.getElementById('casePartyAContactPhone').value = data.party_a_contact_phone;
-        if (data.party_a_contact_email) document.getElementById('casePartyAContactEmail').value = data.party_a_contact_email;
 
-        // 乙方信息
-        if (data.party_b_address) document.getElementById('casePartyBAddress').value = data.party_b_address;
+        // 乙方信息（地址和邮箱字段已移除）
         if (data.party_b_contact_name) document.getElementById('casePartyBContactName').value = data.party_b_contact_name;
         if (data.party_b_contact_phone) document.getElementById('casePartyBContactPhone').value = data.party_b_contact_phone;
-        if (data.party_b_contact_email) document.getElementById('casePartyBContactEmail').value = data.party_b_contact_email;
 
         // 其他
         if (data.case_status) document.getElementById('caseStatus').value = data.case_status;
@@ -1457,6 +1390,10 @@ class CaseLibraryManager {
      */
     getAttachmentTypeLabel(type) {
         const labels = {
+            'contract_order': '合同/订单',
+            'invoice': '发票',
+            'statement': '对账单',
+            // 兼容旧类型
             'contract': '合同文件',
             'acceptance': '验收证明',
             'testimony': '客户证明',

@@ -422,7 +422,7 @@ class CaseLibraryManager:
     # =========================
 
     def upload_attachment(self, case_id: int, file_obj, original_filename: str,
-                         attachment_type: str = 'other', description: str = None) -> Dict:
+                         attachment_type: str = 'contract_order', description: str = None) -> Dict:
         """上传案例附件"""
         try:
             from core.storage_service import storage_service

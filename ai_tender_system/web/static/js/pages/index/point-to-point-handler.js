@@ -18,7 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('loadPointToPoint', function(event) {
         if (event.detail && event.detail.fromHITL) {
             console.log('[Point-to-Point] 收到来自 HITL 的加载事件:', event.detail);
-            loadFromHITL();
+            // 【关键】延迟200ms执行,等待Tab渲染完成
+            console.log('[Point-to-Point] 延迟200ms执行 loadFromHITL()，等待Tab渲染完成...');
+            setTimeout(() => {
+                console.log('[Point-to-Point] 即将执行 loadFromHITL()...');
+                loadFromHITL();
+                console.log('[Point-to-Point] loadFromHITL() 调用完成');
+            }, 200);
         }
     });
 });
@@ -1192,15 +1198,16 @@ document.addEventListener('DOMContentLoaded', function() {
  * 当用户从 HITL Tab 点击快捷按钮切换到点对点应答 Tab 时调用
  */
 function loadFromHITL() {
+    console.log('[Point-to-Point] 开始从HITL加载数据');
+
     if (!window.projectDataBridge) {
-        console.warn('[Point-to-Point] projectDataBridge 未定义,无法加载 HITL 数据');
+        console.warn('[Point-to-Point] projectDataBridge 未定义');
         return;
     }
 
     const bridge = window.projectDataBridge;
-    console.log('[Point-to-Point] 开始从 HITL 加载数据:', bridge);
 
-    // 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
+    // 1. 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
     if (window.companyStateManager) {
         const companyData = window.companyStateManager.getSelectedCompany();
         if (companyData) {
@@ -1209,65 +1216,125 @@ function loadFromHITL() {
                 companyName: companyData.company_name,
                 projectName: companyData.project_name
             });
+
+            // 更新点对点应答表单的公司ID
+            const companySelect = document.getElementById('pointToPointCompanyId');
+            if (companySelect) {
+                companySelect.value = companyData.company_id || '';
+            }
         }
     }
 
-    // 【修复】加载技术需求文件信息 - 改用通用方法 getFileInfo
+    // 2. 【修改】从 projectDataBridge 加载技术需求文件信息
     const techFile = bridge.getFileInfo('pointToPoint');
-    if (techFile && (techFile.taskId || techFile.fileName)) {
-        console.log('[Point-to-Point] 加载技术需求文件信息:', techFile);
+    console.log('[Point-to-Point] ====== 文件信息诊断开始 ======');
+    console.log('[Point-to-Point] bridge.getFileInfo("pointToPoint") 返回值:', techFile);
+    console.log('[Point-to-Point] techFile?.taskId:', techFile?.taskId);
+    console.log('[Point-to-Point] techFile?.fileName:', techFile?.fileName);
+    console.log('[Point-to-Point] 条件检查: taskId存在?', !!techFile?.taskId, ', fileName存在?', !!techFile?.fileName);
 
-        const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
-        const uploadArea = document.getElementById('uploadArea');
-        const processBtn = document.getElementById('processBtn');
+    if (techFile?.taskId && techFile?.fileName) {
+        console.log('[Point-to-Point] [PASS] 条件检查通过，准备显示文件');
+        console.log('[Point-to-Point] 找到技术需求文件:', techFile.fileName);
 
-        // 【新增】填充隐藏字段
+        // 【重要】填充隐藏字段
         const taskIdInput = document.getElementById('technicalFileTaskId');
         const urlInput = document.getElementById('technicalFileUrl');
         if (taskIdInput && techFile.taskId) {
             taskIdInput.value = techFile.taskId;
+            console.log('[Point-to-Point] 已设置 technicalFileTaskId:', techFile.taskId);
         }
         if (urlInput && techFile.fileUrl) {
             urlInput.value = techFile.fileUrl;
+            console.log('[Point-to-Point] 已设置 technicalFileUrl:', techFile.fileUrl);
         }
 
-        if (fileInfo && fileName && fileSize) {
-            // 显示文件信息
-            fileInfo.classList.remove('d-none');
-            fileName.textContent = techFile.fileName;
+        // 【重要】保存到全局变量供后续使用
+        window.pointToPointHitlTaskId = techFile.taskId;
+        console.log('[Point-to-Point] 已保存到全局变量 pointToPointHitlTaskId:', window.pointToPointHitlTaskId);
 
+        // 【关键修复】直接使用 innerHTML 设置整个 fileInfo 内容,而不是操作子元素
+        const fileInfo = document.getElementById('fileInfo');
+        console.log('[Point-to-Point] 查找 fileInfo 元素:', fileInfo);
+
+        if (fileInfo) {
+            console.log('[Point-to-Point] [FOUND] 找到 fileInfo 元素，准备设置 innerHTML');
+            console.log('[Point-to-Point] 设置前 innerHTML:', fileInfo.innerHTML);
+
+            // 计算文件大小
+            let sizeText = '';
             if (techFile.fileSize) {
                 const sizeKB = (parseInt(techFile.fileSize) / 1024).toFixed(2);
-                fileSize.textContent = `(${sizeKB} KB)`;
+                sizeText = `<span class="text-muted" id="fileSize">(${sizeKB} KB)</span>`;
             }
 
-            // 隐藏上传区域
-            if (uploadArea) {
-                uploadArea.classList.add('d-none');
-            }
+            // 【关键】使用 innerHTML 一次性设置全部内容
+            fileInfo.innerHTML = `
+                <div class="alert alert-success py-2 d-flex align-items-center">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    <div>
+                        已选择文件：<strong id="fileName">${techFile.fileName}</strong>
+                        ${sizeText}
+                        <span class="badge bg-success ms-2">已从投标项目加载</span>
+                    </div>
+                </div>
+            `;
 
-            // 启用处理按钮
-            if (processBtn) {
-                processBtn.disabled = false;
-            }
+            // 【重要】移除隐藏class
+            fileInfo.classList.remove('d-none');
 
-            // 存储 HITL 任务 ID 以供后续使用
-            if (window.pointToPointHitlTaskId !== undefined) {
-                window.pointToPointHitlTaskId = techFile.taskId;
-            } else {
-                window.pointToPointHitlTaskId = techFile.taskId;
-            }
+            console.log('[Point-to-Point] [SUCCESS] innerHTML 已设置成功');
+            console.log('[Point-to-Point] 设置后 innerHTML:', fileInfo.innerHTML);
+            console.log('[Point-to-Point] 设置后 innerHTML.length:', fileInfo.innerHTML.length);
 
-            console.log('[Point-to-Point] 从 HITL 加载的技术需求文件信息已显示:', {
-                fileName: techFile.fileName,
-                fileSize: techFile.fileSize,
-                taskId: techFile.taskId
-            });
+            // 【验证】立即检查DOM中是否真的有内容
+            setTimeout(() => {
+                const checkDiv = document.getElementById('fileInfo');
+                console.log('[Point-to-Point] [VERIFY] 100ms后验证，元素内容:', checkDiv?.innerHTML);
+                console.log('[Point-to-Point] [VERIFY] 100ms后验证，元素是否可见:', checkDiv?.offsetParent !== null);
+                console.log('[Point-to-Point] [VERIFY] 100ms后验证，是否有d-none类:', checkDiv?.classList.contains('d-none'));
+
+                if (!checkDiv || checkDiv.innerHTML.trim() === '') {
+                    console.error('[Point-to-Point] [ERROR] 验证失败！innerHTML被清空了！');
+                } else if (checkDiv.classList.contains('d-none')) {
+                    console.error('[Point-to-Point] [ERROR] 验证失败！元素被重新隐藏了！');
+                } else {
+                    console.log('[Point-to-Point] [VERIFY] 验证成功，内容仍然存在且可见');
+                }
+            }, 100);
+        } else {
+            console.error('[Point-to-Point] [ERROR] 未找到 fileInfo 元素，无法显示文件信息');
         }
+
+        // 隐藏上传区域
+        const uploadArea = document.getElementById('uploadArea');
+        console.log('[Point-to-Point] 查找 uploadArea 元素:', uploadArea);
+
+        if (uploadArea) {
+            uploadArea.classList.add('d-none');
+            uploadArea.style.display = 'none';
+            uploadArea.onclick = null;  // 移除点击事件
+            uploadArea.style.pointerEvents = 'none';  // 禁用所有鼠标事件
+            uploadArea.style.cursor = 'default';  // 改变鼠标样式
+            console.log('[Point-to-Point] [SUCCESS] 已隐藏上传区域并禁用点击事件');
+        } else {
+            console.warn('[Point-to-Point] [WARN] 未找到 uploadArea 元素');
+        }
+
+        // 启用处理按钮
+        const processBtn = document.getElementById('processBtn');
+        if (processBtn) {
+            processBtn.disabled = false;
+            console.log('[Point-to-Point] [SUCCESS] 已启用处理按钮');
+        }
+
+        console.log('[Point-to-Point] 文件信息已显示，已保存到全局变量');
     } else {
-        console.log('[Point-to-Point] 未找到技术需求文件信息');
+        console.warn('[Point-to-Point] [FAIL] 条件检查失败，未找到技术需求文件信息');
+        console.warn('[Point-to-Point] techFile 完整对象:', JSON.stringify(techFile, null, 2));
     }
+
+    console.log('[Point-to-Point] ====== 文件信息诊断结束 ======');
+
+    console.log('[Point-to-Point] 从HITL加载数据完成');
 }

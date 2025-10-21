@@ -25,7 +25,13 @@ class ProposalGenerator {
         window.addEventListener('loadTechnicalProposal', (event) => {
             if (event.detail && event.detail.fromHITL) {
                 console.log('[ProposalGenerator] 收到来自 HITL 的加载事件:', event.detail);
-                this.loadFromHITL();
+                // 【关键】延迟200ms执行,等待Tab渲染完成
+                console.log('[ProposalGenerator] 延迟200ms执行 loadFromHITL()，等待Tab渲染完成...');
+                setTimeout(() => {
+                    console.log('[ProposalGenerator] 即将执行 loadFromHITL()...');
+                    this.loadFromHITL();
+                    console.log('[ProposalGenerator] loadFromHITL() 调用完成');
+                }, 200);
             }
         });
     }
@@ -1077,68 +1083,148 @@ class ProposalGenerator {
      * 当用户从 HITL Tab 点击快捷按钮切换到技术方案 Tab 时调用
      */
     loadFromHITL() {
+        console.log('[ProposalGenerator] 开始从HITL加载数据');
+
         if (!window.projectDataBridge) {
-            console.warn('[ProposalGenerator] projectDataBridge 未定义,无法加载 HITL 数据');
+            console.warn('[ProposalGenerator] projectDataBridge 未定义');
             return;
         }
 
         const bridge = window.projectDataBridge;
-        console.log('[ProposalGenerator] 开始从 HITL 加载数据:', bridge);
 
-        // 公司和项目信息已通过 projectDataBridge 传递，无需额外设置
-        if (bridge.companyId && bridge.companyName) {
-            console.log('[ProposalGenerator] 公司和项目信息:', {
-                companyId: bridge.companyId,
-                companyName: bridge.companyName,
-                projectName: bridge.projectName
-            });
+        // 1. 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
+        if (window.companyStateManager) {
+            const companyData = window.companyStateManager.getSelectedCompany();
+            if (companyData) {
+                console.log('[ProposalGenerator] 公司和项目信息:', {
+                    companyId: companyData.company_id,
+                    companyName: companyData.company_name,
+                    projectName: companyData.project_name
+                });
+
+                // 更新技术方案表单的公司ID
+                if (this.techCompanySelect) {
+                    this.techCompanySelect.value = companyData.company_id || '';
+                }
+            }
         }
 
-        // 【修复】加载技术需求文件信息 - 改用通用方法 getFileInfo
+        // 2. 【修改】从 projectDataBridge 加载技术需求文件信息
         const techFile = bridge.getFileInfo('techProposal');
-        if (techFile && (techFile.taskId || techFile.fileName)) {
-            this.hitlTaskId = techFile.taskId;
-            console.log('[ProposalGenerator] 加载技术需求文件信息:', techFile);
+        console.log('[ProposalGenerator] ====== 文件信息诊断开始 ======');
+        console.log('[ProposalGenerator] bridge.getFileInfo("techProposal") 返回值:', techFile);
+        console.log('[ProposalGenerator] techFile?.taskId:', techFile?.taskId);
+        console.log('[ProposalGenerator] techFile?.fileName:', techFile?.fileName);
+        console.log('[ProposalGenerator] 条件检查: taskId存在?', !!techFile?.taskId, ', fileName存在?', !!techFile?.fileName);
 
-            // 填充隐藏字段
+        if (techFile?.taskId && techFile?.fileName) {
+            console.log('[ProposalGenerator] [PASS] 条件检查通过，准备显示文件');
+            console.log('[ProposalGenerator] 找到技术需求文件:', techFile.fileName);
+
+            // 【重要】保存到实例变量供后续使用
+            this.hitlTaskId = techFile.taskId;
+            console.log('[ProposalGenerator] 已保存 hitlTaskId:', this.hitlTaskId);
+
+            // 【重要】填充隐藏字段
             if (this.techTechnicalFileTaskId && techFile.taskId) {
                 this.techTechnicalFileTaskId.value = techFile.taskId;
+                console.log('[ProposalGenerator] 已设置 techTechnicalFileTaskId:', techFile.taskId);
             }
             if (this.techTechnicalFileUrl && techFile.fileUrl) {
                 this.techTechnicalFileUrl.value = techFile.fileUrl;
+                console.log('[ProposalGenerator] 已设置 techTechnicalFileUrl:', techFile.fileUrl);
             }
 
-            // 显示文件信息
-            if (techFile.fileName && this.techTechnicalFileDisplay) {
+            // 【关键修复】使用 innerHTML 直接设置文件显示内容
+            console.log('[ProposalGenerator] 查找 techTechnicalFileDisplay 元素:', this.techTechnicalFileDisplay);
+
+            if (this.techTechnicalFileDisplay) {
+                console.log('[ProposalGenerator] [FOUND] 找到 techTechnicalFileDisplay 元素，准备设置 innerHTML');
+                console.log('[ProposalGenerator] 设置前 innerHTML:', this.techTechnicalFileDisplay.innerHTML);
+
+                // 计算文件大小
+                let sizeText = '';
+                if (techFile.fileSize) {
+                    const sizeKB = (parseInt(techFile.fileSize) / 1024).toFixed(2);
+                    sizeText = ` <span class="text-muted small" id="techTechnicalFileDisplaySize">(${sizeKB} KB)</span>`;
+                }
+
+                // 【关键】使用 innerHTML 一次性设置全部内容
+                this.techTechnicalFileDisplay.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="bi bi-file-earmark-check me-2"></i>
+                            <strong>已从投标项目加载技术需求文件：</strong><br>
+                            <span id="techTechnicalFileDisplayName" class="text-muted small">${techFile.fileName}</span>
+                            ${sizeText}
+                            <span class="badge bg-success ms-2">已从投标项目加载</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="techClearTechnicalFile">
+                            <i class="bi bi-x"></i> 重新上传
+                        </button>
+                    </div>
+                `;
+
+                // 【重要】移除隐藏class
                 this.techTechnicalFileDisplay.classList.remove('d-none');
 
-                // 显示文件名
-                if (this.techTechnicalFileDisplayName) {
-                    this.techTechnicalFileDisplayName.textContent = techFile.fileName;
-                }
+                console.log('[ProposalGenerator] [SUCCESS] innerHTML 已设置成功');
+                console.log('[ProposalGenerator] 设置后 innerHTML:', this.techTechnicalFileDisplay.innerHTML);
+                console.log('[ProposalGenerator] 设置后 innerHTML.length:', this.techTechnicalFileDisplay.innerHTML.length);
 
-                // 格式化并显示文件大小
-                if (this.techTechnicalFileDisplaySize && techFile.fileSize) {
-                    const sizeKB = (parseInt(techFile.fileSize) / 1024).toFixed(2);
-                    this.techTechnicalFileDisplaySize.textContent = ` (${sizeKB} KB)`;
-                }
+                // 【重要】重新绑定清除按钮事件（因为按钮是新创建的）
+                setTimeout(() => {
+                    const clearBtn = document.getElementById('techClearTechnicalFile');
+                    if (clearBtn) {
+                        clearBtn.onclick = () => this.clearTechnicalFile();
+                        console.log('[ProposalGenerator] 已重新绑定清除按钮事件');
+                    }
+                }, 50);
 
-                // 隐藏上传区域
-                if (this.techTenderUpload) {
-                    this.techTenderUpload.style.display = 'none';
-                }
+                // 【验证】立即检查DOM中是否真的有内容
+                setTimeout(() => {
+                    const checkDiv = this.techTechnicalFileDisplay;
+                    console.log('[ProposalGenerator] [VERIFY] 100ms后验证，元素内容:', checkDiv?.innerHTML);
+                    console.log('[ProposalGenerator] [VERIFY] 100ms后验证，元素是否可见:', checkDiv?.offsetParent !== null);
+                    console.log('[ProposalGenerator] [VERIFY] 100ms后验证，是否有d-none类:', checkDiv?.classList.contains('d-none'));
 
-                console.log('[ProposalGenerator] 从 HITL 加载的技术需求文件信息已显示:', {
-                    fileName: techFile.fileName,
-                    fileSize: techFile.fileSize
-                });
+                    if (!checkDiv || checkDiv.innerHTML.trim() === '') {
+                        console.error('[ProposalGenerator] [ERROR] 验证失败！innerHTML被清空了！');
+                    } else if (checkDiv.classList.contains('d-none')) {
+                        console.error('[ProposalGenerator] [ERROR] 验证失败！元素被重新隐藏了！');
+                    } else {
+                        console.log('[ProposalGenerator] [VERIFY] 验证成功，内容仍然存在且可见');
+                    }
+                }, 100);
+            } else {
+                console.error('[ProposalGenerator] [ERROR] 未找到 techTechnicalFileDisplay 元素，无法显示文件信息');
             }
+
+            // 隐藏上传区域
+            console.log('[ProposalGenerator] 查找 techTenderUpload 元素:', this.techTenderUpload);
+
+            if (this.techTenderUpload) {
+                this.techTenderUpload.style.display = 'none';
+                this.techTenderUpload.onclick = null;  // 移除点击事件
+                this.techTenderUpload.style.pointerEvents = 'none';  // 禁用所有鼠标事件
+                this.techTenderUpload.style.cursor = 'default';  // 改变鼠标样式
+                console.log('[ProposalGenerator] [SUCCESS] 已隐藏上传区域并禁用点击事件');
+            } else {
+                console.warn('[ProposalGenerator] [WARN] 未找到 techTenderUpload 元素');
+            }
+
+            console.log('[ProposalGenerator] 文件信息已显示');
         } else {
-            console.log('[ProposalGenerator] 未找到技术需求文件信息');
+            console.warn('[ProposalGenerator] [FAIL] 条件检查失败，未找到技术需求文件信息');
+            console.warn('[ProposalGenerator] techFile 完整对象:', JSON.stringify(techFile, null, 2));
         }
+
+        console.log('[ProposalGenerator] ====== 文件信息诊断结束 ======');
 
         // 检查表单状态
         this.checkFormReady();
+
+        console.log('[ProposalGenerator] 从HITL加载数据完成');
     }
 
     /**
