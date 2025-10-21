@@ -87,12 +87,9 @@ class BusinessResponseProcessor:
             self.logger.info(f"项目名称: {project_name}")
             self.logger.info(f"招标编号: {tender_no}")
             self.logger.info(f"日期文本: {date_text}")
-            
-            # 复制输入文件到输出文件
-            shutil.copy2(input_file, output_file)
-            
-            # 打开文档
-            doc = Document(output_file)
+
+            # 直接打开输入文件(避免对output_file的引用问题)
+            doc = Document(input_file)
             
             # 准备所有数据（合并公司信息和项目信息）
             all_data = {

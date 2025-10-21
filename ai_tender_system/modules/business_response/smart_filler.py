@@ -347,8 +347,20 @@ class PatternMatcher:
             if '、' in field_name or '，' in field_name:
                 continue
 
+            # 清理提示性前缀（如"请填写"、"请输入"等）
+            prompt_prefixes = ['请填写', '请输入', '待填写', '填写', '输入']
+            for prefix in prompt_prefixes:
+                if field_name.startswith(prefix):
+                    field_name = field_name[len(prefix):].strip()
+                    break
+
             # 过滤掉明显不是字段的内容
-            if any(skip in field_name for skip in ['如有', '如果', 'www.', 'http']):
+            skip_keywords = ['如有', '如果', 'www.', 'http', '说明', '注意', '备注']
+            if any(skip in field_name for skip in skip_keywords):
+                continue
+
+            # 如果清理后字段名太短或为空，跳过
+            if len(field_name) < 2:
                 continue
 
             matches.append({
@@ -361,24 +373,25 @@ class PatternMatcher:
         return matches
 
     def _match_colon_pattern(self, text: str) -> List[Dict]:
-        """匹配冒号填空：xxx：___  或 xxx：（空白）"""
-        # 匹配冒号后有下划线或空白的情况
-        pattern = r'([^：:\n]{2,20})[:：]\s*([_\s]{3,}|$)'
+        """匹配冒号填空：xxx：___  或 xxx：（空白）或 xxx："""
+        # 匹配冒号后有下划线、空白或直接结束的情况（放宽匹配条件）
+        pattern = r'([^：:\n]{2,20})[:：]\s*([_\s]*|$)'
         matches = []
 
         for match in re.finditer(pattern, text):
-            field_name = match.group(1).strip()
+            original_field_name = match.group(1).strip()
 
-            # 提取纯字段名（移除括号等）
-            field_name = re.sub(r'[（(][^）)]*[）)]', '', field_name).strip()
+            # 提取纯字段名（移除括号等）用于数据匹配
+            clean_field_name = re.sub(r'[（(][^）)]*[）)]', '', original_field_name).strip()
 
             # 过滤掉太短或明显不是字段的内容
-            if len(field_name) < 2:
+            if len(clean_field_name) < 2:
                 continue
 
             matches.append({
                 'full_match': match.group(0),
-                'field': field_name,
+                'field': clean_field_name,  # 清理后的字段名（用于数据匹配）
+                'original_field': original_field_name,  # 原始字段名（包含括号，用于替换）
                 'start': match.start(),
                 'end': match.end()
             })
@@ -416,7 +429,7 @@ class FieldRecognizer:
             # 供应商名称
             'companyName': [
                 '供应商名称', '供应商全称', '投标人名称', '公司名称',
-                '单位名称', '应答人名称', '企业名称', '单位'
+                '单位名称', '应答人名称', '企业名称'
             ],
 
             # 项目信息
@@ -434,7 +447,10 @@ class FieldRecognizer:
             'postalCode': ['邮编', '邮政编码', '邮码'],
 
             # 人员信息
-            'legalRepresentative': ['法定代表人', '法人代表', '法人', '法人姓名', '姓名'],
+            'legalRepresentative': [
+                '法定代表人', '法人代表', '法人', '法人姓名', '姓名',
+                '法定代表人姓名', '法定代表人名称', '负责人', '负责人姓名'
+            ],
             'legalRepresentativePosition': ['法人职位', '法定代表人职位', '法人职务'],
             'legalRepresentativeGender': ['性别', '法人性别', '法定代表人性别'],
             'legalRepresentativeAge': ['年龄', '法人年龄', '法定代表人年龄'],
@@ -446,7 +462,8 @@ class FieldRecognizer:
             'businessScope': ['经营范围', '业务范围', '经营内容'],
             'registeredCapital': ['注册资本', '注册资金'],
             'socialCreditCode': ['统一社会信用代码', '社会信用代码', '信用代码'],
-            'companyType': ['公司类型', '企业类型', '组织形式'],
+            'companyType': ['公司类型', '企业类型', '组织形式', '单位性质', '企业性质'],
+            'businessTerm': ['经营期限', '营业期限', '经营年限'],
 
             # 日期
             'date': ['日期', 'date'],
@@ -556,13 +573,22 @@ class ContentFiller:
 
             if std_field and std_field in data:
                 value = str(data[std_field])
+
+                # 跳过空值（避免填充空白内容）
+                if not value or value.strip() == '':
+                    self.logger.debug(f"  跳过空值字段: {field_name}")
+                    continue
+
+                # 保留括号格式：（xxx） → （数据值）
+                replacement = f"（{value}）"
+
                 # 使用run精确替换
                 success = WordDocumentUtils.apply_replacement_to_runs(
-                    runs, char_to_run_map, match, value, self.logger
+                    runs, char_to_run_map, match, replacement, self.logger
                 )
                 if success:
                     filled_count += 1
-                    self.logger.info(f"    括号字段填充: {field_name} → {value}")
+                    self.logger.info(f"    括号字段填充: {field_name} → （{value}）")
 
         return filled_count > 0
 
@@ -581,11 +607,22 @@ class ContentFiller:
 
         # 从后往前处理（避免位置偏移）
         for match in reversed(matches):
-            field_name = match['field']
+            field_name = match['field']  # 清理后的字段名（用于数据匹配）
+            original_field_name = match.get('original_field', field_name)  # 原始字段名（包含括号）
             std_field = self.field_recognizer.recognize_field(field_name)
 
             if std_field and std_field in data:
                 value = str(data[std_field])
+
+                # 跳过空值（避免填充空白内容）
+                if not value or value.strip() == '':
+                    self.logger.debug(f"  跳过空值字段: {original_field_name}")
+                    continue
+
+                # 特殊处理：如果是日期字段，格式化为中文格式
+                if std_field == 'date':
+                    value = self._format_date(value)
+
                 # 保留冒号，移除下划线
                 colon = '：' if '：' in match['full_match'] else ':'
 
@@ -598,14 +635,15 @@ class ContentFiller:
                     if next_chars and any('\u4e00' <= c <= '\u9fff' for c in next_chars[:2]):
                         trailing_space = '  '  # 添加两个空格分隔
 
-                replacement = f"{field_name}{colon}{value}{trailing_space}"
+                # 使用原始字段名（保留括号后缀如"（加盖公章）"）
+                replacement = f"{original_field_name}{colon}{value}{trailing_space}"
                 # 使用run精确替换
                 success = WordDocumentUtils.apply_replacement_to_runs(
                     runs, char_to_run_map, match, replacement, self.logger
                 )
                 if success:
                     filled_count += 1
-                    self.logger.info(f"    冒号字段填充: {field_name} → {value}")
+                    self.logger.info(f"    冒号字段填充: {original_field_name} → {value}")
 
         return filled_count > 0
 

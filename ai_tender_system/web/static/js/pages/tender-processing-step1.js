@@ -46,7 +46,15 @@ class ChapterSelectionManager {
         // 使用 HITLConfigManager 获取配置
         const config = HITLConfigManager.getConfig();
 
-        if (!fileInput.files || !fileInput.files[0]) {
+        // 检查是否有新文件上传
+        const hasNewFile = fileInput.files && fileInput.files[0];
+
+        // 检查是否有历史文件（从 projectDataBridge 获取）
+        const historicalFile = typeof window.projectDataBridge !== 'undefined'
+            ? window.projectDataBridge.getFileInfo('originalTender')
+            : null;
+
+        if (!hasNewFile && !historicalFile) {
             this.showNotification('请先选择文件', 'warning');
             return;
         }
@@ -67,7 +75,17 @@ class ChapterSelectionManager {
         try {
             // 构建 FormData
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+
+            if (hasNewFile) {
+                // 使用新上传的文件
+                formData.append('file', fileInput.files[0]);
+                console.log('[handleParseStructure] 使用新上传的文件');
+            } else {
+                // 使用历史文件路径
+                formData.append('file_path', historicalFile.filePath);
+                console.log('[handleParseStructure] 使用历史文件:', historicalFile.filePath);
+            }
+
             formData.append('company_id', config.companyId);
 
             // 如果选择了项目，传递project_id；否则后端会创建新项目
@@ -485,6 +503,14 @@ class ChapterSelectionManager {
             }
 
             this.showNotification(`✅ 应答文件已成功保存！文件名: ${result.filename}`, 'success');
+
+            // 刷新商务应答Tab的文件信息显示
+            if (typeof loadFileInfo === 'function') {
+                console.log('[saveAsResponseFile] 调用 loadFileInfo 刷新商务应答Tab');
+                await loadFileInfo('response', this.currentTaskId);
+            } else {
+                console.warn('[saveAsResponseFile] loadFileInfo 函数未定义');
+            }
 
             // 保存成功后，显示填充应答信息区域
             if (typeof showFillSection === 'function') {

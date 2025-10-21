@@ -28,7 +28,9 @@ class ImageHandler:
             'license': ['营业执照', '营业执照副本', '执照'],
             'qualification': ['资质证书', '资质', '认证证书'],
             'authorization': ['授权书', '授权委托书', '法人授权'],
-            'certificate': ['证书', '认证', '资格证']
+            'certificate': ['证书', '认证', '资格证'],
+            'legal_id': ['法定代表人身份证复印件', '法定代表人身份证', '法人身份证', '法定代表人身份证明'],
+            'auth_id': ['授权代表身份证', '授权人身份证', '被授权人身份证']
         }
 
         # 默认图片尺寸（英寸）
@@ -36,7 +38,9 @@ class ImageHandler:
             'license': (6, 0),    # 营业执照：宽6英寸（约15.24厘米）
             'qualification': (6, 0),  # 资质证书：宽6英寸（约15.24厘米）
             'authorization': (6, 0),   # 授权书：宽6英寸（约15.24厘米）
-            'certificate': (6, 0)      # 其他证书：宽6英寸（约15.24厘米）
+            'certificate': (6, 0),      # 其他证书：宽6英寸（约15.24厘米）
+            'legal_id': (4.5, 0),  # 法人身份证：宽4.5英寸（约11.43厘米）
+            'auth_id': (4.5, 0)    # 授权代表身份证：宽4.5英寸（约11.43厘米）
         }
     
     def insert_images(self, doc: Document, image_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -106,6 +110,28 @@ class ImageHandler:
                 else:
                     stats['errors'].append(f'资质证书{idx+1}插入失败')
 
+        # 插入法人身份证（正面和反面）
+        legal_id = image_config.get('legal_id')
+        if legal_id and isinstance(legal_id, dict):
+            front_path = legal_id.get('front')
+            back_path = legal_id.get('back')
+            if self._insert_id_card(doc, front_path, back_path, insert_points.get('legal_id'), '法定代表人'):
+                stats['images_inserted'] += 2  # 正反两面
+                stats['images_types'].append('法人身份证')
+            else:
+                stats['errors'].append('法人身份证插入失败')
+
+        # 插入授权代表身份证（正面和反面）
+        auth_id = image_config.get('auth_id')
+        if auth_id and isinstance(auth_id, dict):
+            front_path = auth_id.get('front')
+            back_path = auth_id.get('back')
+            if self._insert_id_card(doc, front_path, back_path, insert_points.get('auth_id'), '授权代表'):
+                stats['images_inserted'] += 2  # 正反两面
+                stats['images_types'].append('授权代表身份证')
+            else:
+                stats['errors'].append('授权代表身份证插入失败')
+
         self.logger.info(f"图片插入完成: 插入了{stats['images_inserted']}张图片")
 
         return stats
@@ -135,27 +161,21 @@ class ImageHandler:
         for para_idx, paragraph in enumerate(doc.paragraphs):
             text = paragraph.text.strip()
 
-            # 查找营业执照位置
-            for keyword in self.image_keywords['license']:
-                if keyword in text:
-                    insert_points['license'] = {
-                        'type': 'paragraph',
-                        'index': para_idx,
-                        'paragraph': paragraph
-                    }
-                    self.logger.info(f"✅ 找到营业执照插入点: 段落#{para_idx}, 文本='{text[:50]}'")
-                    break
+            # 扫描所有通用图片类型（包括 legal_id, auth_id 等）
+            for img_type, keywords in self.image_keywords.items():
+                if img_type in insert_points:
+                    continue  # 已找到，跳过
 
-            # 查找资质证书位置（通用）
-            for keyword in self.image_keywords['qualification']:
-                if keyword in text and 'qualification' not in insert_points:
-                    insert_points['qualification'] = {
-                        'type': 'paragraph',
-                        'index': para_idx,
-                        'paragraph': paragraph
-                    }
-                    self.logger.info(f"✅ 找到资质证书插入点（通用）: 段落#{para_idx}, 文本='{text[:50]}'")
-                    break
+                for keyword in keywords:
+                    if keyword in text:
+                        insert_points[img_type] = {
+                            'type': 'paragraph',
+                            'index': para_idx,
+                            'paragraph': paragraph,
+                            'matched_keyword': keyword
+                        }
+                        self.logger.info(f"✅ 找到{img_type}插入点: 段落#{para_idx}, 关键词='{keyword}', 文本='{text[:50]}'")
+                        break
 
             # 查找具体资质类型的位置（ISO9001, CMMI等）
             for qual_key, qual_info in QUALIFICATION_MAPPING.items():
@@ -242,6 +262,40 @@ class ImageHandler:
             self.logger.error(f"  父容器类型: {type(target_para._parent).__name__}")
             self.logger.error(f"  段落对象: {target_para}")
             raise
+
+    def _find_next_table_after_paragraph(self, paragraph):
+        """查找段落后面的第一个表格
+
+        Args:
+            paragraph: 目标段落对象
+
+        Returns:
+            Table对象，如果没有找到返回None
+        """
+        try:
+            from docx.table import Table
+
+            # 获取段落的XML元素
+            para_element = paragraph._element
+
+            # 遍历段落后面的兄弟元素
+            for sibling in para_element.itersiblings():
+                # 检查是否是表格元素 (<w:tbl>)
+                if sibling.tag.endswith('}tbl'):
+                    # 找到表格，包装成Table对象返回
+                    parent = paragraph._parent
+                    table = Table(sibling, parent)
+                    return table
+                # 如果遇到段落或其他元素，停止搜索
+                elif sibling.tag.endswith('}p'):
+                    # 遇到其他段落，说明表格不是紧跟着的
+                    break
+
+            return None
+
+        except Exception as e:
+            self.logger.error(f"查找段落后表格失败: {e}")
+            return None
 
     def _insert_license(self, doc: Document, image_path: str, insert_point: Optional[Dict]) -> bool:
         """插入营业执照"""
@@ -386,6 +440,238 @@ class ImageHandler:
             self.logger.error(traceback.format_exc())
             return False
 
+    def _insert_id_card(self, doc: Document, front_path: str, back_path: str,
+                        insert_point: Optional[Dict], id_type: str) -> bool:
+        """
+        插入身份证图片（正面和反面并排显示）
+
+        支持两种模式：
+        1. 如果段落后有现有表格，插入到表格单元格中
+        2. 如果没有表格，创建新表格
+
+        Args:
+            doc: Word文档对象
+            front_path: 身份证正面图片路径
+            back_path: 身份证反面图片路径
+            insert_point: 插入点信息
+            id_type: 身份证类型（如 '法定代表人' 或 '授权代表'）
+
+        Returns:
+            bool: 插入是否成功
+        """
+        try:
+            # 验证图片是否存在
+            if not front_path or not os.path.exists(front_path):
+                self.logger.error(f"{id_type}身份证正面图片不存在: {front_path}")
+                return False
+
+            if not back_path or not os.path.exists(back_path):
+                self.logger.error(f"{id_type}身份证反面图片不存在: {back_path}")
+                return False
+
+            # 使用7厘米宽度
+            id_width_cm = 7
+
+            if insert_point and insert_point['type'] == 'paragraph':
+                # 在找到的段落位置插入
+                target_para = insert_point['paragraph']
+
+                # 检查段落后是否有现有表格
+                existing_table = self._find_next_table_after_paragraph(target_para)
+
+                if existing_table:
+                    # 模式1：使用现有表格
+                    self.logger.info(f"检测到段落后有现有表格，将插入到表格中")
+                    return self._insert_id_into_existing_table(
+                        existing_table, front_path, back_path, id_width_cm, id_type
+                    )
+                else:
+                    # 模式2：创建新表格
+                    self.logger.info(f"段落后没有表格，将创建新表格")
+
+                    # 插入分页符
+                    page_break_para = self._insert_paragraph_after(target_para)
+                    page_break_para.add_run().add_break()
+
+                    # 插入标题
+                    title = self._insert_paragraph_after(page_break_para)
+                    title.text = f"{id_type}身份证"
+                    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    if title.runs:
+                        title.runs[0].font.bold = True
+
+                    # 创建表格（1行2列，用于并排显示正反面）
+                    from lxml.etree import QName
+                    from docx.table import Table
+
+                    # 在title后插入一个段落作为表格占位符
+                    table_placeholder = self._insert_paragraph_after(title)
+
+                    # 使用文档的add_table方法创建表格
+                    temp_table = doc.add_table(rows=2, cols=2)
+
+                    # 移动表格到正确位置
+                    table_element = temp_table._element
+                    table_placeholder._element.addprevious(table_element)
+                    table_placeholder._element.getparent().remove(table_placeholder._element)
+
+                    # 创建Table对象
+                    table = Table(table_element, doc)
+                    table.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                    # 第一行：标签
+                    table.rows[0].cells[0].text = "正面"
+                    table.rows[0].cells[1].text = "反面"
+                    for cell in table.rows[0].cells:
+                        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        if cell.paragraphs[0].runs:
+                            cell.paragraphs[0].runs[0].font.bold = True
+
+                    # 第二行：图片
+                    front_cell = table.rows[1].cells[0]
+                    front_cell.text = ""
+                    front_para = front_cell.paragraphs[0]
+                    front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    front_run = front_para.add_run()
+                    front_run.add_picture(front_path, width=Cm(id_width_cm))
+
+                    back_cell = table.rows[1].cells[1]
+                    back_cell.text = ""
+                    back_para = back_cell.paragraphs[0]
+                    back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    back_run = back_para.add_run()
+                    back_run.add_picture(back_path, width=Cm(id_width_cm))
+
+                    self.logger.info(f"✅ 成功在指定位置插入{id_type}身份证（新建表格）: 正面={front_path}, 反面={back_path}")
+                    return True
+
+            else:
+                # 降级：添加到文档末尾
+                doc.add_page_break()
+
+                title = doc.add_paragraph(f"{id_type}身份证")
+                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                if title.runs:
+                    title.runs[0].font.bold = True
+
+                # 创建表格（2行2列）
+                table = doc.add_table(rows=2, cols=2)
+                table.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                # 第一行：标签
+                table.rows[0].cells[0].text = "正面"
+                table.rows[0].cells[1].text = "反面"
+                for cell in table.rows[0].cells:
+                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    if cell.paragraphs[0].runs:
+                        cell.paragraphs[0].runs[0].font.bold = True
+
+                # 第二行：图片
+                front_cell = table.rows[1].cells[0]
+                front_cell.text = ""
+                front_para = front_cell.paragraphs[0]
+                front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                front_run = front_para.add_run()
+                front_run.add_picture(front_path, width=Cm(id_width_cm))
+
+                back_cell = table.rows[1].cells[1]
+                back_cell.text = ""
+                back_para = back_cell.paragraphs[0]
+                back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                back_run = back_para.add_run()
+                back_run.add_picture(back_path, width=Cm(id_width_cm))
+
+                self.logger.info(f"✅ 在文档末尾插入{id_type}身份证（并排）: 正面={front_path}, 反面={back_path}")
+                return True
+
+        except Exception as e:
+            self.logger.error(f"❌ 插入{id_type}身份证失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return False
+
+    def _insert_id_into_existing_table(self, table, front_path: str, back_path: str,
+                                       id_width_cm: float, id_type: str) -> bool:
+        """
+        将身份证图片插入到现有表格中
+
+        Args:
+            table: 现有表格对象
+            front_path: 身份证正面图片路径
+            back_path: 身份证反面图片路径
+            id_width_cm: 图片宽度（厘米）
+            id_type: 身份证类型
+
+        Returns:
+            bool: 插入是否成功
+        """
+        try:
+            num_cols = len(table.columns)
+            num_rows = len(table.rows)
+
+            self.logger.info(f"现有表格结构: {num_rows}行 x {num_cols}列")
+
+            if num_cols >= 2:
+                # 情况1: 表格有2列或更多列（正面|反面）
+                # 找到合适的行插入图片
+                # 优先使用最后一行，或第二行（如果第一行是标题）
+                target_row_idx = max(1, num_rows - 1) if num_rows >= 2 else 0
+
+                target_row = table.rows[target_row_idx]
+
+                # 插入正面图片到第一列
+                front_cell = target_row.cells[0]
+                front_cell.text = ""  # 清空现有文本
+                front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
+                front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                front_run = front_para.add_run()
+                front_run.add_picture(front_path, width=Cm(id_width_cm))
+
+                # 插入反面图片到第二列
+                back_cell = target_row.cells[1]
+                back_cell.text = ""  # 清空现有文本
+                back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
+                back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                back_run = back_para.add_run()
+                back_run.add_picture(back_path, width=Cm(id_width_cm))
+
+                self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（行{target_row_idx}，2列模式）")
+                return True
+
+            elif num_cols == 1:
+                # 情况2: 表格只有1列（单个大单元格）
+                # 在单元格内并排插入两张图片
+                target_row_idx = num_rows - 1  # 使用最后一行
+                target_cell = table.rows[target_row_idx].cells[0]
+                target_cell.text = ""  # 清空现有文本
+
+                # 在同一个段落中添加两张图片（并排）
+                para = target_cell.paragraphs[0] if target_cell.paragraphs else target_cell.add_paragraph()
+                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                # 添加正面图片
+                front_run = para.add_run()
+                front_run.add_picture(front_path, width=Cm(id_width_cm))
+
+                # 添加一些空格分隔
+                para.add_run("  ")
+
+                # 添加反面图片
+                back_run = para.add_run()
+                back_run.add_picture(back_path, width=Cm(id_width_cm))
+
+                self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（行{target_row_idx}，1列模式，并排）")
+                return True
+
+            else:
+                self.logger.error(f"表格列数异常: {num_cols}")
+                return False
+
+        except Exception as e:
+            self.logger.error(f"插入到现有表格失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return False
 
     def validate_images(self, image_paths: List[str]) -> Dict[str, Any]:
         """验证图片文件"""

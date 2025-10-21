@@ -363,8 +363,8 @@ const HITLConfigManager = {
         console.log('[HITLConfigManager] 显示已上传文件:', fileName);
 
         // 查找文件上传区域的元素
-        const uploadSection = document.querySelector('.file-upload-section');
-        const fileInput = document.getElementById('hitlFileInput');
+        const uploadSection = document.querySelector('#uploadSection');
+        const fileInput = document.getElementById('tenderDocFile');
 
         if (uploadSection) {
             // 创建文件显示元素
@@ -832,7 +832,8 @@ async function goToBusinessResponse() {
             // 设置到 projectDataBridge 供商务应答使用
             window.projectDataBridge.setFileInfo('business', {
                 fileUrl: `/api/tender-processing/download-response-file/${hitlTaskId}`,
-                fileName: responseFile.fileName
+                fileName: responseFile.fileName,
+                filePath: responseFile.filePath  // 添加文件路径，供直接使用
             });
             console.log('[goToBusinessResponse] 应答文件格式信息已设置');
         } else {

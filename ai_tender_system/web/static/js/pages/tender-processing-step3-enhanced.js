@@ -15,24 +15,28 @@ let currentChunks = [];
 // ============================================
 class TabManager {
     constructor() {
+        // 使用正确的Tab ID映射
         this.tabs = {
-            'detailed-requirements': this.loadDetailedRequirements.bind(this),
-            'filtered-chunks': this.loadFilteredChunks.bind(this),
-            'document-format': this.loadDocumentFormat.bind(this)
+            'eligibility-tab': this.loadDetailedRequirements.bind(this),
+            'document-format-tab': this.loadDocumentFormat.bind(this),
+            'technical-tab': this.loadTechnicalFile.bind(this)
         };
         this.init();
     }
 
     init() {
         console.log('[TabManager] 初始化标签页管理器');
-        // 监听所有标签页切换事件
+        // 直接使用Tab按钮的ID进行监听
         Object.keys(this.tabs).forEach(tabId => {
-            const tabEl = document.querySelector(`button[data-bs-target="#${tabId}Panel"]`);
+            const tabEl = document.getElementById(tabId);
             if (tabEl) {
                 tabEl.addEventListener('shown.bs.tab', (event) => {
                     console.log(`[TabManager] 切换到标签页: ${tabId}`);
                     this.tabs[tabId]();
                 });
+                console.log(`[TabManager] 已绑定Tab事件: ${tabId}`);
+            } else {
+                console.warn(`[TabManager] 未找到Tab元素: ${tabId}`);
             }
         });
     }
@@ -55,6 +59,13 @@ class TabManager {
         console.log('[TabManager] 加载应答文件格式');
         if (currentTaskId) {
             loadResponseFileInfo(currentTaskId);
+        }
+    }
+
+    loadTechnicalFile() {
+        console.log('[TabManager] 加载技术需求文件');
+        if (currentTaskId) {
+            loadFileInfo('technical', currentTaskId);
         }
     }
 }
@@ -503,9 +514,41 @@ async function loadFileInfo(type, taskId) {
                 }
             }
         } else {
-            // 显示空状态
-            if (noFileMessage) {
-                noFileMessage.style.display = 'block';
+            // 显示空状态：无条件恢复默认的空状态HTML
+            console.log(`[loadFileInfo] ${type}文件不存在，恢复空状态显示`);
+
+            if (fileContent) {
+                // 根据类型创建不同的空状态HTML
+                let emptyStateHTML = '';
+                if (type === 'response') {
+                    emptyStateHTML = `
+                        <div class="empty-state" id="noResponseFileMessage">
+                            <i class="bi bi-file-earmark-text fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">商务应答</h5>
+                            <p class="text-muted">尚未保存应答文件模板</p>
+                            <p class="text-muted small">请在步骤1中选择章节后，点击"另存为应答文件"按钮</p>
+                            <button class="btn btn-primary mt-3" id="selectChaptersForResponseFileBtn">
+                                <i class="bi bi-list-nested me-2"></i>从章节目录选择
+                            </button>
+                        </div>
+                    `;
+                } else if (type === 'technical') {
+                    emptyStateHTML = `
+                        <div class="empty-state" id="noTechnicalFileMessage">
+                            <i class="bi bi-gear fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">技术需求</h5>
+                            <p class="text-muted">尚未保存技术需求章节</p>
+                            <p class="text-muted small">点击下方按钮从章节目录中选择技术需求相关章节</p>
+                            <button class="btn btn-primary mt-3" id="selectChaptersForTechnicalBtn">
+                                <i class="bi bi-list-nested me-2"></i>从章节目录选择
+                            </button>
+                        </div>
+                    `;
+                }
+
+                // 无条件设置空状态HTML
+                fileContent.innerHTML = emptyStateHTML;
+                console.log(`[loadFileInfo] ${type}文件空状态HTML已恢复`);
             }
 
             // 如果是技术需求文件且没有文件，隐藏快捷操作按钮

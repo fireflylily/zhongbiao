@@ -1,5 +1,8 @@
 // 商务应答功能处理
 
+// 标记是否从HITL加载了文件（用于保护已加载的格式文件）
+let isFileLoadedFromHITL = false;
+
 document.addEventListener('DOMContentLoaded', function() {
     // 从全局状态管理器加载公司和项目信息
     loadBusinessCompanyInfo();
@@ -43,6 +46,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 100);
                 }
             }
+
+            // 【新增】如果已经从HITL加载了文件，确保文件信息持续显示
+            if (isFileLoadedFromHITL && window.businessResponseFileName) {
+                console.log('[Business Response] Tab显示后重新确认文件信息:', window.businessResponseFileName);
+
+                setTimeout(() => {
+                    const fileNameDiv = document.getElementById('businessTemplateFileName');
+                    // 如果文件信息区域是空的，重新设置
+                    if (fileNameDiv && !fileNameDiv.innerHTML.trim()) {
+                        console.log('[Business Response] 文件信息区域为空，重新设置');
+                        fileNameDiv.innerHTML = `
+                            <div class="alert alert-success py-2 d-flex align-items-center">
+                                <i class="bi bi-file-earmark-word me-2"></i>
+                                <span>${window.businessResponseFileName}</span>
+                                <span class="badge bg-success ms-2">已从投标项目加载</span>
+                            </div>
+                        `;
+
+                        // 确保上传区域被隐藏
+                        const form = document.getElementById('businessResponseForm');
+                        if (form) {
+                            const uploadArea = form.querySelector('.upload-area');
+                            if (uploadArea) {
+                                uploadArea.style.display = 'none';
+                                uploadArea.onclick = null;
+                                uploadArea.style.pointerEvents = 'none';
+                                console.log('[Business Response] 已重新隐藏上传区域');
+                            }
+                        }
+                    } else if (fileNameDiv) {
+                        console.log('[Business Response] 文件信息仍然存在，无需重新设置');
+                    }
+                }, 150);  // 稍微延迟一点，确保Tab内容完全渲染
+            }
         }
     });
 
@@ -50,11 +87,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const businessTemplateFile = document.getElementById('businessTemplateFile');
     if (businessTemplateFile) {
         businessTemplateFile.addEventListener('change', function() {
+            // 如果文件是从HITL加载的，且用户没有选择新文件（点击了取消），则忽略此事件
+            if (isFileLoadedFromHITL && !this.files.length) {
+                console.log('[Business] 忽略change事件，保护HITL加载的文件信息');
+                return;
+            }
+
             const fileName = this.files[0]?.name;
             const fileNameDiv = document.getElementById('businessTemplateFileName');
             if (fileName && fileNameDiv) {
+                // 清除HITL标记（用户手动选择了新文件）
+                isFileLoadedFromHITL = false;
                 fileNameDiv.innerHTML = `<div class="alert alert-info py-2"><i class="bi bi-file-earmark-word"></i> ${fileName}</div>`;
-            } else if (fileNameDiv) {
+            } else if (fileNameDiv && !isFileLoadedFromHITL) {
+                // 只在非HITL加载状态下才清空
                 fileNameDiv.innerHTML = '';
             }
         });
@@ -101,20 +147,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (stats) stats.classList.add('d-none');
 
             try {
-                // 如果使用已加载的文件，先下载文件
-                if (!templateFile && hasLoadedFile) {
+                // 构建FormData
+                const formData = new FormData();
+
+                // 如果使用已加载的HITL文件，传递文件路径而不是重新上传
+                if (!templateFile && hasLoadedFile && window.businessResponseFilePath) {
+                    console.log('[Business] 使用HITL文件路径:', window.businessResponseFilePath);
+                    formData.append('hitl_file_path', window.businessResponseFilePath);
+                } else if (templateFile) {
+                    // 用户手动上传的文件
+                    console.log('[Business] 使用用户上传的文件:', templateFile.name);
+                    formData.append('template_file', templateFile);
+                } else {
+                    // 没有文件路径但有fileUrl，回退到下载文件的方式(向后兼容)
                     console.log('[Business] 从URL下载文件:', window.businessResponseFileUrl);
                     const fileResponse = await fetch(window.businessResponseFileUrl);
                     const fileBlob = await fileResponse.blob();
                     templateFile = new File([fileBlob], window.businessResponseFileName, {
                         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                     });
+                    formData.append('template_file', templateFile);
                     console.log('[Business] 文件下载完成:', templateFile.name);
                 }
-
-                // 构建FormData
-                const formData = new FormData();
-                formData.append('template_file', templateFile);
                 formData.append('company_id', companyId);
                 formData.append('project_name', projectName);
                 formData.append('tender_no', tenderNo);
@@ -133,6 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (progress) progress.style.display = 'none';
 
                 if (data.success) {
+                    // 清除HITL标记（已经处理完成，允许用户重新上传新文件）
+                    isFileLoadedFromHITL = false;
+                    console.log('[Business] 处理成功，已清除HITL标记');
+
                     // 隐藏错误提示，显示成功结果
                     if (error) error.classList.add('d-none');
 
@@ -754,7 +812,12 @@ function loadBusinessResponseFromHITL() {
         console.log('[Business Response] [PASS] 条件检查通过，准备显示文件');
         console.log('[Business Response] 找到应答文件:', businessFile.fileName);
 
+        // 【重要】设置HITL加载标记（保护文件信息）
+        isFileLoadedFromHITL = true;
+        console.log('[Business Response] 已设置HITL加载标记，保护文件信息');
+
         // 【重要】保存到全局变量供表单提交时使用
+        window.businessResponseFilePath = businessFile.filePath;  // 添加文件路径
         window.businessResponseFileUrl = businessFile.fileUrl;
         window.businessResponseFileName = businessFile.fileName;
         console.log('[Business Response] 已保存到全局变量:', {
@@ -798,14 +861,26 @@ function loadBusinessResponseFromHITL() {
             console.error('[Business Response] [ERROR] 未找到 businessTemplateFileName 元素，无法显示文件信息');
         }
 
-        // 隐藏上传区域
-        const uploadArea = document.getElementById('businessTemplateFile');
-        console.log('[Business Response] 查找 businessTemplateFile 元素:', uploadArea);
+        // 【修复】使用更精确的选择器，在表单内查找上传区域
+        const form = document.getElementById('businessResponseForm');
+        let uploadArea = null;
+        if (form) {
+            uploadArea = form.querySelector('.upload-area');
+            console.log('[Business Response] 在表单内查找 .upload-area 元素:', uploadArea);
+        } else {
+            console.warn('[Business Response] 未找到businessResponseForm，尝试全局查找');
+            uploadArea = document.querySelector('#business-response .upload-area');
+            console.log('[Business Response] 全局查找 .upload-area 元素:', uploadArea);
+        }
+
         if (uploadArea) {
             uploadArea.style.display = 'none';
-            console.log('[Business Response] [SUCCESS] 已隐藏上传区域');
+            uploadArea.onclick = null;  // 移除点击事件
+            uploadArea.style.pointerEvents = 'none';  // 禁用所有鼠标事件
+            uploadArea.style.cursor = 'default';  // 改变鼠标样式
+            console.log('[Business Response] [SUCCESS] 已隐藏上传区域并禁用点击事件');
         } else {
-            console.warn('[Business Response] [WARN] 未找到 businessTemplateFile 元素');
+            console.warn('[Business Response] [WARN] 未找到 .upload-area 元素');
         }
 
         console.log('[Business Response] 文件信息已显示，已保存到全局变量');

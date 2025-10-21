@@ -75,12 +75,60 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> dic
             # 使用智能匹配
             image_config = match_qualifications_for_project(company_id, project_name, kb_manager)
 
-            if image_config:
-                logger.info(f"✅ 智能匹配完成: {len(image_config)} 个类型")
-                return image_config
+            if not image_config:
+                logger.warning(f"⚠️  项目 '{project_name}' 无资质要求或匹配失败")
+                image_config = {}
             else:
-                logger.warning(f"⚠️  项目 '{project_name}' 无资质要求或匹配失败，不插入资质证书")
-                return {}
+                logger.info(f"✅ 智能匹配完成: {len(image_config)} 个类型")
+
+            # 无论是否有资质要求，都加载ID卡和营业执照（这些是基础文件）
+            logger.info("📋 加载基础证件（营业执照、公章、身份证）")
+            qualifications = kb_manager.db.get_company_qualifications(company_id)
+
+            for qual in qualifications:
+                qual_key = qual.get('qualification_key')
+                file_path = qual.get('file_path')
+
+                if not file_path:
+                    continue
+
+                # 营业执照
+                if qual_key == 'business_license' and 'license_path' not in image_config:
+                    image_config['license_path'] = file_path
+                    logger.info(f"  - 营业执照: {file_path}")
+
+                # 公章
+                elif qual_key == 'company_seal' and 'seal_path' not in image_config:
+                    image_config['seal_path'] = file_path
+                    logger.info(f"  - 公章: {file_path}")
+
+                # 法人身份证（正面/反面）
+                elif qual_key == 'legal_id_front':
+                    if 'legal_id' not in image_config:
+                        image_config['legal_id'] = {}
+                    image_config['legal_id']['front'] = file_path
+                    logger.info(f"  - 法人身份证正面: {file_path}")
+
+                elif qual_key == 'legal_id_back':
+                    if 'legal_id' not in image_config:
+                        image_config['legal_id'] = {}
+                    image_config['legal_id']['back'] = file_path
+                    logger.info(f"  - 法人身份证反面: {file_path}")
+
+                # 授权代表身份证（正面/反面）
+                elif qual_key == 'auth_id_front':
+                    if 'auth_id' not in image_config:
+                        image_config['auth_id'] = {}
+                    image_config['auth_id']['front'] = file_path
+                    logger.info(f"  - 授权代表身份证正面: {file_path}")
+
+                elif qual_key == 'auth_id_back':
+                    if 'auth_id' not in image_config:
+                        image_config['auth_id'] = {}
+                    image_config['auth_id']['back'] = file_path
+                    logger.info(f"  - 授权代表身份证反面: {file_path}")
+
+            return image_config
 
         # 如果没有项目名称，使用旧逻辑（插入所有资质）
         logger.info(f"📋 未指定项目，加载公司 {company_id} 的所有资质")
@@ -121,6 +169,32 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> dic
                              'software_copyright', 'patent_certificate']:
                 qualification_paths.append(file_path)
                 logger.info(f"  - 资质证书 ({qual_key}): {file_path}")
+
+            # 法人身份证（正面/反面）
+            elif qual_key == 'legal_id_front':
+                if 'legal_id' not in image_config:
+                    image_config['legal_id'] = {}
+                image_config['legal_id']['front'] = file_path
+                logger.info(f"  - 法人身份证正面: {file_path}")
+
+            elif qual_key == 'legal_id_back':
+                if 'legal_id' not in image_config:
+                    image_config['legal_id'] = {}
+                image_config['legal_id']['back'] = file_path
+                logger.info(f"  - 法人身份证反面: {file_path}")
+
+            # 授权代表身份证（正面/反面）
+            elif qual_key == 'auth_id_front':
+                if 'auth_id' not in image_config:
+                    image_config['auth_id'] = {}
+                image_config['auth_id']['front'] = file_path
+                logger.info(f"  - 授权代表身份证正面: {file_path}")
+
+            elif qual_key == 'auth_id_back':
+                if 'auth_id' not in image_config:
+                    image_config['auth_id'] = {}
+                image_config['auth_id']['back'] = file_path
+                logger.info(f"  - 授权代表身份证反面: {file_path}")
 
         # 添加资质证书列表
         if qualification_paths:
@@ -171,13 +245,26 @@ def process_business_response():
         })
 
     try:
-        # 获取上传的文件
-        if 'template_file' not in request.files:
-            raise ValueError("没有选择模板文件")
+        # 检查是否从HITL传递了文件路径
+        hitl_file_path = request.form.get('hitl_file_path')
 
-        file = request.files['template_file']
-        if file.filename == '':
-            raise ValueError("文件名为空")
+        if hitl_file_path:
+            # 使用HITL文件路径，跳过文件上传和storage_service
+            template_path = Path(hitl_file_path)
+
+            if not template_path.exists():
+                raise ValueError(f"HITL文件不存在: {hitl_file_path}")
+
+            filename = template_path.name
+            logger.info(f"使用HITL文件路径: {hitl_file_path}")
+        else:
+            # 原有逻辑：处理上传文件
+            if 'template_file' not in request.files:
+                raise ValueError("没有选择模板文件")
+
+            file = request.files['template_file']
+            if file.filename == '':
+                raise ValueError("文件名为空")
 
         # 获取表单数据
         data = request.form.to_dict()
@@ -199,11 +286,13 @@ def process_business_response():
         db_project_number = ''
         authorized_rep_name = ''
         authorized_rep_position = ''
+        db_deadline = ''  # 新增：项目截止日期
         if project_name:
             try:
                 query = """SELECT tenderer, project_number,
                            authorized_representative_name,
-                           authorized_representative_position
+                           authorized_representative_position,
+                           submission_deadline
                            FROM tender_projects WHERE project_name = ? LIMIT 1"""
                 result = kb_manager.db.execute_query(query, [project_name])
                 if result and len(result) > 0:
@@ -211,12 +300,15 @@ def process_business_response():
                     db_project_number = result[0].get('project_number', '')
                     authorized_rep_name = result[0].get('authorized_representative_name', '')
                     authorized_rep_position = result[0].get('authorized_representative_position', '')
+                    db_deadline = result[0].get('submission_deadline', '')  # 新增
                     if purchaser_name:
                         logger.info(f"从数据库获取采购人信息: {purchaser_name}")
                     if db_project_number:
                         logger.info(f"从数据库获取项目编号: {db_project_number}")
                     if authorized_rep_name:
                         logger.info(f"从数据库获取授权人信息: {authorized_rep_name} ({authorized_rep_position})")
+                    if db_deadline:
+                        logger.info(f"从数据库获取项目截止日期: {db_deadline}")
             except Exception as e:
                 logger.warning(f"查询项目信息失败: {e}")
 
@@ -224,6 +316,19 @@ def process_business_response():
         if not tender_no and db_project_number:
             tender_no = db_project_number
             logger.info(f"使用数据库项目编号: {tender_no}")
+
+        # 智能日期处理：优先使用用户填写的日期，其次使用项目截止日期
+        if not date_text or date_text.strip() == '':
+            if db_deadline:
+                # 使用项目截止日期（格式化为YYYY-MM-DD）
+                if isinstance(db_deadline, str):
+                    date_text = db_deadline.split()[0]  # 提取日期部分（去掉时间）
+                else:
+                    date_text = str(db_deadline).split()[0]
+                logger.info(f"用户未填写日期，使用项目截止日期: {date_text}")
+            else:
+                logger.info("用户未填写日期且无项目截止日期，date字段将不填充")
+                # 注意：这里不设置当前日期，而是保持为空，让后端填充器跳过
 
         # 从数据库直接加载图片配置（智能匹配项目资格要求）
         image_config = build_image_config_from_db(company_id_int, project_name)
@@ -274,19 +379,22 @@ def process_business_response():
         if authorized_rep_position:
             company_data['representativeTitle'] = authorized_rep_position
 
-        # 保存模板文件 - 使用统一服务
-        from core.storage_service import storage_service
-        file_metadata = storage_service.store_file(
-            file_obj=file,
-            original_name=file.filename,
-            category='business_templates',
-            business_type='business_response',
-            company_id=company_id
-        )
-        template_path = Path(file_metadata.file_path)
-        filename = file_metadata.safe_name
-
-        logger.info(f"开始处理商务应答: {file_metadata.original_name}")
+        # 如果没有使用HITL文件路径,才需要保存上传的文件
+        if not hitl_file_path:
+            # 保存模板文件 - 使用统一服务
+            from core.storage_service import storage_service
+            file_metadata = storage_service.store_file(
+                file_obj=file,
+                original_name=file.filename,
+                category='business_templates',
+                business_type='business_response',
+                company_id=company_id
+            )
+            template_path = Path(file_metadata.file_path)
+            filename = file_metadata.safe_name
+            logger.info(f"开始处理商务应答: {file_metadata.original_name}")
+        else:
+            logger.info(f"开始处理商务应答(使用HITL文件): {filename}")
 
         # 公共的输出文件路径设置（移到外面，两个分支都需要）
         output_dir = ensure_dir(config.get_path('output'))

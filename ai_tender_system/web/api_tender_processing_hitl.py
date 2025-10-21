@@ -50,7 +50,8 @@ def register_hitl_routes(app):
         解析文档结构（步骤1的第一步）
 
         请求参数（FormData）：
-        - file: Word文档文件
+        - file: Word文档文件（与 file_path 二选一）
+        - file_path: 历史文件路径（与 file 二选一）
         - company_id: 公司ID（必填）
         - project_id: 项目ID（可选，为空时自动创建新项目）
 
@@ -67,29 +68,46 @@ def register_hitl_routes(app):
             # 获取参数
             company_id = request.form.get('company_id')
             project_id = request.form.get('project_id')  # 可选
+            file_path_param = request.form.get('file_path')  # 历史文件路径（可选）
 
             if not company_id:
                 return jsonify({'success': False, 'error': '缺少company_id参数'}), 400
 
-            # 检查文件
-            if 'file' not in request.files:
-                return jsonify({'success': False, 'error': '未上传文件'}), 400
+            # 检查文件：支持两种模式
+            file_path = None
+            original_filename = None
 
-            file = request.files['file']
-            if not file.filename:
-                return jsonify({'success': False, 'error': '文件名为空'}), 400
+            if file_path_param:
+                # 模式1：使用历史文件路径
+                import os
+                if not os.path.exists(file_path_param):
+                    return jsonify({'success': False, 'error': f'文件不存在: {file_path_param}'}), 400
 
-            # 保存文件到临时目录
-            from core.storage_service import storage_service
-            file_metadata = storage_service.store_file(
-                file_obj=file,
-                original_name=file.filename,
-                category='tender_processing',
-                business_type='tender_hitl_document'
-            )
+                file_path = file_path_param
+                original_filename = os.path.basename(file_path_param)
+                logger.info(f"使用历史文件: {file_path}")
 
-            file_path = file_metadata.file_path
-            logger.info(f"文件已保存: {file_path}")
+            elif 'file' in request.files:
+                # 模式2：上传新文件
+                file = request.files['file']
+                if not file.filename:
+                    return jsonify({'success': False, 'error': '文件名为空'}), 400
+
+                # 保存文件到临时目录
+                from core.storage_service import storage_service
+                file_metadata = storage_service.store_file(
+                    file_obj=file,
+                    original_name=file.filename,
+                    category='tender_processing',
+                    business_type='tender_hitl_document'
+                )
+
+                file_path = file_metadata.file_path
+                original_filename = file.filename
+                logger.info(f"新文件已保存: {file_path}")
+
+            else:
+                return jsonify({'success': False, 'error': '未提供文件或文件路径'}), 400
 
             # 如果没有提供project_id，创建新项目
             if not project_id:
@@ -147,7 +165,7 @@ def register_hitl_routes(app):
             """, (
                 hitl_task_id, project_id, task_id,
                 'in_progress',
-                json.dumps({'file_path': file_path, 'file_name': file.filename}),
+                json.dumps({'file_path': file_path, 'file_name': original_filename}),
                 result["statistics"].get("total_words", 0),
                 result["statistics"].get("estimated_processing_cost", 0.0)
             ))
@@ -802,9 +820,9 @@ def register_hitl_routes(app):
             else:
                 filename = f"{safe_titles}_应答模板_{now.strftime('%Y%m%d_%H%M%S')}.docx"
 
-            # 移动文件到目标位置
+            # 复制文件到目标位置（使用copy而非move，避免python-docx文件引用问题）
             target_path = os.path.join(save_dir, filename)
-            shutil.move(result['file_path'], target_path)
+            shutil.copy(result['file_path'], target_path)
 
             # 计算文件大小
             file_size = os.path.getsize(target_path)
@@ -1005,9 +1023,9 @@ def register_hitl_routes(app):
             safe_titles = re.sub(r'[^\w\s-]', '', safe_titles).strip()
             filename = f"{safe_titles}_技术需求_{now.strftime('%Y%m%d_%H%M%S')}.docx"
 
-            # 移动文件到目标位置
+            # 复制文件到目标位置（使用copy而非move，避免python-docx文件引用问题）
             target_path = os.path.join(save_dir, filename)
-            shutil.move(result['file_path'], target_path)
+            shutil.copy(result['file_path'], target_path)
 
             # 计算文件大小
             file_size = os.path.getsize(target_path)
@@ -2728,8 +2746,44 @@ def register_hitl_routes(app):
 
     @app.route('/api/tender-processing/business-response-info/<task_id>', methods=['GET'])
     def get_business_response_info(task_id):
-        """获取商务应答文件信息"""
-        return _get_file_info(task_id, 'business_response_file', '商务应答文件')
+        """获取商务应答文件信息（支持两种来源：从投标管理生成 或 从商务应答同步）"""
+        try:
+            # 查询任务信息
+            task_data = db.execute_query("""
+                SELECT step1_data FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not task_data:
+                return jsonify({"success": False, "error": "任务不存在"}), 404
+
+            step1_data = json.loads(task_data['step1_data'])
+
+            # 优先使用 response_file（从投标管理生成），其次使用 business_response_file（从商务应答同步）
+            file_info = step1_data.get('response_file') or step1_data.get('business_response_file')
+            field_name = 'response_file' if step1_data.get('response_file') else 'business_response_file'
+
+            if not file_info:
+                return jsonify({
+                    "success": True,
+                    "has_file": False
+                })
+
+            # 检查文件是否存在
+            file_exists = os.path.exists(file_info['file_path'])
+
+            return jsonify({
+                "success": True,
+                "has_file": file_exists,
+                "filename": file_info.get('filename'),
+                "file_size": file_info.get('file_size'),
+                "saved_at": file_info.get('saved_at'),
+                "download_url": f"/api/tender-processing/download-file/{task_id}/{field_name}"
+            })
+
+        except Exception as e:
+            logger.error(f"获取商务应答文件信息失败: {str(e)}")
+            return jsonify({"success": False, "error": str(e)}), 500
 
     # ============================================
     # 统一的文件下载和预览API
@@ -2740,7 +2794,7 @@ def register_hitl_routes(app):
         """统一的文件下载接口"""
         try:
             # 验证field_name合法性（防止SQL注入）
-            valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'business_response_file']
+            valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'response_file', 'business_response_file']
             if field_name not in valid_fields:
                 return jsonify({"error": "无效的文件类型"}), 400
 
@@ -2779,7 +2833,7 @@ def register_hitl_routes(app):
         """统一的文件预览接口"""
         try:
             # 验证field_name合法性
-            valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'business_response_file']
+            valid_fields = ['technical_point_to_point_file', 'technical_proposal_file', 'response_file', 'business_response_file']
             if field_name not in valid_fields:
                 return jsonify({"error": "无效的文件类型"}), 400
 
