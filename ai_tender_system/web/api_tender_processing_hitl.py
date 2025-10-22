@@ -2595,9 +2595,9 @@ def register_hitl_routes(app):
                 'technical_proposal_file': ['tech_proposal_files'],
                 # response_file 需要搜索两个目录: 原始模板目录 和 完成文件目录
                 'response_file': ['response_files', 'completed_response_files'],
-                # technical_file 在原始招标文件目录中(无三级目录结构)
-                'technical_file': ['tender_processing'],
-                'technical_file_path': ['tender_processing']  # 兼容字段名
+                # technical_file 在技术需求文件目录中(三级目录结构: 年/月/任务ID)
+                'technical_file': ['technical_files'],
+                'technical_file_path': ['technical_files']  # 兼容字段名
             }
 
             dir_names = field_to_dirs.get(field_name)

@@ -2,6 +2,7 @@
 Flask==2.3.3
 Flask-CORS==4.0.0
 Flask-WTF==1.2.1           # CSRF保护
+Flask-Compress==1.14       # Gzip/Brotli压缩
 Werkzeug==2.3.7
 requests==2.31.0
 gunicorn==21.2.0           # 生产环境WSGI服务器

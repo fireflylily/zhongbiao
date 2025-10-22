@@ -16,6 +16,7 @@ class CaseLibraryManager {
             status: null,
             searchKeyword: ''
         };
+        this.currentViewMode = false; // 当前是否为查看模式
     }
 
     /**
@@ -55,9 +56,6 @@ class CaseLibraryManager {
                         </span>
                     </div>
                     <div>
-                        <button type="button" class="btn btn-secondary me-2" onclick="window.caseLibraryManager.showImportFromDocumentModal()">
-                            <i class="bi bi-file-earmark-arrow-up me-1"></i>从文档导入
-                        </button>
                         <button type="button" class="btn btn-primary" onclick="window.caseLibraryManager.renderCaseEditView()">
                             <i class="bi bi-plus-circle me-1"></i>新建案例
                         </button>
@@ -155,9 +153,14 @@ class CaseLibraryManager {
 
     /**
      * 渲染案例编辑视图（新建或编辑）
+     * @param {number|null} caseId - 案例ID，null表示新建
+     * @param {boolean} viewMode - 是否为查看模式（只读）
      */
-    async renderCaseEditView(caseId = null) {
-        console.log('渲染案例编辑视图...', caseId);
+    async renderCaseEditView(caseId = null, viewMode = false) {
+        console.log('渲染案例编辑视图...', caseId, '查看模式:', viewMode);
+
+        // 保存当前查看模式状态
+        this.currentViewMode = viewMode;
 
         const container = document.getElementById('caseLibraryContainer');
         if (!container) {
@@ -166,7 +169,8 @@ class CaseLibraryManager {
         }
 
         const isEdit = !!caseId;
-        const pageTitle = isEdit ? '编辑案例' : '新建案例';
+        const pageTitle = viewMode ? '案例详情' : (isEdit ? '编辑案例' : '新建案例');
+        const disabledAttr = viewMode ? 'disabled' : '';
 
         // 渲染编辑视图（简化结构，减少嵌套）
         const html = `
@@ -180,10 +184,16 @@ class CaseLibraryManager {
                         <h4 class="mb-0">${pageTitle}</h4>
                     </div>
                     <div>
+                        ${viewMode ? `
+                        <button type="button" class="btn btn-primary" onclick="window.caseLibraryManager.switchToEditMode(${caseId})">
+                            <i class="bi bi-pencil me-1"></i>编辑案例
+                        </button>
+                        ` : `
                         <button type="button" class="btn btn-secondary me-2" onclick="window.caseLibraryManager.showCaseListView()">取消</button>
                         <button type="button" class="btn btn-primary" onclick="window.caseLibraryManager.saveCase()">
                             <i class="bi bi-save me-1"></i>保存案例
                         </button>
+                        `}
                     </div>
                 </div>
             </div>
@@ -197,36 +207,36 @@ class CaseLibraryManager {
                     <h6>基本信息</h6>
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label">所属公司 <span class="text-danger">*</span></label>
-                            <select class="form-select" id="caseCompanyId" required>
+                            <label class="form-label">所属公司 ${!viewMode ? '<span class="text-danger">*</span>' : ''}</label>
+                            <select class="form-select" id="caseCompanyId" ${viewMode ? 'required' : ''} ${disabledAttr}>
                                 <option value="">请选择公司</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">关联产品</label>
-                            <select class="form-select" id="caseProductId">
+                            <select class="form-select" id="caseProductId" ${disabledAttr}>
                                 <option value="">请选择产品（可选）</option>
                             </select>
                         </div>
                     </div>
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <label class="form-label">合同名称/案例标题 <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="caseTitle" required placeholder="案例名称即合同名称">
+                            <label class="form-label">合同名称/案例标题 ${!viewMode ? '<span class="text-danger">*</span>' : ''}</label>
+                            <input type="text" class="form-control" id="caseTitle" ${viewMode ? 'required' : ''} placeholder="案例名称即合同名称" ${disabledAttr}>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">合同编号/案例编号</label>
-                            <input type="text" class="form-control" id="caseNumber">
+                            <input type="text" class="form-control" id="caseNumber" ${disabledAttr}>
                         </div>
                     </div>
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <label class="form-label">甲方客户名称 <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="caseCustomerName" required>
+                            <label class="form-label">甲方客户名称 ${!viewMode ? '<span class="text-danger">*</span>' : ''}</label>
+                            <input type="text" class="form-control" id="caseCustomerName" ${viewMode ? 'required' : ''} ${disabledAttr}>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">所属行业</label>
-                            <select class="form-select" id="caseIndustry">
+                            <select class="form-select" id="caseIndustry" ${disabledAttr}>
                                 <option value="">请选择</option>
                                 <option value="政府">政府</option>
                                 <option value="教育">教育</option>
@@ -246,9 +256,9 @@ class CaseLibraryManager {
                     <h6>合同信息</h6>
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label">合同类型 <span class="text-danger">*</span></label>
+                            <label class="form-label">合同类型 ${!viewMode ? '<span class="text-danger">*</span>' : ''}</label>
                             <select class="form-select" id="caseContractType"
-                                    onchange="window.caseLibraryManager.toggleFinalCustomerField()" required>
+                                    onchange="window.caseLibraryManager.toggleFinalCustomerField()" ${viewMode ? 'required' : ''} ${disabledAttr}>
                                 <option value="">请选择</option>
                                 <option value="合同">合同</option>
                                 <option value="订单">订单</option>
@@ -256,25 +266,25 @@ class CaseLibraryManager {
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">合同金额</label>
-                            <input type="text" class="form-control" id="caseContractAmount" placeholder="如: 100万元 或 百万级 或 500">
-                            <small class="text-muted">可填写具体金额（万元）或描述性文字（如"百万级"）</small>
+                            <input type="text" class="form-control" id="caseContractAmount" placeholder="如: 100万元 或 百万级 或 500" ${disabledAttr}>
+                            ${!viewMode ? '<small class="text-muted">可填写具体金额（万元）或描述性文字（如"百万级"）</small>' : ''}
                         </div>
                     </div>
                     <div class="row mt-3" id="caseFinalCustomerRow" style="display: none;">
                         <div class="col-md-12">
                             <label class="form-label">最终客户名称</label>
-                            <input type="text" class="form-control" id="caseFinalCustomerName">
-                            <small class="text-muted">仅订单类型时填写</small>
+                            <input type="text" class="form-control" id="caseFinalCustomerName" ${disabledAttr}>
+                            ${!viewMode ? '<small class="text-muted">仅订单类型时填写</small>' : ''}
                         </div>
                     </div>
                     <div class="row mt-3">
                         <div class="col-md-6">
                             <label class="form-label">合同开始日期</label>
-                            <input type="date" class="form-control" id="caseContractStartDate">
+                            <input type="date" class="form-control" id="caseContractStartDate" ${disabledAttr}>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">合同结束日期</label>
-                            <input type="date" class="form-control" id="caseContractEndDate">
+                            <input type="date" class="form-control" id="caseContractEndDate" ${disabledAttr}>
                         </div>
                     </div>
                 </div>
@@ -285,11 +295,11 @@ class CaseLibraryManager {
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">联系人姓名</label>
-                            <input type="text" class="form-control" id="casePartyAContactName">
+                            <input type="text" class="form-control" id="casePartyAContactName" ${disabledAttr}>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">联系电话</label>
-                            <input type="tel" class="form-control" id="casePartyAContactPhone">
+                            <input type="tel" class="form-control" id="casePartyAContactPhone" ${disabledAttr}>
                         </div>
                     </div>
                 </div>
@@ -300,11 +310,11 @@ class CaseLibraryManager {
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">联系人姓名</label>
-                            <input type="text" class="form-control" id="casePartyBContactName">
+                            <input type="text" class="form-control" id="casePartyBContactName" ${disabledAttr}>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">联系电话</label>
-                            <input type="tel" class="form-control" id="casePartyBContactPhone">
+                            <input type="tel" class="form-control" id="casePartyBContactPhone" ${disabledAttr}>
                         </div>
                     </div>
                 </div>
@@ -324,7 +334,8 @@ class CaseLibraryManager {
                     </div>
                     ` : ''}
 
-                    <!-- 上传区域 -->
+                    <!-- 上传区域（仅编辑模式显示） -->
+                    ${!viewMode ? `
                     <div class="case-attachment-upload-area" id="caseAttachmentUploadArea" ${!isEdit ? 'style="display: none;"' : ''}>
                         <div class="upload-box">
                             <input type="file" id="caseAttachmentInput" multiple
@@ -338,7 +349,7 @@ class CaseLibraryManager {
                         </div>
                     </div>
 
-                    <!-- 附件类型选择 -->
+                    <!-- 附件类型选择（仅编辑模式显示） -->
                     <div class="row mt-3" id="caseAttachmentTypeRow" ${!isEdit ? 'style="display: none;"' : ''}>
                         <div class="col-md-6">
                             <label class="form-label">附件类型</label>
@@ -354,6 +365,7 @@ class CaseLibraryManager {
                                    placeholder="选填，简要说明附件内容">
                         </div>
                     </div>
+                    ` : ''}
 
                     <!-- 附件列表 -->
                     <div class="case-attachment-list mt-3" id="caseAttachmentList" ${!isEdit ? 'style="display: none;"' : ''}>
@@ -379,6 +391,13 @@ class CaseLibraryManager {
      */
     async showCaseListView() {
         await this.renderCaseLibraryView();
+    }
+
+    /**
+     * 切换到编辑模式
+     */
+    async switchToEditMode(caseId) {
+        await this.renderCaseEditView(caseId, false);
     }
 
     /**
@@ -643,112 +662,10 @@ class CaseLibraryManager {
     }
 
     /**
-     * 查看案例详情
+     * 查看案例详情 - 使用统一的编辑页面，以只读模式显示
      */
     async viewCaseDetail(caseId) {
-        try {
-            const response = await axios.get(`/api/case_library/cases/${caseId}`);
-            if (!response.data.success) {
-                throw new Error(response.data.error || '获取案例详情失败');
-            }
-
-            const c = response.data.data;
-            let content = `
-                <div class="case-detail-section">
-                    <h6>基本信息</h6>
-                    <p><strong>案例标题:</strong> ${this.escapeHtml(c.case_title)}</p>
-                    <p><strong>案例编号:</strong> ${c.case_number || '无'}</p>
-                    <p><strong>客户名称:</strong> ${this.escapeHtml(c.customer_name)}</p>
-                    <p><strong>所属行业:</strong> ${c.industry || '无'}</p>
-                </div>
-                <div class="case-detail-section">
-                    <h6>合同信息</h6>
-                    <p><strong>合同名称:</strong> ${c.contract_name || '无'}</p>
-                    <p><strong>合同类型:</strong> ${c.contract_type || '无'}</p>
-                    ${c.final_customer_name ? `<p><strong>最终客户:</strong> ${this.escapeHtml(c.final_customer_name)}</p>` : ''}
-                    <p><strong>合同金额:</strong> ${c.contract_amount ? c.contract_amount + '万元' : '无'}</p>
-                    <p><strong>合同期限:</strong> ${c.contract_start_date || ''} ${c.contract_end_date ? '~ ' + c.contract_end_date : ''}</p>
-                    ${c.party_a_customer_name ? `<p><strong>甲方客户名称:</strong> ${this.escapeHtml(c.party_a_customer_name)}</p>` : ''}
-                    ${c.party_b_company_name ? `<p><strong>乙方公司名称:</strong> ${this.escapeHtml(c.party_b_company_name)}</p>` : ''}
-                </div>
-                ${c.party_a_name || c.party_a_contact_name ? `
-                <div class="case-detail-section">
-                    <h6>甲方信息</h6>
-                    ${c.party_a_name ? `<p><strong>甲方名称:</strong> ${this.escapeHtml(c.party_a_name)}</p>` : ''}
-                    ${c.party_a_contact_name ? `<p><strong>联系人:</strong> ${this.escapeHtml(c.party_a_contact_name)}</p>` : ''}
-                    ${c.party_a_contact_phone ? `<p><strong>电话:</strong> ${this.escapeHtml(c.party_a_contact_phone)}</p>` : ''}
-                </div>
-                ` : ''}
-                ${c.party_b_name || c.party_b_contact_name ? `
-                <div class="case-detail-section">
-                    <h6>乙方信息</h6>
-                    ${c.party_b_name ? `<p><strong>乙方名称:</strong> ${this.escapeHtml(c.party_b_name)}</p>` : ''}
-                    ${c.party_b_contact_name ? `<p><strong>联系人:</strong> ${this.escapeHtml(c.party_b_contact_name)}</p>` : ''}
-                    ${c.party_b_contact_phone ? `<p><strong>电话:</strong> ${this.escapeHtml(c.party_b_contact_phone)}</p>` : ''}
-                </div>
-                ` : ''}
-                <div class="case-detail-section">
-                    <h6>其他信息</h6>
-                    <p><strong>案例状态:</strong> ${c.case_status}</p>
-                    <p><strong>创建时间:</strong> ${c.created_at || '无'}</p>
-                    <p><strong>更新时间:</strong> ${c.updated_at || '无'}</p>
-                </div>
-            `;
-
-            // 如果有附件，添加附件区域
-            if (c.attachments && c.attachments.length > 0) {
-                content += `
-                    <div class="case-detail-section">
-                        <h6><i class="bi bi-paperclip me-2"></i>附件列表 (${c.attachments.length})</h6>
-                        <div class="list-group">
-                            ${c.attachments.map(att => {
-                                const typeLabel = this.getAttachmentTypeLabel(att.attachment_type);
-                                const fileIcon = this.getFileIcon(att.file_type);
-                                const sizeText = att.file_size_mb ? `${att.file_size_mb}MB` : '未知';
-                                const fileType = att.file_type?.toLowerCase();
-                                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileType);
-                                const isDoc = ['doc', 'docx'].includes(fileType);
-                                const isPdf = fileType === 'pdf';
-                                const canPreview = isImage || isDoc || isPdf;
-                                return `
-                                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <i class="bi ${fileIcon} me-2"></i>
-                                            ${this.escapeHtml(att.original_filename)}
-                                            <span class="badge bg-info ms-2">${typeLabel}</span>
-                                            <small class="text-muted ms-2">${sizeText}</small>
-                                            ${att.attachment_description ? `<div class="text-muted small mt-1">${this.escapeHtml(att.attachment_description)}</div>` : ''}
-                                        </div>
-                                        <div class="btn-group">
-                                            ${canPreview ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="window.caseLibraryManager.previewAttachment(${att.attachment_id}, '${att.file_path}', '${fileType}')" title="预览">
-                                                <i class="bi bi-eye"></i> 预览
-                                            </button>` : ''}
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.caseLibraryManager.downloadAttachment(${att.attachment_id}, '${att.file_path}', '${this.escapeHtml(att.original_filename)}')" title="下载">
-                                                <i class="bi bi-download"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            const detailContent = document.getElementById('caseDetailContent');
-            if (detailContent) {
-                detailContent.innerHTML = content;
-            }
-
-            const detailModal = document.getElementById('caseDetailModal');
-            if (detailModal) {
-                const bsModal = new bootstrap.Modal(detailModal);
-                bsModal.show();
-            }
-        } catch (error) {
-            console.error('查看案例详情失败:', error);
-            showAlert('查看案例详情失败: ' + error.message, 'danger');
-        }
+        await this.renderCaseEditView(caseId, true);
     }
 
     /**
@@ -790,7 +707,6 @@ class CaseLibraryManager {
             document.getElementById('casePartyAContactPhone').value = c.party_a_contact_phone || '';
             document.getElementById('casePartyBContactName').value = c.party_b_contact_name || '';
             document.getElementById('casePartyBContactPhone').value = c.party_b_contact_phone || '';
-            document.getElementById('caseStatus').value = c.case_status || 'success';
 
             // 触发合同类型变更以显示/隐藏最终客户字段
             this.toggleFinalCustomerField();
@@ -871,7 +787,7 @@ class CaseLibraryManager {
             party_b_contact_name: document.getElementById('casePartyBContactName').value,
             party_b_contact_phone: document.getElementById('casePartyBContactPhone').value,
             party_b_contact_email: '',  // 邮箱字段已移除
-            case_status: document.getElementById('caseStatus').value
+            case_status: 'success'  // 默认状态为"成功"
         };
 
         try {
@@ -1164,9 +1080,6 @@ class CaseLibraryManager {
         if (data.party_b_contact_name) document.getElementById('casePartyBContactName').value = data.party_b_contact_name;
         if (data.party_b_contact_phone) document.getElementById('casePartyBContactPhone').value = data.party_b_contact_phone;
 
-        // 其他
-        if (data.case_status) document.getElementById('caseStatus').value = data.case_status;
-
         console.log('[CaseLibrary] 表单预填充完成');
     }
 
@@ -1238,9 +1151,9 @@ class CaseLibraryManager {
                         <button type="button" class="btn btn-sm btn-outline-secondary me-1" onclick="window.caseLibraryManager.downloadAttachment(${att.attachment_id}, '${att.file_path}', '${this.escapeHtml(att.original_filename)}')" title="下载">
                             <i class="bi bi-download"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="window.caseLibraryManager.deleteAttachment(${att.attachment_id})" title="删除">
+                        ${!this.currentViewMode ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="window.caseLibraryManager.deleteAttachment(${att.attachment_id})" title="删除">
                             <i class="bi bi-trash"></i>
-                        </button>
+                        </button>` : ''}
                     </div>
                 </div>
             `;

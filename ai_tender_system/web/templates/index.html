@@ -3,69 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <meta name="description" content="元景AI智能标书生成平台 - 基于人工智能的标书自动化处理与生成系统">
     {# <meta name="csrf-token" content="{{ csrf_token() }}"> CSRF暂时禁用 #}
     <title>元景AI智能标书生成平台</title>
-    <link href="/static/vendor/bootswatch/litera/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- 统一CSS架构 -->
-    <link href="/static/css/main.css" rel="stylesheet">
-    <!-- 通用上传组件样式 -->
-    <link href="/static/css/components/universal-uploader.css" rel="stylesheet">
-    <!-- 资质组件样式 -->
-    <link href="/static/css/components/qualifications.css" rel="stylesheet">
-    <!-- 知识库组件样式 -->
-    <link href="/static/css/components/buttons.css" rel="stylesheet">
-    <link href="/static/css/components/cards.css" rel="stylesheet">
-    <link href="/static/css/components/modals.css" rel="stylesheet">
-    <link href="/static/css/components/navigation.css" rel="stylesheet">
-    <link href="/static/css/components/privacy-badges.css" rel="stylesheet">
-    <link href="/static/css/components/case-library.css" rel="stylesheet">
-    <!-- 投标管理(HITL)专用样式 -->
-    <link href="/static/css/tender-processing-hitl.css" rel="stylesheet">
-    <link href="/static/css/tender-processing-step3-enhanced.css" rel="stylesheet">
 
-    <!-- 外部库 -->
-    <script src="/static/vendor/chart.js/chart.umd.min.js"></script>
-    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <!-- ⚡ 性能优化: 资源提示 -->
+    <!-- DNS预解析 - 预先解析第三方域名 -->
+    <link rel="dns-prefetch" href="https://cdn.tiny.cloud">
+
+    <!-- 预连接 - 建立早期连接 -->
+    <link rel="preconnect" href="https://cdn.tiny.cloud" crossorigin>
+
+    <!-- 预加载关键资源 - 优先加载首屏必需资源 -->
+    <link rel="preload" as="style" href="/static/vendor/bootswatch/litera/bootstrap.min.css">
+    <link rel="preload" as="style" href="/static/vendor/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="preload" as="font" href="/static/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2" type="font/woff2" crossorigin>
+
+    <!-- ⚡ 关键CSS内联 - 加速首屏渲染 (FCP) -->
+    <style>
+        /* 内联关键CSS以避免阻塞 */
+        :root{--bs-primary:#4a89dc;--bs-success:#48cfad;--bs-warning:#eb7d3c;--bs-danger:#da4453;--bs-info:#5dade2;--text-primary:#333;--text-secondary:#6c757d;--bg-light:#f8f9fa;--bg-white:#fff;--border-light:#dee2e6;--spacing-sm:8px;--spacing-md:16px;--spacing-lg:24px;--border-radius-md:8px;--shadow-sm:0 1px 3px rgba(0,0,0,.1)}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:14px;line-height:1.5;color:var(--text-primary);background-color:var(--bg-light)}.navbar{position:fixed;top:0;left:0;right:0;height:70px;background:#fff;border-bottom:1px solid var(--border-light);box-shadow:var(--shadow-sm);z-index:1030;display:flex;align-items:center;padding:0 var(--spacing-lg)}.navbar-brand{font-size:1.25rem;font-weight:600;color:var(--bs-primary);text-decoration:none}.app-sidebar{position:fixed;top:70px;left:0;width:25%;max-width:300px;height:calc(100vh - 70px);background:#fff;border-right:1px solid var(--border-light);overflow-y:auto}.app-main-content{margin-top:70px;margin-left:25%;padding:var(--spacing-lg);min-height:calc(100vh - 70px)}.card{background:#fff;border:1px solid var(--border-light);border-radius:var(--border-radius-md);box-shadow:var(--shadow-sm);margin-bottom:var(--spacing-md)}.card-header{padding:var(--spacing-md) var(--spacing-lg);background-color:var(--bg-light);border-bottom:1px solid var(--border-light);font-weight:600}.card-body{padding:var(--spacing-lg)}.btn{display:inline-block;padding:var(--spacing-sm) var(--spacing-md);font-size:14px;font-weight:500;text-align:center;text-decoration:none;border:1px solid transparent;border-radius:var(--border-radius-md);cursor:pointer;transition:all .2s ease}.btn-primary{background:linear-gradient(135deg,var(--bs-primary),#74b9ff);color:#fff;border:none}@media (max-width:768px){.app-sidebar{width:0;overflow:hidden}.app-main-content{margin-left:0;width:100%}}
+    </style>
+
+    <!-- 外部CSS - 使用media属性延迟非关键CSS加载 -->
+    <link href="/static/vendor/bootswatch/litera/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+        <link href="/static/vendor/bootswatch/litera/bootstrap.min.css" rel="stylesheet">
+        <link href="/static/vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    </noscript>
+
+    <!-- 统一CSS架构 - 延迟加载 -->
+    <link href="/static/css/main.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- 组件样式 - 延迟加载 -->
+    <link href="/static/css/components/universal-uploader.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/qualifications.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/buttons.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/cards.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/modals.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/navigation.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/privacy-badges.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/case-library.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- 投标管理(HITL)专用样式 - 延迟加载 -->
+    <link href="/static/css/tender-processing-hitl.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/tender-processing-step3-enhanced.css" rel="stylesheet" media="print" onload="this.media='all'">
+
+    <!-- ⚡ JavaScript优化: 使用defer延迟执行 -->
+    <!-- CSRF 保护 - 必须最先加载但可以defer -->
+    <script src="/static/js/csrf-protection.js" defer></script>
+
+    <!-- 模块化JavaScript架构 - defer加载 -->
+    <script src="/static/js/company-config.js" defer></script>
+    <script src="/static/js/timer-manager.js" defer></script>
+    <script src="/static/js/progress-manager.js" defer></script>
+
+    <!-- 核心模块 - defer加载 -->
+    <script src="/static/js/core/api-client.js" defer></script>
+    <script src="/static/js/core/notification.js" defer></script>
+    <script src="/static/js/core/validation.js" defer></script>
+
+    <!-- 组件模块 - defer加载 -->
+    <script src="/static/js/components/file-upload.js" defer></script>
+    <script src="/static/js/components/company-selector.js" defer></script>
+    <script src="/static/js/components/modal-manager.js" defer></script>
+    <script src="/static/js/components/universal-uploader.js" defer></script>
+    <script src="/static/js/components/company-state-manager.js" defer></script>
+    <script src="/static/js/components/company-project-display.js" defer></script>
+    <script src="/static/js/word-editor.js" defer></script>
+
+    <!-- 页面特定模块 - defer加载 -->
+    <script src="/static/js/pages/index/proposal-generator.js?v=1760864668" defer></script>
+    <script src="/static/js/pages/index/business-response-handler.js?v=1760864668" defer></script>
+    <script src="/static/js/pages/index/point-to-point-handler.js?v=1760864668" defer></script>
+    <script src="/static/js/pages/index/page-utilities.js?v=1760864668" defer></script>
+
+    <!-- 第三方库 - async加载（非关键，不阻塞） -->
+    <script src="/static/vendor/chart.js/chart.umd.min.js" async></script>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin" async></script>
     <!-- JSZip - docx-preview依赖 -->
-    <script src="/static/vendor/jszip/jszip.min.js"></script>
-    <!-- Docx-Preview - Word文档预览（保留原始格式） -->
-    <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
-
-    <!-- CSRF 保护 - 必须最先加载 -->
-    <script src="/static/js/csrf-protection.js"></script>
-
-    <!-- 模块化JavaScript架构 -->
-    <script src="/static/js/company-config.js"></script>
-    <script src="/static/js/timer-manager.js"></script>
-    <script src="/static/js/progress-manager.js"></script>
-
-    <!-- 核心模块 -->
-    <script src="/static/js/core/api-client.js"></script>
-    <script src="/static/js/core/notification.js"></script>
-    <script src="/static/js/core/validation.js"></script>
-
-    <!-- 组件模块 -->
-    <script src="/static/js/components/file-upload.js"></script>
-    <script src="/static/js/components/company-selector.js"></script>
-    <script src="/static/js/components/modal-manager.js"></script>
-    <!-- 通用上传组件 -->
-    <script src="/static/js/components/universal-uploader.js"></script>
-    <!-- 公司状态管理器 -->
-    <script src="/static/js/components/company-state-manager.js"></script>
-    <!-- 公司项目信息显示组件 -->
-    <script src="/static/js/components/company-project-display.js"></script>
-    <!-- Word编辑器组件 -->
-    <script src="/static/js/word-editor.js"></script>
-
-    <!-- 页面特定模块 -->
-    <script src="/static/js/pages/index/proposal-generator.js?v=1760864668"></script>
-    <script src="/static/js/pages/index/business-response-handler.js?v=1760864668"></script>
-    <script src="/static/js/pages/index/point-to-point-handler.js?v=1760864668"></script>
-    <script src="/static/js/pages/index/page-utilities.js?v=1760864668"></script>
+    <script src="/static/vendor/jszip/jszip.min.js" defer></script>
+    <!-- Docx-Preview - Word文档预览 -->
+    <script src="/static/vendor/docx-preview/docx-preview.min.js" defer></script>
 
     <!-- 全局状态管理对象 - 用于 HITL 和其他页面间的数据共享 -->
     <script>
@@ -378,34 +396,30 @@
     {% include 'components/shared/document-preview-modal.html' %}
     {% include 'components/shared/document-edit-modal.html' %}
 
-    <!-- Bootstrap JS -->
-    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <!-- ⚡ Bootstrap JS - defer加载 -->
+    <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js" defer></script>
 
-    <!-- Axios - HTTP请求库（知识库需要） -->
-    <script src="/static/vendor/axios/axios.min.js"></script>
+    <!-- ⚡ Axios - defer加载（知识库需要） -->
+    <script src="/static/vendor/axios/axios.min.js" defer></script>
 
-    <!-- Docx-Preview - Word文档预览（投标管理需要） -->
-    <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
+    <!-- ⚡ 投标管理(HITL)脚本 - defer按顺序加载 -->
+    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=1760001321" defer></script>
+    <script src="/static/js/pages/tender-processing-step1.js" defer></script>
+    <script src="/static/js/pages/tender-processing-step2.js" defer></script>
+    <script src="/static/js/hitl-config-manager.js" defer></script>
 
-    <!-- 投标管理(HITL)脚本 - 按顺序加载 -->
-    <script src="/static/js/pages/tender-processing-step3-enhanced.js?v=1760001321"></script>
-    <script src="/static/js/pages/tender-processing-step1.js"></script>
-    <script src="/static/js/pages/tender-processing-step2.js"></script>
-    <!-- HITL配置管理器 -->
-    <script src="/static/js/hitl-config-manager.js"></script>
+    <!-- ⚡ 通用文档预览工具 - defer加载 -->
+    <script src="/static/js/utils/document-preview.js" defer></script>
 
-    <!-- 通用文档预览工具 -->
-    <script src="/static/js/utils/document-preview.js"></script>
-
-    <!-- 知识库管理器模块 -->
-    <script src="/static/js/pages/knowledge-base/category-manager.js"></script>
-    <script src="/static/js/pages/knowledge-base/document-manager.js?v=20251019a"></script>
-    <script src="/static/js/pages/knowledge-base/search-manager.js"></script>
-    <script src="/static/js/pages/knowledge-base/company-profile-manager.js"></script>
-    <script src="/static/js/pages/knowledge-base/case-library-manager.js?v=20251019e"></script>
-    <script src="/static/js/pages/knowledge-base/rag-integration.js"></script>
-    <script src="/static/js/pages/knowledge-base/ai-search-manager.js"></script>
-    <script src="/static/js/pages/knowledge-base/document-viewer.js"></script>
+    <!-- ⚡ 知识库管理器模块 - defer加载 -->
+    <script src="/static/js/pages/knowledge-base/category-manager.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/document-manager.js?v=20251019a" defer></script>
+    <script src="/static/js/pages/knowledge-base/search-manager.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/company-profile-manager.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/case-library-manager.js?v=20251019e" defer></script>
+    <script src="/static/js/pages/knowledge-base/rag-integration.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/ai-search-manager.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/document-viewer.js" defer></script>
 
     <!-- 页面初始化和功能脚本 -->
     <script>
@@ -1329,6 +1343,9 @@
             </div>
         </div>
     </div>
+
+    <!-- ⚡ 性能监控脚本 - Web Vitals监控 -->
+    <script src="/static/js/performance-monitor.js" defer></script>
 
 </body>
 </html>

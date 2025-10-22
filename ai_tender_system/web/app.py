@@ -17,6 +17,7 @@ from pathlib import Path
 from functools import wraps
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
+from flask_compress import Compress
 # from flask_wtf.csrf import CSRFProtect, generate_csrf  # 暂时禁用CSRF
 from werkzeug.utils import secure_filename
 
@@ -84,6 +85,11 @@ def create_app() -> Flask:
     # 启用CORS
     CORS(app, supports_credentials=True)
 
+    # ⚡ 性能优化: 启用Gzip/Brotli压缩
+    compress = Compress()
+    compress.init_app(app)
+    logger.info("已启用响应压缩(Gzip/Brotli)")
+
     # 暂时禁用CSRF保护以便登录功能正常工作
     # TODO: 后续需要重新启用CSRF保护并正确配置豁免
     # csrf = CSRFProtect(app)
@@ -140,9 +146,38 @@ def create_app() -> Flask:
     from web.blueprints import register_all_blueprints
     register_all_blueprints(app, config, logger)
 
+    # ⚡ 性能优化: 添加静态资源缓存头
+    @app.after_request
+    def add_performance_headers(response):
+        """添加性能优化相关的HTTP头"""
+        # 静态资源长期缓存 (1年)
+        if request.path.startswith('/static/'):
+            # 缓存静态资源1年
+            response.cache_control.max_age = 31536000
+            response.cache_control.public = True
+            response.cache_control.immutable = True
+
+            # 添加ETag支持
+            response.add_etag()
+
+        # HTML页面短期缓存或无缓存
+        elif request.path.endswith('.html') or request.path == '/':
+            response.cache_control.no_cache = True
+            response.cache_control.no_store = True
+            response.cache_control.must_revalidate = True
+
+        # API响应不缓存
+        elif request.path.startswith('/api/'):
+            response.cache_control.no_cache = True
+            response.cache_control.private = True
+
+        return response
+
+    logger.info("已配置静态资源缓存策略")
+
     # 注册路由（旧架构 - 将逐步迁移）
     register_routes(app, config, logger)
-    
+
     logger.info("AI标书系统Web应用初始化完成")
     return app
 
