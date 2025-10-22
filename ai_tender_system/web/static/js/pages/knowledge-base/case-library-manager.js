@@ -711,8 +711,13 @@ class CaseLibraryManager {
             // 触发合同类型变更以显示/隐藏最终客户字段
             this.toggleFinalCustomerField();
 
-            // 加载附件
+            // 加载附件和初始化上传组件
             await this.loadCaseAttachments(caseId);
+            // 确保上传区域可见
+            const uploadArea = document.getElementById('caseAttachmentUploadArea');
+            if (uploadArea) {
+                uploadArea.style.display = 'block';
+            }
 
         } catch (error) {
             console.error('加载案例数据失败:', error);

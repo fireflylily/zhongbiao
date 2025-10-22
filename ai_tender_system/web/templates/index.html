@@ -688,6 +688,9 @@
                 navItem.classList.add('active');
                 tabPane.classList.add('show', 'active');
                 console.log('[switchToTab] 已激活Tab:', tabId);
+
+                // 【新增】更新布局
+                updateLayoutForCurrentTab();
             } else {
                 console.warn('[switchToTab] 未找到Tab:', tabId);
             }
@@ -738,12 +741,29 @@
             console.log('[Navigation] 导航状态管理器初始化完成');
         }
 
+        // 布局管理函数 - 根据当前tab调整布局
+        function updateLayoutForCurrentTab() {
+            const activeTab = document.querySelector('.tab-pane.active');
+            const body = document.body;
+
+            if (activeTab && activeTab.id === 'tender-management') {
+                body.classList.add('tender-management-active');
+                console.log('[Layout] 切换到标书管理布局');
+            } else {
+                body.classList.remove('tender-management-active');
+                console.log('[Layout] 切换到全宽布局');
+            }
+        }
+
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
             console.log('AI标书系统初始化完成 - 恢复原版布局');
 
             // 【新增】初始化导航状态管理器
             initNavigationManager();
+
+            // 【新增】初始化布局管理
+            updateLayoutForCurrentTab();
 
             // 初始化模型管理器
             ModelManager.init();
@@ -753,6 +773,9 @@
                 tabLink.addEventListener('shown.bs.tab', function(event) {
                     const targetTab = event.target.getAttribute('data-bs-target');
                     console.log(`[Index] Tab切换到: ${targetTab}`);
+
+                    // 【新增】更新布局
+                    updateLayoutForCurrentTab();
 
                     // 同步模型选择到当前tab
                     if (window.projectDataBridge && ModelManager) {

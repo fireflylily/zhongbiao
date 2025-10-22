@@ -33,6 +33,30 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* 动态布局调整 - 非标书管理tab使用全宽布局 */
+/* 当非标书管理tab激活时，主内容区域使用全宽 */
+body:not(.tender-management-active) .app-main-content {
+    margin-left: 0;
+    width: 100%;
+    border-left: none;
+}
+
+/* 当标书管理tab激活时，保持原有布局 */
+body.tender-management-active .app-main-content {
+    margin-left: 25%;
+    width: calc(100% - 25%);
+    border-left: 1px solid #dee2e6;
+}
+
+/* 相应地调整侧边栏显示 */
+body:not(.tender-management-active) .app-sidebar {
+    display: none;
+}
+
+body.tender-management-active .app-sidebar {
+    display: block;
+}
+
 /* 侧边栏基础样式 */
 .kb-sidebar {
     min-height: calc(100vh - 100px);
