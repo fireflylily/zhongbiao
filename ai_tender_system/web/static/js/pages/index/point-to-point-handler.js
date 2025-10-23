@@ -436,26 +436,6 @@ function submitPointToPointForm() {
                     // 绑定点击事件,传递任务ID和输出文件路径
                     syncBtn.onclick = () => syncPointToPointToHitl(hitlTaskId, data.output_file || data.filename);
                 }
-
-                // 如果从HITL跳转，改变"确认完成"按钮行为
-                const confirmCompleteBtn = document.getElementById('confirmCompleteBtn');
-                if (confirmCompleteBtn) {
-                    confirmCompleteBtn.innerHTML = '<i class="bi bi-arrow-left"></i> 返回HITL';
-                    confirmCompleteBtn.onclick = function(e) {
-                        e.preventDefault();
-                        window.location.href = `/hitl?task_id=${hitlTaskId}`;
-                    };
-                }
-            } else {
-                // 设置"完成"按钮事件
-                const confirmCompleteBtn = document.getElementById('confirmCompleteBtn');
-                if (confirmCompleteBtn) {
-                    confirmCompleteBtn.onclick = function(e) {
-                        e.preventDefault();
-                        // 返回主页
-                        window.location.href = '/';
-                    };
-                }
             }
 
             // 刷新文件列表
