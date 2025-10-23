@@ -8,11 +8,10 @@
 import os
 import json
 import sqlite3
+import shutil
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from contextlib import contextmanager
-
-from ai_tender_system.core.storage_service import storage_service
 
 
 def dict_factory(cursor, row):
@@ -380,16 +379,18 @@ class ResumeLibraryManager:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         file_name = f"resume_{resume_id}_{attachment_category}_{timestamp}.{file_type}"
 
-        # 使用storage_service存储文件
-        storage_info = storage_service.save_file(
-            file_path,
-            category='resume_attachments',
-            metadata={
-                'resume_id': resume_id,
-                'attachment_category': attachment_category,
-                'original_filename': original_filename
-            }
-        )
+        # 创建附件存储目录（使用绝对路径）
+        storage_dir = os.path.abspath('ai_tender_system/data/uploads/resume_attachments')
+        os.makedirs(storage_dir, exist_ok=True)
+
+        # 构建最终文件路径
+        final_file_path = os.path.join(storage_dir, file_name)
+
+        # 移动文件到最终位置
+        try:
+            shutil.move(file_path, final_file_path)
+        except Exception as e:
+            raise Exception(f"移动文件失败: {str(e)}")
 
         # 保存到数据库
         sql = """
@@ -404,9 +405,9 @@ class ResumeLibraryManager:
                 cursor = conn.cursor()
                 cursor.execute(sql, (
                     resume_id,
-                    storage_info['filename'],
+                    file_name,
                     original_filename,
-                    storage_info['filepath'],
+                    final_file_path,
                     file_type,
                     file_size,
                     attachment_category,
@@ -419,9 +420,9 @@ class ResumeLibraryManager:
                 return {
                     'attachment_id': attachment_id,
                     'resume_id': resume_id,
-                    'file_name': storage_info['filename'],
+                    'file_name': file_name,
                     'original_filename': original_filename,
-                    'file_path': storage_info['filepath'],
+                    'file_path': final_file_path,
                     'file_type': file_type,
                     'file_size': file_size,
                     'attachment_category': attachment_category,
@@ -432,8 +433,8 @@ class ResumeLibraryManager:
 
         except Exception as e:
             # 删除已上传的文件
-            if os.path.exists(storage_info['filepath']):
-                os.remove(storage_info['filepath'])
+            if os.path.exists(final_file_path):
+                os.remove(final_file_path)
             raise Exception(f"保存附件信息失败: {str(e)}")
 
     def get_attachments(self,
@@ -460,6 +461,21 @@ class ResumeLibraryManager:
             cursor = conn.cursor()
             cursor.execute(sql, params)
             return cursor.fetchall()
+
+    def get_attachment_by_id(self, attachment_id: int) -> Optional[Dict[str, Any]]:
+        """
+        获取单个附件信息
+        Args:
+            attachment_id: 附件ID
+        Returns:
+            附件信息
+        """
+        sql = "SELECT * FROM resume_attachments WHERE attachment_id = ?"
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, (attachment_id,))
+            return cursor.fetchone()
 
     def delete_attachment(self, attachment_id: int) -> bool:
         """

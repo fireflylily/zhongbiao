@@ -171,6 +171,34 @@ def create_app() -> Flask:
             response.cache_control.no_cache = True
             response.cache_control.private = True
 
+        # 🔒 安全增强: 添加安全响应头
+        # XSS 防护
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+
+        # HSTS - 强制HTTPS (生产环境开启)
+        if not app.debug:
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+        # CSP - 内容安全策略 (根据实际需求调整)
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "font-src 'self' data:; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://maas-gz.ai-yuanjing.com https://maas.ai-yuanjing.com; "
+            "frame-ancestors 'self';"
+        )
+        response.headers['Content-Security-Policy'] = csp
+
+        # COOP - 跨源打开器策略
+        response.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+
+        # Referrer Policy
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
         return response
 
     logger.info("已配置静态资源缓存策略")

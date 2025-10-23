@@ -7,6 +7,7 @@
 
 import os
 import json
+import shutil
 from flask import Blueprint, request, jsonify, send_file, current_app
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -15,7 +16,6 @@ from typing import Dict, Any
 from .manager import ResumeLibraryManager
 from .resume_parser import ResumeParser
 from .export_handler import ResumeExportHandler
-from ai_tender_system.core.storage_service import storage_service
 from ai_tender_system.web.utils.response_helper import success_response, error_response
 
 # 创建蓝图
@@ -200,20 +200,14 @@ def parse_resume():
 
                 # 将原始简历文件作为附件保存
                 if resume:
-                    storage_info = storage_service.save_file(
-                        temp_path,
-                        category='resume_attachments',
-                        metadata={
-                            'resume_id': resume['resume_id'],
-                            'attachment_category': 'resume',
-                            'original_filename': file.filename
-                        }
-                    )
+                    # 复制临时文件到新位置（避免被finally删除）
+                    temp_copy_path = temp_path + '.copy'
+                    shutil.copy2(temp_path, temp_copy_path)
 
                     # 保存附件记录
                     resume_manager.upload_attachment(
                         resume_id=resume['resume_id'],
-                        file_path=storage_info['filepath'],
+                        file_path=temp_copy_path,
                         original_filename=file.filename,
                         attachment_category='resume',
                         attachment_description='原始简历文件',
@@ -333,6 +327,34 @@ def get_attachments(resume_id):
         attachments = resume_manager.get_attachments(resume_id, category)
 
         return success_response(attachments)
+
+    except Exception as e:
+        return error_response(str(e))
+
+
+@resume_library_bp.route('/attachment/<int:attachment_id>/download', methods=['GET'])
+def download_attachment(attachment_id):
+    """下载附件"""
+    try:
+        init_managers()
+
+        # 获取附件信息
+        attachment = resume_manager.get_attachment_by_id(attachment_id)
+        if not attachment:
+            return error_response("附件不存在", code=404)
+
+        # 检查文件是否存在
+        file_path = attachment['file_path']
+        if not os.path.exists(file_path):
+            return error_response("文件不存在", code=404)
+
+        # 返回文件
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=attachment['original_filename'],
+            mimetype='application/octet-stream'
+        )
 
     except Exception as e:
         return error_response(str(e))
