@@ -1304,17 +1304,6 @@ class ResumeLibraryManager {
                         </div>
                     </div>
 
-                    <!-- 其他信息 -->
-                    <div class="case-form-section">
-                        <h6>其他信息</h6>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <label class="form-label">获奖情况</label>
-                                <textarea class="form-control" id="resumeAwards" rows="3"></textarea>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- 附件管理 -->
                     <div class="case-form-section">
                         <h6>
@@ -1422,9 +1411,6 @@ class ResumeLibraryManager {
             document.getElementById('resumeCurrentCompany').value = resume.current_company || '';
             document.getElementById('resumeDepartment').value = resume.department || '';
 
-            // 填充其他信息
-            document.getElementById('resumeAwards').value = resume.awards || '';
-
             // 加载附件
             await this.loadResumeAttachments(resumeId);
 
@@ -1470,8 +1456,7 @@ class ResumeLibraryManager {
             work_years: document.getElementById('resumeWorkYears').value ? parseInt(document.getElementById('resumeWorkYears').value) : null,
             status: document.getElementById('resumeStatus').value,
             current_company: document.getElementById('resumeCurrentCompany').value,
-            department: document.getElementById('resumeDepartment').value,
-            awards: document.getElementById('resumeAwards').value
+            department: document.getElementById('resumeDepartment').value
         };
 
         try {
