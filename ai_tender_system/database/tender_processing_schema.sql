@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS tender_document_chunks (
     filter_confidence FLOAT DEFAULT NULL,  -- 筛选置信度 0.0-1.0
     filtered_at TIMESTAMP DEFAULT NULL,
     filter_model VARCHAR(50) DEFAULT NULL,  -- 使用的筛选模型
+    hitl_task_id VARCHAR(100),  -- HITL任务ID，用于按任务隔离chunks
 
     -- 元数据
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -30,6 +31,8 @@ CREATE INDEX IF NOT EXISTS idx_chunks_project_id ON tender_document_chunks(proje
 CREATE INDEX IF NOT EXISTS idx_chunks_project_index ON tender_document_chunks(project_id, chunk_index);
 CREATE INDEX IF NOT EXISTS idx_chunks_valuable ON tender_document_chunks(project_id, is_valuable);
 CREATE INDEX IF NOT EXISTS idx_chunks_type ON tender_document_chunks(chunk_type);
+CREATE INDEX IF NOT EXISTS idx_chunks_hitl_task ON tender_document_chunks(hitl_task_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_project_hitl ON tender_document_chunks(project_id, hitl_task_id);
 
 
 -- 2. 提取的要求表

@@ -1304,6 +1304,38 @@ class ResumeLibraryManager {
                         </div>
                     </div>
 
+                    <!-- 工作经历 -->
+                    <div class="case-form-section">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">
+                                <i class="bi bi-briefcase me-2"></i>工作经历
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                    onclick="window.resumeLibraryManager.addWorkExperience()">
+                                <i class="bi bi-plus-circle me-1"></i>添加
+                            </button>
+                        </div>
+                        <div id="workExperienceList" class="experience-list">
+                            <!-- 工作经历将动态渲染在这里 -->
+                        </div>
+                    </div>
+
+                    <!-- 项目经历 -->
+                    <div class="case-form-section">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">
+                                <i class="bi bi-diagram-3 me-2"></i>项目经历
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                    onclick="window.resumeLibraryManager.addProjectExperience()">
+                                <i class="bi bi-plus-circle me-1"></i>添加
+                            </button>
+                        </div>
+                        <div id="projectExperienceList" class="experience-list">
+                            <!-- 项目经历将动态渲染在这里 -->
+                        </div>
+                    </div>
+
                     <!-- 附件管理 -->
                     <div class="case-form-section">
                         <h6>
@@ -1411,6 +1443,12 @@ class ResumeLibraryManager {
             document.getElementById('resumeCurrentCompany').value = resume.current_company || '';
             document.getElementById('resumeDepartment').value = resume.department || '';
 
+            // 加载工作经历
+            this.loadWorkExperience(resume.work_experience);
+
+            // 加载项目经历
+            this.loadProjectExperience(resume.project_experience);
+
             // 加载附件
             await this.loadResumeAttachments(resumeId);
 
@@ -1456,7 +1494,10 @@ class ResumeLibraryManager {
             work_years: document.getElementById('resumeWorkYears').value ? parseInt(document.getElementById('resumeWorkYears').value) : null,
             status: document.getElementById('resumeStatus').value,
             current_company: document.getElementById('resumeCurrentCompany').value,
-            department: document.getElementById('resumeDepartment').value
+            department: document.getElementById('resumeDepartment').value,
+            // 添加工作经历和项目经历
+            work_experience: this.workExperienceData || [],
+            project_experience: this.projectExperienceData || []
         };
 
         try {
@@ -1685,6 +1726,392 @@ class ResumeLibraryManager {
         } else {
             return 'bi-file-earmark';
         }
+    }
+
+    // ==================== 工作经历相关方法 ====================
+
+    /**
+     * 加载工作经历列表
+     */
+    loadWorkExperience(workExperienceData) {
+        const container = document.getElementById('workExperienceList');
+        if (!container) return;
+
+        let workExperience = [];
+
+        // 解析JSON数据
+        if (typeof workExperienceData === 'string') {
+            try {
+                workExperience = JSON.parse(workExperienceData);
+            } catch (e) {
+                console.error('解析工作经历数据失败:', e);
+                workExperience = [];
+            }
+        } else if (Array.isArray(workExperienceData)) {
+            workExperience = workExperienceData;
+        }
+
+        if (workExperience.length === 0) {
+            container.innerHTML = '<div class="text-muted text-center py-3">暂无工作经历</div>';
+            return;
+        }
+
+        container.innerHTML = workExperience.map((exp, index) => `
+            <div class="experience-item card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${this.escapeHtml(exp.company || '未知公司')}</h6>
+                            <div class="text-muted small mb-2">
+                                <span class="me-3">
+                                    <i class="bi bi-person-badge me-1"></i>${this.escapeHtml(exp.position || '未知职位')}
+                                </span>
+                                <span>
+                                    <i class="bi bi-calendar-range me-1"></i>${this.escapeHtml(exp.period || '未知时间')}
+                                </span>
+                            </div>
+                            ${exp.description ? `<p class="mb-0 small">${this.escapeHtml(exp.description)}</p>` : ''}
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="window.resumeLibraryManager.editWorkExperience(${index})" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger"
+                                    onclick="window.resumeLibraryManager.deleteWorkExperience(${index})" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // 存储到实例中以便后续编辑
+        this.workExperienceData = workExperience;
+    }
+
+    /**
+     * 添加工作经历
+     */
+    addWorkExperience() {
+        this.showWorkExperienceModal(null);
+    }
+
+    /**
+     * 编辑工作经历
+     */
+    editWorkExperience(index) {
+        if (!this.workExperienceData || !this.workExperienceData[index]) {
+            this.showWarning('工作经历不存在');
+            return;
+        }
+        this.showWorkExperienceModal(index);
+    }
+
+    /**
+     * 删除工作经历
+     */
+    deleteWorkExperience(index) {
+        if (!confirm('确定要删除这条工作经历吗？')) {
+            return;
+        }
+
+        if (!this.workExperienceData) {
+            this.workExperienceData = [];
+        }
+
+        this.workExperienceData.splice(index, 1);
+        this.loadWorkExperience(this.workExperienceData);
+    }
+
+    /**
+     * 显示工作经历编辑模态框
+     */
+    showWorkExperienceModal(index) {
+        const isEdit = index !== null;
+        const experience = isEdit ? this.workExperienceData[index] : {};
+
+        const modalHtml = `
+            <div class="modal fade" id="workExperienceModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${isEdit ? '编辑' : '添加'}工作经历</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="workExperienceForm">
+                                <div class="mb-3">
+                                    <label class="form-label">公司名称 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="company"
+                                           value="${this.escapeHtml(experience.company || '')}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">职位 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="position"
+                                           value="${this.escapeHtml(experience.position || '')}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">工作时间 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="period"
+                                           value="${this.escapeHtml(experience.period || '')}"
+                                           placeholder="如：2020-01至2023-12" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">工作描述</label>
+                                    <textarea class="form-control" name="description" rows="3">${this.escapeHtml(experience.description || '')}</textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary"
+                                    onclick="window.resumeLibraryManager.saveWorkExperience(${index})">
+                                <i class="bi bi-check-circle me-1"></i>保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const container = document.getElementById('resumeModalsContainer');
+        container.innerHTML = modalHtml;
+
+        const modal = new bootstrap.Modal(document.getElementById('workExperienceModal'));
+        modal.show();
+    }
+
+    /**
+     * 保存工作经历
+     */
+    saveWorkExperience(index) {
+        const form = document.getElementById('workExperienceForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = new FormData(form);
+        const experience = {
+            company: formData.get('company'),
+            position: formData.get('position'),
+            period: formData.get('period'),
+            description: formData.get('description')
+        };
+
+        if (!this.workExperienceData) {
+            this.workExperienceData = [];
+        }
+
+        if (index !== null) {
+            // 编辑现有项
+            this.workExperienceData[index] = experience;
+        } else {
+            // 添加新项
+            this.workExperienceData.push(experience);
+        }
+
+        // 刷新显示
+        this.loadWorkExperience(this.workExperienceData);
+
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('workExperienceModal'));
+        modal.hide();
+    }
+
+    // ==================== 项目经历相关方法 ====================
+
+    /**
+     * 加载项目经历列表
+     */
+    loadProjectExperience(projectExperienceData) {
+        const container = document.getElementById('projectExperienceList');
+        if (!container) return;
+
+        let projectExperience = [];
+
+        // 解析JSON数据
+        if (typeof projectExperienceData === 'string') {
+            try {
+                projectExperience = JSON.parse(projectExperienceData);
+            } catch (e) {
+                console.error('解析项目经历数据失败:', e);
+                projectExperience = [];
+            }
+        } else if (Array.isArray(projectExperienceData)) {
+            projectExperience = projectExperienceData;
+        }
+
+        if (projectExperience.length === 0) {
+            container.innerHTML = '<div class="text-muted text-center py-3">暂无项目经历</div>';
+            return;
+        }
+
+        container.innerHTML = projectExperience.map((exp, index) => `
+            <div class="experience-item card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${this.escapeHtml(exp.name || '未知项目')}</h6>
+                            <div class="text-muted small mb-2">
+                                <span class="me-3">
+                                    <i class="bi bi-person-badge me-1"></i>${this.escapeHtml(exp.role || '未知角色')}
+                                </span>
+                                <span>
+                                    <i class="bi bi-calendar-range me-1"></i>${this.escapeHtml(exp.period || '未知时间')}
+                                </span>
+                            </div>
+                            ${exp.description ? `<p class="mb-0 small">${this.escapeHtml(exp.description)}</p>` : ''}
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="window.resumeLibraryManager.editProjectExperience(${index})" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger"
+                                    onclick="window.resumeLibraryManager.deleteProjectExperience(${index})" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // 存储到实例中以便后续编辑
+        this.projectExperienceData = projectExperience;
+    }
+
+    /**
+     * 添加项目经历
+     */
+    addProjectExperience() {
+        this.showProjectExperienceModal(null);
+    }
+
+    /**
+     * 编辑项目经历
+     */
+    editProjectExperience(index) {
+        if (!this.projectExperienceData || !this.projectExperienceData[index]) {
+            this.showWarning('项目经历不存在');
+            return;
+        }
+        this.showProjectExperienceModal(index);
+    }
+
+    /**
+     * 删除项目经历
+     */
+    deleteProjectExperience(index) {
+        if (!confirm('确定要删除这条项目经历吗？')) {
+            return;
+        }
+
+        if (!this.projectExperienceData) {
+            this.projectExperienceData = [];
+        }
+
+        this.projectExperienceData.splice(index, 1);
+        this.loadProjectExperience(this.projectExperienceData);
+    }
+
+    /**
+     * 显示项目经历编辑模态框
+     */
+    showProjectExperienceModal(index) {
+        const isEdit = index !== null;
+        const experience = isEdit ? this.projectExperienceData[index] : {};
+
+        const modalHtml = `
+            <div class="modal fade" id="projectExperienceModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${isEdit ? '编辑' : '添加'}项目经历</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="projectExperienceForm">
+                                <div class="mb-3">
+                                    <label class="form-label">项目名称 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="name"
+                                           value="${this.escapeHtml(experience.name || '')}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">项目角色 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="role"
+                                           value="${this.escapeHtml(experience.role || '')}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">项目时间 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="period"
+                                           value="${this.escapeHtml(experience.period || '')}"
+                                           placeholder="如：2020-01至2023-12" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">项目描述</label>
+                                    <textarea class="form-control" name="description" rows="3">${this.escapeHtml(experience.description || '')}</textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                            <button type="button" class="btn btn-primary"
+                                    onclick="window.resumeLibraryManager.saveProjectExperience(${index})">
+                                <i class="bi bi-check-circle me-1"></i>保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const container = document.getElementById('resumeModalsContainer');
+        container.innerHTML = modalHtml;
+
+        const modal = new bootstrap.Modal(document.getElementById('projectExperienceModal'));
+        modal.show();
+    }
+
+    /**
+     * 保存项目经历
+     */
+    saveProjectExperience(index) {
+        const form = document.getElementById('projectExperienceForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = new FormData(form);
+        const experience = {
+            name: formData.get('name'),
+            role: formData.get('role'),
+            period: formData.get('period'),
+            description: formData.get('description')
+        };
+
+        if (!this.projectExperienceData) {
+            this.projectExperienceData = [];
+        }
+
+        if (index !== null) {
+            // 编辑现有项
+            this.projectExperienceData[index] = experience;
+        } else {
+            // 添加新项
+            this.projectExperienceData.push(experience);
+        }
+
+        // 刷新显示
+        this.loadProjectExperience(this.projectExperienceData);
+
+        // 关闭模态框
+        const modal = bootstrap.Modal.getInstance(document.getElementById('projectExperienceModal'));
+        modal.hide();
     }
 }
 

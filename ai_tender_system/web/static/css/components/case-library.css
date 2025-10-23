@@ -191,21 +191,7 @@
     color: white;
 }
 
-.case-form-section {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.case-form-section h6 {
-    color: #495057;
-    font-weight: 600;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #dee2e6;
-    font-size: 1rem;
-}
+/* 注意: 共享表单样式(.case-form-section等)已移至 form-common.css */
 
 /* ==================== */
 /* 案例详情样式 */
@@ -238,181 +224,18 @@
     display: inline-block;
 }
 
-/* ==================== */
-/* 附件管理样式 */
-/* ==================== */
+/* 注意: 附件管理样式(.case-attachment-*)已移至 form-common.css */
 
-/* 附件上传区域 */
-.case-attachment-upload-area {
-    margin-bottom: 15px;
-}
-
-.case-attachment-upload-area .upload-box {
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    padding: 30px 20px;
-    text-align: center;
-    background: white;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.case-attachment-upload-area .upload-box:hover {
-    border-color: #667eea;
-    background: #f8f9ff;
-}
-
-.case-attachment-upload-area .upload-prompt {
-    color: #6c757d;
-}
-
-.case-attachment-upload-area .upload-prompt i {
-    display: block;
-    margin: 0 auto 10px;
-}
-
-.case-attachment-upload-area .upload-prompt p {
-    margin: 0;
-    font-weight: 500;
-    color: #495057;
-}
-
-.case-attachment-upload-area .upload-prompt small {
-    display: block;
-    margin-top: 5px;
-}
-
-/* 附件列表 */
-.case-attachment-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.case-attachment-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 15px;
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    transition: all 0.2s ease;
-}
-
-.case-attachment-item:hover {
-    background: #f8f9fa;
-    border-color: #667eea;
-    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
-}
-
-.case-attachment-item .attachment-info {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    min-width: 0;
-}
-
-.case-attachment-item .attachment-info i {
-    font-size: 1.5rem;
-    flex-shrink: 0;
-}
-
-.case-attachment-item .attachment-details {
-    flex: 1;
-    min-width: 0;
-}
-
-.case-attachment-item .attachment-name {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #2c3e50;
-    margin-bottom: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.case-attachment-item .attachment-meta {
-    font-size: 0.8rem;
-    color: #6c757d;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.case-attachment-item .attachment-actions {
-    display: flex;
-    gap: 5px;
-    flex-shrink: 0;
-    margin-left: 10px;
-}
-
-.case-attachment-item .attachment-actions .btn {
-    padding: 4px 8px;
-    font-size: 0.8rem;
-}
-
-/* 附件类型图标颜色 */
-.case-attachment-item .bi-file-image {
-    color: #28a745;
-}
-
-.case-attachment-item .bi-file-pdf {
-    color: #dc3545;
-}
-
-.case-attachment-item .bi-file-word {
-    color: #007bff;
-}
-
-.case-attachment-item .bi-file-earmark {
-    color: #6c757d;
-}
-
-/* 附件数量徽章 */
+/* 附件数量徽章 (案例库特有) */
 #caseAttachmentCount {
     font-size: 0.75rem;
     padding: 4px 8px;
 }
 
-/* 附件列表滚动条 */
-.case-attachment-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.case-attachment-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-.case-attachment-list::-webkit-scrollbar-thumb {
-    background: #667eea;
-    border-radius: 3px;
-}
-
-.case-attachment-list::-webkit-scrollbar-thumb:hover {
-    background: #764ba2;
-}
-
 /* ==================== */
 /* 案例编辑视图样式（优化后：减少嵌套层级） */
 /* ==================== */
-
-.case-edit-header {
-    background: white;
-    padding: 20px 30px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    margin-bottom: 20px;
-    border-radius: 8px;
-}
-
-.case-edit-header h4 {
-    margin: 0;
-    color: #2c3e50;
-    font-weight: 600;
-}
+/* 注意: .case-edit-header 已移至 form-common.css */
 
 .case-edit-content {
     max-width: 1400px;

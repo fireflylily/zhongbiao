@@ -992,6 +992,101 @@ def register_routes(app: Flask, config, logger):
             logger.error(f"获取项目统计信息失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    @app.route('/api/tender-management/project/<int:project_id>', methods=['DELETE'])
+    def delete_tender_project(project_id):
+        """删除项目及其关联数据"""
+        try:
+            from common.database import get_knowledge_base_db
+            import json
+
+            db = get_knowledge_base_db()
+
+            # 1. 检查项目是否存在
+            project_check = db.execute_query("""
+                SELECT project_id, project_name, tender_document_path
+                FROM tender_projects
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
+
+            if not project_check:
+                return jsonify({'success': False, 'error': '项目不存在'}), 404
+
+            logger.info(f"开始删除项目: project_id={project_id}, project_name={project_check['project_name']}")
+
+            # 2. 获取关联的任务ID (用于级联删除)
+            task_info = db.execute_query("""
+                SELECT task_id FROM tender_processing_tasks
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
+
+            task_id = task_info['task_id'] if task_info else None
+
+            # 3. 删除关联数据 (按外键依赖顺序)
+            deleted_counts = {}
+
+            # 3.1 删除HITL任务相关数据
+            if task_id:
+                # 删除HITL任务
+                result = db.execute_query("""
+                    DELETE FROM tender_hitl_tasks WHERE task_id = ?
+                """, (task_id,))
+                deleted_counts['hitl_tasks'] = result if result else 0
+
+                # 删除处理日志
+                result = db.execute_query("""
+                    DELETE FROM tender_processing_logs WHERE task_id = ?
+                """, (task_id,))
+                deleted_counts['processing_logs'] = result if result else 0
+
+                # 删除要求提取结果
+                result = db.execute_query("""
+                    DELETE FROM tender_requirements WHERE chunk_id IN (
+                        SELECT chunk_id FROM tender_chunks WHERE project_id = ?
+                    )
+                """, (project_id,))
+                deleted_counts['requirements'] = result if result else 0
+
+                # 删除文档分块
+                result = db.execute_query("""
+                    DELETE FROM tender_chunks WHERE project_id = ?
+                """, (project_id,))
+                deleted_counts['chunks'] = result if result else 0
+
+                # 删除处理任务
+                result = db.execute_query("""
+                    DELETE FROM tender_processing_tasks WHERE task_id = ?
+                """, (task_id,))
+                deleted_counts['processing_tasks'] = result if result else 0
+
+            # 3.2 删除项目本身
+            result = db.execute_query("""
+                DELETE FROM tender_projects WHERE project_id = ?
+            """, (project_id,))
+            deleted_counts['projects'] = result if result else 0
+
+            # 4. 可选: 删除关联文件 (暂时不删除物理文件，避免误删)
+            # if project_check['tender_document_path']:
+            #     try:
+            #         os.remove(project_check['tender_document_path'])
+            #         logger.info(f"已删除标书文件: {project_check['tender_document_path']}")
+            #     except Exception as e:
+            #         logger.warning(f"删除标书文件失败: {e}")
+
+            logger.info(f"项目删除完成: project_id={project_id}, 删除统计={deleted_counts}")
+
+            return jsonify({
+                'success': True,
+                'message': f"项目 '{project_check['project_name']}' 已成功删除",
+                'deleted_counts': deleted_counts,
+                'project_id': project_id
+            })
+
+        except Exception as e:
+            logger.error(f"删除项目失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': f'删除失败: {str(e)}'}), 500
+
     # ===================
     # HITL（Human-in-the-Loop）API - 三步人工确认流程
     # ===================

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS resumes (
     certificates TEXT,                        -- 证书列表（JSON格式）
     languages TEXT,                           -- 语言能力（JSON格式）
     project_experience TEXT,                  -- 项目经验（JSON格式）
+    work_experience TEXT,                     -- 工作经历（JSON格式）
 
     -- 联系方式
     phone VARCHAR(20),                        -- 手机号码

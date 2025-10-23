@@ -23,16 +23,21 @@ resume_library_bp = Blueprint('resume_library', __name__, url_prefix='/api/resum
 
 # 初始化管理器
 resume_manager = None
-resume_parser = None
+resume_parser = None  # 懒加载：只在需要解析时初始化
 export_handler = None
 
 
-def init_managers():
-    """初始化管理器实例"""
+def init_managers(include_parser=False):
+    """
+    初始化管理器实例
+    Args:
+        include_parser: 是否初始化解析器(需要AI模型),默认False
+    """
     global resume_manager, resume_parser, export_handler
     if not resume_manager:
         resume_manager = ResumeLibraryManager()
-    if not resume_parser:
+    if include_parser and not resume_parser:
+        # 只在需要解析简历时才初始化(避免加载AI模型)
         resume_parser = ResumeParser()
     if not export_handler:
         export_handler = ResumeExportHandler()
@@ -158,7 +163,8 @@ def delete_resume(resume_id):
 def parse_resume():
     """解析上传的简历文件"""
     try:
-        init_managers()
+        # 初始化管理器(包括解析器,需要AI模型)
+        init_managers(include_parser=True)
 
         # 检查是否有文件
         if 'file' not in request.files:
@@ -236,7 +242,8 @@ def parse_resume():
 def parse_resume_text():
     """解析简历文本"""
     try:
-        init_managers()
+        # 初始化管理器(包括解析器,需要AI模型)
+        init_managers(include_parser=True)
 
         data = request.get_json()
         if not data or not data.get('text'):

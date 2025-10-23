@@ -42,6 +42,8 @@
     <link href="/static/css/components/modals.min.css" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="/static/css/components/navigation.min.css" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="/static/css/components/privacy-badges.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- ⚡ 工作流程图样式 - 首页可见，延迟加载 -->
+    <link href="/static/css/components/workflow-diagram.min.css" rel="stylesheet" media="print" onload="this.media='all'">
 
     <!-- ⚡ 性能优化: 以下CSS已改为按需动态加载 -->
     <!-- qualifications.css - 企业信息库tab需要时动态加载 -->
@@ -79,6 +81,9 @@
     <script src="/static/js/pages/index/business-response-handler.js?v=1760864668" defer></script>
     <script src="/static/js/pages/index/point-to-point-handler.js?v=1760864668" defer></script>
     <script src="/static/js/pages/index/page-utilities.js?v=1760864668" defer></script>
+    <script src="/static/js/pages/index/project-overview-manager.js" defer></script>
+    <!-- ⚡ 工作流程图管理器 - 首页交互逻辑 -->
+    <script src="/static/js/pages/index/workflow-diagram-manager.js" defer></script>
 
     <!-- 第三方库 - async加载（非关键，不阻塞） -->
     <script src="/static/vendor/chart.js/chart.umd.min.js" async></script>
@@ -254,6 +259,9 @@
                         <div class="tab-pane fade show active" id="home" role="tabpanel">
                             {% include 'components/index/home-dashboard.html' %}
                         </div>
+
+                        <!-- 项目总览选项卡 -->
+                        {% include 'components/index/project-overview-section.html' %}
 
                         <!-- 投标管理选项卡 -->
                         <div class="tab-pane fade" id="tender-management" role="tabpanel">

@@ -21,7 +21,17 @@ class ResumeParser:
     def __init__(self):
         """初始化解析器"""
         self.parser_manager = ParserManager()
-        self.llm_client = LLMClient()
+        self._llm_client = None  # 懒加载：首次使用时才初始化
+
+    @property
+    def llm_client(self):
+        """懒加载LLM客户端"""
+        if self._llm_client is None:
+            try:
+                self._llm_client = LLMClient()
+            except Exception as e:
+                raise Exception(f"初始化AI模型失败: {str(e)}。请检查模型配置(API密钥、网络连接等)")
+        return self._llm_client
 
     def parse_resume(self, file_path: str) -> Dict[str, Any]:
         """
@@ -237,7 +247,8 @@ class ResumeParser:
    - skills: 技能特长列表
    - certificates: 证书列表（包含证书名称和获得时间）
    - languages: 语言能力（包含语言和水平）
-   - project_experience: 项目经验列表（包含项目名称、角色、时间、描述）
+   - project_experience: 项目经历列表（包含项目名称、角色、时间、描述）
+   - work_experience: 工作经历列表（包含公司名称、职位、工作时间、工作描述）
 5. 联系方式：手机号码、邮箱、联系地址
 6. 其他信息：期望薪资、工作地点、个人简介、获奖情况
 
@@ -273,6 +284,14 @@ class ResumeParser:
             "role": "技术负责人",
             "period": "2023-01至2023-12",
             "description": "负责系统架构设计和核心功能开发"
+        }}
+    ],
+    "work_experience": [
+        {{
+            "company": "某科技有限公司",
+            "position": "高级工程师",
+            "period": "2020-01至2023-12",
+            "description": "负责核心业务系统的设计和开发"
         }}
     ],
     "phone": "13800138000",
@@ -463,7 +482,7 @@ class ResumeParser:
             格式化后的数据
         """
         # 确保JSON字段是正确的格式
-        json_fields = ['skills', 'certificates', 'languages', 'project_experience']
+        json_fields = ['skills', 'certificates', 'languages', 'project_experience', 'work_experience']
 
         for field in json_fields:
             if field in data:

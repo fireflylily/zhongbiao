@@ -1,0 +1,256 @@
+<!-- 工作流程图组件 - HITL标准工作流 -->
+<div class="workflow-diagram-container mb-4">
+    <!-- 流程图主体 -->
+    <div class="workflow-content">
+        <div class="row justify-content-center" id="workflowModes">
+            <!-- 标准模式流程 -->
+            <div class="col-lg-6 col-xl-5 workflow-mode" id="standardMode">
+                <div class="mode-card standard-mode">
+                    <div class="mode-body">
+                        <!-- 步骤流程 -->
+                        <div class="workflow-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <div class="step-icon bg-primary-light">
+                                    <i class="bi bi-folder-plus text-primary"></i>
+                                </div>
+                                <h6 class="step-title">创建投标任务</h6>
+                                <p class="step-desc">上传完整招标文件到HITL投标管理</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-arrow">
+                            <i class="bi bi-arrow-down"></i>
+                        </div>
+
+                        <div class="workflow-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <div class="step-icon bg-info-light">
+                                    <i class="bi bi-magic text-info"></i>
+                                </div>
+                                <h6 class="step-title">AI智能解析</h6>
+                                <p class="step-desc">自动提取商务应答模板和技术需求文件</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-arrow">
+                            <i class="bi bi-arrow-down"></i>
+                        </div>
+
+                        <!-- 并行处理模块分支 -->
+                        <div class="workflow-branch-container">
+                            <div class="branch-split-arrow">
+                                <div class="split-line"></div>
+                                <div class="split-arrow-down">
+                                    <i class="bi bi-arrow-down"></i>
+                                </div>
+                                <div class="branch-label">选择处理模块</div>
+                            </div>
+
+                            <div class="parallel-modules row g-2">
+                                <!-- 商务应答模块 -->
+                                <div class="col-md-4">
+                                    <div class="workflow-step module-branch">
+                                        <div class="step-number">3a</div>
+                                        <div class="step-content">
+                                            <div class="step-icon bg-primary-light">
+                                                <i class="bi bi-file-earmark-text text-primary"></i>
+                                            </div>
+                                            <h6 class="step-title">商务应答</h6>
+                                            <p class="step-desc">填充商务应答模板</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 点对点应答模块 -->
+                                <div class="col-md-4">
+                                    <div class="workflow-step module-branch">
+                                        <div class="step-number">3b</div>
+                                        <div class="step-content">
+                                            <div class="step-icon bg-info-light">
+                                                <i class="bi bi-list-ol text-info"></i>
+                                            </div>
+                                            <h6 class="step-title">点对点应答</h6>
+                                            <p class="step-desc">逐条技术应答</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 技术方案模块 -->
+                                <div class="col-md-4">
+                                    <div class="workflow-step module-branch">
+                                        <div class="step-number">3c</div>
+                                        <div class="step-content">
+                                            <div class="step-icon bg-warning-light">
+                                                <i class="bi bi-file-code text-warning"></i>
+                                            </div>
+                                            <h6 class="step-title">技术方案</h6>
+                                            <p class="step-desc">生成完整方案</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="branch-merge-arrow">
+                                <div class="merge-line"></div>
+                                <div class="merge-arrow-down">
+                                    <i class="bi bi-arrow-down"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="workflow-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <div class="step-icon bg-success-light">
+                                    <i class="bi bi-cpu-fill text-success"></i>
+                                </div>
+                                <h6 class="step-title">AI处理生成</h6>
+                                <p class="step-desc">基于HITL提取的文件智能生成完成文档</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-arrow">
+                            <i class="bi bi-arrow-down"></i>
+                        </div>
+
+                        <div class="workflow-step">
+                            <div class="step-number">5</div>
+                            <div class="step-content">
+                                <div class="step-icon bg-purple-light">
+                                    <i class="bi bi-arrow-repeat text-purple"></i>
+                                </div>
+                                <h6 class="step-title">同步回HITL</h6>
+                                <p class="step-desc">完成文档同步到投标管理系统</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-arrow">
+                            <i class="bi bi-arrow-down"></i>
+                        </div>
+
+                        <div class="workflow-step">
+                            <div class="step-number">6</div>
+                            <div class="step-content">
+                                <div class="step-icon bg-danger-light">
+                                    <i class="bi bi-archive text-danger"></i>
+                                </div>
+                                <h6 class="step-title">项目归档管理</h6>
+                                <p class="step-desc">集中管理完整投标文档集</p>
+                            </div>
+                        </div>
+
+                        <!-- 特点说明 -->
+                        <div class="mode-features mt-4">
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <span>完整的投标项目管理闭环</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <span>AI自动解析，减少手动操作</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <span>文件可追溯，长期归档管理</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 核心处理模块 -->
+        <div class="core-modules mt-4">
+            <h6 class="text-center mb-3 text-muted">
+                <i class="bi bi-gear-wide-connected me-2"></i>核心处理模块
+            </h6>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="module-card" data-tab="business-response" onclick="workflowDiagramManager.navigateToModule('business-response')">
+                        <div class="module-icon bg-primary">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                        <div class="module-content">
+                            <h6 class="module-title">商务应答</h6>
+                            <p class="module-desc">填充应答模板</p>
+                            <div class="module-status">
+                                <span class="status-dot"></span>
+                                <span class="status-text">未开始</span>
+                            </div>
+                        </div>
+                        <div class="module-arrow">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="module-card" data-tab="point-to-point" onclick="workflowDiagramManager.navigateToModule('point-to-point')">
+                        <div class="module-icon bg-info">
+                            <i class="bi bi-list-ol"></i>
+                        </div>
+                        <div class="module-content">
+                            <h6 class="module-title">点对点应答</h6>
+                            <p class="module-desc">逐条技术应答</p>
+                            <div class="module-status">
+                                <span class="status-dot"></span>
+                                <span class="status-text">未开始</span>
+                            </div>
+                        </div>
+                        <div class="module-arrow">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="module-card" data-tab="tech-proposal" onclick="workflowDiagramManager.navigateToModule('tech-proposal')">
+                        <div class="module-icon bg-warning">
+                            <i class="bi bi-file-code"></i>
+                        </div>
+                        <div class="module-content">
+                            <h6 class="module-title">技术方案</h6>
+                            <p class="module-desc">生成完整方案</p>
+                            <div class="module-status">
+                                <span class="status-dot"></span>
+                                <span class="status-text">未开始</span>
+                            </div>
+                        </div>
+                        <div class="module-arrow">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="module-card" data-tab="tender-management" onclick="workflowDiagramManager.navigateToModule('tender-management')">
+                        <div class="module-icon bg-success">
+                            <i class="bi bi-folder-check"></i>
+                        </div>
+                        <div class="module-content">
+                            <h6 class="module-title">投标管理</h6>
+                            <p class="module-desc">集中管理归档</p>
+                            <div class="module-status">
+                                <span class="status-dot"></span>
+                                <span class="status-text">未开始</span>
+                            </div>
+                        </div>
+                        <div class="module-arrow">
+                            <i class="bi bi-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 帮助提示 -->
+        <div class="workflow-help mt-4 text-center">
+            <small class="text-muted">
+                <i class="bi bi-info-circle me-2"></i>
+                点击核心模块卡片可快速跳转到对应功能页面
+            </small>
+        </div>
+    </div>
+</div>

@@ -164,13 +164,21 @@ const CSS_DEPENDENCIES = {
         '/static/css/tender-processing-step3-enhanced.min.css'
     ],
 
+    // 项目总览tab
+    'project-overview': [
+        '/static/css/components/form-common.min.css',  // 共享样式(页面标题、空状态等)
+        '/static/css/components/project-overview.min.css'
+    ],
+
     // 案例库tab
     'knowledge-case-library': [
+        '/static/css/components/form-common.min.css',  // 共享表单样式
         '/static/css/components/case-library.min.css'
     ],
 
     // 简历库tab
     'knowledge-resume-library': [
+        '/static/css/components/form-common.min.css',  // 共享表单样式
         '/static/css/components/resume-library.min.css'
     ],
 

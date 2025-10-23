@@ -353,3 +353,23 @@
     color: #4a89dc;
     font-weight: 600;
 }
+
+/* ==================== */
+/* 简历详情/编辑页面样式 */
+/* ==================== */
+/* 注意: 详情页面的共享样式已移至 form-common.css */
+
+.resume-detail-wrapper {
+    padding: 20px;
+}
+
+.resume-detail-content {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* 附件数量徽章 (简历库特有) */
+#resumeAttachmentCount {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+}

@@ -66,7 +66,7 @@ class ResumeLibraryManager:
             创建的简历信息
         """
         # 处理JSON字段
-        json_fields = ['skills', 'certificates', 'languages', 'project_experience']
+        json_fields = ['skills', 'certificates', 'languages', 'project_experience', 'work_experience']
         for field in json_fields:
             if field in resume_data and resume_data[field]:
                 if isinstance(resume_data[field], (list, dict)):
@@ -113,7 +113,7 @@ class ResumeLibraryManager:
             更新后的简历信息
         """
         # 处理JSON字段
-        json_fields = ['skills', 'certificates', 'languages', 'project_experience']
+        json_fields = ['skills', 'certificates', 'languages', 'project_experience', 'work_experience']
         for field in json_fields:
             if field in resume_data and resume_data[field]:
                 if isinstance(resume_data[field], (list, dict)):
