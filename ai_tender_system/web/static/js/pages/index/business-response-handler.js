@@ -256,9 +256,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
 
-                    // 检查是否从HITL页面跳转过来,如果是则显示"同步到投标项目"按钮
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const hitlTaskId = urlParams.get('hitl_task_id');
+                    // ✅ 检查是否从HITL页面跳转过来,如果是则显示"同步到投标项目"按钮
+                    // 优先从全局状态获取 hitlTaskId，兼容URL参数方式
+                    let hitlTaskId = null;
+                    if (window.globalState) {
+                        hitlTaskId = window.globalState.getHitlTaskId();
+                        console.log('[Business] 从全局状态获取 HITL 任务ID:', hitlTaskId);
+                    }
+
+                    // 如果全局状态中没有，尝试从URL参数获取（向后兼容）
+                    if (!hitlTaskId) {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        hitlTaskId = urlParams.get('hitl_task_id');
+                        console.log('[Business] 从URL参数获取 HITL 任务ID:', hitlTaskId);
+                    }
 
                     if (hitlTaskId) {
                         console.log('[Business] 检测到HITL任务ID,显示同步按钮:', hitlTaskId);
