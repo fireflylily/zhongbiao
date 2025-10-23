@@ -25,107 +25,6 @@
 <!-- ⚡ 工作流程图 -->
 {% include 'components/index/workflow-diagram.html' %}
 
-<!-- 知识库统计信息 -->
-<div class="row mb-4">
-    <div class="col-12">
-        <h5 class="section-title mb-3">
-            <i class="bi bi-database-fill text-info me-2"></i>
-            知识库概览
-        </h5>
-    </div>
-
-    <div class="col-md-3 mb-3">
-        <div class="knowledge-stat-card">
-            <div class="knowledge-stat-icon bg-primary-light">
-                <i class="bi bi-building text-primary"></i>
-            </div>
-            <div class="knowledge-stat-content">
-                <div class="knowledge-stat-number" id="totalCompanies">0</div>
-                <div class="knowledge-stat-label">企业数量</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3 mb-3">
-        <div class="knowledge-stat-card">
-            <div class="knowledge-stat-icon bg-success-light">
-                <i class="bi bi-box text-success"></i>
-            </div>
-            <div class="knowledge-stat-content">
-                <div class="knowledge-stat-number" id="totalProducts">0</div>
-                <div class="knowledge-stat-label">产品数量</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3 mb-3">
-        <div class="knowledge-stat-card">
-            <div class="knowledge-stat-icon bg-warning-light">
-                <i class="bi bi-file-earmark-text text-warning"></i>
-            </div>
-            <div class="knowledge-stat-content">
-                <div class="knowledge-stat-number" id="totalKnowledgeDocs">0</div>
-                <div class="knowledge-stat-label">知识文档</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3 mb-3">
-        <div class="knowledge-stat-card">
-            <div class="knowledge-stat-icon bg-purple-light">
-                <i class="bi bi-cpu text-purple"></i>
-            </div>
-            <div class="knowledge-stat-content">
-                <div class="knowledge-stat-number" id="totalModels">0</div>
-                <div class="knowledge-stat-label">AI模型</div>
-                <div class="knowledge-stat-detail" id="modelsDetail" style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                    <span id="configuredModels">0</span> 已配置 / <span id="availableModels">0</span> 可用
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<!-- 系统特性展示 -->
-<div class="row mb-4">
-    <div class="col-12">
-        <h5 class="section-title mb-3">
-            <i class="bi bi-stars text-warning me-2"></i>
-            平台优势
-        </h5>
-    </div>
-
-    <div class="col-md-4 mb-3">
-        <div class="feature-box">
-            <div class="feature-icon bg-primary-light">
-                <i class="bi bi-shield-check text-primary"></i>
-            </div>
-            <h6 class="feature-title">安全可靠</h6>
-            <p class="feature-text">数据加密存储，多层安全防护，保障企业信息安全</p>
-        </div>
-    </div>
-
-    <div class="col-md-4 mb-3">
-        <div class="feature-box">
-            <div class="feature-icon bg-success-light">
-                <i class="bi bi-lightning-charge-fill text-success"></i>
-            </div>
-            <h6 class="feature-title">高效智能</h6>
-            <p class="feature-text">AI驱动的文档处理，大幅提升工作效率，节省时间成本</p>
-        </div>
-    </div>
-
-    <div class="col-md-4 mb-3">
-        <div class="feature-box">
-            <div class="feature-icon bg-info-light">
-                <i class="bi bi-graph-up text-info"></i>
-            </div>
-            <h6 class="feature-title">数据分析</h6>
-            <p class="feature-text">实时统计分析，智能决策支持，优化业务流程</p>
-        </div>
-    </div>
-</div>
 
 <!-- 底部信息 -->
 <div class="dashboard-footer text-center py-4 border-top mt-4">
@@ -210,62 +109,6 @@ async function loadDashboardStats() {
     }
 }
 
-// 加载知识库统计数据
-async function loadKnowledgeBaseStats() {
-    try {
-        // 获取企业数量
-        const companiesResponse = await fetch('/api/companies');
-        const companiesData = await companiesResponse.json();
-        const totalCompanies = (companiesData.success && companiesData.data) ? companiesData.data.length : 0;
-
-        // 统计产品数量 (从公司数据中汇总)
-        let totalProducts = 0;
-        if (companiesData.success && companiesData.data) {
-            companiesData.data.forEach(company => {
-                totalProducts += company.product_count || 0;
-            });
-        }
-
-        // 统计文档数量 (从公司数据中汇总)
-        let totalDocs = 0;
-        if (companiesData.success && companiesData.data) {
-            companiesData.data.forEach(company => {
-                totalDocs += company.document_count || 0;
-            });
-        }
-
-        // 获取AI模型统计
-        const modelsResponse = await fetch('/api/models');
-        const modelsData = await modelsResponse.json();
-        const totalModels = (modelsData.success && modelsData.models) ? modelsData.models.length : 0;
-
-        // 统计已配置的模型数量 (有API密钥的)
-        let configuredModels = 0;
-        if (modelsData.success && modelsData.models) {
-            configuredModels = modelsData.models.filter(model => model.has_api_key).length;
-        }
-
-        // 使用动画效果更新数字
-        animateNumber('totalCompanies', 0, totalCompanies, 1000);
-        animateNumber('totalProducts', 0, totalProducts, 1000);
-        animateNumber('totalKnowledgeDocs', 0, totalDocs, 1000);
-        animateNumber('totalModels', 0, totalModels, 1000);
-
-        // 更新模型详情统计
-        setTimeout(() => {
-            document.getElementById('configuredModels').textContent = configuredModels;
-            document.getElementById('availableModels').textContent = totalModels;
-        }, 1000);
-    } catch (error) {
-        console.error('加载知识库统计数据失败:', error);
-        // 如果API调用失败，使用默认值
-        animateNumber('totalCompanies', 0, 0, 500);
-        animateNumber('totalProducts', 0, 0, 500);
-        animateNumber('totalKnowledgeDocs', 0, 0, 500);
-        animateNumber('totalModels', 0, 0, 500);
-    }
-}
-
 // 数字动画效果
 function animateNumber(elementId, start, end, duration) {
     const element = document.getElementById(elementId);
@@ -290,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateGreeting();
     updateDateTime();
     loadDashboardStats();
-    loadKnowledgeBaseStats();
 
     // 每秒更新时间
     setInterval(updateDateTime, 1000);

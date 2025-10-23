@@ -831,22 +831,22 @@ def register_routes(app: Flask, config, logger):
                 # 计算商务应答完成情况
                 business_response_status = '未开始'
                 business_response_progress = 0
-                if step1_data.get('technical_point_to_point_file'):
+                if step1_data.get('business_response_file'):  # 检查商务应答文件
                     business_response_status = '已完成'
                     business_response_progress = 100
-                elif row['hitl_status'] == 'in_progress':
+                elif row['step1_status'] == 'in_progress':
                     business_response_status = '进行中'
                     business_response_progress = 50
 
                 # 计算技术点对点应答完成情况
                 tech_response_status = '未开始'
                 tech_response_progress = 0
-                if row['task_status'] == 'completed' and row['total_requirements']:
+                if step1_data.get('technical_point_to_point_file'):  # 检查点对点应答文件
                     tech_response_status = '已完成'
                     tech_response_progress = 100
-                elif row['task_status'] == 'running':
+                elif row['step2_status'] == 'in_progress':
                     tech_response_status = '进行中'
-                    tech_response_progress = row['progress_percentage'] or 0
+                    tech_response_progress = 50
 
                 # 计算技术方案情况
                 tech_proposal_status = '未开始'
@@ -1355,15 +1355,87 @@ def register_routes(app: Flask, config, logger):
                 'error': f'同步失败: {str(e)}'
             }), 500
 
+    # 调试API - 查看项目状态详情
+    @app.route('/api/debug/project-status/<int:project_id>', methods=['GET'])
+    def debug_project_status(project_id):
+        """调试API：查看项目的完整状态信息"""
+        try:
+            from common.database import get_knowledge_base_db
+            import json
+
+            db = get_knowledge_base_db()
+
+            query = """
+                SELECT
+                    p.project_id,
+                    p.project_name,
+                    h.hitl_task_id,
+                    h.step1_status,
+                    h.step2_status,
+                    h.step3_status,
+                    h.step1_data,
+                    t.overall_status as task_status,
+                    t.total_requirements
+                FROM tender_projects p
+                LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
+                LEFT JOIN tender_hitl_tasks h ON t.task_id = h.task_id
+                WHERE p.project_id = ?
+            """
+
+            result = db.execute_query(query, (project_id,), fetch_one=True)
+
+            if not result:
+                return jsonify({'success': False, 'error': '项目不存在'})
+
+            # 解析step1_data
+            step1_data = {}
+            file_fields = {}
+            if result['step1_data']:
+                try:
+                    step1_data = json.loads(result['step1_data'])
+                    # 提取所有文件相关字段
+                    for key, value in step1_data.items():
+                        if 'file' in key.lower():
+                            file_fields[key] = value
+                except json.JSONDecodeError as e:
+                    file_fields['parse_error'] = str(e)
+
+            debug_info = {
+                'project_id': result['project_id'],
+                'project_name': result['project_name'],
+                'hitl_task_id': result['hitl_task_id'],
+                'step1_status': result['step1_status'],
+                'step2_status': result['step2_status'],
+                'step3_status': result['step3_status'],
+                'task_status': result['task_status'],
+                'total_requirements': result['total_requirements'],
+                'file_fields': file_fields,
+                'has_business_response_file': 'business_response_file' in file_fields,
+                'has_technical_point_to_point_file': 'technical_point_to_point_file' in file_fields,
+                'has_technical_proposal_file': 'technical_proposal_file' in file_fields
+            }
+
+            return jsonify({'success': True, 'data': debug_info})
+
+        except Exception as e:
+            import traceback
+            return jsonify({
+                'success': False,
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            })
+
+    return app
+
 def main():
     """主函数"""
     app = create_app()
     config = get_config()
     web_config = config.get_web_config()
-    
+
     print(f"启动AI标书系统Web应用...")
     print(f"访问地址: http://{web_config['host']}:{web_config['port']}")
-    
+
     app.run(
         host=web_config['host'],
         port=web_config['port'],
