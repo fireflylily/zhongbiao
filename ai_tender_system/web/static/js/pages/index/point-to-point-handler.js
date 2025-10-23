@@ -14,6 +14,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化表单提交
     initFormSubmission();
 
+    // ✅ 订阅全局状态变化（自动更新）
+    if (window.globalState) {
+        // 订阅技术文件变化
+        window.globalState.subscribe('files', function(fileData) {
+            if (fileData.type === 'technical' && fileData.data) {
+                console.log('[Point-to-Point] 收到技术文件变化通知，自动加载');
+                loadFromHITL();
+            }
+        });
+
+        // 订阅公司变化
+        window.globalState.subscribe('company', function(companyData) {
+            console.log('[Point-to-Point] 收到公司变化通知:', companyData);
+            const companySelect = document.getElementById('pointToPointCompanyId');
+            if (companySelect && companyData.id) {
+                companySelect.value = companyData.id;
+            }
+        });
+    }
+
     // 监听从 HITL Tab 切换过来的事件
     window.addEventListener('loadPointToPoint', function(event) {
         if (event.detail && event.detail.fromHITL) {
@@ -1194,64 +1214,55 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * 从 HITL Tab 加载数据
+ * ✅ 从 HITL Tab 加载数据（已迁移到 GlobalStateManager）
  * 当用户从 HITL Tab 点击快捷按钮切换到点对点应答 Tab 时调用
  */
 function loadFromHITL() {
     console.log('[Point-to-Point] 开始从HITL加载数据');
 
-    if (!window.projectDataBridge) {
-        console.warn('[Point-to-Point] projectDataBridge 未定义');
+    if (!window.globalState) {
+        console.warn('[Point-to-Point] globalState 未定义');
         return;
     }
 
-    const bridge = window.projectDataBridge;
+    // ✅ 1. 从 globalState 读取公司和项目信息
+    const company = window.globalState.getCompany();
+    if (company && company.id) {
+        console.log('[Point-to-Point] 公司信息:', company);
 
-    // 1. 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
-    if (window.companyStateManager) {
-        const companyData = window.companyStateManager.getSelectedCompany();
-        if (companyData) {
-            console.log('[Point-to-Point] 公司和项目信息:', {
-                companyId: companyData.company_id,
-                companyName: companyData.company_name,
-                projectName: companyData.project_name
-            });
-
-            // 更新点对点应答表单的公司ID
-            const companySelect = document.getElementById('pointToPointCompanyId');
-            if (companySelect) {
-                companySelect.value = companyData.company_id || '';
-            }
+        // 更新点对点应答表单的公司ID
+        const companySelect = document.getElementById('pointToPointCompanyId');
+        if (companySelect) {
+            companySelect.value = company.id || '';
         }
     }
 
-    // 2. 【修改】从 projectDataBridge 加载技术需求文件信息
-    const techFile = bridge.getFileInfo('pointToPoint');
+    // ✅ 2. 从 globalState 加载技术需求文件信息
+    const techFile = window.globalState.getFile('technical');
     console.log('[Point-to-Point] ====== 文件信息诊断开始 ======');
-    console.log('[Point-to-Point] bridge.getFileInfo("pointToPoint") 返回值:', techFile);
-    console.log('[Point-to-Point] techFile?.taskId:', techFile?.taskId);
+    console.log('[Point-to-Point] techFile:', techFile);
     console.log('[Point-to-Point] techFile?.fileName:', techFile?.fileName);
-    console.log('[Point-to-Point] 条件检查: taskId存在?', !!techFile?.taskId, ', fileName存在?', !!techFile?.fileName);
+    console.log('[Point-to-Point] 条件检查: fileName存在?', !!techFile?.fileName);
 
-    if (techFile?.taskId && techFile?.fileName) {
+    // ✅ 获取HITL任务ID
+    const hitlTaskId = window.globalState.getHitlTaskId();
+    console.log('[Point-to-Point] HITL任务ID:', hitlTaskId);
+
+    if (techFile?.fileName) {
         console.log('[Point-to-Point] [PASS] 条件检查通过，准备显示文件');
         console.log('[Point-to-Point] 找到技术需求文件:', techFile.fileName);
 
-        // 【重要】填充隐藏字段
+        // ✅ 填充隐藏字段
         const taskIdInput = document.getElementById('technicalFileTaskId');
         const urlInput = document.getElementById('technicalFileUrl');
-        if (taskIdInput && techFile.taskId) {
-            taskIdInput.value = techFile.taskId;
-            console.log('[Point-to-Point] 已设置 technicalFileTaskId:', techFile.taskId);
+        if (taskIdInput && hitlTaskId) {
+            taskIdInput.value = hitlTaskId;
+            console.log('[Point-to-Point] 已设置 technicalFileTaskId:', hitlTaskId);
         }
         if (urlInput && techFile.fileUrl) {
             urlInput.value = techFile.fileUrl;
             console.log('[Point-to-Point] 已设置 technicalFileUrl:', techFile.fileUrl);
         }
-
-        // 【重要】保存到全局变量供后续使用
-        window.pointToPointHitlTaskId = techFile.taskId;
-        console.log('[Point-to-Point] 已保存到全局变量 pointToPointHitlTaskId:', window.pointToPointHitlTaskId);
 
         // 【关键修复】直接使用 innerHTML 设置整个 fileInfo 内容,而不是操作子元素
         const fileInfo = document.getElementById('fileInfo');

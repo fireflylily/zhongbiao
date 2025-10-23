@@ -12,6 +12,26 @@ document.addEventListener('DOMContentLoaded', function() {
         loadBusinessFilesList();
     }, 500);
 
+    // ✅ 订阅全局状态变化（自动更新）
+    if (window.globalState) {
+        // 订阅文件变化
+        window.globalState.subscribe('files', function(fileData) {
+            if (fileData.type === 'business' && fileData.data) {
+                console.log('[Business Response] 收到文件变化通知，自动加载');
+                loadBusinessResponseFromHITL();
+            }
+        });
+
+        // 订阅公司变化
+        window.globalState.subscribe('company', function(companyData) {
+            console.log('[Business Response] 收到公司变化通知:', companyData);
+            const companySelect = document.getElementById('businessCompanyId');
+            if (companySelect && companyData.id) {
+                companySelect.value = companyData.id;
+            }
+        });
+    }
+
     // 【新增】监听从 HITL Tab 切换过来的事件
     window.addEventListener('loadBusinessResponse', function(event) {
         console.log('[Business Response] loadBusinessResponse 事件触发，event.detail:', event.detail);
@@ -769,39 +789,30 @@ async function syncToHitlProject(hitlTaskId, filePath) {
 }
 
 /**
- * 【新增】从HITL投标管理加载数据
- * 【重要】使用独特的函数名避免与其他模块冲突
+ * ✅ 从HITL投标管理加载数据（已迁移到 GlobalStateManager）
  */
 function loadBusinessResponseFromHITL() {
     console.log('[Business Response] 开始从HITL加载数据');
 
-    if (!window.projectDataBridge) {
-        console.warn('[Business Response] projectDataBridge 未定义');
+    if (!window.globalState) {
+        console.warn('[Business Response] globalState 未定义');
         return;
     }
 
-    const bridge = window.projectDataBridge;
+    // ✅ 1. 从 globalState 读取公司和项目信息
+    const company = window.globalState.getCompany();
+    if (company && company.id) {
+        console.log('[Business Response] 公司和项目信息:', company);
 
-    // 1. 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
-    if (window.companyStateManager) {
-        const companyData = window.companyStateManager.getSelectedCompany();
-        if (companyData) {
-            console.log('[Business Response] 公司和项目信息:', {
-                companyId: companyData.company_id,
-                companyName: companyData.company_name,
-                projectName: companyData.project_name
-            });
-
-            // 更新商务应答表单的公司ID
-            const companySelect = document.getElementById('businessCompanyId');
-            if (companySelect) {
-                companySelect.value = companyData.company_id || '';
-            }
+        // 更新商务应答表单的公司ID
+        const companySelect = document.getElementById('businessCompanyId');
+        if (companySelect) {
+            companySelect.value = company.id || '';
         }
     }
 
-    // 2. 【修改】从 projectDataBridge 加载应答文件信息（替代全局变量）
-    const businessFile = bridge.getFileInfo('business');
+    // ✅ 2. 从 globalState 加载应答文件信息
+    const businessFile = window.globalState.getFile('business');
     console.log('[Business Response] ====== 文件信息诊断开始 ======');
     console.log('[Business Response] bridge.getFileInfo("business") 返回值:', businessFile);
     console.log('[Business Response] businessFile?.fileUrl:', businessFile?.fileUrl);

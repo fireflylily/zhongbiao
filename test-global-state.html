@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalStateManager 功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #da190b;
+        }
+        .output {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status.success {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.info {
+            background: #2196F3;
+            color: white;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 GlobalStateManager 功能测试</h1>
+
+    <!-- 基础状态显示 -->
+    <div class="container">
+        <h2>📊 当前状态快照</h2>
+        <button onclick="showSnapshot()">🔍 查看完整状态</button>
+        <button onclick="window.globalState.debug()">🐛 控制台调试</button>
+        <div id="snapshot" class="output"></div>
+    </div>
+
+    <!-- 公司管理测试 -->
+    <div class="container">
+        <h2>🏢 公司管理测试</h2>
+        <div>
+            <input type="text" id="companyId" placeholder="公司ID" value="COMP001">
+            <input type="text" id="companyName" placeholder="公司名称" value="测试公司">
+            <button onclick="testSetCompany()">设置公司</button>
+            <button onclick="testGetCompany()">获取公司</button>
+            <button onclick="window.globalState.clearCompany()">清空公司</button>
+        </div>
+        <div id="companyOutput" class="output"></div>
+    </div>
+
+    <!-- 项目管理测试 -->
+    <div class="container">
+        <h2>📁 项目管理测试</h2>
+        <div>
+            <input type="text" id="projectId" placeholder="项目ID" value="PROJ001">
+            <input type="text" id="projectName" placeholder="项目名称" value="测试项目">
+            <button onclick="testSetProject()">设置项目</button>
+            <button onclick="testGetProject()">获取项目</button>
+            <button onclick="window.globalState.clearProject()">清空项目</button>
+        </div>
+        <div id="projectOutput" class="output"></div>
+    </div>
+
+    <!-- 文件管理测试 -->
+    <div class="container">
+        <h2>📄 文件管理测试</h2>
+        <div>
+            <select id="fileType">
+                <option value="originalTender">原始招标文件</option>
+                <option value="technical">技术需求文件</option>
+                <option value="business">商务应答文件</option>
+                <option value="pointToPoint">点对点应答文件</option>
+                <option value="techProposal">技术方案文件</option>
+            </select>
+            <input type="text" id="fileName" placeholder="文件名" value="test.docx">
+            <button onclick="testSetFile()">设置文件</button>
+            <button onclick="testGetFile()">获取文件</button>
+            <button onclick="testClearFile()">清空文件</button>
+        </div>
+        <div id="fileOutput" class="output"></div>
+    </div>
+
+    <!-- AI模型管理测试 -->
+    <div class="container">
+        <h2>🤖 AI模型管理测试</h2>
+        <div>
+            <button onclick="testSetModels()">设置模型列表</button>
+            <button onclick="testGetModels()">获取模型列表</button>
+            <select id="modelSelect">
+                <option value="unicom-yuanjing">联通元景</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="claude-3">Claude 3</option>
+            </select>
+            <button onclick="testSetSelectedModel()">选择模型</button>
+            <button onclick="testGetSelectedModel()">获取选中模型</button>
+        </div>
+        <div id="aiOutput" class="output"></div>
+    </div>
+
+    <!-- 订阅测试 -->
+    <div class="container">
+        <h2>👂 订阅/通知测试</h2>
+        <div>
+            <button onclick="testSubscribeCompany()">订阅公司变化</button>
+            <button onclick="testSubscribeFiles()">订阅文件变化</button>
+            <button onclick="testSubscribeAI()">订阅AI变化</button>
+            <button class="danger" onclick="testUnsubscribe()">取消所有订阅</button>
+        </div>
+        <div id="subscribeOutput" class="output">订阅日志将在这里显示...</div>
+    </div>
+
+    <!-- 批量操作测试 -->
+    <div class="container">
+        <h2>⚡ 批量操作测试</h2>
+        <div>
+            <button onclick="testSetBulk()">批量设置（模拟HITL跳转）</button>
+            <button class="danger" onclick="window.globalState.clearAll()">清空所有状态</button>
+        </div>
+        <div id="bulkOutput" class="output"></div>
+    </div>
+
+    <!-- 兼容层测试 -->
+    <div class="container">
+        <h2>🔄 兼容层测试（旧API）</h2>
+        <div>
+            <button onclick="testLegacyAPI()">测试旧API（应有警告）</button>
+        </div>
+        <div id="legacyOutput" class="output"></div>
+    </div>
+
+    <!-- 加载 GlobalStateManager -->
+    <script src="ai_tender_system/web/static/js/core/global-state-manager.js"></script>
+
+    <!-- 测试脚本 -->
+    <script>
+        let unsubscribeFunctions = [];
+
+        // 显示状态快照
+        function showSnapshot() {
+            const snapshot = window.globalState.getSnapshot();
+            document.getElementById('snapshot').textContent = JSON.stringify(snapshot, null, 2);
+        }
+
+        // 公司测试
+        function testSetCompany() {
+            const id = document.getElementById('companyId').value;
+            const name = document.getElementById('companyName').value;
+            window.globalState.setCompany(id, name);
+            document.getElementById('companyOutput').textContent = `✅ 已设置公司: ID=${id}, Name=${name}`;
+        }
+
+        function testGetCompany() {
+            const company = window.globalState.getCompany();
+            document.getElementById('companyOutput').textContent =
+                `📌 当前公司:\n${JSON.stringify(company, null, 2)}`;
+        }
+
+        // 项目测试
+        function testSetProject() {
+            const id = document.getElementById('projectId').value;
+            const name = document.getElementById('projectName').value;
+            window.globalState.setProject(id, name);
+            document.getElementById('projectOutput').textContent = `✅ 已设置项目: ID=${id}, Name=${name}`;
+        }
+
+        function testGetProject() {
+            const project = window.globalState.getProject();
+            document.getElementById('projectOutput').textContent =
+                `📌 当前项目:\n${JSON.stringify(project, null, 2)}`;
+        }
+
+        // 文件测试
+        function testSetFile() {
+            const fileType = document.getElementById('fileType').value;
+            const fileName = document.getElementById('fileName').value;
+            window.globalState.setFile(fileType, {
+                fileName: fileName,
+                filePath: `/uploads/${fileName}`,
+                fileUrl: `/download/${fileName}`,
+                fileSize: 1024000
+            });
+            document.getElementById('fileOutput').textContent = `✅ 已设置 ${fileType} 文件`;
+        }
+
+        function testGetFile() {
+            const fileType = document.getElementById('fileType').value;
+            const file = window.globalState.getFile(fileType);
+            document.getElementById('fileOutput').textContent =
+                `📌 ${fileType} 文件信息:\n${JSON.stringify(file, null, 2)}`;
+        }
+
+        function testClearFile() {
+            const fileType = document.getElementById('fileType').value;
+            window.globalState.clearFile(fileType);
+            document.getElementById('fileOutput').textContent = `✅ 已清空 ${fileType} 文件`;
+        }
+
+        // AI模型测试
+        function testSetModels() {
+            const models = [
+                { name: 'unicom-yuanjing', display_name: '联通元景', status: 'available' },
+                { name: 'gpt-4', display_name: 'GPT-4', status: 'available' },
+                { name: 'claude-3', display_name: 'Claude 3', status: 'no_api_key' }
+            ];
+            window.globalState.setAvailableModels(models);
+            document.getElementById('aiOutput').textContent = `✅ 已设置 ${models.length} 个AI模型`;
+        }
+
+        function testGetModels() {
+            const models = window.globalState.getAvailableModels();
+            document.getElementById('aiOutput').textContent =
+                `📌 可用模型列表:\n${JSON.stringify(models, null, 2)}`;
+        }
+
+        function testSetSelectedModel() {
+            const model = document.getElementById('modelSelect').value;
+            window.globalState.setSelectedModel(model);
+            document.getElementById('aiOutput').textContent = `✅ 已选择模型: ${model}`;
+        }
+
+        function testGetSelectedModel() {
+            const model = window.globalState.getSelectedModel();
+            document.getElementById('aiOutput').textContent = `📌 当前选中模型: ${model}`;
+        }
+
+        // 订阅测试
+        function testSubscribeCompany() {
+            const unsubscribe = window.globalState.subscribe('company', (data) => {
+                const output = document.getElementById('subscribeOutput');
+                output.textContent += `\n🔔 [company] ${new Date().toLocaleTimeString()}: ${JSON.stringify(data)}`;
+                output.scrollTop = output.scrollHeight;
+            });
+            unsubscribeFunctions.push(unsubscribe);
+            document.getElementById('subscribeOutput').textContent += '\n✅ 已订阅 company 变化';
+        }
+
+        function testSubscribeFiles() {
+            const unsubscribe = window.globalState.subscribe('files', (data) => {
+                const output = document.getElementById('subscribeOutput');
+                output.textContent += `\n🔔 [files] ${new Date().toLocaleTimeString()}: type=${data.type}, data=${JSON.stringify(data.data)}`;
+                output.scrollTop = output.scrollHeight;
+            });
+            unsubscribeFunctions.push(unsubscribe);
+            document.getElementById('subscribeOutput').textContent += '\n✅ 已订阅 files 变化';
+        }
+
+        function testSubscribeAI() {
+            const unsubscribe = window.globalState.subscribe('ai', (data) => {
+                const output = document.getElementById('subscribeOutput');
+                output.textContent += `\n🔔 [ai] ${new Date().toLocaleTimeString()}: type=${data.type}, data=${JSON.stringify(data.data)}`;
+                output.scrollTop = output.scrollHeight;
+            });
+            unsubscribeFunctions.push(unsubscribe);
+            document.getElementById('subscribeOutput').textContent += '\n✅ 已订阅 ai 变化';
+        }
+
+        function testUnsubscribe() {
+            unsubscribeFunctions.forEach(fn => fn());
+            unsubscribeFunctions = [];
+            document.getElementById('subscribeOutput').textContent = '✅ 已取消所有订阅';
+        }
+
+        // 批量操作测试
+        function testSetBulk() {
+            window.globalState.setBulk({
+                company: { id: 'BULK_COMP', name: '批量设置公司' },
+                project: { id: 'BULK_PROJ', name: '批量设置项目' },
+                files: {
+                    technical: {
+                        fileName: 'technical_bulk.docx',
+                        filePath: '/uploads/technical_bulk.docx',
+                        fileUrl: '/download/technical_bulk.docx',
+                        fileSize: 2048000
+                    },
+                    business: {
+                        fileName: 'business_bulk.docx',
+                        filePath: '/uploads/business_bulk.docx',
+                        fileUrl: '/download/business_bulk.docx',
+                        fileSize: 1536000
+                    }
+                },
+                hitlTaskId: 'TASK_12345'
+            });
+            document.getElementById('bulkOutput').textContent = '✅ 批量设置完成！查看控制台日志或状态快照';
+        }
+
+        // 兼容层测试
+        function testLegacyAPI() {
+            const output = document.getElementById('legacyOutput');
+            output.textContent = '测试旧API（查看控制台应有警告）:\n\n';
+
+            // 测试旧的 companyId 属性
+            window.projectDataBridge.companyId = 'OLD_COMP';
+            output.textContent += `✅ projectDataBridge.companyId = 'OLD_COMP'\n`;
+            output.textContent += `   读取: ${window.projectDataBridge.companyId}\n\n`;
+
+            // 测试旧的 setTechnicalFile 方法
+            window.projectDataBridge.setTechnicalFile('TASK_999', 'old_tech.docx', 1024, '/download/old_tech.docx');
+            output.textContent += `✅ projectDataBridge.setTechnicalFile()\n`;
+            const techFile = window.projectDataBridge.getTechnicalFile();
+            output.textContent += `   读取: ${JSON.stringify(techFile, null, 2)}\n\n`;
+
+            // 测试旧的 setModels 方法
+            window.projectDataBridge.setModels([{name: 'old-model', display_name: '旧模型'}]);
+            output.textContent += `✅ projectDataBridge.setModels()\n`;
+            output.textContent += `   读取: ${JSON.stringify(window.projectDataBridge.getModels(), null, 2)}\n\n`;
+
+            output.textContent += '⚠️ 所有操作应在控制台显示废弃警告';
+        }
+
+        // 页面加载完成后执行
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ 测试页面加载完成');
+            console.log('✅ GlobalStateManager 已初始化:', !!window.globalState);
+            console.log('✅ 兼容层已创建:', !!window.projectDataBridge);
+
+            // 自动订阅所有变化
+            testSubscribeCompany();
+            testSubscribeFiles();
+            testSubscribeAI();
+
+            showSnapshot();
+        });
+    </script>
+</body>
+</html>

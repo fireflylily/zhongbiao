@@ -62,6 +62,8 @@
     <script src="/static/js/progress-manager.js" defer></script>
 
     <!-- 核心模块 - defer加载 -->
+    <!-- ⚡ 全局状态管理器 - 必须最先加载（在其他核心模块之前） -->
+    <script src="/static/js/core/global-state-manager.js"></script>
     <script src="/static/js/core/api-client.js" defer></script>
     <script src="/static/js/core/notification.js" defer></script>
     <script src="/static/js/core/validation.js" defer></script>
@@ -96,14 +98,24 @@
     <!-- ⚡ CSS动态加载工具 - 必须在其他脚本之前加载 -->
     <script src="/static/js/utils/css-loader.js"></script>
 
-    <!-- 全局状态管理对象 - 用于 HITL 和其他页面间的数据共享 -->
+    <!--
+    ========================================
+    【已废弃】旧的全局状态管理对象
+    ========================================
+    现已迁移到 GlobalStateManager (global-state-manager.js)
+    兼容层已自动创建，旧代码暂时仍可工作但会输出警告
+    请逐步迁移到新API:
+    - window.globalState.setCompany(id, name)
+    - window.globalState.setFile(type, fileInfo)
+    - window.globalState.subscribe(category, callback)
+    ========================================
+    -->
     <script>
         /**
-         * 项目数据桥接器 - 用于在不同 Tab 之间传递数据
-         * 替代 URL 参数传递,实现更流畅的 Tab 内跳转
-         *
-         * 注意: 公司和项目信息已移至 companyStateManager 统一管理
+         * 【已废弃】项目数据桥接器 - 已由 GlobalStateManager 替代
+         * 兼容层会自动创建 window.projectDataBridge
          */
+        /*
         window.projectDataBridge = {
             // HITL 任务信息
             hitlTaskId: null,
@@ -241,6 +253,11 @@
         };
 
         console.log('[ProjectDataBridge] 全局状态管理器已初始化');
+        */
+
+        // ✅ 新的全局状态管理已在 global-state-manager.js 中初始化
+        // ✅ 兼容层已自动创建，window.projectDataBridge 仍可使用（会输出废弃警告）
+        console.log('[Index] GlobalStateManager 加载完成，兼容层已激活');
     </script>
 </head>
 <body>
@@ -394,9 +411,9 @@
                     if (data.success && data.models) {
                         this.currentModels = data.models;
 
-                        // 【新增】保存到全局 projectDataBridge
-                        if (window.projectDataBridge) {
-                            window.projectDataBridge.setModels(data.models);
+                        // ✅ 保存到全局状态管理器
+                        if (window.globalState) {
+                            window.globalState.setAvailableModels(data.models);
                         }
 
                         this.updateModelSelect();
@@ -543,9 +560,9 @@
                 if (aiModelSelect) {
                     aiModelSelect.addEventListener('change', () => {
                         this.currentModel = aiModelSelect.value;
-                        // 【新增】保存到全局状态
-                        if (window.projectDataBridge) {
-                            window.projectDataBridge.setSelectedModel(aiModelSelect.value);
+                        // ✅ 保存到全局状态
+                        if (window.globalState) {
+                            window.globalState.setSelectedModel(aiModelSelect.value);
                         }
                         this.updateModelStatus();
                     });
@@ -556,22 +573,22 @@
                 if (tenderAiModelSelect) {
                     tenderAiModelSelect.addEventListener('change', () => {
                         this.currentModel = tenderAiModelSelect.value;
-                        // 【新增】保存到全局状态
-                        if (window.projectDataBridge) {
-                            window.projectDataBridge.setSelectedModel(tenderAiModelSelect.value);
+                        // ✅ 保存到全局状态
+                        if (window.globalState) {
+                            window.globalState.setSelectedModel(tenderAiModelSelect.value);
                         }
                         this.updateModelStatus();
                     });
                 }
 
-                // 【新增】绑定投标管理模型选择器事件
+                // 绑定投标管理模型选择器事件
                 const hitlAiModelSelect = document.getElementById('hitlAiModel');
                 if (hitlAiModelSelect) {
                     hitlAiModelSelect.addEventListener('change', () => {
                         this.currentModel = hitlAiModelSelect.value;
-                        // 保存到全局状态
-                        if (window.projectDataBridge) {
-                            window.projectDataBridge.setSelectedModel(hitlAiModelSelect.value);
+                        // ✅ 保存到全局状态
+                        if (window.globalState) {
+                            window.globalState.setSelectedModel(hitlAiModelSelect.value);
                         }
                         this.updateModelStatus();
                     });
@@ -646,9 +663,9 @@
                         });
                     }
 
-                    // 同步模型选择到当前tab
-                    if (window.projectDataBridge && ModelManager) {
-                        const selectedModel = window.projectDataBridge.getSelectedModel();
+                    // ✅ 同步模型选择到当前tab
+                    if (window.globalState && ModelManager) {
+                        const selectedModel = window.globalState.getSelectedModel();
                         let currentModelSelect = null;
 
                         // 根据不同tab获取对应的模型选择器
@@ -684,45 +701,49 @@
             const tenderManagementTab = document.getElementById('tender-management-nav');
             if (tenderManagementTab) {
                 tenderManagementTab.addEventListener('shown.bs.tab', function() {
-                    console.log('[Index] 投标管理tab已激活，检查全局变量...');
+                    console.log('[Index] 投标管理tab已激活，检查 globalState...');
 
-                    // 从全局变量读取公司和项目信息
-                    const bridge = window.projectDataBridge;
-                    if (bridge && bridge.companyId) {
-                        setTimeout(() => {
-                            const companySelect = document.getElementById('hitlCompanySelect');
-                            if (companySelect && window.HITLConfigManager) {
-                                // 设置公司选择器
-                                companySelect.value = bridge.companyId;
-                                window.HITLConfigManager.currentCompanyId = bridge.companyId;
+                    // ✅ 从 globalState 读取公司和项目信息
+                    if (window.globalState) {
+                        const company = window.globalState.getCompany();
+                        const project = window.globalState.getProject();
 
-                                // 更新公司名称显示
-                                const companyNameSpan = document.getElementById('hitlSelectedCompanyName');
-                                if (companyNameSpan && bridge.companyName) {
-                                    companyNameSpan.textContent = bridge.companyName;
-                                    companyNameSpan.className = 'text-primary fw-bold';
-                                }
+                        if (company && company.id) {
+                            setTimeout(() => {
+                                const companySelect = document.getElementById('hitlCompanySelect');
+                                if (companySelect && window.HITLConfigManager) {
+                                    // 设置公司选择器
+                                    companySelect.value = company.id;
+                                    window.HITLConfigManager.currentCompanyId = company.id;
 
-                                console.log('[Index] 投标管理tab - 已从全局变量填充公司信息:', {
-                                    companyId: bridge.companyId,
-                                    companyName: bridge.companyName
-                                });
+                                    // 更新公司名称显示
+                                    const companyNameSpan = document.getElementById('hitlSelectedCompanyName');
+                                    if (companyNameSpan && company.name) {
+                                        companyNameSpan.textContent = company.name;
+                                        companyNameSpan.className = 'text-primary fw-bold';
+                                    }
 
-                                // 如果有项目信息，也记录下来
-                                if (bridge.projectId || bridge.projectName) {
-                                    console.log('[Index] 投标管理tab - 项目信息:', {
-                                        projectId: bridge.projectId,
-                                        projectName: bridge.projectName
+                                    console.log('[Index] 投标管理tab - 已从 globalState 填充公司信息:', {
+                                        companyId: company.id,
+                                        companyName: company.name
                                     });
+
+                                    // 如果有项目信息，也记录下来
+                                    if (project && (project.id || project.name)) {
+                                        console.log('[Index] 投标管理tab - 项目信息:', {
+                                            projectId: project.id,
+                                            projectName: project.name
+                                        });
+                                    }
                                 }
-                            }
-                        }, 100);
+                            }, 100);
+                        }
                     }
 
-                    // 【新增】同步AI模型选择
-                    if (bridge && ModelManager) {
+                    // ✅ 同步AI模型选择
+                    if (window.globalState && ModelManager) {
                         setTimeout(() => {
-                            const selectedModel = bridge.getSelectedModel();
+                            const selectedModel = window.globalState.getSelectedModel();
                             const hitlModelSelect = document.getElementById('hitlAiModel');
 
                             if (hitlModelSelect && selectedModel) {

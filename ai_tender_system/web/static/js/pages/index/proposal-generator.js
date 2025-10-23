@@ -21,6 +21,25 @@ class ProposalGenerator {
         this.loadCompanies();
         this.parseUrlParams(); // 解析URL参数并自动填充
 
+        // ✅ 订阅全局状态变化（自动更新）
+        if (window.globalState) {
+            // 订阅技术文件变化
+            window.globalState.subscribe('files', (fileData) => {
+                if (fileData.type === 'technical' && fileData.data) {
+                    console.log('[ProposalGenerator] 收到技术文件变化通知，自动加载');
+                    this.loadFromHITL();
+                }
+            });
+
+            // 订阅公司变化
+            window.globalState.subscribe('company', (companyData) => {
+                console.log('[ProposalGenerator] 收到公司变化通知:', companyData);
+                if (this.techCompanySelect && companyData.id) {
+                    this.techCompanySelect.value = companyData.id;
+                }
+            });
+        }
+
         // 监听从 HITL Tab 切换过来的事件
         window.addEventListener('loadTechnicalProposal', (event) => {
             if (event.detail && event.detail.fromHITL) {
@@ -1079,56 +1098,51 @@ class ProposalGenerator {
     }
 
     /**
-     * 从 HITL Tab 加载数据
+     * ✅ 从 HITL Tab 加载数据（已迁移到 GlobalStateManager）
      * 当用户从 HITL Tab 点击快捷按钮切换到技术方案 Tab 时调用
      */
     loadFromHITL() {
         console.log('[ProposalGenerator] 开始从HITL加载数据');
 
-        if (!window.projectDataBridge) {
-            console.warn('[ProposalGenerator] projectDataBridge 未定义');
+        if (!window.globalState) {
+            console.warn('[ProposalGenerator] globalState 未定义');
             return;
         }
 
-        const bridge = window.projectDataBridge;
+        // ✅ 1. 从 globalState 读取公司和项目信息
+        const company = window.globalState.getCompany();
+        if (company && company.id) {
+            console.log('[ProposalGenerator] 公司信息:', company);
 
-        // 1. 【修改】从 companyStateManager 读取公司和项目信息（统一数据源）
-        if (window.companyStateManager) {
-            const companyData = window.companyStateManager.getSelectedCompany();
-            if (companyData) {
-                console.log('[ProposalGenerator] 公司和项目信息:', {
-                    companyId: companyData.company_id,
-                    companyName: companyData.company_name,
-                    projectName: companyData.project_name
-                });
-
-                // 更新技术方案表单的公司ID
-                if (this.techCompanySelect) {
-                    this.techCompanySelect.value = companyData.company_id || '';
-                }
+            // 更新技术方案表单的公司ID
+            if (this.techCompanySelect) {
+                this.techCompanySelect.value = company.id || '';
             }
         }
 
-        // 2. 【修改】从 projectDataBridge 加载技术需求文件信息
-        const techFile = bridge.getFileInfo('techProposal');
+        // ✅ 2. 从 globalState 加载技术需求文件信息
+        const techFile = window.globalState.getFile('technical');
         console.log('[ProposalGenerator] ====== 文件信息诊断开始 ======');
-        console.log('[ProposalGenerator] bridge.getFileInfo("techProposal") 返回值:', techFile);
-        console.log('[ProposalGenerator] techFile?.taskId:', techFile?.taskId);
+        console.log('[ProposalGenerator] techFile:', techFile);
         console.log('[ProposalGenerator] techFile?.fileName:', techFile?.fileName);
-        console.log('[ProposalGenerator] 条件检查: taskId存在?', !!techFile?.taskId, ', fileName存在?', !!techFile?.fileName);
+        console.log('[ProposalGenerator] 条件检查: fileName存在?', !!techFile?.fileName);
 
-        if (techFile?.taskId && techFile?.fileName) {
+        // ✅ 获取HITL任务ID
+        const hitlTaskId = window.globalState.getHitlTaskId();
+        console.log('[ProposalGenerator] HITL任务ID:', hitlTaskId);
+
+        if (techFile?.fileName) {
             console.log('[ProposalGenerator] [PASS] 条件检查通过，准备显示文件');
             console.log('[ProposalGenerator] 找到技术需求文件:', techFile.fileName);
 
-            // 【重要】保存到实例变量供后续使用
-            this.hitlTaskId = techFile.taskId;
+            // ✅ 保存到实例变量供后续使用
+            this.hitlTaskId = hitlTaskId;
             console.log('[ProposalGenerator] 已保存 hitlTaskId:', this.hitlTaskId);
 
-            // 【重要】填充隐藏字段
-            if (this.techTechnicalFileTaskId && techFile.taskId) {
-                this.techTechnicalFileTaskId.value = techFile.taskId;
-                console.log('[ProposalGenerator] 已设置 techTechnicalFileTaskId:', techFile.taskId);
+            // ✅ 填充隐藏字段
+            if (this.techTechnicalFileTaskId && hitlTaskId) {
+                this.techTechnicalFileTaskId.value = hitlTaskId;
+                console.log('[ProposalGenerator] 已设置 techTechnicalFileTaskId:', hitlTaskId);
             }
             if (this.techTechnicalFileUrl && techFile.fileUrl) {
                 this.techTechnicalFileUrl.value = techFile.fileUrl;

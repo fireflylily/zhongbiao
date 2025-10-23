@@ -57,22 +57,22 @@ const HITLConfigManager = {
     // 加载模型列表
     async loadModels() {
         try {
-            // 【修改】优先从全局状态获取模型列表
-            if (window.projectDataBridge && window.projectDataBridge.getModels().length > 0) {
-                const models = window.projectDataBridge.getModels();
+            // ✅ 优先从 globalState 获取模型列表
+            if (window.globalState && window.globalState.getAvailableModels().length > 0) {
+                const models = window.globalState.getAvailableModels();
                 this.updateModelSelect(models);
-                console.log(`[HITLConfigManager] 从全局状态加载了 ${models.length} 个AI模型`);
+                console.log(`[HITLConfigManager] 从 globalState 加载了 ${models.length} 个AI模型`);
                 return;
             }
 
-            // 如果全局状态没有数据，从API加载
+            // 如果 globalState 没有数据，从API加载
             const response = await fetch('/api/models');
             const data = await response.json();
 
             if (data.success && data.models) {
-                // 【新增】保存到全局状态
-                if (window.projectDataBridge) {
-                    window.projectDataBridge.setModels(data.models);
+                // ✅ 保存到 globalState
+                if (window.globalState) {
+                    window.globalState.setAvailableModels(data.models);
                 }
 
                 this.updateModelSelect(data.models);
@@ -182,8 +182,8 @@ const HITLConfigManager = {
                     projectInfo.style.display = 'block';
                 }
 
-                // 【修改】保存到 companyStateManager（统一数据源）
-                if (typeof window.companyStateManager !== 'undefined') {
+                // ✅ 保存到 globalState（统一数据源）
+                if (typeof window.globalState !== 'undefined') {
                     // 从公司选择器获取公司名称
                     let companyName = '';
                     const companySelect = document.getElementById('hitlCompanySelect');
@@ -194,19 +194,20 @@ const HITLConfigManager = {
                         }
                     }
 
-                    // 先设置公司信息
-                    window.companyStateManager.setSelectedCompany({
-                        company_id: project.company_id,
-                        company_name: companyName
+                    // ✅ 使用 setBulk 批量设置公司和项目信息
+                    window.globalState.setBulk({
+                        company: {
+                            id: project.company_id,
+                            name: companyName
+                        },
+                        project: {
+                            id: projectId,
+                            name: project.project_name
+                        }
                     });
 
-                    // 再设置项目信息
-                    window.companyStateManager.setProjectInfo({
-                        project_name: project.project_name,
-                        project_number: null
-                    });
-
-                    console.log('[HITLConfigManager] 已保存到 companyStateManager:', {
+                    console.log('[HITLConfigManager] 已保存到 globalState:', {
+                        projectId: projectId,
                         projectName: project.project_name,
                         companyId: project.company_id,
                         companyName: companyName
@@ -238,12 +239,12 @@ const HITLConfigManager = {
                 const hitlTask = data.task;
                 console.log('[HITLConfigManager] 找到HITL任务:', hitlTask.hitl_task_id);
 
-                // 【修改】保存到 projectDataBridge（替代 window.current* 变量）
-                if (typeof window.projectDataBridge !== 'undefined') {
-                    window.projectDataBridge.hitlTaskId = hitlTask.hitl_task_id;
+                // ✅ 保存 HITL 任务 ID 到 globalState
+                if (typeof window.globalState !== 'undefined') {
+                    window.globalState.setHitlTaskId(hitlTask.hitl_task_id);
                 }
 
-                // 【新增】显示原标书文件信息
+                // ✅ 显示原标书文件信息并保存到 globalState
                 if (hitlTask.step1_data) {
                     try {
                         const step1Data = typeof hitlTask.step1_data === 'string'
@@ -254,38 +255,45 @@ const HITLConfigManager = {
                             console.log('[HITLConfigManager] 找到原标书文件:', step1Data.file_name);
                             this.displayUploadedFile(step1Data.file_name, step1Data.file_path);
 
-                            // 【修复】保存三种文件信息到 projectDataBridge（替代全局变量）
-                            if (typeof window.projectDataBridge !== 'undefined') {
+                            // ✅ 使用 setBulk 批量保存三种文件信息到 globalState
+                            if (typeof window.globalState !== 'undefined') {
+                                const filesToSet = {};
+
                                 // 1. 原始标书文件
-                                window.projectDataBridge.setFileInfo('originalTender', {
+                                filesToSet.originalTender = {
                                     fileName: step1Data.file_name,
                                     filePath: step1Data.file_path
-                                });
-                                console.log('[HITLConfigManager] 原始标书文件信息已保存:', step1Data.file_name);
+                                };
+                                console.log('[HITLConfigManager] 准备保存原始标书文件:', step1Data.file_name);
 
                                 // 2. 技术需求文件
                                 if (step1Data.technical_file) {
-                                    window.projectDataBridge.setFileInfo('technical', {
+                                    filesToSet.technical = {
                                         fileName: step1Data.technical_file.filename,
                                         filePath: step1Data.technical_file.file_path,
-                                        fileSize: step1Data.technical_file.file_size || 0
-                                    });
-                                    console.log('[HITLConfigManager] 技术需求文件信息已保存:', step1Data.technical_file.filename);
-                                } else {
-                                    console.log('[HITLConfigManager] 技术需求文件未保存');
+                                        fileSize: step1Data.technical_file.file_size || 0,
+                                        fileUrl: `/api/tender-processing/download-technical-file/${hitlTask.hitl_task_id}`
+                                    };
+                                    console.log('[HITLConfigManager] 准备保存技术需求文件:', step1Data.technical_file.filename);
                                 }
 
-                                // 3. 应答文件格式
+                                // 3. 应答文件格式（用于商务应答）
                                 if (step1Data.response_file) {
-                                    window.projectDataBridge.setFileInfo('response', {
+                                    filesToSet.business = {
                                         fileName: step1Data.response_file.filename,
                                         filePath: step1Data.response_file.file_path,
-                                        fileSize: step1Data.response_file.file_size || 0
-                                    });
-                                    console.log('[HITLConfigManager] 应答文件格式信息已保存:', step1Data.response_file.filename);
-                                } else {
-                                    console.log('[HITLConfigManager] 应答文件格式未保存');
+                                        fileSize: step1Data.response_file.file_size || 0,
+                                        fileUrl: `/api/tender-processing/download-response-file/${hitlTask.hitl_task_id}`
+                                    };
+                                    console.log('[HITLConfigManager] 准备保存应答文件格式:', step1Data.response_file.filename);
                                 }
+
+                                // 批量设置文件
+                                window.globalState.setBulk({
+                                    files: filesToSet,
+                                    hitlTaskId: hitlTask.hitl_task_id
+                                });
+                                console.log('[HITLConfigManager] 所有文件信息已通过 setBulk 保存到 globalState');
                             }
                         }
                     } catch (parseError) {
@@ -484,9 +492,9 @@ const HITLConfigManager = {
             modelSelect.addEventListener('change', (e) => {
                 this.currentModel = e.target.value;
 
-                // 【新增】保存到全局状态
-                if (window.projectDataBridge) {
-                    window.projectDataBridge.setSelectedModel(e.target.value);
+                // ✅ 保存到 globalState
+                if (window.globalState) {
+                    window.globalState.setSelectedModel(e.target.value);
                 }
 
                 this.updateModelStatus();
@@ -634,28 +642,29 @@ document.addEventListener('DOMContentLoaded', function() {
  * 2. 如果在独立 HITL 页面,使用 URL 参数跳转(向后兼容)
  */
 async function goToPointToPoint() {
-    // 检测是否在首页环境(有 projectDataBridge)
-    const isInIndexPage = typeof window.projectDataBridge !== 'undefined';
+    // 检测是否在首页环境(有 globalState)
+    const isInIndexPage = typeof window.globalState !== 'undefined';
 
     if (isInIndexPage) {
         // 模式 1: Tab 切换模式 (首页内)
         console.log('[goToPointToPoint] 使用 Tab 切换模式');
 
-        // 【修改】从 companyStateManager 读取数据（统一数据源）
-        const companyData = window.companyStateManager.getSelectedCompany();
-        const projectName = companyData?.project_name || '';
-        const companyId = companyData?.company_id || '';
-        const companyName = companyData?.company_name || '';
-        const hitlTaskId = window.projectDataBridge.hitlTaskId || '';
+        // ✅ 使用 globalState 读取数据
+        const company = window.globalState.getCompany();
+        const project = window.globalState.getProject();
+        const projectName = project.name || '';
+        const companyId = company.id || '';
+        const companyName = company.name || '';
+        const hitlTaskId = window.globalState.getHitlTaskId() || '';
 
         console.log('[goToPointToPoint] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
 
-        // 【修复】使用技术需求文件 - 添加 API fallback
-        let techFile = window.projectDataBridge.getFileInfo('technical');
+        // ✅ 使用技术需求文件 - 添加 API fallback
+        let techFile = window.globalState.getFile('technical');
 
-        // 如果 projectDataBridge 中没有数据,从 API 获取
+        // 如果 globalState 中没有数据,从 API 获取
         if ((!techFile || !techFile.fileName) && hitlTaskId) {
-            console.log('[goToPointToPoint] projectDataBridge 中无技术文件,尝试从 API 获取');
+            console.log('[goToPointToPoint] globalState 中无技术文件,尝试从 API 获取');
 
             try {
                 const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
@@ -665,10 +674,11 @@ async function goToPointToPoint() {
                     techFile = {
                         fileName: data.file.filename,
                         fileSize: data.file.file_size || 0,
-                        filePath: data.file.file_path
+                        filePath: data.file.file_path,
+                        fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`
                     };
-                    // 保存到 projectDataBridge 供后续使用
-                    window.projectDataBridge.setFileInfo('technical', techFile);
+                    // ✅ 保存到 globalState 供后续使用
+                    window.globalState.setFile('technical', techFile);
                     console.log('[goToPointToPoint] 从 API 获取到技术文件:', techFile.fileName);
                 } else {
                     console.warn('[goToPointToPoint] API 返回无技术文件数据');
@@ -678,18 +688,24 @@ async function goToPointToPoint() {
             }
         }
 
+        // ✅ 使用 setBulk 批量设置状态（包含公司、项目、文件、HITL任务ID）
         if (hitlTaskId && techFile?.fileName) {
             console.log('[goToPointToPoint] 使用技术需求文件:', techFile.fileName);
 
-            // 【修复】设置到全局状态 - 改用通用方法 setFileInfo
-            window.projectDataBridge.setFileInfo('pointToPoint', {
-                taskId: hitlTaskId,
-                fileName: techFile.fileName,
-                fileSize: techFile.fileSize || 0,
-                fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`,
-                filePath: techFile.filePath
+            window.globalState.setBulk({
+                company: { id: companyId, name: companyName },
+                project: { id: project.id, name: projectName },
+                files: {
+                    technical: {
+                        fileName: techFile.fileName,
+                        fileSize: techFile.fileSize || 0,
+                        fileUrl: techFile.fileUrl || `/api/tender-processing/download-technical-file/${hitlTaskId}`,
+                        filePath: techFile.filePath
+                    }
+                },
+                hitlTaskId: hitlTaskId
             });
-            console.log('[goToPointToPoint] 技术需求文件信息已设置到全局状态 (pointToPoint)');
+            console.log('[goToPointToPoint] 所有状态已通过 setBulk 设置完成');
         } else {
             console.warn('[goToPointToPoint] 技术需求文件未找到,请先上传技术需求文件');
         }
@@ -748,28 +764,29 @@ async function goToPointToPoint() {
  * 2. 如果在独立 HITL 页面,使用 URL 参数跳转(向后兼容)
  */
 async function goToTechProposal() {
-    // 检测是否在首页环境(有 projectDataBridge)
-    const isInIndexPage = typeof window.projectDataBridge !== 'undefined';
+    // 检测是否在首页环境(有 globalState)
+    const isInIndexPage = typeof window.globalState !== 'undefined';
 
     if (isInIndexPage) {
         // 模式 1: Tab 切换模式 (首页内)
         console.log('[goToTechProposal] 使用 Tab 切换模式');
 
-        // 【修改】从 companyStateManager 读取数据（统一数据源）
-        const companyData = window.companyStateManager.getSelectedCompany();
-        const projectName = companyData?.project_name || '';
-        const companyId = companyData?.company_id || '';
-        const companyName = companyData?.company_name || '';
-        const hitlTaskId = window.projectDataBridge.hitlTaskId || '';
+        // ✅ 使用 globalState 读取数据
+        const company = window.globalState.getCompany();
+        const project = window.globalState.getProject();
+        const projectName = project.name || '';
+        const companyId = company.id || '';
+        const companyName = company.name || '';
+        const hitlTaskId = window.globalState.getHitlTaskId() || '';
 
         console.log('[goToTechProposal] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
 
-        // 【修复】使用技术需求文件 - 添加 API fallback
-        let techFile = window.projectDataBridge.getFileInfo('technical');
+        // ✅ 使用技术需求文件 - 添加 API fallback
+        let techFile = window.globalState.getFile('technical');
 
-        // 如果 projectDataBridge 中没有数据,从 API 获取
+        // 如果 globalState 中没有数据,从 API 获取
         if ((!techFile || !techFile.fileName) && hitlTaskId) {
-            console.log('[goToTechProposal] projectDataBridge 中无技术文件,尝试从 API 获取');
+            console.log('[goToTechProposal] globalState 中无技术文件,尝试从 API 获取');
 
             try {
                 const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
@@ -779,10 +796,11 @@ async function goToTechProposal() {
                     techFile = {
                         fileName: data.file.filename,
                         fileSize: data.file.file_size || 0,
-                        filePath: data.file.file_path
+                        filePath: data.file.file_path,
+                        fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`
                     };
-                    // 保存到 projectDataBridge 供后续使用
-                    window.projectDataBridge.setFileInfo('technical', techFile);
+                    // ✅ 保存到 globalState 供后续使用
+                    window.globalState.setFile('technical', techFile);
                     console.log('[goToTechProposal] 从 API 获取到技术文件:', techFile.fileName);
                 } else {
                     console.warn('[goToTechProposal] API 返回无技术文件数据');
@@ -792,18 +810,24 @@ async function goToTechProposal() {
             }
         }
 
+        // ✅ 使用 setBulk 批量设置状态（包含公司、项目、文件、HITL任务ID）
         if (hitlTaskId && techFile?.fileName) {
             console.log('[goToTechProposal] 使用技术需求文件:', techFile.fileName);
 
-            // 【修复】设置到全局状态 - 改用通用方法 setFileInfo
-            window.projectDataBridge.setFileInfo('techProposal', {
-                taskId: hitlTaskId,
-                fileName: techFile.fileName,
-                fileSize: techFile.fileSize || 0,
-                fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`,
-                filePath: techFile.filePath
+            window.globalState.setBulk({
+                company: { id: companyId, name: companyName },
+                project: { id: project.id, name: projectName },
+                files: {
+                    technical: {
+                        fileName: techFile.fileName,
+                        fileSize: techFile.fileSize || 0,
+                        fileUrl: techFile.fileUrl || `/api/tender-processing/download-technical-file/${hitlTaskId}`,
+                        filePath: techFile.filePath
+                    }
+                },
+                hitlTaskId: hitlTaskId
             });
-            console.log('[goToTechProposal] 技术需求文件信息已设置到全局状态 (techProposal)');
+            console.log('[goToTechProposal] 所有状态已通过 setBulk 设置完成');
         } else {
             console.warn('[goToTechProposal] 技术需求文件未找到,请先上传技术需求文件');
         }
@@ -862,34 +886,44 @@ async function goToTechProposal() {
  * 2. 如果在独立 HITL 页面,使用 URL 参数跳转(向后兼容)
  */
 async function goToBusinessResponse() {
-    // 检测是否在首页环境(有 projectDataBridge)
-    const isInIndexPage = typeof window.projectDataBridge !== 'undefined';
+    // 检测是否在首页环境(有 globalState)
+    const isInIndexPage = typeof window.globalState !== 'undefined';
 
     if (isInIndexPage) {
         // 模式 1: Tab 切换模式 (首页内)
         console.log('[goToBusinessResponse] 使用 Tab 切换模式');
 
-        // 【修改】从 companyStateManager 读取数据（统一数据源）
-        const companyData = window.companyStateManager.getSelectedCompany();
-        const projectName = companyData?.project_name || '';
-        const companyId = companyData?.company_id || '';
-        const companyName = companyData?.company_name || '';
-        const hitlTaskId = window.projectDataBridge.hitlTaskId || '';
+        // ✅ 使用 globalState 读取数据
+        const company = window.globalState.getCompany();
+        const project = window.globalState.getProject();
+        const projectName = project.name || '';
+        const companyId = company.id || '';
+        const companyName = company.name || '';
+        const hitlTaskId = window.globalState.getHitlTaskId() || '';
 
         console.log('[goToBusinessResponse] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
 
-        // 【修复】使用应答文件格式
-        const responseFile = window.projectDataBridge.getFileInfo('response');
+        // ✅ 使用应答文件格式（从 originalTender 获取）
+        const responseFile = window.globalState.getFile('originalTender');
+
+        // ✅ 使用 setBulk 批量设置状态
         if (hitlTaskId && responseFile?.fileName) {
             console.log('[goToBusinessResponse] 使用应答文件格式:', responseFile.fileName);
 
-            // 设置到 projectDataBridge 供商务应答使用
-            window.projectDataBridge.setFileInfo('business', {
-                fileUrl: `/api/tender-processing/download-response-file/${hitlTaskId}`,
-                fileName: responseFile.fileName,
-                filePath: responseFile.filePath  // 添加文件路径，供直接使用
+            window.globalState.setBulk({
+                company: { id: companyId, name: companyName },
+                project: { id: project.id, name: projectName },
+                files: {
+                    business: {
+                        fileUrl: `/api/tender-processing/download-response-file/${hitlTaskId}`,
+                        fileName: responseFile.fileName,
+                        filePath: responseFile.filePath,
+                        fileSize: responseFile.fileSize || 0
+                    }
+                },
+                hitlTaskId: hitlTaskId
             });
-            console.log('[goToBusinessResponse] 应答文件格式信息已设置');
+            console.log('[goToBusinessResponse] 所有状态已通过 setBulk 设置完成');
         } else {
             console.warn('[goToBusinessResponse] 应答文件格式未保存,请先在应答文件格式Tab保存章节');
         }
