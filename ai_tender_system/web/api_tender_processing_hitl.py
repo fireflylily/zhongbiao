@@ -2807,10 +2807,10 @@ def register_hitl_routes(app):
 
     @app.route('/api/tender-processing/business-response-info/<task_id>', methods=['GET'])
     def get_business_response_info(task_id):
-        """获取商务应答文件信息（支持两种来源：从投标管理生成 或 从商务应答同步）"""
+        """获取商务应答完成文件信息（仅返回从商务应答同步的完成文件）"""
         try:
             file_info = None
-            field_name = 'response_file'  # 默认字段名
+            field_name = 'business_response_file'  # 固定使用商务应答完成文件字段
 
             # 尝试从数据库获取文件信息
             try:
@@ -2822,15 +2822,15 @@ def register_hitl_routes(app):
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
 
-                    # 优先使用 response_file（从投标管理生成），其次使用 business_response_file（从商务应答同步）
-                    file_info = step1_data.get('response_file') or step1_data.get('business_response_file')
-                    field_name = 'response_file' if step1_data.get('response_file') else 'business_response_file'
+                    # 仅使用 business_response_file（从商务应答同步的完成文件）
+                    file_info = step1_data.get('business_response_file')
+                    field_name = 'business_response_file'
             except Exception as db_error:
                 logger.warning(f"数据库查询失败,将尝试文件系统扫描: {str(db_error)}")
 
             # 如果数据库中没有文件信息,尝试从文件系统扫描
             if not file_info:
-                logger.info(f"数据库中无商务应答文件信息,尝试从文件系统扫描")
+                logger.info(f"数据库中无商务应答完成文件,尝试从文件系统扫描")
                 file_path = _find_file_in_filesystem(task_id, field_name)
 
                 if file_path:
