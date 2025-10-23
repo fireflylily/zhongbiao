@@ -1151,6 +1151,21 @@
             // 简单的toast实现，可以后续用Bootstrap Toast替换
             alert(message);
         }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 从URL参数中获取project_id
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectIdFromUrl = urlParams.get('project_id');
+
+            if (projectIdFromUrl) {
+                document.getElementById('projectId').value = projectIdFromUrl;
+                console.log('已从URL参数加载项目ID:', projectIdFromUrl);
+
+                // 可选：如果有项目ID，可以自动加载项目相关信息
+                // 例如：加载之前的处理结果等
+            }
+        });
     </script>
 </body>
 </html>

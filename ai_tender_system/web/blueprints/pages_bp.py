@@ -54,4 +54,16 @@ def tender_processing():
     return render_template('tender_processing.html')
 
 
+@pages_bp.route('/tender_management_list.html')
+def tender_management_list_html():
+    """标书管理列表页面（.html路径）"""
+    return render_template('tender_management_list.html')
+
+
+@pages_bp.route('/tender_management')
+def tender_management_list():
+    """标书管理列表页面（简洁路径）"""
+    return render_template('tender_management_list.html')
+
+
 __all__ = ['pages_bp']

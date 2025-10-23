@@ -722,6 +722,277 @@ def register_routes(app: Flask, config, logger):
             return jsonify({'success': False, 'error': str(e)}), 500
 
     # ===================
+    # 标书管理列表页API
+    # ===================
+
+    @app.route('/api/tender-management/list', methods=['GET'])
+    def get_tender_management_list():
+        """获取标书管理列表"""
+        try:
+            from common.database import get_knowledge_base_db
+            import json
+
+            # 获取分页参数
+            page = int(request.args.get('page', 1))
+            page_size = int(request.args.get('page_size', 20))
+            search_keyword = request.args.get('search', '')
+            status_filter = request.args.get('status', '')  # all, in_progress, completed
+
+            db = get_knowledge_base_db()
+
+            # 构建查询条件
+            where_conditions = []
+            params = []
+
+            # 搜索条件
+            if search_keyword:
+                where_conditions.append("""
+                    (p.project_name LIKE ? OR c.company_name LIKE ?)
+                """)
+                params.extend([f'%{search_keyword}%', f'%{search_keyword}%'])
+
+            # 状态筛选
+            if status_filter == 'in_progress':
+                where_conditions.append("t.overall_status IN ('pending', 'running')")
+            elif status_filter == 'completed':
+                where_conditions.append("t.overall_status = 'completed'")
+
+            where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+
+            # 查询总数
+            count_query = f"""
+                SELECT COUNT(DISTINCT p.project_id) as total
+                FROM tender_projects p
+                LEFT JOIN companies c ON p.company_id = c.company_id
+                LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
+                LEFT JOIN tender_hitl_tasks h ON t.task_id = h.task_id
+                WHERE {where_clause}
+            """
+
+            total_result = db.execute_query(count_query, params, fetch_one=True)
+            total_count = total_result['total'] if total_result else 0
+
+            # 计算分页
+            total_pages = (total_count + page_size - 1) // page_size
+            offset = (page - 1) * page_size
+
+            # 查询列表数据
+            list_query = f"""
+                SELECT
+                    p.project_id,
+                    p.project_name,
+                    p.project_number,
+                    p.created_at as project_created_at,
+                    p.updated_at as project_updated_at,
+                    c.company_name,
+                    c.legal_representative as authorized_person,
+
+                    -- 处理任务信息
+                    t.task_id,
+                    t.overall_status as task_status,
+                    t.current_step,
+                    t.progress_percentage,
+                    t.total_chunks,
+                    t.valuable_chunks,
+                    t.total_requirements,
+
+                    -- HITL任务信息
+                    h.hitl_task_id,
+                    h.step1_status,
+                    h.step1_data,
+                    h.step2_status,
+                    h.step3_status,
+                    h.current_step as hitl_current_step,
+                    h.overall_status as hitl_status
+
+                FROM tender_projects p
+                LEFT JOIN companies c ON p.company_id = c.company_id
+                LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
+                LEFT JOIN tender_hitl_tasks h ON t.task_id = h.task_id
+                WHERE {where_clause}
+                ORDER BY p.updated_at DESC, p.created_at DESC
+                LIMIT ? OFFSET ?
+            """
+
+            params.extend([page_size, offset])
+            results = db.execute_query(list_query, params)
+
+            # 处理结果，计算各阶段完成情况
+            projects = []
+            for row in results:
+                # 解析step1_data来获取文件信息
+                step1_data = {}
+                if row['step1_data']:
+                    try:
+                        step1_data = json.loads(row['step1_data'])
+                    except json.JSONDecodeError:
+                        pass
+
+                # 计算商务应答完成情况
+                business_response_status = '未开始'
+                business_response_progress = 0
+                if step1_data.get('technical_point_to_point_file'):
+                    business_response_status = '已完成'
+                    business_response_progress = 100
+                elif row['hitl_status'] == 'in_progress':
+                    business_response_status = '进行中'
+                    business_response_progress = 50
+
+                # 计算技术点对点应答完成情况
+                tech_response_status = '未开始'
+                tech_response_progress = 0
+                if row['task_status'] == 'completed' and row['total_requirements']:
+                    tech_response_status = '已完成'
+                    tech_response_progress = 100
+                elif row['task_status'] == 'running':
+                    tech_response_status = '进行中'
+                    tech_response_progress = row['progress_percentage'] or 0
+
+                # 计算技术方案情况
+                tech_proposal_status = '未开始'
+                tech_proposal_progress = 0
+                if step1_data.get('technical_proposal_file'):
+                    tech_proposal_status = '已完成'
+                    tech_proposal_progress = 100
+                elif row['hitl_current_step'] and row['hitl_current_step'] >= 2:
+                    tech_proposal_status = '进行中'
+                    tech_proposal_progress = 50
+
+                # 计算最后融合情况
+                fusion_status = '未开始'
+                fusion_progress = 0
+                all_completed = (business_response_progress == 100 and
+                               tech_response_progress == 100 and
+                               tech_proposal_progress == 100)
+                if all_completed:
+                    fusion_status = '已完成'
+                    fusion_progress = 100
+                elif any([business_response_progress > 0,
+                         tech_response_progress > 0,
+                         tech_proposal_progress > 0]):
+                    fusion_status = '进行中'
+                    fusion_progress = (business_response_progress +
+                                     tech_response_progress +
+                                     tech_proposal_progress) / 3
+
+                projects.append({
+                    'project_id': row['project_id'],
+                    'project_name': row['project_name'] or '未命名项目',
+                    'project_number': row['project_number'],
+                    'company_name': row['company_name'] or '未设置',
+                    'authorized_person': row['authorized_person'] or '未设置',
+                    'business_response': {
+                        'status': business_response_status,
+                        'progress': business_response_progress
+                    },
+                    'tech_response': {
+                        'status': tech_response_status,
+                        'progress': tech_response_progress
+                    },
+                    'tech_proposal': {
+                        'status': tech_proposal_status,
+                        'progress': tech_proposal_progress
+                    },
+                    'fusion': {
+                        'status': fusion_status,
+                        'progress': round(fusion_progress, 1)
+                    },
+                    'created_at': row['project_created_at'],
+                    'updated_at': row['project_updated_at']
+                })
+
+            return jsonify({
+                'success': True,
+                'data': {
+                    'projects': projects,
+                    'page': page,
+                    'page_size': page_size,
+                    'total': total_count,
+                    'total_pages': total_pages
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"获取标书管理列表失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-management/stats/<int:project_id>', methods=['GET'])
+    def get_tender_project_stats(project_id):
+        """获取项目详细统计信息"""
+        try:
+            from common.database import get_knowledge_base_db
+
+            db = get_knowledge_base_db()
+
+            # 获取项目基本信息和处理统计
+            stats_query = """
+                SELECT
+                    p.*,
+                    c.company_name,
+                    t.overall_status,
+                    t.total_chunks,
+                    t.valuable_chunks,
+                    t.total_requirements,
+                    h.step1_status,
+                    h.step2_status,
+                    h.step3_status,
+                    h.step1_data
+                FROM tender_projects p
+                LEFT JOIN companies c ON p.company_id = c.company_id
+                LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
+                LEFT JOIN tender_hitl_tasks h ON t.task_id = h.task_id
+                WHERE p.project_id = ?
+            """
+
+            result = db.execute_query(stats_query, (project_id,), fetch_one=True)
+
+            if not result:
+                return jsonify({'success': False, 'error': '项目不存在'}), 404
+
+            # 解析step1_data
+            step1_data = {}
+            if result['step1_data']:
+                try:
+                    import json
+                    step1_data = json.loads(result['step1_data'])
+                except json.JSONDecodeError:
+                    pass
+
+            stats = {
+                'project_info': {
+                    'project_id': result['project_id'],
+                    'project_name': result['project_name'],
+                    'company_name': result['company_name']
+                },
+                'processing_stats': {
+                    'total_chunks': result['total_chunks'] or 0,
+                    'valuable_chunks': result['valuable_chunks'] or 0,
+                    'total_requirements': result['total_requirements'] or 0
+                },
+                'files': {
+                    'business_response': step1_data.get('technical_point_to_point_file'),
+                    'tech_proposal': step1_data.get('technical_proposal_file')
+                },
+                'status': {
+                    'overall': result['overall_status'],
+                    'step1': result['step1_status'],
+                    'step2': result['step2_status'],
+                    'step3': result['step3_status']
+                }
+            }
+
+            return jsonify({
+                'success': True,
+                'stats': stats
+            })
+
+        except Exception as e:
+            logger.error(f"获取项目统计信息失败: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # ===================
     # HITL（Human-in-the-Loop）API - 三步人工确认流程
     # ===================
 
