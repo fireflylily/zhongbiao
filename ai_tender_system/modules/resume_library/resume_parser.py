@@ -11,8 +11,8 @@ import json
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ai_tender_system.modules.parser.parser_manager import ParserManager
-from ai_tender_system.utils.llm_client import LLMClient
+from ai_tender_system.modules.document_parser.parser_manager import ParserManager
+from ai_tender_system.common.llm_client import LLMClient
 
 
 class ResumeParser:

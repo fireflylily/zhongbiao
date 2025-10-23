@@ -14,7 +14,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from .manager import ResumeLibraryManager
-from ai_tender_system.utils.storage_service import storage_service
+from ai_tender_system.core.storage_service import storage_service
 
 
 class ResumeExportHandler:

@@ -351,12 +351,14 @@ async function extractDetailedRequirements() {
             throw new Error(data.error || '提取失败');
         }
 
-        // 提取成功，直接显示API返回的19条清单（不使用弹窗）
+        // 提取成功，显示成功提示
         console.log(`[extractDetailedRequirements] ✅ 提取成功！找到 ${data.found_count} 项，未找到 ${data.not_found_count} 项`);
-        displayEligibilityChecklistFromAPI(data.checklist, data.found_count, data.not_found_count);
 
         // 在页面顶部显示成功提示（3秒后自动消失）
         showSuccessToast(`提取成功！找到 ${data.found_count} 项，未找到 ${data.not_found_count} 项`);
+
+        // 重新加载数据，使用表格展示
+        await loadRequirements(currentTaskId, HITLConfigManager.currentProjectId);
 
     } catch (error) {
         console.error('[extractDetailedRequirements] 提取失败:', error);
@@ -2014,12 +2016,59 @@ async function loadFileInfo(type, taskId) {
 
         } else {
             console.log(`[loadFileInfo] 未找到${config.fileTypeName}文件`);
-            const noFileMessage = document.getElementById(config.noFileMessageId);
-            if (noFileMessage) {
-                noFileMessage.style.display = 'block';
-            }
-            if (contentDiv) {
-                contentDiv.innerHTML = '';
+
+            // 对于technical和response类型，需要恢复带按钮的空状态
+            if ((type === 'technical' || type === 'response') && contentDiv) {
+                let emptyStateHTML = '';
+                if (type === 'response') {
+                    emptyStateHTML = `
+                        <div class="empty-state" id="noResponseFileMessage">
+                            <i class="bi bi-file-earmark-text fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">商务应答</h5>
+                            <p class="text-muted">尚未保存应答文件模板</p>
+                            <p class="text-muted small">请在步骤1中选择章节后，点击"另存为应答文件"按钮</p>
+                            <button class="btn btn-primary mt-3" id="selectChaptersForResponseFileBtn">
+                                <i class="bi bi-list-nested me-2"></i>从章节目录选择
+                            </button>
+                        </div>
+                    `;
+                } else if (type === 'technical') {
+                    emptyStateHTML = `
+                        <div class="empty-state" id="noTechnicalFileMessage">
+                            <i class="bi bi-gear fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">技术需求</h5>
+                            <p class="text-muted">尚未保存技术需求章节</p>
+                            <p class="text-muted small">点击下方按钮从章节目录中选择技术需求相关章节</p>
+                            <button class="btn btn-primary mt-3" id="selectChaptersForTechnicalBtn">
+                                <i class="bi bi-list-nested me-2"></i>从章节目录选择
+                            </button>
+                        </div>
+                    `;
+                }
+                contentDiv.innerHTML = emptyStateHTML;
+                console.log(`[loadFileInfo] 已恢复${config.fileTypeName}的空状态（含按钮）`);
+
+                // 重新绑定按钮事件
+                if (type === 'technical') {
+                    const selectBtn = document.getElementById('selectChaptersForTechnicalBtn');
+                    if (selectBtn) {
+                        selectBtn.addEventListener('click', () => showChapterSelection('technical'));
+                    }
+                } else if (type === 'response') {
+                    const selectBtn = document.getElementById('selectChaptersForResponseFileBtn');
+                    if (selectBtn) {
+                        selectBtn.addEventListener('click', () => showChapterSelection('response'));
+                    }
+                }
+            } else {
+                // 其他类型的文件，只显示noFileMessage
+                const noFileMessage = document.getElementById(config.noFileMessageId);
+                if (noFileMessage) {
+                    noFileMessage.style.display = 'block';
+                }
+                if (contentDiv) {
+                    contentDiv.innerHTML = '';
+                }
             }
 
             // 如果是技术需求文件且没有文件，隐藏快捷操作按钮

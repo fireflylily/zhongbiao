@@ -15,7 +15,7 @@ from typing import Dict, Any
 from .manager import ResumeLibraryManager
 from .resume_parser import ResumeParser
 from .export_handler import ResumeExportHandler
-from ai_tender_system.utils.storage_service import storage_service
+from ai_tender_system.core.storage_service import storage_service
 from ai_tender_system.web.utils.response_helper import success_response, error_response
 
 # 创建蓝图

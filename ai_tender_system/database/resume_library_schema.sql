@@ -85,10 +85,8 @@ CREATE TABLE IF NOT EXISTS resume_attachments (
     uploaded_by VARCHAR(50),                  -- 上传人
     uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-    -- 外键和索引
-    FOREIGN KEY (resume_id) REFERENCES resumes(resume_id) ON DELETE CASCADE,
-    INDEX idx_resume_attachments (resume_id),
-    INDEX idx_attachment_category (attachment_category)
+    -- 外键
+    FOREIGN KEY (resume_id) REFERENCES resumes(resume_id) ON DELETE CASCADE
 );
 
 -- 创建索引以提高查询性能
@@ -98,6 +96,10 @@ CREATE INDEX IF NOT EXISTS idx_resumes_position ON resumes(current_position);
 CREATE INDEX IF NOT EXISTS idx_resumes_education ON resumes(education_level);
 CREATE INDEX IF NOT EXISTS idx_resumes_status ON resumes(status);
 CREATE INDEX IF NOT EXISTS idx_resumes_created ON resumes(created_at);
+
+-- 创建附件表索引
+CREATE INDEX IF NOT EXISTS idx_resume_attachments ON resume_attachments(resume_id);
+CREATE INDEX IF NOT EXISTS idx_attachment_category ON resume_attachments(attachment_category);
 
 -- 创建全文搜索虚拟表（用于快速搜索）
 CREATE VIRTUAL TABLE IF NOT EXISTS resumes_fts USING fts5(

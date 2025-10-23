@@ -50,24 +50,40 @@ class KnowledgeBaseDB:
 
     def _create_schema(self):
         """创建数据库表结构"""
-        schema_file = Path(__file__).parent.parent / 'database' / 'knowledge_base_schema.sql'
+        database_dir = Path(__file__).parent.parent / 'database'
 
-        if not schema_file.exists():
-            logger.error(f"数据库架构文件不存在: {schema_file}")
-            return
+        # 定义需要加载的 schema 文件列表（按顺序）
+        schema_files = [
+            'knowledge_base_schema.sql',           # 基础知识库表
+            'tender_processing_schema.sql',        # 标书处理基础表
+            'tender_processing_hitl_schema.sql',   # HITL流程表
+            'company_qualifications_schema.sql',   # 公司资质表
+            'case_library_schema.sql',             # 案例库表
+            'resume_library_schema.sql',           # 简历库表
+        ]
 
         try:
-            with open(schema_file, 'r', encoding='utf-8') as f:
-                schema_sql = f.read()
-
-            # Remove explicit COMMIT statements to avoid transaction conflicts
-            schema_sql = schema_sql.replace('COMMIT;', '')
-
             with sqlite3.connect(self.db_path) as conn:
-                conn.executescript(schema_sql)
-                conn.commit()
+                for schema_file_name in schema_files:
+                    schema_file = database_dir / schema_file_name
 
-            logger.info("数据库表结构初始化完成")
+                    if not schema_file.exists():
+                        logger.warning(f"Schema文件不存在，跳过: {schema_file_name}")
+                        continue
+
+                    logger.info(f"加载schema: {schema_file_name}")
+
+                    with open(schema_file, 'r', encoding='utf-8') as f:
+                        schema_sql = f.read()
+
+                    # Remove explicit COMMIT statements to avoid transaction conflicts
+                    schema_sql = schema_sql.replace('COMMIT;', '')
+
+                    # 执行schema脚本
+                    conn.executescript(schema_sql)
+
+                conn.commit()
+                logger.info(f"数据库表结构初始化完成，已加载 {len(schema_files)} 个schema文件")
 
         except Exception as e:
             logger.error(f"数据库表结构创建失败: {e}")

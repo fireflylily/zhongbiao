@@ -86,8 +86,6 @@ body {
 
 /* ===== 主内容区域 (首屏可见) ===== */
 .app-main-content {
-    margin-top: 70px;
-    margin-left: 25%;
     padding: var(--spacing-lg);
     min-height: calc(100vh - 70px);
 }
@@ -155,7 +153,6 @@ body {
     }
 
     .app-main-content {
-        margin-left: 0;
         width: 100%;
     }
 }

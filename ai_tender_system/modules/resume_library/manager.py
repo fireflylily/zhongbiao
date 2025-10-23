@@ -12,8 +12,13 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any
 from contextlib import contextmanager
 
-from ai_tender_system.utils.storage_service import storage_service
-from ai_tender_system.utils.db_utils import dict_factory, get_db_connection
+from ai_tender_system.core.storage_service import storage_service
+
+
+def dict_factory(cursor, row):
+    """将数据库查询结果转换为字典"""
+    fields = [column[0] for column in cursor.description]
+    return {key: value for key, value in zip(fields, row)}
 
 
 class ResumeLibraryManager:

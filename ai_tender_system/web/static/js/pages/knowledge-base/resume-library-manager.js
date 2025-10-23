@@ -311,7 +311,43 @@ class ResumeLibraryManager {
                                     <i class="bi bi-info-circle me-2"></i>
                                     上传Word或PDF格式的简历文件，系统将自动解析并填充人员信息
                                 </div>
-                                <div id="resumeUploaderContainer"></div>
+
+                                <!-- 原生文件上传区域 -->
+                                <div class="upload-zone border rounded p-4 text-center" id="resumeNativeUploadZone"
+                                     style="cursor: pointer; background: #f8f9fa; border: 2px dashed #dee2e6 !important;">
+                                    <i class="bi bi-cloud-upload text-primary" style="font-size: 3rem;"></i>
+                                    <p class="mt-3 mb-2">点击或拖拽文件到这里上传</p>
+                                    <small class="text-muted">支持 PDF、Word 文档（最大10MB）</small>
+                                    <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx"
+                                           style="display: none;">
+                                </div>
+
+                                <!-- 文件信息显示 -->
+                                <div id="resumeFileInfo" class="mt-3 d-none">
+                                    <div class="alert alert-success">
+                                        <i class="bi bi-file-earmark-text me-2"></i>
+                                        已选择文件：<strong id="resumeFileName"></strong>
+                                        <span id="resumeFileSize" class="text-muted"></span>
+                                    </div>
+                                </div>
+
+                                <!-- 上传进度 -->
+                                <div id="resumeUploadProgress" class="mt-3 d-none">
+                                    <div class="progress">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                             role="progressbar" style="width: 0%">
+                                            正在上传...
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 错误提示 -->
+                                <div id="resumeUploadError" class="mt-3 d-none">
+                                    <div class="alert alert-danger">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <span id="resumeErrorMessage"></span>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- 解析结果 -->
@@ -391,7 +427,7 @@ class ResumeLibraryManager {
         const container = document.getElementById('resumeModalsContainer');
         container.innerHTML = modalHtml;
 
-        // 初始化上传组件
+        // 初始化原生文件上传
         this.initResumeUploader();
 
         // 显示模态框
@@ -400,35 +436,195 @@ class ResumeLibraryManager {
     }
 
     /**
-     * 初始化简历上传组件
+     * 初始化简历上传组件（原生文件上传）
      */
     initResumeUploader() {
-        if (!window.UniversalUploader) {
-            console.error('UniversalUploader not loaded');
+        const uploadZone = document.getElementById('resumeNativeUploadZone');
+        const fileInput = document.getElementById('resumeFileInput');
+        const fileInfo = document.getElementById('resumeFileInfo');
+        const fileName = document.getElementById('resumeFileName');
+        const fileSize = document.getElementById('resumeFileSize');
+
+        if (!uploadZone || !fileInput) {
+            console.error('[ResumeUploader] 上传区域或文件输入元素未找到');
             return;
         }
 
-        this.uploader = new UniversalUploader({
-            containerId: 'resumeUploaderContainer',
-            apiEndpoint: '/api/resume_library/parse-resume',
-            businessType: 'resume_parse',
-            acceptedTypes: '.pdf,.doc,.docx',
-            maxFileSize: 10 * 1024 * 1024, // 10MB
-            autoUpload: true,
-            multiple: false,
-            onSuccess: (result) => {
-                console.log('简历解析成功:', result);
-                if (result.parsed_data) {
-                    this.fillParsedData(result.parsed_data);
-                    document.getElementById('parseResultSection').style.display = 'block';
-                    document.getElementById('saveParseResultBtn').style.display = 'inline-block';
-                }
-            },
-            onError: (error) => {
-                console.error('简历解析失败:', error);
-                alert('简历解析失败: ' + error);
+        console.log('[ResumeUploader] 初始化原生文件上传...');
+
+        // 上传区域点击事件
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 文件选择事件
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                console.log('[ResumeUploader] 文件已选择:', file.name);
+                this.displayResumeFileInfo(file);
+                this.uploadAndParseResume(file);
             }
         });
+
+        // 拖拽上传事件
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, this.preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.style.borderColor = '#4a89dc';
+                uploadZone.style.background = '#e8f4ff';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.style.borderColor = '#dee2e6';
+                uploadZone.style.background = '#f8f9fa';
+            }, false);
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                console.log('[ResumeUploader] 拖拽文件:', file.name);
+                fileInput.files = files;
+                this.displayResumeFileInfo(file);
+                this.uploadAndParseResume(file);
+            }
+        }, false);
+
+        console.log('[ResumeUploader] 初始化完成');
+    }
+
+    /**
+     * 防止默认拖拽行为
+     */
+    preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    /**
+     * 显示文件信息
+     */
+    displayResumeFileInfo(file) {
+        const fileName = document.getElementById('resumeFileName');
+        const fileSize = document.getElementById('resumeFileSize');
+        const fileInfo = document.getElementById('resumeFileInfo');
+
+        if (fileName) fileName.textContent = file.name;
+        if (fileSize) fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        if (fileInfo) fileInfo.classList.remove('d-none');
+
+        console.log('[ResumeUploader] 文件信息已显示');
+    }
+
+    /**
+     * 上传并解析简历
+     */
+    async uploadAndParseResume(file) {
+        console.log('[ResumeUploader] 开始上传并解析简历...');
+
+        // 验证文件类型
+        const allowedTypes = ['.pdf', '.doc', '.docx'];
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        if (!allowedTypes.includes(fileExt)) {
+            this.showResumeError('不支持的文件格式，请上传 PDF 或 Word 文档');
+            return;
+        }
+
+        // 验证文件大小（10MB）
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            this.showResumeError('文件太大，最大支持 10MB');
+            return;
+        }
+
+        // 显示上传进度
+        this.showResumeProgress(true);
+        this.hideResumeError();
+
+        // 构建FormData
+        const formData = new FormData();
+        formData.append('file', file);
+        if (this.currentCompanyId) {
+            formData.append('company_id', this.currentCompanyId);
+        }
+
+        try {
+            const response = await fetch('/api/resume_library/parse-resume', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            console.log('[ResumeUploader] 解析结果:', result);
+
+            if (result.success && result.data && result.data.parsed_data) {
+                // 填充解析结果
+                this.fillParsedData(result.data.parsed_data);
+
+                // 显示解析结果表单
+                const resultSection = document.getElementById('parseResultSection');
+                const saveBtn = document.getElementById('saveParseResultBtn');
+                if (resultSection) resultSection.style.display = 'block';
+                if (saveBtn) saveBtn.style.display = 'inline-block';
+
+                // 隐藏上传区域
+                const uploadArea = document.getElementById('resumeUploadArea');
+                if (uploadArea) uploadArea.style.display = 'none';
+
+                console.log('[ResumeUploader] 解析成功，已填充数据');
+            } else {
+                throw new Error(result.error || result.message || '解析失败');
+            }
+        } catch (error) {
+            console.error('[ResumeUploader] 上传解析失败:', error);
+            this.showResumeError('简历解析失败: ' + error.message);
+        } finally {
+            this.showResumeProgress(false);
+        }
+    }
+
+    /**
+     * 显示/隐藏上传进度
+     */
+    showResumeProgress(show) {
+        const progress = document.getElementById('resumeUploadProgress');
+        if (progress) {
+            if (show) {
+                progress.classList.remove('d-none');
+            } else {
+                progress.classList.add('d-none');
+            }
+        }
+    }
+
+    /**
+     * 显示错误信息
+     */
+    showResumeError(message) {
+        const errorDiv = document.getElementById('resumeUploadError');
+        const errorMsg = document.getElementById('resumeErrorMessage');
+        if (errorDiv && errorMsg) {
+            errorMsg.textContent = message;
+            errorDiv.classList.remove('d-none');
+        }
+        console.error('[ResumeUploader] 错误:', message);
+    }
+
+    /**
+     * 隐藏错误信息
+     */
+    hideResumeError() {
+        const errorDiv = document.getElementById('resumeUploadError');
+        if (errorDiv) {
+            errorDiv.classList.add('d-none');
+        }
     }
 
     /**
