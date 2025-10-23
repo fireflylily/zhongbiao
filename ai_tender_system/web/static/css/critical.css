@@ -78,10 +78,9 @@ body {
     left: 0;
     width: 25%;
     max-width: 300px;
-    height: calc(100vh - 70px);
+    min-height: calc(100vh - 70px);
     background: white;
     border-right: 1px solid var(--border-light);
-    overflow-y: auto;
 }
 
 /* ===== 主内容区域 (首屏可见) ===== */

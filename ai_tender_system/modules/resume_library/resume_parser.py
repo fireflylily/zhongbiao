@@ -61,10 +61,10 @@ class ResumeParser:
             文档文本内容
         """
         try:
-            # 使用ParserManager读取文档
-            result = self.parser_manager.parse_document(file_path)
-            if result and result.get('text'):
-                return result['text']
+            # 使用ParserManager的简化版本读取文档
+            text = self.parser_manager.parse_document_simple(file_path)
+            if text:
+                return text
 
             # 备用方案：直接读取
             file_ext = os.path.splitext(file_path)[1].lower()

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS tender_requirements (
     extraction_confidence FLOAT DEFAULT NULL,  -- 提取置信度
     extraction_model VARCHAR(50) DEFAULT NULL,  -- 使用的提取模型
     extracted_at TIMESTAMP DEFAULT NULL,
+    hitl_task_id VARCHAR(100),  -- HITL任务ID，用于按任务隔离需求
 
     -- 验证和审核
     is_verified BOOLEAN DEFAULT FALSE,  -- 人工验证标记
@@ -74,6 +75,8 @@ CREATE INDEX IF NOT EXISTS idx_requirements_type ON tender_requirements(project_
 CREATE INDEX IF NOT EXISTS idx_requirements_category ON tender_requirements(project_id, category);
 CREATE INDEX IF NOT EXISTS idx_requirements_priority ON tender_requirements(priority);
 CREATE INDEX IF NOT EXISTS idx_requirements_verified ON tender_requirements(is_verified);
+CREATE INDEX IF NOT EXISTS idx_requirements_hitl_task ON tender_requirements(hitl_task_id);
+CREATE INDEX IF NOT EXISTS idx_requirements_project_hitl ON tender_requirements(project_id, hitl_task_id);
 
 
 -- 3. 处理日志表
