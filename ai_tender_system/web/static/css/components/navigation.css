@@ -9,7 +9,7 @@
     background: #ffffff;
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
     border-right: 1px solid #f0f0f0;
-    min-height: calc(100vh - 70px);
+    height: calc(100vh - 70px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

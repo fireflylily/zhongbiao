@@ -1308,22 +1308,6 @@ class ResumeLibraryManager {
                     <div class="case-form-section">
                         <h6>其他信息</h6>
                         <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label">期望薪资</label>
-                                <input type="text" class="form-control" id="resumeSalaryExpectation" placeholder="如：10-15万/年">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">期望工作地点</label>
-                                <input type="text" class="form-control" id="resumeWorkLocation">
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-12">
-                                <label class="form-label">个人简介</label>
-                                <textarea class="form-control" id="resumeIntroduction" rows="4"></textarea>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
                             <div class="col-md-12">
                                 <label class="form-label">获奖情况</label>
                                 <textarea class="form-control" id="resumeAwards" rows="3"></textarea>
@@ -1439,9 +1423,6 @@ class ResumeLibraryManager {
             document.getElementById('resumeDepartment').value = resume.department || '';
 
             // 填充其他信息
-            document.getElementById('resumeSalaryExpectation').value = resume.salary_expectation || '';
-            document.getElementById('resumeWorkLocation').value = resume.work_location || '';
-            document.getElementById('resumeIntroduction').value = resume.introduction || '';
             document.getElementById('resumeAwards').value = resume.awards || '';
 
             // 加载附件
@@ -1490,9 +1471,6 @@ class ResumeLibraryManager {
             status: document.getElementById('resumeStatus').value,
             current_company: document.getElementById('resumeCurrentCompany').value,
             department: document.getElementById('resumeDepartment').value,
-            salary_expectation: document.getElementById('resumeSalaryExpectation').value,
-            work_location: document.getElementById('resumeWorkLocation').value,
-            introduction: document.getElementById('resumeIntroduction').value,
             awards: document.getElementById('resumeAwards').value
         };
 
