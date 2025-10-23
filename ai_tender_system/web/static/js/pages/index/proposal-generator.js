@@ -38,6 +38,19 @@ class ProposalGenerator {
                     this.techCompanySelect.value = companyData.id;
                 }
             });
+
+            // 订阅 AI 模型变化
+            window.globalState.subscribe('ai', (aiData) => {
+                if (aiData.type === 'selectedModel') {
+                    console.log('[ProposalGenerator] 收到AI模型变化通知:', aiData.data);
+                    const modelDisplay = document.querySelector('.modelNameDisplay[data-section="tech-proposal"]');
+                    if (modelDisplay) {
+                        const models = window.globalState.getAvailableModels();
+                        const modelInfo = models.find(m => m.name === aiData.data);
+                        modelDisplay.textContent = modelInfo ? modelInfo.display_name : aiData.data;
+                    }
+                }
+            });
         }
 
         // 监听从 HITL Tab 切换过来的事件

@@ -666,24 +666,42 @@
                     // ✅ 同步模型选择到当前tab
                     if (window.globalState && ModelManager) {
                         const selectedModel = window.globalState.getSelectedModel();
-                        let currentModelSelect = null;
+                        const availableModels = window.globalState.getAvailableModels();
+                        const modelInfo = availableModels.find(m => m.name === selectedModel);
+                        const modelDisplayName = modelInfo ? modelInfo.display_name : selectedModel;
 
-                        // 根据不同tab获取对应的模型选择器
+                        // 1. 同步选择器（点对点、投标管理有 select）
+                        let currentModelSelect = null;
                         if (targetTab === '#point-to-point') {
                             currentModelSelect = document.getElementById('aiModel');
                         } else if (targetTab === '#tender-management') {
                             currentModelSelect = document.getElementById('hitlAiModel');
                         }
 
-                        // 同步模型选择
-                        if (currentModelSelect && selectedModel && currentModelSelect.value !== selectedModel) {
+                        if (currentModelSelect && selectedModel) {
                             currentModelSelect.value = selectedModel;
-                            console.log(`[Index] 已同步模型到 ${targetTab}:`, selectedModel);
+                            console.log(`[Index] 已同步模型选择器到 ${targetTab}:`, selectedModel);
+                        }
 
-                            // 更新状态显示
-                            if (ModelManager.updateModelStatus) {
-                                ModelManager.updateModelStatus();
+                        // 2. 同步显示文本（商务应答、点对点、技术方案有 modelNameDisplay）
+                        const sectionMap = {
+                            '#business-response': 'business',
+                            '#point-to-point': 'point-to-point',
+                            '#tech-proposal': 'tech-proposal'
+                        };
+
+                        const section = sectionMap[targetTab];
+                        if (section) {
+                            const modelDisplay = document.querySelector(`.modelNameDisplay[data-section="${section}"]`);
+                            if (modelDisplay) {
+                                modelDisplay.textContent = modelDisplayName || '-';
+                                console.log(`[Index] 已同步模型显示到 ${targetTab}:`, modelDisplayName);
                             }
+                        }
+
+                        // 更新状态显示
+                        if (ModelManager.updateModelStatus) {
+                            ModelManager.updateModelStatus();
                         }
                     }
                 });

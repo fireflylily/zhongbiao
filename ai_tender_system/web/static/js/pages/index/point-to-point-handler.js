@@ -32,6 +32,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 companySelect.value = companyData.id;
             }
         });
+
+        // 订阅 AI 模型变化
+        window.globalState.subscribe('ai', function(aiData) {
+            if (aiData.type === 'selectedModel') {
+                console.log('[Point-to-Point] 收到AI模型变化通知:', aiData.data);
+
+                // 1. 更新选择器
+                const modelSelect = document.getElementById('aiModel');
+                if (modelSelect) {
+                    modelSelect.value = aiData.data;
+                }
+
+                // 2. 更新显示文本
+                const modelDisplay = document.querySelector('.modelNameDisplay[data-section="point-to-point"]');
+                if (modelDisplay) {
+                    const models = window.globalState.getAvailableModels();
+                    const modelInfo = models.find(m => m.name === aiData.data);
+                    modelDisplay.textContent = modelInfo ? modelInfo.display_name : aiData.data;
+                }
+            }
+        });
     }
 
     // 监听从 HITL Tab 切换过来的事件
