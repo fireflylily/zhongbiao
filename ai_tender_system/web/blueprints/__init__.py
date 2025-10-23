@@ -103,7 +103,15 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"文档编辑器API蓝图加载失败: {e}")
 
-    # 阶段4: HITL任务处理蓝图
+    # 阶段4: 知识库扩展模块
+    try:
+        from ai_tender_system.modules.resume_library.api import resume_library_bp
+        app.register_blueprint(resume_library_bp)
+        logger.info("简历库API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"简历库API蓝图加载失败: {e}")
+
+    # 阶段5: HITL任务处理蓝图
     # (待实现)
 
     logger.info("所有蓝图注册完成")

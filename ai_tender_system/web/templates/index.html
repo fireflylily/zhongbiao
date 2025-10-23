@@ -44,6 +44,7 @@
     <link href="/static/css/components/navigation.css" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="/static/css/components/privacy-badges.css" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="/static/css/components/case-library.css" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="/static/css/components/resume-library.css" rel="stylesheet" media="print" onload="this.media='all'">
     <!-- 投标管理(HITL)专用样式 - 延迟加载 -->
     <link href="/static/css/tender-processing-hitl.css" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="/static/css/tender-processing-step3-enhanced.css" rel="stylesheet" media="print" onload="this.media='all'">
@@ -69,6 +70,7 @@
     <script src="/static/js/components/universal-uploader.js" defer></script>
     <script src="/static/js/components/company-state-manager.js" defer></script>
     <script src="/static/js/components/company-project-display.js" defer></script>
+    <script src="/static/js/components/navigation-manager.js" defer></script>
     <script src="/static/js/word-editor.js" defer></script>
 
     <!-- 页面特定模块 - defer加载 -->
@@ -241,62 +243,7 @@
         <div class="row g-0">
             <!-- 左侧导航栏 -->
             <div class="col-lg-3 col-md-4 p-0">
-                <div class="app-sidebar" id="sidebar-wrapper">
-                    <div class="card shadow-sm border-0 h-100" style="border-radius: 0;">
-                        <div class="card-body p-0" style="max-height: calc(100vh - 70px); overflow-y: auto;">
-                            <div class="p-3">
-                                <div class="list-group list-group-flush">
-                                <a href="#" class="list-group-item list-group-item-action active" id="home-nav" data-bs-toggle="pill" data-bs-target="#home">
-                                    <i class="bi bi-house me-2"></i>首页
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" id="tender-management-nav" data-bs-toggle="pill" data-bs-target="#tender-management">
-                                    <i class="bi bi-clipboard-check me-2"></i>投标管理
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" id="business-response-nav" data-bs-toggle="pill" data-bs-target="#business-response">
-                                    <i class="bi bi-briefcase me-2"></i>商务应答
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" id="point-to-point-nav" data-bs-toggle="pill" data-bs-target="#point-to-point">
-                                    <i class="bi bi-chat-dots me-2"></i>点对点应答
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" id="tech-proposal-nav" data-bs-toggle="pill" data-bs-target="#tech-proposal">
-                                    <i class="bi bi-file-earmark-code me-2"></i>技术方案生成
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" id="check-export-nav" data-bs-toggle="pill" data-bs-target="#check-export">
-                                    <i class="bi bi-file-earmark-arrow-down me-2"></i>检查导出
-                                </a>
-                                <a href="#" class="list-group-item list-group-item-action" id="tender-scoring-nav" data-bs-toggle="pill" data-bs-target="#tender-scoring">
-                                    <i class="bi bi-star me-2"></i>标书评分
-                                </a>
-
-                                <!-- 知识库管理 - 可折叠二级菜单 -->
-                                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                   data-bs-toggle="collapse" data-bs-target="#knowledgeSubmenu" aria-expanded="false">
-                                    <span>
-                                        <i class="bi bi-collection me-2"></i>知识库管理
-                                    </span>
-                                    <i class="bi bi-chevron-down"></i>
-                                </a>
-                                <div class="collapse" id="knowledgeSubmenu">
-                                    <div class="list-group list-group-flush ps-4">
-                                        <a href="#" class="list-group-item list-group-item-action border-0"
-                                           id="company-library-nav" data-bs-toggle="pill" data-bs-target="#knowledge-company-library">
-                                            <i class="bi bi-building text-primary me-2"></i>企业信息库
-                                        </a>
-                                        <a href="#" class="list-group-item list-group-item-action border-0"
-                                           id="case-library-nav" data-bs-toggle="pill" data-bs-target="#knowledge-case-library">
-                                            <i class="bi bi-folder2-open text-warning me-2"></i>案例库
-                                        </a>
-                                        <a href="#" class="list-group-item list-group-item-action border-0"
-                                           id="document-library-nav" data-bs-toggle="pill" data-bs-target="#knowledge-document-library">
-                                            <i class="bi bi-folder text-info me-2"></i>文档库
-                                        </a>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {% include 'components/shared/sidebar.html' %}
             </div>
 
             <!-- 右侧主内容区域 -->
@@ -386,6 +333,11 @@
                         <div class="tab-pane fade" id="knowledge-document-library" role="tabpanel">
                             {% include 'components/knowledge/document-library-section.html' %}
                         </div>
+
+                        <!-- 知识库 - 简历库选项卡 -->
+                        <div class="tab-pane fade" id="knowledge-resume-library" role="tabpanel">
+                            {% include 'components/knowledge/resume-library-section.html' %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -417,6 +369,7 @@
     <script src="/static/js/pages/knowledge-base/search-manager.js" defer></script>
     <script src="/static/js/pages/knowledge-base/company-profile-manager.js" defer></script>
     <script src="/static/js/pages/knowledge-base/case-library-manager.js?v=20251019e" defer></script>
+    <script src="/static/js/pages/knowledge-base/resume-library-manager.js" defer></script>
     <script src="/static/js/pages/knowledge-base/rag-integration.js" defer></script>
     <script src="/static/js/pages/knowledge-base/ai-search-manager.js" defer></script>
     <script src="/static/js/pages/knowledge-base/document-viewer.js" defer></script>
@@ -666,84 +619,16 @@
             }, stepTime);
         }
 
-        // 切换选项卡函数
-        function switchToTab(tabId) {
-            console.log('[switchToTab] 切换到Tab:', tabId);
-
-            // 移除所有导航项的活跃状态（包括一级和二级菜单）
-            document.querySelectorAll('.list-group-item-action[data-bs-toggle="pill"]').forEach(item => {
-                item.classList.remove('active');
-            });
-
-            // 移除所有tab内容的活跃状态
-            document.querySelectorAll('.tab-pane').forEach(pane => {
-                pane.classList.remove('show', 'active');
-            });
-
-            // 激活指定的导航项和选项卡
-            const navItem = document.querySelector(`[data-bs-target="#${tabId}"]`);
-            const tabPane = document.querySelector(`#${tabId}`);
-
-            if (navItem && tabPane) {
-                navItem.classList.add('active');
-                tabPane.classList.add('show', 'active');
-                console.log('[switchToTab] 已激活Tab:', tabId);
-            } else {
-                console.warn('[switchToTab] 未找到Tab:', tabId);
-            }
-        }
-
-        // 【新增】导航状态管理 - 确保同一时间只有一个导航项处于激活状态
-        function initNavigationManager() {
-            console.log('[Navigation] 初始化导航状态管理器');
-
-            // 获取所有导航链接（一级和二级）
-            const allNavLinks = document.querySelectorAll('.list-group-item-action[data-bs-toggle="pill"]');
-
-            allNavLinks.forEach(navLink => {
-                navLink.addEventListener('click', function(e) {
-                    // 清除所有导航项的active状态
-                    allNavLinks.forEach(link => {
-                        link.classList.remove('active');
-                    });
-
-                    // 设置当前点击的导航项为active
-                    this.classList.add('active');
-
-                    console.log('[Navigation] 已激活:', this.getAttribute('data-bs-target'));
-                });
-
-                // 监听Bootstrap Tab显示事件（确保状态同步）
-                navLink.addEventListener('shown.bs.tab', function(event) {
-                    // 再次确保只有当前项是active
-                    allNavLinks.forEach(link => {
-                        if (link !== event.target) {
-                            link.classList.remove('active');
-                        }
-                    });
-
-                    console.log('[Navigation] Tab已显示:', this.getAttribute('data-bs-target'));
-                });
-            });
-
-            // 确保知识库管理折叠菜单本身不会被标记为active
-            const knowledgeToggle = document.querySelector('[data-bs-target="#knowledgeSubmenu"]');
-            if (knowledgeToggle) {
-                knowledgeToggle.addEventListener('click', function(e) {
-                    // 移除自身的active状态（它只是折叠触发器）
-                    this.classList.remove('active');
-                });
-            }
-
-            console.log('[Navigation] 导航状态管理器初始化完成');
-        }
+        // 注意：switchToTab 和 initNavigationManager 已移至 navigation-manager.js 模块
 
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
             console.log('AI标书系统初始化完成 - 恢复原版布局');
 
-            // 【新增】初始化导航状态管理器
-            initNavigationManager();
+            // 初始化导航管理器（已移至 navigation-manager.js 模块）
+            if (typeof NavigationManager !== 'undefined') {
+                NavigationManager.init();
+            }
 
             // 初始化模型管理器
             ModelManager.init();
@@ -847,43 +732,7 @@
                 });
             }
 
-            // 侧边栏切换功能 - 适配响应式网格布局
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function() {
-                    const sidebarCol = document.querySelector('.col-lg-3.col-md-4');
-                    const contentCol = document.querySelector('.col-lg-9.col-md-8');
-
-                    if (window.innerWidth <= 768) {
-                        // 移动端：使用显示/隐藏
-                        sidebarCol.classList.toggle('d-none');
-                    } else {
-                        // 桌面端：调整网格比例
-                        if (sidebarCol.classList.contains('col-lg-1')) {
-                            // 展开状态
-                            sidebarCol.className = 'col-lg-3 col-md-4 p-0';
-                            contentCol.className = 'col-lg-9 col-md-8 app-main-content';
-                        } else {
-                            // 收缩状态
-                            sidebarCol.className = 'col-lg-1 col-md-2 p-0';
-                            contentCol.className = 'col-lg-11 col-md-10 app-main-content';
-                        }
-                    }
-                });
-            }
-
-            // 移动端点击其他区域关闭侧边栏
-            document.addEventListener('click', function(e) {
-                const sidebarCol = document.querySelector('.col-lg-3.col-md-4');
-                const toggle = document.getElementById('sidebarToggle');
-
-                if (window.innerWidth <= 768 &&
-                    !sidebarCol.classList.contains('d-none') &&
-                    !sidebarCol.contains(e.target) &&
-                    !toggle.contains(e.target)) {
-                    sidebarCol.classList.add('d-none');
-                }
-            });
+            // 侧边栏切换功能已移至 navigation-manager.js 模块
         });
 
         // 页面加载完成后启动数字动画
