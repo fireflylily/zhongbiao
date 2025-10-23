@@ -7,6 +7,7 @@
 Flask==2.3.3
 Flask-CORS==4.0.0
 Flask-WTF==1.2.1
+Flask-Compress==1.14
 Werkzeug==2.3.7
 gunicorn==21.2.0
 
