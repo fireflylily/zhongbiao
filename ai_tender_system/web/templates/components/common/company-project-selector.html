@@ -95,12 +95,6 @@
                                 <i class="bi bi-arrow-clockwise"></i>
                             </button>
                         </div>
-                        <div class="mt-1">
-                            <small class="text-muted">选择现有项目或创建新项目</small>
-                            <div id="hitlProjectInfo" class="text-primary small" style="display: none;">
-                                <i class="bi bi-info-circle"></i> <span id="hitlProjectName"></span>
-                            </div>
-                        </div>
                     </div>
                     {% endif %}
 
@@ -117,10 +111,6 @@
                             <button type="button" class="btn btn-outline-info btn-sm" onclick="navigateToCompanyLibrary();" title="管理公司">
                                 <i class="bi bi-building"></i>
                             </button>
-                        </div>
-                        <div class="mt-1">
-                            <small class="text-muted">当前：</small>
-                            <span id="hitlSelectedCompanyName" class="text-muted">未选择</span>
                         </div>
                     </div>
                     {% endif %}
@@ -145,13 +135,6 @@
                             <button type="button" class="btn btn-outline-info btn-sm" onclick="refreshHitlModels()" title="刷新模型列表">
                                 <i class="bi bi-arrow-clockwise"></i>
                             </button>
-                        </div>
-                        <!-- 模型状态显示 -->
-                        <div class="mt-1" id="hitlModelStatus" style="display: none;">
-                            <small class="d-flex align-items-center">
-                                <span id="hitlModelStatusIcon" class="me-1"></span>
-                                <span id="hitlModelStatusText"></span>
-                            </small>
                         </div>
                     </div>
                     {% endif %}

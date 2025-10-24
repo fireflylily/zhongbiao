@@ -2292,6 +2292,50 @@ def register_hitl_routes(app):
             return jsonify({'success': False, 'error': str(e)}), 500
 
 
+    @app.route('/api/tender-processing/hitl-tasks/<hitl_task_id>', methods=['GET'])
+    def get_hitl_task_by_id(hitl_task_id):
+        """
+        根据 hitl_task_id 获取单个HITL任务详情
+
+        URL参数：
+        - hitl_task_id: HITL任务ID
+
+        返回：
+        - success: 是否成功
+        - task: 任务详情对象（包含step1_data, step2_data, step3_data等）
+        """
+        try:
+            logger.info(f"获取HITL任务详情: {hitl_task_id}")
+
+            query = """
+                SELECT * FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """
+
+            tasks = db.execute_query(query, [hitl_task_id])
+
+            if not tasks or len(tasks) == 0:
+                logger.warning(f"未找到HITL任务: {hitl_task_id}")
+                return jsonify({
+                    'success': False,
+                    'error': f'未找到ID为 {hitl_task_id} 的HITL任务'
+                }), 404
+
+            task = tasks[0]
+            logger.info(f"成功获取HITL任务: {hitl_task_id}")
+
+            return jsonify({
+                'success': True,
+                'task': task
+            })
+
+        except Exception as e:
+            logger.error(f"获取HITL任务详情失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+
     def sync_requirements_to_project(project_id, category='qualification'):
         """
         将需求明细同步到项目汇总字段

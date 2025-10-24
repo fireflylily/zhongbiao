@@ -129,6 +129,43 @@ python -m ai_tender_system.web.app
 - HITL页面允许在最终生成前进行人工审核/编辑
 - 同步按钮将完成的工作推送回项目管理系统
 
+**5. 任务ID体系架构**
+
+系统中存在**三种不同的任务ID**，用于支持并发处理和数据隔离：
+
+1. **`task_id`** - 处理任务ID（如 `task_xxx`）
+   - 存储在 `tender_processing_tasks` 表（主键）
+   - 存储在 `tender_processing_logs` 表（用于查询进度）
+   - 用于跟踪文档处理流程的异步任务
+
+2. **`hitl_task_id`** - HITL任务ID（如 `hitl_xxx`）
+   - 存储在 `tender_hitl_tasks` 表（主键）
+   - 存储在 `tender_document_chunks` 表（用于隔离chunks）
+   - 存储在 `tender_requirements` 表（用于隔离需求）
+   - 用于HITL人机协作的三步审核流程
+
+3. **`project_id`** - 项目ID
+   - 所有表的外键，指向 `tender_projects` 表
+   - 代表一个招标项目
+
+**任务ID与项目ID的关系**：
+```
+项目 (project_id)
+  ├── 多个处理任务 (task_id)
+  │     └── 每个任务对应一个HITL任务 (hitl_task_id)
+  └── 多个文档分块、要求等数据
+```
+
+**任务ID的核心作用**：
+- **支持并发处理** - 同一个项目可能需要多次处理（如用户选择不同章节重新处理）
+- **隔离数据版本** - 不同任务产生的chunks和requirements互不影响
+- **跟踪处理进度** - 每个任务有独立的状态和进度
+- **HITL工作流隔离** - 每个HITL任务有独立的三步审核流程
+
+**注意事项**：
+- 不建议完全用项目ID代替任务ID，因为需要支持重复处理、并发控制和版本管理
+- 如果业务确定一个项目只处理一次，可以考虑简化为 `project_id` + 版本号的方式
+
 ## 关键配置
 
 ### 环境变量（`.env` 文件）

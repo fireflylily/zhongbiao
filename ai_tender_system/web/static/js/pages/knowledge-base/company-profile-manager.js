@@ -12,6 +12,25 @@ class CompanyProfileManager {
             industry: null,
             searchKeyword: ''
         };
+
+        // 支持多文件上传的资质类型配置
+        this.multiFileQualifications = {
+            'audit_report': {
+                versionLabel: '年份',
+                placeholder: '请输入年份（如：2023）',
+                multiple: true
+            },
+            'software_copyright': {
+                versionLabel: '软著名称',
+                placeholder: '请输入软著名称',
+                multiple: true
+            },
+            'patent_certificate': {
+                versionLabel: '专利号',
+                placeholder: '请输入专利号',
+                multiple: true
+            }
+        };
     }
 
     /**
@@ -800,6 +819,11 @@ class CompanyProfileManager {
         const borderClass = required ? 'border-warning' : '';
         const requiredBadge = required ? '<span class="badge bg-warning text-dark ms-2">必需</span>' : '';
 
+        // 检查是否为支持多文件的资质类型
+        const isMultiFile = this.multiFileQualifications.hasOwnProperty(id);
+        const multipleAttr = isMultiFile ? 'multiple' : '';
+        const multiBadge = isMultiFile ? '<span class="badge bg-info text-white ms-2"><i class="bi bi-files"></i> 多文件</span>' : '';
+
         return `
             <div class="card mb-3 shadow-sm ${borderClass}">
                 <div class="card-body">
@@ -808,11 +832,12 @@ class CompanyProfileManager {
                             <i class="bi ${icon} me-2 text-primary"></i>
                             <span>${name}</span>
                             ${requiredBadge}
+                            ${multiBadge}
                         </div>
                         <div class="btn-group">
-                            <input type="file" class="d-none" id="profile-qual-${id}" accept=".pdf,.jpg,.png,.jpeg" onchange="window.companyProfileManager.uploadQualificationFile('${id}', this)">
+                            <input type="file" class="d-none" id="profile-qual-${id}" accept=".pdf,.jpg,.png,.jpeg" ${multipleAttr} onchange="window.companyProfileManager.uploadQualificationFile('${id}', this)">
                             <button class="btn btn-sm btn-outline-primary" onclick="document.getElementById('profile-qual-${id}').click()" title="上传文件">
-                                <i class="bi bi-upload"></i>
+                                <i class="bi bi-upload"></i> ${isMultiFile ? '批量' : ''}
                             </button>
                         </div>
                     </div>
@@ -863,19 +888,25 @@ class CompanyProfileManager {
      * @param {string} icon 图标类名
      */
     renderFinancialItem(name, id, icon) {
+        // 检查是否为支持多文件的资质类型（财务审计报告支持多年份）
+        const isMultiFile = this.multiFileQualifications.hasOwnProperty(id);
+        const multipleAttr = isMultiFile ? 'multiple' : '';
+        const multiBadge = isMultiFile ? '<span class="badge bg-info text-white ms-2"><i class="bi bi-files"></i> 多文件</span>' : '';
+
         return `
             <div class="financial-item">
                 <div class="card">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center flex-grow-1">
                                 <i class="bi ${icon} text-danger me-2"></i>
                                 <span>${name}</span>
+                                ${multiBadge}
                             </div>
                             <div>
-                                <input type="file" class="d-none" id="fin-${id}" accept=".pdf,.xls,.xlsx" onchange="window.companyProfileManager.uploadFinancialFile('${id}', this)">
+                                <input type="file" class="d-none" id="fin-${id}" accept=".pdf,.xls,.xlsx" ${multipleAttr} onchange="window.companyProfileManager.uploadFinancialFile('${id}', this)">
                                 <button class="btn btn-sm btn-outline-danger" onclick="document.getElementById('fin-${id}').click()">
-                                    <i class="bi bi-upload"></i>
+                                    <i class="bi bi-upload"></i> ${isMultiFile ? '批量' : ''}
                                 </button>
                             </div>
                         </div>
@@ -910,7 +941,14 @@ class CompanyProfileManager {
         };
 
         try {
-            const response = await axios.put('/api/companies/' + this.currentCompanyId, data);
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            const response = await axios.put('/api/companies/' + this.currentCompanyId, data, {
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            });
             if (response.data.success) {
                 if (window.showAlert) {
                     window.showAlert('基础信息保存成功', 'success');
@@ -934,7 +972,14 @@ class CompanyProfileManager {
         };
 
         try {
-            const response = await axios.put('/api/companies/' + this.currentCompanyId, data);
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            const response = await axios.put('/api/companies/' + this.currentCompanyId, data, {
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            });
             if (response.data.success) {
                 if (window.showAlert) {
                     window.showAlert('财务信息保存成功', 'success');
@@ -962,7 +1007,14 @@ class CompanyProfileManager {
         };
 
         try {
-            const response = await axios.put('/api/companies/' + this.currentCompanyId, data);
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            const response = await axios.put('/api/companies/' + this.currentCompanyId, data, {
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            });
             if (response.data.success) {
                 if (window.showAlert) {
                     window.showAlert('被授权人信息保存成功', 'success');
@@ -977,17 +1029,49 @@ class CompanyProfileManager {
     }
 
     /**
-     * 上传资质文件
+     * 上传资质文件（支持多文件）
      * @param {string} qualificationId 资质ID
      * @param {HTMLInputElement} input 文件输入元素
      */
     async uploadQualificationFile(qualificationId, input) {
-        const file = input.files[0];
-        if (!file) return;
+        const files = input.files;
+        if (!files || files.length === 0) return;
 
+        // 检查是否为多文件资质
+        const isMultiFile = this.multiFileQualifications.hasOwnProperty(qualificationId);
+
+        if (isMultiFile) {
+            // 多文件上传：逐个文件询问版本信息并上传
+            await this.uploadMultipleQualificationFiles(qualificationId, files);
+        } else {
+            // 单文件上传：直接上传第一个文件
+            await this.uploadSingleQualificationFile(qualificationId, files[0]);
+        }
+
+        // 上传完成后重新加载资质列表
+        await this.loadExistingQualifications();
+
+        // 清空文件输入
+        input.value = '';
+    }
+
+    /**
+     * 上传单个资质文件
+     * @param {string} qualificationId 资质ID
+     * @param {File} file 文件对象
+     * @param {string} version 版本号（可选）
+     */
+    async uploadSingleQualificationFile(qualificationId, file, version = null) {
         try {
             const formData = new FormData();
             formData.append(`qualifications[${qualificationId}]`, file);
+
+            // 如果有版本号，添加到FormData
+            if (version) {
+                const fileVersions = {};
+                fileVersions[qualificationId] = version;
+                formData.append('file_versions', JSON.stringify(fileVersions));
+            }
 
             // Get CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -1000,17 +1084,69 @@ class CompanyProfileManager {
             });
 
             if (response.data.success) {
-                if (window.showAlert) {
-                    window.showAlert('资质文件上传成功', 'success');
-                }
-                this.updateQualificationStatus(qualificationId, file.name, 'success');
+                return { success: true, filename: file.name };
+            } else {
+                throw new Error(response.data.error || '上传失败');
             }
         } catch (error) {
             console.error('资质文件上传失败:', error);
-            if (window.showAlert) {
-                window.showAlert('上传失败：' + error.message, 'danger');
+            throw error;
+        }
+    }
+
+    /**
+     * 批量上传多个资质文件
+     * @param {string} qualificationId 资质ID
+     * @param {FileList} files 文件列表
+     */
+    async uploadMultipleQualificationFiles(qualificationId, files) {
+        const config = this.multiFileQualifications[qualificationId];
+        const versionLabel = config.versionLabel || '版本';
+        const placeholder = config.placeholder || '请输入版本信息';
+
+        let successCount = 0;
+        let failCount = 0;
+
+        // 逐个处理文件
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            // 弹窗询问版本号
+            const version = prompt(`请输入 "${file.name}" 的${versionLabel}:\n${placeholder}`);
+
+            // 用户取消则跳过该文件
+            if (version === null) {
+                console.log(`用户取消上传文件: ${file.name}`);
+                continue;
             }
-            this.updateQualificationStatus(qualificationId, '上传失败', 'error');
+
+            // 版本号不能为空
+            if (!version.trim()) {
+                if (window.showAlert) {
+                    window.showAlert(`文件 "${file.name}" 的${versionLabel}不能为空，已跳过`, 'warning');
+                }
+                continue;
+            }
+
+            // 上传文件
+            try {
+                await this.uploadSingleQualificationFile(qualificationId, file, version.trim());
+                successCount++;
+                console.log(`成功上传: ${file.name} (${versionLabel}: ${version})`);
+            } catch (error) {
+                failCount++;
+                console.error(`上传失败: ${file.name}`, error);
+            }
+        }
+
+        // 显示结果
+        if (successCount > 0 || failCount > 0) {
+            const message = `上传完成：成功 ${successCount} 个，失败 ${failCount} 个`;
+            const alertType = failCount === 0 ? 'success' : 'warning';
+
+            if (window.showAlert) {
+                window.showAlert(message, alertType);
+            }
         }
     }
 
@@ -1053,41 +1189,34 @@ class CompanyProfileManager {
     }
 
     /**
-     * 上传财务文件
+     * 上传财务文件（支持多文件）
      * @param {string} financialId 财务ID
      * @param {HTMLInputElement} input 文件输入元素
      */
     async uploadFinancialFile(financialId, input) {
-        const file = input.files[0];
-        if (!file) return;
+        const files = input.files;
+        if (!files || files.length === 0) return;
 
-        try {
-            const formData = new FormData();
-            formData.append(`qualifications[${financialId}]`, file);
+        // 检查是否为多文件资质（审计报告支持多年份）
+        const isMultiFile = this.multiFileQualifications.hasOwnProperty(financialId);
 
-            // Get CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (isMultiFile) {
+            // 多文件上传：逐个文件询问版本信息并上传
+            await this.uploadMultipleQualificationFiles(financialId, files);
+        } else {
+            // 单文件上传：直接上传第一个文件
+            await this.uploadSingleQualificationFile(financialId, files[0]);
 
-            const response = await axios.post(`/api/companies/${this.currentCompanyId}/qualifications/upload`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'X-CSRFToken': csrfToken
-                }
-            });
-
-            if (response.data.success) {
-                if (window.showAlert) {
-                    window.showAlert('财务文件上传成功', 'success');
-                }
-                this.updateFinancialStatus(financialId, file.name, 'success');
-            }
-        } catch (error) {
-            console.error('财务文件上传失败:', error);
             if (window.showAlert) {
-                window.showAlert('上传失败：' + error.message, 'danger');
+                window.showAlert('财务文件上传成功', 'success');
             }
-            this.updateFinancialStatus(financialId, '上传失败', 'error');
         }
+
+        // 上传完成后重新加载资质列表
+        await this.loadExistingQualifications();
+
+        // 清空文件输入
+        input.value = '';
     }
 
     /**

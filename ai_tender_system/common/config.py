@@ -181,7 +181,7 @@ class Config:
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
                 'provider': 'China Unicom',
                 'display_name': '联通元景大模型 (兼容)',
-                'description': '向后兼容的联通元景模型，建议使用具体的元景-XXX模型获得更好体验'
+                'description': '通用对话模型'
             }
         }
         

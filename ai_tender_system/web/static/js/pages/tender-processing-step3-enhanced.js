@@ -686,7 +686,7 @@ function proceedToStep3(taskId, projectId) {
     currentTaskId = taskId;
     HITLConfigManager.currentProjectId = projectId;
 
-    // 隐藏步骤1和步骤2，显示步骤3（使用正确的ID）
+    // 【修改】保持步骤1（章节选择）可见，只隐藏步骤2，显示步骤3
     const step1Section = document.getElementById('chapterSelectionSection');
     const step2Section = document.getElementById('step2Section');
     const step3Section = document.getElementById('step3Section');
@@ -696,9 +696,10 @@ function proceedToStep3(taskId, projectId) {
     console.log('  - step2Section:', step2Section);
     console.log('  - step3Section:', step3Section);
 
+    // ✅ 保持步骤1可见，让用户可以随时查看章节选择
     if (step1Section) {
-        step1Section.style.display = 'none';
-        console.log('[proceedToStep3] 隐藏步骤1');
+        step1Section.style.display = 'block';
+        console.log('[proceedToStep3] 保持步骤1可见');
     }
     if (step2Section) {
         step2Section.style.display = 'none';
@@ -1611,13 +1612,21 @@ async function showChapterSelection(type) {
     } else {
         // 步骤1没有数据，尝试从API加载
         console.log('[showChapterSelection] 步骤1无数据，从API加载');
-        if (!currentTaskId) {
-            showErrorToast('任务ID不存在，请刷新页面重试');
+
+        // 优先从当前上下文获取任务ID，否则从全局状态获取
+        let taskId = currentTaskId;
+        if (!taskId && window.globalState) {
+            taskId = window.globalState.getHitlTaskId();
+            console.log('[showChapterSelection] 从全局状态获取任务ID:', taskId);
+        }
+
+        if (!taskId) {
+            showErrorToast('未找到HITL任务，请先在"标书智能处理"页面解析文档');
             return;
         }
 
         try {
-            chaptersData = await loadChaptersFromAPI(currentTaskId);
+            chaptersData = await loadChaptersFromAPI(taskId);
             if (!chaptersData || chaptersData.length === 0) {
                 showErrorToast('未找到章节数据，请先在步骤1解析文档');
                 return;
@@ -1750,6 +1759,11 @@ function createChapterElement(type, chapter) {
                 <small class="text-muted">(${chapter.word_count}字)</small>
                 ${tagsHtml}
             </label>
+            <button class="btn btn-sm btn-outline-info ms-2 preview-chapter-btn"
+                    data-chapter-id="${chapter.id}"
+                    title="预览章节内容">
+                <i class="bi bi-eye"></i>
+            </button>
         </div>
     `;
 
@@ -1763,6 +1777,13 @@ function createChapterElement(type, chapter) {
             selectedIds.delete(chapter.id);
         }
         updateStatistics(type);
+    });
+
+    // 绑定预览按钮事件
+    const previewBtn = div.querySelector('.preview-chapter-btn');
+    previewBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 防止触发label的点击事件
+        showChapterPreviewModal(chapter.id);
     });
 
     return div;
@@ -1897,8 +1918,15 @@ async function confirmSave(type) {
         return;
     }
 
-    if (!currentTaskId) {
-        showErrorToast('任务ID不存在，请刷新页面重试');
+    // 优先从当前上下文获取任务ID，否则从全局状态获取
+    let taskId = currentTaskId;
+    if (!taskId && window.globalState) {
+        taskId = window.globalState.getHitlTaskId();
+        console.log('[confirmSave] 从全局状态获取任务ID:', taskId);
+    }
+
+    if (!taskId) {
+        showErrorToast('未找到HITL任务，请先在"标书智能处理"页面解析文档');
         return;
     }
 
@@ -1914,7 +1942,7 @@ async function confirmSave(type) {
 
     try {
         const chapterIds = Array.from(selectedIds);
-        const apiUrl = `${config.apiSave}/${currentTaskId}`;
+        const apiUrl = `${config.apiSave}/${taskId}`;
 
         console.log(`[confirmSave] 发起API请求，章节数:`, chapterIds.length);
 
@@ -2468,3 +2496,188 @@ function openBusinessResponse() {
 // 填充应答文件功能
 // ============================================
 
+// ============================================
+// 章节预览模态框功能
+// ============================================
+
+/**
+ * 显示章节预览模态框
+ * @param {string} chapterId - 章节ID
+ */
+function showChapterPreviewModal(chapterId) {
+    console.log('[showChapterPreviewModal] 预览章节:', chapterId);
+
+    // 查找章节数据
+    const chapterData = findChapterById(chapterId);
+
+    if (!chapterData) {
+        console.error('[showChapterPreviewModal] 未找到章节数据:', chapterId);
+        window.modalManager?.alert('未找到章节数据', '错误');
+        return;
+    }
+
+    // 格式化章节内容
+    const formattedContent = formatChapterContent(chapterData);
+
+    // 使用ModalManager显示模态框
+    if (window.modalManager) {
+        window.modalManager.show({
+            id: 'chapterPreviewModal_' + chapterId,
+            title: `<i class="bi bi-eye me-2"></i>章节预览 - ${chapterData.title}`,
+            content: formattedContent,
+            size: 'xl',
+            centered: true,
+            scrollable: true,
+            buttons: [{
+                text: '关闭',
+                variant: 'secondary',
+                action: 'cancel',
+                dismiss: true
+            }]
+        });
+    } else {
+        console.error('[showChapterPreviewModal] ModalManager 未初始化');
+        alert('模态框管理器未加载，请刷新页面重试');
+    }
+}
+
+/**
+ * 从所有类型的章节数据中查找指定ID的章节
+ * @param {string} chapterId - 章节ID
+ * @returns {Object|null} 章节数据对象
+ */
+function findChapterById(chapterId) {
+    // 遍历所有类型的章节数据
+    for (const [type, chaptersData] of chaptersDataMap.entries()) {
+        // 递归查找章节
+        const found = findChapterInTree(chaptersData, chapterId);
+        if (found) {
+            return found;
+        }
+    }
+
+    // 如果Map中没有，尝试从全局变量中查找
+    if (typeof window.parsedChapters !== 'undefined' && Array.isArray(window.parsedChapters)) {
+        const found = findChapterInTree(window.parsedChapters, chapterId);
+        if (found) {
+            return found;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * 在章节树中递归查找指定ID的章节
+ * @param {Array} chapters - 章节数组
+ * @param {string} chapterId - 章节ID
+ * @returns {Object|null} 找到的章节对象
+ */
+function findChapterInTree(chapters, chapterId) {
+    if (!Array.isArray(chapters)) return null;
+
+    for (const chapter of chapters) {
+        if (chapter.id === chapterId) {
+            return chapter;
+        }
+
+        // 如果有子章节，递归查找
+        if (chapter.children && chapter.children.length > 0) {
+            const found = findChapterInTree(chapter.children, chapterId);
+            if (found) {
+                return found;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * 格式化章节内容为HTML
+ * @param {Object} chapter - 章节数据
+ * @returns {string} HTML字符串
+ */
+function formatChapterContent(chapter) {
+    let html = '<div class="chapter-preview-content p-3">';
+
+    // 章节标题
+    html += `<h4 class="border-bottom pb-2 mb-3">${chapter.title}</h4>`;
+
+    // 章节元数据
+    html += '<div class="row mb-4">';
+    html += '<div class="col-md-6">';
+    html += `<p class="mb-2"><strong>章节级别:</strong> <span class="badge bg-secondary">第${chapter.level}级</span></p>`;
+    html += `<p class="mb-2"><strong>字数:</strong> ${chapter.word_count}字</p>`;
+    html += '</div>';
+    html += '<div class="col-md-6">';
+
+    // 内容标签
+    if (chapter.content_tags && chapter.content_tags.length > 0) {
+        html += '<p class="mb-2"><strong>内容标签:</strong> ';
+        const tagColorMap = {
+            '评分办法': 'primary',
+            '评分表': 'warning text-dark',
+            '供应商资质': 'success',
+            '文件格式': 'secondary',
+            '技术需求': 'info'
+        };
+        chapter.content_tags.forEach(tag => {
+            const colorClass = tagColorMap[tag] || 'secondary';
+            html += `<span class="badge bg-${colorClass} ms-1">${tag}</span>`;
+        });
+        html += '</p>';
+    }
+
+    // AI推荐状态
+    if (chapter.auto_selected) {
+        html += '<p class="mb-2"><span class="badge bg-success">✅ AI推荐选中</span></p>';
+    } else if (chapter.skip_recommended) {
+        html += '<p class="mb-2"><span class="badge bg-danger">❌ AI推荐跳过</span></p>';
+    }
+
+    html += '</div>';
+    html += '</div>';
+
+    // 章节内容
+    if (chapter.content) {
+        html += '<div class="card">';
+        html += '<div class="card-header bg-light">';
+        html += '<h6 class="mb-0"><i class="bi bi-file-text me-2"></i>章节内容</h6>';
+        html += '</div>';
+        html += '<div class="card-body" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.8;">';
+
+        // 转义HTML并保留换行
+        const escapedContent = escapeHtml(chapter.content);
+        html += escapedContent;
+
+        html += '</div>';
+        html += '</div>';
+    } else {
+        html += '<div class="alert alert-warning">';
+        html += '<i class="bi bi-exclamation-triangle me-2"></i>该章节暂无内容';
+        html += '</div>';
+    }
+
+    // 子章节信息
+    if (chapter.children && chapter.children.length > 0) {
+        html += '<div class="alert alert-info mt-3">';
+        html += `<i class="bi bi-info-circle me-2"></i>该章节包含 ${chapter.children.length} 个子章节`;
+        html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+}
+
+/**
+ * HTML转义函数
+ * @param {string} text - 要转义的文本
+ * @returns {string} 转义后的文本
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}

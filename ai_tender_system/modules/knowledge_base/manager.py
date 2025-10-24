@@ -130,9 +130,9 @@ class KnowledgeBaseManager:
                 'email': 'email',
                 'officeAddress': 'office_address',
                 'employeeCount': 'employee_count',
-                # 财务信息字段
-                'bankName': 'bank_name',
-                'bankAccount': 'bank_account',
+                # 财务信息字段(匹配前端蛇形命名)
+                'bank_name': 'bank_name',
+                'bank_account': 'bank_account',
                 # 被授权人信息字段
                 'authorized_person_name': 'authorized_person_name',
                 'authorized_person_id': 'authorized_person_id',
@@ -957,6 +957,13 @@ class KnowledgeBaseManager:
         try:
             from core.storage_service import storage_service
 
+            # 调试日志:记录所有接收到的参数
+            logger.info(f"[DEBUG] upload_qualification 接收到的参数:")
+            logger.info(f"  company_id={company_id}, qualification_key={qualification_key!r}")
+            logger.info(f"  original_filename={original_filename!r}")
+            logger.info(f"  qualification_name={qualification_name!r}, custom_name={custom_name!r}")
+            logger.info(f"  file_version={file_version!r}, issue_date={issue_date!r}, expire_date={expire_date!r}")
+
             # 检查公司是否存在
             company = self.db.get_company_by_id(company_id)
             if not company:
@@ -997,18 +1004,39 @@ class KnowledgeBaseManager:
                     file_sequence = existing_files['max_seq'] + 1
 
             # 使用统一存储服务保存文件
+            # 构建tags列表,确保所有元素都是字符串,避免None值
+            tags = [qualification_name or qualification_key, f'company_{company_id}']
+            # 只在file_version不为空且不为None时添加版本标签
+            if file_version and str(file_version).strip():
+                tags.append(f'version_{file_version}')
+
+            logger.info(f"[DEBUG] 构建的tags列表: {tags!r}")
+
             file_metadata = storage_service.store_file(
                 file_obj=file_obj,
                 original_name=original_filename,
                 category='qualifications',
                 business_type=qualification_key,
                 company_id=company_id,
-                tags=[qualification_name or qualification_key, f'company_{company_id}', f'version_{file_version}' if file_version else None]
+                tags=tags
             )
 
             # 获取文件类型
             file_ext = Path(original_filename).suffix.lower()
             file_type = file_ext[1:] if file_ext else ''
+
+            # 调试日志:记录保存数据库的所有参数
+            logger.info(f"[DEBUG] 准备调用 save_company_qualification, 参数:")
+            logger.info(f"  company_id={company_id}, qualification_key={qualification_key!r}")
+            logger.info(f"  qualification_name={qualification_name or qualification_key!r}")
+            logger.info(f"  custom_name={custom_name!r}")
+            logger.info(f"  original_filename={file_metadata.original_name!r}")
+            logger.info(f"  safe_filename={file_metadata.safe_name!r}")
+            logger.info(f"  file_path={file_metadata.file_path!r}")
+            logger.info(f"  file_size={file_metadata.file_size!r}, file_type={file_type!r}")
+            logger.info(f"  file_version={file_version!r}, file_sequence={file_sequence!r}")
+            logger.info(f"  is_primary={(file_sequence == 1)!r}")
+            logger.info(f"  issue_date={issue_date!r}, expire_date={expire_date!r}")
 
             # 创建资质记录（支持多文件）
             qualification_id = self.db.save_company_qualification(
@@ -1027,6 +1055,8 @@ class KnowledgeBaseManager:
                 issue_date=issue_date,
                 expire_date=expire_date
             )
+
+            logger.info(f"[DEBUG] save_company_qualification 返回 qualification_id={qualification_id}")
 
             logger.info(f"公司 {company_id} 上传资质文件成功: {qualification_key} [v:{file_version}] seq:{file_sequence} -> {file_metadata.safe_name}")
 

@@ -526,6 +526,135 @@ class ChapterSelectionManager {
         }
     }
 
+    /**
+     * 【新增】加载历史项目的章节数据
+     * 当用户选择历史项目时，从数据库恢复章节树和选中状态
+     */
+    async loadHistoricalChapters(hitlTaskId) {
+        console.log('[ChapterSelectionManager] 加载历史章节数据，taskId:', hitlTaskId);
+
+        try {
+            // 1. 从API获取章节列表（从tender_document_chapters表）
+            const chaptersResponse = await fetch(`/api/tender-processing/chapters/${hitlTaskId}`);
+            const chaptersData = await chaptersResponse.json();
+
+            if (!chaptersData.success || !chaptersData.chapters) {
+                throw new Error('无法加载章节数据');
+            }
+
+            console.log('[ChapterSelectionManager] 加载了', chaptersData.chapters.length, '个章节');
+
+            // 2. 获取已选中的章节ID列表（从step1_data）
+            const taskResponse = await fetch(`/api/tender-processing/hitl-tasks/${hitlTaskId}`);
+            const taskData = await taskResponse.json();
+
+            let selectedIds = [];
+            if (taskData.success && taskData.task && taskData.task.step1_data) {
+                try {
+                    const step1Data = typeof taskData.task.step1_data === 'string'
+                        ? JSON.parse(taskData.task.step1_data)
+                        : taskData.task.step1_data;
+
+                    if (step1Data.selected_ids && Array.isArray(step1Data.selected_ids)) {
+                        selectedIds = step1Data.selected_ids;
+                        console.log('[ChapterSelectionManager] 找到已选中章节:', selectedIds.length, '个');
+                    }
+                } catch (parseError) {
+                    console.warn('[ChapterSelectionManager] 解析step1_data失败:', parseError);
+                }
+            }
+
+            // 3. 保存taskId
+            this.currentTaskId = hitlTaskId;
+
+            // 4. 构建章节树结构
+            const chaptersTree = this.buildChapterTree(chaptersData.chapters);
+
+            // 5. 扁平化章节数据
+            this.chaptersData = this.flattenChapters(chaptersTree);
+
+            // 6. 恢复已选中的章节
+            this.selectedChapterIds = new Set(selectedIds);
+            console.log('[ChapterSelectionManager] 恢复已选中章节:', this.selectedChapterIds.size, '个');
+
+            // 7. 渲染章节树
+            this.renderChapterTree(chaptersTree);
+
+            // 8. 更新统计信息
+            this.updateStatistics();
+
+            // 9. 显示章节选择区域
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('chapterSelectionSection').style.display = 'block';
+
+            this.showNotification('历史章节数据加载成功！', 'success');
+            console.log('[ChapterSelectionManager] 历史章节加载完成');
+
+        } catch (error) {
+            console.error('[ChapterSelectionManager] 加载历史章节失败:', error);
+            this.showNotification('加载历史章节失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 从扁平化的章节列表构建树形结构
+     */
+    buildChapterTree(chapters) {
+        // 按章节ID排序
+        const sortedChapters = [...chapters].sort((a, b) => {
+            const aId = a.id || a.chapter_node_id || '';
+            const bId = b.id || b.chapter_node_id || '';
+            return aId.localeCompare(bId);
+        });
+
+        // 转换数据格式（兼容两种格式：API返回的和数据库格式）
+        const formatted = sortedChapters.map(ch => ({
+            id: ch.id || ch.chapter_node_id,
+            title: ch.title,
+            level: ch.level,
+            word_count: ch.word_count || 0,
+            para_start_idx: ch.para_start_idx,
+            para_end_idx: ch.para_end_idx,
+            preview_text: ch.preview_text || '',
+            auto_selected: ch.auto_selected || false,
+            skip_recommended: ch.skip_recommended || false,
+            is_selected: ch.is_selected || false,
+            content_tags: ch.content_tags || [],
+            children: []
+        }));
+
+        // 构建父子关系
+        const nodeMap = new Map();
+        const rootNodes = [];
+
+        // 第一遍：建立映射
+        formatted.forEach(node => {
+            nodeMap.set(node.id, node);
+        });
+
+        // 第二遍：建立父子关系
+        formatted.forEach(node => {
+            const parts = node.id.split('_').slice(1); // 去掉 'ch_' 前缀
+            if (parts.length === 1) {
+                // 一级章节
+                rootNodes.push(node);
+            } else {
+                // 子章节，找到父节点
+                const parentParts = parts.slice(0, -1);
+                const parentId = 'ch_' + parentParts.join('_');
+                const parent = nodeMap.get(parentId);
+                if (parent) {
+                    parent.children.push(node);
+                } else {
+                    // 如果找不到父节点，作为根节点
+                    rootNodes.push(node);
+                }
+            }
+        });
+
+        return rootNodes;
+    }
+
     showNotification(message, type = 'info') {
         // 简单的通知实现（可以后续用 Bootstrap Toast 替换）
         const alertClass = {
@@ -549,10 +678,9 @@ class ChapterSelectionManager {
     }
 }
 
-// 初始化
-let chapterSelectionManager;
+// 初始化 - 将 chapterSelectionManager 设为全局变量，以便其他模块访问
 document.addEventListener('DOMContentLoaded', () => {
-    chapterSelectionManager = new ChapterSelectionManager();
+    window.chapterSelectionManager = new ChapterSelectionManager();
 });
 
 // 进入步骤2的函数（占位）

@@ -357,6 +357,14 @@ const HITLConfigManager = {
                     await loadFilteredChunksData(hitlTask.hitl_task_id);
                 }
 
+                // 【新增】5. 加载历史章节列表
+                if (window.chapterSelectionManager && window.chapterSelectionManager.loadHistoricalChapters) {
+                    console.log('[HITLConfigManager] 加载历史章节列表...');
+                    await window.chapterSelectionManager.loadHistoricalChapters(hitlTask.hitl_task_id);
+                } else {
+                    console.warn('[HITLConfigManager] window.chapterSelectionManager 未定义或缺少 loadHistoricalChapters 方法');
+                }
+
                 console.log('[HITLConfigManager] HITL任务数据加载完成');
             } else {
                 console.log('[HITLConfigManager] 该项目没有HITL任务');
@@ -512,10 +520,10 @@ const HITLConfigManager = {
                 console.log(`[HITLConfigManager] 项目选择变更: ${this.selectedProjectId}`);
 
                 if (this.selectedProjectId) {
-                    // 加载项目详情
+                    // 加载项目详情（包括章节列表）
                     await this.loadProjectDetails(this.selectedProjectId);
 
-                    // 【新增】自动跳转到步骤3，让用户可以看到加载的数据
+                    // 【新增】加载完成后导航到步骤3
                     this.navigateToStep3();
                 } else {
                     // 选择"新建项目",清空表单
@@ -542,6 +550,50 @@ const HITLConfigManager = {
             });
             console.log('[HITLConfigManager] 刷新按钮事件已绑定');
         }
+
+        // 【新增】监听从项目总览页面跳转过来的事件
+        document.addEventListener('loadProjectFromOverview', async (e) => {
+            const {projectId, companyId, companyName, projectName} = e.detail;
+            console.log('[HITLConfigManager] 接收到项目总览跳转事件:', e.detail);
+
+            // 1. 设置公司选择器
+            if (companyId) {
+                const companySelect = document.getElementById('hitlCompanySelect');
+                if (companySelect) {
+                    companySelect.value = companyId;
+                    this.currentCompanyId = companyId;
+
+                    const nameSpan = document.getElementById('hitlSelectedCompanyName');
+                    if (nameSpan) {
+                        nameSpan.textContent = companyName || '';
+                        nameSpan.className = 'text-primary fw-bold';
+                    }
+                    console.log('[HITLConfigManager] 已设置公司选择器:', companyId, companyName);
+                }
+            }
+
+            // 2. 重新加载项目列表（确保下拉框有最新数据）
+            await this.loadProjects();
+
+            // 3. 设置项目选择器并触发加载
+            if (projectId) {
+                const projectSelect = document.getElementById('hitlProjectSelect');
+                if (projectSelect) {
+                    projectSelect.value = projectId;
+                    this.selectedProjectId = projectId;
+                    this.currentProjectId = projectId;
+                    console.log('[HITLConfigManager] 已设置项目选择器:', projectId);
+
+                    // 4. 加载项目详情（包括章节列表）
+                    console.log('[HITLConfigManager] 开始加载项目详情和章节列表...');
+                    await this.loadProjectDetails(projectId);
+
+                    // 【新增】加载完成后导航到步骤3
+                    this.navigateToStep3();
+                }
+            }
+        });
+        console.log('[HITLConfigManager] 项目总览跳转事件监听器已绑定');
     },
 
     // 获取当前配置（供其他模块使用）

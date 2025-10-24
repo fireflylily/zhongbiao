@@ -40,6 +40,10 @@ CREATE TABLE IF NOT EXISTS companies (
     -- 规模信息
     employee_count INTEGER, -- 员工人数规模
 
+    -- 财务信息
+    bank_name VARCHAR(255), -- 开户银行
+    bank_account VARCHAR(100), -- 银行账号
+
     security_level INTEGER DEFAULT 1, -- 1:普通 2:保密 3:机密
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
