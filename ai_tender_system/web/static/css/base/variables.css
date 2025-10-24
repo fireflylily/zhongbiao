@@ -9,19 +9,20 @@
     --bs-primary-rgb: 74, 137, 220;
     --bs-success: #48cfad;
     --bs-success-rgb: 72, 207, 173;
-    --bs-warning: #eb7d3c;
-    --bs-warning-rgb: 235, 125, 60;
-    --bs-danger: #da4453;
-    --bs-danger-rgb: 218, 68, 83;
+    --bs-warning: #f39c12;
+    --bs-warning-rgb: 243, 156, 18;
+    --bs-danger: #e74c3c;
+    --bs-danger-rgb: 231, 76, 60;
     --bs-info: #5dade2;
     --bs-info-rgb: 93, 173, 226;
 
-    /* 自定义色彩变量 */
+    /* 自定义色彩变量 - 简化配色方案 */
     --brand-primary: #4a89dc;
+    --brand-primary-light: #74b9ff;
+    --brand-primary-dark: #3d6cb9;
     --brand-success: #48cfad;
-    --brand-warning: #eb7d3c;
-    --brand-danger: #da4453;
-    --brand-info: #5dade2;
+    --brand-warning: #f39c12;
+    --brand-danger: #e74c3c;
 
     /* 中性色 */
     --text-primary: #333;
@@ -46,23 +47,23 @@
     --border-radius-lg: 12px;
     --border-radius-xl: 16px;
 
-    /* 阴影 */
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-    --shadow-md: 0 2px 6px rgba(0,0,0,0.15);
-    --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
-    --shadow-xl: 0 8px 25px rgba(0,0,0,0.1);
-    --shadow-xxl: 0 10px 30px rgba(0,0,0,0.12);
+    /* 阴影 - 优化为4级层次系统 */
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);       /* 超轻阴影 - 边框替代 */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);       /* 轻阴影 - 卡片默认 */
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.12);       /* 中阴影 - 悬浮提升 */
+    --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);      /* 重阴影 - 模态框/菜单 */
+    --shadow-xl: 0 12px 24px rgba(0,0,0,0.18);     /* 超重阴影 - 特殊强调 */
 
     /* 过渡动画 */
     --transition-fast: all 0.2s ease;
     --transition-normal: all 0.3s ease;
     --transition-slow: all 0.5s ease;
 
-    /* 隐私级别颜色 */
-    --privacy-public: linear-gradient(135deg, #48cfad, #5dade2);
-    --privacy-internal: linear-gradient(135deg, #4a89dc, #74b9ff);
-    --privacy-confidential: linear-gradient(135deg, #eb7d3c, #f39c12);
-    --privacy-secret: linear-gradient(135deg, #da4453, #e74c3c);
+    /* 隐私级别颜色 - 降低渐变强度 */
+    --privacy-public: linear-gradient(135deg, #48cfad 0%, #5dade2 100%);
+    --privacy-internal: linear-gradient(135deg, #4a89dc 0%, #74b9ff 100%);
+    --privacy-confidential: linear-gradient(135deg, #f39c12 0%, #f8b739 100%);
+    --privacy-secret: linear-gradient(135deg, #e74c3c 0%, #ec7063 100%);
 
     /* 隐私级别边框 */
     --privacy-public-border: #3ea99f;

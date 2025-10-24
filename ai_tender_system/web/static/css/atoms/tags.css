@@ -1,0 +1,281 @@
+/**
+ * 标签组件 (Tag Component)
+ * 原子级组件 - 用于关键词标记、分类标识、可删除标签等
+ * 与徽章类似但语义不同,通常用于内容分类和过滤
+ */
+
+/* ========================================
+   基础标签样式
+   ======================================== */
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0.375rem 0.75rem;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.4;
+    border-radius: var(--radius-md);
+    background-color: var(--color-gray-100);
+    color: var(--text-secondary);
+    transition: var(--transition-colors);
+    border: 1px solid transparent;
+}
+
+.tag:hover {
+    background-color: var(--color-gray-200);
+}
+
+/* ========================================
+   标签尺寸
+   ======================================== */
+
+.tag-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--font-size-xs);
+}
+
+.tag-md {
+    padding: 0.375rem 0.75rem;
+    font-size: var(--font-size-sm);
+}
+
+.tag-lg {
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-base);
+}
+
+/* ========================================
+   标签颜色变体
+   ======================================== */
+
+.tag-primary {
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-700);
+    border-color: var(--color-primary-200);
+}
+
+.tag-primary:hover {
+    background-color: var(--color-primary-100);
+}
+
+.tag-success {
+    background-color: var(--color-success-50);
+    color: var(--color-success-700);
+    border-color: var(--color-success-200);
+}
+
+.tag-success:hover {
+    background-color: var(--color-success-100);
+}
+
+.tag-warning {
+    background-color: var(--color-warning-50);
+    color: var(--color-warning-700);
+    border-color: var(--color-warning-200);
+}
+
+.tag-warning:hover {
+    background-color: var(--color-warning-100);
+}
+
+.tag-error,
+.tag-danger {
+    background-color: var(--color-error-50);
+    color: var(--color-error-700);
+    border-color: var(--color-error-200);
+}
+
+.tag-error:hover,
+.tag-danger:hover {
+    background-color: var(--color-error-100);
+}
+
+.tag-info {
+    background-color: var(--color-info-50);
+    color: var(--color-info-700);
+    border-color: var(--color-info-200);
+}
+
+.tag-info:hover {
+    background-color: var(--color-info-100);
+}
+
+/* ========================================
+   可移除标签 (Removable Tags)
+   ======================================== */
+
+.tag-removable {
+    padding-right: 0.375rem;
+}
+
+.tag-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.25rem;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: currentColor;
+    opacity: 0.6;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-out);
+}
+
+.tag-remove-btn:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.tag-remove-btn:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
+/* ========================================
+   交互式标签 (Interactive Tags)
+   ======================================== */
+
+.tag-interactive {
+    cursor: pointer;
+    user-select: none;
+}
+
+.tag-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.tag-interactive:active {
+    transform: translateY(0);
+}
+
+/* 可选择标签 */
+.tag-selectable {
+    cursor: pointer;
+    border: 1px solid var(--border-light);
+}
+
+.tag-selectable:hover {
+    border-color: var(--color-primary-300);
+}
+
+.tag-selectable.selected {
+    background-color: var(--color-primary-500);
+    color: var(--text-on-primary);
+    border-color: var(--color-primary-500);
+}
+
+/* ========================================
+   标签组 (Tag Group)
+   ======================================== */
+
+.tag-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+.tag-group-sm {
+    gap: var(--space-1);
+}
+
+.tag-group-lg {
+    gap: var(--space-3);
+}
+
+/* ========================================
+   带图标的标签
+   ======================================== */
+
+.tag-with-icon {
+    padding-left: 0.5rem;
+}
+
+.tag-with-icon .bi {
+    font-size: 1em;
+    margin-right: 0.25rem;
+}
+
+/* ========================================
+   圆形标签
+   ======================================== */
+
+.tag-pill {
+    border-radius: var(--radius-full);
+}
+
+/* ========================================
+   轮廓标签 (Outline Tags)
+   ======================================== */
+
+.tag-outline {
+    background-color: transparent;
+    border: 1px solid currentColor;
+}
+
+.tag-outline:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ========================================
+   彩色编码标签 (Color-coded Tags)
+   ======================================== */
+
+.tag-color-red {
+    background-color: #fee;
+    color: #c00;
+    border-color: #fcc;
+}
+
+.tag-color-orange {
+    background-color: #ffe;
+    color: #f80;
+    border-color: #ffc;
+}
+
+.tag-color-yellow {
+    background-color: #ffc;
+    color: #960;
+    border-color: #ee8;
+}
+
+.tag-color-green {
+    background-color: #efe;
+    color: #060;
+    border-color: #cfc;
+}
+
+.tag-color-blue {
+    background-color: #eef;
+    color: #06c;
+    border-color: #ccf;
+}
+
+.tag-color-purple {
+    background-color: #fef;
+    color: #90c;
+    border-color: #fcf;
+}
+
+/* ========================================
+   响应式调整
+   ======================================== */
+
+@media (max-width: 768px) {
+    .tag {
+        font-size: var(--font-size-xs);
+        padding: 0.25rem 0.5rem;
+    }
+
+    .tag-lg {
+        padding: 0.375rem 0.75rem;
+        font-size: var(--font-size-sm);
+    }
+}

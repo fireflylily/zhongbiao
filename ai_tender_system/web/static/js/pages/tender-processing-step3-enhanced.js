@@ -2370,11 +2370,12 @@ function openBusinessResponse() {
         // 模式 1: Tab 切换模式 (首页内)
         console.log('[openBusinessResponse] 使用 Tab 切换模式');
 
-        // 【修改】从 companyStateManager 读取数据（统一数据源）
-        const companyData = window.companyStateManager.getSelectedCompany();
-        const projectName = companyData?.project_name || '';
-        const companyId = companyData?.company_id || '';
-        const companyName = companyData?.company_name || '';
+        // 【修改】从 globalState 读取数据（统一数据源）
+        const company = window.globalState.getCompany();
+        const project = window.globalState.getProject();
+        const projectName = project?.name || '';
+        const companyId = company?.id || '';
+        const companyName = company?.name || '';
         const hitlTaskId = window.projectDataBridge.hitlTaskId || '';
 
         console.log('[openBusinessResponse] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });

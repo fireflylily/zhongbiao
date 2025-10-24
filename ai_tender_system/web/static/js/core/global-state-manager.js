@@ -10,18 +10,25 @@
  */
 class GlobalStateManager {
     constructor() {
+        // LocalStorage 配置
+        this.storageKey = 'global_state_persistent';
+        this.persistentFields = ['company', 'project']; // 需要持久化的字段
+        this.maxAge = 24 * 60 * 60 * 1000; // 24小时过期
+
         // 状态存储
         this.state = {
-            // 公司信息
+            // 公司信息（持久化）
             company: {
                 id: null,
-                name: null
+                name: null,
+                details: null  // 添加详细信息支持
             },
 
-            // 项目信息
+            // 项目信息（持久化）
             project: {
                 id: null,
-                name: null
+                name: null,
+                number: null  // 添加项目编号支持
             },
 
             // HITL任务信息
@@ -42,6 +49,11 @@ class GlobalStateManager {
             ai: {
                 availableModels: [],       // 所有可用模型
                 selectedModel: 'unicom-yuanjing'  // 当前选中模型
+            },
+
+            // 元数据
+            _meta: {
+                timestamp: Date.now()
             }
         };
 
@@ -54,6 +66,9 @@ class GlobalStateManager {
             hitl: []
         };
 
+        // 从 localStorage 恢复持久化数据
+        this.loadFromStorage();
+
         console.log('[GlobalState] 全局状态管理器已初始化');
     }
 
@@ -65,20 +80,52 @@ class GlobalStateManager {
      * 设置公司信息
      * @param {string} companyId - 公司ID
      * @param {string} companyName - 公司名称
+     * @param {Object} [details] - 公司详细信息（可选）
      */
-    setCompany(companyId, companyName) {
+    setCompany(companyId, companyName, details = null) {
         this.state.company.id = companyId;
         this.state.company.name = companyName;
+        if (details !== null) {
+            this.state.company.details = details;
+        }
+        this.saveToStorage();  // 自动保存
         this.notify('company', this.getCompany());
         console.log('[GlobalState] 公司信息已更新:', this.state.company);
     }
 
     /**
      * 获取公司信息
-     * @returns {Object} {id, name}
+     * @returns {Object} {id, name, details}
      */
     getCompany() {
         return { ...this.state.company };
+    }
+
+    /**
+     * 获取公司ID（简便方法）
+     * @returns {string|null}
+     */
+    getCompanyId() {
+        return this.state.company.id;
+    }
+
+    /**
+     * 获取公司名称（简便方法）
+     * @returns {string|null}
+     */
+    getCompanyName() {
+        return this.state.company.name;
+    }
+
+    /**
+     * 更新公司详细信息（保持id和name不变）
+     * @param {Object} details - 公司详细信息
+     */
+    updateCompanyDetails(details) {
+        this.state.company.details = details;
+        this.saveToStorage();  // 自动保存
+        this.notify('company', this.getCompany());
+        console.log('[GlobalState] 公司详细信息已更新');
     }
 
     /**
@@ -87,6 +134,8 @@ class GlobalStateManager {
     clearCompany() {
         this.state.company.id = null;
         this.state.company.name = null;
+        this.state.company.details = null;
+        this.saveToStorage();  // 自动保存
         this.notify('company', this.getCompany());
         console.log('[GlobalState] 公司信息已清空');
     }
@@ -99,20 +148,57 @@ class GlobalStateManager {
      * 设置项目信息
      * @param {string} projectId - 项目ID
      * @param {string} projectName - 项目名称
+     * @param {string} [projectNumber] - 项目编号（可选）
      */
-    setProject(projectId, projectName) {
+    setProject(projectId, projectName, projectNumber = null) {
         this.state.project.id = projectId;
         this.state.project.name = projectName;
+        if (projectNumber !== null) {
+            this.state.project.number = projectNumber;
+        }
+        this.saveToStorage();  // 自动保存
         this.notify('project', this.getProject());
         console.log('[GlobalState] 项目信息已更新:', this.state.project);
     }
 
     /**
      * 获取项目信息
-     * @returns {Object} {id, name}
+     * @returns {Object} {id, name, number}
      */
     getProject() {
         return { ...this.state.project };
+    }
+
+    /**
+     * 获取项目ID（简便方法）
+     * @returns {string|null}
+     */
+    getProjectId() {
+        return this.state.project.id;
+    }
+
+    /**
+     * 获取项目名称（简便方法）
+     * @returns {string|null}
+     */
+    getProjectName() {
+        return this.state.project.name;
+    }
+
+    /**
+     * 获取项目编号（简便方法）
+     * @returns {string|null}
+     */
+    getProjectNumber() {
+        return this.state.project.number;
+    }
+
+    /**
+     * 检查是否有项目信息
+     * @returns {boolean}
+     */
+    hasProjectInfo() {
+        return !!(this.state.project.id || this.state.project.name || this.state.project.number);
     }
 
     /**
@@ -121,6 +207,8 @@ class GlobalStateManager {
     clearProject() {
         this.state.project.id = null;
         this.state.project.name = null;
+        this.state.project.number = null;
+        this.saveToStorage();  // 自动保存
         this.notify('project', this.getProject());
         console.log('[GlobalState] 项目信息已清空');
     }
@@ -357,6 +445,7 @@ class GlobalStateManager {
         this.clearProject();
         this.clearAllFiles();
         this.clearHitlTaskId();
+        this.clearStorage();  // 清除 localStorage
         console.log('[GlobalState] 所有状态已清空');
     }
 
@@ -552,6 +641,85 @@ class GlobalStateManager {
             hitl: this.listeners.hitl.length
         });
         console.groupEnd();
+    }
+
+    // ========================================
+    // LocalStorage 持久化
+    // ========================================
+
+    /**
+     * 保存状态到 localStorage
+     * @private
+     */
+    saveToStorage() {
+        try {
+            const dataToStore = {
+                _meta: {
+                    timestamp: Date.now(),
+                    version: '1.0'
+                }
+            };
+
+            // 只保存需要持久化的字段
+            this.persistentFields.forEach(field => {
+                dataToStore[field] = this.state[field];
+            });
+
+            localStorage.setItem(this.storageKey, JSON.stringify(dataToStore));
+            console.log('[GlobalState] 状态已保存到 localStorage');
+        } catch (error) {
+            console.error('[GlobalState] 保存状态失败:', error);
+        }
+    }
+
+    /**
+     * 从 localStorage 加载状态
+     * @private
+     */
+    loadFromStorage() {
+        try {
+            const storedData = localStorage.getItem(this.storageKey);
+            if (!storedData) {
+                console.log('[GlobalState] 未找到持久化数据');
+                return;
+            }
+
+            const data = JSON.parse(storedData);
+
+            // 检查数据是否过期（24小时）
+            if (Date.now() - data._meta.timestamp > this.maxAge) {
+                console.log('[GlobalState] 持久化数据已过期，清除数据');
+                this.clearStorage();
+                return;
+            }
+
+            // 恢复持久化字段
+            this.persistentFields.forEach(field => {
+                if (data[field]) {
+                    this.state[field] = data[field];
+                }
+            });
+
+            console.log('[GlobalState] 已从 localStorage 恢复状态:', {
+                company: this.state.company,
+                project: this.state.project
+            });
+        } catch (error) {
+            console.error('[GlobalState] 加载状态失败:', error);
+            this.clearStorage();
+        }
+    }
+
+    /**
+     * 清除 localStorage 中的持久化数据
+     */
+    clearStorage() {
+        try {
+            localStorage.removeItem(this.storageKey);
+            console.log('[GlobalState] localStorage 已清除');
+        } catch (error) {
+            console.error('[GlobalState] 清除 localStorage 失败:', error);
+        }
     }
 }
 

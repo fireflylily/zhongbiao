@@ -103,6 +103,27 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"文档编辑器API蓝图加载失败: {e}")
 
+    try:
+        from .api_models_bp import api_models_bp
+        app.register_blueprint(api_models_bp)
+        logger.info("AI模型管理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"AI模型管理API蓝图加载失败: {e}")
+
+    try:
+        from .api_tender_management_bp import api_tender_management_bp
+        app.register_blueprint(api_tender_management_bp)
+        logger.info("标书管理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"标书管理API蓝图加载失败: {e}")
+
+    try:
+        from .api_tender_processing_bp import api_tender_processing_bp
+        app.register_blueprint(api_tender_processing_bp)
+        logger.info("标书智能处理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"标书智能处理API蓝图加载失败: {e}")
+
     # 阶段4: 知识库扩展模块
     try:
         from ai_tender_system.modules.resume_library.api import resume_library_bp

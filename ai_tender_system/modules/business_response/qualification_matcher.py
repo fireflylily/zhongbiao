@@ -28,11 +28,6 @@ QUALIFICATION_MAPPING = {
         'priority': 'high',
         'category': '质量管理'
     },
-    'iso14001': {
-        'keywords': ['ISO14001', 'ISO 14001', 'iso14001', '环境管理体系', '环境体系认证', 'GB/T24001'],
-        'priority': 'high',
-        'category': '环境管理'
-    },
     'iso20000': {
         'keywords': ['ISO20000', 'ISO 20000', 'iso20000', 'IT服务管理体系', 'ITSM', 'GB/T20000'],
         'priority': 'medium',
@@ -77,6 +72,16 @@ QUALIFICATION_MAPPING = {
         'keywords': ['公章', '企业公章', '印章'],
         'priority': 'medium',
         'category': '基本资质'
+    },
+    'basic_telecom_permit': {
+        'keywords': ['基础电信业务许可证', '基础电信业务经营许可证', '电信业务经营许可证'],
+        'priority': 'high',
+        'category': '电信资质'
+    },
+    'value_added_telecom_permit': {
+        'keywords': ['增值电信业务许可证', '增值电信业务经营许可证', 'ICP许可证', 'ISP许可证', 'IDC许可证'],
+        'priority': 'high',
+        'category': '电信资质'
     }
 }
 
@@ -321,9 +326,10 @@ class QualificationMatcher:
                 self.logger.info(f"  - 公章: {file_path}")
 
             # 资质证书
-            elif qual_key in ['iso9001', 'iso14001', 'iso20000', 'iso27001',
+            elif qual_key in ['iso9001', 'iso20000', 'iso27001',
                              'cmmi', 'itss', 'safety_production',
-                             'software_copyright', 'patent_certificate']:
+                             'software_copyright', 'patent_certificate',
+                             'basic_telecom_permit', 'value_added_telecom_permit']:
                 qualification_paths.append(file_path)
                 qualification_details.append(matched_qual)
                 self.logger.info(f"  - 资质证书 ({qual_key}): {file_path}")

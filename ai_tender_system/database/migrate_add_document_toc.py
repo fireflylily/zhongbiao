@@ -13,11 +13,15 @@ sys.path.insert(0, str(project_root))
 
 from ai_tender_system.common.database import get_knowledge_base_db
 
+from common.logger import get_module_logger
+
+logger = get_module_logger("migrate_add_document_toc")
+
 def migrate():
     """执行迁移"""
     db = get_knowledge_base_db()
 
-    print("开始迁移：添加 document_toc 表...")
+    logger.info("开始迁移：添加 document_toc 表...")
 
     with db.get_connection() as conn:
         cursor = conn.cursor()
@@ -30,7 +34,7 @@ def migrate():
             """)
 
             if cursor.fetchone():
-                print("✓ document_toc 表已存在，跳过创建")
+                logger.info("✓ document_toc 表已存在，跳过创建")
                 return
 
             # 创建 document_toc 表
@@ -58,14 +62,14 @@ def migrate():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_toc_parent ON document_toc(parent_toc_id)")
 
             conn.commit()
-            print("✓ document_toc 表创建成功")
-            print("✓ 索引创建成功")
+            logger.info("✓ document_toc 表创建成功")
+            logger.info("✓ 索引创建成功")
 
         except Exception as e:
-            print(f"✗ 迁移失败: {e}")
+            logger.info(f"✗ 迁移失败: {e}")
             conn.rollback()
             raise
 
 if __name__ == '__main__':
     migrate()
-    print("\n迁移完成！")
+    logger.info("\n迁移完成！")

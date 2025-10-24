@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const useMcp = 'true'; // 默认使用MCP处理器
 
             // 从全局状态管理器获取项目名称
-            const projectName = window.companyStateManager ? window.companyStateManager.getProjectName() : '';
+            const projectName = window.globalState ? window.globalState.getProjectName() : '';
 
             // 检查是否有从HITL加载的文件URL
             const hasLoadedFile = window.businessResponseFileUrl && window.businessResponseFileName;
@@ -601,9 +601,13 @@ function loadBusinessCompanyInfo() {
     updateBusinessHiddenFields();
 
     // 监听全局状态变更
-    if (window.companyStateManager) {
-        window.companyStateManager.addListener(function(companyData) {
+    if (window.globalState) {
+        window.globalState.subscribe('company', function(companyData) {
             console.log('商务应答页面：接收到公司状态变更', companyData);
+            updateBusinessHiddenFields();
+        });
+        window.globalState.subscribe('project', function(projectData) {
+            console.log('商务应答页面：接收到项目状态变更', projectData);
             updateBusinessHiddenFields();
         });
     }
@@ -611,23 +615,24 @@ function loadBusinessCompanyInfo() {
 
 // 更新商务应答页面的表单字段
 function updateBusinessHiddenFields() {
-    if (!window.companyStateManager) {
-        console.error('公司状态管理器未初始化');
+    if (!window.globalState) {
+        console.error('全局状态管理器未初始化');
         return;
     }
 
-    const companyData = window.companyStateManager.getSelectedCompany();
+    const company = window.globalState.getCompany();
+    const project = window.globalState.getProject();
 
     // 更新公司ID（隐藏字段）
     const companyIdInput = document.getElementById('businessCompanyId');
     if (companyIdInput) {
-        companyIdInput.value = companyData && companyData.company_id ? companyData.company_id : '';
+        companyIdInput.value = company && company.id ? company.id : '';
     }
 
     // 注意：项目名称现在显示在共用组件中，不需要单独的输入框
     // 可以在这里添加招标编号和日期的同步逻辑（如果需要的话）
 
-    console.log('商务应答页面：表单字段已更新', companyData);
+    console.log('商务应答页面：表单字段已更新', { company, project });
 }
 
 // 注意：图片配置相关函数已移除
@@ -759,13 +764,15 @@ async function syncToHitlProject(hitlTaskId, filePath) {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>同步中...';
 
     try {
-        const response = await fetch(`/api/tender-processing/sync-business-response/${hitlTaskId}`, {
+        // 使用统一的文件同步API
+        const response = await fetch(`/api/tender-processing/sync-file/${hitlTaskId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                file_path: filePath
+                file_path: filePath,
+                file_type: 'business_response'  // 指定文件类型
             })
         });
 

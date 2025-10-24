@@ -432,7 +432,7 @@ class CompanyProfileManager {
                     </li>
                     <li class="nav-item">
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-personnel" onclick="window.companyProfileManager.switchTab('personnel')">
-                            <i class="bi bi-people text-warning"></i> 人员信息
+                            <i class="bi bi-people text-warning"></i> 被授权人信息
                         </button>
                     </li>
                     <li class="nav-item">
@@ -466,7 +466,7 @@ class CompanyProfileManager {
                     <div class="tab-pane fade" id="tab-personnel">
                         <div class="card">
                             <div class="card-body">
-                                ${this.renderPersonnelSection()}
+                                ${this.renderPersonnelSection(companyData)}
                             </div>
                         </div>
                     </div>
@@ -611,19 +611,58 @@ class CompanyProfileManager {
 
     /**
      * 渲染人员信息部分
+     * @param {Object} companyData 企业数据
      */
-    renderPersonnelSection() {
+    renderPersonnelSection(companyData) {
+        const data = companyData || {};
         return `
             <div class="personnel-section">
+                <!-- 被授权人信息表单 -->
                 <div class="mb-4">
-                    <h6 class="text-warning mb-3"><i class="bi bi-people"></i> 人员档案</h6>
+                    <h6 class="text-warning mb-3"><i class="bi bi-person-badge"></i> 被授权人基本信息</h6>
+                    <form id="authorizedPersonForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">姓名</label>
+                                <input type="text" class="form-control" id="auth-name" placeholder="请输入被授权人姓名" value="${data.authorized_person_name || ''}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">身份证号</label>
+                                <input type="text" class="form-control" id="auth-idcard" placeholder="请输入身份证号" maxlength="18" value="${data.authorized_person_id || ''}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">性别</label>
+                                <select class="form-select" id="auth-gender">
+                                    <option value="">请选择</option>
+                                    <option value="男" ${data.authorized_person_gender === '男' ? 'selected' : ''}>男</option>
+                                    <option value="女" ${data.authorized_person_gender === '女' ? 'selected' : ''}>女</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">职位</label>
+                                <input type="text" class="form-control" id="auth-position" placeholder="请输入职位" value="${data.authorized_person_position || ''}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">职称</label>
+                                <input type="text" class="form-control" id="auth-title" placeholder="请输入职称" value="${data.authorized_person_title || ''}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">年龄</label>
+                                <input type="number" class="form-control" id="auth-age" placeholder="请输入年龄" min="18" max="100" value="${data.authorized_person_age || ''}">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-warning" onclick="window.companyProfileManager.saveAuthorizedPersonInfo()">
+                                <i class="bi bi-save"></i> 保存被授权人信息
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 附件上传区域 -->
+                <div class="mb-4">
+                    <h6 class="text-secondary mb-3"><i class="bi bi-file-earmark-person"></i> 相关附件</h6>
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            ${this.renderPersonnelItem('法定代表人身份证（正面）', 'legal_id', 'bi-person-badge')}
-                        </div>
-                        <div class="col-md-6">
-                            ${this.renderPersonnelItem('法定代表人身份证（反面）', 'legal_id_back', 'bi-person-badge')}
-                        </div>
                         <div class="col-md-6">
                             ${this.renderPersonnelItem('被授权人身份证', 'auth_id', 'bi-person-check')}
                         </div>
@@ -631,18 +670,7 @@ class CompanyProfileManager {
                             ${this.renderPersonnelItem('项目经理简历', 'project_manager_resume', 'bi-person-badge')}
                         </div>
                         <div class="col-md-6">
-                            ${this.renderPersonnelItem('团队成员简历', 'team_resume', 'bi-file-person')}
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <h6 class="text-secondary mb-3"><i class="bi bi-shield-check"></i> 社保资质</h6>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            ${this.renderPersonnelItem('社会保险参保证明', 'social_security', 'bi-people')}
-                        </div>
-                        <div class="col-md-6">
-                            ${this.renderPersonnelItem('员工社保证明', 'employee_social_security', 'bi-file-medical')}
+                            ${this.renderPersonnelItem('被授权人社保证明', 'social_security', 'bi-people')}
                         </div>
                     </div>
                 </div>
@@ -709,8 +737,6 @@ class CompanyProfileManager {
 
             // ISO体系认证
             { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
-            { key: 'iso14001', name: '环境管理体系认证（ISO14001）', icon: 'bi-tree', category: 'iso' },
-            { key: 'iso45001', name: '职业健康安全管理体系认证（ISO45001）', icon: 'bi-shield-check', category: 'iso' },
             { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', icon: 'bi-gear', category: 'iso' },
             { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
 
@@ -721,6 +747,8 @@ class CompanyProfileManager {
             { key: 'credit_procurement', name: '政府采购信用查询结果', icon: 'bi-check-circle', category: 'credit' },
 
             // 知识产权和行业资质
+            { key: 'basic_telecom_permit', name: '基础电信业务许可证', icon: 'bi-broadcast', category: 'industry' },
+            { key: 'value_added_telecom_permit', name: '增值电信业务许可证', icon: 'bi-broadcast-pin', category: 'industry' },
             { key: 'software_copyright', name: '软件著作权登记证书', icon: 'bi-code-square', category: 'industry' },
             { key: 'patent_certificate', name: '专利证书', icon: 'bi-lightbulb', category: 'industry' },
             { key: 'high_tech', name: '高新技术企业证书', icon: 'bi-rocket', category: 'industry' },
@@ -914,6 +942,34 @@ class CompanyProfileManager {
             }
         } catch (error) {
             console.error('保存财务信息失败:', error);
+            if (window.showAlert) {
+                window.showAlert('保存失败：' + error.message, 'danger');
+            }
+        }
+    }
+
+    /**
+     * 保存被授权人信息
+     */
+    async saveAuthorizedPersonInfo() {
+        const data = {
+            authorized_person_name: document.getElementById('auth-name').value,
+            authorized_person_id: document.getElementById('auth-idcard').value,
+            authorized_person_gender: document.getElementById('auth-gender').value,
+            authorized_person_position: document.getElementById('auth-position').value,
+            authorized_person_title: document.getElementById('auth-title').value,
+            authorized_person_age: document.getElementById('auth-age').value
+        };
+
+        try {
+            const response = await axios.put('/api/companies/' + this.currentCompanyId, data);
+            if (response.data.success) {
+                if (window.showAlert) {
+                    window.showAlert('被授权人信息保存成功', 'success');
+                }
+            }
+        } catch (error) {
+            console.error('保存被授权人信息失败:', error);
             if (window.showAlert) {
                 window.showAlert('保存失败：' + error.message, 'danger');
             }
@@ -1130,7 +1186,7 @@ class CompanyProfileManager {
     }
 
     /**
-     * 刷新资质文件显示
+     * 刷新资质文件显示（支持多文件）
      * @param {string} qualKey 资质键名
      * @param {Object} fileInfo 文件信息
      */
@@ -1155,25 +1211,68 @@ class CompanyProfileManager {
 
         if (statusElement && fileInfo) {
             statusElement.classList.remove('d-none');
-            const formattedTime = this.formatDateTime(fileInfo.upload_time);
-            const formattedSize = this.formatFileSize(fileInfo.file_size);
 
-            statusElement.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-success">✓ ${fileInfo.original_filename}</small>
-                        <br><small class="text-muted">${formattedSize} | ${formattedTime}</small>
+            // 检查是否为多文件资质
+            if (fileInfo.allow_multiple_files && fileInfo.files && fileInfo.files.length > 0) {
+                // 多文件资质显示
+                const versionLabel = fileInfo.version_label || '版本';
+                let filesHtml = fileInfo.files.map((file, index) => {
+                    const formattedTime = this.formatDateTime(file.upload_time);
+                    const formattedSize = this.formatFileSize(file.file_size);
+                    const versionText = file.file_version ? `${versionLabel}: ${file.file_version}` : `文件 ${index + 1}`;
+
+                    return `
+                        <div class="d-flex justify-content-between align-items-center mb-2 ${index > 0 ? 'mt-2 pt-2 border-top' : ''}">
+                            <div class="flex-grow-1">
+                                <small class="text-success">✓ ${file.original_filename}</small>
+                                <br><small class="text-muted">${versionText} | ${formattedSize} | ${formattedTime}</small>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary btn-sm"
+                                        onclick="window.companyProfileManager.downloadQualificationFileById('${file.qualification_id}')"
+                                        title="下载">
+                                    <i class="bi bi-download"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm"
+                                        onclick="window.companyProfileManager.deleteQualificationFileById('${file.qualification_id}')"
+                                        title="删除">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                statusElement.innerHTML = `
+                    <div class="multi-file-list">
+                        <div class="mb-2">
+                            <small class="text-primary"><strong>已上传 ${fileInfo.files.length} 个文件</strong></small>
+                        </div>
+                        ${filesHtml}
                     </div>
-                    <div class="btn-group btn-group-sm">
-                        <button class="btn btn-outline-primary btn-sm" onclick="window.companyProfileManager.downloadQualificationFile('${this.currentCompanyId}', '${qualKey}')" title="下载">
-                            <i class="bi bi-download"></i>
-                        </button>
-                        <button class="btn btn-outline-danger btn-sm" onclick="window.companyProfileManager.deleteQualificationFile('${qualKey}')" title="删除">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                `;
+            } else {
+                // 单文件资质显示（保持向后兼容）
+                const formattedTime = this.formatDateTime(fileInfo.upload_time);
+                const formattedSize = this.formatFileSize(fileInfo.file_size);
+
+                statusElement.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-success">✓ ${fileInfo.original_filename}</small>
+                            <br><small class="text-muted">${formattedSize} | ${formattedTime}</small>
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary btn-sm" onclick="window.companyProfileManager.downloadQualificationFile('${this.currentCompanyId}', '${qualKey}')" title="下载">
+                                <i class="bi bi-download"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="window.companyProfileManager.deleteQualificationFile('${qualKey}')" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
             console.log('资质文件显示已更新:', qualKey);
         } else {
             console.error('无法更新资质文件显示 - statusElement:', statusElement, 'fileInfo:', fileInfo);
@@ -1181,7 +1280,7 @@ class CompanyProfileManager {
     }
 
     /**
-     * 下载资质文件
+     * 下载资质文件（通过资质键）
      * @param {number} companyId 企业ID
      * @param {string} qualKey 资质键名
      */
@@ -1197,7 +1296,22 @@ class CompanyProfileManager {
     }
 
     /**
-     * 删除资质文件
+     * 下载资质文件（通过文件ID）- 用于多文件资质
+     * @param {number} qualificationId 资质文件ID
+     */
+    async downloadQualificationFileById(qualificationId) {
+        try {
+            window.open(`/api/qualifications/${qualificationId}/download`);
+        } catch (error) {
+            console.error('下载资质文件失败:', error);
+            if (window.showAlert) {
+                window.showAlert('下载资质文件失败', 'danger');
+            }
+        }
+    }
+
+    /**
+     * 删除资质文件（通过资质键）- 用于单文件资质
      * @param {string} qualKey 资质键名
      */
     async deleteQualificationFile(qualKey) {
@@ -1216,6 +1330,35 @@ class CompanyProfileManager {
                     statusElement.classList.add('d-none');
                     statusElement.innerHTML = '<small class="text-muted">未上传文件</small>';
                 }
+            } else {
+                if (window.showAlert) {
+                    window.showAlert('删除失败: ' + response.data.error, 'danger');
+                }
+            }
+        } catch (error) {
+            console.error('删除资质文件失败:', error);
+            if (window.showAlert) {
+                window.showAlert('删除资质文件失败', 'danger');
+            }
+        }
+    }
+
+    /**
+     * 删除资质文件（通过文件ID）- 用于多文件资质
+     * @param {number} qualificationId 资质文件ID
+     */
+    async deleteQualificationFileById(qualificationId) {
+        if (!confirm('确定要删除这个资质文件吗？')) return;
+
+        try {
+            const response = await axios.delete(`/api/qualifications/${qualificationId}`);
+
+            if (response.data.success) {
+                if (window.showAlert) {
+                    window.showAlert('资质文件删除成功', 'success');
+                }
+                // 重新加载资质文件列表
+                await this.loadExistingQualifications();
             } else {
                 if (window.showAlert) {
                     window.showAlert('删除失败: ' + response.data.error, 'danger');

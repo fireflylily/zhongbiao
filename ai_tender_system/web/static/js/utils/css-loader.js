@@ -184,6 +184,8 @@ const CSS_DEPENDENCIES = {
 
     // 企业信息库tab
     'knowledge-company-library': [
+        '/static/css/components/form-common.min.css',  // 共享表单样式（包括页面标题、空状态等）
+        '/static/css/components/case-library.min.css',  // 案例库样式（提供列表布局样式）
         '/static/css/components/qualifications.min.css'
     ]
 };

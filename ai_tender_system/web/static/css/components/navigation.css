@@ -60,9 +60,9 @@
 }
 
 .sidebar-nav .nav-link.active {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     color: white;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
 }
 
 .sidebar-nav .nav-link i {
@@ -187,9 +187,9 @@
 }
 
 .nav-pills-vertical .nav-link.active {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     color: white;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
 }
 
 /* 分页导航 */
@@ -215,10 +215,10 @@
 }
 
 .page-item.active .page-link {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     border-color: var(--brand-primary);
     color: white;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
 }
 
 .page-item.disabled .page-link {
@@ -273,14 +273,14 @@
 }
 
 .step-item.active .step-circle {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     border-color: var(--brand-primary);
     color: white;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
 }
 
 .step-item.completed .step-circle {
-    background: linear-gradient(135deg, var(--brand-success), var(--brand-info));
+    background: var(--brand-success);
     border-color: var(--brand-success);
     color: white;
 }
@@ -309,10 +309,10 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     color: white;
     border: none;
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-lg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -323,8 +323,8 @@
 
 .floating-nav-btn:hover {
     transform: scale(1.1);
-    box-shadow: var(--shadow-xxl);
-    background: linear-gradient(135deg, #3d6cb9, var(--brand-primary));
+    box-shadow: var(--shadow-xl);
+    background: var(--brand-primary-dark);
 }
 
 .floating-nav-btn:last-child {

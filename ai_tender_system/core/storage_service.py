@@ -30,9 +30,11 @@ from dataclasses import dataclass
 
 from common.config import get_config
 from common.database import get_db_connection
+from common.logger import get_module_logger
 
 # 初始化配置实例
 config = get_config()
+logger = get_module_logger("storage_service")
 
 
 @dataclass
@@ -212,7 +214,7 @@ class FileStorageService:
 
             return True
         except Exception as e:
-            print(f"删除文件失败: {e}")
+            logger.error(f"删除文件失败: {e}")
             return False
 
     def cleanup_temp_files(self, max_age_hours: int = 24):
@@ -227,9 +229,9 @@ class FileStorageService:
             if file_path.is_file() and file_path.stat().st_mtime < cutoff_time:
                 try:
                     file_path.unlink()
-                    print(f"已删除过期临时文件: {file_path}")
+                    logger.info(f"已删除过期临时文件: {file_path}")
                 except Exception as e:
-                    print(f"删除临时文件失败 {file_path}: {e}")
+                    logger.error(f"删除临时文件失败 {file_path}: {e}")
 
     def _generate_safe_filename(self, original_name: str, file_id: str) -> str:
         """

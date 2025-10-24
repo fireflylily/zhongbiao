@@ -3,18 +3,19 @@
  * 基于variables.css中定义的阴影和过渡效果
  */
 
-/* 基础卡片悬浮效果 */
+/* 基础卡片悬浮效果 - 优化层次感 */
 .card {
-    transition: var(--transition-normal);
+    transition: var(--transition-fast);
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
+    background: var(--bg-white);
 }
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
-    border-color: var(--border-primary);
+    box-shadow: var(--shadow-sm);
+    border-color: rgba(74, 137, 220, 0.2);
 }
 
 /* 卡片头部 */
@@ -45,15 +46,16 @@
 
 /* 特色卡片 - 首页功能卡片 */
 .feature-card {
-    transition: transform 0.2s ease;
+    transition: var(--transition-fast);
     height: 100%;
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .feature-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
     border-color: var(--brand-primary);
 }
 
@@ -61,27 +63,27 @@
 .split-document-card {
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius-lg);
-    transition: var(--transition-normal);
-    background: linear-gradient(135deg, var(--bg-light) 0%, var(--bg-white) 100%);
+    transition: var(--transition-fast);
+    background: var(--bg-white);
 }
 
 .split-document-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(74, 137, 220, 0.15);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
     border-color: var(--brand-primary);
 }
 
 /* 统计卡片 - 知识库统计 */
 .kb-stat-card {
-    transition: var(--transition-normal);
+    transition: var(--transition-fast);
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius-lg);
     background: var(--bg-white);
 }
 
 .kb-stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-xxl);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
     border-color: var(--brand-primary);
 }
 
@@ -89,14 +91,14 @@
 .search-result-card {
     border: 1px solid var(--border-primary);
     border-radius: var(--border-radius-lg);
-    transition: var(--transition-normal);
+    transition: var(--transition-fast);
     overflow: hidden;
     background: var(--bg-white);
 }
 
 .search-result-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
     border-color: var(--brand-primary);
 }
 
@@ -155,47 +157,51 @@
     border-radius: var(--border-radius-xl);
 }
 
-/* 彩色卡片 */
+/* 彩色卡片 - 纯色设计 */
 .card-primary {
     border-color: var(--brand-primary);
-    background: linear-gradient(135deg, rgba(74, 137, 220, 0.05), var(--bg-white));
+    background: var(--bg-white);
+    border-width: 2px;
 }
 
 .card-primary .card-header {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     color: white;
     border-bottom-color: var(--brand-primary);
 }
 
 .card-success {
     border-color: var(--brand-success);
-    background: linear-gradient(135deg, rgba(72, 207, 173, 0.05), var(--bg-white));
+    background: var(--bg-white);
+    border-width: 2px;
 }
 
 .card-success .card-header {
-    background: linear-gradient(135deg, var(--brand-success), var(--brand-info));
+    background: var(--brand-success);
     color: white;
     border-bottom-color: var(--brand-success);
 }
 
 .card-warning {
     border-color: var(--brand-warning);
-    background: linear-gradient(135deg, rgba(235, 125, 60, 0.05), var(--bg-white));
+    background: var(--bg-white);
+    border-width: 2px;
 }
 
 .card-warning .card-header {
-    background: linear-gradient(135deg, var(--brand-warning), #f39c12);
+    background: var(--brand-warning);
     color: white;
     border-bottom-color: var(--brand-warning);
 }
 
 .card-danger {
     border-color: var(--brand-danger);
-    background: linear-gradient(135deg, rgba(218, 68, 83, 0.05), var(--bg-white));
+    background: var(--bg-white);
+    border-width: 2px;
 }
 
 .card-danger .card-header {
-    background: linear-gradient(135deg, var(--brand-danger), #e74c3c);
+    background: var(--brand-danger);
     color: white;
     border-bottom-color: var(--brand-danger);
 }
@@ -225,18 +231,18 @@
 /* 可点击卡片 */
 .card-clickable {
     cursor: pointer;
-    transition: var(--transition-normal);
+    transition: var(--transition-fast);
 }
 
 .card-clickable:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
     border-color: var(--brand-primary);
 }
 
 .card-clickable:active {
     transform: translateY(0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
 }
 
 /* 加载状态卡片 */
@@ -312,6 +318,6 @@
 
 /* 悬浮提升效果 - 用于搜索结果等交互元素 */
 .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md) !important;
 }

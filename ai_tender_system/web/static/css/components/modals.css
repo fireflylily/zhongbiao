@@ -5,7 +5,7 @@
 
 /* 搜索模态框特殊样式 */
 .search-modal-header {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     color: white;
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     border-bottom: none;
@@ -22,7 +22,7 @@
 
 /* 搜索高级选项展开区域 */
 .search-advanced-options {
-    background: linear-gradient(135deg, var(--bg-light), var(--border-primary));
+    background: var(--bg-light);
     border-radius: var(--border-radius-md);
     border: 1px solid var(--border-light);
     padding: var(--spacing-lg);
@@ -31,12 +31,13 @@
 }
 
 .search-advanced-options.show {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border-primary);
 }
 
 /* 搜索统计信息样式 */
 .search-stats {
-    background: linear-gradient(135deg, var(--brand-success), var(--brand-info));
+    background: var(--brand-success);
     border-radius: var(--border-radius-md);
     color: white;
     padding: var(--spacing-md);
@@ -56,7 +57,7 @@
 /* 搜索历史按钮样式 */
 .search-history-btn {
     border: 1px solid var(--border-light);
-    background: linear-gradient(135deg, var(--bg-light), var(--border-primary));
+    background: var(--bg-light);
     transition: var(--transition-fast);
     border-radius: var(--border-radius-md);
     padding: var(--spacing-xs) var(--spacing-sm);
@@ -64,10 +65,10 @@
 }
 
 .search-history-btn:hover {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     color: white;
     transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
     border-color: var(--brand-primary);
 }
 
@@ -75,7 +76,7 @@
 .modal-content {
     border: none;
     border-radius: var(--border-radius-xl);
-    box-shadow: var(--shadow-xxl);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
 }
 
@@ -136,16 +137,18 @@
 
 /* 确认对话框样式 */
 .modal-confirm .modal-header {
-    background: linear-gradient(135deg, var(--brand-warning), #f39c12);
+    background: var(--brand-warning);
     color: white;
 }
 
 .modal-confirm.modal-danger .modal-header {
-    background: linear-gradient(135deg, var(--brand-danger), #e74c3c);
+    background: var(--brand-danger);
+    color: white;
 }
 
 .modal-confirm.modal-success .modal-header {
-    background: linear-gradient(135deg, var(--brand-success), var(--brand-info));
+    background: var(--brand-success);
+    color: white;
 }
 
 /* 加载模态框 */

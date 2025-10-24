@@ -7,8 +7,17 @@
 
 import os
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
+
+# 配置基础日志(在logger模块加载前使用)
+_basic_logger = logging.getLogger("config")
+_basic_logger.setLevel(logging.INFO)
+if not _basic_logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    _basic_logger.addHandler(_handler)
 
 # 加载 .env 文件（如果存在）
 def load_env_file():
@@ -21,7 +30,7 @@ def load_env_file():
 
     for env_file in possible_paths:
         if env_file.exists():
-            print(f"加载环境变量文件: {env_file}")
+            _basic_logger.info(f"加载环境变量文件: {env_file}")
             with open(env_file, 'r', encoding='utf-8') as f:
                 for line in f:
                     line = line.strip()
@@ -33,7 +42,7 @@ def load_env_file():
                         os.environ[key] = value
             return
 
-    print("警告: 未找到.env文件")
+    _basic_logger.warning("警告: 未找到.env文件")
 
 # 在模块加载时执行
 load_env_file()
@@ -279,9 +288,9 @@ class Config:
                 
                 return result
             except Exception as e:
-                print(f"加载招标配置失败: {e}")
+                _basic_logger.error(f"加载招标配置失败: {e}")
                 return {}
-        
+
         return {}
     
     def save_config(self, config_name: str, config_data: Dict[str, Any]) -> bool:
@@ -292,7 +301,7 @@ class Config:
                 json.dump(config_data, f, ensure_ascii=False, indent=2)
             return True
         except Exception as e:
-            print(f"保存配置失败: {e}")
+            _basic_logger.error(f"保存配置失败: {e}")
             return False
     
     def load_config(self, config_name: str) -> Dict[str, Any]:
@@ -303,7 +312,7 @@ class Config:
                 with open(config_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
         except Exception as e:
-            print(f"加载配置失败: {e}")
+            _basic_logger.error(f"加载配置失败: {e}")
         return {}
 
 # 全局配置实例
@@ -314,10 +323,10 @@ def get_config() -> Config:
     return config
 
 if __name__ == "__main__":
-    print("=== AI标书系统配置信息 ===")
+    _basic_logger.info("=== AI标书系统配置信息 ===")
     cfg = get_config()
-    print(f"基础目录: {cfg.base_dir}")
-    print(f"数据目录: {cfg.data_dir}")
-    print(f"API密钥: {cfg.get_default_api_key()[:10]}...")
-    print(f"Web端口: {cfg.web_config['port']}")
-    print(f"调试模式: {cfg.web_config['debug']}")
+    _basic_logger.info(f"基础目录: {cfg.base_dir}")
+    _basic_logger.info(f"数据目录: {cfg.data_dir}")
+    _basic_logger.info(f"API密钥: {cfg.get_default_api_key()[:10]}...")
+    _basic_logger.info(f"Web端口: {cfg.web_config['port']}")
+    _basic_logger.info(f"调试模式: {cfg.web_config['debug']}")

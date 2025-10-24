@@ -116,9 +116,13 @@ function initCompanyStateManagement() {
     updatePointToPointHiddenFields();
 
     // 监听公司状态变更
-    if (window.companyStateManager) {
-        window.companyStateManager.addListener(function(companyData) {
+    if (window.globalState) {
+        window.globalState.subscribe('company', function(companyData) {
             console.log('点对点应答页面：接收到公司状态变更', companyData);
+            updatePointToPointHiddenFields();
+        });
+        window.globalState.subscribe('project', function(projectData) {
+            console.log('点对点应答页面：接收到项目状态变更', projectData);
             updatePointToPointHiddenFields();
         });
     }
@@ -126,20 +130,21 @@ function initCompanyStateManagement() {
 
 // 更新点对点应答页面的隐藏表单字段
 function updatePointToPointHiddenFields() {
-    const companySelect = document.getElementById('companySelect');
+    const companySelect = document.getElementById('pointToPointCompanyId');
 
-    if (!window.companyStateManager) {
-        console.error('公司状态管理器未初始化');
+    if (!window.globalState) {
+        console.error('全局状态管理器未初始化');
         return;
     }
 
-    const companyData = window.companyStateManager.getSelectedCompany();
+    const company = window.globalState.getCompany();
+    const project = window.globalState.getProject();
 
     if (companySelect) {
-        companySelect.value = companyData && companyData.company_id ? companyData.company_id : '';
+        companySelect.value = company && company.id ? company.id : '';
     }
 
-    console.log('点对点应答页面：隐藏字段已更新', companyData);
+    console.log('点对点应答页面：隐藏字段已更新', { company, project });
 }
 
 
@@ -307,8 +312,8 @@ function submitPointToPointForm() {
     formData.append('responseMode', responseMode?.value || 'simple');
 
     // 添加项目名称（如果有）
-    if (window.companyStateManager) {
-        const projectName = window.companyStateManager.getProjectName();
+    if (window.globalState) {
+        const projectName = window.globalState.getProjectName();
         if (projectName) {
             formData.append('projectName', projectName);
         }

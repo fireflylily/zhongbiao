@@ -29,6 +29,13 @@ const NavigationManager = {
             navItem.classList.add('active');
             tabPane.classList.add('show', 'active');
             console.log('[NavigationManager] 已激活Tab:', tabId);
+
+            // 动态加载该tab所需的CSS
+            if (typeof window.loadCSSForTab === 'function') {
+                window.loadCSSForTab(tabId).catch(err => {
+                    console.error('[NavigationManager] CSS加载失败:', err);
+                });
+            }
         } else {
             console.warn('[NavigationManager] 未找到Tab:', tabId);
         }
@@ -67,7 +74,16 @@ const NavigationManager = {
                     }
                 });
 
-                console.log('[NavigationManager] Tab已显示:', this.getAttribute('data-bs-target'));
+                const targetId = this.getAttribute('data-bs-target');
+                console.log('[NavigationManager] Tab已显示:', targetId);
+
+                // 动态加载该tab所需的CSS
+                if (targetId && typeof window.loadCSSForTab === 'function') {
+                    const tabId = targetId.replace('#', '');
+                    window.loadCSSForTab(tabId).catch(err => {
+                        console.error('[NavigationManager] CSS加载失败:', err);
+                    });
+                }
             });
         });
 

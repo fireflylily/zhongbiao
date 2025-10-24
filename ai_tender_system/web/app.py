@@ -18,7 +18,7 @@ from functools import wraps
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
 from flask_compress import Compress
-# from flask_wtf.csrf import CSRFProtect, generate_csrf  # 暂时禁用CSRF
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.utils import secure_filename
 
 # 添加项目根目录到Python路径
@@ -30,6 +30,14 @@ from common import (
     get_config, setup_logging, get_module_logger,
     AITenderSystemError, format_error_response, handle_api_error,
     safe_filename, allowed_file, ensure_dir
+)
+# 导入常量
+from common.constants import (
+    CACHE_MAX_AGE_STATIC, DEFAULT_PAGE_SIZE,
+    PROGRESS_COMPLETE, PROGRESS_HALF_COMPLETE, PROGRESS_NOT_STARTED,
+    TASK_START_MAX_RETRIES, TASK_START_RETRY_INTERVAL,
+    STEP_EXECUTION_MAX_RETRIES, STEP_EXECUTION_RETRY_INTERVAL,
+    STEP_3, HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_INTERNAL_SERVER_ERROR
 )
 
 # 导入业务模块
@@ -74,7 +82,9 @@ def create_app() -> Flask:
     web_config = config.get_web_config()
     app.config.update({
         'SECRET_KEY': web_config['secret_key'],
-        'MAX_CONTENT_LENGTH': config.get_upload_config()['max_file_size']
+        'MAX_CONTENT_LENGTH': config.get_upload_config()['max_file_size'],
+        # CSRF豁免列表 - 登录页面不需要CSRF token
+        'WTF_CSRF_EXEMPT_LIST': ['auth.login']
     })
 
     # 开发模式下禁用静态文件缓存
@@ -90,17 +100,16 @@ def create_app() -> Flask:
     compress.init_app(app)
     logger.info("已启用响应压缩(Gzip/Brotli)")
 
-    # 暂时禁用CSRF保护以便登录功能正常工作
-    # TODO: 后续需要重新启用CSRF保护并正确配置豁免
-    # csrf = CSRFProtect(app)
-    logger.info("CSRF保护已暂时禁用")
+    # 启用CSRF保护
+    csrf = CSRFProtect(app)
+    logger.info("CSRF保护已启用，登录页面已豁免")
 
-    # 提供CSRF token的API端点（已禁用）
-    # @app.route('/api/csrf-token', methods=['GET'])
-    # def get_csrf_token():
-    #     """获取CSRF token（用于AJAX请求）"""
-    #     token = generate_csrf()
-    #     return jsonify({'csrf_token': token})
+    # 提供CSRF token的API端点
+    @app.route('/api/csrf-token', methods=['GET'])
+    def get_csrf_token():
+        """获取CSRF token（用于AJAX请求）"""
+        token = generate_csrf()
+        return jsonify({'csrf_token': token})
 
     # 注册知识库API蓝图
     try:
@@ -153,7 +162,7 @@ def create_app() -> Flask:
         # 静态资源长期缓存 (1年)
         if request.path.startswith('/static/'):
             # 缓存静态资源1年
-            response.cache_control.max_age = 31536000
+            response.cache_control.max_age = CACHE_MAX_AGE_STATIC
             response.cache_control.public = True
             response.cache_control.immutable = True
 
@@ -279,60 +288,10 @@ def register_routes(app: Flask, config, logger):
         except Exception as e:
             logger.error(f"获取项目配置失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
-    
+
     # ===================
-    # 模型管理API
+    # 模型管理API - 已迁移到 blueprints/api_models_bp.py
     # ===================
-
-    @app.route('/api/models', methods=['GET'])
-    def get_available_models():
-        """获取可用的AI模型列表"""
-        try:
-            from common.llm_client import get_available_models
-
-            models = get_available_models()
-
-            # 添加模型状态检查
-            for model in models:
-                try:
-                    # 这里可以添加模型可用性检查的逻辑
-                    model['status'] = 'available' if model['has_api_key'] else 'no_api_key'
-                    model['status_message'] = '已配置' if model['has_api_key'] else '未配置API密钥'
-                except (KeyError, TypeError, AttributeError) as e:
-                    logger.warning(f"处理模型状态时出错: {e}")
-                    model['status'] = 'unknown'
-                    model['status_message'] = '状态未知'
-
-            logger.info(f"获取模型列表成功，共 {len(models)} 个模型")
-            return jsonify({
-                'success': True,
-                'models': models,
-                'count': len(models)
-            })
-
-        except Exception as e:
-            logger.error(f"获取模型列表失败: {e}")
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    @app.route('/api/models/<model_name>/validate', methods=['POST'])
-    def validate_model_config(model_name):
-        """验证指定模型的配置"""
-        try:
-            from common.llm_client import create_llm_client
-
-            # 创建模型客户端并验证配置
-            client = create_llm_client(model_name)
-            validation_result = client.validate_config()
-
-            logger.info(f"模型 {model_name} 配置验证结果: {validation_result['valid']}")
-            return jsonify({
-                'success': True,
-                'validation': validation_result
-            })
-
-        except Exception as e:
-            logger.error(f"验证模型 {model_name} 配置失败: {e}")
-            return jsonify({'success': False, 'error': str(e)}), 500
 
     # ===================
     # 标书智能处理API
@@ -433,12 +392,12 @@ def register_routes(app: Flask, config, logger):
             thread = threading.Thread(target=run_pipeline, daemon=True)
             thread.start()
 
-            # 等待task_id生成（最多等待2秒）
+            # 等待task_id生成
             import time
-            for _ in range(20):
+            for _ in range(TASK_START_MAX_RETRIES):
                 if result_holder['task_id'] or result_holder['error']:
                     break
-                time.sleep(0.1)
+                time.sleep(TASK_START_RETRY_INTERVAL)
 
             if result_holder['error']:
                 return jsonify({'success': False, 'error': result_holder['error']}), 500
@@ -491,12 +450,12 @@ def register_routes(app: Flask, config, logger):
             thread = threading.Thread(target=run_step, daemon=True)
             thread.start()
 
-            # 等待步骤完成（最多等待5秒以返回响应）
+            # 等待步骤完成
             import time
-            for _ in range(50):
+            for _ in range(STEP_EXECUTION_MAX_RETRIES):
                 if result_holder['result'] or result_holder['error']:
                     break
-                time.sleep(0.1)
+                time.sleep(STEP_EXECUTION_RETRY_INTERVAL)
 
             if result_holder['error']:
                 return jsonify({'success': False, 'error': result_holder['error']}), 500
@@ -509,8 +468,8 @@ def register_routes(app: Flask, config, logger):
                     'message': f'步骤 {step} 正在处理中，请查询状态'
                 })
 
-            # 如果是最后一步（第3步），清理pipeline实例（线程安全）
-            if step == 3:
+            # 如果是最后一步，清理pipeline实例（线程安全）
+            if step == STEP_3:
                 remove_pipeline_instance(task_id)
                 logger.info(f"任务 {task_id} 已完成，清理pipeline实例")
 
@@ -722,10 +681,10 @@ def register_routes(app: Flask, config, logger):
             return jsonify({'success': False, 'error': str(e)}), 500
 
     # ===================
-    # 标书管理列表页API
+    # 标书管理列表页API - 已迁移到 blueprints/api_tender_management_bp.py
     # ===================
 
-    @app.route('/api/tender-management/list', methods=['GET'])
+    # @app.route('/api/tender-management/list', methods=['GET'])
     def get_tender_management_list():
         """获取标书管理列表"""
         try:
@@ -734,7 +693,7 @@ def register_routes(app: Flask, config, logger):
 
             # 获取分页参数
             page = int(request.args.get('page', 1))
-            page_size = int(request.args.get('page_size', 20))
+            page_size = int(request.args.get('page_size', DEFAULT_PAGE_SIZE))
             search_keyword = request.args.get('search', '')
             status_filter = request.args.get('status', '')  # all, in_progress, completed
 
@@ -830,43 +789,43 @@ def register_routes(app: Flask, config, logger):
 
                 # 计算商务应答完成情况
                 business_response_status = '未开始'
-                business_response_progress = 0
+                business_response_progress = PROGRESS_NOT_STARTED
                 if step1_data.get('business_response_file'):  # 检查商务应答文件
                     business_response_status = '已完成'
-                    business_response_progress = 100
+                    business_response_progress = PROGRESS_COMPLETE
                 elif row['step1_status'] == 'in_progress':
                     business_response_status = '进行中'
-                    business_response_progress = 50
+                    business_response_progress = PROGRESS_HALF_COMPLETE
 
                 # 计算技术点对点应答完成情况
                 tech_response_status = '未开始'
-                tech_response_progress = 0
+                tech_response_progress = PROGRESS_NOT_STARTED
                 if step1_data.get('technical_point_to_point_file'):  # 检查点对点应答文件
                     tech_response_status = '已完成'
-                    tech_response_progress = 100
+                    tech_response_progress = PROGRESS_COMPLETE
                 elif row['step2_status'] == 'in_progress':
                     tech_response_status = '进行中'
-                    tech_response_progress = 50
+                    tech_response_progress = PROGRESS_HALF_COMPLETE
 
                 # 计算技术方案情况
                 tech_proposal_status = '未开始'
-                tech_proposal_progress = 0
+                tech_proposal_progress = PROGRESS_NOT_STARTED
                 if step1_data.get('technical_proposal_file'):
                     tech_proposal_status = '已完成'
-                    tech_proposal_progress = 100
+                    tech_proposal_progress = PROGRESS_COMPLETE
                 elif row['hitl_current_step'] and row['hitl_current_step'] >= 2:
                     tech_proposal_status = '进行中'
-                    tech_proposal_progress = 50
+                    tech_proposal_progress = PROGRESS_HALF_COMPLETE
 
                 # 计算最后融合情况
                 fusion_status = '未开始'
-                fusion_progress = 0
-                all_completed = (business_response_progress == 100 and
-                               tech_response_progress == 100 and
-                               tech_proposal_progress == 100)
+                fusion_progress = PROGRESS_NOT_STARTED
+                all_completed = (business_response_progress == PROGRESS_COMPLETE and
+                               tech_response_progress == PROGRESS_COMPLETE and
+                               tech_proposal_progress == PROGRESS_COMPLETE)
                 if all_completed:
                     fusion_status = '已完成'
-                    fusion_progress = 100
+                    fusion_progress = PROGRESS_COMPLETE
                 elif any([business_response_progress > 0,
                          tech_response_progress > 0,
                          tech_proposal_progress > 0]):

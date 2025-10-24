@@ -1,0 +1,335 @@
+/**
+ * 空状态组件样式
+ * 统一的空数据展示设计
+ */
+
+/* 基础空状态容器 */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xxl) var(--spacing-lg);
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-state-compact {
+    padding: var(--spacing-lg);
+    min-height: 200px;
+}
+
+.empty-state-lg {
+    padding: 80px var(--spacing-xxl);
+    min-height: 400px;
+}
+
+/* 空状态图标 */
+.empty-state-icon {
+    font-size: 4rem;
+    color: var(--text-muted);
+    opacity: 0.4;
+    margin-bottom: var(--spacing-lg);
+    line-height: 1;
+}
+
+.empty-state-icon-lg {
+    font-size: 6rem;
+}
+
+.empty-state-icon-sm {
+    font-size: 3rem;
+}
+
+/* 空状态标题 */
+.empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+/* 空状态描述 */
+.empty-state-description {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    max-width: 480px;
+    margin: 0 auto var(--spacing-lg);
+    line-height: 1.6;
+}
+
+/* 空状态操作按钮 */
+.empty-state-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* 特定场景的空状态 */
+
+/* 无搜索结果 */
+.empty-state-search {
+    background: var(--bg-light);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-xxl) var(--spacing-lg);
+}
+
+.empty-state-search .empty-state-icon {
+    color: var(--bs-info);
+    opacity: 0.6;
+}
+
+.empty-state-search .empty-state-icon::before {
+    content: '\f002'; /* Font Awesome search icon */
+    font-family: 'bootstrap-icons';
+}
+
+/* 无数据 */
+.empty-state-no-data {
+    background: transparent;
+}
+
+.empty-state-no-data .empty-state-icon {
+    color: var(--text-muted);
+}
+
+/* 错误状态 */
+.empty-state-error {
+    background: rgba(231, 76, 60, 0.05);
+    border-radius: var(--border-radius-lg);
+}
+
+.empty-state-error .empty-state-icon {
+    color: var(--brand-danger);
+    opacity: 0.6;
+}
+
+.empty-state-error .empty-state-title {
+    color: var(--brand-danger);
+}
+
+/* 无权限 */
+.empty-state-no-permission {
+    background: rgba(243, 156, 18, 0.05);
+    border-radius: var(--border-radius-lg);
+}
+
+.empty-state-no-permission .empty-state-icon {
+    color: var(--brand-warning);
+    opacity: 0.6;
+}
+
+.empty-state-no-permission .empty-state-title {
+    color: var(--brand-warning);
+}
+
+/* 空文件夹/列表 */
+.empty-state-empty-list .empty-state-icon {
+    color: var(--bs-info);
+    opacity: 0.5;
+}
+
+/* 即将推出 */
+.empty-state-coming-soon {
+    background: linear-gradient(135deg, rgba(74, 137, 220, 0.05), rgba(93, 173, 226, 0.05));
+    border-radius: var(--border-radius-lg);
+}
+
+.empty-state-coming-soon .empty-state-icon {
+    color: var(--brand-primary);
+    opacity: 0.6;
+}
+
+.empty-state-coming-soon .empty-state-title {
+    color: var(--brand-primary);
+}
+
+/* 带插图的空状态 */
+.empty-state-illustration {
+    width: 240px;
+    height: 180px;
+    margin: 0 auto var(--spacing-lg);
+    opacity: 0.7;
+}
+
+.empty-state-illustration-lg {
+    width: 320px;
+    height: 240px;
+}
+
+.empty-state-illustration-sm {
+    width: 160px;
+    height: 120px;
+}
+
+/* SVG插图样式 */
+.empty-state-illustration svg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* 动画效果 */
+.empty-state-animated {
+    animation: empty-state-fade-in 0.5s ease-out;
+}
+
+@keyframes empty-state-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.empty-state-icon-bounce {
+    animation: empty-state-icon-bounce 2s ease-in-out infinite;
+}
+
+@keyframes empty-state-icon-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* 提示性文字链接 */
+.empty-state-hint {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-md);
+}
+
+.empty-state-hint a {
+    color: var(--brand-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.empty-state-hint a:hover {
+    text-decoration: underline;
+}
+
+/* 卡片内的空状态 */
+.card .empty-state {
+    padding: var(--spacing-xl) var(--spacing-lg);
+    min-height: 250px;
+}
+
+.card .empty-state-compact {
+    padding: var(--spacing-lg);
+    min-height: 150px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .empty-state {
+        padding: var(--spacing-xl) var(--spacing-md);
+        min-height: 250px;
+    }
+
+    .empty-state-lg {
+        padding: var(--spacing-xxl) var(--spacing-lg);
+        min-height: 300px;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+    }
+
+    .empty-state-icon-lg {
+        font-size: 4rem;
+    }
+
+    .empty-state-title {
+        font-size: 1.1rem;
+    }
+
+    .empty-state-description {
+        font-size: 0.9rem;
+    }
+
+    .empty-state-illustration {
+        width: 180px;
+        height: 135px;
+    }
+
+    .empty-state-actions {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .empty-state-actions .btn {
+        width: 100%;
+    }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+    .empty-state-search {
+        background: #2d2d2d;
+    }
+
+    .empty-state-error {
+        background: rgba(231, 76, 60, 0.1);
+    }
+
+    .empty-state-no-permission {
+        background: rgba(243, 156, 18, 0.1);
+    }
+
+    .empty-state-coming-soon {
+        background: linear-gradient(135deg, rgba(74, 137, 220, 0.1), rgba(93, 173, 226, 0.1));
+    }
+
+    .empty-state-icon {
+        opacity: 0.5;
+    }
+}
+
+/* 减少动效模式 */
+@media (prefers-reduced-motion: reduce) {
+    .empty-state-animated,
+    .empty-state-icon-bounce {
+        animation: none;
+    }
+}
+
+/* 预定义的空状态模板类 */
+
+/* 无数据空状态 */
+.empty-no-data {
+    composes: empty-state empty-state-no-data;
+}
+
+/* 无搜索结果空状态 */
+.empty-no-results {
+    composes: empty-state empty-state-search;
+}
+
+/* 错误空状态 */
+.empty-error {
+    composes: empty-state empty-state-error;
+}
+
+/* 即将推出空状态 */
+.empty-coming-soon {
+    composes: empty-state empty-state-coming-soon;
+}
+
+/* 空列表状态 */
+.empty-list {
+    composes: empty-state empty-state-empty-list;
+}
+
+/* 无权限状态 */
+.empty-forbidden {
+    composes: empty-state empty-state-no-permission;
+}

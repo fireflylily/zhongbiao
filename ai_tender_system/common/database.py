@@ -1005,50 +1005,30 @@ class KnowledgeBaseDB:
                                   safe_filename: str, file_path: str,
                                   file_size: int, file_type: str = None,
                                   custom_name: str = None, issue_date: str = None,
-                                  expire_date: str = None, upload_by: str = None) -> int:
-        """保存或更新公司资质文件信息"""
+                                  expire_date: str = None, upload_by: str = None,
+                                  file_version: str = None, file_sequence: int = 1,
+                                  is_primary: bool = True) -> int:
+        """保存公司资质文件信息（支持多文件）"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # 检查是否已存在
+                # 对于多文件资质，直接插入新记录
+                # 不再检查是否存在，因为同一个qualification_key可以有多个文件
                 cursor.execute("""
-                    SELECT qualification_id FROM company_qualifications
-                    WHERE company_id = ? AND qualification_key = ?
-                """, (company_id, qualification_key))
-
-                existing = cursor.fetchone()
-
-                if existing:
-                    # 更新现有记录
-                    qualification_id = existing['qualification_id']
-                    cursor.execute("""
-                        UPDATE company_qualifications
-                        SET qualification_name = ?, custom_name = ?,
-                            original_filename = ?, safe_filename = ?,
-                            file_path = ?, file_size = ?, file_type = ?,
-                            issue_date = ?, expire_date = ?,
-                            upload_by = ?, updated_at = CURRENT_TIMESTAMP
-                        WHERE qualification_id = ?
-                    """, (qualification_name, custom_name,
-                          original_filename, safe_filename,
-                          file_path, file_size, file_type,
-                          issue_date, expire_date, upload_by,
-                          qualification_id))
-                else:
-                    # 插入新记录
-                    cursor.execute("""
-                        INSERT INTO company_qualifications (
-                            company_id, qualification_key, qualification_name,
-                            custom_name, original_filename, safe_filename,
-                            file_path, file_size, file_type,
-                            issue_date, expire_date, upload_by
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (company_id, qualification_key, qualification_name,
-                          custom_name, original_filename, safe_filename,
-                          file_path, file_size, file_type,
-                          issue_date, expire_date, upload_by))
-                    qualification_id = cursor.lastrowid
+                    INSERT INTO company_qualifications (
+                        company_id, qualification_key, qualification_name,
+                        custom_name, original_filename, safe_filename,
+                        file_path, file_size, file_type,
+                        file_version, file_sequence, is_primary,
+                        issue_date, expire_date, upload_by
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (company_id, qualification_key, qualification_name,
+                      custom_name, original_filename, safe_filename,
+                      file_path, file_size, file_type,
+                      file_version, file_sequence, is_primary,
+                      issue_date, expire_date, upload_by))
+                qualification_id = cursor.lastrowid
 
                 conn.commit()
                 return qualification_id
@@ -1058,16 +1038,16 @@ class KnowledgeBaseDB:
             return 0
 
     def get_company_qualifications(self, company_id: int) -> List[Dict]:
-        """获取公司的所有资质文件"""
+        """获取公司的所有资质文件（支持多文件）"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT q.*, qt.type_name, qt.category
+                    SELECT q.*, qt.type_name, qt.category, qt.allow_multiple_files, qt.version_label
                     FROM company_qualifications q
                     LEFT JOIN qualification_types qt ON q.qualification_key = qt.type_key
                     WHERE q.company_id = ?
-                    ORDER BY qt.sort_order, q.upload_time DESC
+                    ORDER BY qt.sort_order, q.qualification_key, q.file_sequence, q.upload_time DESC
                 """, (company_id,))
 
                 return [dict(row) for row in cursor.fetchall()]

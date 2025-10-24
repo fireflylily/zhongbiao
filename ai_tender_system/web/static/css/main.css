@@ -3,17 +3,26 @@
  * 按正确顺序引入所有样式组件，确保样式层叠正确
  *
  * 引入顺序说明：
- * 1. 基础变量和设置 (variables, bootstrap-overrides)
- * 2. 基础动画效果 (animations)
- * 3. 通用组件样式 (buttons, cards, modals等)
- * 4. 页面特定样式 (index, knowledge_base)
+ * 1. 🎨 设计令牌系统 (design-tokens) - 新的设计语言基础
+ * 2. 基础设施 (variables, bootstrap-overrides, animations)
+ * 3. 🎯 图标系统 (iconography)
+ * 4. ⚛️ 原子级组件 (badges, tags)
+ * 5. 🧬 分子级组件 (buttons, cards, modals等)
+ * 6. 📄 页面特定样式 (index, knowledge_base)
  */
+
+/* =============================================================================
+   🎨 设计令牌系统 - 设计语言基础 (新增 v1.0)
+   ============================================================================= */
+
+/* 设计令牌 - 完整的色彩、字体、间距、圆角、阴影等设计系统 */
+@import url('./base/design-tokens.css');
 
 /* =============================================================================
    基础设施样式 - 变量定义和Bootstrap覆盖
    ============================================================================= */
 
-/* CSS变量定义 - 必须最先加载 */
+/* CSS变量定义 - 兼容旧变量,逐步迁移到design-tokens */
 @import url('./base/variables.css');
 
 /* Bootstrap组件覆盖 - 在变量之后立即加载 */
@@ -23,7 +32,30 @@
 @import url('./base/animations.css');
 
 /* =============================================================================
-   通用组件样式 - 可在任何页面复用
+   🎯 图标系统 (新增)
+   ============================================================================= */
+
+/* 图标使用规范 - 统一的图标尺寸、颜色、交互规范 */
+@import url('./base/iconography.css');
+
+/* =============================================================================
+   ⚛️ 原子级组件 (Atomic Components) - 最小可复用单元 (新增)
+   ============================================================================= */
+
+/* 徽章组件 - 状态标识、计数显示 */
+@import url('./atoms/badges.css');
+
+/* 标签组件 - 关键词标记、可删除标签 */
+@import url('./atoms/tags.css');
+
+/* 分隔线组件 - 内容分隔、视觉分组 */
+@import url('./atoms/dividers.css');
+
+/* 加载器组件 - 加载状态指示器 */
+@import url('./atoms/loaders.css');
+
+/* =============================================================================
+   🧬 分子级组件 (Molecular Components) - 通用组件样式
    ============================================================================= */
 
 /* 按钮组件 - 包含所有按钮变种和状态 */
@@ -41,8 +73,30 @@
 /* 导航组件 - 侧边栏、面包屑、分页等导航元素 */
 @import url('./components/navigation.css');
 
+/* 骨架屏加载组件 - 内容加载占位符 */
+@import url('./components/skeleton-loading.css');
+
+/* 空状态组件 - 统一的空数据展示 */
+@import url('./components/empty-states.css');
+
+/* Toast通知组件 - 轻量级通知消息 */
+@import url('./components/toasts.css');
+
 /* =============================================================================
-   页面特定样式 - 仅在对应页面使用
+   🛠️ 工具类库 (Utility Classes) - 快速布局和样式调整 (新增)
+   ============================================================================= */
+
+/* 间距工具类 - 基于8点网格的Margin/Padding */
+@import url('./utilities/spacing.css');
+
+/* 文本工具类 - 颜色、大小、对齐等 */
+@import url('./utilities/text.css');
+
+/* 显示工具类 - Flexbox、Grid、定位等 */
+@import url('./utilities/display.css');
+
+/* =============================================================================
+   📄 页面特定样式 - 仅在对应页面使用
    ============================================================================= */
 
 /* 知识库页面样式 - 文件上传、搜索、分类树等 */
@@ -82,8 +136,12 @@
     transition: none !important;
 }
 
-/* 响应式间距工具类 */
+/* ============================================
+   移动端响应式优化
+   ============================================ */
+
 @media (max-width: 768px) {
+    /* 间距工具类 */
     .p-mobile-sm {
         padding: var(--spacing-sm) !important;
     }
@@ -101,6 +159,175 @@
         padding-top: var(--spacing-sm) !important;
         padding-bottom: var(--spacing-sm) !important;
     }
+
+    /* 触摸目标最小尺寸 (44x44px) */
+    .btn,
+    .nav-link,
+    .list-group-item,
+    .dropdown-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* 按钮组响应式 */
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group .btn {
+        width: 100%;
+        border-radius: var(--border-radius-md) !important;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .btn-group .btn:last-child {
+        margin-bottom: 0;
+    }
+
+    /* 卡片组响应式 */
+    .card-deck,
+    .card-group {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+    /* 表格响应式 */
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 模态框全屏 */
+    .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: stretch;
+    }
+
+    .modal-content {
+        height: 100%;
+        border-radius: 0;
+    }
+
+    .modal-body {
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* 导航栏响应式 */
+    .navbar-nav {
+        padding: var(--spacing-sm) 0;
+    }
+
+    .navbar-nav .nav-link {
+        padding: var(--spacing-md);
+    }
+
+    /* 字体大小调整 */
+    body {
+        font-size: 16px; /* 防止iOS缩放 */
+    }
+
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
+    h4 { font-size: 1.1rem; }
+    h5 { font-size: 1rem; }
+    h6 { font-size: 0.9rem; }
+
+    /* 固定定位优化 */
+    .navbar.fixed-top {
+        position: sticky;
+        top: 0;
+    }
+
+    /* 隐藏移动端不必要的元素 */
+    .d-mobile-none {
+        display: none !important;
+    }
+
+    /* 移动端全宽 */
+    .w-mobile-100 {
+        width: 100% !important;
+    }
+
+    /* 移动端居中 */
+    .text-mobile-center {
+        text-align: center !important;
+    }
+
+    /* 防止移动端双击缩放 */
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        touch-action: manipulation;
+    }
+}
+
+/* 小屏手机 (375px以下) */
+@media (max-width: 375px) {
+    :root {
+        --spacing-xs: 3px;
+        --spacing-sm: 6px;
+        --spacing-md: 10px;
+        --spacing-lg: 14px;
+        --spacing-xl: 18px;
+        --spacing-xxl: 24px;
+    }
+
+    .btn {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+
+    .card {
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .card-body {
+        padding: var(--spacing-md);
+    }
+}
+
+/* 平板横屏 */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .container-fluid {
+        padding-left: var(--spacing-lg);
+        padding-right: var(--spacing-lg);
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    /* 移除悬停效果 */
+    .hover-lift:hover,
+    .hover-scale:hover {
+        transform: none;
+    }
+
+    /* 增加可点击区域 */
+    .btn,
+    .nav-link,
+    .list-group-item {
+        min-height: 48px;
+        padding: var(--spacing-md);
+    }
+
+    /* 点击反馈 */
+    .btn:active,
+    .nav-link:active,
+    .list-group-item:active {
+        background-color: rgba(0, 0, 0, 0.05);
+        transform: scale(0.98);
+    }
 }
 
 /* 可访问性增强 */
@@ -115,11 +342,11 @@
 /* 高对比度模式支持 */
 @media (prefers-contrast: high) {
     :root {
-        --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-        --shadow-md: 0 2px 6px rgba(0,0,0,0.35);
-        --shadow-lg: 0 4px 12px rgba(0,0,0,0.3);
-        --shadow-xl: 0 8px 25px rgba(0,0,0,0.3);
-        --shadow-xxl: 0 10px 30px rgba(0,0,0,0.32);
+        --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.25);
+        --shadow-md: 0 4px 8px rgba(0,0,0,0.3);
+        --shadow-lg: 0 8px 16px rgba(0,0,0,0.35);
+        --shadow-xl: 0 12px 24px rgba(0,0,0,0.4);
     }
 
     .btn,
@@ -172,6 +399,28 @@
         --border-light: #404040;
         --border-primary: #555555;
     }
+
+    /* 暗色模式滚动条 */
+    ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: #1a1a1a;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    ::-webkit-scrollbar-thumb:active {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    * {
+        scrollbar-color: rgba(255, 255, 255, 0.2) #1a1a1a;
+    }
 }
 
 /* 性能优化 - 减少重绘和重排 */
@@ -183,10 +432,14 @@
     will-change: transform, opacity;
 }
 
-/* 滚动条美化 */
+/* ============================================
+   跨浏览器滚动条样式统一
+   ============================================ */
+
+/* Webkit浏览器 (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -195,18 +448,49 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--border-primary);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: var(--border-radius-sm);
+    border: 2px solid var(--bg-light);
+    transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
+    background: rgba(0, 0, 0, 0.3);
 }
 
-/* Firefox滚动条 */
+::-webkit-scrollbar-thumb:active {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* 横向滚动条按钮 */
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+/* Firefox浏览器 */
 * {
     scrollbar-width: thin;
-    scrollbar-color: var(--border-primary) var(--bg-light);
+    scrollbar-color: rgba(0, 0, 0, 0.2) var(--bg-light);
+}
+
+/* 细滚动条变体 */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-thin {
+    scrollbar-width: thin;
+}
+
+/* 隐藏滚动条但保持可滚动 */
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* 焦点样式统一 */

@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union, List, Dict, Any
 from werkzeug.utils import secure_filename
+from .constants import BYTES_PER_KB, DEFAULT_CHUNK_READ_SIZE, DEFAULT_TEXT_PREVIEW_LENGTH
 
 def generate_timestamp() -> str:
     """生成时间戳字符串"""
@@ -22,7 +23,7 @@ def generate_file_hash(file_path: Union[str, Path]) -> str:
     """生成文件MD5哈希值"""
     hash_md5 = hashlib.md5()
     with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
+        for chunk in iter(lambda: f.read(DEFAULT_CHUNK_READ_SIZE), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
@@ -105,15 +106,15 @@ def format_file_size(size_bytes: int) -> str:
     """格式化文件大小"""
     if size_bytes == 0:
         return "0 B"
-    
+
     size_names = ["B", "KB", "MB", "GB", "TB"]
     i = 0
     size = float(size_bytes)
-    
-    while size >= 1024.0 and i < len(size_names) - 1:
-        size /= 1024.0
+
+    while size >= BYTES_PER_KB and i < len(size_names) - 1:
+        size /= BYTES_PER_KB
         i += 1
-    
+
     return f"{size:.2f} {size_names[i]}"
 
 def validate_file_type(file_path: Union[str, Path], expected_types: List[str]) -> bool:
@@ -139,7 +140,7 @@ def validate_file_type(file_path: Union[str, Path], expected_types: List[str]) -
         file_mime = extension_to_mime.get(extension, '')
         return any(expected_type in file_mime for expected_type in expected_types)
 
-def extract_text_preview(text: str, max_length: int = 200) -> str:
+def extract_text_preview(text: str, max_length: int = DEFAULT_TEXT_PREVIEW_LENGTH) -> str:
     """提取文本预览"""
     if len(text) <= max_length:
         return text

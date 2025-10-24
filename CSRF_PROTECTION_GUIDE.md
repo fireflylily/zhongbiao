@@ -124,10 +124,19 @@ Token 会自动从服务器获取并更新到页面的 meta 标签中。
 
 ## 🚨 安全注意事项
 
-### 1. **不要禁用 CSRF 保护**
+### 1. **谨慎使用 CSRF 豁免**
+⚠️ **仅对登录端点使用豁免**：
+```python
+# ✅ 正确：登录端点需要豁免（用户还没有token）
+@auth_bp.route('/login', methods=['GET', 'POST'])
+@csrf_exempt
+def login():
+    pass
+```
+
 ❌ 错误做法：
 ```python
-@csrf.exempt  # 不要这样做！
+@csrf.exempt  # 不要对其他端点这样做！
 @app.route('/api/sensitive-operation', methods=['POST'])
 def sensitive_operation():
     pass
@@ -233,5 +242,17 @@ X-CSRF-Token: eyJ0eXAiOiJKV1QiLCJhbGc...
 
 ---
 
-**最后更新**: 2025-10-19
+**最后更新**: 2025-10-24
 **维护者**: AI标书系统开发团队
+
+---
+
+## 📝 更新日志
+
+### 2025-10-24
+- ✅ **重新启用CSRF保护** - 之前因登录问题暂时禁用，现已完全启用
+- ✅ **配置登录端点豁免** - 为 `/login` 端点添加 `@csrf_exempt` 装饰器
+- ✅ **验证应用启动** - 确认CSRF保护与所有功能正常工作
+- 📄 **文件变更**:
+  - `ai_tender_system/web/app.py`: 取消CSRF保护注释
+  - `ai_tender_system/web/blueprints/auth_bp.py`: 添加 `@csrf_exempt` 到登录路由

@@ -3,124 +3,167 @@
  * 基于variables.css中定义的渐变色彩和过渡效果
  */
 
-/* 主要按钮 - 蓝色渐变 */
+/* 主要按钮 - 纯色设计,优化层次 */
 .btn-primary {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff) !important;
+    background: var(--brand-primary) !important;
     border: none !important;
-    box-shadow: 0 2px 4px rgba(74, 137, 220, 0.2);
-    transition: var(--transition-normal);
+    box-shadow: var(--shadow-xs);
+    transition: var(--transition-fast);
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #3d6cb9, var(--brand-primary)) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(74, 137, 220, 0.3);
+    background: var(--brand-primary-dark) !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 .btn-primary:focus {
-    box-shadow: 0 0 0 0.2rem rgba(74, 137, 220, 0.25);
+    box-shadow: 0 0 0 3px rgba(74, 137, 220, 0.25);
+    outline: none;
 }
 
-/* 成功按钮 - 绿色渐变 */
+/* 成功按钮 - 优化交互反馈 */
 .btn-success {
-    background: linear-gradient(135deg, var(--brand-success), var(--brand-info)) !important;
+    background: var(--brand-success) !important;
     border: none !important;
-    box-shadow: 0 2px 4px rgba(72, 207, 173, 0.2);
-    transition: var(--transition-normal);
+    box-shadow: var(--shadow-xs);
+    transition: var(--transition-fast);
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-success:hover {
-    background: linear-gradient(135deg, #3ea99f, var(--brand-success)) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(72, 207, 173, 0.3);
+    background: #3ea99f !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-success:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 .btn-success:focus {
-    box-shadow: 0 0 0 0.2rem rgba(72, 207, 173, 0.25);
+    box-shadow: 0 0 0 3px rgba(72, 207, 173, 0.25);
+    outline: none;
 }
 
-/* 警告按钮 - 橙色渐变 */
+/* 警告按钮 - 优化交互反馈 */
 .btn-warning {
-    background: linear-gradient(135deg, var(--brand-warning), #f39c12) !important;
+    background: var(--brand-warning) !important;
     border: none !important;
-    box-shadow: 0 2px 4px rgba(235, 125, 60, 0.2);
-    transition: var(--transition-normal);
+    box-shadow: var(--shadow-xs);
+    transition: var(--transition-fast);
     color: white !important;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-warning:hover {
-    background: linear-gradient(135deg, #d35400, var(--brand-warning)) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(235, 125, 60, 0.3);
+    background: #d68910 !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    color: white !important;
+}
+
+.btn-warning:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
     color: white !important;
 }
 
 .btn-warning:focus {
-    box-shadow: 0 0 0 0.2rem rgba(235, 125, 60, 0.25);
+    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.25);
     color: white !important;
+    outline: none;
 }
 
-/* 危险按钮 - 红色渐变 */
+/* 危险按钮 - 优化交互反馈 */
 .btn-danger {
-    background: linear-gradient(135deg, var(--brand-danger), #e74c3c) !important;
+    background: var(--brand-danger) !important;
     border: none !important;
-    box-shadow: 0 2px 4px rgba(218, 68, 83, 0.2);
-    transition: var(--transition-normal);
+    box-shadow: var(--shadow-xs);
+    transition: var(--transition-fast);
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-danger:hover {
-    background: linear-gradient(135deg, #c0392b, var(--brand-danger)) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(218, 68, 83, 0.3);
+    background: #c0392b !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 .btn-danger:focus {
-    box-shadow: 0 0 0 0.2rem rgba(218, 68, 83, 0.25);
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.25);
+    outline: none;
 }
 
-/* 信息按钮 - 蓝色渐变 */
+/* 信息按钮 - 优化交互反馈 */
 .btn-info {
-    background: linear-gradient(135deg, var(--brand-info), #74b9ff) !important;
+    background: var(--bs-info) !important;
     border: none !important;
-    box-shadow: 0 2px 4px rgba(93, 173, 226, 0.2);
-    transition: var(--transition-normal);
+    box-shadow: var(--shadow-xs);
+    transition: var(--transition-fast);
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-info:hover {
-    background: linear-gradient(135deg, #4a89dc, var(--brand-info)) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(93, 173, 226, 0.3);
+    background: #4a9fd6 !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-info:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 .btn-info:focus {
-    box-shadow: 0 0 0 0.2rem rgba(93, 173, 226, 0.25);
+    box-shadow: 0 0 0 3px rgba(93, 173, 226, 0.25);
+    outline: none;
 }
 
-/* 轮廓按钮 - outline 样式增强 */
+/* 轮廓按钮 - 简化样式 */
 .btn-outline-primary {
     border-color: var(--brand-primary);
     color: var(--brand-primary);
-    transition: var(--transition-normal);
+    transition: var(--transition-fast);
 }
 
 .btn-outline-primary:hover {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff);
+    background: var(--brand-primary);
     border-color: var(--brand-primary);
+    color: white;
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-outline-success {
     border-color: var(--brand-success);
     color: var(--brand-success);
-    transition: var(--transition-normal);
+    transition: var(--transition-fast);
 }
 
 .btn-outline-success:hover {
-    background: linear-gradient(135deg, var(--brand-success), var(--brand-info));
+    background: var(--brand-success);
     border-color: var(--brand-success);
+    color: white;
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
 }
 
 /* 小按钮样式 */
@@ -174,13 +217,13 @@
     align-items: center;
     justify-content: center;
     z-index: var(--z-fixed);
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-lg);
     transition: var(--transition-normal);
 }
 
 .btn-floating:hover {
-    transform: scale(1.1);
-    box-shadow: var(--shadow-xxl);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
 }
 
 /* 加载状态 */
@@ -231,9 +274,76 @@
 
 /* 搜索模式切换按钮特殊样式 */
 .btn-check:checked + .btn-outline-primary {
-    background: linear-gradient(135deg, var(--brand-primary), #74b9ff) !important;
+    background: var(--brand-primary) !important;
     border-color: var(--brand-primary) !important;
     color: white !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(74, 137, 220, 0.25);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ============================================
+   按钮涟漪效果（Material Design风格）
+   ============================================ */
+
+/* 涟漪容器 */
+.btn-ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ripple::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease-out, height 0.6s ease-out;
+}
+
+.btn-ripple:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* 为主要按钮添加默认涟漪效果 */
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::after,
+.btn-success::after,
+.btn-danger::after,
+.btn-warning::after,
+.btn-info::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s ease-out, height 0.5s ease-out, opacity 0.5s ease-out;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.btn-primary:active::after,
+.btn-success:active::after,
+.btn-danger:active::after,
+.btn-warning:active::after,
+.btn-info:active::after {
+    width: 200px;
+    height: 200px;
+    opacity: 1;
 }

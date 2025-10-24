@@ -14,11 +14,21 @@ CREATE TABLE IF NOT EXISTS companies (
     establish_date DATE, -- 成立日期
     legal_representative VARCHAR(100), -- 法定代表人
     legal_representative_position VARCHAR(100), -- 法定代表人职务
+    legal_representative_gender VARCHAR(10), -- 法定代表人性别
+    legal_representative_age INTEGER, -- 法定代表人年龄
     social_credit_code VARCHAR(50), -- 统一社会信用代码
     registered_capital VARCHAR(100), -- 注册资本
     company_type VARCHAR(100), -- 公司类型
     registered_address TEXT, -- 注册地址
     business_scope TEXT, -- 经营范围
+
+    -- 被授权人信息
+    authorized_person_name VARCHAR(100), -- 被授权人姓名
+    authorized_person_id VARCHAR(18), -- 被授权人身份证号
+    authorized_person_gender VARCHAR(10), -- 被授权人性别
+    authorized_person_position VARCHAR(100), -- 被授权人职位
+    authorized_person_title VARCHAR(100), -- 被授权人职称
+    authorized_person_age INTEGER, -- 被授权人年龄
 
     -- 联系信息
     fixed_phone VARCHAR(50), -- 固定电话

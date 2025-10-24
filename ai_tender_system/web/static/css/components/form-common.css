@@ -279,3 +279,273 @@
 .common-empty-state p {
     color: #6c757d;
 }
+
+/* ==================== */
+/* 增强的表单交互样式 */
+/* ==================== */
+
+/* 通用表单控件增强 */
+.form-control,
+.form-select {
+    border: 2px solid var(--border-light);
+    border-radius: var(--border-radius-md);
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    transition: var(--transition-fast);
+    background-color: var(--bg-white);
+}
+
+.form-control:hover,
+.form-select:hover {
+    border-color: var(--border-primary);
+}
+
+/* 焦点状态 - 使用品牌色 */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(74, 137, 220, 0.15);
+    outline: none;
+}
+
+/* 禁用状态 */
+.form-control:disabled,
+.form-select:disabled {
+    background-color: var(--bg-light);
+    border-color: var(--border-light);
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 表单验证样式增强 */
+
+/* 成功状态 */
+.form-control.is-valid,
+.form-select.is-valid {
+    border-color: var(--brand-success);
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%2348cfad' d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+}
+
+.form-control.is-valid:focus,
+.form-select.is-valid:focus {
+    border-color: var(--brand-success);
+    box-shadow: 0 0 0 3px rgba(72, 207, 173, 0.15);
+}
+
+.valid-feedback {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: 0.875rem;
+    color: var(--brand-success);
+    font-weight: 500;
+}
+
+/* 错误状态 - 更醒目 */
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: var(--brand-danger);
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%23e74c3c' d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/%3e%3cpath fill='%23e74c3c' d='M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    animation: form-shake 0.3s ease-in-out;
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+    border-color: var(--brand-danger);
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.15);
+}
+
+.invalid-feedback {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: 0.875rem;
+    color: var(--brand-danger);
+    font-weight: 500;
+}
+
+/* 错误抖动动画 */
+@keyframes form-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* 表单标签增强 */
+.form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    display: block;
+}
+
+.form-label.required::after {
+    content: ' *';
+    color: var(--brand-danger);
+    font-weight: 600;
+}
+
+/* 表单帮助文本 */
+.form-text {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* 输入组增强 */
+.input-group {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    width: 100%;
+}
+
+.input-group-text {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: nowrap;
+    background-color: var(--bg-light);
+    border: 2px solid var(--border-light);
+    border-radius: var(--border-radius-md);
+    transition: var(--transition-fast);
+}
+
+.input-group > .form-control:focus ~ .input-group-text,
+.input-group > .form-control:focus {
+    border-color: var(--brand-primary);
+}
+
+/* 文本域增强 */
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+
+textarea.form-control::-webkit-scrollbar {
+    width: 8px;
+}
+
+textarea.form-control::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: var(--border-radius-sm);
+}
+
+textarea.form-control::-webkit-scrollbar-thumb {
+    background: var(--border-primary);
+    border-radius: var(--border-radius-sm);
+}
+
+textarea.form-control::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* 复选框和单选按钮增强 */
+.form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+    border: 2px solid var(--border-light);
+    transition: var(--transition-fast);
+}
+
+.form-check-input:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(74, 137, 220, 0.15);
+    outline: none;
+}
+
+.form-check-input:checked {
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
+}
+
+.form-check-label {
+    margin-left: var(--spacing-sm);
+    cursor: pointer;
+}
+
+/* 表单组增强 */
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+/* 内联表单 */
+.form-inline {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.form-inline .form-control,
+.form-inline .form-select {
+    width: auto;
+}
+
+/* 表单反馈图标动画 */
+.form-control.is-valid,
+.form-control.is-invalid {
+    background-size: 0 18px;
+    animation: form-feedback-show 0.3s ease-out forwards;
+}
+
+@keyframes form-feedback-show {
+    from {
+        background-size: 0 18px;
+    }
+    to {
+        background-size: 18px 18px;
+    }
+}
+
+/* 响应式表单 */
+@media (max-width: 768px) {
+    .form-inline {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-inline .form-control,
+    .form-inline .form-select {
+        width: 100%;
+    }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+    .form-control,
+    .form-select {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border-color: #404040;
+    }
+
+    .form-control:hover,
+    .form-select:hover {
+        border-color: #555555;
+    }
+
+    .input-group-text {
+        background-color: #2d2d2d;
+        color: #cccccc;
+        border-color: #404040;
+    }
+}

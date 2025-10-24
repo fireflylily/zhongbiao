@@ -73,7 +73,7 @@
     <script src="/static/js/components/company-selector.js" defer></script>
     <script src="/static/js/components/modal-manager.js" defer></script>
     <script src="/static/js/components/universal-uploader.js" defer></script>
-    <script src="/static/js/components/company-state-manager.js" defer></script>
+    <!-- company-state-manager.js 已废弃，功能已迁移到 global-state-manager.js，并提供兼容别名 -->
     <script src="/static/js/components/company-project-display.js" defer></script>
     <script src="/static/js/components/navigation-manager.js" defer></script>
     <script src="/static/js/word-editor.js" defer></script>
@@ -777,6 +777,89 @@
                     }
                 });
             }
+
+            // ✅ 监听从项目总览进入项目处理的事件
+            document.addEventListener('loadProjectFromOverview', async function(e) {
+                const { projectId, companyId, companyName, projectName } = e.detail;
+                console.log('[Index] 收到 loadProjectFromOverview 事件:', e.detail);
+
+                // 确保 HITLConfigManager 已初始化
+                if (typeof HITLConfigManager === 'undefined') {
+                    console.error('[Index] HITLConfigManager 未定义');
+                    return;
+                }
+
+                // 延迟执行，确保Tab切换完成且DOM已渲染
+                setTimeout(async () => {
+                    try {
+                        // 1. 等待并设置公司选择器
+                        const companySelect = document.getElementById('hitlCompanySelect');
+                        const companyNameSpan = document.getElementById('hitlSelectedCompanyName');
+
+                        if (companySelect && companyId) {
+                            // 如果公司列表未加载，先加载
+                            if (companySelect.options.length <= 1) {
+                                console.log('[Index] 公司列表未加载，先加载公司列表...');
+                                await HITLConfigManager.loadCompanies();
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+
+                            // 设置公司选择器
+                            companySelect.value = companyId;
+                            HITLConfigManager.currentCompanyId = companyId;
+
+                            // 更新公司名称显示
+                            if (companyNameSpan && companyName) {
+                                companyNameSpan.textContent = companyName;
+                                companyNameSpan.className = 'text-primary fw-bold';
+                            }
+
+                            console.log('[Index] 已设置公司选择器:', companyId);
+                        }
+
+                        // 2. 等待并加载项目列表
+                        console.log('[Index] 加载项目列表...');
+                        await HITLConfigManager.loadProjects();
+                        await new Promise(resolve => setTimeout(resolve, 200));
+
+                        // 3. 设置项目选择器
+                        const projectSelect = document.getElementById('hitlProjectSelect');
+                        if (projectSelect && projectId) {
+                            projectSelect.value = projectId;
+                            HITLConfigManager.selectedProjectId = projectId;
+                            HITLConfigManager.currentProjectId = projectId;
+
+                            // 更新项目信息显示
+                            const projectInfo = document.getElementById('hitlProjectInfo');
+                            const projectNameSpan = document.getElementById('hitlProjectName');
+                            if (projectInfo && projectNameSpan && projectName) {
+                                projectNameSpan.textContent = `已加载: ${projectName}`;
+                                projectInfo.style.display = 'block';
+                            }
+
+                            console.log('[Index] 已设置项目选择器:', projectId);
+                        }
+
+                        // 4. 加载项目详情（包括所有Tab数据）
+                        if (projectId) {
+                            console.log('[Index] 开始加载项目详情...');
+                            await HITLConfigManager.loadProjectDetails(projectId);
+                            console.log('[Index] 项目详情加载完成');
+
+                            // 5. 自动导航到步骤3
+                            if (HITLConfigManager.navigateToStep3) {
+                                HITLConfigManager.navigateToStep3();
+                                console.log('[Index] 已导航到步骤3');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[Index] 加载项目详情失败:', error);
+                        if (typeof showNotification === 'function') {
+                            showNotification('加载项目详情失败: ' + error.message, 'error');
+                        }
+                    }
+                }, 400); // 延迟400ms，确保Tab切换完成
+            });
 
             // 侧边栏切换功能已移至 navigation-manager.js 模块
         });

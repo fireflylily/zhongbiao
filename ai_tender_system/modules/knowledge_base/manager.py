@@ -111,10 +111,13 @@ class KnowledgeBaseManager:
             # 映射前端字段到数据库字段
             update_data = {}
             field_mapping = {
+                # 基本信息字段
                 'companyName': 'company_name',
                 'establishDate': 'establish_date',
                 'legalRepresentative': 'legal_representative',
                 'legalRepresentativePosition': 'legal_representative_position',
+                'legalRepresentativeGender': 'legal_representative_gender',
+                'legalRepresentativeAge': 'legal_representative_age',
                 'socialCreditCode': 'social_credit_code',
                 'registeredCapital': 'registered_capital',
                 'companyType': 'company_type',
@@ -127,8 +130,16 @@ class KnowledgeBaseManager:
                 'email': 'email',
                 'officeAddress': 'office_address',
                 'employeeCount': 'employee_count',
+                # 财务信息字段
                 'bankName': 'bank_name',
-                'bankAccount': 'bank_account'
+                'bankAccount': 'bank_account',
+                # 被授权人信息字段
+                'authorized_person_name': 'authorized_person_name',
+                'authorized_person_id': 'authorized_person_id',
+                'authorized_person_gender': 'authorized_person_gender',
+                'authorized_person_position': 'authorized_person_position',
+                'authorized_person_title': 'authorized_person_title',
+                'authorized_person_age': 'authorized_person_age'
             }
 
             # DEBUG: 专门检查 registeredCapital 字段
@@ -927,8 +938,22 @@ class KnowledgeBaseManager:
     def upload_qualification(self, company_id: int, qualification_key: str,
                             file_obj, original_filename: str,
                             qualification_name: str = None, custom_name: str = None,
+                            file_version: str = None,  # 新增：文件版本/年份
                             issue_date: str = None, expire_date: str = None) -> Dict:
-        """上传公司资质文件 - 使用统一存储服务"""
+        """
+        上传公司资质文件 - 支持多文件上传
+
+        Args:
+            company_id: 公司ID
+            qualification_key: 资质类型键名
+            file_obj: 文件对象
+            original_filename: 原始文件名
+            qualification_name: 资质名称
+            custom_name: 自定义名称
+            file_version: 文件版本/年份（用于区分同一资质的多个文件）
+            issue_date: 颁发日期
+            expire_date: 过期日期
+        """
         try:
             from core.storage_service import storage_service
 
@@ -940,6 +965,37 @@ class KnowledgeBaseManager:
                     'error': f'公司ID {company_id} 不存在'
                 }
 
+            # 检查该资质类型是否允许多文件
+            qual_type = self.db.execute_query(
+                "SELECT allow_multiple_files FROM qualification_types WHERE type_key = ?",
+                (qualification_key,),
+                fetch_one=True
+            )
+            allow_multiple = qual_type.get('allow_multiple_files', False) if qual_type else False
+
+            # 如果不允许多文件，检查是否已存在，存在则删除旧文件
+            if not allow_multiple:
+                existing_qual = self.db.get_qualification_by_key(company_id, qualification_key)
+                if existing_qual:
+                    logger.info(f"资质类型 {qualification_key} 不允许多文件，删除旧文件")
+                    # 删除旧的物理文件
+                    old_file_path = Path(existing_qual['file_path'])
+                    if old_file_path.exists():
+                        old_file_path.unlink()
+                    # 删除数据库记录
+                    self.db.delete_qualification(existing_qual['qualification_id'])
+
+            # 如果允许多文件，计算新的序列号
+            file_sequence = 1
+            if allow_multiple:
+                existing_files = self.db.execute_query(
+                    "SELECT MAX(file_sequence) as max_seq FROM company_qualifications WHERE company_id = ? AND qualification_key = ?",
+                    (company_id, qualification_key),
+                    fetch_one=True
+                )
+                if existing_files and existing_files.get('max_seq'):
+                    file_sequence = existing_files['max_seq'] + 1
+
             # 使用统一存储服务保存文件
             file_metadata = storage_service.store_file(
                 file_obj=file_obj,
@@ -947,14 +1003,14 @@ class KnowledgeBaseManager:
                 category='qualifications',
                 business_type=qualification_key,
                 company_id=company_id,
-                tags=[qualification_name or qualification_key, f'company_{company_id}']
+                tags=[qualification_name or qualification_key, f'company_{company_id}', f'version_{file_version}' if file_version else None]
             )
 
             # 获取文件类型
             file_ext = Path(original_filename).suffix.lower()
             file_type = file_ext[1:] if file_ext else ''
 
-            # 创建或更新资质记录
+            # 创建资质记录（支持多文件）
             qualification_id = self.db.save_company_qualification(
                 company_id=company_id,
                 qualification_key=qualification_key,
@@ -965,11 +1021,14 @@ class KnowledgeBaseManager:
                 file_path=file_metadata.file_path,
                 file_size=file_metadata.file_size,
                 file_type=file_type,
+                file_version=file_version,  # 新增字段
+                file_sequence=file_sequence,  # 新增字段
+                is_primary=(file_sequence == 1),  # 第一个文件标记为主文件
                 issue_date=issue_date,
                 expire_date=expire_date
             )
 
-            logger.info(f"公司 {company_id} 上传资质文件成功: {qualification_key} -> {file_metadata.safe_name} (file_id: {file_metadata.file_id})")
+            logger.info(f"公司 {company_id} 上传资质文件成功: {qualification_key} [v:{file_version}] seq:{file_sequence} -> {file_metadata.safe_name}")
 
             return {
                 'success': True,
@@ -978,14 +1037,21 @@ class KnowledgeBaseManager:
                 'filename': file_metadata.safe_name,
                 'original_filename': file_metadata.original_name,
                 'file_id': file_metadata.file_id,
+                'file_version': file_version,
+                'file_sequence': file_sequence,
                 'message': f"资质文件 '{original_filename}' 上传成功"
             }
 
         except Exception as e:
             logger.error(f"上传资质文件失败: {e}")
             # 如果文件已保存但数据库操作失败，删除文件
-            if 'file_path' in locals() and file_path.exists():
-                file_path.unlink()
+            if 'file_metadata' in locals():
+                try:
+                    file_path = Path(file_metadata.file_path)
+                    if file_path.exists():
+                        file_path.unlink()
+                except:
+                    pass
             return {
                 'success': False,
                 'error': str(e)

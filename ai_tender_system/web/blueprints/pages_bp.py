@@ -15,6 +15,10 @@ sys.path.insert(0, str(project_root))
 
 from web.middleware.auth import login_required
 
+from common.logger import get_module_logger
+
+logger = get_module_logger("pages_bp")
+
 # 创建蓝图
 pages_bp = Blueprint('pages', __name__)
 

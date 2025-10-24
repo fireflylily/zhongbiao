@@ -300,8 +300,8 @@ class ProposalGenerator {
             }
 
             // 添加项目名称（如果有）
-            if (window.companyStateManager) {
-                const projectName = window.companyStateManager.getProjectName();
+            if (window.globalState) {
+                const projectName = window.globalState.getProjectName();
                 if (projectName) {
                     formData.append('projectName', projectName);
                 }
@@ -1034,15 +1034,13 @@ class ProposalGenerator {
                 technicalFileName, technicalFileSize, technicalFileUrl
             });
 
-            // 如果有公司和项目信息,通过companyStateManager设置
-            if (companyId && companyName && window.companyStateManager) {
+            // 如果有公司和项目信息,通过globalState设置
+            if (companyId && companyName && window.globalState) {
                 console.log('[ProposalGenerator] 设置公司和项目信息到状态管理器');
-                window.companyStateManager.selectCompany({
-                    company_id: parseInt(companyId),
-                    company_name: companyName,
-                    project_id: projectId ? parseInt(projectId) : null,
-                    project_name: projectName || null
-                });
+                window.globalState.setCompany(parseInt(companyId), companyName);
+                if (projectId && projectName) {
+                    window.globalState.setProject(parseInt(projectId), projectName);
+                }
             }
 
             // 保存hitl_task_id供后续使用(如果需要同步回HITL)

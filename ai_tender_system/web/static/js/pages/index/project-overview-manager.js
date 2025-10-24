@@ -308,21 +308,21 @@ class ProjectOverviewManager {
             return;
         }
 
-        // 保存项目信息到全局状态
-        if (window.companyStateManager) {
-            // 设置公司信息
-            window.companyStateManager.setSelectedCompany({
-                company_id: project.company_id,
-                company_name: project.company_name
+        // ✅ 使用 globalState 批量保存项目和公司信息
+        if (window.globalState) {
+            window.globalState.setBulk({
+                company: {
+                    id: project.company_id,
+                    name: project.company_name
+                },
+                project: {
+                    id: projectId,
+                    name: project.project_name
+                }
             });
-
-            // 设置项目信息
-            window.companyStateManager.setProjectInfo({
-                project_id: projectId,
-                project_name: project.project_name
-            });
-
-            console.log('[ProjectOverviewManager] 已保存项目信息到状态管理器');
+            console.log('[ProjectOverviewManager] 已保存项目信息到 globalState');
+        } else {
+            console.error('[ProjectOverviewManager] globalState 未初始化');
         }
 
         // 切换到投标管理Tab

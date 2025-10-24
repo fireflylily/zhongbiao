@@ -13,7 +13,10 @@ sys.path.insert(0, str(project_root))
 
 # 导入Web应用
 from web.app import main
+from common.logger import get_module_logger
+
+logger = get_module_logger("run")
 
 if __name__ == '__main__':
-    print("正在启动AI标书系统...")
+    logger.info("正在启动AI标书系统...")
     main()

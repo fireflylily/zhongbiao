@@ -16,6 +16,7 @@ sys.path.insert(0, str(project_root))
 from common import get_module_logger
 
 # 创建蓝图
+# CSRFProtect will be applied at app level, but we need to exempt login route
 auth_bp = Blueprint('auth', __name__)
 
 # 日志记录器

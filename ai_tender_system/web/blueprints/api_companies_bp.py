@@ -164,6 +164,8 @@ def update_company(company_id):
                     'establishDate': updated_company.get('establish_date', ''),
                     'legalRepresentative': updated_company.get('legal_representative', ''),
                     'legalRepresentativePosition': updated_company.get('legal_representative_position', ''),
+                    'legalRepresentativeGender': updated_company.get('legal_representative_gender', ''),
+                    'legalRepresentativeAge': updated_company.get('legal_representative_age', ''),
                     'socialCreditCode': updated_company.get('social_credit_code', ''),
                     'registeredCapital': updated_company.get('registered_capital', ''),
                     'companyType': updated_company.get('company_type', ''),
@@ -176,6 +178,13 @@ def update_company(company_id):
                     'email': updated_company.get('email', ''),
                     'officeAddress': updated_company.get('office_address', ''),
                     'employeeCount': updated_company.get('employee_count', ''),
+                    # 被授权人信息
+                    'authorized_person_name': updated_company.get('authorized_person_name', ''),
+                    'authorized_person_id': updated_company.get('authorized_person_id', ''),
+                    'authorized_person_gender': updated_company.get('authorized_person_gender', ''),
+                    'authorized_person_position': updated_company.get('authorized_person_position', ''),
+                    'authorized_person_title': updated_company.get('authorized_person_title', ''),
+                    'authorized_person_age': updated_company.get('authorized_person_age', ''),
                     'created_at': updated_company.get('created_at', ''),
                     'updated_at': updated_company.get('updated_at', '')
                 }
@@ -222,7 +231,7 @@ def delete_company(company_id):
 
 @api_companies_bp.route('/companies/<company_id>/qualifications')
 def get_company_qualifications(company_id):
-    """获取公司资质文件列表"""
+    """获取公司资质文件列表（支持多文件）"""
     try:
         # 验证公司ID并获取资质列表
         try:
@@ -230,21 +239,43 @@ def get_company_qualifications(company_id):
             # 使用数据库方法获取资质列表
             qualifications = kb_manager.get_company_qualifications(company_id_int)
 
-            # 转换为前端期望的格式
+            # 转换为前端期望的格式 - 支持多文件
             qualifications_dict = {}
             for qual in qualifications:
                 qual_key = qual['qualification_key']
-                qualifications_dict[qual_key] = {
+                allow_multiple = qual.get('allow_multiple_files', False)
+
+                file_info = {
+                    'qualification_id': qual['qualification_id'],
                     'original_filename': qual['original_filename'],
                     'safe_filename': qual['safe_filename'],
                     'file_size': qual['file_size'],
                     'upload_time': qual['upload_time'],
                     'custom_name': qual.get('custom_name'),
                     'expire_date': qual.get('expire_date'),
-                    'verify_status': qual.get('verify_status', 'pending')
+                    'verify_status': qual.get('verify_status', 'pending'),
+                    'file_version': qual.get('file_version'),
+                    'file_sequence': qual.get('file_sequence', 1),
+                    'is_primary': qual.get('is_primary', True)
                 }
 
-            logger.info(f"获取公司 {company_id} 的资质文件列表，共 {len(qualifications_dict)} 个")
+                if allow_multiple:
+                    # 多文件资质：返回文件数组
+                    if qual_key not in qualifications_dict:
+                        qualifications_dict[qual_key] = {
+                            'allow_multiple_files': True,
+                            'version_label': qual.get('version_label', '版本'),
+                            'files': []
+                        }
+                    qualifications_dict[qual_key]['files'].append(file_info)
+                else:
+                    # 单文件资质：返回单个对象（保持向后兼容）
+                    qualifications_dict[qual_key] = {
+                        'allow_multiple_files': False,
+                        **file_info
+                    }
+
+            logger.info(f"获取公司 {company_id} 的资质文件列表，共 {len(qualifications_dict)} 个资质类型")
             return jsonify({
                 'success': True,
                 'qualifications': qualifications_dict
@@ -260,7 +291,7 @@ def get_company_qualifications(company_id):
 
 @api_companies_bp.route('/companies/<company_id>/qualifications/upload', methods=['POST'])
 def upload_company_qualifications(company_id):
-    """上传公司资质文件"""
+    """上传公司资质文件（支持多文件版本）"""
     try:
         # 首先检查数据库中是否存在该公司
         try:
@@ -276,10 +307,17 @@ def upload_company_qualifications(company_id):
         qualification_names = request.form.get('qualification_names', '{}')
         qualification_names = json.loads(qualification_names) if qualification_names else {}
 
+        # 获取文件版本信息（可选）
+        file_versions = request.form.get('file_versions', '{}')
+        file_versions = json.loads(file_versions) if file_versions else {}
+
         for key, file in request.files.items():
             if key.startswith('qualifications[') and file.filename:
                 # 提取资质键名
                 qual_key = key.replace('qualifications[', '').replace(']', '')
+
+                # 获取文件版本（如果有）
+                file_version = file_versions.get(qual_key)
 
                 # 使用数据库方法上传资质文件
                 result = kb_manager.upload_qualification(
@@ -288,14 +326,16 @@ def upload_company_qualifications(company_id):
                     file_obj=file,
                     original_filename=file.filename,
                     qualification_name=qualification_names.get(qual_key, qual_key),
-                    custom_name=qualification_names.get(qual_key) if qual_key.startswith('custom') else None
+                    custom_name=qualification_names.get(qual_key) if qual_key.startswith('custom') else None,
+                    file_version=file_version  # 新增：文件版本参数
                 )
 
                 if result['success']:
                     uploaded_files[qual_key] = {
                         'filename': file.filename,
                         'qualification_id': result['qualification_id'],
-                        'message': result['message']
+                        'message': result['message'],
+                        'file_version': file_version
                     }
 
         logger.info(f"公司 {company_id} 上传了 {len(uploaded_files)} 个资质文件")
@@ -425,6 +465,58 @@ def delete_qualification_file(company_id, qualification_key):
             return jsonify(result)
         else:
             return jsonify(result), 400
+
+    except Exception as e:
+        logger.error(f"删除资质文件失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_companies_bp.route('/qualifications/<int:qualification_id>/download')
+def download_qualification_by_id(qualification_id):
+    """通过资质ID下载文件（用于多文件资质）"""
+    try:
+        # 从数据库获取资质文件信息
+        qualification = kb_manager.db.get_qualification_by_id(qualification_id)
+        if not qualification:
+            return jsonify({'success': False, 'error': '资质文件不存在'}), 404
+
+        # 检查文件是否存在
+        file_path = Path(qualification['file_path'])
+        if not file_path.exists():
+            return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+        # 返回文件
+        original_filename = qualification['original_filename']
+        logger.info(f"下载资质文件 (ID={qualification_id}): {original_filename}")
+        return send_file(str(file_path), as_attachment=True, download_name=original_filename)
+
+    except Exception as e:
+        logger.error(f"下载资质文件失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_companies_bp.route('/qualifications/<int:qualification_id>', methods=['DELETE'])
+def delete_qualification_by_id(qualification_id):
+    """通过资质ID删除文件（用于多文件资质）"""
+    try:
+        # 从数据库获取资质文件信息
+        qualification = kb_manager.db.get_qualification_by_id(qualification_id)
+        if not qualification:
+            return jsonify({'success': False, 'error': '资质文件不存在'}), 404
+
+        # 删除物理文件
+        file_path = Path(qualification['file_path'])
+        if file_path.exists():
+            file_path.unlink()
+            logger.info(f"删除物理文件: {file_path}")
+
+        # 删除数据库记录
+        result = kb_manager.db.delete_qualification(qualification_id)
+        if result:
+            logger.info(f"删除资质文件成功 (ID={qualification_id})")
+            return jsonify({'success': True, 'message': '资质文件删除成功'})
+        else:
+            return jsonify({'success': False, 'error': '删除数据库记录失败'}), 500
 
     except Exception as e:
         logger.error(f"删除资质文件失败: {e}")
