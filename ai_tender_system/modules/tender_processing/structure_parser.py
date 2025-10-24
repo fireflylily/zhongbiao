@@ -58,7 +58,7 @@ class DocumentStructureParser:
         self.logger = get_module_logger("structure_parser")
 
         # ========================================
-        # 新增：编号模式（用于识别章节锚点）
+        # 新增：编号模式（用于识别章节锚点）（改进4：扩展编号模式）
         # ========================================
         self.NUMBERING_PATTERNS = [
             # 中文部分/章节编号
@@ -69,6 +69,7 @@ class DocumentStructureParser:
             r'^\d+\.\s*',           # 1.
             r'^\d+\.\d+\s*',        # 1.1
             r'^\d+\.\d+\.\d+\s*',   # 1.1.1
+            r'^\d+\.\d+\.\d+\.\d+\s*',  # 1.1.1.1（四级编号，改进4新增）
             # 中文序号
             r'^[一二三四五六七八九十]+、\s*',
             r'^（[一二三四五六七八九十]+）\s*',
@@ -80,23 +81,32 @@ class DocumentStructureParser:
             # 罗马数字
             r'^[IVX]+\.\s*',
             r'^[ivx]+\.\s*',
+            # 附件/附表编号（改进4新增）
+            r'^附件[一二三四五六七八九十\d]+[:：]\s*',  # 附件1: 或 附件一：
+            r'^附表[一二三四五六七八九十\d]+[:：]\s*',  # 附表1: 或 附表一：
+            r'^附录[一二三四五六七八九十\d]+[:：]\s*',  # 附录1: 或 附录一：
         ]
 
-        # 白名单：自动选中的关键词
+        # 白名单：自动选中的关键词（改进2：扩展关键词库）
         self.WHITELIST_KEYWORDS = [
             # 投标要求类
             "投标须知", "供应商须知", "投标人须知", "资格要求", "资质要求",
+            "响应人须知",  # 新增：竞争性谈判常用
             "投标邀请", "谈判邀请", "采购邀请", "招标公告", "项目概况",
+            "磋商邀请",  # 新增：竞争性磋商常用
             "单一来源", "竞争性谈判", "询价公告",
             # 技术要求类
             "技术要求", "技术需求", "需求书", "技术规格", "技术参数", "性能指标", "项目需求",
             "需求说明", "技术标准", "功能要求", "技术规范", "技术方案",
+            "采购需求", "服务要求", "服务内容", "服务范围",  # 新增：服务类项目常用
             # 商务要求类
             "商务要求", "商务条款", "付款方式", "交付要求", "质保要求",
             "价格要求", "报价要求",
+            "合同主要条款", "付款条款", "结算方式",  # 新增：合同相关（但在白名单中）
             # 评分标准类
             "评分标准", "评标办法", "评分细则", "打分标准", "综合评分",
             "评审标准", "评审办法",
+            "评价方法", "打分细则",  # 新增：评分相关变体
         ]
 
         # 黑名单：推荐跳过的关键词（优先级高于白名单）
@@ -424,7 +434,7 @@ class DocumentStructureParser:
 
     def _parse_toc_items(self, doc: Document, toc_start_idx: int) -> Tuple[List[Dict], int]:
         """
-        解析目录项
+        解析目录项（改进3：确保 toc_end_idx > toc_start_idx）
 
         Args:
             doc: Word文档对象
@@ -482,6 +492,12 @@ class DocumentStructureParser:
                 if consecutive_non_toc >= 5 and len(toc_items) > 0:
                     self.logger.info(f"目录解析完成，共 {len(toc_items)} 项，结束于段落 {toc_end_idx}")
                     break
+
+        # 改进3：确保 toc_end_idx 严格大于 toc_start_idx
+        if toc_end_idx == toc_start_idx:
+            # 如果没有找到任何目录项，至少向后移动1个段落
+            toc_end_idx = toc_start_idx + 1
+            self.logger.warning(f"未解析到目录项，将目录结束位置设为 {toc_end_idx}（避免逻辑错误）")
 
         return toc_items, toc_end_idx
 
@@ -1435,7 +1451,7 @@ class DocumentStructureParser:
 
     def remove_leading_patterns(self, text: str) -> Tuple[str, int]:
         """
-        移除文本开头的编号模式，返回纯净文本和推测的层级
+        移除文本开头的编号模式，返回纯净文本和推测的层级（改进4：支持更多编号格式）
 
         Args:
             text: 原始文本
@@ -1447,6 +1463,8 @@ class DocumentStructureParser:
             - "1." / "一、" -> 1
             - "1.1" -> 2
             - "1.1.1" -> 3
+            - "1.1.1.1" -> 4 (改进4新增)
+            - "附件X:" / "附表X:" -> 1 (改进4新增)
         """
         text = text.strip()
         original_text = text
@@ -1455,13 +1473,16 @@ class DocumentStructureParser:
         # 移除所有空格和制表符（标准化）
         text_normalized = re.sub(r'\s+', '', text)
 
-        # 检测层级并移除编号
+        # 检测层级并移除编号（改进4：增加四级编号和附件编号支持）
         if re.match(r'^第[一二三四五六七八九十百\d]+部分', text):
             level = 1
             text = re.sub(r'^第[一二三四五六七八九十百\d]+部分\s*', '', text)
         elif re.match(r'^第[一二三四五六七八九十百\d]+章', text):
             level = 1
             text = re.sub(r'^第[一二三四五六七八九十百\d]+章\s*', '', text)
+        elif re.match(r'^\d+\.\d+\.\d+\.\d+', text_normalized):
+            level = 4  # 改进4：四级编号
+            text = re.sub(r'^\d+\.\d+\.\d+\.\d+\s*', '', text)
         elif re.match(r'^\d+\.\d+\.\d+', text_normalized):
             level = 3
             text = re.sub(r'^\d+\.\d+\.\d+\s*', '', text)
@@ -1480,6 +1501,15 @@ class DocumentStructureParser:
         elif re.match(r'^\([一二三四五六七八九十]+\)', text):
             level = 2
             text = re.sub(r'^\([一二三四五六七八九十]+\)\s*', '', text)
+        elif re.match(r'^附件[一二三四五六七八九十\d]+[:：]', text):
+            level = 1  # 改进4：附件编号
+            text = re.sub(r'^附件[一二三四五六七八九十\d]+[:：]\s*', '', text)
+        elif re.match(r'^附表[一二三四五六七八九十\d]+[:：]', text):
+            level = 1  # 改进4：附表编号
+            text = re.sub(r'^附表[一二三四五六七八九十\d]+[:：]\s*', '', text)
+        elif re.match(r'^附录[一二三四五六七八九十\d]+[:：]', text):
+            level = 1  # 改进4：附录编号
+            text = re.sub(r'^附录[一二三四五六七八九十\d]+[:：]\s*', '', text)
 
         # 移除常见分隔符
         text = text.strip().strip('：:').strip()
@@ -1633,6 +1663,104 @@ class DocumentStructureParser:
 
         return False, None, 0, f"无匹配（最佳相似度{best_score:.0%}）"
 
+    def _calculate_content_start_idx(self, doc: Document, toc_end_idx: int, toc_items_count: int) -> int:
+        """
+        智能计算正文起始位置（改进1：增强目录后过滤机制）
+
+        策略：
+        1. 基础跳过：50段（覆盖大多数目录页）
+        2. 动态跳过：目录项数量 × 2（每个目录项可能占1-2行）
+        3. 安全余量：+10段缓冲
+        4. 智能检测：扫描前100段，寻找第一个真实章节标题（"第X部分"或"一、"等）
+
+        Args:
+            doc: Word文档对象
+            toc_end_idx: 目录结束段落索引
+            toc_items_count: 目录项数量
+
+        Returns:
+            正文起始段落索引
+        """
+        base_skip = 50
+        dynamic_skip = toc_items_count * 2
+        safety_margin = 10
+        min_start = toc_end_idx + max(base_skip, dynamic_skip) + safety_margin
+
+        self.logger.info(f"计算正文起始位置: 目录结束于段落{toc_end_idx}, 基准起点段落{min_start}")
+
+        # 智能检测：在基准位置之后扫描，寻找第一个真实的章节标题
+        # 这可以避免匹配到"招标文件构成"等元数据章节
+        for i in range(min_start, min(min_start + 100, len(doc.paragraphs))):
+            para_text = doc.paragraphs[i].text.strip()
+
+            if not para_text or len(para_text) > 100:  # 跳过空行和过长段落
+                continue
+
+            # 检测是否为真实的章节起始标题
+            # 匹配"第X部分"、"一、"、"1."等一级章节标题格式
+            is_chapter_title = (
+                re.match(r'^第[一二三四五六七八九十\d]+部分', para_text) or
+                re.match(r'^第[一二三四五六七八九十\d]+章', para_text) or
+                re.match(r'^[一二三四五六七八九十]+、\s*.{3,30}$', para_text) or  # 一、XXX（标题长度3-30字）
+                re.match(r'^\d+\.\s+.{3,30}$', para_text) or  # 1. XXX
+                re.match(r'^\d+\s+.{3,30}$', para_text)  # 1 XXX（无点号）
+            )
+
+            if is_chapter_title:
+                # 验证：确保不是"招标文件构成"这类元数据标题
+                if not self._is_metadata_section_title(para_text):
+                    self.logger.info(f"  ✓ 智能检测到第一个真实章节标题: 段落{i} '{para_text}'")
+                    return i
+
+        # 如果未找到明确的章节标题，返回基准位置
+        self.logger.info(f"  ⚠ 未检测到明确章节标题，使用基准起点: 段落{min_start}")
+        return min_start
+
+    def _is_metadata_section_title(self, title: str) -> bool:
+        """
+        判断标题是否为元数据章节（不应作为正文章节）（改进5：扩展元数据模式）
+
+        Args:
+            title: 章节标题
+
+        Returns:
+            是否为元数据章节
+        """
+        metadata_patterns = [
+            # 文档结构相关
+            r'.*文件构成.*',
+            r'.*招标文件组成.*',
+            r'.*文档组成.*',
+            r'.*采购文件清单.*',
+            r'.*文档说明.*',
+            r'.*文件说明.*',
+            r'.*文件目录.*',
+            r'.*文件清单.*',
+            # 项目信息相关（改进5新增）
+            r'^项目编号.*',
+            r'^项目名称.*',
+            r'.*项目概况表.*',
+            r'.*项目信息表.*',
+            # 目录类（改进5新增）
+            r'^目\s*录$',
+            r'^contents$',
+            r'^索\s*引$',
+            # 前言、序言类（改进5新增）
+            r'^前\s*言$',
+            r'^序\s*言$',
+            r'^引\s*言$',
+            # 其他元数据（改进5新增）
+            r'.*编制说明.*',
+            r'.*阅读说明.*',
+            r'.*文档版本.*',
+            r'.*版本历史.*',
+        ]
+
+        for pattern in metadata_patterns:
+            if re.match(pattern, title, re.IGNORECASE):
+                return True
+        return False
+
     def _parse_chapters_by_semantic_anchors(self, doc: Document, toc_targets: List[str], toc_end_idx: int = 0) -> List[ChapterNode]:
         """
         基于语义锚点解析章节（核心新方法）
@@ -1650,12 +1778,11 @@ class DocumentStructureParser:
         chapters = []
         last_found_idx = toc_end_idx + 1  # 上一个章节找到的位置，确保按顺序查找
 
-        # 关键优化：扩大起始搜索范围，避免匹配到目录内部的残留
-        # 目录通常在前50段，所以从目录结束后至少跳过10段开始搜索
-        min_search_start = toc_end_idx + 10
+        # 改进1：使用智能检测计算正文起始位置
+        min_search_start = self._calculate_content_start_idx(doc, toc_end_idx, len(toc_targets))
 
         self.logger.info(f"开始按目录顺序解析章节，共 {len(toc_targets)} 个目标")
-        self.logger.info(f"搜索起点: 段落 {min_search_start} (目录结束于段落 {toc_end_idx})")
+        self.logger.info(f"目录结束于段落 {toc_end_idx}，正文搜索起点: 段落 {min_search_start} (跳过 {min_search_start - toc_end_idx} 段)")
 
         for i, toc_title in enumerate(toc_targets):
             self.logger.info(f"\n[{i+1}/{len(toc_targets)}] 查找目录项: '{toc_title}'")
