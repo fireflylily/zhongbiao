@@ -321,3 +321,71 @@
     transform: translateY(-1px);
     box-shadow: var(--shadow-md) !important;
 }
+
+/* ==========================================
+   页面标题卡片 - 案例库风格 (统一模板)
+   ========================================== */
+.page-header-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    border-left: 4px solid #667eea;
+    transition: all 0.3s ease;
+}
+
+.page-header-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+    border-left-color: #764ba2;
+}
+
+/* 标题样式 - 更小更精致 */
+.page-header-card h5 {
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0;
+}
+
+.page-header-card .text-muted {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* 标题图标 */
+.page-header-card i {
+    color: #667eea;
+}
+
+/* 统计徽章 */
+.page-header-card .badge {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+}
+
+/* ==========================================
+   信息展示卡片 - 简洁版 (用于公司项目信息)
+   ========================================== */
+.info-card-simple {
+    background: white;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.info-card-simple strong {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.info-card-simple .text-muted {
+    font-size: 0.8rem;
+}
+
+.info-card-simple i {
+    font-size: 1.1rem;
+}

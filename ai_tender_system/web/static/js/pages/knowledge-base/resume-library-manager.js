@@ -47,6 +47,21 @@ class ResumeLibraryManager {
 
         const html = `
             <div class="resume-library-wrapper">
+                <!-- 页面标题卡片 - 统一模板 -->
+                <div class="page-header-card mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">
+                                <i class="bi bi-person-vcard me-2"></i>简历库管理
+                            </h5>
+                            <small class="text-muted">管理人员简历信息，支持智能解析和批量导出</small>
+                        </div>
+                        <span class="badge bg-primary">
+                            总简历数：<strong id="resumeTotalCount">0</strong>
+                        </span>
+                    </div>
+                </div>
+
                 <!-- 工具栏 -->
                 <div class="toolbar-section mb-4">
                     <div class="row align-items-center">
@@ -992,6 +1007,12 @@ class ResumeLibraryManager {
         const statsText = document.getElementById('resumeStatsText');
         if (statsText) {
             statsText.textContent = `共 ${data.total} 份简历，当前显示第 ${data.page} 页`;
+        }
+
+        // 更新页面标题卡片中的总数徽章
+        const totalCountBadge = document.getElementById('resumeTotalCount');
+        if (totalCountBadge) {
+            totalCountBadge.textContent = data.total || 0;
         }
     }
 

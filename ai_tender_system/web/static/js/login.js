@@ -56,12 +56,29 @@ document.addEventListener('DOMContentLoaded', function() {
         setLoading(true);
 
         try {
+            // 获取CSRF token
+            let csrfToken = '';
+            try {
+                const tokenResponse = await fetch('/api/csrf-token');
+                const tokenData = await tokenResponse.json();
+                csrfToken = tokenData.csrf_token;
+            } catch (err) {
+                console.warn('获取CSRF token失败，尝试继续登录:', err);
+            }
+
             // 发送登录请求
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+
+            // 添加CSRF token（如果获取成功）
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+
             const response = await fetch('/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify({
                     username: username,
                     password: password

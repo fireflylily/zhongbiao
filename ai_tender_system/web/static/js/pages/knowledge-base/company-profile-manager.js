@@ -989,9 +989,13 @@ class CompanyProfileManager {
             const formData = new FormData();
             formData.append(`qualifications[${qualificationId}]`, file);
 
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
             const response = await axios.post(`/api/companies/${this.currentCompanyId}/qualifications/upload`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRFToken': csrfToken
                 }
             });
 
@@ -1023,9 +1027,13 @@ class CompanyProfileManager {
             const formData = new FormData();
             formData.append(`qualifications[${personnelId}]`, file);
 
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
             const response = await axios.post(`/api/companies/${this.currentCompanyId}/qualifications/upload`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRFToken': csrfToken
                 }
             });
 
@@ -1057,9 +1065,13 @@ class CompanyProfileManager {
             const formData = new FormData();
             formData.append(`qualifications[${financialId}]`, file);
 
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
             const response = await axios.post(`/api/companies/${this.currentCompanyId}/qualifications/upload`, formData, {
                 headers: {
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
+                    'X-CSRFToken': csrfToken
                 }
             });
 
