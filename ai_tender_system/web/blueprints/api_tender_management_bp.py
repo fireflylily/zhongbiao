@@ -82,7 +82,7 @@ def get_tender_management_list():
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN tender_hitl_tasks h ON t.task_id = h.task_id
+            LEFT JOIN tender_hitl_tasks h ON h.project_id = p.project_id
             WHERE {where_clause}
         """
 
@@ -125,7 +125,7 @@ def get_tender_management_list():
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN tender_hitl_tasks h ON t.task_id = h.task_id
+            LEFT JOIN tender_hitl_tasks h ON h.project_id = p.project_id
             WHERE {where_clause}
             ORDER BY p.updated_at DESC, p.created_at DESC
             LIMIT ? OFFSET ?

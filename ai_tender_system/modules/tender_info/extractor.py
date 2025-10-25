@@ -1098,8 +1098,8 @@ class TenderInfoExtractor:
 
     def extract_supplier_eligibility_checklist(self, text: str) -> List[Dict[str, Any]]:
         """
-        提取13条供应商资格要求清单（关键词匹配）
-        返回固定13项清单，每项标记found=True/False
+        提取18条供应商资格要求清单（关键词匹配）
+        返回固定18项清单，每项标记found=True/False
 
         返回格式：
         [
@@ -1119,13 +1119,13 @@ class TenderInfoExtractor:
         ]
         """
         try:
-            self.logger.info("开始提取13条供应商资格要求清单")
+            self.logger.info("开始提取18条供应商资格要求清单")
 
             # 调用关键词匹配方法
             qual_results = self.extract_qualification_requirements_by_keywords(text)
             qualifications = qual_results.get('qualifications', {})
 
-            # 定义19项清单与关键词的映射关系
+            # 定义18项清单与关键词的映射关系
             checklist_mapping = [
                 {
                     "checklist_id": 1,
@@ -1154,77 +1154,72 @@ class TenderInfoExtractor:
                 },
                 {
                     "checklist_id": 6,
-                    "checklist_name": "信用中国严重违法失信",
+                    "checklist_name": "政府采购严重违法失信记录",
                     "qual_keys": ["credit_tax"]
                 },
                 {
                     "checklist_id": 7,
-                    "checklist_name": "严重违法失信行为记录名单",
-                    "qual_keys": ["credit_tax"]  # 与第6条共用
-                },
-                {
-                    "checklist_id": 8,
                     "checklist_name": "信用中国重大税收违法",
                     "qual_keys": ["credit_corruption"]
                 },
                 {
-                    "checklist_id": 9,
+                    "checklist_id": 8,
                     "checklist_name": "采购人黑名单",
                     "qual_keys": ["purchaser_blacklist"]
                 },
                 {
-                    "checklist_id": 10,
+                    "checklist_id": 9,
                     "checklist_name": "承诺函",
                     "qual_keys": ["commitment_letter"]
                 },
                 {
-                    "checklist_id": 11,
+                    "checklist_id": 10,
                     "checklist_name": "营业办公场所房产证明",
                     "qual_keys": ["property_certificate"]
                 },
                 {
-                    "checklist_id": 12,
+                    "checklist_id": 11,
                     "checklist_name": "业绩案例要求",
                     "qual_keys": ["project_performance"]
                 },
                 {
-                    "checklist_id": 13,
+                    "checklist_id": 12,
                     "checklist_name": "保证金要求",
                     "qual_keys": ["deposit_requirement"]
                 },
                 {
-                    "checklist_id": 14,
+                    "checklist_id": 13,
                     "checklist_name": "增值电信业务许可证",
                     "qual_keys": ["value_added_telecom_license"]
                 },
                 {
-                    "checklist_id": 15,
+                    "checklist_id": 14,
                     "checklist_name": "基础电信业务许可证",
                     "qual_keys": ["basic_telecom_license"]
                 },
                 {
-                    "checklist_id": 16,
+                    "checklist_id": 15,
                     "checklist_name": "ISO9001质量管理体系认证",
                     "qual_keys": ["iso9001"]
                 },
                 {
-                    "checklist_id": 17,
+                    "checklist_id": 16,
                     "checklist_name": "ISO20000信息技术服务管理体系认证",
                     "qual_keys": ["iso20000"]
                 },
                 {
-                    "checklist_id": 18,
+                    "checklist_id": 17,
                     "checklist_name": "ISO27001信息安全管理体系认证",
                     "qual_keys": ["iso27001"]
                 },
                 {
-                    "checklist_id": 19,
+                    "checklist_id": 18,
                     "checklist_name": "等保三级认证",
                     "qual_keys": ["level_protection"]
                 }
             ]
 
-            # 构建19项清单结果
+            # 构建18项清单结果
             checklist_results = []
 
             for item in checklist_mapping:
@@ -1255,24 +1250,27 @@ class TenderInfoExtractor:
 
             # 统计
             found_count = sum(1 for item in checklist_results if item["found"])
-            self.logger.info(f"19条清单提取完成：找到 {found_count} 项，未找到 {19 - found_count} 项")
+            self.logger.info(f"18条清单提取完成：找到 {found_count} 项，未找到 {18 - found_count} 项")
 
             return checklist_results
 
         except Exception as e:
-            self.logger.error(f"提取19条供应商资格要求清单失败: {e}")
+            self.logger.error(f"提取18条供应商资格要求清单失败: {e}")
             # 返回空清单
             return [
                 {
                     "checklist_id": i,
                     "checklist_name": ["营业执照信息", "财务要求", "依法纳税", "缴纳社保",
-                                      "失信被执行人", "信用中国严重违法失信", "严重违法失信行为记录名单",
+                                      "失信被执行人", "政府采购严重违法失信记录",
                                       "信用中国重大税收违法", "采购人黑名单", "承诺函",
-                                      "营业办公场所房产证明", "业绩案例要求", "保证金要求"][i-1],
+                                      "营业办公场所房产证明", "业绩案例要求", "保证金要求",
+                                      "增值电信业务许可证", "基础电信业务许可证",
+                                      "ISO9001质量管理体系认证", "ISO20000信息技术服务管理体系认证",
+                                      "ISO27001信息安全管理体系认证", "等保三级认证"][i-1],
                     "found": False,
                     "requirements": []
                 }
-                for i in range(1, 14)
+                for i in range(1, 19)
             ]
 
     def extract_technical_scoring(self, text: str) -> Dict[str, Any]:

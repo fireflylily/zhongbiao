@@ -6,11 +6,6 @@
 
 // HITL页面的模型和公司管理
 const HITLConfigManager = {
-    currentCompanyId: null,
-    currentModel: 'yuanjing-deepseek-v3',
-    currentProjectId: null,        // 当前项目ID（用于创建/更新判断）
-    selectedProjectId: null,        // 项目选择器的值
-
     // 初始化
     init() {
         console.log('[HITLConfigManager] 初始化配置管理器');
@@ -87,8 +82,10 @@ const HITLConfigManager = {
     async loadProjects() {
         try {
             console.log('[HITLConfigManager] 开始加载项目列表...');
-            const url = this.currentCompanyId
-                ? `/api/tender-projects?company_id=${this.currentCompanyId}`
+            // ✅ 从 globalState 读取公司ID
+            const companyId = window.globalState.getCompanyId();
+            const url = companyId
+                ? `/api/tender-projects?company_id=${companyId}`
                 : '/api/tender-projects';
 
             const response = await fetch(url);
@@ -133,46 +130,37 @@ const HITLConfigManager = {
 
                     if (companySelect) {
                         companySelect.value = project.company_id;
-                        this.currentCompanyId = project.company_id;
 
-                        // 更新公司名称显示
+                        // 更新公司名称显示并同步到 globalState
                         if (companyNameSpan) {
-                            const selectedOption = companySelect.options[companySelect.selectedIndex];
-                            if (selectedOption) {
-                                companyNameSpan.textContent = selectedOption.text;
-                                companyNameSpan.className = 'text-primary fw-bold';
-                            }
+                            const companyName = this.getSelectedCompanyName(); // ✅ 使用辅助方法
+                            companyNameSpan.textContent = companyName;
+                            companyNameSpan.className = 'text-primary fw-bold';
+
+                            // ✅ 同步到 globalState
+                            window.globalState.setCompany(project.company_id, companyName);
                         }
 
                         console.log('[HITLConfigManager] 已设置公司:', project.company_id);
                     }
                 }
 
-                // 填充基本信息表单
-                if (document.getElementById('projectName')) {
-                    document.getElementById('projectName').value = project.project_name || '';
-                }
-                if (document.getElementById('projectNumber')) {
-                    document.getElementById('projectNumber').value = project.project_number || '';
-                }
-                if (document.getElementById('tenderParty')) {
-                    document.getElementById('tenderParty').value = project.tenderer || '';
-                }
-                if (document.getElementById('tenderAgent')) {
-                    document.getElementById('tenderAgent').value = project.agency || '';
-                }
-                if (document.getElementById('tenderMethod')) {
-                    document.getElementById('tenderMethod').value = project.bidding_method || '';
-                }
-                if (document.getElementById('tenderLocation')) {
-                    document.getElementById('tenderLocation').value = project.bidding_location || '';
-                }
-                if (document.getElementById('tenderDeadline')) {
-                    document.getElementById('tenderDeadline').value = project.bidding_time || '';
-                }
-                if (document.getElementById('winnerCount')) {
-                    document.getElementById('winnerCount').value = project.winner_count || '';
-                }
+                // 填充基本信息表单 (对象映射驱动，避免重复代码)
+                const formFieldMapping = {
+                    'projectName': 'project_name',
+                    'projectNumber': 'project_number',
+                    'tenderParty': 'tenderer',
+                    'tenderAgent': 'agency',
+                    'tenderMethod': 'bidding_method',
+                    'tenderLocation': 'bidding_location',
+                    'tenderDeadline': 'bidding_time',
+                    'winnerCount': 'winner_count'
+                };
+
+                Object.entries(formFieldMapping).forEach(([elementId, projectKey]) => {
+                    const element = document.getElementById(elementId);
+                    if (element) element.value = project[projectKey] || '';
+                });
 
                 // 显示项目信息提示
                 const projectInfo = document.getElementById('hitlProjectInfo');
@@ -184,15 +172,8 @@ const HITLConfigManager = {
 
                 // ✅ 保存到 globalState（统一数据源）
                 if (typeof window.globalState !== 'undefined') {
-                    // 从公司选择器获取公司名称
-                    let companyName = '';
-                    const companySelect = document.getElementById('hitlCompanySelect');
-                    if (companySelect && companySelect.value) {
-                        const selectedOption = companySelect.options[companySelect.selectedIndex];
-                        if (selectedOption) {
-                            companyName = selectedOption.text;
-                        }
-                    }
+                    // ✅ 使用辅助方法获取公司名称
+                    const companyName = this.getSelectedCompanyName();
 
                     // ✅ 使用 setBulk 批量设置公司和项目信息
                     window.globalState.setBulk({
@@ -301,48 +282,26 @@ const HITLConfigManager = {
                     }
                 }
 
-                // 【修改】主动加载所有Tab的数据
+                // 【修改】主动加载所有Tab的数据 (数组驱动，避免重复代码)
                 console.log('[HITLConfigManager] 开始加载所有Tab数据...');
-                console.log('[HITLConfigManager] loadFileInfo是否已定义:', typeof loadFileInfo);
 
-                // 1. 加载应答文件格式
-                if (typeof loadFileInfo === 'function') {
-                    console.log('[HITLConfigManager] 加载应答文件信息...');
-                    await loadFileInfo('response', hitlTask.hitl_task_id);
-                } else {
-                    console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载应答文件');
-                }
+                // 定义需要加载的文件类型
+                const fileTypesToLoad = [
+                    { type: 'response', name: '应答文件' },
+                    { type: 'technical', name: '技术需求文件' },
+                    { type: 'point_to_point', name: '点对点应答文件' },
+                    { type: 'tech_proposal', name: '技术方案文件' },
+                    { type: 'business_response', name: '商务应答文件' }
+                ];
 
-                // 2. 加载技术需求文件
+                // 批量加载文件信息
                 if (typeof loadFileInfo === 'function') {
-                    console.log('[HITLConfigManager] 加载技术需求文件...');
-                    await loadFileInfo('technical', hitlTask.hitl_task_id);
+                    for (const {type, name} of fileTypesToLoad) {
+                        console.log(`[HITLConfigManager] 加载${name}...`);
+                        await loadFileInfo(type, hitlTask.hitl_task_id);
+                    }
                 } else {
-                    console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载技术需求文件');
-                }
-
-                // 2.5. 加载点对点应答完成文件
-                if (typeof loadFileInfo === 'function') {
-                    console.log('[HITLConfigManager] 加载点对点应答文件...');
-                    await loadFileInfo('point_to_point', hitlTask.hitl_task_id);
-                } else {
-                    console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载点对点应答文件');
-                }
-
-                // 2.6. 加载技术方案完成文件
-                if (typeof loadFileInfo === 'function') {
-                    console.log('[HITLConfigManager] 加载技术方案文件...');
-                    await loadFileInfo('tech_proposal', hitlTask.hitl_task_id);
-                } else {
-                    console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载技术方案文件');
-                }
-
-                // 2.7. 加载商务应答完成文件
-                if (typeof loadFileInfo === 'function') {
-                    console.log('[HITLConfigManager] 加载商务应答文件...');
-                    await loadFileInfo('business_response', hitlTask.hitl_task_id);
-                } else {
-                    console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载商务应答文件');
+                    console.error('[HITLConfigManager] loadFileInfo函数未定义，无法加载文件信息');
                 }
 
                 // 3. 加载资格要求（qualifications）
@@ -479,16 +438,25 @@ const HITLConfigManager = {
         const companySelect = document.getElementById('hitlCompanySelect');
         if (companySelect) {
             companySelect.addEventListener('change', (e) => {
-                this.currentCompanyId = e.target.value;
-                const nameSpan = document.getElementById('hitlSelectedCompanyName');
-                const selectedText = e.target.options[e.target.selectedIndex].text;
-                nameSpan.textContent = e.target.value ? selectedText : '未选择';
-                nameSpan.className = e.target.value ? 'text-primary fw-bold' : 'text-muted';
+                const companyId = e.target.value;
+                const companyName = e.target.options[e.target.selectedIndex].text;
 
-                console.log(`[HITLConfigManager] 选择公司: ${selectedText} (ID: ${e.target.value})`);
+                // ✅ 同步到 globalState
+                if (companyId) {
+                    window.globalState.setCompany(companyId, companyName);
+                } else {
+                    window.globalState.clearCompany();
+                }
+
+                // UI更新
+                const nameSpan = document.getElementById('hitlSelectedCompanyName');
+                nameSpan.textContent = companyId ? companyName : '未选择';
+                nameSpan.className = companyId ? 'text-primary fw-bold' : 'text-muted';
+
+                console.log(`[HITLConfigManager] 选择公司: ${companyName} (ID: ${companyId})`);
 
                 // 重新加载项目列表
-                if (this.currentCompanyId) {
+                if (companyId) {
                     this.loadProjects();
                 }
             });
@@ -498,8 +466,6 @@ const HITLConfigManager = {
         const modelSelect = document.getElementById('hitlAiModel');
         if (modelSelect) {
             modelSelect.addEventListener('change', (e) => {
-                this.currentModel = e.target.value;
-
                 // ✅ 保存到 globalState
                 if (window.globalState) {
                     window.globalState.setSelectedModel(e.target.value);
@@ -514,28 +480,20 @@ const HITLConfigManager = {
         const projectSelect = document.getElementById('hitlProjectSelect');
         if (projectSelect) {
             projectSelect.addEventListener('change', async (e) => {
-                this.selectedProjectId = e.target.value || null;
-                this.currentProjectId = this.selectedProjectId;
+                const projectId = e.target.value || null;
 
-                console.log(`[HITLConfigManager] 项目选择变更: ${this.selectedProjectId}`);
+                console.log(`[HITLConfigManager] 项目选择变更: ${projectId}`);
 
-                if (this.selectedProjectId) {
-                    // 加载项目详情（包括章节列表）
-                    await this.loadProjectDetails(this.selectedProjectId);
+                if (projectId) {
+                    // 加载项目详情（包括章节列表），会自动同步到 globalState
+                    await this.loadProjectDetails(projectId);
 
                     // 【新增】加载完成后导航到步骤3
                     this.navigateToStep3();
                 } else {
-                    // 选择"新建项目",清空表单
-                    const projectInfo = document.getElementById('hitlProjectInfo');
-                    if (projectInfo) projectInfo.style.display = 'none';
-
-                    // 清空基本信息表单
-                    ['projectName', 'projectNumber', 'tenderParty', 'tenderAgent',
-                     'tenderMethod', 'tenderLocation', 'tenderDeadline', 'winnerCount'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.value = '';
-                    });
+                    // 选择"新建项目",刷新页面
+                    console.log('[HITLConfigManager] 刷新页面以重置状态');
+                    location.reload();
                 }
             });
             console.log('[HITLConfigManager] 项目选择器事件已绑定');
@@ -556,12 +514,14 @@ const HITLConfigManager = {
             const {projectId, companyId, companyName, projectName} = e.detail;
             console.log('[HITLConfigManager] 接收到项目总览跳转事件:', e.detail);
 
-            // 1. 设置公司选择器
+            // 1. 设置公司选择器并同步到 globalState
             if (companyId) {
                 const companySelect = document.getElementById('hitlCompanySelect');
                 if (companySelect) {
                     companySelect.value = companyId;
-                    this.currentCompanyId = companyId;
+
+                    // ✅ 同步到 globalState
+                    window.globalState.setCompany(companyId, companyName);
 
                     const nameSpan = document.getElementById('hitlSelectedCompanyName');
                     if (nameSpan) {
@@ -580,11 +540,9 @@ const HITLConfigManager = {
                 const projectSelect = document.getElementById('hitlProjectSelect');
                 if (projectSelect) {
                     projectSelect.value = projectId;
-                    this.selectedProjectId = projectId;
-                    this.currentProjectId = projectId;
                     console.log('[HITLConfigManager] 已设置项目选择器:', projectId);
 
-                    // 4. 加载项目详情（包括章节列表）
+                    // 4. 加载项目详情（包括章节列表），会自动同步到 globalState
                     console.log('[HITLConfigManager] 开始加载项目详情和章节列表...');
                     await this.loadProjectDetails(projectId);
 
@@ -596,12 +554,23 @@ const HITLConfigManager = {
         console.log('[HITLConfigManager] 项目总览跳转事件监听器已绑定');
     },
 
+    // 【新增】获取当前选中的公司名称（辅助方法，消除重复代码）
+    getSelectedCompanyName() {
+        const select = document.getElementById('hitlCompanySelect');
+        if (select && select.value) {
+            const option = select.options[select.selectedIndex];
+            return option ? option.text : '';
+        }
+        return '';
+    },
+
     // 获取当前配置（供其他模块使用）
     getConfig() {
+        // ✅ 从 globalState 读取所有状态
         return {
-            companyId: this.currentCompanyId,
-            model: this.currentModel,
-            projectId: this.currentProjectId  // 使用当前项目ID而非表单输入
+            companyId: window.globalState.getCompanyId(),
+            model: window.globalState.getSelectedModel(),
+            projectId: window.globalState.getProjectId()
         };
     },
 
@@ -698,18 +667,21 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * 跳转到点对点应答页面
- * 支持两种模式:
- * 1. 如果在首页(有 projectDataBridge),使用 Tab 切换 + 全局状态传递
- * 2. 如果在独立 HITL 页面,使用 URL 参数跳转(向后兼容)
+ * 通用Tab跳转函数（消除重复代码）
+ * @param {Object} config - 跳转配置
+ * @param {string} config.tabSelector - Tab选择器，如 '[data-bs-target="#point-to-point"]'
+ * @param {string} config.fileType - 文件类型：'technical', 'business', 'originalTender'
+ * @param {string} config.eventName - 自定义事件名称，如 'loadPointToPoint'
+ * @param {string} config.apiEndpoint - API端点（可选），用于获取文件信息
+ * @param {string} config.urlHash - URL哈希值，如 '#point-to-point'
+ * @param {string} config.logPrefix - 日志前缀，如 '[goToPointToPoint]'
  */
-async function goToPointToPoint() {
-    // 检测是否在首页环境(有 globalState)
+async function navigateToTabImpl(config) {
     const isInIndexPage = typeof window.globalState !== 'undefined';
 
     if (isInIndexPage) {
         // 模式 1: Tab 切换模式 (首页内)
-        console.log('[goToPointToPoint] 使用 Tab 切换模式');
+        console.log(`${config.logPrefix} 使用 Tab 切换模式`);
 
         // ✅ 使用 globalState 读取数据
         const company = window.globalState.getCompany();
@@ -719,319 +691,144 @@ async function goToPointToPoint() {
         const companyName = company.name || '';
         const hitlTaskId = window.globalState.getHitlTaskId() || '';
 
-        console.log('[goToPointToPoint] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
+        console.log(`${config.logPrefix} 跳转参数:`, { projectName, companyId, companyName, hitlTaskId });
 
-        // ✅ 使用技术需求文件 - 添加 API fallback
-        let techFile = window.globalState.getFile('technical');
+        // ✅ 获取文件信息 - 支持 API fallback
+        let fileData = window.globalState.getFile(config.fileType);
 
-        // 如果 globalState 中没有数据,从 API 获取
-        if ((!techFile || !techFile.fileName) && hitlTaskId) {
-            console.log('[goToPointToPoint] globalState 中无技术文件,尝试从 API 获取');
+        // 如果 globalState 中没有数据且提供了 API 端点，从 API 获取
+        if ((!fileData || !fileData.fileName) && hitlTaskId && config.apiEndpoint) {
+            console.log(`${config.logPrefix} globalState 中无文件,尝试从 API 获取`);
 
             try {
-                const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
+                const response = await fetch(`${config.apiEndpoint}/${hitlTaskId}`);
                 const data = await response.json();
 
                 if (data.success && data.has_file && data.file) {
-                    techFile = {
+                    fileData = {
                         fileName: data.file.filename,
                         fileSize: data.file.file_size || 0,
                         filePath: data.file.file_path,
-                        fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`
+                        fileUrl: `${config.apiEndpoint.replace('-info', '')}/download-${config.fileType}-file/${hitlTaskId}`
                     };
                     // ✅ 保存到 globalState 供后续使用
-                    window.globalState.setFile('technical', techFile);
-                    console.log('[goToPointToPoint] 从 API 获取到技术文件:', techFile.fileName);
+                    window.globalState.setFile(config.fileType, fileData);
+                    console.log(`${config.logPrefix} 从 API 获取到文件:`, fileData.fileName);
                 } else {
-                    console.warn('[goToPointToPoint] API 返回无技术文件数据');
+                    console.warn(`${config.logPrefix} API 返回无文件数据`);
                 }
             } catch (error) {
-                console.error('[goToPointToPoint] 从 API 获取技术文件失败:', error);
+                console.error(`${config.logPrefix} 从 API 获取文件失败:`, error);
             }
         }
 
-        // ✅ 使用 setBulk 批量设置状态（包含公司、项目、文件、HITL任务ID）
-        if (hitlTaskId && techFile?.fileName) {
-            console.log('[goToPointToPoint] 使用技术需求文件:', techFile.fileName);
+        // ✅ 使用 setBulk 批量设置状态
+        if (hitlTaskId && fileData?.fileName) {
+            console.log(`${config.logPrefix} 使用文件:`, fileData.fileName);
 
             window.globalState.setBulk({
                 company: { id: companyId, name: companyName },
                 project: { id: project.id, name: projectName },
                 files: {
-                    technical: {
-                        fileName: techFile.fileName,
-                        fileSize: techFile.fileSize || 0,
-                        fileUrl: techFile.fileUrl || `/api/tender-processing/download-technical-file/${hitlTaskId}`,
-                        filePath: techFile.filePath
+                    [config.fileType]: {
+                        fileName: fileData.fileName,
+                        fileSize: fileData.fileSize || 0,
+                        fileUrl: fileData.fileUrl,
+                        filePath: fileData.filePath
                     }
                 },
                 hitlTaskId: hitlTaskId
             });
-            console.log('[goToPointToPoint] 所有状态已通过 setBulk 设置完成');
+            console.log(`${config.logPrefix} 所有状态已通过 setBulk 设置完成`);
         } else {
-            console.warn('[goToPointToPoint] 技术需求文件未找到,请先上传技术需求文件');
+            console.warn(`${config.logPrefix} 文件未找到,请先上传相关文件`);
         }
 
-        // 切换到点对点应答 Tab
-        const pointToPointTab = document.querySelector('[data-bs-target="#point-to-point"]');
-        if (pointToPointTab) {
-            const tab = new bootstrap.Tab(pointToPointTab);
+        // 切换到目标 Tab
+        const targetTab = document.querySelector(config.tabSelector);
+        if (targetTab) {
+            const tab = new bootstrap.Tab(targetTab);
             tab.show();
 
-            // 【修复】复制商务应答的成功模式 - 立即派发事件,接收端会延迟处理
-            window.dispatchEvent(new CustomEvent('loadPointToPoint', {
+            // 派发自定义事件
+            window.dispatchEvent(new CustomEvent(config.eventName, {
                 detail: {
                     fromHITL: true,
                     taskId: hitlTaskId
                 }
             }));
 
-            console.log('[goToPointToPoint] 已切换到点对点应答 Tab');
+            console.log(`${config.logPrefix} 已切换到 Tab`);
         } else {
-            console.error('[goToPointToPoint] 未找到点对点应答 Tab');
+            console.error(`${config.logPrefix} 未找到 Tab:`, config.tabSelector);
         }
     } else {
-        // 模式 2: URL 参数跳转模式 (独立 HITL 页面)
-        console.log('[goToPointToPoint] 使用 URL 参数跳转模式');
+        // 模式 2: URL 参数跳转模式 (独立 HITL 页面，向后兼容)
+        console.log(`${config.logPrefix} 使用 URL 参数跳转模式`);
 
         // 构建URL参数
         const params = new URLSearchParams();
-        if (projectName) params.append('project_name', projectName);
-        if (companyId) params.append('company_id', companyId);
-        if (companyName) params.append('company_name', companyName);
+        const company = window.globalState?.getCompany() || {};
+        const project = window.globalState?.getProject() || {};
+        const hitlTaskId = window.globalState?.getHitlTaskId();
+
+        if (project.name) params.append('project_name', project.name);
+        if (company.id) params.append('company_id', company.id);
+        if (company.name) params.append('company_name', company.name);
         if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
 
-        // 【修复】使用技术需求文件
-        if (hitlTaskId && window.technicalFileName) {
-            console.log('[goToPointToPoint] 使用技术需求文件:', window.technicalFileName);
-
-            // 将技术需求文件信息添加到URL参数
-            params.append('technical_file_name', window.technicalFileName);
-            params.append('technical_file_size', window.technicalFileSize || '0');
-            params.append('technical_file_url', `/api/tender-processing/download-technical-file/${hitlTaskId}`);
-            console.log('[goToPointToPoint] 技术需求文件信息已添加到URL参数');
-        } else {
-            console.warn('[goToPointToPoint] 技术需求文件未保存,请先在技术需求Tab保存章节');
-        }
-
-        // 跳转到首页的点对点应答标签页
-        window.location.href = `/?${params.toString()}#point-to-point`;
+        // 跳转到首页
+        window.location.href = `/?${params.toString()}${config.urlHash}`;
     }
+}
+
+/**
+ * 跳转到点对点应答页面
+ * 支持两种模式:
+ * 1. 如果在首页(有 globalState),使用 Tab 切换 + 全局状态传递
+ * 2. 如果在独立 HITL 页面,使用 URL 参数跳转(向后兼容)
+ */
+async function goToPointToPoint() {
+    return navigateToTabImpl({
+        tabSelector: '[data-bs-target="#point-to-point"]',
+        fileType: 'technical',
+        eventName: 'loadPointToPoint',
+        apiEndpoint: '/api/tender-processing/technical-file-info',
+        urlHash: '#point-to-point',
+        logPrefix: '[goToPointToPoint]'
+    });
 }
 
 /**
  * 跳转到技术方案编写页面
  * 支持两种模式:
- * 1. 如果在首页(有 projectDataBridge),使用 Tab 切换 + 全局状态传递
+ * 1. 如果在首页(有 globalState),使用 Tab 切换 + 全局状态传递
  * 2. 如果在独立 HITL 页面,使用 URL 参数跳转(向后兼容)
  */
 async function goToTechProposal() {
-    // 检测是否在首页环境(有 globalState)
-    const isInIndexPage = typeof window.globalState !== 'undefined';
-
-    if (isInIndexPage) {
-        // 模式 1: Tab 切换模式 (首页内)
-        console.log('[goToTechProposal] 使用 Tab 切换模式');
-
-        // ✅ 使用 globalState 读取数据
-        const company = window.globalState.getCompany();
-        const project = window.globalState.getProject();
-        const projectName = project.name || '';
-        const companyId = company.id || '';
-        const companyName = company.name || '';
-        const hitlTaskId = window.globalState.getHitlTaskId() || '';
-
-        console.log('[goToTechProposal] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
-
-        // ✅ 使用技术需求文件 - 添加 API fallback
-        let techFile = window.globalState.getFile('technical');
-
-        // 如果 globalState 中没有数据,从 API 获取
-        if ((!techFile || !techFile.fileName) && hitlTaskId) {
-            console.log('[goToTechProposal] globalState 中无技术文件,尝试从 API 获取');
-
-            try {
-                const response = await fetch(`/api/tender-processing/technical-file-info/${hitlTaskId}`);
-                const data = await response.json();
-
-                if (data.success && data.has_file && data.file) {
-                    techFile = {
-                        fileName: data.file.filename,
-                        fileSize: data.file.file_size || 0,
-                        filePath: data.file.file_path,
-                        fileUrl: `/api/tender-processing/download-technical-file/${hitlTaskId}`
-                    };
-                    // ✅ 保存到 globalState 供后续使用
-                    window.globalState.setFile('technical', techFile);
-                    console.log('[goToTechProposal] 从 API 获取到技术文件:', techFile.fileName);
-                } else {
-                    console.warn('[goToTechProposal] API 返回无技术文件数据');
-                }
-            } catch (error) {
-                console.error('[goToTechProposal] 从 API 获取技术文件失败:', error);
-            }
-        }
-
-        // ✅ 使用 setBulk 批量设置状态（包含公司、项目、文件、HITL任务ID）
-        if (hitlTaskId && techFile?.fileName) {
-            console.log('[goToTechProposal] 使用技术需求文件:', techFile.fileName);
-
-            window.globalState.setBulk({
-                company: { id: companyId, name: companyName },
-                project: { id: project.id, name: projectName },
-                files: {
-                    technical: {
-                        fileName: techFile.fileName,
-                        fileSize: techFile.fileSize || 0,
-                        fileUrl: techFile.fileUrl || `/api/tender-processing/download-technical-file/${hitlTaskId}`,
-                        filePath: techFile.filePath
-                    }
-                },
-                hitlTaskId: hitlTaskId
-            });
-            console.log('[goToTechProposal] 所有状态已通过 setBulk 设置完成');
-        } else {
-            console.warn('[goToTechProposal] 技术需求文件未找到,请先上传技术需求文件');
-        }
-
-        // 切换到技术方案 Tab
-        const techProposalTab = document.querySelector('[data-bs-target="#tech-proposal"]');
-        if (techProposalTab) {
-            const tab = new bootstrap.Tab(techProposalTab);
-            tab.show();
-
-            // 【修复】复制商务应答的成功模式 - 立即派发事件,接收端会延迟处理
-            window.dispatchEvent(new CustomEvent('loadTechnicalProposal', {
-                detail: {
-                    fromHITL: true,
-                    taskId: hitlTaskId
-                }
-            }));
-
-            console.log('[goToTechProposal] 已切换到技术方案 Tab');
-        } else {
-            console.error('[goToTechProposal] 未找到技术方案 Tab');
-        }
-    } else {
-        // 模式 2: URL 参数跳转模式 (独立 HITL 页面)
-        console.log('[goToTechProposal] 使用 URL 参数跳转模式');
-
-        // 构建URL参数
-        const params = new URLSearchParams();
-        if (projectName) params.append('project_name', projectName);
-        if (companyId) params.append('company_id', companyId);
-        if (companyName) params.append('company_name', companyName);
-        if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
-
-        // 【修复】使用技术需求文件
-        if (hitlTaskId && window.technicalFileName) {
-            console.log('[goToTechProposal] 使用技术需求文件:', window.technicalFileName);
-
-            // 将技术需求文件信息添加到URL参数
-            params.append('technical_file_name', window.technicalFileName);
-            params.append('technical_file_size', window.technicalFileSize || '0');
-            params.append('technical_file_url', `/api/tender-processing/download-technical-file/${hitlTaskId}`);
-            console.log('[goToTechProposal] 技术需求文件信息已添加到URL参数');
-        } else {
-            console.warn('[goToTechProposal] 技术需求文件未保存,请先在技术需求Tab保存章节');
-        }
-
-        // 跳转到首页的技术方案生成标签页
-        window.location.href = `/?${params.toString()}#tech-proposal`;
-    }
+    return navigateToTabImpl({
+        tabSelector: '[data-bs-target="#tech-proposal"]',
+        fileType: 'technical',
+        eventName: 'loadTechnicalProposal',
+        apiEndpoint: '/api/tender-processing/technical-file-info',
+        urlHash: '#tech-proposal',
+        logPrefix: '[goToTechProposal]'
+    });
 }
 
 /**
- * 【新增】跳转到商务应答页面
+ * 跳转到商务应答页面
  * 支持两种模式:
- * 1. 如果在首页(有 projectDataBridge),使用 Tab 切换 + 全局状态传递
+ * 1. 如果在首页(有 globalState),使用 Tab 切换 + 全局状态传递
  * 2. 如果在独立 HITL 页面,使用 URL 参数跳转(向后兼容)
  */
 async function goToBusinessResponse() {
-    // 检测是否在首页环境(有 globalState)
-    const isInIndexPage = typeof window.globalState !== 'undefined';
-
-    if (isInIndexPage) {
-        // 模式 1: Tab 切换模式 (首页内)
-        console.log('[goToBusinessResponse] 使用 Tab 切换模式');
-
-        // ✅ 使用 globalState 读取数据
-        const company = window.globalState.getCompany();
-        const project = window.globalState.getProject();
-        const projectName = project.name || '';
-        const companyId = company.id || '';
-        const companyName = company.name || '';
-        const hitlTaskId = window.globalState.getHitlTaskId() || '';
-
-        console.log('[goToBusinessResponse] 跳转参数:', { projectName, companyId, companyName, hitlTaskId });
-
-        // ✅ 使用应答文件格式（从 originalTender 获取）
-        const responseFile = window.globalState.getFile('originalTender');
-
-        // ✅ 使用 setBulk 批量设置状态
-        if (hitlTaskId && responseFile?.fileName) {
-            console.log('[goToBusinessResponse] 使用应答文件格式:', responseFile.fileName);
-
-            window.globalState.setBulk({
-                company: { id: companyId, name: companyName },
-                project: { id: project.id, name: projectName },
-                files: {
-                    business: {
-                        fileUrl: `/api/tender-processing/download-response-file/${hitlTaskId}`,
-                        fileName: responseFile.fileName,
-                        filePath: responseFile.filePath,
-                        fileSize: responseFile.fileSize || 0
-                    }
-                },
-                hitlTaskId: hitlTaskId
-            });
-            console.log('[goToBusinessResponse] 所有状态已通过 setBulk 设置完成');
-        } else {
-            console.warn('[goToBusinessResponse] 应答文件格式未保存,请先在应答文件格式Tab保存章节');
-        }
-
-        // 切换到商务应答 Tab
-        const businessResponseTab = document.querySelector('[data-bs-target="#business-response"]');
-        if (businessResponseTab) {
-            const tab = new bootstrap.Tab(businessResponseTab);
-            tab.show();
-
-            // 触发自定义事件通知商务应答组件加载数据
-            window.dispatchEvent(new CustomEvent('loadBusinessResponse', {
-                detail: {
-                    fromHITL: true,
-                    taskId: hitlTaskId
-                }
-            }));
-
-            console.log('[goToBusinessResponse] 已切换到商务应答 Tab');
-        } else {
-            console.error('[goToBusinessResponse] 未找到商务应答 Tab');
-        }
-    } else {
-        // 模式 2: URL 参数跳转模式 (独立 HITL 页面)
-        console.log('[goToBusinessResponse] 使用 URL 参数跳转模式');
-
-        // 构建URL参数
-        const params = new URLSearchParams();
-        if (projectName) params.append('project_name', projectName);
-        if (companyId) params.append('company_id', companyId);
-        if (companyName) params.append('company_name', companyName);
-        if (hitlTaskId) params.append('hitl_task_id', hitlTaskId);
-
-        // 【修复】使用应答文件格式
-        if (hitlTaskId && window.responseFileName) {
-            console.log('[goToBusinessResponse] 使用应答文件格式:', window.responseFileName);
-
-            // 将应答文件格式信息添加到URL参数
-            params.append('business_file_name', window.responseFileName);
-            params.append('business_file_url', `/api/tender-processing/download-response-file/${hitlTaskId}`);
-            console.log('[goToBusinessResponse] 应答文件格式信息已添加到URL参数');
-        } else {
-            console.warn('[goToBusinessResponse] 应答文件格式未保存,请先在应答文件格式Tab保存章节');
-        }
-
-        // 跳转到首页的商务应答标签页
-        window.location.href = `/?${params.toString()}#business-response`;
-    }
+    return navigateToTabImpl({
+        tabSelector: '[data-bs-target="#business-response"]',
+        fileType: 'business',
+        eventName: 'loadBusinessResponse',
+        apiEndpoint: '/api/tender-processing/response-file-info',
+        urlHash: '#business-response',
+        logPrefix: '[goToBusinessResponse]'
+    });
 }
