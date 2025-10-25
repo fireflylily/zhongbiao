@@ -1,12 +1,116 @@
-// 标书智能处理 - 步骤1：章节选择
-// 功能：文档结构解析、章节树展示、人工选择
+/**
+ * 标书智能处理 - 步骤1：章节选择
+ * 功能：文档结构解析、章节树展示、人工选择
+ *
+ * @file tender-processing-step1.js
+ * @author AI Tender System
+ * @version 2.0.0 (优化版)
+ */
 
+// ========== 类型定义 ==========
+/**
+ * @typedef {Object} Chapter
+ * @property {string} id - 章节唯一标识
+ * @property {string} title - 章节标题
+ * @property {number} level - 章节层级
+ * @property {number} word_count - 字数统计
+ * @property {number} para_start_idx - 开始段落索引
+ * @property {number} para_end_idx - 结束段落索引
+ * @property {string} preview_text - 预览文本
+ * @property {boolean} auto_selected - 是否自动选中
+ * @property {boolean} skip_recommended - 是否建议跳过
+ * @property {string[]} content_tags - 内容标签
+ * @property {Chapter[]} children - 子章节
+ */
+
+/**
+ * @typedef {Object} Statistics
+ * @property {number} selectedCount - 已选章节数
+ * @property {number} selectedWords - 已选字数
+ * @property {number} totalChapters - 总章节数
+ */
+
+// ========== 配置常量 ==========
+const CHAPTER_CONFIG = {
+    // 搜索防抖延迟（毫秒）
+    SEARCH_DEBOUNCE_DELAY: 300,
+
+    // 通知自动消失时间（毫秒）
+    NOTIFICATION_DURATION: 4000,
+
+    // 标签颜色映射
+    TAG_COLOR_MAP: {
+        '评分办法': 'primary',
+        '评分表': 'warning text-dark',
+        '供应商资质': 'success',
+        '文件格式': 'secondary',
+        '技术需求': 'info'
+    },
+
+    // 状态图标映射
+    STATUS_ICONS: {
+        AUTO_SELECTED: '✅',
+        SKIP_RECOMMENDED: '❌',
+        UNSELECTED: '⚪'
+    },
+
+    // 错误类型映射
+    ERROR_TYPES: {
+        NETWORK: 'network',
+        VALIDATION: 'validation',
+        SERVER: 'server',
+        TIMEOUT: 'timeout',
+        UNKNOWN: 'unknown'
+    },
+
+    // 用户友好的错误消息
+    ERROR_MESSAGES: {
+        network: '网络连接失败，请检查您的网络设置',
+        validation: '数据验证失败，请检查输入内容',
+        server: '服务器处理失败，请稍后重试',
+        timeout: '请求超时，请重试或联系管理员',
+        unknown: '发生未知错误，请刷新页面重试'
+    }
+};
+
+/**
+ * 章节选择管理器
+ * 负责文档章节的解析、展示、选择和导出功能
+ *
+ * @class ChapterSelectionManager
+ */
 class ChapterSelectionManager {
+    /**
+     * 创建章节选择管理器实例
+     * @constructor
+     */
     constructor() {
+        /** @type {string|null} 当前任务ID */
         this.currentTaskId = null;
-        this.chaptersData = [];  // 章节数据（扁平化）
-        this.selectedChapterIds = new Set();  // 已选中的章节ID
+
+        /** @type {Chapter[]} 章节数据（扁平化） */
+        this.chaptersData = [];
+
+        /** @type {Set<string>} 已选中的章节ID集合 */
+        this.selectedChapterIds = new Set();
+
+        /** @type {Object} 统计信息 */
         this.statistics = {};
+
+        /** @type {Statistics|null} 性能优化：缓存统计计算结果 */
+        this._cachedStatistics = null;
+
+        /** @type {number|null} 搜索防抖计时器 */
+        this._searchTimeout = null;
+
+        /** @type {boolean} 防重复提交标志 - 确认选择 */
+        this._isSubmitting = false;
+
+        /** @type {boolean} 防重复提交标志 - 导出章节 */
+        this._isExporting = false;
+
+        /** @type {boolean} 防重复提交标志 - 保存文件 */
+        this._isSaving = false;
 
         this.initializeEventListeners();
     }
@@ -38,8 +142,92 @@ class ChapterSelectionManager {
 
         // 另存为应答文件按钮
         document.getElementById('saveAsResponseFileBtn')?.addEventListener('click', () => this.saveAsResponseFile());
+
+        // 键盘快捷键
+        this._initKeyboardShortcuts();
     }
 
+    /**
+     * 初始化键盘快捷键
+     */
+    _initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // 忽略在输入框中的按键
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            // Ctrl/Cmd + A: 全选
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                e.preventDefault();
+                this.selectAll();
+            }
+
+            // Ctrl/Cmd + D: 取消全选
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                this.unselectAll();
+            }
+
+            // /: 聚焦搜索框
+            if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                const searchBox = document.getElementById('chapterSearch');
+                if (searchBox) {
+                    searchBox.focus();
+                }
+            }
+
+            // Esc: 清空搜索
+            if (e.key === 'Escape') {
+                const searchBox = document.getElementById('chapterSearch');
+                if (searchBox && searchBox.value) {
+                    searchBox.value = '';
+                    this.handleSearch('');
+                }
+            }
+        });
+
+        // 添加快捷键提示（可选）
+        console.log('[ChapterSelection] 键盘快捷键已启用:');
+        console.log('  Ctrl/Cmd + A: 全选章节');
+        console.log('  Ctrl/Cmd + D: 取消全选');
+        console.log('  /: 聚焦搜索框');
+        console.log('  Esc: 清空搜索');
+    }
+
+    /**
+     * 显示加载骨架屏
+     */
+    _showLoadingSkeleton() {
+        const container = document.getElementById('chapterTreeContainer');
+        container.innerHTML = `
+            <div class="skeleton-loading">
+                ${Array(5).fill(0).map((_, i) => `
+                    <div class="skeleton-item" style="animation-delay: ${i * 0.1}s">
+                        <div class="skeleton-checkbox"></div>
+                        <div class="skeleton-text" style="width: ${60 + Math.random() * 30}%"></div>
+                        <div class="skeleton-badge"></div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * 隐藏加载骨架屏
+     */
+    _hideLoadingSkeleton() {
+        const container = document.getElementById('chapterTreeContainer');
+        const skeleton = container.querySelector('.skeleton-loading');
+        if (skeleton) {
+            skeleton.remove();
+        }
+    }
+
+    /**
+     * 处理文档结构解析
+     */
     async handleParseStructure() {
         const fileInput = document.getElementById('tenderDocFile');
 
@@ -71,6 +259,13 @@ class ChapterSelectionManager {
         const originalText = parseBtn.innerHTML;
         parseBtn.disabled = true;
         parseBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>解析中...';
+
+        // 显示加载骨架屏
+        const chapterSelectionSection = document.getElementById('chapterSelectionSection');
+        if (chapterSelectionSection) {
+            chapterSelectionSection.style.display = 'block';
+            this._showLoadingSkeleton();
+        }
 
         try {
             // 构建 FormData
@@ -128,7 +323,8 @@ class ChapterSelectionManager {
                 window.currentTaskId = this.currentTaskId;
                 console.log('[handleParseStructure] 章节数据已保存到window.parsedChapters，task_id:', this.currentTaskId);
 
-                // 渲染章节树
+                // 隐藏骨架屏并渲染章节树
+                this._hideLoadingSkeleton();
                 this.renderChapterTree(result.chapters);
 
                 // 更新统计信息
@@ -144,14 +340,23 @@ class ChapterSelectionManager {
             }
 
         } catch (error) {
-            console.error('解析失败:', error);
-            this.showNotification('解析失败: ' + error.message, 'error');
+            // 使用统一错误处理
+            const { message } = this._handleError(error, 'handleParseStructure');
+            this.showNotification(message, 'error');
+            // 解析失败时也要隐藏骨架屏
+            this._hideLoadingSkeleton();
         } finally {
             parseBtn.disabled = false;
             parseBtn.innerHTML = originalText;
         }
     }
 
+    /**
+     * 将章节树扁平化为一维数组
+     * @param {Chapter[]} chapters - 章节树
+     * @param {Chapter[]} result - 累积结果数组
+     * @returns {Chapter[]} 扁平化的章节数组
+     */
     flattenChapters(chapters, result = []) {
         for (const ch of chapters) {
             result.push(ch);
@@ -162,15 +367,24 @@ class ChapterSelectionManager {
         return result;
     }
 
+    /**
+     * 渲染章节树（使用DocumentFragment优化性能）
+     * @param {Array} chapters - 章节数组
+     * @param {HTMLElement} container - 容器元素
+     * @param {number} level - 章节层级
+     */
     renderChapterTree(chapters, container = null, level = 0) {
         if (!container) {
             container = document.getElementById('chapterTreeContainer');
             container.innerHTML = '';
         }
 
+        // 使用DocumentFragment批量添加DOM元素，减少重排次数
+        const fragment = document.createDocumentFragment();
+
         for (const chapter of chapters) {
             const chapterDiv = this.createChapterElement(chapter, level);
-            container.appendChild(chapterDiv);
+            fragment.appendChild(chapterDiv);
 
             // 递归渲染子章节
             if (chapter.children && chapter.children.length > 0) {
@@ -178,41 +392,42 @@ class ChapterSelectionManager {
                 childrenContainer.className = 'chapter-children ms-3';
                 childrenContainer.id = `children-${chapter.id}`;
                 this.renderChapterTree(chapter.children, childrenContainer, level + 1);
-                container.appendChild(childrenContainer);
+                fragment.appendChild(childrenContainer);
             }
         }
+
+        // 一次性添加所有元素到DOM
+        container.appendChild(fragment);
     }
 
+    /**
+     * 创建章节DOM元素
+     * @param {Chapter} chapter - 章节数据
+     * @param {number} level - 章节层级
+     * @returns {HTMLDivElement} 章节DOM元素
+     */
     createChapterElement(chapter, level) {
         const div = document.createElement('div');
         div.className = `chapter-item level-${chapter.level}`;
         div.dataset.chapterId = chapter.id;
 
-        // 章节状态标记
-        let statusIcon = '⚪';
+        // 章节状态标记（使用配置常量）
+        let statusIcon = CHAPTER_CONFIG.STATUS_ICONS.UNSELECTED;
         let statusClass = '';
         if (chapter.auto_selected) {
-            statusIcon = '✅';
+            statusIcon = CHAPTER_CONFIG.STATUS_ICONS.AUTO_SELECTED;
             statusClass = 'auto-selected';
             this.selectedChapterIds.add(chapter.id);
         } else if (chapter.skip_recommended) {
-            statusIcon = '❌';
+            statusIcon = CHAPTER_CONFIG.STATUS_ICONS.SKIP_RECOMMENDED;
             statusClass = 'skip-recommended';
         }
 
-        // 生成标签HTML
+        // 生成标签HTML（使用配置常量）
         let tagsHtml = '';
         if (chapter.content_tags && chapter.content_tags.length > 0) {
-            const tagColorMap = {
-                '评分办法': 'primary',
-                '评分表': 'warning text-dark',
-                '供应商资质': 'success',
-                '文件格式': 'secondary',
-                '技术需求': 'info'
-            };
-
             tagsHtml = chapter.content_tags.map(tag => {
-                const colorClass = tagColorMap[tag] || 'secondary';
+                const colorClass = CHAPTER_CONFIG.TAG_COLOR_MAP[tag] || 'secondary';
                 return `<span class="badge bg-${colorClass} ms-1">${tag}</span>`;
             }).join('');
         }
@@ -245,6 +460,8 @@ class ChapterSelectionManager {
             } else {
                 this.selectedChapterIds.delete(chapter.id);
             }
+            // 清除缓存并更新统计
+            this._clearStatisticsCache();
             this.updateStatistics();
         });
 
@@ -254,6 +471,10 @@ class ChapterSelectionManager {
         return div;
     }
 
+    /**
+     * 显示章节预览
+     * @param {Chapter} chapter - 章节数据
+     */
     showPreview(chapter) {
         // 使用全局的showChapterPreviewModal函数（来自step3-enhanced.js）
         if (typeof showChapterPreviewModal === 'function') {
@@ -264,44 +485,137 @@ class ChapterSelectionManager {
         }
     }
 
-    updateStatistics() {
+    /**
+     * 统一错误处理方法
+     * @param {Error} error - 错误对象
+     * @param {string} context - 错误上下文
+     * @returns {{type: string, message: string}} 错误信息
+     */
+    _handleError(error, context = '') {
+        console.error(`[${context}] 错误:`, error);
+
+        let errorType = CHAPTER_CONFIG.ERROR_TYPES.UNKNOWN;
+        let errorMessage = '';
+
+        // 判断错误类型
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorType = CHAPTER_CONFIG.ERROR_TYPES.NETWORK;
+        } else if (error.message && error.message.includes('超时')) {
+            errorType = CHAPTER_CONFIG.ERROR_TYPES.TIMEOUT;
+        } else if (error.message && error.message.includes('验证')) {
+            errorType = CHAPTER_CONFIG.ERROR_TYPES.VALIDATION;
+        } else if (error.message) {
+            errorType = CHAPTER_CONFIG.ERROR_TYPES.SERVER;
+            errorMessage = error.message;
+        }
+
+        // 获取用户友好的错误消息
+        const friendlyMessage = CHAPTER_CONFIG.ERROR_MESSAGES[errorType];
+
+        // 组合最终消息
+        const finalMessage = errorMessage
+            ? `${friendlyMessage}：${errorMessage}`
+            : friendlyMessage;
+
+        return {
+            type: errorType,
+            message: finalMessage
+        };
+    }
+
+    /**
+     * 计算统计数据（内部方法）
+     * @returns {{selectedCount: number, selectedWords: number, totalChapters: number}}
+     */
+    _calculateStatistics() {
         const selectedCount = this.selectedChapterIds.size;
         const selectedWords = this.chaptersData
             .filter(ch => this.selectedChapterIds.has(ch.id))
             .reduce((sum, ch) => sum + ch.word_count, 0);
 
-        document.getElementById('statTotalChapters').textContent = this.chaptersData.length;
+        return {
+            selectedCount,
+            selectedWords,
+            totalChapters: this.chaptersData.length
+        };
+    }
+
+    /**
+     * 清除统计缓存（在选择变更时调用）
+     */
+    _clearStatisticsCache() {
+        this._cachedStatistics = null;
+    }
+
+    /**
+     * 更新统计信息显示（使用缓存优化）
+     */
+    updateStatistics() {
+        // 如果有缓存，使用缓存；否则重新计算
+        if (!this._cachedStatistics) {
+            this._cachedStatistics = this._calculateStatistics();
+        }
+
+        const { selectedCount, selectedWords, totalChapters } = this._cachedStatistics;
+
+        document.getElementById('statTotalChapters').textContent = totalChapters;
         document.getElementById('statSelectedChapters').textContent = selectedCount;
         document.getElementById('statSelectedWords').textContent = selectedWords;
 
         // 更新导出按钮状态
         const exportBtn = document.getElementById('exportSelectedChaptersBtn');
         if (exportBtn) {
-            exportBtn.disabled = this.selectedChapterIds.size === 0;
+            exportBtn.disabled = selectedCount === 0;
         }
 
         // 更新另存为应答文件按钮状态
         const saveBtn = document.getElementById('saveAsResponseFileBtn');
         if (saveBtn) {
-            saveBtn.disabled = this.selectedChapterIds.size === 0;
+            saveBtn.disabled = selectedCount === 0;
         }
     }
 
+    /**
+     * 全选章节（优化版：批量DOM操作）
+     */
     selectAll() {
+        // 批量更新Set
         this.chaptersData.forEach(ch => {
             if (!ch.skip_recommended) {
                 this.selectedChapterIds.add(ch.id);
-                const checkbox = document.getElementById(`ch-${ch.id}`);
-                if (checkbox) checkbox.checked = true;
             }
         });
+
+        // 批量更新DOM：使用requestAnimationFrame优化渲染
+        requestAnimationFrame(() => {
+            this.chaptersData.forEach(ch => {
+                if (!ch.skip_recommended) {
+                    const checkbox = document.getElementById(`ch-${ch.id}`);
+                    if (checkbox) checkbox.checked = true;
+                }
+            });
+        });
+
+        this._clearStatisticsCache();
         this.updateStatistics();
+        this.showNotification(`已选择 ${this.selectedChapterIds.size} 个章节`, 'success');
     }
 
+    /**
+     * 取消全选（优化版：批量DOM操作）
+     */
     unselectAll() {
+        const previousCount = this.selectedChapterIds.size;
         this.selectedChapterIds.clear();
-        document.querySelectorAll('.chapter-checkbox').forEach(cb => cb.checked = false);
+
+        // 批量更新DOM：使用requestAnimationFrame优化渲染
+        requestAnimationFrame(() => {
+            document.querySelectorAll('.chapter-checkbox').forEach(cb => cb.checked = false);
+        });
+
+        this._clearStatisticsCache();
         this.updateStatistics();
+        this.showNotification(`已取消选择 ${previousCount} 个章节`, 'info');
     }
 
     selectByKeyword(keyword) {
@@ -312,6 +626,7 @@ class ChapterSelectionManager {
                 if (checkbox) checkbox.checked = true;
             }
         });
+        this._clearStatisticsCache();
         this.updateStatistics();
         this.showNotification(`已选中包含"${keyword}"的章节`, 'info');
     }
@@ -324,30 +639,47 @@ class ChapterSelectionManager {
                 if (checkbox) checkbox.checked = false;
             }
         });
+        this._clearStatisticsCache();
         this.updateStatistics();
         this.showNotification(`已排除包含"${keyword}"的章节`, 'info');
     }
 
     handleSearch(query) {
-        const normalizedQuery = query.toLowerCase();
+        // 清除之前的防抖计时器
+        if (this._searchTimeout) {
+            clearTimeout(this._searchTimeout);
+        }
 
-        document.querySelectorAll('.chapter-item').forEach(item => {
-            const title = item.querySelector('.chapter-title').textContent.toLowerCase();
-            if (title.includes(normalizedQuery)) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
-            }
-        });
+        // 设置新的防抖计时器
+        this._searchTimeout = setTimeout(() => {
+            const normalizedQuery = query.toLowerCase();
+
+            document.querySelectorAll('.chapter-item').forEach(item => {
+                const title = item.querySelector('.chapter-title').textContent.toLowerCase();
+                if (title.includes(normalizedQuery)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }, CHAPTER_CONFIG.SEARCH_DEBOUNCE_DELAY);
     }
 
     async confirmSelection() {
         console.log('[Step1] confirmSelection 开始执行');
 
+        // 防重复提交
+        if (this._isSubmitting) {
+            console.log('[Step1] 已有提交任务正在进行，忽略重复点击');
+            return;
+        }
+
         if (this.selectedChapterIds.size === 0) {
             this.showNotification('请至少选择一个章节', 'warning');
             return;
         }
+
+        this._isSubmitting = true;
 
         const confirmBtn = document.getElementById('confirmSelectionBtn');
         const originalText = confirmBtn.innerHTML;
@@ -390,10 +722,11 @@ class ChapterSelectionManager {
             }
 
         } catch (error) {
-            console.error('[Step1] 确认选择失败:', error);
-            console.error('[Step1] 错误详情:', error.stack);
-            this.showNotification('提交失败: ' + error.message, 'error');
+            // 使用统一错误处理
+            const { message } = this._handleError(error, 'confirmSelection');
+            this.showNotification(message, 'error');
         } finally {
+            this._isSubmitting = false;
             confirmBtn.disabled = false;
             confirmBtn.innerHTML = originalText;
         }
@@ -403,6 +736,12 @@ class ChapterSelectionManager {
      * 导出选中的章节为Word模板
      */
     async exportSelectedChapters() {
+        // 防重复点击
+        if (this._isExporting) {
+            console.log('[exportSelectedChapters] 已有导出任务正在进行，忽略重复点击');
+            return;
+        }
+
         if (this.selectedChapterIds.size === 0) {
             this.showNotification('请先选择要导出的章节', 'warning');
             return;
@@ -419,6 +758,8 @@ class ChapterSelectionManager {
         if (!confirm(confirmMsg)) {
             return;
         }
+
+        this._isExporting = true;
 
         try {
             const chapterIds = Array.from(this.selectedChapterIds);
@@ -465,8 +806,11 @@ class ChapterSelectionManager {
             this.showNotification('✅ 选中章节已成功导出！', 'success');
 
         } catch (error) {
-            console.error('导出失败:', error);
-            this.showNotification(`导出失败: ${error.message}`, 'error');
+            // 使用统一错误处理
+            const { message } = this._handleError(error, 'exportSelectedChapters');
+            this.showNotification(message, 'error');
+        } finally {
+            this._isExporting = false;
         }
     }
 
@@ -474,10 +818,18 @@ class ChapterSelectionManager {
      * 另存为应答文件
      */
     async saveAsResponseFile() {
+        // 防重复点击
+        if (this._isSaving) {
+            console.log('[saveAsResponseFile] 已有保存任务正在进行，忽略重复点击');
+            return;
+        }
+
         if (this.selectedChapterIds.size === 0) {
             this.showNotification('请先选择要保存的章节', 'warning');
             return;
         }
+
+        this._isSaving = true;
 
         try {
             const chapterIds = Array.from(this.selectedChapterIds);
@@ -516,8 +868,11 @@ class ChapterSelectionManager {
             }
 
         } catch (error) {
-            console.error('保存失败:', error);
-            this.showNotification(`保存失败: ${error.message}`, 'error');
+            // 使用统一错误处理
+            const { message } = this._handleError(error, 'saveAsResponseFile');
+            this.showNotification(message, 'error');
+        } finally {
+            this._isSaving = false;
         }
     }
 
@@ -655,26 +1010,65 @@ class ChapterSelectionManager {
         return rootNodes;
     }
 
+    /**
+     * 显示通知消息（使用Bootstrap Toast）
+     * @param {string} message - 通知消息
+     * @param {string} type - 通知类型：success, error, warning, info
+     */
     showNotification(message, type = 'info') {
-        // 简单的通知实现（可以后续用 Bootstrap Toast 替换）
-        const alertClass = {
-            'success': 'alert-success',
-            'error': 'alert-danger',
-            'warning': 'alert-warning',
-            'info': 'alert-info'
-        }[type] || 'alert-info';
+        // 确保有toast容器
+        let toastContainer = document.getElementById('chapterToastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'chapterToastContainer';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
 
-        const notification = document.createElement('div');
-        notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
-        notification.style.zIndex = '9999';
-        notification.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        // 类型到图标和颜色的映射
+        const typeConfig = {
+            'success': { icon: '✓', bgClass: 'bg-success', title: '成功' },
+            'error': { icon: '✕', bgClass: 'bg-danger', title: '错误' },
+            'warning': { icon: '⚠', bgClass: 'bg-warning', title: '警告' },
+            'info': { icon: 'ℹ', bgClass: 'bg-info', title: '提示' }
+        };
+
+        const config = typeConfig[type] || typeConfig['info'];
+
+        // 创建toast元素
+        const toastEl = document.createElement('div');
+        toastEl.className = 'toast';
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+
+        toastEl.innerHTML = `
+            <div class="toast-header ${config.bgClass} text-white">
+                <strong class="me-auto">
+                    <span class="me-2">${config.icon}</span>${config.title}
+                </strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
         `;
 
-        document.body.appendChild(notification);
+        toastContainer.appendChild(toastEl);
 
-        setTimeout(() => notification.remove(), 3000);
+        // 初始化并显示toast
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: CHAPTER_CONFIG.NOTIFICATION_DURATION
+        });
+
+        // Toast隐藏后移除DOM元素
+        toastEl.addEventListener('hidden.bs.toast', () => {
+            toastEl.remove();
+        });
+
+        toast.show();
     }
 }
 

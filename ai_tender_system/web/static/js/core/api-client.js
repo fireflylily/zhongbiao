@@ -10,6 +10,9 @@ class APIClient {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
         };
+        // 重试配置
+        this.retryAttempts = 3;
+        this.retryDelay = 1000; // 初始延迟（毫秒）
     }
 
     /**
@@ -21,44 +24,61 @@ class APIClient {
      * @returns {Promise} 请求结果
      */
     async request(method, url, data = null, options = {}) {
-        const config = {
-            method: method.toUpperCase(),
-            headers: { ...this.defaultHeaders, ...options.headers },
-            ...options
-        };
+        // 支持自定义重试配置
+        const retryAttempts = options.retry !== undefined ? options.retry : this.retryAttempts;
+        const retryDelay = options.retryDelay !== undefined ? options.retryDelay : this.retryDelay;
+        let lastError = null;
 
-        // 处理请求数据
-        if (data) {
-            if (method.toUpperCase() === 'GET') {
-                url += '?' + new URLSearchParams(data).toString();
-            } else if (!(data instanceof FormData)) {
-                config.body = JSON.stringify(data);
-            } else {
-                // FormData 请求，移除 Content-Type 让浏览器自动设置
-                delete config.headers['Content-Type'];
-                config.body = data;
+        for (let attempt = 1; attempt <= retryAttempts; attempt++) {
+            try {
+                const config = {
+                    method: method.toUpperCase(),
+                    headers: { ...this.defaultHeaders, ...options.headers },
+                    ...options
+                };
+
+                // 处理请求数据
+                if (data) {
+                    if (method.toUpperCase() === 'GET') {
+                        url += '?' + new URLSearchParams(data).toString();
+                    } else if (!(data instanceof FormData)) {
+                        config.body = JSON.stringify(data);
+                    } else {
+                        // FormData 请求，移除 Content-Type 让浏览器自动设置
+                        delete config.headers['Content-Type'];
+                        config.body = data;
+                    }
+                }
+
+                const response = await fetch(this.baseURL + url, config);
+
+                // 检查响应状态
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // 根据内容类型解析响应
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return await response.json();
+                }
+                return await response.text();
+
+            } catch (error) {
+                lastError = error;
+
+                if (attempt < retryAttempts) {
+                    // 计算指数退避延迟
+                    const delay = retryDelay * Math.pow(2, attempt - 1);
+                    console.warn(`[API] 请求失败 (尝试 ${attempt}/${retryAttempts}), ${delay}ms后重试:`, error.message);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    console.error(`[API] 请求失败 (${retryAttempts}次重试后):`, error);
+                }
             }
         }
 
-        try {
-            const response = await fetch(this.baseURL + url, config);
-
-            // 检查响应状态
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            // 根据内容类型解析响应
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return await response.json();
-            }
-            return await response.text();
-
-        } catch (error) {
-            console.error('API请求失败:', error);
-            throw error;
-        }
+        throw lastError;
     }
 
     // 便捷方法

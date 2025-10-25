@@ -292,3 +292,21 @@
 .modal-body::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
 }
+
+/* 表单验证在模态框中的样式 */
+.modal .is-invalid {
+    border-color: #da4453;
+    box-shadow: 0 0 0 0.2rem rgba(218, 68, 83, 0.25);
+}
+
+.modal .invalid-feedback {
+    display: block;
+}
+
+/* 模态框中的加载状态 */
+.modal .search-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 3px;
+    margin: 0 auto;
+}
