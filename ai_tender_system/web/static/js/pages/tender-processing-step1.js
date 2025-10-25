@@ -123,6 +123,11 @@ class ChapterSelectionManager {
                 // 扁平化章节树
                 this.chaptersData = this.flattenChapters(result.chapters);
 
+                // ✅ 保存章节树到全局变量，供预览功能使用
+                window.parsedChapters = result.chapters;
+                window.currentTaskId = this.currentTaskId;
+                console.log('[handleParseStructure] 章节数据已保存到window.parsedChapters，task_id:', this.currentTaskId);
+
                 // 渲染章节树
                 this.renderChapterTree(result.chapters);
 
@@ -250,23 +255,13 @@ class ChapterSelectionManager {
     }
 
     showPreview(chapter) {
-        const previewContainer = document.getElementById('chapterPreview');
-
-        previewContainer.innerHTML = `
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">${chapter.title}</h6>
-                </div>
-                <div class="card-body">
-                    <p><strong>层级：</strong> ${chapter.level}级标题</p>
-                    <p><strong>字数：</strong> ${chapter.word_count} 字</p>
-                    <p><strong>段落范围：</strong> ${chapter.para_start_idx} - ${chapter.para_end_idx || '文档末尾'}</p>
-                    <hr>
-                    <h6>内容预览：</h6>
-                    <pre class="preview-text">${chapter.preview_text || '(无内容)'}</pre>
-                </div>
-            </div>
-        `;
+        // 使用全局的showChapterPreviewModal函数（来自step3-enhanced.js）
+        if (typeof showChapterPreviewModal === 'function') {
+            showChapterPreviewModal(chapter.id);
+        } else {
+            console.error('[showPreview] showChapterPreviewModal函数未定义，无法显示预览');
+            this.showNotification('预览功能未加载，请刷新页面重试', 'error');
+        }
     }
 
     updateStatistics() {
@@ -572,6 +567,11 @@ class ChapterSelectionManager {
 
             // 5. 扁平化章节数据
             this.chaptersData = this.flattenChapters(chaptersTree);
+
+            // ✅ 保存章节树到全局变量，供预览功能使用
+            window.parsedChapters = chaptersTree;
+            window.currentTaskId = this.currentTaskId;
+            console.log('[loadHistoricalChapters] 章节数据已保存到window.parsedChapters，task_id:', this.currentTaskId);
 
             // 6. 恢复已选中的章节
             this.selectedChapterIds = new Set(selectedIds);

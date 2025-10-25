@@ -609,20 +609,30 @@ const HITLConfigManager = {
     navigateToStep3() {
         console.log('[HITLConfigManager] 导航到步骤3');
 
-        // 隐藏步骤1和步骤2
         const step1Section = document.getElementById('chapterSelectionSection');
         const step2Section = document.getElementById('step2Section');
         const step3Section = document.getElementById('step3Section');
+        const uploadSection = document.getElementById('uploadSection');
 
-        if (step1Section) step1Section.style.display = 'none';
+        // ✅ 保持步骤1（章节选择）显示
+        if (step1Section) step1Section.style.display = 'block';
+
+        // ✅ 隐藏上传区域（历史项目已有文件）
+        if (uploadSection) uploadSection.style.display = 'none';
+
+        // 隐藏步骤2（已废弃）
         if (step2Section) step2Section.style.display = 'none';
+
+        // 显示步骤3
         if (step3Section) {
             step3Section.style.display = 'block';
             console.log('[HITLConfigManager] 已显示步骤3');
         }
 
-        // 滚动到页面顶部，让用户看到步骤3
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // 滚动到步骤3位置
+        if (step3Section) {
+            step3Section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 };
 

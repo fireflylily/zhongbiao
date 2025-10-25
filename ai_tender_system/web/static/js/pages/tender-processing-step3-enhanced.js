@@ -2516,7 +2516,7 @@ function showChapterPreviewModal(chapterId) {
         return;
     }
 
-    // 格式化章节内容
+    // 格式化章节内容（先显示预览内容）
     const formattedContent = formatChapterContent(chapterData);
 
     // 使用ModalManager显示模态框
@@ -2535,9 +2535,85 @@ function showChapterPreviewModal(chapterId) {
                 dismiss: true
             }]
         });
+
+        // 异步加载完整内容
+        loadFullChapterContent(chapterId);
     } else {
         console.error('[showChapterPreviewModal] ModalManager 未初始化');
         alert('模态框管理器未加载，请刷新页面重试');
+    }
+}
+
+/**
+ * 异步加载章节的完整内容
+ * @param {string} chapterId - 章节ID
+ */
+async function loadFullChapterContent(chapterId) {
+    console.log('[loadFullChapterContent] 开始加载完整内容，章节ID:', chapterId);
+
+    // 检查是否有 task_id
+    const taskId = window.currentTaskId;
+    if (!taskId) {
+        console.warn('[loadFullChapterContent] 未找到 task_id，跳过加载完整内容');
+        return;
+    }
+
+    // 获取状态标签和内容容器
+    const statusBadge = document.getElementById(`content-status-${chapterId}`);
+    const contentContainer = document.getElementById(`chapter-content-${chapterId}`);
+
+    if (!contentContainer) {
+        console.warn('[loadFullChapterContent] 未找到内容容器，章节ID:', chapterId);
+        return;
+    }
+
+    try {
+        // 更新状态：加载中
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-warning';
+            statusBadge.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>加载完整内容中...';
+        }
+
+        // 调用API获取完整内容
+        const response = await fetch(`/api/tender-processing/chapter-content/${taskId}/${chapterId}`);
+        const result = await response.json();
+
+        if (result.success && result.content) {
+            // 更新内容
+            const escapedContent = escapeHtml(result.content);
+            contentContainer.innerHTML = escapedContent;
+
+            // 更新状态：完整内容
+            if (statusBadge) {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.textContent = `完整内容（${result.word_count || 0}字）`;
+            }
+
+            console.log('[loadFullChapterContent] 完整内容加载成功，字数:', result.word_count);
+        } else {
+            throw new Error(result.error || '加载失败');
+        }
+
+    } catch (error) {
+        console.error('[loadFullChapterContent] 加载完整内容失败:', error);
+
+        // 更新状态：加载失败
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = '加载失败，显示预览内容';
+        }
+
+        // 可选：在内容区域顶部显示错误提示
+        if (contentContainer) {
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'alert alert-warning alert-dismissible fade show mb-2';
+            errorMsg.innerHTML = `
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                无法加载完整内容：${error.message}。显示预览内容。
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            contentContainer.insertBefore(errorMsg, contentContainer.firstChild);
+        }
     }
 }
 
@@ -2639,16 +2715,19 @@ function formatChapterContent(chapter) {
     html += '</div>';
     html += '</div>';
 
-    // 章节内容
-    if (chapter.content) {
+    // 章节内容（优先使用 content，回退到 preview_text）
+    const chapterText = chapter.content || chapter.preview_text;
+
+    if (chapterText) {
         html += '<div class="card">';
-        html += '<div class="card-header bg-light">';
+        html += '<div class="card-header bg-light d-flex justify-content-between align-items-center">';
         html += '<h6 class="mb-0"><i class="bi bi-file-text me-2"></i>章节内容</h6>';
+        html += `<span class="badge bg-info" id="content-status-${chapter.id}">预览内容（约${chapter.word_count || 300}字）</span>`;
         html += '</div>';
-        html += '<div class="card-body" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.8;">';
+        html += `<div class="card-body" id="chapter-content-${chapter.id}" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.8;">`;
 
         // 转义HTML并保留换行
-        const escapedContent = escapeHtml(chapter.content);
+        const escapedContent = escapeHtml(chapterText);
         html += escapedContent;
 
         html += '</div>';

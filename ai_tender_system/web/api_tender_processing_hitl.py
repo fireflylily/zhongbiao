@@ -1142,6 +1142,110 @@ def register_hitl_routes(app):
             logger.error(f"获取章节列表失败: {str(e)}")
             return jsonify({"success": False, "error": str(e)}), 500
 
+    @app.route('/api/tender-processing/chapter-content/<task_id>/<chapter_id>', methods=['GET'])
+    def get_chapter_full_content(task_id, chapter_id):
+        """
+        实时从原始文档提取章节的完整内容
+
+        Args:
+            task_id: HITL任务ID
+            chapter_id: 章节ID (如 ch_1, ch_1_2)
+
+        Returns:
+            {
+                "success": True,
+                "content": "章节完整文本内容...",
+                "word_count": 1500,
+                "title": "章节标题"
+            }
+        """
+        try:
+            from docx import Document
+
+            db = get_knowledge_base_db()
+
+            # 1. 获取章节信息
+            hitl_task = db.execute_query("""
+                SELECT project_id, task_id, step1_data
+                FROM tender_hitl_tasks
+                WHERE hitl_task_id = ?
+            """, (task_id,), fetch_one=True)
+
+            if not hitl_task:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            project_id = hitl_task['project_id']
+            parsing_task_id = hitl_task['task_id']
+
+            # 2. 查询章节的段落范围
+            chapter = db.execute_query("""
+                SELECT
+                    title,
+                    para_start_idx,
+                    para_end_idx,
+                    word_count
+                FROM tender_document_chapters
+                WHERE project_id = ? AND task_id = ? AND chapter_node_id = ?
+            """, (project_id, parsing_task_id, chapter_id), fetch_one=True)
+
+            if not chapter:
+                return jsonify({'success': False, 'error': '章节不存在'}), 404
+
+            # 3. 获取原始文档路径
+            step1_data = hitl_task.get('step1_data')
+            if isinstance(step1_data, str):
+                import json
+                step1_data = json.loads(step1_data)
+
+            if not step1_data or 'file_path' not in step1_data:
+                return jsonify({
+                    'success': False,
+                    'error': '原始文档路径未找到，无法提取完整内容'
+                }), 404
+
+            file_path = Path(step1_data['file_path'])
+
+            if not file_path.exists():
+                return jsonify({
+                    'success': False,
+                    'error': '原始文档文件不存在，可能已被删除'
+                }), 404
+
+            # 4. 从文档中提取指定段落范围的文本
+            doc = Document(str(file_path))
+            para_start = chapter['para_start_idx']
+            para_end = chapter['para_end_idx']
+
+            # 如果para_end为None，表示到文档末尾
+            if para_end is None:
+                para_end = len(doc.paragraphs) - 1
+
+            # 提取段落内容
+            content_lines = []
+            for i in range(para_start, min(para_end + 1, len(doc.paragraphs))):
+                text = doc.paragraphs[i].text.strip()
+                if text:  # 只添加非空段落
+                    content_lines.append(text)
+
+            full_content = '\n\n'.join(content_lines)
+
+            logger.info(f"✅ 成功提取章节完整内容: {chapter_id}, 共{len(full_content)}字符")
+
+            return jsonify({
+                'success': True,
+                'content': full_content,
+                'word_count': len(full_content.replace(' ', '').replace('\n', '')),
+                'title': chapter['title'],
+                'para_range': f"{para_start}-{para_end}"
+            })
+
+        except Exception as e:
+            logger.error(f"获取章节完整内容失败: {str(e)}", exc_info=True)
+            return jsonify({
+                "success": False,
+                "error": f"提取章节内容失败: {str(e)}"
+            }), 500
+
     # ============================================
     # 步骤2：章节要求预览相关API
     # ============================================
