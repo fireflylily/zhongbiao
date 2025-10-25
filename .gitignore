@@ -41,3 +41,11 @@ debug_*.py
 *_test.py
 quick_test.py
 final_integration_test.py
+
+# Ignore test coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+coverage.xml
+*.cover
