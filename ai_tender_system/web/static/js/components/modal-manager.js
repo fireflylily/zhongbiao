@@ -6,7 +6,6 @@
 class ModalManager {
     constructor() {
         this.modals = new Map();
-        this.zIndexCounter = 1050;
         this.init();
     }
 
@@ -371,21 +370,24 @@ class ModalManager {
     }
 
     /**
+     * 内部辅助方法：创建对话框Promise
+     */
+    _createDialogPromise(config) {
+        return new Promise((resolve, reject) => {
+            this.show({ ...config, _resolve: resolve, _reject: reject });
+        });
+    }
+
+    /**
      * 便捷方法：确认对话框
      */
     confirm(message, title = '确认', options = {}) {
-        return new Promise((resolve) => {
-            this.show({
-                title: title,
-                content: `<p>${message}</p>`,
-                onConfirm: () => {
-                    resolve(true);
-                },
-                onCancel: () => {
-                    resolve(false);
-                },
-                ...options
-            });
+        return this._createDialogPromise({
+            title,
+            content: `<p>${message}</p>`,
+            onConfirm: () => this._resolve?.(true),
+            onCancel: () => this._resolve?.(false),
+            ...options
         });
     }
 
@@ -393,20 +395,12 @@ class ModalManager {
      * 便捷方法：警告对话框
      */
     alert(message, title = '提示', options = {}) {
-        return new Promise((resolve) => {
-            this.show({
-                title: title,
-                content: `<p>${message}</p>`,
-                buttons: [{
-                    text: '确定',
-                    variant: 'primary',
-                    action: 'confirm'
-                }],
-                onConfirm: () => {
-                    resolve();
-                },
-                ...options
-            });
+        return this._createDialogPromise({
+            title,
+            content: `<p>${message}</p>`,
+            buttons: [{ text: '确定', variant: 'primary', action: 'confirm' }],
+            onConfirm: () => this._resolve?.(),
+            ...options
         });
     }
 
@@ -414,25 +408,21 @@ class ModalManager {
      * 便捷方法：输入对话框
      */
     prompt(message, defaultValue = '', title = '输入', options = {}) {
-        return new Promise((resolve) => {
-            const inputId = 'prompt_input_' + Date.now();
-            this.show({
-                title: title,
-                content: `
-                    <div class="mb-3">
-                        <label for="${inputId}" class="form-label">${message}</label>
-                        <input type="text" class="form-control" id="${inputId}" value="${defaultValue}">
-                    </div>
-                `,
-                onConfirm: (modal) => {
-                    const input = modal.querySelector(`#${inputId}`);
-                    resolve(input ? input.value : null);
-                },
-                onCancel: () => {
-                    resolve(null);
-                },
-                ...options
-            });
+        const inputId = `prompt_input_${Date.now()}`;
+        return this._createDialogPromise({
+            title,
+            content: `
+                <div class="mb-3">
+                    <label for="${inputId}" class="form-label">${message}</label>
+                    <input type="text" class="form-control" id="${inputId}" value="${defaultValue}">
+                </div>
+            `,
+            onConfirm: (modal) => {
+                const input = modal.querySelector(`#${inputId}`);
+                this._resolve?.(input ? input.value : null);
+            },
+            onCancel: () => this._resolve?.(null),
+            ...options
         });
     }
 
@@ -484,61 +474,6 @@ class ModalManager {
         });
     }
 }
-
-// 添加CSS样式增强
-(function() {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', addModalStyles);
-    } else {
-        addModalStyles();
-    }
-
-    function addModalStyles() {
-        const styleElement = document.createElement('style');
-        styleElement.textContent = `
-    /* 模态框动画优化 */
-    .modal.fade .modal-dialog {
-        transition: transform 0.25s ease-out;
-    }
-
-    .modal.show .modal-dialog {
-        transform: none;
-    }
-
-    /* 模态框层叠样式 */
-    .modal-backdrop.show {
-        opacity: 0.6;
-    }
-
-    /* 表单验证在模态框中的样式 */
-    .modal .is-invalid {
-        border-color: #da4453;
-        box-shadow: 0 0 0 0.2rem rgba(218, 68, 83, 0.25);
-    }
-
-    .modal .invalid-feedback {
-        display: block;
-    }
-
-    /* 模态框中的加载状态 */
-    .modal .search-loading-spinner {
-        width: 32px;
-        height: 32px;
-        border-width: 3px;
-        margin: 0 auto;
-    }
-
-    /* 响应式模态框 */
-    @media (max-width: 576px) {
-        .modal-dialog {
-            margin: 10px;
-            max-width: none;
-        }
-    }
-        `;
-        document.head.appendChild(styleElement);
-    }
-})();
 
 // 创建全局模态框管理器实例
 window.modalManager = new ModalManager();
