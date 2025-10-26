@@ -1034,7 +1034,11 @@ class KnowledgeBaseDB:
                 return qualification_id
 
         except Exception as e:
-            logger.error(f"保存资质文件失败: {e}")
+            # 详细记录错误信息,便于调试
+            logger.error(f"保存资质文件失败 (公司ID={company_id}, 资质类型={qualification_key}): {e}", exc_info=True)
+            logger.error(f"  - 文件名: {original_filename}")
+            logger.error(f"  - 文件版本: {file_version}, 序号: {file_sequence}")
+            logger.error(f"  - SQL参数: company_id={company_id}, qualification_key={qualification_key}, file_sequence={file_sequence}")
             return 0
 
     def get_company_qualifications(self, company_id: int) -> List[Dict]:

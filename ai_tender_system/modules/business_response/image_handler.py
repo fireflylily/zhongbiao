@@ -611,56 +611,115 @@ class ImageHandler:
 
             self.logger.info(f"现有表格结构: {num_rows}行 x {num_cols}列")
 
-            if num_cols >= 2:
-                # 情况1: 表格有2列或更多列（正面|反面）
-                # 找到合适的行插入图片
-                # 优先使用最后一行，或第二行（如果第一行是标题）
-                target_row_idx = max(1, num_rows - 1) if num_rows >= 2 else 0
+            # 输出表格第一行的内容（标题行）
+            if num_rows > 0:
+                header_texts = [cell.text.strip() for cell in table.rows[0].cells]
+                self.logger.info(f"表格标题行: {header_texts}")
 
+            if num_cols >= 2:
+                # 情况1: 表格有2列或更多列
+                # 智能识别"头像面"和"国徽面"列
+                front_col_idx = None
+                back_col_idx = None
+
+                # 扫描第一行，识别列标题
+                if num_rows > 0:
+                    for col_idx, cell in enumerate(table.rows[0].cells):
+                        cell_text = cell.text.strip()
+
+                        # 识别正面列（头像面）
+                        if any(keyword in cell_text for keyword in ['头像面', '正面', '人像面']):
+                            front_col_idx = col_idx
+                            self.logger.info(f"✅ 识别到正面列: 第{col_idx}列 ('{cell_text}')")
+
+                        # 识别反面列（国徽面）
+                        if any(keyword in cell_text for keyword in ['国徽面', '反面', '国徽']):
+                            back_col_idx = col_idx
+                            self.logger.info(f"✅ 识别到反面列: 第{col_idx}列 ('{cell_text}')")
+
+                # 降级策略：如果无法识别列标题，使用默认索引
+                if front_col_idx is None or back_col_idx is None:
+                    if num_cols == 2:
+                        # 2列表格：假设 [正面, 反面]
+                        front_col_idx = 0
+                        back_col_idx = 1
+                        self.logger.warning(f"⚠️ 无法识别列标题，使用默认2列模式: 正面=列0, 反面=列1")
+                    else:
+                        # 3+列表格：假设 [序号, 正面, 反面]（跳过第一列）
+                        front_col_idx = 1
+                        back_col_idx = 2
+                        self.logger.warning(f"⚠️ 无法识别列标题，使用默认3+列模式: 正面=列1, 反面=列2")
+
+                # 确定插入的行（优先第二行，即索引1）
+                target_row_idx = 1 if num_rows >= 2 else 0
                 target_row = table.rows[target_row_idx]
 
-                # 插入正面图片到第一列
-                front_cell = target_row.cells[0]
+                self.logger.info(f"📍 将插入到: 行{target_row_idx}, 正面列{front_col_idx}, 反面列{back_col_idx}")
+
+                # 插入正面图片
+                front_cell = target_row.cells[front_col_idx]
                 front_cell.text = ""  # 清空现有文本
                 front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
                 front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 front_run = front_para.add_run()
                 front_run.add_picture(front_path, width=Cm(id_width_cm))
 
-                # 插入反面图片到第二列
-                back_cell = target_row.cells[1]
+                # 插入反面图片
+                back_cell = target_row.cells[back_col_idx]
                 back_cell.text = ""  # 清空现有文本
                 back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
                 back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 back_run = back_para.add_run()
                 back_run.add_picture(back_path, width=Cm(id_width_cm))
 
-                self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（行{target_row_idx}，2列模式）")
+                self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（行{target_row_idx}，正面=列{front_col_idx}，反面=列{back_col_idx}）")
                 return True
 
             elif num_cols == 1:
-                # 情况2: 表格只有1列（单个大单元格）
-                # 在单元格内并排插入两张图片
-                target_row_idx = num_rows - 1  # 使用最后一行
-                target_cell = table.rows[target_row_idx].cells[0]
-                target_cell.text = ""  # 清空现有文本
+                # 情况2: 表格只有1列（垂直布局）
+                # 需要找到"人像面"和"国徽面"标题行，分别在它们下方插入图片
+                front_row_idx = None
+                back_row_idx = None
 
-                # 在同一个段落中添加两张图片（并排）
-                para = target_cell.paragraphs[0] if target_cell.paragraphs else target_cell.add_paragraph()
-                para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                # 扫描表格，查找"人像面"和"国徽面"标题行
+                for row_idx, row in enumerate(table.rows):
+                    cell_text = row.cells[0].text.strip()
 
-                # 添加正面图片
-                front_run = para.add_run()
-                front_run.add_picture(front_path, width=Cm(id_width_cm))
+                    # 识别"人像面"标题行
+                    if any(keyword in cell_text for keyword in ['人像面', '头像面', '正面']):
+                        front_row_idx = row_idx
+                        self.logger.info(f"✅ 识别到正面标题行: 第{row_idx}行 ('{cell_text}')")
 
-                # 添加一些空格分隔
-                para.add_run("  ")
+                    # 识别"国徽面"标题行
+                    if any(keyword in cell_text for keyword in ['国徽面', '反面', '国徽']):
+                        back_row_idx = row_idx
+                        self.logger.info(f"✅ 识别到反面标题行: 第{row_idx}行 ('{cell_text}')")
 
-                # 添加反面图片
-                back_run = para.add_run()
-                back_run.add_picture(back_path, width=Cm(id_width_cm))
+                # 插入正面图片（在"人像面"标题的下一行）
+                if front_row_idx is not None and front_row_idx + 1 < num_rows:
+                    front_cell = table.rows[front_row_idx + 1].cells[0]
+                    front_cell.text = ""  # 清空现有文本
+                    front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
+                    front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    front_run = front_para.add_run()
+                    front_run.add_picture(front_path, width=Cm(id_width_cm))
+                    self.logger.info(f"✅ 已插入正面图片到第{front_row_idx + 1}行")
+                else:
+                    self.logger.warning(f"⚠️ 未找到正面插入位置")
 
-                self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（行{target_row_idx}，1列模式，并排）")
+                # 插入反面图片（在"国徽面"标题的下一行）
+                if back_row_idx is not None and back_row_idx + 1 < num_rows:
+                    back_cell = table.rows[back_row_idx + 1].cells[0]
+                    back_cell.text = ""  # 清空现有文本
+                    back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
+                    back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    back_run = back_para.add_run()
+                    back_run.add_picture(back_path, width=Cm(id_width_cm))
+                    self.logger.info(f"✅ 已插入反面图片到第{back_row_idx + 1}行")
+                else:
+                    self.logger.warning(f"⚠️ 未找到反面插入位置")
+
+                self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（1列垂直模式）")
                 return True
 
             else:

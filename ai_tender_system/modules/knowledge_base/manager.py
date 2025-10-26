@@ -1058,6 +1058,20 @@ class KnowledgeBaseManager:
 
             logger.info(f"[DEBUG] save_company_qualification 返回 qualification_id={qualification_id}")
 
+            # 检查数据库INSERT是否成功
+            if qualification_id == 0:
+                # 数据库INSERT失败,删除已保存的物理文件
+                file_path_obj = Path(file_metadata.file_path)
+                if file_path_obj.exists():
+                    file_path_obj.unlink()
+                    logger.warning(f"数据库INSERT失败,已删除物理文件: {file_metadata.file_path}")
+
+                return {
+                    'success': False,
+                    'error': f'数据库保存失败: 可能违反了唯一性约束或其他数据库约束。'
+                           f'请检查是否已存在相同版本的文件 (公司ID={company_id}, 资质类型={qualification_key}, 版本={file_version})'
+                }
+
             logger.info(f"公司 {company_id} 上传资质文件成功: {qualification_key} [v:{file_version}] seq:{file_sequence} -> {file_metadata.safe_name}")
 
             return {

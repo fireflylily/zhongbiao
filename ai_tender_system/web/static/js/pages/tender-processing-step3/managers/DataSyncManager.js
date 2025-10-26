@@ -334,6 +334,9 @@ class DataSyncManager {
             bidding_location: document.getElementById('tenderLocation')?.value || '',
             bidding_time: document.getElementById('tenderDeadline')?.value || '',
             winner_count: document.getElementById('winnerCount')?.value || '',
+            authorized_person_name: document.getElementById('authorizedPersonName')?.value || '',
+            authorized_person_id: document.getElementById('authorizedPersonId')?.value || '',
+            authorized_person_position: document.getElementById('authorizedPersonPosition')?.value || '',
             company_id: companyId,
             tender_document_path: '',  // HITL从章节选择开始，无上传文件路径
             original_filename: ''

@@ -1,17 +1,27 @@
 /**
- * 简历库管理器
- * 负责简历的增删改查、智能解析、批量导出等功能
+ * 简历库管理器（重构后）
+ * 负责简历列表视图、搜索筛选、分页等核心功能
+ * 复杂功能已拆分为独立子模块
  */
 class ResumeLibraryManager {
     constructor() {
+        // 核心属性
         this.container = null;
         this.currentPage = 1;
         this.pageSize = 20;
         this.searchKeyword = '';
         this.selectedResumeIds = new Set();
         this.currentCompanyId = null;
-        this.uploader = null;
         this.initialized = false;
+
+        // 注入子模块（依赖注入模式）
+        this.batchExporter = new ResumeBatchExporter(this);
+        this.parser = new ResumeParser(this);
+        this.detailManager = new ResumeDetailManager(this);
+
+        // 经历管理器和附件管理器通过 detailManager 访问
+        this.experienceManager = this.detailManager.experienceManager;
+        this.attachmentManager = this.detailManager.attachmentManager;
     }
 
     /**
@@ -207,19 +217,18 @@ class ResumeLibraryManager {
                 params.append('company_id', this.currentCompanyId);
             }
 
-            const response = await fetch(`/api/resume_library/list?${params}`);
-            const result = await response.json();
+            const result = await window.apiClient.get(`/api/resume_library/list?${params}`);
 
             if (result.success) {
                 this.renderResumeList(result.data.resumes);
                 this.renderPagination(result.data);
                 this.updateStats(result.data);
             } else {
-                this.showError('加载简历列表失败: ' + result.error);
+                window.notifications.error('加载简历列表失败: ' + result.error);
             }
         } catch (error) {
             console.error('加载简历失败:', error);
-            this.showError('加载简历失败');
+            window.notifications.error('加载简历失败');
         }
     }
 
@@ -296,616 +305,43 @@ class ResumeLibraryManager {
      * 显示添加简历模态框
      */
     showAddResumeModal() {
-        const modal = this.createResumeFormModal(null, '添加简历');
-        modal.show();
+        // 简单添加可以直接跳转到详情页（新建模式）
+        // 或使用智能解析
+        window.notifications.info('请使用智能解析功能上传简历');
+        this.showParseResumeModal();
     }
 
+    // ==================== 子模块调用（薄包装层） ====================
+
     /**
-     * 显示智能解析模态框
+     * 显示智能解析模态框（调用 ResumeParser）
      */
     showParseResumeModal() {
-        const modalHtml = `
-            <div class="modal fade" id="parseResumeModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">
-                                <i class="bi bi-file-earmark-text me-2"></i>智能简历解析
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <!-- 上传区域 -->
-                            <div id="resumeUploadArea" class="mb-4">
-                                <div class="alert alert-info">
-                                    <i class="bi bi-info-circle me-2"></i>
-                                    上传Word或PDF格式的简历文件，系统将自动解析并填充人员信息
-                                </div>
-
-                                <!-- 原生文件上传区域 -->
-                                <div class="upload-zone border rounded p-4 text-center" id="resumeNativeUploadZone"
-                                     style="cursor: pointer; background: #f8f9fa; border: 2px dashed #dee2e6 !important;">
-                                    <i class="bi bi-cloud-upload text-primary" style="font-size: 3rem;"></i>
-                                    <p class="mt-3 mb-2">点击或拖拽文件到这里上传</p>
-                                    <small class="text-muted">支持 PDF、Word 文档（最大10MB）</small>
-                                    <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx"
-                                           style="display: none;">
-                                </div>
-
-                                <!-- 文件信息显示 -->
-                                <div id="resumeFileInfo" class="mt-3 d-none">
-                                    <div class="alert alert-success">
-                                        <i class="bi bi-file-earmark-text me-2"></i>
-                                        已选择文件：<strong id="resumeFileName"></strong>
-                                        <span id="resumeFileSize" class="text-muted"></span>
-                                    </div>
-                                </div>
-
-                                <!-- 上传进度 -->
-                                <div id="resumeUploadProgress" class="mt-3 d-none">
-                                    <div class="progress">
-                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                             role="progressbar" style="width: 0%">
-                                            正在上传...
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- 错误提示 -->
-                                <div id="resumeUploadError" class="mt-3 d-none">
-                                    <div class="alert alert-danger">
-                                        <i class="bi bi-exclamation-triangle me-2"></i>
-                                        <span id="resumeErrorMessage"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 解析结果 -->
-                            <div id="parseResultSection" style="display:none;">
-                                <h6 class="mb-3">解析结果</h6>
-                                <form id="parsedResumeForm">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">姓名 <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" name="name" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">性别</label>
-                                            <select class="form-select" name="gender">
-                                                <option value="">请选择</option>
-                                                <option value="男">男</option>
-                                                <option value="女">女</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">手机号码</label>
-                                            <input type="tel" class="form-control" name="phone">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">邮箱</label>
-                                            <input type="email" class="form-control" name="email">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">学历</label>
-                                            <select class="form-select" name="education_level">
-                                                <option value="">请选择</option>
-                                                <option value="博士">博士</option>
-                                                <option value="硕士">硕士</option>
-                                                <option value="本科">本科</option>
-                                                <option value="大专">大专</option>
-                                                <option value="高中">高中</option>
-                                                <option value="中专">中专</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">毕业院校</label>
-                                            <input type="text" class="form-control" name="university">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">专业</label>
-                                            <input type="text" class="form-control" name="major">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">当前职位</label>
-                                            <input type="text" class="form-control" name="current_position">
-                                        </div>
-                                        <div class="col-md-12">
-                                            <label class="form-label">当前工作单位</label>
-                                            <input type="text" class="form-control" name="current_company">
-                                        </div>
-                                        <div class="col-md-12">
-                                            <label class="form-label">个人简介</label>
-                                            <textarea class="form-control" name="introduction" rows="3"></textarea>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="button" class="btn btn-primary" id="saveParseResultBtn"
-                                    style="display:none;" onclick="window.resumeLibraryManager.saveParsedResume()">
-                                <i class="bi bi-check-circle me-2"></i>保存简历
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // 添加到页面
-        const container = document.getElementById('resumeModalsContainer');
-        container.innerHTML = modalHtml;
-
-        // 初始化原生文件上传
-        this.initResumeUploader();
-
-        // 显示模态框
-        const modal = new bootstrap.Modal(document.getElementById('parseResumeModal'));
-        modal.show();
+        this.parser.showParseModal();
     }
 
     /**
-     * 初始化简历上传组件（原生文件上传）
-     */
-    initResumeUploader() {
-        const uploadZone = document.getElementById('resumeNativeUploadZone');
-        const fileInput = document.getElementById('resumeFileInput');
-        const fileInfo = document.getElementById('resumeFileInfo');
-        const fileName = document.getElementById('resumeFileName');
-        const fileSize = document.getElementById('resumeFileSize');
-
-        if (!uploadZone || !fileInput) {
-            console.error('[ResumeUploader] 上传区域或文件输入元素未找到');
-            return;
-        }
-
-        console.log('[ResumeUploader] 初始化原生文件上传...');
-
-        // 上传区域点击事件
-        uploadZone.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        // 文件选择事件
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                console.log('[ResumeUploader] 文件已选择:', file.name);
-                this.displayResumeFileInfo(file);
-                this.uploadAndParseResume(file);
-            }
-        });
-
-        // 拖拽上传事件
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadZone.addEventListener(eventName, this.preventDefaults, false);
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadZone.addEventListener(eventName, () => {
-                uploadZone.style.borderColor = '#4a89dc';
-                uploadZone.style.background = '#e8f4ff';
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadZone.addEventListener(eventName, () => {
-                uploadZone.style.borderColor = '#dee2e6';
-                uploadZone.style.background = '#f8f9fa';
-            }, false);
-        });
-
-        uploadZone.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const file = files[0];
-                console.log('[ResumeUploader] 拖拽文件:', file.name);
-                fileInput.files = files;
-                this.displayResumeFileInfo(file);
-                this.uploadAndParseResume(file);
-            }
-        }, false);
-
-        console.log('[ResumeUploader] 初始化完成');
-    }
-
-    /**
-     * 防止默认拖拽行为
-     */
-    preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    /**
-     * 显示文件信息
-     */
-    displayResumeFileInfo(file) {
-        const fileName = document.getElementById('resumeFileName');
-        const fileSize = document.getElementById('resumeFileSize');
-        const fileInfo = document.getElementById('resumeFileInfo');
-
-        if (fileName) fileName.textContent = file.name;
-        if (fileSize) fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-        if (fileInfo) fileInfo.classList.remove('d-none');
-
-        console.log('[ResumeUploader] 文件信息已显示');
-    }
-
-    /**
-     * 上传并解析简历
-     */
-    async uploadAndParseResume(file) {
-        console.log('[ResumeUploader] 开始上传并解析简历...');
-
-        // 验证文件类型
-        const allowedTypes = ['.pdf', '.doc', '.docx'];
-        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
-        if (!allowedTypes.includes(fileExt)) {
-            this.showResumeError('不支持的文件格式，请上传 PDF 或 Word 文档');
-            return;
-        }
-
-        // 验证文件大小（10MB）
-        const maxSize = 10 * 1024 * 1024;
-        if (file.size > maxSize) {
-            this.showResumeError('文件太大，最大支持 10MB');
-            return;
-        }
-
-        // 显示上传进度
-        this.showResumeProgress(true);
-        this.hideResumeError();
-
-        // 构建FormData
-        const formData = new FormData();
-        formData.append('file', file);
-        if (this.currentCompanyId) {
-            formData.append('company_id', this.currentCompanyId);
-        }
-
-        try {
-            const response = await fetch('/api/resume_library/parse-resume', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-            console.log('[ResumeUploader] 解析结果:', result);
-
-            if (result.success && result.data && result.data.parsed_data) {
-                // 填充解析结果
-                this.fillParsedData(result.data.parsed_data);
-
-                // 显示解析结果表单
-                const resultSection = document.getElementById('parseResultSection');
-                const saveBtn = document.getElementById('saveParseResultBtn');
-                if (resultSection) resultSection.style.display = 'block';
-                if (saveBtn) saveBtn.style.display = 'inline-block';
-
-                // 隐藏上传区域
-                const uploadArea = document.getElementById('resumeUploadArea');
-                if (uploadArea) uploadArea.style.display = 'none';
-
-                console.log('[ResumeUploader] 解析成功，已填充数据');
-            } else {
-                throw new Error(result.error || result.message || '解析失败');
-            }
-        } catch (error) {
-            console.error('[ResumeUploader] 上传解析失败:', error);
-            this.showResumeError('简历解析失败: ' + error.message);
-        } finally {
-            this.showResumeProgress(false);
-        }
-    }
-
-    /**
-     * 显示/隐藏上传进度
-     */
-    showResumeProgress(show) {
-        const progress = document.getElementById('resumeUploadProgress');
-        if (progress) {
-            if (show) {
-                progress.classList.remove('d-none');
-            } else {
-                progress.classList.add('d-none');
-            }
-        }
-    }
-
-    /**
-     * 显示错误信息
-     */
-    showResumeError(message) {
-        const errorDiv = document.getElementById('resumeUploadError');
-        const errorMsg = document.getElementById('resumeErrorMessage');
-        if (errorDiv && errorMsg) {
-            errorMsg.textContent = message;
-            errorDiv.classList.remove('d-none');
-        }
-        console.error('[ResumeUploader] 错误:', message);
-    }
-
-    /**
-     * 隐藏错误信息
-     */
-    hideResumeError() {
-        const errorDiv = document.getElementById('resumeUploadError');
-        if (errorDiv) {
-            errorDiv.classList.add('d-none');
-        }
-    }
-
-    /**
-     * 填充解析的数据到表单
-     */
-    fillParsedData(data) {
-        const form = document.getElementById('parsedResumeForm');
-        if (!form) return;
-
-        // 填充表单字段
-        Object.keys(data).forEach(key => {
-            const input = form.elements[key];
-            if (input) {
-                if (input.type === 'checkbox') {
-                    input.checked = data[key];
-                } else {
-                    input.value = data[key] || '';
-                }
-            }
-        });
-    }
-
-    /**
-     * 保存解析的简历
-     */
-    async saveParsedResume() {
-        const form = document.getElementById('parsedResumeForm');
-        if (!form) return;
-
-        // 收集表单数据
-        const formData = new FormData(form);
-        const resumeData = {};
-        formData.forEach((value, key) => {
-            resumeData[key] = value;
-        });
-
-        // 添加公司ID
-        if (this.currentCompanyId) {
-            resumeData.company_id = this.currentCompanyId;
-        }
-
-        try {
-            const response = await fetch('/api/resume_library/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(resumeData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                // 关闭模态框
-                const modal = bootstrap.Modal.getInstance(document.getElementById('parseResumeModal'));
-                modal.hide();
-
-                // 刷新列表
-                await this.loadResumes();
-
-                // 显示成功消息
-                this.showSuccess('简历保存成功');
-            } else {
-                this.showError('保存失败: ' + result.error);
-            }
-        } catch (error) {
-            console.error('保存简历失败:', error);
-            this.showError('保存失败');
-        }
-    }
-
-    /**
-     * 显示批量导出模态框
+     * 显示批量导出模态框（调用 ResumeBatchExporter）
      */
     showBatchExportModal() {
-        if (this.selectedResumeIds.size === 0) {
-            this.showWarning('请先选择要导出的简历');
-            return;
-        }
-
-        const modalHtml = `
-            <div class="modal fade" id="batchExportModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">
-                                <i class="bi bi-download me-2"></i>批量导出简历
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="alert alert-info">
-                                已选择 <strong>${this.selectedResumeIds.size}</strong> 份简历
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">导出选项</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="includeAttachments" checked>
-                                    <label class="form-check-label" for="includeAttachments">
-                                        包含附件
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="includeS Summary" checked>
-                                    <label class="form-check-label" for="includeSummary">
-                                        生成汇总文件
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="organizeByCategory" checked>
-                                    <label class="form-check-label" for="organizeByCategory">
-                                        按类别组织文件
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">附件类别</label>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input attachment-category" type="checkbox"
-                                                   value="resume" id="cat_resume" checked>
-                                            <label class="form-check-label" for="cat_resume">简历文件</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input attachment-category" type="checkbox"
-                                                   value="id_card" id="cat_id_card" checked>
-                                            <label class="form-check-label" for="cat_id_card">身份证</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input attachment-category" type="checkbox"
-                                                   value="education" id="cat_education" checked>
-                                            <label class="form-check-label" for="cat_education">学历证书</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input attachment-category" type="checkbox"
-                                                   value="degree" id="cat_degree" checked>
-                                            <label class="form-check-label" for="cat_degree">学位证书</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input attachment-category" type="checkbox"
-                                                   value="qualification" id="cat_qualification" checked>
-                                            <label class="form-check-label" for="cat_qualification">资质证书</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input attachment-category" type="checkbox"
-                                                   value="award" id="cat_award" checked>
-                                            <label class="form-check-label" for="cat_award">获奖证书</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="button" class="btn btn-primary" onclick="window.resumeLibraryManager.executeExport()">
-                                <i class="bi bi-download me-2"></i>开始导出
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const container = document.getElementById('resumeModalsContainer');
-        container.innerHTML = modalHtml;
-
-        const modal = new bootstrap.Modal(document.getElementById('batchExportModal'));
-        modal.show();
+        this.batchExporter.showBatchExportModal();
     }
 
     /**
-     * 执行导出
+     * 查看简历详情（调用 ResumeDetailManager）
      */
-    async executeExport() {
-        // 收集选项
-        const options = {
-            include_attachments: document.getElementById('includeAttachments').checked,
-            include_summary: document.getElementById('includeSummary').checked,
-            organize_by_category: document.getElementById('organizeByCategory').checked,
-            attachment_categories: []
-        };
-
-        // 收集选中的附件类别
-        document.querySelectorAll('.attachment-category:checked').forEach(checkbox => {
-            options.attachment_categories.push(checkbox.value);
-        });
-
-        // 准备导出数据
-        const exportData = {
-            resume_ids: Array.from(this.selectedResumeIds),
-            options: options
-        };
-
-        try {
-            // 显示进度提示
-            this.showLoading('正在导出，请稍候...');
-
-            const response = await fetch('/api/resume_library/export', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(exportData)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                // 关闭模态框
-                const modal = bootstrap.Modal.getInstance(document.getElementById('batchExportModal'));
-                modal.hide();
-
-                // 下载文件
-                if (result.data.download_url) {
-                    window.location.href = result.data.download_url;
-                }
-
-                // 显示统计信息
-                this.showSuccess(`导出成功！共导出 ${result.data.stats.total_resumes} 份简历，${result.data.stats.total_attachments} 个附件`);
-            } else {
-                this.showError('导出失败: ' + result.error);
-            }
-        } catch (error) {
-            console.error('导出失败:', error);
-            this.showError('导出失败');
-        } finally {
-            this.hideLoading();
-        }
+    async viewResumeDetail(resumeId) {
+        await this.detailManager.renderDetailView(resumeId);
     }
 
     /**
-     * 切换简历选择
+     * 返回列表视图（被 detailManager 调用）
      */
-    toggleResumeSelection(resumeId) {
-        if (this.selectedResumeIds.has(resumeId)) {
-            this.selectedResumeIds.delete(resumeId);
-        } else {
-            this.selectedResumeIds.add(resumeId);
-        }
-
-        // 更新批量导出按钮状态
-        const exportBtn = document.getElementById('batchExportBtn');
-        if (exportBtn) {
-            exportBtn.disabled = this.selectedResumeIds.size === 0;
-        }
+    async showResumeListView() {
+        await this.renderResumeLibraryView();
     }
 
-    /**
-     * 切换全选
-     */
-    toggleSelectAll(checkbox) {
-        const checkboxes = document.querySelectorAll('.resume-checkbox');
-        checkboxes.forEach(cb => {
-            cb.checked = checkbox.checked;
-            const resumeId = parseInt(cb.value);
-            if (checkbox.checked) {
-                this.selectedResumeIds.add(resumeId);
-            } else {
-                this.selectedResumeIds.delete(resumeId);
-            }
-        });
-
-        // 更新批量导出按钮状态
-        const exportBtn = document.getElementById('batchExportBtn');
-        if (exportBtn) {
-            exportBtn.disabled = this.selectedResumeIds.size === 0;
-        }
-    }
+    // ==================== 搜索和筛选 ====================
 
     /**
      * 搜索简历
@@ -950,6 +386,49 @@ class ResumeLibraryManager {
 
         return filters;
     }
+
+    // ==================== 批量选择 ====================
+
+    /**
+     * 切换简历选择
+     */
+    toggleResumeSelection(resumeId) {
+        if (this.selectedResumeIds.has(resumeId)) {
+            this.selectedResumeIds.delete(resumeId);
+        } else {
+            this.selectedResumeIds.add(resumeId);
+        }
+
+        // 更新批量导出按钮状态
+        const exportBtn = document.getElementById('batchExportBtn');
+        if (exportBtn) {
+            exportBtn.disabled = this.selectedResumeIds.size === 0;
+        }
+    }
+
+    /**
+     * 切换全选
+     */
+    toggleSelectAll(checkbox) {
+        const checkboxes = document.querySelectorAll('.resume-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = checkbox.checked;
+            const resumeId = parseInt(cb.value);
+            if (checkbox.checked) {
+                this.selectedResumeIds.add(resumeId);
+            } else {
+                this.selectedResumeIds.delete(resumeId);
+            }
+        });
+
+        // 更新批量导出按钮状态
+        const exportBtn = document.getElementById('batchExportBtn');
+        if (exportBtn) {
+            exportBtn.disabled = this.selectedResumeIds.size === 0;
+        }
+    }
+
+    // ==================== 分页 ====================
 
     /**
      * 渲染分页
@@ -1000,6 +479,8 @@ class ResumeLibraryManager {
         this.loadResumes();
     }
 
+    // ==================== 统计 ====================
+
     /**
      * 更新统计信息
      */
@@ -1016,13 +497,7 @@ class ResumeLibraryManager {
         }
     }
 
-    /**
-     * 查看简历详情
-     */
-    async viewResumeDetail(resumeId) {
-        await this.renderResumeDetailView(resumeId);
-    }
-
+    // ==================== 简历操作 ====================
 
     /**
      * 删除简历
@@ -1033,11 +508,8 @@ class ResumeLibraryManager {
         }
 
         try {
-            const response = await fetch(`/api/resume_library/delete/${resumeId}`, {
-                method: 'DELETE'
-            });
+            const result = await window.apiClient.delete(`/api/resume_library/delete/${resumeId}`);
 
-            const result = await response.json();
             if (result.success) {
                 // 从选中列表中移除
                 this.selectedResumeIds.delete(resumeId);
@@ -1045,16 +517,17 @@ class ResumeLibraryManager {
                 // 刷新列表
                 await this.loadResumes();
 
-                this.showSuccess('简历已删除');
+                window.notifications.success('简历已删除');
             } else {
-                this.showError('删除失败: ' + result.error);
+                window.notifications.error('删除失败: ' + result.error);
             }
         } catch (error) {
             console.error('删除简历失败:', error);
-            this.showError('删除失败');
+            window.notifications.error('删除失败');
         }
     }
 
+    // ==================== 工具方法 ====================
 
     /**
      * 获取状态标签样式
@@ -1081,7 +554,7 @@ class ResumeLibraryManager {
     }
 
     /**
-     * 工具方法：转义HTML
+     * HTML转义
      */
     escapeHtml(text) {
         if (!text) return '';
@@ -1093,1046 +566,6 @@ class ResumeLibraryManager {
             "'": '&#039;'
         };
         return text.replace(/[&<>"']/g, m => map[m]);
-    }
-
-    /**
-     * 显示加载提示
-     */
-    showLoading(message = '加载中...') {
-        // TODO: 实现加载提示
-        console.log('Loading:', message);
-    }
-
-    /**
-     * 隐藏加载提示
-     */
-    hideLoading() {
-        // TODO: 实现隐藏加载提示
-        console.log('Hide loading');
-    }
-
-    /**
-     * 显示成功消息
-     */
-    showSuccess(message) {
-        // 使用Bootstrap toast或其他通知组件
-        if (window.showNotification) {
-            window.showNotification(message, 'success');
-        } else {
-            alert(message);
-        }
-    }
-
-    /**
-     * 显示错误消息
-     */
-    showError(message) {
-        if (window.showNotification) {
-            window.showNotification(message, 'error');
-        } else {
-            alert('错误: ' + message);
-        }
-    }
-
-    /**
-     * 显示警告消息
-     */
-    showWarning(message) {
-        if (window.showNotification) {
-            window.showNotification(message, 'warning');
-        } else {
-            alert('警告: ' + message);
-        }
-    }
-
-    // ==================== 详情页面相关方法 ====================
-
-    /**
-     * 渲染简历详情/编辑页面
-     */
-    async renderResumeDetailView(resumeId) {
-        console.log('渲染简历详情页面...', resumeId);
-
-        if (!this.container) {
-            console.error('Container not found');
-            return;
-        }
-
-        const html = `
-            <div class="resume-detail-wrapper">
-                <!-- 顶部操作栏 -->
-                <div class="case-edit-header mb-4">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <button type="button" class="btn btn-outline-secondary me-3"
-                                    onclick="window.resumeLibraryManager.showResumeListView()">
-                                <i class="bi bi-arrow-left me-1"></i>返回列表
-                            </button>
-                            <h4 class="mb-0">简历详情</h4>
-                        </div>
-                        <div>
-                            <button type="button" class="btn btn-primary"
-                                    onclick="window.resumeLibraryManager.saveResume()">
-                                <i class="bi bi-save me-1"></i>保存
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 详情内容 -->
-                <div class="resume-detail-content">
-                    <input type="hidden" id="resumeId" value="${resumeId}">
-
-                    <!-- 基本信息 -->
-                    <div class="case-form-section">
-                        <h6>基本信息</h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label class="form-label">姓名 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="resumeName" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">性别</label>
-                                <select class="form-select" id="resumeGender">
-                                    <option value="">请选择</option>
-                                    <option value="男">男</option>
-                                    <option value="女">女</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">出生日期</label>
-                                <input type="date" class="form-control" id="resumeBirthDate">
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-4">
-                                <label class="form-label">民族</label>
-                                <input type="text" class="form-control" id="resumeNationality">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">籍贯</label>
-                                <input type="text" class="form-control" id="resumeNativePlace">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">政治面貌</label>
-                                <select class="form-select" id="resumePoliticalStatus">
-                                    <option value="">请选择</option>
-                                    <option value="中共党员">中共党员</option>
-                                    <option value="共青团员">共青团员</option>
-                                    <option value="群众">群众</option>
-                                    <option value="民主党派">民主党派</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <label class="form-label">身份证号</label>
-                                <input type="text" class="form-control" id="resumeIdNumber">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 联系方式 -->
-                    <div class="case-form-section">
-                        <h6>联系方式</h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <label class="form-label">手机号码</label>
-                                <input type="tel" class="form-control" id="resumePhone">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">电子邮箱</label>
-                                <input type="email" class="form-control" id="resumeEmail">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">联系地址</label>
-                                <input type="text" class="form-control" id="resumeAddress">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 教育信息 -->
-                    <div class="case-form-section">
-                        <h6>教育信息</h6>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label">学历</label>
-                                <select class="form-select" id="resumeEducationLevel">
-                                    <option value="">请选择</option>
-                                    <option value="博士">博士</option>
-                                    <option value="硕士">硕士</option>
-                                    <option value="本科">本科</option>
-                                    <option value="大专">大专</option>
-                                    <option value="高中">高中</option>
-                                    <option value="中专">中专</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">学位</label>
-                                <input type="text" class="form-control" id="resumeDegree" placeholder="如：工学硕士">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">毕业院校</label>
-                                <input type="text" class="form-control" id="resumeUniversity">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">专业</label>
-                                <input type="text" class="form-control" id="resumeMajor">
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-3">
-                                <label class="form-label">毕业时间</label>
-                                <input type="date" class="form-control" id="resumeGraduationDate">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 工作信息 -->
-                    <div class="case-form-section">
-                        <h6>工作信息</h6>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label">当前职位</label>
-                                <input type="text" class="form-control" id="resumeCurrentPosition">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">职称</label>
-                                <input type="text" class="form-control" id="resumeProfessionalTitle">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">工作年限</label>
-                                <input type="number" class="form-control" id="resumeWorkYears" min="0">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">状态</label>
-                                <select class="form-select" id="resumeStatus">
-                                    <option value="active">在职</option>
-                                    <option value="inactive">离职</option>
-                                    <option value="archived">归档</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <label class="form-label">当前工作单位</label>
-                                <input type="text" class="form-control" id="resumeCurrentCompany">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">所在部门</label>
-                                <input type="text" class="form-control" id="resumeDepartment">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 工作经历 -->
-                    <div class="case-form-section">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0">
-                                <i class="bi bi-briefcase me-2"></i>工作经历
-                            </h6>
-                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                    onclick="window.resumeLibraryManager.addWorkExperience()">
-                                <i class="bi bi-plus-circle me-1"></i>添加
-                            </button>
-                        </div>
-                        <div id="workExperienceList" class="experience-list">
-                            <!-- 工作经历将动态渲染在这里 -->
-                        </div>
-                    </div>
-
-                    <!-- 项目经历 -->
-                    <div class="case-form-section">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0">
-                                <i class="bi bi-diagram-3 me-2"></i>项目经历
-                            </h6>
-                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                    onclick="window.resumeLibraryManager.addProjectExperience()">
-                                <i class="bi bi-plus-circle me-1"></i>添加
-                            </button>
-                        </div>
-                        <div id="projectExperienceList" class="experience-list">
-                            <!-- 项目经历将动态渲染在这里 -->
-                        </div>
-                    </div>
-
-                    <!-- 附件管理 -->
-                    <div class="case-form-section">
-                        <h6>
-                            <i class="bi bi-paperclip me-2"></i>简历附件
-                            <span class="badge bg-secondary ms-2" id="resumeAttachmentCount">0</span>
-                        </h6>
-
-                        <!-- 上传区域 -->
-                        <div class="case-attachment-upload-area mb-3">
-                            <div class="upload-box">
-                                <input type="file" id="resumeAttachmentInput" multiple
-                                       accept="image/*,.pdf,.doc,.docx" style="display: none;"
-                                       onchange="window.resumeLibraryManager.handleAttachmentSelect(event)">
-                                <div class="upload-prompt" onclick="document.getElementById('resumeAttachmentInput').click()">
-                                    <i class="bi bi-cloud-upload text-primary" style="font-size: 2rem;"></i>
-                                    <p class="mt-2 mb-1">点击或拖拽文件到这里上传</p>
-                                    <small class="text-muted">支持图片、PDF、Word文档，单个文件不超过10MB</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 附件类型选择 -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">附件类型</label>
-                                <select class="form-select" id="resumeAttachmentCategory">
-                                    <option value="resume">简历文件</option>
-                                    <option value="id_card">身份证</option>
-                                    <option value="education">学历证书</option>
-                                    <option value="degree">学位证书</option>
-                                    <option value="qualification">资质证书</option>
-                                    <option value="award">获奖证书</option>
-                                    <option value="other">其他</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">附件说明</label>
-                                <input type="text" class="form-control" id="resumeAttachmentDescription"
-                                       placeholder="选填，简要说明附件内容">
-                            </div>
-                        </div>
-
-                        <!-- 附件列表 -->
-                        <div class="case-attachment-list mt-3" id="resumeAttachmentList">
-                            <!-- 附件列表将动态渲染在这里 -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        this.container.innerHTML = html;
-
-        // 加载简历数据
-        await this.loadResumeData(resumeId);
-    }
-
-    /**
-     * 返回列表视图
-     */
-    async showResumeListView() {
-        await this.renderResumeLibraryView();
-    }
-
-    /**
-     * 加载简历数据
-     */
-    async loadResumeData(resumeId) {
-        try {
-            const response = await fetch(`/api/resume_library/detail/${resumeId}`);
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || '获取简历信息失败');
-            }
-
-            const resume = result.data;
-
-            // 填充基本信息
-            document.getElementById('resumeName').value = resume.name || '';
-            document.getElementById('resumeGender').value = resume.gender || '';
-            document.getElementById('resumeBirthDate').value = resume.birth_date || '';
-            document.getElementById('resumeNationality').value = resume.nationality || '';
-            document.getElementById('resumeNativePlace').value = resume.native_place || '';
-            document.getElementById('resumePoliticalStatus').value = resume.political_status || '';
-            document.getElementById('resumeIdNumber').value = resume.id_number || '';
-
-            // 填充联系方式
-            document.getElementById('resumePhone').value = resume.phone || '';
-            document.getElementById('resumeEmail').value = resume.email || '';
-            document.getElementById('resumeAddress').value = resume.address || '';
-
-            // 填充教育信息
-            document.getElementById('resumeEducationLevel').value = resume.education_level || '';
-            document.getElementById('resumeDegree').value = resume.degree || '';
-            document.getElementById('resumeUniversity').value = resume.university || '';
-            document.getElementById('resumeMajor').value = resume.major || '';
-            document.getElementById('resumeGraduationDate').value = resume.graduation_date || '';
-
-            // 填充工作信息
-            document.getElementById('resumeCurrentPosition').value = resume.current_position || '';
-            document.getElementById('resumeProfessionalTitle').value = resume.professional_title || '';
-            document.getElementById('resumeWorkYears').value = resume.work_years || '';
-            document.getElementById('resumeStatus').value = resume.status || 'active';
-            document.getElementById('resumeCurrentCompany').value = resume.current_company || '';
-            document.getElementById('resumeDepartment').value = resume.department || '';
-
-            // 加载工作经历
-            this.loadWorkExperience(resume.work_experience);
-
-            // 加载项目经历
-            this.loadProjectExperience(resume.project_experience);
-
-            // 加载附件
-            await this.loadResumeAttachments(resumeId);
-
-        } catch (error) {
-            console.error('加载简历数据失败:', error);
-            this.showError('加载简历数据失败: ' + error.message);
-        }
-    }
-
-    /**
-     * 保存简历
-     */
-    async saveResume() {
-        const resumeId = document.getElementById('resumeId').value;
-
-        // 验证必填字段
-        const name = document.getElementById('resumeName').value;
-        if (!name || !name.trim()) {
-            this.showWarning('请填写姓名');
-            document.getElementById('resumeName').focus();
-            return;
-        }
-
-        // 收集表单数据
-        const data = {
-            name: name,
-            gender: document.getElementById('resumeGender').value,
-            birth_date: document.getElementById('resumeBirthDate').value,
-            nationality: document.getElementById('resumeNationality').value,
-            native_place: document.getElementById('resumeNativePlace').value,
-            political_status: document.getElementById('resumePoliticalStatus').value,
-            id_number: document.getElementById('resumeIdNumber').value,
-            phone: document.getElementById('resumePhone').value,
-            email: document.getElementById('resumeEmail').value,
-            address: document.getElementById('resumeAddress').value,
-            education_level: document.getElementById('resumeEducationLevel').value,
-            degree: document.getElementById('resumeDegree').value,
-            university: document.getElementById('resumeUniversity').value,
-            major: document.getElementById('resumeMajor').value,
-            graduation_date: document.getElementById('resumeGraduationDate').value,
-            current_position: document.getElementById('resumeCurrentPosition').value,
-            professional_title: document.getElementById('resumeProfessionalTitle').value,
-            work_years: document.getElementById('resumeWorkYears').value ? parseInt(document.getElementById('resumeWorkYears').value) : null,
-            status: document.getElementById('resumeStatus').value,
-            current_company: document.getElementById('resumeCurrentCompany').value,
-            department: document.getElementById('resumeDepartment').value,
-            // 添加工作经历和项目经历
-            work_experience: this.workExperienceData || [],
-            project_experience: this.projectExperienceData || []
-        };
-
-        try {
-            const response = await fetch(`/api/resume_library/update/${resumeId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showSuccess('保存成功');
-                await this.showResumeListView();
-            } else {
-                throw new Error(result.error || '保存失败');
-            }
-        } catch (error) {
-            console.error('保存简历失败:', error);
-            this.showError('保存失败：' + error.message);
-        }
-    }
-
-    /**
-     * 加载简历附件列表
-     */
-    async loadResumeAttachments(resumeId) {
-        try {
-            const response = await fetch(`/api/resume_library/attachments/${resumeId}`);
-            const result = await response.json();
-
-            if (result.success) {
-                const attachments = result.data || [];
-                this.renderAttachmentList(attachments);
-
-                // 更新附件数量
-                const countBadge = document.getElementById('resumeAttachmentCount');
-                if (countBadge) {
-                    countBadge.textContent = attachments.length;
-                }
-            }
-        } catch (error) {
-            console.error('加载附件列表失败:', error);
-        }
-    }
-
-    /**
-     * 渲染附件列表
-     */
-    renderAttachmentList(attachments) {
-        const container = document.getElementById('resumeAttachmentList');
-        if (!container) return;
-
-        if (attachments.length === 0) {
-            container.innerHTML = '<div class="text-muted text-center py-3">暂无附件</div>';
-            return;
-        }
-
-        const html = attachments.map(att => {
-            const typeLabel = this.getAttachmentCategoryLabel(att.attachment_category);
-            const fileIcon = this.getFileIcon(att.file_path);
-
-            return `
-                <div class="case-attachment-item">
-                    <div class="attachment-info">
-                        <i class="bi ${fileIcon} me-2 text-primary"></i>
-                        <div class="attachment-details">
-                            <div class="attachment-name">${this.escapeHtml(att.original_filename || '未知文件')}</div>
-                            <div class="attachment-meta">
-                                <span class="badge bg-info">${typeLabel}</span>
-                                ${att.attachment_description ? `<span class="text-muted ms-2">· ${this.escapeHtml(att.attachment_description)}</span>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="attachment-actions">
-                        <button type="button" class="btn btn-sm btn-outline-secondary me-1"
-                                onclick="window.resumeLibraryManager.downloadAttachment(${att.attachment_id})" title="下载">
-                            <i class="bi bi-download"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger"
-                                onclick="window.resumeLibraryManager.deleteAttachment(${att.attachment_id})" title="删除">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        container.innerHTML = html;
-    }
-
-    /**
-     * 处理附件选择
-     */
-    async handleAttachmentSelect(event) {
-        const files = event.target.files;
-        if (!files || files.length === 0) return;
-
-        const resumeId = document.getElementById('resumeId').value;
-        if (!resumeId) {
-            this.showWarning('无法获取简历ID');
-            event.target.value = '';
-            return;
-        }
-
-        const category = document.getElementById('resumeAttachmentCategory').value;
-        const description = document.getElementById('resumeAttachmentDescription').value;
-
-        // 遍历所有选中的文件并上传
-        for (let file of files) {
-            // 检查文件大小
-            if (file.size > 10 * 1024 * 1024) {
-                this.showWarning(`文件 "${file.name}" 超过10MB，跳过上传`);
-                continue;
-            }
-
-            await this.uploadAttachment(resumeId, file, category, description);
-        }
-
-        // 清空文件输入和说明
-        event.target.value = '';
-        document.getElementById('resumeAttachmentDescription').value = '';
-
-        // 重新加载附件列表
-        await this.loadResumeAttachments(resumeId);
-    }
-
-    /**
-     * 上传单个附件
-     */
-    async uploadAttachment(resumeId, file, category, description) {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('resume_id', resumeId);
-            formData.append('attachment_category', category);
-            formData.append('attachment_description', description || '');
-
-            const response = await fetch('/api/resume_library/upload-attachment', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showSuccess(`附件 "${file.name}" 上传成功`);
-            } else {
-                throw new Error(result.error || '上传失败');
-            }
-        } catch (error) {
-            console.error('上传附件失败:', error);
-            this.showError(`上传附件 "${file.name}" 失败: ${error.message}`);
-        }
-    }
-
-    /**
-     * 删除附件
-     */
-    async deleteAttachment(attachmentId) {
-        if (!confirm('确定要删除这个附件吗？')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/resume_library/attachment/${attachmentId}`, {
-                method: 'DELETE'
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                this.showSuccess('附件删除成功');
-
-                // 重新加载附件列表
-                const resumeId = document.getElementById('resumeId').value;
-                if (resumeId) {
-                    await this.loadResumeAttachments(resumeId);
-                }
-            } else {
-                throw new Error(result.error || '删除失败');
-            }
-        } catch (error) {
-            console.error('删除附件失败:', error);
-            this.showError('删除附件失败: ' + error.message);
-        }
-    }
-
-    /**
-     * 下载附件
-     */
-    downloadAttachment(attachmentId) {
-        // 构建下载URL（需要根据实际API调整）
-        const downloadUrl = `/api/resume_library/attachment/${attachmentId}/download`;
-        window.location.href = downloadUrl;
-    }
-
-    /**
-     * 获取附件类别标签
-     */
-    getAttachmentCategoryLabel(category) {
-        const labels = {
-            'resume': '简历文件',
-            'id_card': '身份证',
-            'education': '学历证书',
-            'degree': '学位证书',
-            'qualification': '资质证书',
-            'award': '获奖证书',
-            'other': '其他'
-        };
-        return labels[category] || '其他';
-    }
-
-    /**
-     * 获取文件图标
-     */
-    getFileIcon(filePath) {
-        if (!filePath) return 'bi-file-earmark';
-
-        const ext = filePath.split('.').pop().toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext)) {
-            return 'bi-file-image';
-        } else if (ext === 'pdf') {
-            return 'bi-file-pdf';
-        } else if (['doc', 'docx'].includes(ext)) {
-            return 'bi-file-word';
-        } else {
-            return 'bi-file-earmark';
-        }
-    }
-
-    // ==================== 工作经历相关方法 ====================
-
-    /**
-     * 加载工作经历列表
-     */
-    loadWorkExperience(workExperienceData) {
-        const container = document.getElementById('workExperienceList');
-        if (!container) return;
-
-        let workExperience = [];
-
-        // 解析JSON数据
-        if (typeof workExperienceData === 'string') {
-            try {
-                workExperience = JSON.parse(workExperienceData);
-            } catch (e) {
-                console.error('解析工作经历数据失败:', e);
-                workExperience = [];
-            }
-        } else if (Array.isArray(workExperienceData)) {
-            workExperience = workExperienceData;
-        }
-
-        if (workExperience.length === 0) {
-            container.innerHTML = '<div class="text-muted text-center py-3">暂无工作经历</div>';
-            return;
-        }
-
-        container.innerHTML = workExperience.map((exp, index) => `
-            <div class="experience-item card mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">${this.escapeHtml(exp.company || '未知公司')}</h6>
-                            <div class="text-muted small mb-2">
-                                <span class="me-3">
-                                    <i class="bi bi-person-badge me-1"></i>${this.escapeHtml(exp.position || '未知职位')}
-                                </span>
-                                <span>
-                                    <i class="bi bi-calendar-range me-1"></i>${this.escapeHtml(exp.period || '未知时间')}
-                                </span>
-                            </div>
-                            ${exp.description ? `<p class="mb-0 small">${this.escapeHtml(exp.description)}</p>` : ''}
-                        </div>
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-primary"
-                                    onclick="window.resumeLibraryManager.editWorkExperience(${index})" title="编辑">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger"
-                                    onclick="window.resumeLibraryManager.deleteWorkExperience(${index})" title="删除">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        // 存储到实例中以便后续编辑
-        this.workExperienceData = workExperience;
-    }
-
-    /**
-     * 添加工作经历
-     */
-    addWorkExperience() {
-        this.showWorkExperienceModal(null);
-    }
-
-    /**
-     * 编辑工作经历
-     */
-    editWorkExperience(index) {
-        if (!this.workExperienceData || !this.workExperienceData[index]) {
-            this.showWarning('工作经历不存在');
-            return;
-        }
-        this.showWorkExperienceModal(index);
-    }
-
-    /**
-     * 删除工作经历
-     */
-    deleteWorkExperience(index) {
-        if (!confirm('确定要删除这条工作经历吗？')) {
-            return;
-        }
-
-        if (!this.workExperienceData) {
-            this.workExperienceData = [];
-        }
-
-        this.workExperienceData.splice(index, 1);
-        this.loadWorkExperience(this.workExperienceData);
-    }
-
-    /**
-     * 显示工作经历编辑模态框
-     */
-    showWorkExperienceModal(index) {
-        const isEdit = index !== null;
-        const experience = isEdit ? this.workExperienceData[index] : {};
-
-        const modalHtml = `
-            <div class="modal fade" id="workExperienceModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">${isEdit ? '编辑' : '添加'}工作经历</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="workExperienceForm">
-                                <div class="mb-3">
-                                    <label class="form-label">公司名称 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="company"
-                                           value="${this.escapeHtml(experience.company || '')}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">职位 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="position"
-                                           value="${this.escapeHtml(experience.position || '')}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">工作时间 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="period"
-                                           value="${this.escapeHtml(experience.period || '')}"
-                                           placeholder="如：2020-01至2023-12" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">工作描述</label>
-                                    <textarea class="form-control" name="description" rows="3">${this.escapeHtml(experience.description || '')}</textarea>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="button" class="btn btn-primary"
-                                    onclick="window.resumeLibraryManager.saveWorkExperience(${index})">
-                                <i class="bi bi-check-circle me-1"></i>保存
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const container = document.getElementById('resumeModalsContainer');
-        container.innerHTML = modalHtml;
-
-        const modal = new bootstrap.Modal(document.getElementById('workExperienceModal'));
-        modal.show();
-    }
-
-    /**
-     * 保存工作经历
-     */
-    saveWorkExperience(index) {
-        const form = document.getElementById('workExperienceForm');
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const experience = {
-            company: formData.get('company'),
-            position: formData.get('position'),
-            period: formData.get('period'),
-            description: formData.get('description')
-        };
-
-        if (!this.workExperienceData) {
-            this.workExperienceData = [];
-        }
-
-        if (index !== null) {
-            // 编辑现有项
-            this.workExperienceData[index] = experience;
-        } else {
-            // 添加新项
-            this.workExperienceData.push(experience);
-        }
-
-        // 刷新显示
-        this.loadWorkExperience(this.workExperienceData);
-
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(document.getElementById('workExperienceModal'));
-        modal.hide();
-    }
-
-    // ==================== 项目经历相关方法 ====================
-
-    /**
-     * 加载项目经历列表
-     */
-    loadProjectExperience(projectExperienceData) {
-        const container = document.getElementById('projectExperienceList');
-        if (!container) return;
-
-        let projectExperience = [];
-
-        // 解析JSON数据
-        if (typeof projectExperienceData === 'string') {
-            try {
-                projectExperience = JSON.parse(projectExperienceData);
-            } catch (e) {
-                console.error('解析项目经历数据失败:', e);
-                projectExperience = [];
-            }
-        } else if (Array.isArray(projectExperienceData)) {
-            projectExperience = projectExperienceData;
-        }
-
-        if (projectExperience.length === 0) {
-            container.innerHTML = '<div class="text-muted text-center py-3">暂无项目经历</div>';
-            return;
-        }
-
-        container.innerHTML = projectExperience.map((exp, index) => `
-            <div class="experience-item card mb-3">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">${this.escapeHtml(exp.name || '未知项目')}</h6>
-                            <div class="text-muted small mb-2">
-                                <span class="me-3">
-                                    <i class="bi bi-person-badge me-1"></i>${this.escapeHtml(exp.role || '未知角色')}
-                                </span>
-                                <span>
-                                    <i class="bi bi-calendar-range me-1"></i>${this.escapeHtml(exp.period || '未知时间')}
-                                </span>
-                            </div>
-                            ${exp.description ? `<p class="mb-0 small">${this.escapeHtml(exp.description)}</p>` : ''}
-                        </div>
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-outline-primary"
-                                    onclick="window.resumeLibraryManager.editProjectExperience(${index})" title="编辑">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-danger"
-                                    onclick="window.resumeLibraryManager.deleteProjectExperience(${index})" title="删除">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        // 存储到实例中以便后续编辑
-        this.projectExperienceData = projectExperience;
-    }
-
-    /**
-     * 添加项目经历
-     */
-    addProjectExperience() {
-        this.showProjectExperienceModal(null);
-    }
-
-    /**
-     * 编辑项目经历
-     */
-    editProjectExperience(index) {
-        if (!this.projectExperienceData || !this.projectExperienceData[index]) {
-            this.showWarning('项目经历不存在');
-            return;
-        }
-        this.showProjectExperienceModal(index);
-    }
-
-    /**
-     * 删除项目经历
-     */
-    deleteProjectExperience(index) {
-        if (!confirm('确定要删除这条项目经历吗？')) {
-            return;
-        }
-
-        if (!this.projectExperienceData) {
-            this.projectExperienceData = [];
-        }
-
-        this.projectExperienceData.splice(index, 1);
-        this.loadProjectExperience(this.projectExperienceData);
-    }
-
-    /**
-     * 显示项目经历编辑模态框
-     */
-    showProjectExperienceModal(index) {
-        const isEdit = index !== null;
-        const experience = isEdit ? this.projectExperienceData[index] : {};
-
-        const modalHtml = `
-            <div class="modal fade" id="projectExperienceModal" tabindex="-1">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">${isEdit ? '编辑' : '添加'}项目经历</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="projectExperienceForm">
-                                <div class="mb-3">
-                                    <label class="form-label">项目名称 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="name"
-                                           value="${this.escapeHtml(experience.name || '')}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">项目角色 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="role"
-                                           value="${this.escapeHtml(experience.role || '')}" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">项目时间 <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="period"
-                                           value="${this.escapeHtml(experience.period || '')}"
-                                           placeholder="如：2020-01至2023-12" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">项目描述</label>
-                                    <textarea class="form-control" name="description" rows="3">${this.escapeHtml(experience.description || '')}</textarea>
-                                </div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                            <button type="button" class="btn btn-primary"
-                                    onclick="window.resumeLibraryManager.saveProjectExperience(${index})">
-                                <i class="bi bi-check-circle me-1"></i>保存
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const container = document.getElementById('resumeModalsContainer');
-        container.innerHTML = modalHtml;
-
-        const modal = new bootstrap.Modal(document.getElementById('projectExperienceModal'));
-        modal.show();
-    }
-
-    /**
-     * 保存项目经历
-     */
-    saveProjectExperience(index) {
-        const form = document.getElementById('projectExperienceForm');
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-
-        const formData = new FormData(form);
-        const experience = {
-            name: formData.get('name'),
-            role: formData.get('role'),
-            period: formData.get('period'),
-            description: formData.get('description')
-        };
-
-        if (!this.projectExperienceData) {
-            this.projectExperienceData = [];
-        }
-
-        if (index !== null) {
-            // 编辑现有项
-            this.projectExperienceData[index] = experience;
-        } else {
-            // 添加新项
-            this.projectExperienceData.push(experience);
-        }
-
-        // 刷新显示
-        this.loadProjectExperience(this.projectExperienceData);
-
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(document.getElementById('projectExperienceModal'));
-        modal.hide();
     }
 }
 

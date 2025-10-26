@@ -147,6 +147,40 @@
     </div>
 </div>
 
+<!-- 大纲展示区域 -->
+<div class="row mb-4 d-none" id="outlineResultArea">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-list-ol"></i> 技术方案大纲
+                    <button type="button" class="btn btn-sm btn-outline-light float-end"
+                            id="toggleOutlineDetail">
+                        <i class="bi bi-chevron-down"></i> 展开/收起
+                    </button>
+                </h6>
+            </div>
+            <div class="card-body" id="outlineResultContent">
+                <!-- 大纲摘要 -->
+                <div class="mb-4">
+                    <h6 class="text-success"><i class="bi bi-info-circle"></i> 大纲概览</h6>
+                    <div class="row" id="outlineSummary">
+                        <!-- 动态填充大纲摘要 -->
+                    </div>
+                </div>
+
+                <!-- 章节树 -->
+                <div>
+                    <h6 class="text-success"><i class="bi bi-diagram-3"></i> 章节结构</h6>
+                    <div id="outlineChapters" class="outline-tree">
+                        <!-- 动态填充章节树 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 生成结果 -->
 <div class="row d-none" id="techResultArea">
     <div class="col-12">

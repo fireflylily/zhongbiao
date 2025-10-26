@@ -419,6 +419,15 @@ def generate_proposal_stream():
 
             yield f"data: {json.dumps({'stage': 'outline', 'progress': 55, 'message': '✓ 大纲生成完成'}, ensure_ascii=False)}\n\n"
 
+            # 发送完整的大纲数据供前端展示
+            try:
+                # 确保outline_data可以被JSON序列化
+                outline_data_serializable = json.loads(json.dumps(outline_data, ensure_ascii=False, default=str))
+                yield f"data: {json.dumps({'stage': 'outline_completed', 'outline_data': outline_data_serializable}, ensure_ascii=False)}\n\n"
+            except Exception as e:
+                logger.warning(f"无法序列化大纲数据: {e}, 跳过前端展示")
+                # 继续执行,不影响后续流程
+
             # 5. 阶段3：产品文档匹配
             yield f"data: {json.dumps({'stage': 'matching', 'progress': 60, 'message': '🔗 正在匹配产品文档...'}, ensure_ascii=False)}\n\n"
 
@@ -511,7 +520,8 @@ def generate_proposal_stream():
                 'features_count': 0,
                 'sections_count': sections_count,
                 'matches_count': matches_count,
-                'output_files': output_files
+                'output_file': str(proposal_path),  # ✅ 添加文件系统完整路径，与商务应答/点对点应答保持一致
+                'output_files': output_files  # 保留下载URL字典
             }
 
             yield f"data: {json.dumps(result, ensure_ascii=False)}\n\n"

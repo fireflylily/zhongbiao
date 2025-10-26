@@ -97,6 +97,9 @@
     <!-- ⚡ CSS动态加载工具 - 必须在其他脚本之前加载 -->
     <script src="/static/js/utils/css-loader.js"></script>
 
+    <!-- ⚡ SSE客户端工具 - 支持Server-Sent Events流式处理 -->
+    <script src="/static/js/utils/sse-client.js" defer></script>
+
     <!--
     ========================================
     【已废弃】旧的全局状态管理对象
@@ -390,6 +393,15 @@
     <script src="/static/js/pages/knowledge-base/search-manager.js" defer></script>
     <script src="/static/js/pages/knowledge-base/company-profile-manager.js" defer></script>
     <script src="/static/js/pages/knowledge-base/case-library-manager.js?v=20251019e" defer></script>
+
+    <!-- 简历库子模块 - 必须在主管理器之前加载 -->
+    <script src="/static/js/pages/knowledge-base/modules/resume/ResumeBatchExporter.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/modules/resume/ResumeAttachmentManager.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/modules/resume/ResumeExperienceManager.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/modules/resume/ResumeParser.js" defer></script>
+    <script src="/static/js/pages/knowledge-base/modules/resume/ResumeDetailManager.js" defer></script>
+
+    <!-- 简历库主管理器 - 最后加载 -->
     <script src="/static/js/pages/knowledge-base/resume-library-manager.js" defer></script>
     <script src="/static/js/pages/knowledge-base/rag-integration.js" defer></script>
     <script src="/static/js/pages/knowledge-base/ai-search-manager.js" defer></script>
@@ -845,18 +857,11 @@
                             console.log('[Index] 已设置项目选择器:', projectId);
                         }
 
-                        // 4. 加载项目详情（包括所有Tab数据）
-                        if (projectId) {
-                            console.log('[Index] 开始加载项目详情...');
-                            await HITLConfigManager.loadProjectDetails(projectId);
-                            console.log('[Index] 项目详情加载完成');
-
-                            // 5. 自动导航到步骤3
-                            if (HITLConfigManager.navigateToStep3) {
-                                HITLConfigManager.navigateToStep3();
-                                console.log('[Index] 已导航到步骤3');
-                            }
-                        }
+                        // 4. 设置项目选择器后,change事件会自动触发以下流程:
+                        //    - loadProjectDetails(projectId) → 加载项目详情和章节列表
+                        //    - navigateToStep3() → 自动导航到步骤3
+                        //    ✅ 无需在此处重复调用 (change事件监听器在 hitl-config-manager.js 第482行)
+                        console.log('[Index] 已设置项目选择器,等待change事件自动触发加载流程...');
                     } catch (error) {
                         console.error('[Index] 加载项目详情失败:', error);
                         if (typeof showNotification === 'function') {

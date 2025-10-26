@@ -188,53 +188,70 @@ def get_tender_project(project_id):
 
 @api_projects_bp.route('/tender-projects/<int:project_id>', methods=['PUT'])
 def update_tender_project(project_id):
-    """更新招标项目"""
+    """更新招标项目（只更新提供的字段，避免覆盖未提供的字段）"""
     try:
         import json
         data = request.get_json()
 
-        # 序列化资质和评分数据为JSON
-        qualifications_json = None
-        scoring_json = None
+        # 定义可更新的字段映射（数据库字段名 -> 请求字段名）
+        field_mapping = {
+            'project_name': 'project_name',
+            'project_number': 'project_number',
+            'tenderer': 'tenderer',
+            'agency': 'agency',
+            'bidding_method': 'bidding_method',
+            'bidding_location': 'bidding_location',
+            'bidding_time': 'bidding_time',
+            'tender_document_path': 'tender_document_path',
+            'original_filename': 'original_filename',
+            'company_id': 'company_id',
+            'winner_count': 'winner_count',
+            'authorized_person_name': 'authorized_person_name',
+            'authorized_person_id': 'authorized_person_id',
+            'authorized_person_position': 'authorized_person_position',
+            'status': 'status',
+            'qualifications_data': 'qualifications_data',
+            'scoring_data': 'scoring_data',
+            'technical_data': 'technical_data'
+        }
 
-        if data.get('qualifications_data'):
-            qualifications_json = json.dumps(data.get('qualifications_data'), ensure_ascii=False)
-        if data.get('scoring_data'):
-            scoring_json = json.dumps(data.get('scoring_data'), ensure_ascii=False)
+        # 构建动态更新语句
+        update_fields = []
+        params = []
 
-        query = """
+        for db_field, request_field in field_mapping.items():
+            if request_field in data:
+                value = data[request_field]
+
+                # 特殊处理：JSON字段需要序列化
+                if request_field in ['qualifications_data', 'scoring_data', 'technical_data']:
+                    if value is not None:
+                        value = json.dumps(value, ensure_ascii=False)
+
+                update_fields.append(f"{db_field} = ?")
+                params.append(value)
+
+        # 如果没有任何字段需要更新
+        if not update_fields:
+            logger.warning(f"更新项目 {project_id} 时未提供任何字段")
+            return jsonify({
+                'success': True,
+                'project_id': project_id,
+                'message': '未提供需要更新的字段'
+            })
+
+        # 添加 updated_at 字段
+        update_fields.append("updated_at = CURRENT_TIMESTAMP")
+
+        # 构建完整的SQL语句
+        query = f"""
             UPDATE tender_projects SET
-                project_name = ?,
-                project_number = ?,
-                tenderer = ?,
-                agency = ?,
-                bidding_method = ?,
-                bidding_location = ?,
-                bidding_time = ?,
-                tender_document_path = ?,
-                original_filename = ?,
-                company_id = ?,
-                qualifications_data = ?,
-                scoring_data = ?,
-                updated_at = CURRENT_TIMESTAMP
+                {', '.join(update_fields)}
             WHERE project_id = ?
         """
+        params.append(project_id)
 
-        params = [
-            data.get('project_name'),
-            data.get('project_number'),
-            data.get('tenderer'),
-            data.get('agency'),
-            data.get('bidding_method'),
-            data.get('bidding_location'),
-            data.get('bidding_time'),
-            data.get('tender_document_path'),
-            data.get('original_filename'),
-            data.get('company_id'),
-            qualifications_json,
-            scoring_json,
-            project_id
-        ]
+        logger.info(f"更新项目 {project_id}，字段: {list(data.keys())}")
 
         kb_manager.db.execute_query(query, params)
 

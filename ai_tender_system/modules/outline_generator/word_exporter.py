@@ -325,6 +325,20 @@ class WordExporter:
             for evidence in chapter['evidence_needed']:
                 doc.add_paragraph(f"• {evidence}")
 
+        # 添加AI生成的章节内容
+        if chapter.get('ai_generated_content'):
+            doc.add_paragraph()  # 空行分隔
+            p = doc.add_paragraph()
+            p.add_run("【AI生成内容】").bold = True
+            p.add_run().font.color.rgb = RGBColor(0, 176, 80)  # 绿色标注
+
+            # 添加AI生成的段落（处理换行）
+            ai_content = chapter['ai_generated_content']
+            paragraphs = ai_content.split('\n\n')
+            for para in paragraphs:
+                if para.strip():
+                    doc.add_paragraph(para.strip())
+
         # 添加子章节
         for subsection in chapter.get('subsections', []):
             self._add_chapter(doc, subsection)

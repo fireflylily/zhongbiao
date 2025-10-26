@@ -275,12 +275,12 @@ function submitPointToPointForm() {
 
     // 验证必填字段
     if (!hasUploadedFile && !hasTechnicalFile) {
-        alert('请选择文件或从HITL页面传递技术需求文件');
+        window.notifications.warning('请选择文件或从HITL页面传递技术需求文件');
         return;
     }
 
     if (!companySelect || !companySelect.value) {
-        alert('请选择公司');
+        window.notifications.warning('请选择公司');
         return;
     }
 
@@ -708,7 +708,7 @@ function previewPointDocument(button) {
     const filename = button.getAttribute('data-filename');
 
     if (!filePath && !fileId) {
-        alert('无法获取文件信息');
+        window.notifications.warning('无法获取文件信息');
         return;
     }
 
@@ -722,111 +722,14 @@ function previewPointDocument(button) {
         previewUrl += `?file_path=${encodeURIComponent(filePath)}`;
     }
 
-    // 在新窗口中打开预览
-    const previewWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-
-    if (!previewWindow) {
-        alert('浏览器阻止了弹出窗口，请检查弹出窗口设置');
-        return;
-    }
-
-    // 显示加载状态
-    previewWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>预览: ${filename || '文档'}</title>
-            <meta charset="utf-8">
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
-            <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
-        </head>
-        <body>
-            <div class="preview-header" style="background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>${filename || '文档预览'}</h5>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="window.close()">
-                        <i class="bi bi-x-lg"></i> 关闭
-                    </button>
-                </div>
-            </div>
-            <div class="container-fluid">
-                <div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">加载中...</span>
-                        </div>
-                        <p class="mt-3">正在加载文档预览...</p>
-                    </div>
-                </div>
-            </div>
-            <div id="preview-content" class="container-fluid" style="display:none; padding: 2rem;"></div>
-        </body>
-        </html>
-    `);
-
-    // 使用docx-preview在前端转换Word文档，保留原始格式
-    fetch(previewUrl)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-            const loadingDiv = previewWindow.document.querySelector('.d-flex.justify-content-center');
-            const contentDiv = previewWindow.document.getElementById('preview-content');
-
-            // 隐藏加载状态，显示内容区域
-            if (loadingDiv) loadingDiv.style.display = 'none';
-            if (contentDiv) contentDiv.style.display = 'block';
-
-            // 使用docx-preview渲染，保留所有原始格式包括字体大小
-            docx.renderAsync(arrayBuffer, contentDiv, null, {
-                className: 'docx-preview',
-                inWrapper: true,
-                ignoreWidth: false,
-                ignoreHeight: false,
-                ignoreFonts: false,  // 保留字体格式
-                breakPages: true,
-                ignoreLastRenderedPageBreak: true,
-                experimental: true,
-                trimXmlDeclaration: true
-            }).then(() => {
-                console.log('点对点文档预览成功');
-            }).catch(err => {
-                console.error('docx-preview渲染失败:', err);
-                if (contentDiv) {
-                    contentDiv.innerHTML = '<div class="alert alert-danger">文档渲染失败，请尝试下载文档</div>';
-                }
-            });
-        })
-        .catch(error => {
-            console.error('文档预览失败:', error);
-            previewWindow.document.open();
-            previewWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>预览错误</title>
-                    <meta charset="utf-8">
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
-                </head>
-                <body>
-                    <div class="container mt-5">
-                        <div class="alert alert-danger">
-                            <h5><i class="bi bi-exclamation-triangle me-2"></i>预览失败</h5>
-                            <p>无法预览此文档: ${error.message}</p>
-                            <button class="btn btn-outline-secondary" onclick="window.close()">关闭</button>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `);
-            previewWindow.document.close();
-        });
+    // 使用统一的文档预览工具（新窗口模式）
+    window.documentPreviewUtil.preview(previewUrl, filename, 'docx', { newWindow: true });
 }
 
 // 预览点对点处理结果文档（处理完成后的预览按钮）
 function previewPointToPointResultDocument(filename) {
     if (!filename) {
-        alert('无法获取文件信息');
+        window.notifications.warning('无法获取文件信息');
         return;
     }
 
@@ -835,107 +738,8 @@ function previewPointToPointResultDocument(filename) {
     // 使用预览API而不是直接下载URL
     const previewApiUrl = `/api/document/preview/${encodeURIComponent(filename)}`;
 
-    // 在新窗口中打开预览
-    const previewWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-
-    if (!previewWindow) {
-        alert('浏览器阻止了弹出窗口，请检查弹出窗口设置');
-        return;
-    }
-
-    // 显示加载状态
-    previewWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>预览: ${filename}</title>
-            <meta charset="utf-8">
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
-            <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
-        </head>
-        <body>
-            <div class="preview-header" style="background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000;">
-                <div class="container-fluid">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>${filename}</h5>
-                        <button class="btn btn-secondary btn-sm" onclick="window.close()">
-                            <i class="bi bi-x-lg me-1"></i>关闭
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="container-fluid">
-                <div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">加载中...</span>
-                        </div>
-                        <p class="mt-3">正在加载文档预览...</p>
-                    </div>
-                </div>
-            </div>
-            <div id="preview-content" class="container" style="display:none; padding: 2rem;"></div>
-        </body>
-        </html>
-    `);
-
-    // 使用docx-preview在前端转换Word文档，保留原始格式
-    fetch(previewApiUrl)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-            const loadingDiv = previewWindow.document.querySelector('.d-flex.justify-content-center');
-            const contentDiv = previewWindow.document.getElementById('preview-content');
-
-            // 隐藏加载状态，显示内容区域
-            if (loadingDiv) loadingDiv.style.display = 'none';
-            if (contentDiv) contentDiv.style.display = 'block';
-
-            // 使用docx-preview渲染，保留所有原始格式包括字体大小
-            docx.renderAsync(arrayBuffer, contentDiv, null, {
-                className: 'docx-preview',
-                inWrapper: true,
-                ignoreWidth: false,
-                ignoreHeight: false,
-                ignoreFonts: false,  // 保留字体格式
-                breakPages: true,
-                ignoreLastRenderedPageBreak: true,
-                experimental: true,
-                trimXmlDeclaration: true
-            }).then(() => {
-                console.log('点对点结果文档预览成功');
-            }).catch(err => {
-                console.error('docx-preview渲染失败:', err);
-                if (contentDiv) {
-                    contentDiv.innerHTML = '<div class="alert alert-danger">文档渲染失败，请尝试下载文档</div>';
-                }
-            });
-        })
-        .catch(error => {
-            console.error('文档预览失败:', error);
-            previewWindow.document.open();
-            previewWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>预览错误</title>
-                    <meta charset="utf-8">
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
-                </head>
-                <body>
-                    <div class="container mt-5">
-                        <div class="alert alert-danger">
-                            <h5><i class="bi bi-exclamation-triangle me-2"></i>预览失败</h5>
-                            <p>无法预览此文档: ${error.message}</p>
-                            <button class="btn btn-outline-secondary" onclick="window.close()">关闭</button>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `);
-            previewWindow.document.close();
-        });
+    // 使用统一的文档预览工具（新窗口模式）
+    window.documentPreviewUtil.preview(previewApiUrl, filename, 'docx', { newWindow: true });
 }
 
 // 编辑点对点应答文档
@@ -945,7 +749,7 @@ function editPointDocument(button) {
     const filename = button.getAttribute('data-filename');
 
     if (!filePath && !fileId) {
-        alert('无法获取文件信息');
+        window.notifications.warning('无法获取文件信息');
         return;
     }
 
@@ -963,7 +767,7 @@ function editPointDocument(button) {
     const editWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
 
     if (!editWindow) {
-        alert('浏览器阻止了弹出窗口，请检查弹出窗口设置');
+        window.notifications.warning('浏览器阻止了弹出窗口，请检查弹出窗口设置');
         return;
     }
 
@@ -1095,7 +899,11 @@ function createDocumentEditor(editWindow, filename, content, saveUrl) {
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert('保存成功！');
+                            if (window.opener && window.opener.notifications) {
+                                window.opener.notifications.success('保存成功！');
+                            } else {
+                                alert('保存成功！');
+                            }
                             // 刷新父窗口的文件列表
                             if (window.opener && window.opener.loadPointToPointFilesList) {
                                 window.opener.loadPointToPointFilesList();
@@ -1106,7 +914,11 @@ function createDocumentEditor(editWindow, filename, content, saveUrl) {
                     })
                     .catch(error => {
                         console.error('保存失败:', error);
-                        alert('保存失败: ' + error.message);
+                        if (window.opener && window.opener.notifications) {
+                            window.opener.notifications.error('保存失败: ' + error.message);
+                        } else {
+                            alert('保存失败: ' + error.message);
+                        }
                     })
                     .finally(() => {
                         saveBtn.disabled = false;
@@ -1127,7 +939,7 @@ function downloadPointDocument(button) {
     const filename = button.getAttribute('data-filename');
 
     if (!filePath && !fileId) {
-        alert('无法获取文件信息');
+        window.notifications.warning('无法获取文件信息');
         return;
     }
 
@@ -1189,11 +1001,7 @@ async function syncPointToPointToHitl(hitlTaskId, filePath) {
             btn.classList.add('btn-outline-success');
 
             // 显示成功通知
-            if (typeof showNotification === 'function') {
-                showNotification(data.message || '文件已成功同步到投标项目', 'success');
-            } else {
-                alert(data.message || '文件已成功同步到投标项目');
-            }
+            window.notifications.success(data.message || '文件已成功同步到投标项目');
 
             console.log('[syncPointToPointToHitl] 同步成功');
 
@@ -1214,11 +1022,7 @@ async function syncPointToPointToHitl(hitlTaskId, filePath) {
 
         // 显示错误通知
         const errorMsg = '同步失败: ' + error.message;
-        if (typeof showNotification === 'function') {
-            showNotification(errorMsg, 'error');
-        } else {
-            alert(errorMsg);
-        }
+        window.notifications.error(errorMsg);
     }
 }
 
@@ -1231,138 +1035,56 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * ✅ 从 HITL Tab 加载数据（已迁移到 GlobalStateManager）
+ * ✅ 从 HITL Tab 加载数据（使用 HITLFileLoader 简化）
  * 当用户从 HITL Tab 点击快捷按钮切换到点对点应答 Tab 时调用
  */
 function loadFromHITL() {
-    console.log('[Point-to-Point] 开始从HITL加载数据');
-
     if (!window.globalState) {
         console.warn('[Point-to-Point] globalState 未定义');
         return;
     }
 
-    // ✅ 1. 从 globalState 读取公司和项目信息
+    // 1. 更新公司信息
     const company = window.globalState.getCompany();
-    if (company && company.id) {
-        console.log('[Point-to-Point] 公司信息:', company);
-
-        // 更新点对点应答表单的公司ID
+    if (company?.id) {
         const companySelect = document.getElementById('pointToPointCompanyId');
         if (companySelect) {
-            companySelect.value = company.id || '';
+            companySelect.value = company.id;
         }
     }
 
-    // ✅ 2. 从 globalState 加载技术需求文件信息
-    const techFile = window.globalState.getFile('technical');
-    console.log('[Point-to-Point] ====== 文件信息诊断开始 ======');
-    console.log('[Point-to-Point] techFile:', techFile);
-    console.log('[Point-to-Point] techFile?.fileName:', techFile?.fileName);
-    console.log('[Point-to-Point] 条件检查: fileName存在?', !!techFile?.fileName);
-
-    // ✅ 获取HITL任务ID
-    const hitlTaskId = window.globalState.getHitlTaskId();
-    console.log('[Point-to-Point] HITL任务ID:', hitlTaskId);
-
-    if (techFile?.fileName) {
-        console.log('[Point-to-Point] [PASS] 条件检查通过，准备显示文件');
-        console.log('[Point-to-Point] 找到技术需求文件:', techFile.fileName);
-
-        // ✅ 填充隐藏字段
-        const taskIdInput = document.getElementById('technicalFileTaskId');
-        const urlInput = document.getElementById('technicalFileUrl');
-        if (taskIdInput && hitlTaskId) {
-            taskIdInput.value = hitlTaskId;
-            console.log('[Point-to-Point] 已设置 technicalFileTaskId:', hitlTaskId);
-        }
-        if (urlInput && techFile.fileUrl) {
-            urlInput.value = techFile.fileUrl;
-            console.log('[Point-to-Point] 已设置 technicalFileUrl:', techFile.fileUrl);
-        }
-
-        // 【关键修复】直接使用 innerHTML 设置整个 fileInfo 内容,而不是操作子元素
-        const fileInfo = document.getElementById('fileInfo');
-        console.log('[Point-to-Point] 查找 fileInfo 元素:', fileInfo);
-
-        if (fileInfo) {
-            console.log('[Point-to-Point] [FOUND] 找到 fileInfo 元素，准备设置 innerHTML');
-            console.log('[Point-to-Point] 设置前 innerHTML:', fileInfo.innerHTML);
-
-            // 计算文件大小
-            let sizeText = '';
-            if (techFile.fileSize) {
-                const sizeKB = (parseInt(techFile.fileSize) / 1024).toFixed(2);
-                sizeText = `<span class="text-muted" id="fileSize">(${sizeKB} KB)</span>`;
-            }
-
-            // 【关键】使用 innerHTML 一次性设置全部内容
-            fileInfo.innerHTML = `
-                <div class="alert alert-success py-2 d-flex align-items-center">
-                    <i class="bi bi-file-earmark-text me-2"></i>
-                    <div>
-                        已选择文件：<strong id="fileName">${techFile.fileName}</strong>
-                        ${sizeText}
-                        <span class="badge bg-success ms-2">已从投标项目加载</span>
-                    </div>
-                </div>
-            `;
-
-            // 【重要】移除隐藏class
-            fileInfo.classList.remove('d-none');
-
-            console.log('[Point-to-Point] [SUCCESS] innerHTML 已设置成功');
-            console.log('[Point-to-Point] 设置后 innerHTML:', fileInfo.innerHTML);
-            console.log('[Point-to-Point] 设置后 innerHTML.length:', fileInfo.innerHTML.length);
-
-            // 【验证】立即检查DOM中是否真的有内容
-            setTimeout(() => {
-                const checkDiv = document.getElementById('fileInfo');
-                console.log('[Point-to-Point] [VERIFY] 100ms后验证，元素内容:', checkDiv?.innerHTML);
-                console.log('[Point-to-Point] [VERIFY] 100ms后验证，元素是否可见:', checkDiv?.offsetParent !== null);
-                console.log('[Point-to-Point] [VERIFY] 100ms后验证，是否有d-none类:', checkDiv?.classList.contains('d-none'));
-
-                if (!checkDiv || checkDiv.innerHTML.trim() === '') {
-                    console.error('[Point-to-Point] [ERROR] 验证失败！innerHTML被清空了！');
-                } else if (checkDiv.classList.contains('d-none')) {
-                    console.error('[Point-to-Point] [ERROR] 验证失败！元素被重新隐藏了！');
-                } else {
-                    console.log('[Point-to-Point] [VERIFY] 验证成功，内容仍然存在且可见');
+    // 2. 使用 HITLFileLoader 加载技术需求文件
+    if (window.HITLFileLoader) {
+        const loader = new window.HITLFileLoader({
+            fileType: 'technical',
+            fileInfoElementId: 'fileInfo',
+            uploadAreaId: 'uploadArea',
+            onFileLoaded: (fileData) => {
+                // 填充隐藏字段
+                const hitlTaskId = window.globalState.getHitlTaskId();
+                if (hitlTaskId) {
+                    const taskIdInput = document.getElementById('technicalFileTaskId');
+                    if (taskIdInput) {
+                        taskIdInput.value = hitlTaskId;
+                    }
                 }
-            }, 100);
-        } else {
-            console.error('[Point-to-Point] [ERROR] 未找到 fileInfo 元素，无法显示文件信息');
-        }
 
-        // 隐藏上传区域
-        const uploadArea = document.getElementById('uploadArea');
-        console.log('[Point-to-Point] 查找 uploadArea 元素:', uploadArea);
+                if (fileData.fileUrl) {
+                    const urlInput = document.getElementById('technicalFileUrl');
+                    if (urlInput) {
+                        urlInput.value = fileData.fileUrl;
+                    }
+                }
 
-        if (uploadArea) {
-            uploadArea.classList.add('d-none');
-            uploadArea.style.display = 'none';
-            uploadArea.onclick = null;  // 移除点击事件
-            uploadArea.style.pointerEvents = 'none';  // 禁用所有鼠标事件
-            uploadArea.style.cursor = 'default';  // 改变鼠标样式
-            console.log('[Point-to-Point] [SUCCESS] 已隐藏上传区域并禁用点击事件');
-        } else {
-            console.warn('[Point-to-Point] [WARN] 未找到 uploadArea 元素');
-        }
+                // 启用处理按钮
+                const processBtn = document.getElementById('processBtn');
+                if (processBtn) {
+                    processBtn.disabled = false;
+                }
+            },
+            debug: false
+        });
 
-        // 启用处理按钮
-        const processBtn = document.getElementById('processBtn');
-        if (processBtn) {
-            processBtn.disabled = false;
-            console.log('[Point-to-Point] [SUCCESS] 已启用处理按钮');
-        }
-
-        console.log('[Point-to-Point] 文件信息已显示，已保存到全局变量');
-    } else {
-        console.warn('[Point-to-Point] [FAIL] 条件检查失败，未找到技术需求文件信息');
-        console.warn('[Point-to-Point] techFile 完整对象:', JSON.stringify(techFile, null, 2));
+        loader.load();
     }
-
-    console.log('[Point-to-Point] ====== 文件信息诊断结束 ======');
-
-    console.log('[Point-to-Point] 从HITL加载数据完成');
 }

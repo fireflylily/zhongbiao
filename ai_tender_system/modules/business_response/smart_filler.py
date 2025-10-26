@@ -70,6 +70,13 @@ class SmartDocumentFiller:
         self.logger.info("="*60)
         self.logger.info("开始智能文档填充")
         self.logger.info(f"可用数据字段: {list(data.keys())}")
+
+        # ✅ 专门检测 purchaserName 字段
+        if 'purchaserName' in data:
+            self.logger.info(f"✅ 检测到purchaserName字段: {data.get('purchaserName')}")
+        else:
+            self.logger.warning("⚠️  未检测到purchaserName字段")
+
         self.logger.info("="*60)
 
         # 处理所有段落
@@ -125,7 +132,7 @@ class SmartDocumentFiller:
         # 注意：每次填充后重新检测模式，因为文本已改变，位置信息会失效
         filled_patterns = []
 
-        for pattern_type in ['combo', 'bracket', 'date', 'colon']:
+        for pattern_type in ['combo', 'bracket', 'date', 'colon', 'space_fill']:
             try:
                 # 每次都重新检测当前文本的模式
                 # 注意：不要strip，因为位置信息必须与paragraph.text一致
@@ -199,6 +206,9 @@ class SmartDocumentFiller:
 
         elif pattern_type == 'colon':
             return self.content_filler.fill_colon_field(paragraph, text, matches, data)
+
+        elif pattern_type == 'space_fill':
+            return self.content_filler.fill_space_field(paragraph, text, matches, data)
 
         elif pattern_type == 'date':
             return self.content_filler.fill_date_field(paragraph, text, matches, data)
@@ -283,6 +293,7 @@ class PatternMatcher:
                 'combo': [...],      # 组合字段
                 'bracket': [...],    # 括号占位符
                 'colon': [...],      # 冒号填空
+                'space_fill': [...], # 空格填空（字段名 + 多个空格）
                 'date': [...]        # 日期格式
             }
         """
@@ -303,7 +314,12 @@ class PatternMatcher:
         if colon_matches:
             patterns['colon'] = colon_matches
 
-        # 4. 日期格式
+        # 4. 空格填空：字段名 + 多个空格（新增）
+        space_fill_matches = self._match_space_fill_pattern(text)
+        if space_fill_matches:
+            patterns['space_fill'] = space_fill_matches
+
+        # 5. 日期格式
         date_matches = self._match_date_pattern(text)
         if date_matches:
             patterns['date'] = date_matches
@@ -349,6 +365,7 @@ class PatternMatcher:
 
             # 清理提示性前缀（如"请填写"、"请输入"等）
             prompt_prefixes = ['请填写', '请输入', '待填写', '填写', '输入']
+            original_field_name = field_name
             for prefix in prompt_prefixes:
                 if field_name.startswith(prefix):
                     field_name = field_name[len(prefix):].strip()
@@ -363,6 +380,13 @@ class PatternMatcher:
             if len(field_name) < 2:
                 continue
 
+            # ✅ 关键检测：判断括号内是字段名还是实际内容
+            # 如果括号内容很长（超过8个字符），且没有提示性前缀，很可能是已填写的内容
+            # 常见字段名如"项目名称"、"公司名称"、"法定代表人"等通常不超过8字符
+            if len(original_field_name) > 8 and original_field_name == field_name:
+                # 如果超过8字符，很可能是实际内容（如公司全称、长项目名等），跳过
+                continue
+
             matches.append({
                 'full_match': match.group(0),
                 'field': field_name,
@@ -374,12 +398,13 @@ class PatternMatcher:
 
     def _match_colon_pattern(self, text: str) -> List[Dict]:
         """匹配冒号填空：xxx：___  或 xxx：（空白）或 xxx："""
-        # 匹配冒号后有下划线、空白或直接结束的情况（放宽匹配条件）
-        pattern = r'([^：:\n]{2,20})[:：]\s*([_\s]*|$)'
+        # 修改正则以捕获冒号后的所有内容（不限制为空白或下划线）
+        pattern = r'([^：:\n]{2,20})[:：]\s*([^\n]*)'
         matches = []
 
         for match in re.finditer(pattern, text):
             original_field_name = match.group(1).strip()
+            after_colon = match.group(2).strip()  # 冒号后的内容
 
             # 提取纯字段名（移除括号等）用于数据匹配
             clean_field_name = re.sub(r'[（(][^）)]*[）)]', '', original_field_name).strip()
@@ -388,10 +413,77 @@ class PatternMatcher:
             if len(clean_field_name) < 2:
                 continue
 
+            # ✅ 关键检测：判断冒号后是否已有实际内容
+            if after_colon:
+                # 去除下划线、空格等占位符
+                content_without_placeholder = re.sub(r'[_\s]+', '', after_colon)
+
+                # 如果还有剩余内容（不是纯占位符），说明已填写，跳过
+                if len(content_without_placeholder) > 0:
+                    # 记录日志：跳过已填写的字段
+                    continue  # 跳过已填写的字段
+
             matches.append({
                 'full_match': match.group(0),
                 'field': clean_field_name,  # 清理后的字段名（用于数据匹配）
                 'original_field': original_field_name,  # 原始字段名（包含括号，用于替换）
+                'start': match.start(),
+                'end': match.end()
+            })
+
+        return matches
+
+    def _match_space_fill_pattern(self, text: str) -> List[Dict]:
+        """
+        匹配空格填空模式：字段名 + 多个空格（无冒号）
+
+        示例：
+        - "地址                                          "
+        - "电话                                           电子函件                                "
+        - "投标人名称（盖章）                             "
+
+        注意：
+        - 字段名长度在2-20个字之间（支持带括号的字段）
+        - 后面至少5个连续空格（避免误匹配普通文本）
+        - 排除已有冒号的字段（由colon模式处理）
+        """
+        # 匹配：2-20个汉字/字母/括号 + 至少5个空格
+        # 支持带括号的字段名，如"投标人名称（盖章）"
+        # 使用负向后查看断言确保后面没有冒号
+        pattern = r'([\u4e00-\u9fa5a-zA-Z/（）()]{2,20})(?![：:])(\s{5,})'
+        matches = []
+
+        for match in re.finditer(pattern, text):
+            field_name = match.group(1).strip()
+            spaces = match.group(2)
+
+            # 清理括号后缀（如"（盖章）"、"（公章）"等）用于数据匹配
+            # 注意：保留原始字段名用于文档替换
+            clean_field_name = re.sub(r'[（(][^）)]*[）)]', '', field_name).strip()
+
+            # 跳过明显不是字段的内容
+            skip_keywords = ['本条', '时间从', '以相关', '我公司', '如有', '如果', '见附件', '满足']
+            if any(skip in clean_field_name for skip in skip_keywords):
+                continue
+
+            # 跳过清理后字段名太短的
+            if len(clean_field_name) < 2:
+                continue
+
+            # 跳过数字和特殊字符开头的（检查清理后的字段名）
+            if clean_field_name[0].isdigit() or clean_field_name[0] in ['：', ':']:
+                continue
+
+            # 检查是否在冒号之前（避免与colon模式冲突）
+            # 如果这个字段后面紧跟着冒号，应该由colon模式处理
+            next_char_pos = match.end()
+            if next_char_pos < len(text) and text[next_char_pos] in ['：', ':']:
+                continue
+
+            matches.append({
+                'full_match': match.group(0),
+                'field': clean_field_name,  # 用于数据匹配的清理后字段名
+                'original_field': field_name,  # 保留括号的原始字段名（用于替换）
                 'start': match.start(),
                 'end': match.end()
             })
@@ -428,7 +520,7 @@ class FieldRecognizer:
         self.field_variants = {
             # 供应商名称
             'companyName': [
-                '供应商名称', '供应商全称', '投标人名称', '公司名称',
+                '供应商名称', '供应商全称', '投标人名称', '投标人全称', '公司名称',
                 '单位名称', '应答人名称', '企业名称'
             ],
 
@@ -442,7 +534,7 @@ class FieldRecognizer:
             # 联系方式
             'address': ['地址', '注册地址', '办公地址', '联系地址', '通讯地址'],
             'phone': ['电话', '联系电话', '固定电话', '电话号码'],
-            'email': ['电子邮件', '电子邮箱', '邮箱', 'email', 'Email', 'E-mail', 'E-Mail'],
+            'email': ['电子邮件', '电子邮箱', '邮箱', 'email', 'Email', 'E-mail', 'E-Mail', '电子函件'],
             'fax': ['传真', '传真号码', '传真号'],
             'postalCode': ['邮编', '邮政编码', '邮码'],
 
@@ -456,17 +548,24 @@ class FieldRecognizer:
             'legalRepresentativeAge': ['年龄', '法人年龄', '法定代表人年龄'],
             'representativeName': ['供应商被授权人姓名', '被授权人姓名', '授权人姓名', '供应商代表', '供应商代表姓名', '代表姓名', '代表人'],
             'representativeTitle': ['职务', '职称', '职务职称', '职位'],
+            'authorizedPersonId': ['被授权人身份证', '授权人身份证', '身份证号', '身份证号码', '被授权人身份证号', '授权人身份证号'],
 
             # 公司基本信息
-            'establishDate': ['成立时间', '成立日期', '注册日期', '注册时间'],
+            'establishDate': [
+                '成立时间', '成立日期', '注册日期', '注册时间',
+                '成立和或注册日期', '成立和/或注册日期'  # 新增：处理特殊格式
+            ],
             'businessScope': ['经营范围', '业务范围', '经营内容'],
-            'registeredCapital': ['注册资本', '注册资金'],
+            'registeredCapital': ['注册资本', '注册资金', '实收资本'],
             'socialCreditCode': ['统一社会信用代码', '社会信用代码', '信用代码'],
             'companyType': ['公司类型', '企业类型', '组织形式', '单位性质', '企业性质'],
             'businessTerm': ['经营期限', '营业期限', '经营年限'],
 
             # 日期
-            'date': ['日期', 'date'],
+            'date': [
+                '日期', 'date',
+                '签字日期', '签署日期', '落款日期'  # 新增：处理各种签署日期格式
+            ],
         }
 
         # 反向映射：从变体到标准字段名
@@ -492,6 +591,10 @@ class FieldRecognizer:
         field_text = field_text.replace('（盖章）', '').replace('（公章）', '')
         field_text = field_text.replace('（签字）', '').replace('（签名）', '')
         field_text = field_text.strip()
+
+        # ✅ 关键修复：移除字段名中的所有空格
+        # 处理如"日      期"（日和期之间有多个空格）的情况
+        field_text = re.sub(r'\s+', '', field_text)
 
         # 查找匹配
         return self.reverse_map.get(field_text)
@@ -644,6 +747,46 @@ class ContentFiller:
                 if success:
                     filled_count += 1
                     self.logger.info(f"    冒号字段填充: {original_field_name} → {value}")
+
+        return filled_count > 0
+
+    def fill_space_field(self,
+                        paragraph: Paragraph,
+                        text: str,
+                        matches: List[Dict],
+                        data: Dict[str, Any]) -> bool:
+        """填充空格填空字段（使用run精确替换）"""
+        if not matches:
+            return False
+
+        # 构建段落的run映射（只构建一次）
+        full_text, runs, char_to_run_map = WordDocumentUtils.build_paragraph_text_map(paragraph)
+        filled_count = 0
+
+        # 从后往前处理（避免位置偏移）
+        for match in reversed(matches):
+            field_name = match['field']
+            std_field = self.field_recognizer.recognize_field(field_name)
+
+            if std_field and std_field in data:
+                value = str(data[std_field])
+
+                # 跳过空值（避免填充空白内容）
+                if not value or value.strip() == '':
+                    self.logger.debug(f"  跳过空值字段: {field_name}")
+                    continue
+
+                # 替换格式：字段名 + 空格 + 值
+                # 保留一些空格以保持对齐
+                replacement = f"{field_name}  {value}"
+
+                # 使用run精确替换
+                success = WordDocumentUtils.apply_replacement_to_runs(
+                    runs, char_to_run_map, match, replacement, self.logger
+                )
+                if success:
+                    filled_count += 1
+                    self.logger.info(f"    空格填空字段填充: {field_name} → {value}")
 
         return filled_count > 0
 

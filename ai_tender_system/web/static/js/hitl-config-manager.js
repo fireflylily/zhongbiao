@@ -6,6 +6,11 @@
 
 // HITL页面的模型和公司管理
 const HITLConfigManager = {
+    // ✅ 加载锁状态变量
+    _loadingProjectId: null,     // 正在加载的项目ID
+    _lastLoadedProjectId: null,  // 上次加载的项目ID
+    _isLoadingFromOverview: false, // 是否正在从总览页面加载
+
     // 初始化
     init() {
         console.log('[HITLConfigManager] 初始化配置管理器');
@@ -92,6 +97,10 @@ const HITLConfigManager = {
             const data = await response.json();
 
             const select = document.getElementById('hitlProjectSelect');
+
+            // ✅ 保存当前选中的项目ID,避免触发change事件
+            const currentValue = select.value;
+
             select.innerHTML = '<option value="">新建项目</option>';
 
             if (data.success && data.data && data.data.length > 0) {
@@ -105,11 +114,53 @@ const HITLConfigManager = {
                 });
 
                 console.log(`[HITLConfigManager] 成功加载 ${data.data.length} 个项目`);
+
+                // ✅ 恢复之前选中的值 (如果存在)
+                if (currentValue) {
+                    select.value = currentValue;
+                    console.log('[HITLConfigManager] 已恢复项目选择器值:', currentValue);
+                }
             } else {
                 console.log('[HITLConfigManager] 没有找到项目数据');
             }
         } catch (error) {
             console.error('[HITLConfigManager] 加载项目列表失败:', error);
+        }
+    },
+
+    // 自动填充被授权人信息
+    async autoFillAuthorizedPerson(companyId) {
+        try {
+            console.log('[HITLConfigManager] 自动填充被授权人信息, 公司ID:', companyId);
+
+            const response = await fetch(`/api/companies/${companyId}`);
+            const data = await response.json();
+
+            if (data.success && data.data) {
+                const company = data.data;
+
+                // 填充被授权人字段
+                const authorizedPersonName = document.getElementById('authorizedPersonName');
+                const authorizedPersonId = document.getElementById('authorizedPersonId');
+                const authorizedPersonPosition = document.getElementById('authorizedPersonPosition');
+
+                if (authorizedPersonName) {
+                    authorizedPersonName.value = company.authorized_person_name || '';
+                }
+                if (authorizedPersonId) {
+                    authorizedPersonId.value = company.authorized_person_id || '';
+                }
+                if (authorizedPersonPosition) {
+                    authorizedPersonPosition.value = company.authorized_person_position || '';
+                }
+
+                console.log('[HITLConfigManager] 被授权人信息已自动填充:', {
+                    name: company.authorized_person_name,
+                    position: company.authorized_person_position
+                });
+            }
+        } catch (error) {
+            console.error('[HITLConfigManager] 自动填充被授权人信息失败:', error);
         }
     },
 
@@ -154,7 +205,10 @@ const HITLConfigManager = {
                     'tenderMethod': 'bidding_method',
                     'tenderLocation': 'bidding_location',
                     'tenderDeadline': 'bidding_time',
-                    'winnerCount': 'winner_count'
+                    'winnerCount': 'winner_count',
+                    'authorizedPersonName': 'authorized_person_name',
+                    'authorizedPersonId': 'authorized_person_id',
+                    'authorizedPersonPosition': 'authorized_person_position'
                 };
 
                 Object.entries(formFieldMapping).forEach(([elementId, projectKey]) => {
@@ -437,7 +491,7 @@ const HITLConfigManager = {
         // 公司选择变化
         const companySelect = document.getElementById('hitlCompanySelect');
         if (companySelect) {
-            companySelect.addEventListener('change', (e) => {
+            companySelect.addEventListener('change', async (e) => {
                 const companyId = e.target.value;
                 const companyName = e.target.options[e.target.selectedIndex].text;
 
@@ -455,8 +509,10 @@ const HITLConfigManager = {
 
                 console.log(`[HITLConfigManager] 选择公司: ${companyName} (ID: ${companyId})`);
 
-                // 重新加载项目列表
+                // 自动填充被授权人信息
                 if (companyId) {
+                    await this.autoFillAuthorizedPerson(companyId);
+                    // 重新加载项目列表
                     this.loadProjects();
                 }
             });
@@ -484,12 +540,34 @@ const HITLConfigManager = {
 
                 console.log(`[HITLConfigManager] 项目选择变更: ${projectId}`);
 
-                if (projectId) {
-                    // 加载项目详情（包括章节列表），会自动同步到 globalState
-                    await this.loadProjectDetails(projectId);
+                // ✅ 如果正在从总览页面加载,跳过 (总览页面会直接调用 loadProjectDetails)
+                if (this._isLoadingFromOverview) {
+                    console.log('[HITLConfigManager] 正在从总览页面加载,跳过change处理');
+                    return;
+                }
 
-                    // 【新增】加载完成后导航到步骤3
-                    this.navigateToStep3();
+                // ✅ 防止重复加载同一个项目
+                if (projectId && this._loadingProjectId === projectId) {
+                    console.log('[HITLConfigManager] 项目正在加载中，跳过重复请求:', projectId);
+                    return;
+                }
+
+                if (projectId) {
+                    // 设置加载锁
+                    this._loadingProjectId = projectId;
+                    try {
+                        // 加载项目详情（包括章节列表），会自动同步到 globalState
+                        await this.loadProjectDetails(projectId);
+
+                        // 记录最后加载的项目
+                        this._lastLoadedProjectId = projectId;
+
+                        // 【新增】加载完成后导航到步骤3
+                        this.navigateToStep3();
+                    } finally {
+                        // 释放加载锁
+                        this._loadingProjectId = null;
+                    }
                 } else {
                     // 选择"新建项目",刷新页面
                     console.log('[HITLConfigManager] 刷新页面以重置状态');
@@ -514,41 +592,60 @@ const HITLConfigManager = {
             const {projectId, companyId, companyName, projectName} = e.detail;
             console.log('[HITLConfigManager] 接收到项目总览跳转事件:', e.detail);
 
-            // 1. 设置公司选择器并同步到 globalState
-            if (companyId) {
-                const companySelect = document.getElementById('hitlCompanySelect');
-                if (companySelect) {
-                    companySelect.value = companyId;
+            // ✅ 设置标志位,防止change监听器重复处理
+            this._isLoadingFromOverview = true;
 
-                    // ✅ 同步到 globalState
-                    window.globalState.setCompany(companyId, companyName);
+            try {
+                // 1. 设置公司选择器并同步到 globalState
+                if (companyId) {
+                    const companySelect = document.getElementById('hitlCompanySelect');
+                    if (companySelect) {
+                        companySelect.value = companyId;
 
-                    const nameSpan = document.getElementById('hitlSelectedCompanyName');
-                    if (nameSpan) {
-                        nameSpan.textContent = companyName || '';
-                        nameSpan.className = 'text-primary fw-bold';
+                        // ✅ 同步到 globalState
+                        window.globalState.setCompany(companyId, companyName);
+
+                        const nameSpan = document.getElementById('hitlSelectedCompanyName');
+                        if (nameSpan) {
+                            nameSpan.textContent = companyName || '';
+                            nameSpan.className = 'text-primary fw-bold';
+                        }
+                        console.log('[HITLConfigManager] 已设置公司选择器:', companyId, companyName);
                     }
-                    console.log('[HITLConfigManager] 已设置公司选择器:', companyId, companyName);
                 }
-            }
 
-            // 2. 重新加载项目列表（确保下拉框有最新数据）
-            await this.loadProjects();
+                // 2. 重新加载项目列表（确保下拉框有最新数据）
+                await this.loadProjects();
 
-            // 3. 设置项目选择器并触发加载
-            if (projectId) {
-                const projectSelect = document.getElementById('hitlProjectSelect');
-                if (projectSelect) {
-                    projectSelect.value = projectId;
-                    console.log('[HITLConfigManager] 已设置项目选择器:', projectId);
+                // 3. 设置项目选择器的值 (但不触发change事件)
+                if (projectId) {
+                    const projectSelect = document.getElementById('hitlProjectSelect');
+                    if (projectSelect) {
+                        projectSelect.value = projectId;
+                        console.log('[HITLConfigManager] 已设置项目选择器值:', projectId);
+                    }
 
-                    // 4. 加载项目详情（包括章节列表），会自动同步到 globalState
-                    console.log('[HITLConfigManager] 开始加载项目详情和章节列表...');
-                    await this.loadProjectDetails(projectId);
+                    // ✅ 防止重复加载
+                    if (this._loadingProjectId === projectId) {
+                        console.log('[HITLConfigManager] 项目正在加载中，跳过:', projectId);
+                        return;
+                    }
 
-                    // 【新增】加载完成后导航到步骤3
-                    this.navigateToStep3();
+                    // 4. 直接调用加载逻辑 (不通过change事件)
+                    this._loadingProjectId = projectId;
+                    try {
+                        console.log('[HITLConfigManager] 开始加载项目详情 (从总览页面)');
+                        await this.loadProjectDetails(projectId);
+                        this._lastLoadedProjectId = projectId;
+                        this.navigateToStep3();
+                        console.log('[HITLConfigManager] 项目加载完成 (从总览页面)');
+                    } finally {
+                        this._loadingProjectId = null;
+                    }
                 }
+            } finally {
+                // ✅ 重置标志位
+                this._isLoadingFromOverview = false;
             }
         });
         console.log('[HITLConfigManager] 项目总览跳转事件监听器已绑定');

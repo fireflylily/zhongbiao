@@ -284,31 +284,22 @@ def process_business_response():
         # 从数据库获取项目相关信息（如果有项目名称）
         purchaser_name = ''
         db_project_number = ''
-        authorized_rep_name = ''
-        authorized_rep_position = ''
-        db_deadline = ''  # 新增：项目截止日期
+        db_deadline = ''  # 投标截止时间
         if project_name:
             try:
-                query = """SELECT tenderer, project_number,
-                           authorized_representative_name,
-                           authorized_representative_position,
-                           submission_deadline
+                query = """SELECT tenderer, project_number, bidding_time
                            FROM tender_projects WHERE project_name = ? LIMIT 1"""
                 result = kb_manager.db.execute_query(query, [project_name])
                 if result and len(result) > 0:
                     purchaser_name = result[0].get('tenderer', '')
                     db_project_number = result[0].get('project_number', '')
-                    authorized_rep_name = result[0].get('authorized_representative_name', '')
-                    authorized_rep_position = result[0].get('authorized_representative_position', '')
-                    db_deadline = result[0].get('submission_deadline', '')  # 新增
+                    db_deadline = result[0].get('bidding_time', '')
                     if purchaser_name:
                         logger.info(f"从数据库获取采购人信息: {purchaser_name}")
                     if db_project_number:
                         logger.info(f"从数据库获取项目编号: {db_project_number}")
-                    if authorized_rep_name:
-                        logger.info(f"从数据库获取授权人信息: {authorized_rep_name} ({authorized_rep_position})")
                     if db_deadline:
-                        logger.info(f"从数据库获取项目截止日期: {db_deadline}")
+                        logger.info(f"从数据库获取投标截止时间: {db_deadline}")
             except Exception as e:
                 logger.warning(f"查询项目信息失败: {e}")
 
@@ -372,12 +363,9 @@ def process_business_response():
         # 添加采购人信息到company_data（采购人是项目信息，但为了方便传递，加到这里）
         if purchaser_name:
             company_data['purchaserName'] = purchaser_name
-
-        # 添加授权人信息到company_data
-        if authorized_rep_name:
-            company_data['representativeName'] = authorized_rep_name
-        if authorized_rep_position:
-            company_data['representativeTitle'] = authorized_rep_position
+            logger.info(f"✅ 已添加采购人到company_data: purchaserName={purchaser_name}")
+        else:
+            logger.warning("⚠️  项目无采购人信息（tenderer字段为空）")
 
         # 如果没有使用HITL文件路径,才需要保存上传的文件
         if not hitl_file_path:

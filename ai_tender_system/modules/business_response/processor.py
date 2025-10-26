@@ -99,6 +99,13 @@ class BusinessResponseProcessor:
                 'date': date_text
             }
 
+            # ✅ 数据传递确认：检查purchaserName是否包含在all_data中
+            if 'purchaserName' in all_data:
+                self.logger.info(f"✅ purchaserName已包含在all_data中: {all_data['purchaserName']}")
+            else:
+                self.logger.warning("⚠️  purchaserName未包含在all_data中")
+                self.logger.info(f"📋 all_data可用字段: {list(all_data.keys())}")
+
             # 第1步：信息填写（使用新的智能填写器）
             self.logger.info("第1步：执行智能信息填写")
             smart_stats = self.smart_filler.fill_document(doc, all_data)

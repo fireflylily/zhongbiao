@@ -168,7 +168,7 @@ class ProjectOverviewManager {
     }
 
     /**
-     * 渲染进度单元格 - 简化版本，只显示完成/未完成状态
+     * 渲染进度单元格 - 简化版本，只显示完成/未完成状态，已完成时显示预览按钮
      */
     renderProgressCell(progressInfo) {
         const status = progressInfo.status;
@@ -181,9 +181,27 @@ class ProjectOverviewManager {
         const statusText = isCompleted ? '已完成' : '未完成';
         const badgeColor = isCompleted ? 'bg-success' : 'bg-secondary';
 
+        // 如果已完成且有文件路径，显示预览按钮
+        const hasFile = isCompleted && progressInfo.file_path;
+
+        // 从文件路径中提取文件名
+        let fileName = '';
+        if (hasFile && progressInfo.file_path) {
+            const pathParts = progressInfo.file_path.split('/');
+            fileName = pathParts[pathParts.length - 1];
+        }
+
         return `
             <div class="text-center">
                 <span class="badge ${badgeColor} ${statusClass}">${statusText}</span>
+                ${hasFile ? `
+                    <br>
+                    <button class="btn btn-sm btn-outline-primary mt-1"
+                            onclick="projectOverviewManager.previewFile('${this.escapeHtml(progressInfo.file_path)}', '${this.escapeHtml(fileName)}')"
+                            title="预览文件">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                ` : ''}
             </div>
         `;
     }
@@ -465,6 +483,28 @@ class ProjectOverviewManager {
                     </td>
                 </tr>
             `;
+        }
+    }
+
+    /**
+     * 预览文件
+     */
+    previewFile(filePath, fileName) {
+        console.log(`[ProjectOverviewManager] 预览文件: ${fileName} (${filePath})`);
+
+        // 将文件路径转换为下载URL（使用point-to-point的下载API）
+        const downloadUrl = `/api/point-to-point/download?file_path=${encodeURIComponent(filePath)}`;
+
+        // 使用全局的文档预览工具
+        if (window.documentPreviewUtil) {
+            window.documentPreviewUtil.preview(downloadUrl, fileName);
+        } else {
+            console.error('[ProjectOverviewManager] DocumentPreviewUtil 未初始化');
+            if (window.notifications) {
+                window.notifications.error('文档预览工具未初始化');
+            } else {
+                alert('文档预览工具未初始化');
+            }
         }
     }
 

@@ -7,20 +7,30 @@
 
 from typing import Dict, List, Any, Optional
 from pathlib import Path
+import json
 
 # 导入公共模块
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from common import get_module_logger
+from common import get_module_logger, get_prompt_manager
+from common.llm_client import create_llm_client
 
 
 class ProposalAssembler:
     """方案组装器"""
 
-    def __init__(self):
-        """初始化方案组装器"""
+    def __init__(self, model_name: str = "gpt-4o-mini", api_key: Optional[str] = None):
+        """
+        初始化方案组装器
+
+        Args:
+            model_name: LLM模型名称
+            api_key: API密钥（可选）
+        """
         self.logger = get_module_logger("proposal_assembler")
-        self.logger.info("方案组装器初始化完成")
+        self.prompt_manager = get_prompt_manager()
+        self.llm_client = create_llm_client(model_name, api_key)
+        self.logger.info(f"方案组装器初始化完成，使用模型: {model_name}")
 
     def assemble_proposal(
         self,
@@ -112,6 +122,7 @@ class ProposalAssembler:
             组装后的章节列表
         """
         assembled_chapters = []
+        total_matched_docs = sum(len(docs) for docs in matched_docs.values())
 
         for chapter in chapters:
             assembled_chapter = {
@@ -126,6 +137,13 @@ class ProposalAssembler:
                 'evidence_needed': chapter.get('evidence_needed', []),
                 'subsections': []
             }
+
+            # 如果没有匹配到产品文档，使用AI生成章节内容
+            if total_matched_docs == 0:
+                ai_content = self._generate_chapter_content_with_ai(chapter, analysis)
+                if ai_content:
+                    assembled_chapter['ai_generated_content'] = ai_content
+                    self.logger.info(f"章节'{chapter.get('title')}'已添加AI生成内容")
 
             # 处理子章节
             if 'subsections' in chapter and chapter['subsections']:
@@ -157,6 +175,7 @@ class ProposalAssembler:
             组装后的子章节列表
         """
         assembled = []
+        total_matched_docs = sum(len(docs) for docs in matched_docs.values())
 
         for subsection in subsections:
             assembled_sub = {
@@ -170,6 +189,13 @@ class ProposalAssembler:
                 'suggested_references': subsection.get('suggested_references', []),
                 'evidence_needed': subsection.get('evidence_needed', [])
             }
+
+            # 如果没有匹配到产品文档，使用AI生成子章节内容
+            if total_matched_docs == 0:
+                ai_content = self._generate_chapter_content_with_ai(subsection, analysis)
+                if ai_content:
+                    assembled_sub['ai_generated_content'] = ai_content
+                    self.logger.info(f"子章节'{subsection.get('title')}'已添加AI生成内容")
 
             assembled.append(assembled_sub)
 
@@ -278,3 +304,67 @@ class ProposalAssembler:
         ])
 
         return round((matched_categories / total_categories) * 100, 2)
+
+    def _generate_chapter_content_with_ai(
+        self,
+        chapter: Dict[str, Any],
+        analysis: Dict[str, Any]
+    ) -> Optional[str]:
+        """
+        使用AI生成章节内容
+
+        Args:
+            chapter: 章节信息
+            analysis: 需求分析结果
+
+        Returns:
+            生成的章节内容，失败返回None
+        """
+        try:
+            chapter_title = chapter.get('title', '')
+            chapter_desc = chapter.get('description', '')
+            content_hints = chapter.get('content_hints', [])
+            response_tips = chapter.get('response_tips', [])
+
+            # 构建提示词
+            prompt = f"""请为技术方案的以下章节生成详细内容：
+
+章节标题: {chapter_title}
+章节说明: {chapter_desc}
+
+内容要点:
+{chr(10).join(['- ' + hint for hint in content_hints])}
+
+应答建议:
+{chr(10).join(['- ' + tip for tip in response_tips])}
+
+要求:
+1. 内容要专业、详实，符合技术方案的标准
+2. 突出技术先进性和可行性
+3. 语言简洁明了，逻辑清晰
+4. 字数控制在800-1500字
+5. 使用中文撰写
+6. 直接输出章节内容，不要包含标题
+
+请生成该章节的详细内容:"""
+
+            # 调用LLM
+            self.logger.info(f"为章节'{chapter_title}'生成AI内容...")
+            response = self.llm_client.call(
+                prompt=prompt,
+                temperature=0.7,
+                max_tokens=2000,
+                max_retries=2,
+                purpose=f"章节内容生成: {chapter_title}"
+            )
+
+            if response and response.strip():
+                self.logger.info(f"章节'{chapter_title}'AI内容生成成功，长度: {len(response)}")
+                return response.strip()
+            else:
+                self.logger.warning(f"章节'{chapter_title}'AI内容生成为空")
+                return None
+
+        except Exception as e:
+            self.logger.error(f"AI生成章节内容失败: {e}")
+            return None

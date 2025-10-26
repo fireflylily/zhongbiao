@@ -251,6 +251,10 @@ CREATE TABLE IF NOT EXISTS tender_projects (
     company_id INTEGER, -- 关联公司ID
     qualifications_data TEXT, -- 资质要求数据(JSON格式)
     scoring_data TEXT, -- 评分信息数据(JSON格式)
+    winner_count VARCHAR(50), -- 中标人数量
+    authorized_person_name VARCHAR(100), -- 被授权人姓名
+    authorized_person_id VARCHAR(18), -- 被授权人身份证号
+    authorized_person_position VARCHAR(100), -- 被授权人职位
     status VARCHAR(20) DEFAULT 'draft', -- draft/active/completed
     created_by VARCHAR(100) DEFAULT 'system',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

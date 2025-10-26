@@ -81,8 +81,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // 【新增】如果已经从HITL加载了文件，确保文件信息持续显示
-            if (isFileLoadedFromHITL && window.businessResponseFileName) {
-                console.log('[Business Response] Tab显示后重新确认文件信息:', window.businessResponseFileName);
+            const currentBusinessFile = window.globalState ? window.globalState.getFile('business') : null;
+            if (isFileLoadedFromHITL && currentBusinessFile && currentBusinessFile.fileName) {
+                console.log('[Business Response] Tab显示后重新确认文件信息:', currentBusinessFile.fileName);
 
                 setTimeout(() => {
                     const fileNameDiv = document.getElementById('businessTemplateFileName');
@@ -92,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         fileNameDiv.innerHTML = `
                             <div class="alert alert-success py-2 d-flex align-items-center">
                                 <i class="bi bi-file-earmark-word me-2"></i>
-                                <span>${window.businessResponseFileName}</span>
+                                <span>${currentBusinessFile.fileName}</span>
                                 <span class="badge bg-success ms-2">已从投标项目加载</span>
                             </div>
                         `;
@@ -154,17 +155,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // 从全局状态管理器获取项目名称
             const projectName = window.globalState ? window.globalState.getProjectName() : '';
 
-            // 检查是否有从HITL加载的文件URL
-            const hasLoadedFile = window.businessResponseFileUrl && window.businessResponseFileName;
+            // ✅ 从 GlobalStateManager 检查是否有从HITL加载的文件
+            const loadedBusinessFile = window.globalState ? window.globalState.getFile('business') : null;
+            const hasLoadedFile = loadedBusinessFile && loadedBusinessFile.fileUrl && loadedBusinessFile.fileName;
 
             // 验证必填字段 - 需要上传文件或已加载文件
             if (!templateFile && !hasLoadedFile) {
-                alert('请选择商务应答模板');
+                window.notifications.warning('请选择商务应答模板');
                 return;
             }
 
             if (!companyId) {
-                alert('请选择应答公司');
+                window.notifications.warning('请选择应答公司');
                 return;
             }
 
@@ -183,20 +185,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 构建FormData
                 const formData = new FormData();
 
-                // 如果使用已加载的HITL文件，传递文件路径而不是重新上传
-                if (!templateFile && hasLoadedFile && window.businessResponseFilePath) {
-                    console.log('[Business] 使用HITL文件路径:', window.businessResponseFilePath);
-                    formData.append('hitl_file_path', window.businessResponseFilePath);
+                // ✅ 如果使用已加载的HITL文件，传递文件路径而不是重新上传
+                if (!templateFile && hasLoadedFile && loadedBusinessFile.filePath) {
+                    console.log('[Business] 使用HITL文件路径:', loadedBusinessFile.filePath);
+                    formData.append('hitl_file_path', loadedBusinessFile.filePath);
                 } else if (templateFile) {
                     // 用户手动上传的文件
                     console.log('[Business] 使用用户上传的文件:', templateFile.name);
                     formData.append('template_file', templateFile);
                 } else {
                     // 没有文件路径但有fileUrl，回退到下载文件的方式(向后兼容)
-                    console.log('[Business] 从URL下载文件:', window.businessResponseFileUrl);
-                    const fileResponse = await fetch(window.businessResponseFileUrl);
+                    console.log('[Business] 从URL下载文件:', loadedBusinessFile.fileUrl);
+                    const fileResponse = await fetch(loadedBusinessFile.fileUrl);
                     const fileBlob = await fileResponse.blob();
-                    templateFile = new File([fileBlob], window.businessResponseFileName, {
+                    templateFile = new File([fileBlob], loadedBusinessFile.fileName, {
                         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                     });
                     formData.append('template_file', templateFile);
@@ -210,12 +212,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // 注意：图片配置现在由后端自动从数据库加载，无需前端传递
 
-                // 发送请求
-                const response = await fetch('/process-business-response', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
+                // ✅ 使用 APIClient 发送请求（支持自动重试）
+                const data = await window.apiClient.post('/process-business-response', formData);
 
                 if (progress) progress.style.display = 'none';
 
@@ -320,20 +318,16 @@ document.addEventListener('DOMContentLoaded', function() {
 let currentDocumentPath = null; // 存储当前文档路径
 let wordEditor = null; // WordEditor实例
 
-// 预览商务应答文档
+// ✅ 预览商务应答文档 - 使用 DocumentPreviewUtil
 function previewBusinessDocument(customUrl = null) {
-    // 确定文件名：优先使用传入的customUrl，否则从下载按钮获取
+    // 确定文件URL：优先使用传入的customUrl，否则从下载按钮获取
     let downloadUrl;
     if (customUrl) {
         downloadUrl = customUrl;
     } else {
         const downloadLink = document.getElementById('businessDownloadLink');
         if (!downloadLink || !downloadLink.href) {
-            if (typeof showNotification === 'function') {
-                showNotification('没有可预览的文档', 'warning');
-            } else {
-                alert('没有可预览的文档');
-            }
+            window.notifications.warning('没有可预览的文档');
             return;
         }
         downloadUrl = downloadLink.href;
@@ -342,65 +336,24 @@ function previewBusinessDocument(customUrl = null) {
     // 从URL获取文件名
     const url = new URL(downloadUrl, window.location.href);
     const filename = url.pathname.split('/').pop();
+
+    // 保存当前文档路径供编辑功能使用
     currentDocumentPath = filename;
 
-    // 显示加载状态
-    const previewContent = document.getElementById('documentPreviewContent');
-    if (previewContent) {
-        previewContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">正在加载文档...</p></div>';
+    // ✅ 使用 DocumentPreviewUtil 统一预览
+    if (window.documentPreviewUtil) {
+        window.documentPreviewUtil.preview(downloadUrl, filename);
+    } else {
+        console.error('[Business Response] DocumentPreviewUtil 未加载');
+        window.notifications.error('文档预览功能暂不可用');
     }
-
-    // 显示预览模态框
-    const previewModal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
-    previewModal.show();
-
-    // 使用预览API获取Word文件，然后用mammoth.js转换
-    const previewApiUrl = `/api/document/preview/${encodeURIComponent(filename)}`;
-
-    // 使用docx-preview在前端直接转换Word文档，保留原始格式
-    fetch(previewApiUrl)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-            if (previewContent) {
-                // 清空容器
-                previewContent.innerHTML = '';
-
-                // 使用docx-preview渲染，保留所有原始格式包括字体大小
-                docx.renderAsync(arrayBuffer, previewContent, null, {
-                    className: 'docx-preview',
-                    inWrapper: true,
-                    ignoreWidth: false,
-                    ignoreHeight: false,
-                    ignoreFonts: false,  // 保留字体格式
-                    breakPages: true,
-                    ignoreLastRenderedPageBreak: true,
-                    experimental: true,
-                    trimXmlDeclaration: true
-                }).then(() => {
-                    console.log('商务应答文档预览成功');
-                }).catch(err => {
-                    console.error('docx-preview渲染失败:', err);
-                    previewContent.innerHTML = '<div class="text-center text-danger"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">文档渲染失败，请尝试下载文档</p></div>';
-                });
-            }
-        })
-        .catch(error => {
-            console.error('预览失败:', error);
-            if (previewContent) {
-                previewContent.innerHTML = '<div class="text-center text-danger"><i class="bi bi-exclamation-triangle fs-1"></i><p class="mt-2">预览失败，请尝试下载文档</p></div>';
-            }
-        });
 }
 
 // 编辑商务应答文档
 function editBusinessDocument() {
     const downloadLink = document.getElementById('businessDownloadLink');
     if (!downloadLink || !downloadLink.href) {
-        if (typeof showNotification === 'function') {
-            showNotification('没有可编辑的文档', 'warning');
-        } else {
-            alert('没有可编辑的文档');
-        }
+        window.notifications.warning('没有可编辑的文档');
         return;
     }
 
@@ -432,20 +385,12 @@ function loadDocumentToEditor(retryCount = 0) {
     const maxRetries = 15; // 最多重试15次 (3秒)
 
     if (!currentDocumentPath) {
-        if (typeof showNotification === 'function') {
-            showNotification('没有可加载的文档', 'warning');
-        } else {
-            alert('没有可加载的文档');
-        }
+        window.notifications.warning('没有可加载的文档');
         return;
     }
 
     if (!wordEditor) {
-        if (typeof showNotification === 'function') {
-            showNotification('编辑器未初始化，请先打开编辑窗口', 'error');
-        } else {
-            alert('编辑器未初始化，请先打开编辑窗口');
-        }
+        window.notifications.error('编辑器未初始化，请先打开编辑窗口');
         return;
     }
 
@@ -458,11 +403,7 @@ function loadDocumentToEditor(retryCount = 0) {
             }, 200);
             return;
         } else {
-            if (typeof showNotification === 'function') {
-                showNotification('编辑器初始化超时，请刷新页面重试', 'error');
-            } else {
-                alert('编辑器初始化超时，请刷新页面重试');
-            }
+            window.notifications.error('编辑器初始化超时，请刷新页面重试');
             return;
         }
     }
@@ -476,18 +417,14 @@ function loadDocumentToEditor(retryCount = 0) {
         .then(data => {
             if (data.success && data.html_content) {
                 wordEditor.setContent(data.html_content);
-                if (typeof showNotification === 'function') {
-                    showNotification('文档内容加载成功', 'success');
-                }
+                window.notifications.success('文档内容加载成功');
             } else {
                 throw new Error(data.error || '无法获取文档内容');
             }
         })
         .catch(error => {
             console.error('Document loading error:', error);
-            if (typeof showNotification === 'function') {
-                showNotification('文档加载失败，尝试备用方案...', 'warning');
-            }
+            window.notifications.warning('文档加载失败，尝试备用方案...');
 
             // 方案2：如果预览失败，尝试原始文件加载
             tryLoadOriginalFile();
@@ -518,63 +455,41 @@ function tryLoadOriginalFile() {
             return wordEditor.loadDocument(file);
         })
         .then(() => {
-            if (typeof showNotification === 'function') {
-                showNotification('文档加载成功', 'success');
-            }
+            window.notifications.success('文档加载成功');
         })
         .catch(error => {
             console.error('Fallback document loading error:', error);
-            if (typeof showNotification === 'function') {
-                showNotification('文档加载失败: ' + error.message, 'error');
-            } else {
-                alert('文档加载失败: ' + error.message);
-            }
+            window.notifications.error('文档加载失败: ' + error.message);
         });
 }
 
 // 保存编辑的文档
 function saveEditedDocument() {
     if (!wordEditor || !wordEditor.editor) {
-        if (typeof showNotification === 'function') {
-            showNotification('编辑器未初始化或还在加载中，请稍后再试', 'error');
-        } else {
-            alert('编辑器未初始化或还在加载中，请稍后再试');
-        }
+        window.notifications.error('编辑器未初始化或还在加载中，请稍后再试');
         return;
     }
 
     const filename = currentDocumentPath ? currentDocumentPath.replace('.docx', '_edited') : 'edited_document';
     wordEditor.saveDocument(filename)
         .then(() => {
-            if (typeof showNotification === 'function') {
-                showNotification('文档保存成功', 'success');
-            }
+            window.notifications.success('文档保存成功');
         })
         .catch(error => {
-            if (typeof showNotification === 'function') {
-                showNotification('文档保存失败: ' + error.message, 'error');
-            } else {
-                alert('文档保存失败: ' + error.message);
-            }
+            window.notifications.error('文档保存失败: ' + error.message);
         });
 }
 
 // 清空编辑器
 function clearEditor() {
     if (!wordEditor || !wordEditor.editor) {
-        if (typeof showNotification === 'function') {
-            showNotification('编辑器未初始化或还在加载中，请稍后再试', 'error');
-        } else {
-            alert('编辑器未初始化或还在加载中，请稍后再试');
-        }
+        window.notifications.error('编辑器未初始化或还在加载中，请稍后再试');
         return;
     }
 
     if (confirm('确定要清空编辑器内容吗？')) {
         wordEditor.clearContent();
-        if (typeof showNotification === 'function') {
-            showNotification('编辑器已清空', 'info');
-        }
+        window.notifications.info('编辑器已清空');
     }
 }
 
@@ -664,13 +579,8 @@ function loadBusinessFilesList() {
         noFilesDiv.classList.add('d-none');
     }
 
-    fetch('/api/business-files')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP错误! 状态: ${response.status}`);
-            }
-            return response.json();
-        })
+    // ✅ 使用 APIClient 获取文件列表
+    window.apiClient.get('/api/business-files')
         .then(data => {
             console.log('商务应答文件列表API返回:', data);
 
@@ -764,19 +674,11 @@ async function syncToHitlProject(hitlTaskId, filePath) {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>同步中...';
 
     try {
-        // 使用统一的文件同步API
-        const response = await fetch(`/api/tender-processing/sync-file/${hitlTaskId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                file_path: filePath,
-                file_type: 'business_response'  // 指定文件类型
-            })
+        // ✅ 使用 APIClient 同步文件
+        const data = await window.apiClient.post(`/api/tender-processing/sync-file/${hitlTaskId}`, {
+            file_path: filePath,
+            file_type: 'business_response'  // 指定文件类型
         });
-
-        const data = await response.json();
         console.log('[syncToHitlProject] API响应:', data);
 
         if (data.success) {
@@ -786,11 +688,7 @@ async function syncToHitlProject(hitlTaskId, filePath) {
             btn.classList.add('btn-outline-success');
 
             // 显示成功通知
-            if (typeof showNotification === 'function') {
-                showNotification(data.message || '文件已成功同步到投标项目', 'success');
-            } else {
-                alert(data.message || '文件已成功同步到投标项目');
-            }
+            window.notifications.success(data.message || '文件已成功同步到投标项目');
 
             console.log('[syncToHitlProject] 同步成功');
 
@@ -811,16 +709,12 @@ async function syncToHitlProject(hitlTaskId, filePath) {
 
         // 显示错误通知
         const errorMsg = '同步失败: ' + error.message;
-        if (typeof showNotification === 'function') {
-            showNotification(errorMsg, 'error');
-        } else {
-            alert(errorMsg);
-        }
+        window.notifications.error(errorMsg);
     }
 }
 
 /**
- * ✅ 从HITL投标管理加载数据（已迁移到 GlobalStateManager）
+ * ✅ 从HITL投标管理加载数据（使用 HITLFileLoader 简化）
  */
 function loadBusinessResponseFromHITL() {
     console.log('[Business Response] 开始从HITL加载数据');
@@ -830,108 +724,37 @@ function loadBusinessResponseFromHITL() {
         return;
     }
 
-    // ✅ 1. 从 globalState 读取公司和项目信息
+    // ✅ 1. 更新公司信息
     const company = window.globalState.getCompany();
     if (company && company.id) {
-        console.log('[Business Response] 公司和项目信息:', company);
-
-        // 更新商务应答表单的公司ID
         const companySelect = document.getElementById('businessCompanyId');
         if (companySelect) {
             companySelect.value = company.id || '';
         }
     }
 
-    // ✅ 2. 从 globalState 加载应答文件信息
-    const businessFile = window.globalState.getFile('business');
-    console.log('[Business Response] ====== 文件信息诊断开始 ======');
-    console.log('[Business Response] bridge.getFileInfo("business") 返回值:', businessFile);
-    console.log('[Business Response] businessFile?.fileUrl:', businessFile?.fileUrl);
-    console.log('[Business Response] businessFile?.fileName:', businessFile?.fileName);
-    console.log('[Business Response] 条件检查: fileUrl存在?', !!businessFile?.fileUrl, ', fileName存在?', !!businessFile?.fileName);
-
-    if (businessFile?.fileUrl && businessFile?.fileName) {
-        console.log('[Business Response] [PASS] 条件检查通过，准备显示文件');
-        console.log('[Business Response] 找到应答文件:', businessFile.fileName);
-
-        // 【重要】设置HITL加载标记（保护文件信息）
-        isFileLoadedFromHITL = true;
-        console.log('[Business Response] 已设置HITL加载标记，保护文件信息');
-
-        // 【重要】保存到全局变量供表单提交时使用
-        window.businessResponseFilePath = businessFile.filePath;  // 添加文件路径
-        window.businessResponseFileUrl = businessFile.fileUrl;
-        window.businessResponseFileName = businessFile.fileName;
-        console.log('[Business Response] 已保存到全局变量:', {
-            fileUrl: window.businessResponseFileUrl,
-            fileName: window.businessResponseFileName
+    // ✅ 2. 使用 HITLFileLoader 加载文件（简化100+行代码）
+    if (window.HITLFileLoader) {
+        const loader = new window.HITLFileLoader({
+            fileType: 'business',
+            fileInfoElementId: 'businessTemplateFileName',
+            uploadAreaId: 'businessResponseForm',  // 将隐藏表单内的上传区域
+            onFileLoaded: (fileData) => {
+                // 设置HITL加载标记
+                isFileLoadedFromHITL = true;
+                console.log('[Business Response] 文件加载完成:', fileData.fileName);
+            },
+            debug: false  // 关闭详细日志
         });
 
-        // 显示文件信息
-        const fileNameDiv = document.getElementById('businessTemplateFileName');
-        console.log('[Business Response] 查找 businessTemplateFileName 元素:', fileNameDiv);
+        const success = loader.load();
 
-        if (fileNameDiv) {
-            console.log('[Business Response] [FOUND] 找到 businessTemplateFileName 元素，准备设置 innerHTML');
-            console.log('[Business Response] 设置前 innerHTML:', fileNameDiv.innerHTML);
-
-            fileNameDiv.innerHTML = `
-                <div class="alert alert-success py-2 d-flex align-items-center">
-                    <i class="bi bi-file-earmark-word me-2"></i>
-                    <span>${businessFile.fileName}</span>
-                    <span class="badge bg-success ms-2">已从投标项目加载</span>
-                </div>
-            `;
-
-            console.log('[Business Response] [SUCCESS] innerHTML 已设置成功');
-            console.log('[Business Response] 设置后 innerHTML:', fileNameDiv.innerHTML);
-            console.log('[Business Response] 设置后 innerHTML.length:', fileNameDiv.innerHTML.length);
-
-            // 【验证】立即检查DOM中是否真的有内容
-            setTimeout(() => {
-                const checkDiv = document.getElementById('businessTemplateFileName');
-                console.log('[Business Response] [VERIFY] 100ms后验证，元素内容:', checkDiv?.innerHTML);
-                console.log('[Business Response] [VERIFY] 100ms后验证，元素是否可见:', checkDiv?.offsetParent !== null);
-
-                if (!checkDiv || checkDiv.innerHTML.trim() === '') {
-                    console.error('[Business Response] [ERROR] 验证失败！innerHTML被清空了！');
-                } else {
-                    console.log('[Business Response] [VERIFY] 验证成功，内容仍然存在');
-                }
-            }, 100);
-        } else {
-            console.error('[Business Response] [ERROR] 未找到 businessTemplateFileName 元素，无法显示文件信息');
+        if (!success) {
+            console.warn('[Business Response] 未找到商务应答文件');
         }
-
-        // 【修复】使用更精确的选择器，在表单内查找上传区域
-        const form = document.getElementById('businessResponseForm');
-        let uploadArea = null;
-        if (form) {
-            uploadArea = form.querySelector('.upload-area');
-            console.log('[Business Response] 在表单内查找 .upload-area 元素:', uploadArea);
-        } else {
-            console.warn('[Business Response] 未找到businessResponseForm，尝试全局查找');
-            uploadArea = document.querySelector('#business-response .upload-area');
-            console.log('[Business Response] 全局查找 .upload-area 元素:', uploadArea);
-        }
-
-        if (uploadArea) {
-            uploadArea.style.display = 'none';
-            uploadArea.onclick = null;  // 移除点击事件
-            uploadArea.style.pointerEvents = 'none';  // 禁用所有鼠标事件
-            uploadArea.style.cursor = 'default';  // 改变鼠标样式
-            console.log('[Business Response] [SUCCESS] 已隐藏上传区域并禁用点击事件');
-        } else {
-            console.warn('[Business Response] [WARN] 未找到 .upload-area 元素');
-        }
-
-        console.log('[Business Response] 文件信息已显示，已保存到全局变量');
     } else {
-        console.warn('[Business Response] [FAIL] 条件检查失败，未找到应答文件信息');
-        console.warn('[Business Response] businessFile 完整对象:', JSON.stringify(businessFile, null, 2));
+        console.error('[Business Response] HITLFileLoader 未加载');
     }
-
-    console.log('[Business Response] ====== 文件信息诊断结束 ======');
 
     console.log('[Business Response] 从HITL加载数据完成');
 }

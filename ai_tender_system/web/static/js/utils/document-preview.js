@@ -15,8 +15,10 @@ class DocumentPreviewUtil {
      * @param {string} fileUrl - 文件URL
      * @param {string} fileName - 文件名
      * @param {string} fileType - 文件类型（可选，如果不传会从fileName推断）
+     * @param {Object} options - 预览选项
+     * @param {boolean} options.newWindow - 是否在新窗口中打开（默认false，使用模态框）
      */
-    preview(fileUrl, fileName, fileType = null) {
+    preview(fileUrl, fileName, fileType = null, options = {}) {
         if (!fileType) {
             // 从文件名推断类型
             const ext = fileName.split('.').pop().toLowerCase();
@@ -26,7 +28,8 @@ class DocumentPreviewUtil {
         console.log('[DocumentPreview] 预览文件:', {
             fileUrl,
             fileName,
-            fileType
+            fileType,
+            options
         });
 
         const lowerType = fileType.toLowerCase();
@@ -34,7 +37,11 @@ class DocumentPreviewUtil {
         if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(lowerType)) {
             this.previewImage(fileUrl, fileName);
         } else if (['doc', 'docx'].includes(lowerType)) {
-            this.previewWord(fileUrl, fileName);
+            if (options.newWindow) {
+                this.previewWordInNewWindow(fileUrl, fileName);
+            } else {
+                this.previewWord(fileUrl, fileName);
+            }
         } else if (lowerType === 'pdf') {
             this.previewPDF(fileUrl, fileName);
         } else {
@@ -73,7 +80,117 @@ class DocumentPreviewUtil {
     }
 
     /**
-     * 预览Word文档
+     * 在新窗口中预览Word文档
+     */
+    previewWordInNewWindow(fileUrl, fileName) {
+        console.log('[DocumentPreview] 在新窗口中预览Word文档:', fileName);
+
+        // 打开新窗口
+        const previewWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+
+        if (!previewWindow) {
+            if (window.notifications) {
+                window.notifications.warning('浏览器阻止了弹出窗口，请检查弹出窗口设置');
+            } else {
+                alert('浏览器阻止了弹出窗口，请检查弹出窗口设置');
+            }
+            return;
+        }
+
+        // 显示加载状态
+        previewWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>预览: ${this.escapeHtml(fileName)}</title>
+                <meta charset="utf-8">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css" rel="stylesheet">
+                <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
+            </head>
+            <body>
+                <div class="preview-header" style="background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 1rem; position: sticky; top: 0; z-index: 1000;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>${this.escapeHtml(fileName)}</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="window.close()">
+                            <i class="bi bi-x-lg"></i> 关闭
+                        </button>
+                    </div>
+                </div>
+                <div class="container-fluid">
+                    <div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <p class="mt-3">正在加载文档预览...</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="preview-content" class="container-fluid" style="display:none; padding: 2rem;"></div>
+            </body>
+            </html>
+        `);
+
+        // 关闭文档流，确保DOM已完全渲染
+        previewWindow.document.close();
+
+        // 等待新窗口加载完成后再fetch文档
+        previewWindow.addEventListener('load', () => {
+            // 使用docx-preview在前端转换Word文档
+            fetch(fileUrl)
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => {
+                    const loadingDiv = previewWindow.document.querySelector('.d-flex.justify-content-center');
+                    const contentDiv = previewWindow.document.getElementById('preview-content');
+
+                    if (!contentDiv) {
+                        console.error('[DocumentPreview] 未找到preview-content元素');
+                        return;
+                    }
+
+                    // 隐藏加载状态，显示内容区域
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    if (contentDiv) contentDiv.style.display = 'block';
+
+                    // 使用docx-preview渲染，保留所有原始格式
+                    previewWindow.docx.renderAsync(arrayBuffer, contentDiv, null, {
+                        className: 'docx-preview',
+                        inWrapper: true,
+                        ignoreWidth: false,
+                        ignoreHeight: false,
+                        ignoreFonts: false,  // 保留字体格式
+                        breakPages: true,
+                        ignoreLastRenderedPageBreak: true,
+                        experimental: true,
+                        trimXmlDeclaration: true
+                    }).then(() => {
+                        console.log('[DocumentPreview] 新窗口文档预览成功');
+                    }).catch(err => {
+                        console.error('[DocumentPreview] docx-preview渲染失败:', err);
+                        if (contentDiv) {
+                            contentDiv.style.display = 'block';
+                            contentDiv.innerHTML = '<div class="alert alert-danger m-4">文档渲染失败，请尝试下载文档</div>';
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('[DocumentPreview] 文档预览失败:', error);
+                    previewWindow.document.body.innerHTML = `
+                        <div class="container mt-5">
+                            <div class="alert alert-danger">
+                                <h5><i class="bi bi-exclamation-triangle me-2"></i>预览失败</h5>
+                                <p>无法预览此文档: ${this.escapeHtml(error.message)}</p>
+                                <button class="btn btn-outline-secondary" onclick="window.close()">关闭</button>
+                            </div>
+                        </div>
+                    `;
+                });
+        });
+    }
+
+    /**
+     * 预览Word文档（模态框方式）
      */
     previewWord(fileUrl, fileName) {
         console.log('[DocumentPreview] 开始预览Word文档:', fileName);

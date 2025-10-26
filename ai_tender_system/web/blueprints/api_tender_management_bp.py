@@ -102,7 +102,9 @@ def get_tender_management_list():
                 p.created_at as project_created_at,
                 p.updated_at as project_updated_at,
                 c.company_name,
-                c.legal_representative as authorized_person,
+                p.authorized_person_name as authorized_person,
+                p.authorized_person_id,
+                c.company_id,
 
                 -- 处理任务信息
                 t.task_id,
@@ -192,23 +194,39 @@ def get_tender_management_list():
                                  tech_response_progress +
                                  tech_proposal_progress) / 3
 
+            # 提取文件路径信息
+            business_response_file = step1_data.get('business_response_file', {})
+            tech_point_to_point_file = step1_data.get('technical_point_to_point_file', {})
+            tech_proposal_file = step1_data.get('technical_proposal_file', {})
+
             projects.append({
                 'project_id': row['project_id'],
                 'project_name': row['project_name'] or '未命名项目',
                 'project_number': row['project_number'],
+                'company_id': row['company_id'],
                 'company_name': row['company_name'] or '未设置',
                 'authorized_person': row['authorized_person'] or '未设置',
+                'authorized_person_id': row['authorized_person_id'],
                 'business_response': {
                     'status': business_response_status,
-                    'progress': business_response_progress
+                    'progress': business_response_progress,
+                    'file_name': business_response_file.get('file_name'),
+                    'file_path': business_response_file.get('file_path'),
+                    'file_url': business_response_file.get('file_url')
                 },
                 'tech_response': {
                     'status': tech_response_status,
-                    'progress': tech_response_progress
+                    'progress': tech_response_progress,
+                    'file_name': tech_point_to_point_file.get('file_name'),
+                    'file_path': tech_point_to_point_file.get('file_path'),
+                    'file_url': tech_point_to_point_file.get('file_url')
                 },
                 'tech_proposal': {
                     'status': tech_proposal_status,
-                    'progress': tech_proposal_progress
+                    'progress': tech_proposal_progress,
+                    'file_name': tech_proposal_file.get('file_name'),
+                    'file_path': tech_proposal_file.get('file_path'),
+                    'file_url': tech_proposal_file.get('file_url')
                 },
                 'fusion': {
                     'status': fusion_status,

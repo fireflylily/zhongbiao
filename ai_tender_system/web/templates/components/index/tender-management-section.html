@@ -229,6 +229,27 @@
                             <label for="winnerCount" class="form-label">中标人数量</label>
                             <input type="text" class="form-control" id="winnerCount" name="winner_count">
                         </div>
+
+                        <!-- 被授权人信息 -->
+                        <div class="col-12 mt-3">
+                            <h6 class="text-primary"><i class="bi bi-person-badge me-2"></i>被授权人信息</h6>
+                            <hr>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="authorizedPersonName" class="form-label">被授权人姓名</label>
+                            <input type="text" class="form-control" id="authorizedPersonName" name="authorized_person_name">
+                            <small class="text-muted">从公司信息自动填充，可修改</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="authorizedPersonId" class="form-label">被授权人身份证</label>
+                            <input type="text" class="form-control" id="authorizedPersonId" name="authorized_person_id" maxlength="18">
+                            <small class="text-muted">从公司信息自动填充，可修改</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="authorizedPersonPosition" class="form-label">被授权人职位</label>
+                            <input type="text" class="form-control" id="authorizedPersonPosition" name="authorized_person_position">
+                            <small class="text-muted">从公司信息自动填充，可修改</small>
+                        </div>
                     </div>
                 </form>
             </div>

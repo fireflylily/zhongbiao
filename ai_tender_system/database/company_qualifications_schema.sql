@@ -73,12 +73,12 @@ INSERT OR IGNORE INTO qualification_types (type_key, type_name, category, is_req
     ('bank_permit', '开户许可证', '基础资质', FALSE, FALSE, NULL, 4),
     ('legal_id_front', '法人身份证正面', '基础资质', FALSE, FALSE, NULL, 5),
     ('legal_id_back', '法人身份证反面', '基础资质', FALSE, FALSE, NULL, 6),
-    -- 已移除授权人身份证和法人授权委托书
-    -- ('auth_id_front', '授权人身份证正面', '基础资质', FALSE, FALSE, NULL, 7),
-    -- ('auth_id_back', '授权人身份证反面', '基础资质', FALSE, FALSE, NULL, 8),
+    ('auth_id_front', '被授权人身份证正面', '基础资质', FALSE, FALSE, NULL, 7),
+    ('auth_id_back', '被授权人身份证反面', '基础资质', FALSE, FALSE, NULL, 8),
+    -- 已移除法人授权委托书（改为使用被授权人身份证）
     -- ('authorization_letter', '法人授权委托书', '基础资质', FALSE, FALSE, NULL, 9),
-    ('basic_telecom_permit', '基础电信业务许可证', '行业资质', FALSE, FALSE, NULL, 7),
-    ('value_added_telecom_permit', '增值电信业务许可证', '行业资质', FALSE, FALSE, NULL, 8),
+    ('basic_telecom_permit', '基础电信业务许可证', '行业资质', FALSE, FALSE, NULL, 9),
+    ('value_added_telecom_permit', '增值电信业务许可证', '行业资质', FALSE, FALSE, NULL, 10),
     ('iso9001', 'ISO9001质量管理体系认证', '认证证书', FALSE, FALSE, NULL, 10),
     ('iso20000', 'ISO20000信息技术服务管理体系认证', '认证证书', FALSE, FALSE, NULL, 12),
     ('iso27001', 'ISO27001信息安全管理体系认证', '认证证书', FALSE, FALSE, NULL, 13),
@@ -88,7 +88,11 @@ INSERT OR IGNORE INTO qualification_types (type_key, type_name, category, is_req
     -- 多文件资质（允许上传多个）
     ('software_copyright', '软件著作权登记证书', '行业资质', FALSE, TRUE, '软著名称', 17),
     ('patent_certificate', '专利证书', '行业资质', FALSE, TRUE, '专利号', 18),
-    ('audit_report', '财务审计报告', '财务资质', FALSE, TRUE, '年份', 19);
+    ('audit_report', '财务审计报告', '财务资质', FALSE, TRUE, '年份', 19),
+    -- 信用证明类资质（负面清单查询证明）
+    ('credit_china_check', '信用中国查询证明', '信用证明', FALSE, FALSE, NULL, 20),
+    ('tax_violation_check', '重大税收违法案件查询证明', '信用证明', FALSE, FALSE, NULL, 21),
+    ('gov_procurement_check', '政府采购严重违法失信查询证明', '信用证明', FALSE, FALSE, NULL, 22);
 
 -- 资质文件访问日志表（用于审计）
 CREATE TABLE IF NOT EXISTS qualification_access_logs (

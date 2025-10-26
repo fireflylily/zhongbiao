@@ -515,8 +515,8 @@ class CompanyProfileManager {
     switchTab(tabName) {
         this.currentTab = tabName;
 
-        // 如果切换到资质页面，延迟加载资质文件状态
-        if (tabName === 'qualification') {
+        // 如果切换到资质、人员或财务页面，延迟加载资质文件状态
+        if (tabName === 'qualification' || tabName === 'personnel' || tabName === 'financial') {
             setTimeout(() => this.loadExistingQualifications(), 200);
         }
     }
@@ -577,6 +577,14 @@ class CompanyProfileManager {
                     <div class="col-md-6">
                         <label class="form-label">联系电话</label>
                         <input type="text" class="form-control" id="prof-fixedPhone" value="${data.fixed_phone || ''}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">传真</label>
+                        <input type="text" class="form-control" id="prof-fax" value="${data.fax || ''}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">邮政编码</label>
+                        <input type="text" class="form-control" id="prof-postalCode" value="${data.postal_code || ''}" maxlength="6">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">电子邮箱</label>
@@ -683,7 +691,10 @@ class CompanyProfileManager {
                     <h6 class="text-secondary mb-3"><i class="bi bi-file-earmark-person"></i> 相关附件</h6>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            ${this.renderPersonnelItem('被授权人身份证', 'auth_id', 'bi-person-check')}
+                            ${this.renderPersonnelItem('被授权人身份证(正面)', 'auth_id_front', 'bi-person-check')}
+                        </div>
+                        <div class="col-md-6">
+                            ${this.renderPersonnelItem('被授权人身份证(反面)', 'auth_id_back', 'bi-person-check')}
                         </div>
                         <div class="col-md-6">
                             ${this.renderPersonnelItem('项目经理简历', 'project_manager_resume', 'bi-person-badge')}
@@ -708,9 +719,6 @@ class CompanyProfileManager {
                 <div class="mb-4">
                     <h6 class="text-danger mb-3"><i class="bi bi-bank"></i> 财务文档</h6>
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            ${this.renderFinancialItem('近三年财务审计报告', 'financial_audit', 'bi-graph-up')}
-                        </div>
                         <div class="col-md-6">
                             ${this.renderFinancialItem('财务审计报告', 'audit_report', 'bi-file-earmark-check')}
                         </div>
@@ -750,9 +758,8 @@ class CompanyProfileManager {
             { key: 'business_license', name: '营业执照', icon: 'bi-building', category: 'basic', required: true },
             { key: 'legal_id_front', name: '法人身份证（正面）', icon: 'bi-person-badge', category: 'basic', required: true },
             { key: 'legal_id_back', name: '法人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
-            // 已移除授权人身份证相关项
-            // { key: 'auth_id_front', name: '授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
-            // { key: 'auth_id_back', name: '授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
+            { key: 'auth_id_front', name: '被授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
+            { key: 'auth_id_back', name: '被授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
 
             // ISO体系认证
             { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
@@ -935,6 +942,8 @@ class CompanyProfileManager {
             companyType: document.getElementById('prof-companyType').value,
             registeredAddress: document.getElementById('prof-registeredAddress').value,
             fixedPhone: document.getElementById('prof-fixedPhone').value,
+            fax: document.getElementById('prof-fax').value,
+            postalCode: document.getElementById('prof-postalCode').value,
             email: document.getElementById('prof-email').value,
             businessScope: document.getElementById('prof-businessScope').value,
             companyDescription: document.getElementById('prof-companyDescription').value

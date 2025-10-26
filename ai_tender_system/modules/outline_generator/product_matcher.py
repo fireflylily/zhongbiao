@@ -107,21 +107,23 @@ class ProductMatcher:
                 if company_id:
                     sql = """
                         SELECT
-                            document_id,
-                            title,
-                            file_path,
-                            file_type,
-                            summary,
-                            total_chunks
-                        FROM knowledge_base_documents
-                        WHERE company_id = ?
+                            d.doc_id as document_id,
+                            d.filename as title,
+                            d.file_path,
+                            d.file_type,
+                            '' as summary,
+                            0 as total_chunks
+                        FROM documents d
+                        INNER JOIN document_libraries dl ON d.library_id = dl.library_id
+                        WHERE dl.owner_type = 'company'
+                        AND dl.owner_id = ?
+                        AND d.parse_status = 'completed'
                         AND (
-                            title LIKE ? OR
-                            summary LIKE ? OR
-                            content_preview LIKE ?
+                            d.filename LIKE ? OR
+                            d.original_filename LIKE ? OR
+                            d.tags LIKE ?
                         )
-                        AND status = 'active'
-                        ORDER BY created_at DESC
+                        ORDER BY d.upload_time DESC
                         LIMIT ?
                     """
                     params = (
@@ -132,23 +134,25 @@ class ProductMatcher:
                         limit
                     )
                 else:
-                    # 不限制公司，搜索所有文档
+                    # 不限制公司，搜索所有公开文档
                     sql = """
                         SELECT
-                            document_id,
-                            title,
-                            file_path,
-                            file_type,
-                            summary,
-                            total_chunks
-                        FROM knowledge_base_documents
-                        WHERE (
-                            title LIKE ? OR
-                            summary LIKE ? OR
-                            content_preview LIKE ?
+                            d.doc_id as document_id,
+                            d.filename as title,
+                            d.file_path,
+                            d.file_type,
+                            '' as summary,
+                            0 as total_chunks
+                        FROM documents d
+                        INNER JOIN document_libraries dl ON d.library_id = dl.library_id
+                        WHERE dl.privacy_level = 1
+                        AND d.parse_status = 'completed'
+                        AND (
+                            d.filename LIKE ? OR
+                            d.original_filename LIKE ? OR
+                            d.tags LIKE ?
                         )
-                        AND status = 'active'
-                        ORDER BY created_at DESC
+                        ORDER BY d.upload_time DESC
                         LIMIT ?
                     """
                     params = (
@@ -237,9 +241,9 @@ class ProductMatcher:
             with self.db.get_connection() as conn:
                 # 查询文档chunks
                 sql = """
-                    SELECT chunk_content
-                    FROM knowledge_base_chunks
-                    WHERE document_id = ?
+                    SELECT content
+                    FROM document_chunks
+                    WHERE doc_id = ?
                     ORDER BY chunk_index
                 """
                 cursor = conn.execute(sql, (document_id,))

@@ -82,6 +82,21 @@ QUALIFICATION_MAPPING = {
         'keywords': ['增值电信业务许可证', '增值电信业务经营许可证', 'ICP许可证', 'ISP许可证', 'IDC许可证'],
         'priority': 'high',
         'category': '电信资质'
+    },
+    'credit_china_check': {
+        'keywords': ['信用中国', 'www.creditchina.gov.cn', '失信被执行人', '信用查询', '信用承诺书', '信用记录'],
+        'priority': 'high',
+        'category': '信用证明'
+    },
+    'tax_violation_check': {
+        'keywords': ['重大税收违法', '税收违法案件', '税务违法', '税收黑名单'],
+        'priority': 'high',
+        'category': '信用证明'
+    },
+    'gov_procurement_check': {
+        'keywords': ['政府采购', '严重违法失信', '政府采购黑名单', '政府采购违法'],
+        'priority': 'high',
+        'category': '信用证明'
     }
 }
 
@@ -329,7 +344,8 @@ class QualificationMatcher:
             elif qual_key in ['iso9001', 'iso20000', 'iso27001',
                              'cmmi', 'itss', 'safety_production',
                              'software_copyright', 'patent_certificate',
-                             'basic_telecom_permit', 'value_added_telecom_permit']:
+                             'basic_telecom_permit', 'value_added_telecom_permit',
+                             'credit_china_check', 'tax_violation_check', 'gov_procurement_check']:
                 qualification_paths.append(file_path)
                 qualification_details.append(matched_qual)
                 self.logger.info(f"  - 资质证书 ({qual_key}): {file_path}")

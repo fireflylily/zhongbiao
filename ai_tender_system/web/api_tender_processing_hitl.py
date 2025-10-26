@@ -1940,6 +1940,9 @@ def register_hitl_routes(app):
                         bidding_location = ?,
                         bidding_time = ?,
                         winner_count = ?,
+                        authorized_person_name = ?,
+                        authorized_person_id = ?,
+                        authorized_person_position = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE project_id = ?
                 """, (
@@ -1951,6 +1954,9 @@ def register_hitl_routes(app):
                     data.get('tender_location', ''),
                     data.get('tender_deadline', ''),
                     data.get('winner_count', ''),
+                    data.get('authorized_person_name', ''),
+                    data.get('authorized_person_id', ''),
+                    data.get('authorized_person_position', ''),
                     project_id
                 ))
 
