@@ -97,6 +97,13 @@ QUALIFICATION_MAPPING = {
         'keywords': ['政府采购', '严重违法失信', '政府采购黑名单', '政府采购违法'],
         'priority': 'high',
         'category': '信用证明'
+    },
+    'level_protection': {
+        'keywords': ['等保三级', '等级保护三级', '信息安全等级保护', '等保',
+                     '三级等保', '等级保护备案', '等级保护', '网络安全等级保护',
+                     '等保测评', '等保认证'],
+        'priority': 'high',
+        'category': '信息安全'
     }
 }
 
@@ -345,7 +352,8 @@ class QualificationMatcher:
                              'cmmi', 'itss', 'safety_production',
                              'software_copyright', 'patent_certificate',
                              'basic_telecom_permit', 'value_added_telecom_permit',
-                             'credit_china_check', 'tax_violation_check', 'gov_procurement_check']:
+                             'credit_china_check', 'tax_violation_check', 'gov_procurement_check',
+                             'level_protection']:
                 qualification_paths.append(file_path)
                 qualification_details.append(matched_qual)
                 self.logger.info(f"  - 资质证书 ({qual_key}): {file_path}")
@@ -361,7 +369,7 @@ class QualificationMatcher:
 
 
 # 便捷函数
-def match_qualifications_for_project(company_id: int, project_name: str, kb_manager) -> Dict[str, Any]:
+def match_qualifications_for_project(company_id: int, project_name: str, kb_manager, return_match_result: bool = False):
     """
     为指定项目匹配资质的便捷函数
 
@@ -369,9 +377,11 @@ def match_qualifications_for_project(company_id: int, project_name: str, kb_mana
         company_id: 公司ID
         project_name: 项目名称
         kb_manager: 知识库管理器实例
+        return_match_result: 是否返回匹配结果（包含missing信息）
 
     Returns:
-        图片配置字典
+        如果return_match_result=False: 返回图片配置字典（向后兼容）
+        如果return_match_result=True: 返回 (image_config, match_result) 元组
     """
     matcher = QualificationMatcher()
 
@@ -397,4 +407,8 @@ def match_qualifications_for_project(company_id: int, project_name: str, kb_mana
     # 4. 构建图片配置
     image_config = matcher.build_image_config_from_match(match_result)
 
-    return image_config
+    # 根据参数决定返回格式
+    if return_match_result:
+        return (image_config, match_result)
+    else:
+        return image_config  # 向后兼容

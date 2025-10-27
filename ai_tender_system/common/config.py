@@ -19,6 +19,32 @@ if not _basic_logger.handlers:
     _handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     _basic_logger.addHandler(_handler)
 
+# 工具函数：清理环境变量值
+def clean_env_value(value: str) -> str:
+    """
+    清理环境变量值，移除不可见字符
+
+    Args:
+        value: 原始环境变量值
+
+    Returns:
+        清理后的值
+    """
+    if not value:
+        return value
+
+    # 移除前后空格、换行符、制表符等
+    cleaned = value.strip()
+
+    # 检测并警告包含不可见字符的情况
+    if cleaned != value:
+        _basic_logger.warning(
+            f"环境变量包含不可见字符 (长度: {len(value)} → {len(cleaned)}): "
+            f"{repr(value)[:50]}..."
+        )
+
+    return cleaned
+
 # 加载 .env 文件（如果存在）
 def load_env_file():
     """加载 .env 文件中的环境变量"""
@@ -37,7 +63,7 @@ def load_env_file():
                     if line and not line.startswith('#') and '=' in line:
                         key, value = line.split('=', 1)
                         key = key.strip()
-                        value = value.strip()
+                        value = clean_env_value(value.strip())  # 使用清理函数
                         # 设置环境变量（覆盖现有值）
                         os.environ[key] = value
             return
@@ -69,9 +95,9 @@ class Config:
         """加载配置"""
         # API配置
         self.api_config = {
-            'api_key': os.getenv('DEFAULT_API_KEY', ''),
-            'api_endpoint': os.getenv('API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
-            'model_name': os.getenv('MODEL_NAME', 'gpt-5'),
+            'api_key': clean_env_value(os.getenv('DEFAULT_API_KEY', '')),
+            'api_endpoint': clean_env_value(os.getenv('API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions')),
+            'model_name': clean_env_value(os.getenv('MODEL_NAME', 'gpt-5')),
             'max_tokens': int(os.getenv('MAX_TOKENS', '1000')),
             'timeout': int(os.getenv('API_TIMEOUT', '30'))
         }
@@ -79,8 +105,8 @@ class Config:
         # 多模型配置
         self.multi_model_config = {
             'gpt-4o-mini': {
-                'api_key': os.getenv('OPENAI_API_KEY', os.getenv('DEFAULT_API_KEY', '')),
-                'api_endpoint': os.getenv('OPENAI_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions'),
+                'api_key': clean_env_value(os.getenv('OPENAI_API_KEY', os.getenv('DEFAULT_API_KEY', ''))),
+                'api_endpoint': clean_env_value(os.getenv('OPENAI_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions')),
                 'model_name': 'gpt-4o-mini',
                 'max_tokens': int(os.getenv('OPENAI_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('OPENAI_TIMEOUT', '30')),
@@ -90,8 +116,8 @@ class Config:
             },
             # 联通元景系列模型
             'yuanjing-deepseek-v3': {
-                'access_token': os.getenv('ACCESS_TOKEN', ''),
-                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
+                'base_url': clean_env_value(os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')),
                 'model_name': 'deepseek-v3',
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
@@ -100,8 +126,8 @@ class Config:
                 'description': '通用对话模型，平衡性能与速度，适合日常标书内容生成'
             },
             'yuanjing-qwen3-235b': {
-                'access_token': os.getenv('ACCESS_TOKEN', ''),
-                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
+                'base_url': clean_env_value(os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')),
                 'model_name': 'qwen3-235b-a22b',
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
@@ -110,8 +136,8 @@ class Config:
                 'description': '最大参数模型，文本生成质量最高，适合复杂商务文档和标书写作'
             },
             'yuanjing-glm-rumination': {
-                'access_token': os.getenv('ACCESS_TOKEN', ''),
-                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
+                'base_url': clean_env_value(os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')),
                 'model_name': 'glm-z1-rumination-32b-0414',
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
@@ -120,8 +146,8 @@ class Config:
                 'description': '深度思考推理模型，逻辑严密，适合技术方案和解决方案论述'
             },
             'yuanjing-70b-chat': {
-                'access_token': os.getenv('ACCESS_TOKEN', ''),
-                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
+                'base_url': clean_env_value(os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')),
                 'model_name': 'yuanjing-70b-chat',
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
@@ -130,8 +156,8 @@ class Config:
                 'description': '联通自研70B模型，可能针对政企场景优化，适合政府采购项目'
             },
             'yuanjing-ernie-300b': {
-                'access_token': os.getenv('ACCESS_TOKEN', ''),
-                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
+                'base_url': clean_env_value(os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')),
                 'model_name': 'ernie-4.5-300b-a47b',
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
@@ -140,8 +166,8 @@ class Config:
                 'description': '百度文心300B大模型，中文商务写作专长，政府采购语言风格优秀'
             },
             'yuanjing-deepseek-function': {
-                'access_token': os.getenv('ACCESS_TOKEN', ''),
-                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
+                'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
+                'base_url': clean_env_value(os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')),
                 'model_name': 'deepseek-v3-functioncall',
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
@@ -151,7 +177,7 @@ class Config:
             },
             # 始皇API配置 - 支持内联回复功能
             'shihuang-gpt4o-mini': {
-                'api_key': os.getenv('SHIHUANG_API_KEY', ''),
+                'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
                 'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
                 'model_name': 'gpt-4o-mini',
                 'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '500')),
@@ -162,7 +188,7 @@ class Config:
                 'description': '高效快速的AI模型，专业点对点应答，支持灰色底纹标记'
             },
             'shihuang-gpt4': {
-                'api_key': os.getenv('SHIHUANG_API_KEY', ''),
+                'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
                 'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
                 'model_name': 'gpt-4',
                 'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '800')),
@@ -174,9 +200,9 @@ class Config:
             },
             # 向后兼容性配置 - 保持原有模型名称可用
             'unicom-yuanjing': {
-                'access_token': os.getenv('ACCESS_TOKEN', ''),
-                'base_url': os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1'),
-                'model_name': os.getenv('UNICOM_MODEL_NAME', 'deepseek-v3'),
+                'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
+                'base_url': clean_env_value(os.getenv('UNICOM_BASE_URL', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')),
+                'model_name': clean_env_value(os.getenv('UNICOM_MODEL_NAME', 'deepseek-v3')),
                 'max_tokens': int(os.getenv('UNICOM_MAX_TOKENS', '1000')),
                 'timeout': int(os.getenv('UNICOM_TIMEOUT', '30')),
                 'provider': 'China Unicom',

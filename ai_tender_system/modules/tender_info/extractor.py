@@ -260,16 +260,17 @@ class TenderInfoExtractor:
                 '社会保障', '社保缴费', '参保证明', '社会保险证明',
                 '社保缴纳证明', '五险', '社会保险费'
             ],
-            'credit_dishonest': [
+            'credit_china_check': [
                 '失信被执行人', '失信名单', '信用中国失信',
-                '不得被列入失信', '未被列入失信', '失信黑名单'
+                '不得被列入失信', '未被列入失信', '失信黑名单',
+                '信用中国', 'www.creditchina.gov.cn', '信用查询', '信用承诺书', '信用记录'
             ],
-            'credit_corruption': [
+            'tax_violation_check': [
                 '重大税收违法', '重大税收违法案件当事人名单',
                 '重大税收违法失信主体', '税收违法', '税收黑名单',
                 '不得被列入.*重大税收违法', '未被列入.*重大税收违法'
             ],
-            'credit_tax': [
+            'gov_procurement_check': [
                 '政府采购严重违法失信', '政府采购违法',
                 '政府采购失信', '采购严重违法', '政府采购黑名单',
                 '不得被列入.*政府采购', '未被列入.*政府采购'
@@ -1150,17 +1151,17 @@ class TenderInfoExtractor:
                 {
                     "checklist_id": 5,
                     "checklist_name": "失信被执行人",
-                    "qual_keys": ["credit_dishonest"]
+                    "qual_keys": ["credit_china_check"]
                 },
                 {
                     "checklist_id": 6,
                     "checklist_name": "政府采购严重违法失信记录",
-                    "qual_keys": ["credit_tax"]
+                    "qual_keys": ["gov_procurement_check"]
                 },
                 {
                     "checklist_id": 7,
                     "checklist_name": "信用中国重大税收违法",
-                    "qual_keys": ["credit_corruption"]
+                    "qual_keys": ["tax_violation_check"]
                 },
                 {
                     "checklist_id": 8,

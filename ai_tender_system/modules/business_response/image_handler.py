@@ -135,10 +135,61 @@ class ImageHandler:
         self.logger.info(f"图片插入完成: 插入了{stats['images_inserted']}张图片")
 
         return stats
-    
+
+    def _calculate_insert_priority(self, para_idx: int, text: str, total_paragraphs: int) -> int:
+        """
+        计算插入位置的优先级分数（分数越高越优先）
+
+        评分规则：
+        1. 包含"附件"字样：+100分（最重要的特征）
+        2. 包含附件编号模式（如"5-1"、"附件1"等）：+50分
+        3. 段落文本简短（<50字符）：+30分（标题特征）
+        4. 在文档后半部分：+20分（附件通常在后面）
+        5. 段落索引：+para_idx（越后面的位置分数越高）
+
+        Args:
+            para_idx: 段落索引
+            text: 段落文本
+            total_paragraphs: 文档总段落数
+
+        Returns:
+            优先级分数
+        """
+        import re
+
+        score = 0
+
+        # 规则1：包含"附件"字样（最重要）
+        if '附件' in text:
+            score += 100
+            self.logger.debug(f"  [优先级] '附件'关键词 +100分")
+
+        # 规则2：包含附件编号模式
+        # 匹配: "5-1"、"附件1"、"附件一"、"附件 5-1"等
+        if re.search(r'附件\s*[\d一二三四五六七八九十]+[-\d]*|^\d+[-\d]+\s+', text):
+            score += 50
+            self.logger.debug(f"  [优先级] 附件编号模式 +50分")
+
+        # 规则3：段落文本简短（标题特征）
+        if len(text) < 50:
+            score += 30
+            self.logger.debug(f"  [优先级] 文本简短(<50字符) +30分")
+
+        # 规则4：在文档后半部分
+        if total_paragraphs > 0 and para_idx > total_paragraphs / 2:
+            score += 20
+            self.logger.debug(f"  [优先级] 后半部分 +20分")
+
+        # 规则5：段落索引（越后面越优先）
+        score += para_idx
+        self.logger.debug(f"  [优先级] 段落索引#{para_idx} +{para_idx}分")
+
+        self.logger.debug(f"  [优先级] 总分: {score}")
+        return score
+
     def _scan_insert_points(self, doc: Document, image_config: Dict[str, Any] = None) -> Dict[str, Any]:
         """
-        扫描文档，查找图片插入点（支持智能匹配）
+        扫描文档，查找图片插入点（支持智能优先级匹配）
 
         Args:
             doc: Word文档对象
@@ -147,7 +198,8 @@ class ImageHandler:
         Returns:
             插入点字典，键可以是通用类型(license/qualification)或具体资质(iso9001/cmmi等)
         """
-        insert_points = {}
+        # 候选位置字典：{img_type: [(para_idx, paragraph, keyword, score), ...]}
+        candidates = {}
 
         # 获取资质详细信息（用于精确匹配）
         qualification_details = []
@@ -158,42 +210,62 @@ class ImageHandler:
         # 从qualification_matcher导入映射表
         from .qualification_matcher import QUALIFICATION_MAPPING
 
+        # 获取文档总段落数（用于优先级计算）
+        total_paragraphs = len(doc.paragraphs)
+
+        # 第一步：扫描所有段落，收集所有候选位置
+        self.logger.info(f"📄 开始扫描文档（共{total_paragraphs}个段落）")
+
         for para_idx, paragraph in enumerate(doc.paragraphs):
             text = paragraph.text.strip()
 
             # 扫描所有通用图片类型（包括 legal_id, auth_id 等）
             for img_type, keywords in self.image_keywords.items():
-                if img_type in insert_points:
-                    continue  # 已找到，跳过
-
                 for keyword in keywords:
                     if keyword in text:
-                        insert_points[img_type] = {
+                        # 计算该位置的优先级分数
+                        score = self._calculate_insert_priority(para_idx, text, total_paragraphs)
+
+                        # 添加到候选列表
+                        if img_type not in candidates:
+                            candidates[img_type] = []
+
+                        candidates[img_type].append({
                             'type': 'paragraph',
                             'index': para_idx,
                             'paragraph': paragraph,
-                            'matched_keyword': keyword
-                        }
-                        self.logger.info(f"✅ 找到{img_type}插入点: 段落#{para_idx}, 关键词='{keyword}', 文本='{text[:50]}'")
-                        break
+                            'matched_keyword': keyword,
+                            'score': score,
+                            'text': text[:50]  # 保存文本片段用于调试
+                        })
+
+                        self.logger.info(f"🔍 发现{img_type}候选位置: 段落#{para_idx}, 关键词='{keyword}', 分数={score}, 文本='{text[:50]}'")
+                        break  # 找到关键词后停止搜索其他关键词（同一图片类型）
 
             # 查找具体资质类型的位置（ISO9001, CMMI等）
             for qual_key, qual_info in QUALIFICATION_MAPPING.items():
-                if qual_key in insert_points:
-                    continue  # 已找到,跳过
-
                 for keyword in qual_info.get('keywords', []):
                     if keyword in text:
-                        insert_points[qual_key] = {
+                        # 计算该位置的优先级分数
+                        score = self._calculate_insert_priority(para_idx, text, total_paragraphs)
+
+                        # 添加到候选列表
+                        if qual_key not in candidates:
+                            candidates[qual_key] = []
+
+                        candidates[qual_key].append({
                             'type': 'paragraph',
                             'index': para_idx,
                             'paragraph': paragraph,
-                            'matched_keyword': keyword
-                        }
-                        self.logger.info(f"✅ 找到{qual_key}插入点: 段落#{para_idx}, 关键词='{keyword}'")
-                        break
+                            'matched_keyword': keyword,
+                            'score': score,
+                            'text': text[:50]
+                        })
 
-        # 扫描表格中的插入点
+                        self.logger.info(f"🔍 发现{qual_key}候选位置: 段落#{para_idx}, 关键词='{keyword}', 分数={score}")
+                        break  # 找到关键词后停止搜索其他关键词
+
+        # 扫描表格中的插入点（表格位置不计算优先级，优先级设为0）
         for table_idx, table in enumerate(doc.tables):
             for row in table.rows:
                 for cell in row.cells:
@@ -202,29 +274,81 @@ class ImageHandler:
                     # 在表格中查找通用关键词
                     for img_type, keywords in self.image_keywords.items():
                         for keyword in keywords:
-                            if keyword in cell_text and img_type not in insert_points:
-                                insert_points[img_type] = {
-                                    'type': 'table_cell',
-                                    'table_index': table_idx,
-                                    'cell': cell
-                                }
-                                self.logger.info(f"✅ 找到{img_type}插入点: 表格#{table_idx}, 单元格文本='{cell_text[:30]}'")
-
-                    # 在表格中查找具体资质类型
-                    for qual_key, qual_info in QUALIFICATION_MAPPING.items():
-                        if qual_key in insert_points:
-                            continue
-
-                        for keyword in qual_info.get('keywords', []):
                             if keyword in cell_text:
-                                insert_points[qual_key] = {
+                                # 表格位置的优先级固定为0（段落位置更优先）
+                                if img_type not in candidates:
+                                    candidates[img_type] = []
+
+                                candidates[img_type].append({
                                     'type': 'table_cell',
                                     'table_index': table_idx,
                                     'cell': cell,
-                                    'matched_keyword': keyword
-                                }
-                                self.logger.info(f"✅ 找到{qual_key}插入点: 表格#{table_idx}, 关键词='{keyword}'")
+                                    'matched_keyword': keyword,
+                                    'score': 0,  # 表格位置优先级较低
+                                    'text': cell_text[:30]
+                                })
+
+                                self.logger.info(f"🔍 发现{img_type}候选位置(表格): 表格#{table_idx}, 关键词='{keyword}', 分数=0")
+                                break  # 找到关键词后停止
+
+                    # 在表格中查找具体资质类型
+                    for qual_key, qual_info in QUALIFICATION_MAPPING.items():
+                        for keyword in qual_info.get('keywords', []):
+                            if keyword in cell_text:
+                                if qual_key not in candidates:
+                                    candidates[qual_key] = []
+
+                                candidates[qual_key].append({
+                                    'type': 'table_cell',
+                                    'table_index': table_idx,
+                                    'cell': cell,
+                                    'matched_keyword': keyword,
+                                    'score': 0,  # 表格位置优先级较低
+                                    'text': cell_text[:30]
+                                })
+
+                                self.logger.info(f"🔍 发现{qual_key}候选位置(表格): 表格#{table_idx}, 关键词='{keyword}', 分数=0")
                                 break
+
+        # 第二步：为每个图片类型选择最佳位置（分数最高的候选）
+        insert_points = {}
+
+        for img_type, candidate_list in candidates.items():
+            if not candidate_list:
+                continue
+
+            # 按分数排序，选择分数最高的候选
+            best_candidate = max(candidate_list, key=lambda x: x['score'])
+
+            # 构建插入点信息
+            insert_point = {
+                'type': best_candidate['type'],
+                'matched_keyword': best_candidate['matched_keyword']
+            }
+
+            if best_candidate['type'] == 'paragraph':
+                insert_point['index'] = best_candidate['index']
+                insert_point['paragraph'] = best_candidate['paragraph']
+            elif best_candidate['type'] == 'table_cell':
+                insert_point['table_index'] = best_candidate['table_index']
+                insert_point['cell'] = best_candidate['cell']
+
+            insert_points[img_type] = insert_point
+
+            # 输出选择结果
+            if len(candidate_list) > 1:
+                self.logger.info(
+                    f"✅ {img_type}最佳位置: {best_candidate['type']}, "
+                    f"分数={best_candidate['score']}, "
+                    f"文本='{best_candidate['text']}' "
+                    f"(共{len(candidate_list)}个候选位置)"
+                )
+            else:
+                self.logger.info(
+                    f"✅ {img_type}插入点: {best_candidate['type']}, "
+                    f"分数={best_candidate['score']}, "
+                    f"文本='{best_candidate['text']}'"
+                )
 
         # 输出扫描总结
         self.logger.info(f"📊 扫描完成: 找到 {len(insert_points)} 个插入点 - {list(insert_points.keys())}")

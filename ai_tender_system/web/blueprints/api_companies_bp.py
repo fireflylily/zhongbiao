@@ -178,6 +178,13 @@ def update_company(company_id):
                     'email': updated_company.get('email', ''),
                     'officeAddress': updated_company.get('office_address', ''),
                     'employeeCount': updated_company.get('employee_count', ''),
+                    # 财务信息
+                    'bank_name': updated_company.get('bank_name', ''),
+                    'bank_account': updated_company.get('bank_account', ''),
+                    # 股权结构信息
+                    'actual_controller': updated_company.get('actual_controller', ''),
+                    'controlling_shareholder': updated_company.get('controlling_shareholder', ''),
+                    'shareholders_info': updated_company.get('shareholders_info', '[]'),
                     # 被授权人信息
                     'authorized_person_name': updated_company.get('authorized_person_name', ''),
                     'authorized_person_id': updated_company.get('authorized_person_id', ''),

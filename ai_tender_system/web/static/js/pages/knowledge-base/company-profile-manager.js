@@ -756,6 +756,16 @@ class CompanyProfileManager {
      */
     renderFinancialSection(companyData) {
         const data = companyData || {};
+
+        // 解析股东信息JSON
+        let shareholders = [];
+        try {
+            shareholders = data.shareholders_info ? JSON.parse(data.shareholders_info) : [];
+        } catch (e) {
+            console.error('解析股东信息失败:', e);
+            shareholders = [];
+        }
+
         return `
             <div class="financial-section">
                 <div class="mb-4">
@@ -782,12 +792,126 @@ class CompanyProfileManager {
                         </div>
                     </div>
                 </div>
-                <div class="text-center">
+
+                <!-- 【新增】股权结构信息 -->
+                <div class="mb-4">
+                    <h6 class="text-warning mb-3">
+                        <i class="bi bi-diagram-3"></i> 股权结构信息
+                    </h6>
+
+                    <!-- 实际控制人和控股股东 -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">实际控制人</label>
+                            <input type="text" class="form-control" id="prof-actualController"
+                                   value="${data.actual_controller || ''}"
+                                   placeholder="请输入实际控制人姓名/名称">
+                            <small class="text-muted">实际控制公司经营决策的个人或组织</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">控股股东</label>
+                            <input type="text" class="form-control" id="prof-controllingShareholder"
+                                   value="${data.controlling_shareholder || ''}"
+                                   placeholder="请输入控股股东名称">
+                            <small class="text-muted">持股比例最大或有实际控制权的股东</small>
+                        </div>
+                    </div>
+
+                    <!-- 股东/投资人列表 -->
+                    <div class="card">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-people-fill"></i> 股东/投资人列表</span>
+                            <button type="button" class="btn btn-sm btn-success"
+                                    onclick="window.companyProfileManager.addShareholder()">
+                                <i class="bi bi-plus-circle"></i> 添加股东
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="shareholdersList">
+                                ${this.renderShareholdersList(shareholders)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
                     <button type="button" class="btn btn-danger btn-lg" onclick="window.companyProfileManager.saveFinancialInfo()">
                         <i class="bi bi-save"></i> 保存财务信息
                     </button>
                 </div>
             </div>
+        `;
+    }
+
+    /**
+     * 渲染股东列表
+     * @param {Array} shareholders 股东数组
+     */
+    renderShareholdersList(shareholders) {
+        if (!shareholders || shareholders.length === 0) {
+            return `
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                    <p class="mt-2">暂无股东信息，请点击上方"添加股东"按钮</p>
+                </div>
+            `;
+        }
+
+        return `
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 30%">股东名称</th>
+                        <th style="width: 20%">类型</th>
+                        <th style="width: 20%">出资比例</th>
+                        <th style="width: 25%">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${shareholders.map((shareholder, index) => this.renderShareholderRow(shareholder, index)).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    /**
+     * 渲染单个股东行
+     * @param {Object} shareholder 股东信息
+     * @param {number} index 索引
+     */
+    renderShareholderRow(shareholder, index) {
+        const typeIcon = shareholder.type === '企业' ? 'bi-building' : 'bi-person';
+        const typeBadge = shareholder.type === '企业'
+            ? '<span class="badge bg-primary"><i class="bi bi-building"></i> 企业</span>'
+            : '<span class="badge bg-success"><i class="bi bi-person"></i> 自然人</span>';
+
+        return `
+            <tr>
+                <td>${index + 1}</td>
+                <td>
+                    <i class="bi ${typeIcon} text-muted me-2"></i>
+                    ${this.escapeHtml(shareholder.name || '')}
+                </td>
+                <td>${typeBadge}</td>
+                <td>
+                    <strong class="text-primary">${this.escapeHtml(shareholder.ratio || '')}</strong>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-warning"
+                                onclick="window.companyProfileManager.editShareholder(${index})"
+                                title="编辑">
+                            <i class="bi bi-pencil"></i> 编辑
+                        </button>
+                        <button type="button" class="btn btn-outline-danger"
+                                onclick="window.companyProfileManager.removeShareholder(${index})"
+                                title="删除">
+                            <i class="bi bi-trash"></i> 删除
+                        </button>
+                    </div>
+                </td>
+            </tr>
         `;
     }
 
@@ -805,6 +929,7 @@ class CompanyProfileManager {
             { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
             { key: 'iso20000', name: '信息技术服务管理体系认证（ISO20000）', icon: 'bi-gear', category: 'iso' },
             { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
+            { key: 'level_protection', name: '信息安全等级保护三级认证', icon: 'bi-shield-check', category: 'iso' },
 
             // 信用资质
             { key: 'credit_dishonest', name: '信用中国-失信被执行人查询', icon: 'bi-shield-x', category: 'credit' },
@@ -967,6 +1092,180 @@ class CompanyProfileManager {
     }
 
     /**
+     * 添加股东
+     */
+    addShareholder() {
+        // 使用prompt收集股东信息
+        const name = prompt('请输入股东名称:');
+        if (!name || !name.trim()) {
+            return; // 用户取消或输入为空
+        }
+
+        const type = prompt('请选择类型（输入1为企业，输入2为自然人）:');
+        let shareholderType;
+        if (type === '1') {
+            shareholderType = '企业';
+        } else if (type === '2') {
+            shareholderType = '自然人';
+        } else {
+            if (window.showAlert) {
+                window.showAlert('类型选择无效，请输入1或2', 'warning');
+            }
+            return;
+        }
+
+        const ratio = prompt('请输入出资比例（如：30%）:');
+        if (!ratio || !ratio.trim()) {
+            return; // 用户取消或输入为空
+        }
+
+        // 获取当前股东列表
+        const currentShareholders = this.getCurrentShareholders();
+
+        // 添加新股东
+        currentShareholders.push({
+            name: name.trim(),
+            type: shareholderType,
+            ratio: ratio.trim()
+        });
+
+        // 重新渲染股东列表
+        this.refreshShareholdersList(currentShareholders);
+
+        if (window.showAlert) {
+            window.showAlert('股东添加成功，请点击底部"保存财务信息"按钮保存', 'success');
+        }
+    }
+
+    /**
+     * 编辑股东
+     * @param {number} index 股东索引
+     */
+    editShareholder(index) {
+        const currentShareholders = this.getCurrentShareholders();
+        const shareholder = currentShareholders[index];
+
+        if (!shareholder) {
+            if (window.showAlert) {
+                window.showAlert('未找到该股东信息', 'danger');
+            }
+            return;
+        }
+
+        // 编辑股东名称
+        const name = prompt('请输入股东名称:', shareholder.name);
+        if (name === null) return; // 用户取消
+
+        // 编辑类型
+        const typePrompt = shareholder.type === '企业' ? '1' : '2';
+        const type = prompt(`请选择类型（输入1为企业，输入2为自然人）[当前:${shareholder.type}]:`, typePrompt);
+        if (type === null) return; // 用户取消
+
+        let shareholderType;
+        if (type === '1') {
+            shareholderType = '企业';
+        } else if (type === '2') {
+            shareholderType = '自然人';
+        } else {
+            if (window.showAlert) {
+                window.showAlert('类型选择无效，请输入1或2', 'warning');
+            }
+            return;
+        }
+
+        // 编辑出资比例
+        const ratio = prompt('请输入出资比例（如：30%）:', shareholder.ratio);
+        if (ratio === null) return; // 用户取消
+
+        // 更新股东信息
+        currentShareholders[index] = {
+            name: name.trim(),
+            type: shareholderType,
+            ratio: ratio.trim()
+        };
+
+        // 重新渲染股东列表
+        this.refreshShareholdersList(currentShareholders);
+
+        if (window.showAlert) {
+            window.showAlert('股东信息更新成功，请点击底部"保存财务信息"按钮保存', 'success');
+        }
+    }
+
+    /**
+     * 删除股东
+     * @param {number} index 股东索引
+     */
+    removeShareholder(index) {
+        if (!confirm('确定要删除这个股东吗？')) {
+            return;
+        }
+
+        const currentShareholders = this.getCurrentShareholders();
+        currentShareholders.splice(index, 1);
+
+        // 重新渲染股东列表
+        this.refreshShareholdersList(currentShareholders);
+
+        if (window.showAlert) {
+            window.showAlert('股东删除成功，请点击底部"保存财务信息"按钮保存', 'success');
+        }
+    }
+
+    /**
+     * 获取当前股东列表
+     * @returns {Array} 股东数组
+     */
+    getCurrentShareholders() {
+        const shareholdersListDiv = document.getElementById('shareholdersList');
+        if (!shareholdersListDiv) return [];
+
+        // 从DOM中提取当前股东数据
+        // 如果存在table，说明有股东数据
+        const table = shareholdersListDiv.querySelector('table');
+        if (!table) return [];
+
+        const shareholders = [];
+        const rows = table.querySelectorAll('tbody tr');
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 4) {
+                // 提取股东名称（移除前面的图标）
+                const nameCell = cells[1];
+                const name = nameCell.textContent.trim();
+
+                // 提取类型（从badge中）
+                const typeBadge = cells[2].querySelector('.badge');
+                const type = typeBadge ? typeBadge.textContent.trim().replace(/企业|自然人/, match => match) : '';
+
+                // 提取出资比例
+                const ratioCell = cells[3];
+                const ratio = ratioCell.textContent.trim();
+
+                shareholders.push({
+                    name: name,
+                    type: type.includes('企业') ? '企业' : '自然人',
+                    ratio: ratio
+                });
+            }
+        });
+
+        return shareholders;
+    }
+
+    /**
+     * 刷新股东列表显示
+     * @param {Array} shareholders 股东数组
+     */
+    refreshShareholdersList(shareholders) {
+        const shareholdersListDiv = document.getElementById('shareholdersList');
+        if (!shareholdersListDiv) return;
+
+        shareholdersListDiv.innerHTML = this.renderShareholdersList(shareholders);
+    }
+
+    /**
      * 保存基础信息
      */
     async saveBasicInfo() {
@@ -1015,9 +1314,16 @@ class CompanyProfileManager {
      * 保存财务信息
      */
     async saveFinancialInfo() {
+        // 获取股东信息
+        const shareholders = this.getCurrentShareholders();
+
         const data = {
             bank_name: document.getElementById('prof-bankName').value,
-            bank_account: document.getElementById('prof-bankAccount').value
+            bank_account: document.getElementById('prof-bankAccount').value,
+            // 【新增】股权结构字段
+            actual_controller: document.getElementById('prof-actualController').value,
+            controlling_shareholder: document.getElementById('prof-controllingShareholder').value,
+            shareholders_info: JSON.stringify(shareholders) // 将股东数组转换为JSON字符串
         };
 
         try {

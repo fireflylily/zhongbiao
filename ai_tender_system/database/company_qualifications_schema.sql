@@ -80,6 +80,7 @@ INSERT OR IGNORE INTO qualification_types (type_key, type_name, category, is_req
     ('basic_telecom_permit', '基础电信业务许可证', '行业资质', FALSE, FALSE, NULL, 9),
     ('value_added_telecom_permit', '增值电信业务许可证', '行业资质', FALSE, FALSE, NULL, 10),
     ('iso9001', 'ISO9001质量管理体系认证', '认证证书', FALSE, FALSE, NULL, 10),
+    ('level_protection', '信息安全等级保护三级认证', '认证证书', FALSE, FALSE, NULL, 11),
     ('iso20000', 'ISO20000信息技术服务管理体系认证', '认证证书', FALSE, FALSE, NULL, 12),
     ('iso27001', 'ISO27001信息安全管理体系认证', '认证证书', FALSE, FALSE, NULL, 13),
     ('cmmi', 'CMMI认证', '认证证书', FALSE, FALSE, NULL, 14),

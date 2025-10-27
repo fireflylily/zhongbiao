@@ -17,6 +17,7 @@ from .smart_filler import SmartDocumentFiller  # 新：智能文档填写器
 from .table_processor import TableProcessor
 from .image_handler import ImageHandler
 from .inline_processor import InlineReplyProcessor
+from .qualification_matcher import QUALIFICATION_MAPPING
 
 # 保持向后兼容：导入旧的 InfoFiller（如果需要的话）
 try:
@@ -56,14 +57,15 @@ class BusinessResponseProcessor:
 
         self.logger.info(f"商务应答处理器初始化完成，内联回复模型: {self.model_name}")
     
-    def process_business_response(self, 
-                                 input_file: str, 
+    def process_business_response(self,
+                                 input_file: str,
                                  output_file: str,
                                  company_info: Dict[str, Any],
                                  project_name: str = "",
-                                 tender_no: str = "", 
+                                 tender_no: str = "",
                                  date_text: str = "",
-                                 image_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                                 image_config: Optional[Dict[str, Any]] = None,
+                                 match_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         处理商务应答文档 - 主处理方法
         
@@ -149,7 +151,7 @@ class BusinessResponseProcessor:
                     'cells_filled': table_stats.get('cells_filled', 0),
                     'images_inserted': image_stats.get('images_inserted', 0) if image_stats else 0
                 },
-                'message': self._generate_summary_message(info_stats, table_stats, image_stats)
+                'message': self._generate_summary_message(info_stats, table_stats, image_stats, match_result)
             }
             
             self.logger.info(f"商务应答文档处理完成: {total_stats['message']}")
@@ -214,26 +216,90 @@ class BusinessResponseProcessor:
                 'message': '内联回复处理失败'
             }
 
-    def _generate_summary_message(self, info_stats: Dict, table_stats: Dict, image_stats: Dict) -> str:
-        """生成处理摘要消息"""
+    def _generate_summary_message(self, info_stats: Dict, table_stats: Dict, image_stats: Dict, match_result: Optional[Dict[str, Any]] = None) -> str:
+        """
+        生成处理摘要消息（包含详细统计信息）
+
+        Args:
+            info_stats: 信息填充统计
+            table_stats: 表格处理统计
+            image_stats: 图片插入统计
+            match_result: 资质匹配结果（包含missing字段）
+
+        Returns:
+            完整的处理摘要消息
+        """
         messages = []
 
-        if info_stats.get('total_replacements', 0) > 0:
-            messages.append(f"填充了{info_stats['total_replacements']}个信息字段")
+        # 1. 文字信息处理统计（详细版）
+        total_fields_identified = info_stats.get('total_filled', 0) + len(info_stats.get('unfilled_fields', []))
+        total_fields_filled = info_stats.get('total_replacements', 0)
+        unfilled_count = len(info_stats.get('unfilled_fields', []))
 
+        if total_fields_identified > 0:
+            if unfilled_count > 0:
+                messages.append(
+                    f"识别了{total_fields_identified}个信息字段，"
+                    f"填充了{total_fields_filled}个"
+                    f"（{unfilled_count}个因数据库无记录未填充）"
+                )
+            else:
+                messages.append(f"识别了{total_fields_identified}个信息字段，全部填充完成")
+
+        # 2. 表格处理统计
         if table_stats.get('tables_processed', 0) > 0:
-            messages.append(f"处理了{table_stats['tables_processed']}个表格")
-
+            messages.append(f"，处理了{table_stats['tables_processed']}个表格")
         if table_stats.get('cells_filled', 0) > 0:
-            messages.append(f"填充了{table_stats['cells_filled']}个单元格")
+            messages.append(f"，填充了{table_stats['cells_filled']}个单元格")
 
-        if image_stats and image_stats.get('images_inserted', 0) > 0:
-            messages.append(f"插入了{image_stats['images_inserted']}张图片")
+        # 3. 图片插入统计（详细版）
+        if match_result:
+            # 从match_result计算总的资质需求数（即图片插入点数）
+            total_required = match_result.get('stats', {}).get('total_required', 0)
+            total_matched = match_result.get('stats', {}).get('total_matched', 0)
+
+            if total_required > 0 and image_stats:
+                total_images_inserted = image_stats.get('images_inserted', 0)
+                missing_count = len(match_result.get('missing', []))
+
+                if missing_count > 0:
+                    messages.append(
+                        f"。识别了{total_required}个资质需求，"
+                        f"插入了{total_images_inserted}张资质图片"
+                        f"（{missing_count}个因无原文件未处理）"
+                    )
+                else:
+                    messages.append(
+                        f"。识别了{total_required}个资质需求，"
+                        f"插入了{total_images_inserted}张资质图片"
+                    )
+        elif image_stats and image_stats.get('images_inserted', 0) > 0:
+            # 降级：如果没有match_result，只显示插入的图片数
+            total_images_inserted = image_stats.get('images_inserted', 0)
+            messages.append(f"。插入了{total_images_inserted}张图片")
+
+        # 4. 未上传资质提示
+        if match_result and match_result.get('missing'):
+            missing_quals = match_result['missing']
+            if missing_quals:
+                # 将qual_key转换为可读名称
+                missing_qual_names = []
+                for qual_key in missing_quals:
+                    qual_info = QUALIFICATION_MAPPING.get(qual_key, {})
+                    qual_name = qual_info.get('category', qual_key)
+                    missing_qual_names.append(qual_name)
+
+                # 添加提示信息
+                missing_list = "、".join(missing_qual_names)
+                messages.append(
+                    f"\n\n⚠️  以下资质未上传，没有找到相关图片：{missing_list}。"
+                    f"请更新企业信息库资质文件信息。"
+                )
 
         if not messages:
             return "文档处理完成（未发现需要处理的内容）"
 
-        return "，".join(messages)
+        return "".join(messages)
     
     def validate_input(self, input_file: str, company_info: Dict[str, Any]) -> Dict[str, Any]:
         """验证输入参数"""

@@ -49,7 +49,7 @@ except ImportError:
 # 辅助函数
 # ===================
 
-def build_image_config_from_db(company_id: int, project_name: str = None) -> dict:
+def build_image_config_from_db(company_id: int, project_name: str = None) -> tuple:
     """
     从数据库加载公司资质信息并构建图片配置（智能匹配项目资格要求）
 
@@ -58,11 +58,9 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> dic
         project_name: 项目名称（可选）。如果提供，则只插入项目要求的资质
 
     Returns:
-        图片配置字典，包含：
-        - seal_path: 公章图片路径
-        - license_path: 营业执照图片路径
-        - qualification_paths: 资质证书图片路径列表
-        - qualification_details: 资质详细信息列表（用于精确插入）
+        (image_config, match_result) 元组:
+        - image_config: 图片配置字典
+        - match_result: 资质匹配结果（包含missing信息），如果没有项目名称则为None
     """
     try:
         # 如果提供了项目名称，使用智能匹配
@@ -72,8 +70,10 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> dic
             # 导入资质匹配模块
             from modules.business_response.qualification_matcher import match_qualifications_for_project
 
-            # 使用智能匹配
-            image_config = match_qualifications_for_project(company_id, project_name, kb_manager)
+            # 使用智能匹配，获取image_config和match_result
+            image_config, match_result = match_qualifications_for_project(
+                company_id, project_name, kb_manager, return_match_result=True
+            )
 
             if not image_config:
                 logger.warning(f"⚠️  项目 '{project_name}' 无资质要求或匹配失败")
@@ -128,7 +128,7 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> dic
                     image_config['auth_id']['back'] = file_path
                     logger.info(f"  - 授权代表身份证反面: {file_path}")
 
-            return image_config
+            return (image_config, match_result)
 
         # 如果没有项目名称，使用旧逻辑（插入所有资质）
         logger.info(f"📋 未指定项目，加载公司 {company_id} 的所有资质")
@@ -138,7 +138,7 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> dic
 
         if not qualifications:
             logger.warning(f"公司 {company_id} 没有上传任何资质文件")
-            return {}
+            return ({}, None)  # 返回空配置和None的match_result
 
         logger.info(f"从数据库加载公司 {company_id} 的资质信息，共 {len(qualifications)} 个资质")
 
@@ -201,13 +201,13 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> dic
             image_config['qualification_paths'] = qualification_paths
 
         logger.info(f"构建的图片配置: {len(image_config)} 个类型，{len(qualification_paths)} 个资质证书")
-        return image_config
+        return (image_config, None)  # 没有项目名称，没有match_result
 
     except Exception as e:
         logger.error(f"从数据库构建图片配置失败: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return {}
+        return ({}, None)  # 返回空配置和None的match_result
 
 
 def generate_output_filename(project_name: str, file_type: str, timestamp: str = None) -> str:
@@ -322,12 +322,18 @@ def process_business_response():
                 # 注意：这里不设置当前日期，而是保持为空，让后端填充器跳过
 
         # 从数据库直接加载图片配置（智能匹配项目资格要求）
-        image_config = build_image_config_from_db(company_id_int, project_name)
+        image_config, match_result = build_image_config_from_db(company_id_int, project_name)
 
         if image_config:
             logger.info(f"成功从数据库加载图片配置，包含 {len(image_config)} 个类型")
         else:
             logger.warning(f"公司 {company_id} 没有可用的资质图片或项目无资质要求")
+
+        # 输出match_result信息用于调试
+        if match_result:
+            logger.info(f"资质匹配结果: 要求{match_result['stats']['total_required']}个, "
+                       f"匹配{match_result['stats']['total_matched']}个, "
+                       f"缺失{len(match_result['missing'])}个")
 
         # 从数据库获取公司信息
         company_db_data = kb_manager.get_company_detail(company_id_int)
@@ -419,7 +425,8 @@ def process_business_response():
                 project_name,
                 tender_no,
                 date_text,
-                image_config  # 传递图片配置
+                image_config,  # 传递图片配置
+                match_result   # 传递资质匹配结果（包含missing信息）
             )
 
             output_path = str(output_path)
@@ -454,7 +461,8 @@ def process_business_response():
                 project_name,
                 tender_no,
                 date_text,
-                image_config  # 传递图片配置
+                image_config,  # 传递图片配置
+                match_result   # 传递资质匹配结果（包含missing信息）
             )
 
             # 统一返回格式处理

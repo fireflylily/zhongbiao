@@ -133,6 +133,10 @@ class KnowledgeBaseManager:
                 # 财务信息字段(匹配前端蛇形命名)
                 'bank_name': 'bank_name',
                 'bank_account': 'bank_account',
+                # 股权结构字段
+                'actual_controller': 'actual_controller',
+                'controlling_shareholder': 'controlling_shareholder',
+                'shareholders_info': 'shareholders_info',
                 # 被授权人信息字段
                 'authorized_person_name': 'authorized_person_name',
                 'authorized_person_id': 'authorized_person_id',

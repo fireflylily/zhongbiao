@@ -327,8 +327,14 @@ class PatternMatcher:
         return patterns
 
     def _match_combo_pattern(self, text: str) -> List[Dict]:
-        """匹配组合字段：（xxx、yyy）或（xxx、yyy、zzz）"""
-        pattern = r'[（(]([^）)]+[、，][^）)]+)[）)]'
+        """匹配组合字段：（xxx、yyy）或（xxx、yyy、zzz）或[xxx、yyy]
+
+        支持三种括号类型：
+        - 全角括号：（项目名称、招标编号）
+        - 半角圆括号：(项目名称、招标编号)
+        - 半角方括号：[项目名称、招标编号]
+        """
+        pattern = r'[（(\[]([^）)\]]+[、，][^）)\]]+)[）)\]]'
         matches = []
 
         for match in re.finditer(pattern, text):
@@ -352,8 +358,14 @@ class PatternMatcher:
         return matches
 
     def _match_bracket_pattern(self, text: str) -> List[Dict]:
-        """匹配括号占位符：（xxx）"""
-        pattern = r'[（(]([^）)]+)[）)]'
+        """匹配括号占位符：（xxx）、(xxx)、[xxx]
+
+        支持三种括号类型：
+        - 全角括号：（项目名称）
+        - 半角圆括号：(项目名称)
+        - 半角方括号：[项目名称]
+        """
+        pattern = r'[（(\[]([^）)\]]+)[）)\]]'
         matches = []
 
         for match in re.finditer(pattern, text):
@@ -371,6 +383,13 @@ class PatternMatcher:
                     field_name = field_name[len(prefix):].strip()
                     break
 
+            # ✅ 新增：清理冒号和后面的占位符（空格/下划线）
+            # 匹配 "字段名：空格或下划线结尾" 的格式，如"项目编号：       "
+            # 只匹配冒号后面是占位符的情况，不会影响实际内容（如"成立日期：2020-01-01"）
+            colon_match = re.match(r'^([^：:]+)[：:]\s*[_\s]*$', field_name)
+            if colon_match:
+                field_name = colon_match.group(1).strip()
+
             # 过滤掉明显不是字段的内容
             skip_keywords = ['如有', '如果', 'www.', 'http', '说明', '注意', '备注']
             if any(skip in field_name for skip in skip_keywords):
@@ -380,10 +399,14 @@ class PatternMatcher:
             if len(field_name) < 2:
                 continue
 
+            # ✅ 改进：检测是否包含占位符（冒号后跟3个以上空格或下划线）
+            # 如果包含占位符，说明是待填写字段，不应跳过
+            has_placeholder = bool(re.search(r'[：:]\s*[_\s]{3,}', original_field_name))
+
             # ✅ 关键检测：判断括号内是字段名还是实际内容
-            # 如果括号内容很长（超过8个字符），且没有提示性前缀，很可能是已填写的内容
+            # 只有当超过8字符、未清理任何内容、且不包含占位符时，才跳过
             # 常见字段名如"项目名称"、"公司名称"、"法定代表人"等通常不超过8字符
-            if len(original_field_name) > 8 and original_field_name == field_name:
+            if len(original_field_name) > 8 and original_field_name == field_name and not has_placeholder:
                 # 如果超过8字符，很可能是实际内容（如公司全称、长项目名等），跳过
                 continue
 
@@ -644,8 +667,17 @@ class ContentFiller:
             if not all_found:
                 continue  # 跳过这个组合字段
 
-            # 构建替换文本
-            replacement = '、'.join(values)
+            # 检测并保持原括号类型
+            full_match = match['full_match']
+            if '（' in full_match:
+                bracket_open, bracket_close = '（', '）'
+            elif '[' in full_match:
+                bracket_open, bracket_close = '[', ']'
+            else:
+                bracket_open, bracket_close = '(', ')'
+
+            # 构建替换文本（保持原括号类型）
+            replacement = f"{bracket_open}{'、'.join(values)}{bracket_close}"
             # 使用run精确替换（从后往前处理，不需要重新构建映射）
             success = WordDocumentUtils.apply_replacement_to_runs(
                 runs, char_to_run_map, match, replacement, self.logger
@@ -682,8 +714,17 @@ class ContentFiller:
                     self.logger.debug(f"  跳过空值字段: {field_name}")
                     continue
 
-                # 保留括号格式：（xxx） → （数据值）
-                replacement = f"（{value}）"
+                # 检测并保持原括号类型
+                full_match = match['full_match']
+                if '（' in full_match:
+                    bracket_open, bracket_close = '（', '）'
+                elif '[' in full_match:
+                    bracket_open, bracket_close = '[', ']'
+                else:
+                    bracket_open, bracket_close = '(', ')'
+
+                # 保留括号格式并保持原括号类型
+                replacement = f"{bracket_open}{value}{bracket_close}"
 
                 # 使用run精确替换
                 success = WordDocumentUtils.apply_replacement_to_runs(
@@ -691,7 +732,7 @@ class ContentFiller:
                 )
                 if success:
                     filled_count += 1
-                    self.logger.info(f"    括号字段填充: {field_name} → （{value}）")
+                    self.logger.info(f"    括号字段填充: {field_name} → {replacement}")
 
         return filled_count > 0
 
@@ -867,6 +908,11 @@ class ContentFiller:
 
         # 已经是中文格式
         if '年' in date_str and '月' in date_str:
+            # ✅ 提取"年月日"部分，删除后面的时间信息
+            # 匹配格式：2025年08月27日下午14:30整（北京时间） → 2025年08月27日
+            date_match = re.match(r'(\d{4}年\d{1,2}月\d{1,2}日)', date_str)
+            if date_match:
+                return date_match.group(1)  # 只返回"年月日"部分
             return date_str
 
         return date_str

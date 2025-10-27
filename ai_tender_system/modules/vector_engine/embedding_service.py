@@ -20,6 +20,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from common.logger import get_module_logger
+from common.config import clean_env_value
 import requests
 
 logger = get_module_logger("vector_engine.embedding")
@@ -69,9 +70,9 @@ class EmbeddingService:
             self.model_type = "text-embedding-3-small"
             self.model_config = self.SUPPORTED_MODELS[self.model_type]
 
-        # API配置
-        self.api_key = api_key or os.getenv("EMBEDDING_API_KEY") or os.getenv("OPENAI_API_KEY")
-        self.api_endpoint = api_endpoint or os.getenv("EMBEDDING_API_ENDPOINT") or os.getenv("OPENAI_API_ENDPOINT") or "https://api.openai.com/v1"
+        # API配置 - 使用clean_env_value清理环境变量中的不可见字符
+        self.api_key = clean_env_value(api_key or os.getenv("EMBEDDING_API_KEY") or os.getenv("OPENAI_API_KEY") or "")
+        self.api_endpoint = clean_env_value(api_endpoint or os.getenv("EMBEDDING_API_ENDPOINT") or os.getenv("OPENAI_API_ENDPOINT") or "https://api.openai.com/v1")
 
         # 确保endpoint正确格式
         if not self.api_endpoint.endswith("/embeddings"):
