@@ -1835,6 +1835,11 @@ def register_hitl_routes(app):
 
         使用现有的 TenderInfoExtractor 提取项目基本信息
 
+        请求参数（JSON，可选）：
+        {
+            "model_name": "yuanjing-deepseek-v3"  # 可选，默认使用联通元景模型
+        }
+
         返回：
         {
             "success": True,
@@ -1852,6 +1857,12 @@ def register_hitl_routes(app):
 
             db = get_knowledge_base_db()
 
+            # 获取请求参数（支持前端传递模型选择）
+            request_data = request.get_json() if request.is_json else {}
+            model_name = request_data.get('model_name', 'yuanjing-deepseek-v3')  # 默认使用联通元景模型
+
+            logger.info(f"基本信息提取 - 任务ID: {task_id}, 使用模型: {model_name}")
+
             # 获取任务信息
             hitl_task = db.execute_query("""
                 SELECT project_id, step1_data FROM tender_hitl_tasks
@@ -1868,10 +1879,9 @@ def register_hitl_routes(app):
             if not doc_path or not Path(doc_path).exists():
                 return jsonify({'success': False, 'error': '文档不存在'}), 404
 
-            # 创建提取器
+            # 创建提取器 - 使用指定的模型
             config = get_config()
-            api_key = config.get_default_api_key()
-            extractor = TenderInfoExtractor(api_key=api_key, model_name='gpt-4o-mini')
+            extractor = TenderInfoExtractor(model_name=model_name)
 
             # 读取文档内容
             text = extractor.read_document(doc_path)
@@ -1984,7 +1994,8 @@ def register_hitl_routes(app):
 
         请求参数（JSON）：
         {
-            "project_id": 123
+            "project_id": 123,
+            "model_name": "yuanjing-deepseek-v3"  # 可选，默认使用联通元景模型
         }
 
         返回：
@@ -2004,8 +2015,11 @@ def register_hitl_routes(app):
             from modules.tender_info.extractor import TenderInfoExtractor
             from common import get_config
 
-            data = request.get_json()
+            data = request.get_json() or {}
             project_id = data.get('project_id')
+            model_name = data.get('model_name', 'yuanjing-deepseek-v3')  # 默认使用联通元景模型
+
+            logger.info(f"资质提取 - 任务ID: {task_id}, 使用模型: {model_name}")
 
             db = get_knowledge_base_db()
 
@@ -2029,10 +2043,9 @@ def register_hitl_routes(app):
             if not doc_path or not Path(doc_path).exists():
                 return jsonify({'success': False, 'error': '文档不存在'}), 404
 
-            # 创建提取器
+            # 创建提取器 - 使用指定的模型
             config = get_config()
-            api_key = config.get_default_api_key()
-            extractor = TenderInfoExtractor(api_key=api_key, model_name='gpt-4o-mini')
+            extractor = TenderInfoExtractor(model_name=model_name)
 
             # 读取文档内容
             text = extractor.read_document(doc_path)

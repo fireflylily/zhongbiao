@@ -74,7 +74,7 @@ class CompanyProfileManager {
                         </span>
                     </div>
                     <div>
-                        <button type="button" class="btn btn-primary" onclick="window.categoryManager.showAddCompanyModal()">
+                        <button type="button" class="btn btn-primary" onclick="window.companyProfileManager.createNewCompany()">
                             <i class="bi bi-plus-circle me-1"></i>新建企业
                         </button>
                     </div>
@@ -309,6 +309,45 @@ class CompanyProfileManager {
      */
     async viewCompanyDetail(companyId) {
         await this.renderCompanyProfile(companyId);
+    }
+
+    /**
+     * 创建新企业 - 复用编辑界面
+     */
+    async createNewCompany() {
+        try {
+            // 步骤1: 调用后端API创建空企业记录
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+            const response = await axios.post('/api/companies', {
+                companyName: '新建企业',  // 默认名称
+                companyDescription: '请完善企业信息'
+            }, {
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            });
+
+            if (response.data.success) {
+                const newCompanyId = response.data.company.id;
+
+                if (window.showAlert) {
+                    window.showAlert('企业创建成功,请完善企业信息', 'success');
+                }
+
+                // 步骤2: 跳转到编辑界面(复用renderCompanyProfile)
+                await this.renderCompanyProfile(parseInt(newCompanyId));
+
+            } else {
+                throw new Error(response.data.error || '创建失败');
+            }
+
+        } catch (error) {
+            console.error('创建新企业失败:', error);
+            if (window.showAlert) {
+                window.showAlert('创建企业失败: ' + error.message, 'danger');
+            }
+        }
     }
 
     /**
@@ -688,7 +727,10 @@ class CompanyProfileManager {
 
                 <!-- 附件上传区域 -->
                 <div class="mb-4">
-                    <h6 class="text-secondary mb-3"><i class="bi bi-file-earmark-person"></i> 相关附件</h6>
+                    <h6 class="text-secondary mb-3">
+                        <i class="bi bi-file-earmark-person"></i> 相关附件
+                        <small class="text-muted ms-2">(上传的身份证将用于商务应答文档生成)</small>
+                    </h6>
                     <div class="row g-3">
                         <div class="col-md-6">
                             ${this.renderPersonnelItem('被授权人身份证(正面)', 'auth_id_front', 'bi-person-check')}
@@ -758,8 +800,6 @@ class CompanyProfileManager {
             { key: 'business_license', name: '营业执照', icon: 'bi-building', category: 'basic', required: true },
             { key: 'legal_id_front', name: '法人身份证（正面）', icon: 'bi-person-badge', category: 'basic', required: true },
             { key: 'legal_id_back', name: '法人身份证（反面）', icon: 'bi-person-badge', category: 'basic', required: true },
-            { key: 'auth_id_front', name: '被授权人身份证（正面）', icon: 'bi-person-check', category: 'basic' },
-            { key: 'auth_id_back', name: '被授权人身份证（反面）', icon: 'bi-person-check', category: 'basic' },
 
             // ISO体系认证
             { key: 'iso9001', name: '质量管理体系认证（ISO9001）', icon: 'bi-award', category: 'iso' },
