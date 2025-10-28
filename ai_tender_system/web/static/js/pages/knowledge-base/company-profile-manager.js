@@ -290,11 +290,11 @@ class CompanyProfileManager {
      * 计算资质完成度
      */
     calculateQualificationProgress(qualifications) {
-        // 标准资质类型总数（基于现有的标准资质列表）
+        // 标准资质类型总数（基于现有的标准资质列表，与后端保持一致）
         const standardQualificationTypes = [
             'business_license', 'legal_id_front', 'legal_id_back',
             'iso9001', 'iso14001', 'iso45001', 'iso20000', 'iso27001',
-            'credit_dishonest', 'credit_corruption', 'credit_tax', 'credit_procurement',
+            'dishonest_executor', 'tax_violation_check', 'gov_procurement_creditchina', 'gov_procurement_ccgp',
             'software_copyright', 'patent_certificate', 'high_tech', 'software_enterprise', 'cmmi'
         ];
 
@@ -817,6 +817,24 @@ class CompanyProfileManager {
                         </div>
                     </div>
 
+                    <!-- 管理关系信息 -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">管理关系单位名称</label>
+                            <input type="text" class="form-control" id="prof-managingUnitName"
+                                   value="${data.managing_unit_name || ''}"
+                                   placeholder="本公司管理的单位名称">
+                            <small class="text-muted">本公司所管理的下级单位或分支机构</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">被管理关系单位名称</label>
+                            <input type="text" class="form-control" id="prof-managedUnitName"
+                                   value="${data.managed_unit_name || ''}"
+                                   placeholder="管理本公司的单位名称">
+                            <small class="text-muted">管理本公司的上级单位或集团</small>
+                        </div>
+                    </div>
+
                     <!-- 股东/投资人列表 -->
                     <div class="card">
                         <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -931,11 +949,11 @@ class CompanyProfileManager {
             { key: 'iso27001', name: '信息安全管理体系认证（ISO27001）', icon: 'bi-shield-lock', category: 'iso' },
             { key: 'level_protection', name: '信息安全等级保护三级认证', icon: 'bi-shield-check', category: 'iso' },
 
-            // 信用资质
-            { key: 'credit_dishonest', name: '信用中国-失信被执行人查询', icon: 'bi-shield-x', category: 'credit' },
-            { key: 'credit_corruption', name: '信用中国-重大税收违法案件查询', icon: 'bi-exclamation-triangle', category: 'credit' },
-            { key: 'credit_tax', name: '信用中国-政府采购严重违法失信查询', icon: 'bi-flag', category: 'credit' },
-            { key: 'credit_procurement', name: '政府采购信用查询结果', icon: 'bi-check-circle', category: 'credit' },
+            // 信用资质（与后端 qualification_matcher.py 保持一致）
+            { key: 'dishonest_executor', name: '失信被执行人名单（信用中国）', icon: 'bi-shield-x', category: 'credit' },
+            { key: 'tax_violation_check', name: '重大税收违法案件当事人名单（信用中国）', icon: 'bi-exclamation-triangle', category: 'credit' },
+            { key: 'gov_procurement_creditchina', name: '政府采购严重违法失信（信用中国）', icon: 'bi-flag', category: 'credit' },
+            { key: 'gov_procurement_ccgp', name: '政府采购严重违法失信行为信息记录（政府采购网）', icon: 'bi-check-circle', category: 'credit' },
 
             // 知识产权和行业资质
             { key: 'basic_telecom_permit', name: '基础电信业务许可证', icon: 'bi-broadcast', category: 'industry' },
@@ -1323,7 +1341,10 @@ class CompanyProfileManager {
             // 【新增】股权结构字段
             actual_controller: document.getElementById('prof-actualController').value,
             controlling_shareholder: document.getElementById('prof-controllingShareholder').value,
-            shareholders_info: JSON.stringify(shareholders) // 将股东数组转换为JSON字符串
+            shareholders_info: JSON.stringify(shareholders), // 将股东数组转换为JSON字符串
+            // 【新增】管理关系字段
+            managing_unit_name: document.getElementById('prof-managingUnitName').value,
+            managed_unit_name: document.getElementById('prof-managedUnitName').value
         };
 
         try {

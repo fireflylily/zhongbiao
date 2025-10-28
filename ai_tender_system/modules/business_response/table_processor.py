@@ -44,7 +44,14 @@ class TableProcessor:
             '项目编号': 'projectNumber',
             '投标报价': 'bidPrice',
             '交货期': 'deliveryTime',
-            '质保期': 'warrantyPeriod'
+            '质保期': 'warrantyPeriod',
+            # 股权结构字段（2025-10-27添加）
+            '实际控制人': 'actual_controller',
+            '控股股东': 'controlling_shareholder',
+            '股东': 'shareholders_info',
+            # 管理关系字段（2025-10-28添加）
+            '管理关系单位': 'managing_unit_name',
+            '被管理关系单位': 'managed_unit_name'
         }
     
     def process_tables(self, doc: Document, company_info: Dict[str, Any], 
@@ -106,22 +113,24 @@ class TableProcessor:
         return result
     
     def _analyze_table_structure(self, table: Table) -> str:
-        """分析表格结构类型（支持混合列数表格）"""
+        """分析表格结构类型（支持混合列数表格，包括2列和3列键值对表格）"""
         if not table.rows:
             return 'empty'
 
         # 统计每行的实际列数
         row_column_counts = [len(row.cells) for row in table.rows]
         two_col_rows = sum(1 for count in row_column_counts if count == 2)
+        three_col_rows = sum(1 for count in row_column_counts if count == 3)
         total_rows = len(table.rows)
 
         # 调试日志：输出表格结构信息
-        self.logger.debug(f"  表格结构分析: 总行数={total_rows}, 2列行数={two_col_rows}, 列数分布={row_column_counts}")
+        self.logger.debug(f"  表格结构分析: 总行数={total_rows}, 2列行数={two_col_rows}, 3列行数={three_col_rows}, 列数分布={row_column_counts}")
 
         # 检查是否为键值对表格（允许部分行有不同列数）
-        # 如果超过80%的行是2列，则可能是键值对表格
-        if two_col_rows >= total_rows * 0.8:
-            # 提取2列行的第一列文本
+        # 情况1：如果超过80%的行是2列，则可能是键值对表格
+        # 情况2：如果超过80%的行是3列，也可能是键值对表格（第1列=字段名，第2列=值，第3列=说明）
+        if two_col_rows >= total_rows * 0.8 or three_col_rows >= total_rows * 0.8:
+            # 提取第一列文本（至少有2列的行）
             first_col_texts = [row.cells[0].text.strip() for row in table.rows if len(row.cells) >= 2]
             field_count = sum(1 for text in first_col_texts
                             if any(field in text for field in self.table_field_mapping.keys()))
@@ -129,7 +138,7 @@ class TableProcessor:
             self.logger.debug(f"  键值对检测: 匹配字段数={field_count}/{len(first_col_texts)}")
 
             if field_count > len(first_col_texts) * 0.5:
-                self.logger.debug(f"  ✅ 识别为 key_value 类型")
+                self.logger.debug(f"  ✅ 识别为 key_value 类型（2列或3列键值对表格）")
                 return 'key_value'
 
         # 原有逻辑：检查是否为表头-数据表格
@@ -145,20 +154,31 @@ class TableProcessor:
         return 'mixed'
     
     def _process_key_value_table(self, table: Table, info: Dict[str, Any]) -> Dict[str, Any]:
-        """处理键值对类型的表格（增强版：只处理标准2列行）"""
+        """
+        处理键值对类型的表格（增强版：支持2列和3列表格）
+
+        支持格式：
+        - 2列表格：第1列=字段名，第2列=值
+        - 3列表格：第1列=字段名，第2列=值，第3列=说明文字（忽略）
+        """
         result = {
             'cells_filled': 0,
             'fields_matched': []
         }
 
         for row in table.rows:
-            # 🔧 修复：只处理标准的2列行，跳过3列或更多列的行
-            if len(row.cells) != 2:
-                self.logger.debug(f"  跳过非标准行（列数={len(row.cells)}）")
+            # 支持2列或3列的键值对表格
+            if len(row.cells) < 2:
+                self.logger.debug(f"  跳过单列行（列数={len(row.cells)}）")
+                continue
+
+            # 对于超过3列的行，可能不是键值对表格，跳过
+            if len(row.cells) > 3:
+                self.logger.debug(f"  跳过多列行（列数={len(row.cells)}，可能是数据表格）")
                 continue
 
             key_cell = row.cells[0]
-            value_cell = row.cells[1]
+            value_cell = row.cells[1]  # 无论2列还是3列，第2列都是值
 
             key_text = key_cell.text.strip()
 
@@ -175,7 +195,7 @@ class TableProcessor:
                         self._fill_cell(value_cell, str(value))
                         result['cells_filled'] += 1
                         result['fields_matched'].append(field_name)
-                        self.logger.debug(f"  ✅ 填充字段: {field_name} = {value}")
+                        self.logger.debug(f"  ✅ 填充字段: {field_name} = {value} (列数={len(row.cells)})")
                         break
 
         return result

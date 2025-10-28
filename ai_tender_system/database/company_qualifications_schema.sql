@@ -90,10 +90,11 @@ INSERT OR IGNORE INTO qualification_types (type_key, type_name, category, is_req
     ('software_copyright', '软件著作权登记证书', '行业资质', FALSE, TRUE, '软著名称', 17),
     ('patent_certificate', '专利证书', '行业资质', FALSE, TRUE, '专利号', 18),
     ('audit_report', '财务审计报告', '财务资质', FALSE, TRUE, '年份', 19),
-    -- 信用证明类资质（负面清单查询证明）
-    ('credit_china_check', '信用中国查询证明', '信用证明', FALSE, FALSE, NULL, 20),
-    ('tax_violation_check', '重大税收违法案件查询证明', '信用证明', FALSE, FALSE, NULL, 21),
-    ('gov_procurement_check', '政府采购严重违法失信查询证明', '信用证明', FALSE, FALSE, NULL, 22);
+    -- 信用证明类资质（负面清单查询证明 - 4个独立资质）
+    ('dishonest_executor', '失信被执行人名单（信用中国）', '信用证明', FALSE, FALSE, NULL, 20),
+    ('tax_violation_check', '重大税收违法案件当事人名单（信用中国）', '信用证明', FALSE, FALSE, NULL, 21),
+    ('gov_procurement_creditchina', '政府采购严重违法失信（信用中国）', '信用证明', FALSE, FALSE, NULL, 22),
+    ('gov_procurement_ccgp', '政府采购严重违法失信行为信息记录（政府采购网）', '信用证明', FALSE, FALSE, NULL, 23);
 
 -- 资质文件访问日志表（用于审计）
 CREATE TABLE IF NOT EXISTS qualification_access_logs (

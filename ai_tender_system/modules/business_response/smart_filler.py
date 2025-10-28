@@ -98,6 +98,15 @@ class SmartDocumentFiller:
             if result['errors']:
                 stats['errors'].extend(result['errors'])
 
+        # 过滤未填充字段，排除误识别内容
+        if stats['unfilled_fields']:
+            filtered_unfilled = self._filter_invalid_fields(stats['unfilled_fields'])
+            stats['filtered_unfilled_fields'] = filtered_unfilled  # 添加过滤后的字段
+            stats['original_unfilled_count'] = len(stats['unfilled_fields'])  # 保留原始数量用于调试
+        else:
+            stats['filtered_unfilled_fields'] = []
+            stats['original_unfilled_count'] = 0
+
         # 输出统计报告
         self._print_stats(stats)
 
@@ -270,15 +279,72 @@ class SmartDocumentFiller:
             for pattern, count in stats['pattern_counts'].items():
                 self.logger.info(f"  - {pattern}: {count}")
 
+        # 过滤未填充字段：排除明显的误识别内容
         if stats['unfilled_fields']:
-            self.logger.warning(f"未填充字段数: {len(stats['unfilled_fields'])}")
-            for uf in stats['unfilled_fields'][:10]:  # 只显示前10个
-                self.logger.warning(f"  - 段落#{uf['para_idx']}: {uf['field']}")
+            filtered_unfilled = self._filter_invalid_fields(stats['unfilled_fields'])
+
+            if filtered_unfilled:
+                self.logger.warning(f"真正未填充字段数: {len(filtered_unfilled)}")
+                for uf in filtered_unfilled[:10]:  # 只显示前10个
+                    self.logger.warning(f"  - 段落#{uf['para_idx']}: {uf['field']}")
+
+            # 显示过滤掉的误识别数量
+            filtered_count = len(stats['unfilled_fields']) - len(filtered_unfilled)
+            if filtered_count > 0:
+                self.logger.debug(f"过滤掉的误识别字段数: {filtered_count}")
 
         if stats['errors']:
             self.logger.error(f"错误数: {len(stats['errors'])}")
             for err in stats['errors'][:5]:  # 只显示前5个
                 self.logger.error(f"  - {err}")
+
+    def _filter_invalid_fields(self, unfilled_fields: List[Dict]) -> List[Dict]:
+        """
+        过滤掉明显不是数据字段的误识别内容
+
+        Args:
+            unfilled_fields: 原始未填充字段列表
+
+        Returns:
+            过滤后的列表（仅包含真正的数据字段）
+        """
+        # 排除关键词：说明性文字、标题、提示
+        exclude_keywords = [
+            # 说明性文字
+            '行贿犯罪记录', '时间从', '以相关', '以中国', '本条', '即增值税',
+            '我公司', '我方', '本投标', '有关的一切', '请寄', '通讯',
+            # 提示性文字
+            '盖章', '签字', '公章', '签名',
+            # 格式和标题
+            '格式', '附件', '正本', '副本', '电子版',
+            # 条款标题
+            '情况', '承诺', '声明', '说明', '注意', '备注',
+            # 网址和特殊字符
+            'http', 'www.', '://','满足招标','见附件'
+        ]
+
+        # 过滤逻辑
+        filtered = []
+        for field_info in unfilled_fields:
+            field = field_info.get('field', '')
+
+            # 如果是字典（bracket、colon模式），取field字段
+            if isinstance(field, dict):
+                field_text = field.get('field', '')
+            else:
+                field_text = str(field)
+
+            # 检查是否包含排除关键词
+            should_exclude = any(keyword in field_text for keyword in exclude_keywords)
+
+            # 检查长度（字段名通常不超过15个字符）
+            if not should_exclude and len(field_text) > 15:
+                should_exclude = True
+
+            if not should_exclude:
+                filtered.append(field_info)
+
+        return filtered
 
 
 class PatternMatcher:
@@ -327,14 +393,21 @@ class PatternMatcher:
         return patterns
 
     def _match_combo_pattern(self, text: str) -> List[Dict]:
-        """匹配组合字段：（xxx、yyy）或（xxx、yyy、zzz）或[xxx、yyy]
+        """匹配组合字段：（xxx、yyy）或（xxx和yyy）或[xxx、yyy、zzz]
 
         支持三种括号类型：
         - 全角括号：（项目名称、招标编号）
         - 半角圆括号：(项目名称、招标编号)
         - 半角方括号：[项目名称、招标编号]
+
+        支持四种分隔符：
+        - 顿号：、
+        - 逗号：，
+        - 和字：和
+        - 及字：及
         """
-        pattern = r'[（(\[]([^）)\]]+[、，][^）)\]]+)[）)\]]'
+        # 扩展正则以支持"和"、"及"连接词
+        pattern = r'[（(\[]([^）)\]]+(?:[、，和及][^）)\]]+)+)[）)\]]'
         matches = []
 
         for match in re.finditer(pattern, text):
@@ -344,9 +417,13 @@ class PatternMatcher:
             if any(skip in combo_text for skip in ['如有', '如果', '包括', '或者']):
                 continue
 
-            # 分割组合字段
-            fields = re.split(r'[、，]', combo_text)
-            fields = [f.strip() for f in fields]
+            # 分割组合字段（支持多种分隔符）
+            fields = re.split(r'[、，和及]', combo_text)
+            fields = [f.strip() for f in fields if f.strip()]  # 过滤空字段
+
+            # 至少需要2个字段才算组合字段
+            if len(fields) < 2:
+                continue
 
             matches.append({
                 'full_match': match.group(0),
@@ -569,8 +646,23 @@ class FieldRecognizer:
             'legalRepresentativePosition': ['法人职位', '法定代表人职位', '法人职务'],
             'legalRepresentativeGender': ['性别', '法人性别', '法定代表人性别'],
             'legalRepresentativeAge': ['年龄', '法人年龄', '法定代表人年龄'],
-            'representativeName': ['供应商被授权人姓名', '被授权人姓名', '授权人姓名', '供应商代表', '供应商代表姓名', '代表姓名', '代表人'],
-            'representativeTitle': ['职务', '职称', '职务职称', '职位'],
+
+            # 被授权人信息（扩展变体）
+            'representativeName': [
+                '供应商被授权人姓名', '被授权人姓名', '授权人姓名',
+                '供应商代表', '供应商代表姓名', '代表姓名', '代表人',
+                '签字人姓名', '签字人',  # 新增：签字人
+                '全权代表姓名', '全权代表',  # 新增：全权代表
+                '授权代表', '授权代表姓名',  # 新增：授权代表
+                '被授权代表', '被授权代表姓名'  # 新增：被授权代表
+            ],
+            'representativeTitle': [
+                '职务', '职称', '职务职称', '职位',
+                '签字人职务', '签字人职称',  # 新增：签字人职务/职称
+                '全权代表职务', '全权代表职称',  # 新增：全权代表职务/职称
+                '代表职务', '代表职称',  # 新增：代表职务/职称
+                '被授权人职务', '被授权人职称'  # 新增：被授权人职务/职称
+            ],
             'authorizedPersonId': ['被授权人身份证', '授权人身份证', '身份证号', '身份证号码', '被授权人身份证号', '授权人身份证号'],
 
             # 公司基本信息

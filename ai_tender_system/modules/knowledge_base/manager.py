@@ -137,6 +137,9 @@ class KnowledgeBaseManager:
                 'actual_controller': 'actual_controller',
                 'controlling_shareholder': 'controlling_shareholder',
                 'shareholders_info': 'shareholders_info',
+                # 管理关系字段
+                'managing_unit_name': 'managing_unit_name',
+                'managed_unit_name': 'managed_unit_name',
                 # 被授权人信息字段
                 'authorized_person_name': 'authorized_person_name',
                 'authorized_person_id': 'authorized_person_id',

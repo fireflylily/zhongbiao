@@ -30,7 +30,11 @@ class ImageHandler:
             'authorization': ['授权书', '授权委托书', '法人授权'],
             'certificate': ['证书', '认证', '资格证'],
             'legal_id': ['法定代表人身份证复印件', '法定代表人身份证', '法人身份证', '法定代表人身份证明'],
-            'auth_id': ['授权代表身份证', '授权人身份证', '被授权人身份证']
+            'auth_id': ['授权代表身份证', '授权人身份证', '被授权人身份证'],
+            'dishonest_executor': ['失信被执行人', '失信被执行人名单'],
+            'tax_violation_check': ['重大税收违法', '税收违法案件当事人名单'],
+            'gov_procurement_creditchina': ['政府采购严重违法失信', '政府采购信用记录'],
+            'gov_procurement_ccgp': ['政府采购严重违法失信行为信息记录', '政府采购网查询']
         }
 
         # 默认图片尺寸（英寸）
@@ -40,7 +44,11 @@ class ImageHandler:
             'authorization': (6, 0),   # 授权书：宽6英寸（约15.24厘米）
             'certificate': (6, 0),      # 其他证书：宽6英寸（约15.24厘米）
             'legal_id': (4.5, 0),  # 法人身份证：宽4.5英寸（约11.43厘米）
-            'auth_id': (4.5, 0)    # 授权代表身份证：宽4.5英寸（约11.43厘米）
+            'auth_id': (4.5, 0),    # 授权代表身份证：宽4.5英寸（约11.43厘米）
+            'dishonest_executor': (6, 0),              # 失信被执行人查询截图：宽6英寸
+            'tax_violation_check': (6, 0),             # 税收违法查询截图：宽6英寸
+            'gov_procurement_creditchina': (6, 0),     # 信用中国政采查询截图：宽6英寸
+            'gov_procurement_ccgp': (6, 0)             # 政府采购网查询截图：宽6英寸
         }
     
     def insert_images(self, doc: Document, image_config: Dict[str, Any]) -> Dict[str, Any]:

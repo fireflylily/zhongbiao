@@ -56,7 +56,65 @@ class BusinessResponseProcessor:
         self.inline_processor = InlineReplyProcessor(model_name=self.model_name)
 
         self.logger.info(f"商务应答处理器初始化完成，内联回复模型: {self.model_name}")
-    
+
+    def _format_date_for_document(self, date_text: str) -> str:
+        """
+        格式化日期用于文档填充（去掉时间部分）
+
+        区分场景：
+        - 项目管理：保留完整时间（用于提醒用户截止时间）
+        - 文档填充：仅保留日期部分（签字日期不需要时间）
+
+        支持格式：
+        - 2025年08月27日下午14:30整（北京时间） → 2025年08月27日
+        - 2025-08-27 14:30:00 → 2025年08月27日
+        - 2025/08/27 → 2025年08月27日
+        - 2025.08.27 → 2025年08月27日
+        - 2025年08月27日 → 2025年08月27日（已格式化，保持不变）
+
+        Args:
+            date_text: 原始日期文本
+
+        Returns:
+            格式化后的日期（仅包含年月日）
+        """
+        if not date_text or date_text.strip() == '':
+            return date_text
+
+        import re
+
+        # 移除空格
+        date_text_cleaned = re.sub(r'\s+', '', date_text)
+
+        # 1. 匹配常见格式并转换为中文格式
+        patterns = [
+            (r'(\d{4})-(\d{1,2})-(\d{1,2})', r'\1年\2月\3日'),
+            (r'(\d{4})/(\d{1,2})/(\d{1,2})', r'\1年\2月\3日'),
+            (r'(\d{4})\.(\d{1,2})\.(\d{1,2})', r'\1年\2月\3日'),
+        ]
+
+        for pattern, replacement in patterns:
+            if re.match(pattern, date_text_cleaned):
+                formatted = re.sub(pattern, replacement, date_text_cleaned)
+                self.logger.debug(f"日期格式化: {date_text} → {formatted}")
+                return formatted
+
+        # 2. 已经是中文格式，提取"年月日"部分（去掉时间后缀）
+        if '年' in date_text_cleaned and '月' in date_text_cleaned:
+            # 匹配格式：2025年08月27日下午14:30整（北京时间） → 2025年08月27日
+            date_match = re.match(r'(\d{4}年\d{1,2}月\d{1,2}日)', date_text_cleaned)
+            if date_match:
+                formatted = date_match.group(1)
+                if formatted != date_text_cleaned:
+                    self.logger.info(f"日期格式化（去除时间后缀）: {date_text} → {formatted}")
+                return formatted
+            # 已经是纯日期格式，保持不变
+            return date_text_cleaned
+
+        # 3. 无法识别的格式，保持原样
+        self.logger.warning(f"日期格式无法识别，保持原样: {date_text}")
+        return date_text
+
     def process_business_response(self,
                                  input_file: str,
                                  output_file: str,
@@ -92,13 +150,17 @@ class BusinessResponseProcessor:
 
             # 直接打开输入文件(避免对output_file的引用问题)
             doc = Document(input_file)
-            
+
+            # 格式化日期用于文档填充（去掉时间部分）
+            # 项目管理中保留完整时间，文档填充只需要日期
+            formatted_date = self._format_date_for_document(date_text)
+
             # 准备所有数据（合并公司信息和项目信息）
             all_data = {
                 **company_info,  # 公司信息
                 'projectName': project_name,
                 'projectNumber': tender_no,
-                'date': date_text
+                'date': formatted_date  # 使用格式化后的日期
             }
 
             # ✅ 数据传递确认：检查purchaserName是否包含在all_data中
@@ -112,11 +174,13 @@ class BusinessResponseProcessor:
             self.logger.info("第1步：执行智能信息填写")
             smart_stats = self.smart_filler.fill_document(doc, all_data)
 
-            # 转换统计格式以保持兼容
+            # 转换统计格式以保持兼容（使用过滤后的未填充字段）
             info_stats = {
                 'total_replacements': smart_stats.get('total_filled', 0),
+                'total_filled': smart_stats.get('total_filled', 0),  # 添加total_filled
                 'pattern_counts': smart_stats.get('pattern_counts', {}),
-                'unfilled_fields': smart_stats.get('unfilled_fields', [])
+                'unfilled_fields': smart_stats.get('filtered_unfilled_fields', []),  # 使用过滤后的字段
+                'original_unfilled_count': smart_stats.get('original_unfilled_count', 0)  # 原始未填充数量（调试用）
             }
             
             # 第2步：表格处理
@@ -231,20 +295,20 @@ class BusinessResponseProcessor:
         """
         messages = []
 
-        # 1. 文字信息处理统计（详细版）
-        total_fields_identified = info_stats.get('total_filled', 0) + len(info_stats.get('unfilled_fields', []))
-        total_fields_filled = info_stats.get('total_replacements', 0)
-        unfilled_count = len(info_stats.get('unfilled_fields', []))
+        # 1. 文字信息处理统计（修正版：只统计真正的数据字段）
+        total_fields_filled = info_stats.get('total_filled', 0)
+        unfilled_count = len(info_stats.get('unfilled_fields', []))  # 使用过滤后的未填充数量
 
-        if total_fields_identified > 0:
+        if total_fields_filled > 0:
             if unfilled_count > 0:
+                # 有未填充字段（真正因数据库无记录）
                 messages.append(
-                    f"识别了{total_fields_identified}个信息字段，"
-                    f"填充了{total_fields_filled}个"
+                    f"填充了{total_fields_filled}个信息字段"
                     f"（{unfilled_count}个因数据库无记录未填充）"
                 )
             else:
-                messages.append(f"识别了{total_fields_identified}个信息字段，全部填充完成")
+                # 所有识别的字段都已填充
+                messages.append(f"填充了{total_fields_filled}个信息字段")
 
         # 2. 表格处理统计
         if table_stats.get('tables_processed', 0) > 0:

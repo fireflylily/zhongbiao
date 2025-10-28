@@ -185,6 +185,9 @@ def update_company(company_id):
                     'actual_controller': updated_company.get('actual_controller', ''),
                     'controlling_shareholder': updated_company.get('controlling_shareholder', ''),
                     'shareholders_info': updated_company.get('shareholders_info', '[]'),
+                    # 管理关系信息
+                    'managing_unit_name': updated_company.get('managing_unit_name', ''),
+                    'managed_unit_name': updated_company.get('managed_unit_name', ''),
                     # 被授权人信息
                     'authorized_person_name': updated_company.get('authorized_person_name', ''),
                     'authorized_person_id': updated_company.get('authorized_person_id', ''),

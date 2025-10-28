@@ -260,20 +260,25 @@ class TenderInfoExtractor:
                 '社会保障', '社保缴费', '参保证明', '社会保险证明',
                 '社保缴纳证明', '五险', '社会保险费'
             ],
-            'credit_china_check': [
-                '失信被执行人', '失信名单', '信用中国失信',
-                '不得被列入失信', '未被列入失信', '失信黑名单',
-                '信用中国', 'www.creditchina.gov.cn', '信用查询', '信用承诺书', '信用记录'
+            # 信用资质类（4个独立资质，与后端 qualification_matcher.py 保持一致）
+            'dishonest_executor': [
+                '失信被执行人', '失信名单', '失信被执行人名单',
+                '不得被列入失信', '未被列入失信', '失信黑名单'
             ],
             'tax_violation_check': [
                 '重大税收违法', '重大税收违法案件当事人名单',
                 '重大税收违法失信主体', '税收违法', '税收黑名单',
                 '不得被列入.*重大税收违法', '未被列入.*重大税收违法'
             ],
-            'gov_procurement_check': [
-                '政府采购严重违法失信', '政府采购违法',
-                '政府采购失信', '采购严重违法', '政府采购黑名单',
-                '不得被列入.*政府采购', '未被列入.*政府采购'
+            'gov_procurement_creditchina': [
+                '信用中国', 'www.creditchina.gov.cn', 'creditchina.gov.cn',
+                '政府采购严重违法失信', '信用中国.*政府采购',
+                '不得被列入.*政府采购.*信用中国'
+            ],
+            'gov_procurement_ccgp': [
+                '中国政府采购网', 'www.ccgp.gov.cn', 'ccgp.gov.cn',
+                '政府采购严重违法失信行为信息记录', '政府采购网.*违法',
+                '不得被列入.*政府采购网'
             ],
 
             # 补充13条供应商资格要求中缺失的关键词
@@ -1151,12 +1156,17 @@ class TenderInfoExtractor:
                 {
                     "checklist_id": 5,
                     "checklist_name": "失信被执行人",
-                    "qual_keys": ["credit_china_check"]
+                    "qual_keys": ["dishonest_executor"]
                 },
                 {
                     "checklist_id": 6,
-                    "checklist_name": "政府采购严重违法失信记录",
-                    "qual_keys": ["gov_procurement_check"]
+                    "checklist_name": "政府采购严重违法失信记录（信用中国）",
+                    "qual_keys": ["gov_procurement_creditchina"]
+                },
+                {
+                    "checklist_id": 6.5,
+                    "checklist_name": "政府采购严重违法失信行为信息记录（政府采购网）",
+                    "qual_keys": ["gov_procurement_ccgp"]
                 },
                 {
                     "checklist_id": 7,
