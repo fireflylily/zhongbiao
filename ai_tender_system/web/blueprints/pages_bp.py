@@ -23,6 +23,31 @@ logger = get_module_logger("pages_bp")
 pages_bp = Blueprint('pages', __name__)
 
 
+@pages_bp.route('/')
+def index():
+    """
+    主页 - 重定向到登录页或仪表板
+
+    根据登录状态自动重定向
+    """
+    from flask import session, redirect, url_for
+
+    if 'logged_in' in session and session.get('logged_in'):
+        return redirect(url_for('pages.dashboard'))
+    else:
+        return redirect(url_for('pages.login_page'))
+
+
+@pages_bp.route('/login')
+def login_page():
+    """
+    登录页面 (GET)
+
+    显示登录界面
+    """
+    return render_template('login.html')
+
+
 @pages_bp.route('/dashboard')
 @login_required
 def dashboard():
