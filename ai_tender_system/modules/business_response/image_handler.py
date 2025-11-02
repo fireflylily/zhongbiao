@@ -26,7 +26,7 @@ class ImageHandler:
         # 图片类型关键词映射
         self.image_keywords = {
             'license': ['营业执照', '营业执照副本', '执照'],
-            'qualification': ['资质证书', '资质', '认证证书'],
+            'qualification': [],  # 清空通用关键词，只使用具体资质类型匹配（避免误匹配"相关资质证书"等泛指文字）
             'authorization': ['授权书', '授权委托书', '法人授权'],
             'certificate': ['证书', '认证', '资格证'],
             'legal_id': ['法定代表人身份证复印件', '法定代表人身份证', '法人身份证', '法定代表人身份证明'],
@@ -51,18 +51,25 @@ class ImageHandler:
             'gov_procurement_ccgp': (6, 0)             # 政府采购网查询截图：宽6英寸
         }
     
-    def insert_images(self, doc: Document, image_config: Dict[str, Any]) -> Dict[str, Any]:
+    def insert_images(self, doc: Document, image_config: Dict[str, Any],
+                     required_quals: List[Dict] = None) -> Dict[str, Any]:
         """
-        插入图片主方法（支持智能匹配插入位置）
+        插入图片主方法（模板驱动 + 统计追踪）
+
+        核心逻辑：
+        1. 扫描模板占位符
+        2. 填充所有有文件的占位符（成功填充）
+        3. 记录有占位符但无文件的资质（缺失资质）
+        4. 追加项目要求但模板没有占位符的资质（追加资质）
 
         Args:
             doc: Word文档对象
-            image_config: 图片配置信息，包含图片路径和插入位置
+            image_config: 图片配置信息，包含所有资质
                 {
                     'seal_path': '公章图片路径',
                     'license_path': '营业执照路径',
                     'qualification_paths': ['资质证书路径列表'],
-                    'qualification_details': [  # 新增：资质详细信息
+                    'qualification_details': [  # 资质详细信息
                         {
                             'qual_key': 'iso9001',
                             'file_path': '/path/to/iso9001.jpg',
@@ -70,18 +77,34 @@ class ImageHandler:
                         }
                     ]
                 }
+            required_quals: 项目资格要求列表（可选，用于追加和统计）
 
         Returns:
-            处理统计信息
+            详细统计信息：
+            {
+                'images_inserted': 10,
+                'images_types': ['营业执照', 'iso9001', ...],
+                'errors': [],
+                'filled_qualifications': [{'qual_key': 'iso9001', 'qual_name': '...'}],
+                'missing_qualifications': [{'qual_key': 'cmmi', 'qual_name': '...'}],
+                'appended_qualifications': [{'qual_key': 'level_protection', ...}]
+            }
         """
+        # 初始化统计数据
         stats = {
             'images_inserted': 0,
             'images_types': [],
-            'errors': []
+            'errors': [],
+            'filled_qualifications': [],      # 成功填充的资质
+            'missing_qualifications': [],     # 缺失的资质（有占位符无文件）
+            'appended_qualifications': []     # 追加的资质（项目要求但无占位符）
         }
 
         # 扫描文档，查找图片插入位置
         insert_points = self._scan_insert_points(doc, image_config)
+
+        # 从qualification_matcher导入映射表（用于获取资质名称）
+        from .qualification_matcher import QUALIFICATION_MAPPING
 
         # 插入营业执照
         if image_config.get('license_path'):
@@ -91,23 +114,38 @@ class ImageHandler:
             else:
                 stats['errors'].append('营业执照插入失败')
 
-        # 插入资质证书（使用详细信息进行精确插入）
+        # 插入资质证书（使用详细信息进行精确插入，并追踪统计）
         qualification_details = image_config.get('qualification_details', [])
         if qualification_details:
-            # 使用新的智能插入逻辑
+            # 使用新的智能插入逻辑 + 统计追踪
             for idx, qual_detail in enumerate(qualification_details):
                 qual_key = qual_detail.get('qual_key')
                 file_path = qual_detail.get('file_path')
                 insert_hint = qual_detail.get('insert_hint', '')
 
-                # 查找该资质的插入点
+                # 获取资质名称
+                qual_name = QUALIFICATION_MAPPING.get(qual_key, {}).get('category', qual_key)
+
+                # 查找该资质的插入点（优先使用具体key，降级使用通用key）
                 insert_point = insert_points.get(qual_key) or insert_points.get('qualification')
 
-                if self._insert_qualification(doc, file_path, insert_point, idx, qual_key, insert_hint):
-                    stats['images_inserted'] += 1
-                    stats['images_types'].append(f'{qual_key}')
+                if insert_point:
+                    # 有占位符：尝试插入
+                    if self._insert_qualification(doc, file_path, insert_point, idx, qual_key, insert_hint):
+                        stats['images_inserted'] += 1
+                        stats['images_types'].append(f'{qual_key}')
+                        # 记录成功填充
+                        stats['filled_qualifications'].append({
+                            'qual_key': qual_key,
+                            'qual_name': qual_name,
+                            'file_path': file_path
+                        })
+                        self.logger.info(f"✅ 填充资质: {qual_key} ({qual_name})")
+                    else:
+                        stats['errors'].append(f'{qual_key}插入失败')
                 else:
-                    stats['errors'].append(f'{qual_key}插入失败')
+                    # 无占位符：暂不处理（后续统一追加项目要求的资质）
+                    self.logger.debug(f"⏭️ 跳过无占位符的资质: {qual_key}")
         else:
             # 降级：使用旧逻辑（无详细信息）
             qualification_paths = image_config.get('qualification_paths', [])
@@ -140,7 +178,21 @@ class ImageHandler:
             else:
                 stats['errors'].append('授权代表身份证插入失败')
 
-        self.logger.info(f"图片插入完成: 插入了{stats['images_inserted']}张图片")
+        # 步骤：检测缺失的资质（模板有占位符但公司无文件）
+        self._detect_missing_qualifications(insert_points, image_config, stats, QUALIFICATION_MAPPING)
+
+        # 步骤：追加项目要求但模板没有占位符的资质
+        if required_quals:
+            self._append_required_qualifications(
+                doc, required_quals, insert_points, image_config, stats, QUALIFICATION_MAPPING
+            )
+
+        # 输出统计摘要
+        self.logger.info(f"📊 图片插入完成:")
+        self.logger.info(f"  - 插入图片: {stats['images_inserted']}张")
+        self.logger.info(f"  - 成功填充资质: {len(stats['filled_qualifications'])}个")
+        self.logger.info(f"  - 缺失资质: {len(stats['missing_qualifications'])}个")
+        self.logger.info(f"  - 追加资质: {len(stats['appended_qualifications'])}个")
 
         return stats
 
@@ -499,19 +551,25 @@ class ImageHandler:
                 self.logger.error(f"资质证书图片不存在: {image_path}")
                 return False
 
-            # 生成标题（优先使用insert_hint，其次使用qual_key）
+            # 生成标题（优先级: display_title > insert_hint > category + "认证证书"）
             from .qualification_matcher import QUALIFICATION_MAPPING
 
-            if insert_hint:
-                title_text = insert_hint[:50]  # 使用项目要求描述作为标题
-            elif qual_key and qual_key in QUALIFICATION_MAPPING:
+            if qual_key and qual_key in QUALIFICATION_MAPPING:
                 qual_info = QUALIFICATION_MAPPING[qual_key]
-                title_text = f"{qual_info['category']}认证证书"
+                # 优先使用 display_title（如果存在）
+                if 'display_title' in qual_info:
+                    title_text = qual_info['display_title']
+                elif insert_hint:
+                    title_text = insert_hint[:50]  # 使用项目要求描述作为标题
+                else:
+                    title_text = f"{qual_info['category']}认证证书"
+            elif insert_hint:
+                title_text = insert_hint[:50]
             else:
                 title_text = f"资质证书 {index + 1}"
 
-            if insert_point and insert_point['type'] == 'paragraph' and index == 0:
-                # 第一个资质证书：在找到的段落位置插入
+            if insert_point and insert_point['type'] == 'paragraph':
+                # 在找到的段落位置插入（所有有插入点的资质都使用各自的插入点）
                 target_para = insert_point['paragraph']
 
                 # 插入分页符
@@ -534,23 +592,8 @@ class ImageHandler:
                 self.logger.info(f"✅ 在指定位置插入 {qual_key or '资质证书'}: {title_text}")
                 return True
 
-            elif index > 0:
-                # 后续资质证书：直接添加到文档末尾（跟在第一个资质证书后面）
-                title = doc.add_paragraph(title_text)
-                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                if title.runs:
-                    title.runs[0].font.bold = True
-
-                paragraph = doc.add_paragraph()
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = paragraph.add_run()
-                run.add_picture(image_path, width=Inches(self.default_sizes['qualification'][0]))
-
-                self.logger.info(f"✅ 插入 {qual_key or '资质证书'}: {title_text}")
-                return True
-
             else:
-                # 降级：第一个资质证书但没找到插入点，添加到文档末尾
+                # 降级：没找到插入点，添加到文档末尾
                 doc.add_page_break()
 
                 title = doc.add_paragraph(title_text)
@@ -890,3 +933,156 @@ class ImageHandler:
         valid_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff'}
         ext = Path(path).suffix.lower()
         return ext in valid_extensions
+
+    def _detect_missing_qualifications(self, insert_points: Dict, image_config: Dict,
+                                      stats: Dict, qual_mapping: Dict) -> None:
+        """
+        检测缺失的资质（模板有占位符但公司无对应文件）
+
+        Args:
+            insert_points: 扫描到的插入点字典
+            image_config: 图片配置（包含公司已上传的资质）
+            stats: 统计信息字典（会被修改）
+            qual_mapping: 资质映射表（QUALIFICATION_MAPPING）
+        """
+        # 获取公司已上传的资质keys
+        uploaded_qual_keys = set()
+        qualification_details = image_config.get('qualification_details', [])
+        for qual_detail in qualification_details:
+            qual_key = qual_detail.get('qual_key')
+            if qual_key:
+                uploaded_qual_keys.add(qual_key)
+
+        # 遍历所有发现的占位符
+        for placeholder_key in insert_points.keys():
+            # 跳过基础类型（license, legal_id等，这些不是资质证书）
+            if placeholder_key in ['license', 'qualification', 'legal_id', 'auth_id',
+                                   'authorization', 'certificate']:
+                continue
+
+            # 检查该占位符是否有对应的公司资质文件
+            if placeholder_key not in uploaded_qual_keys:
+                # 有占位符但无文件 → 缺失资质
+                qual_name = qual_mapping.get(placeholder_key, {}).get('category', placeholder_key)
+                stats['missing_qualifications'].append({
+                    'qual_key': placeholder_key,
+                    'qual_name': qual_name,
+                    'placeholder': insert_points[placeholder_key].get('matched_keyword', '')
+                })
+                self.logger.warning(f"⚠️  缺失资质: {placeholder_key} ({qual_name}) - 模板有占位符但公司未上传")
+
+    def _append_required_qualifications(self, doc: Document, required_quals: List[Dict],
+                                       insert_points: Dict, image_config: Dict,
+                                       stats: Dict, qual_mapping: Dict) -> None:
+        """
+        追加项目要求但模板没有占位符的资质
+
+        Args:
+            doc: Word文档对象
+            required_quals: 项目资格要求列表
+            insert_points: 已扫描的插入点
+            image_config: 图片配置
+            stats: 统计信息字典（会被修改）
+            qual_mapping: 资质映射表
+        """
+        # 获取公司已上传的资质（key -> file_path映射）
+        uploaded_quals_map = {}
+        qualification_details = image_config.get('qualification_details', [])
+        for qual_detail in qualification_details:
+            qual_key = qual_detail.get('qual_key')
+            file_path = qual_detail.get('file_path')
+            if qual_key and file_path:
+                uploaded_quals_map[qual_key] = qual_detail
+
+        # 遍历项目要求的资质
+        for req_qual in required_quals:
+            qual_key = req_qual.get('qual_key')
+            if not qual_key:
+                continue
+
+            # 判断条件：项目要求 + 公司有文件 + 模板无占位符
+            has_file = qual_key in uploaded_quals_map
+            has_placeholder = (qual_key in insert_points or 'qualification' in insert_points)
+
+            if has_file and not has_placeholder:
+                # 需要追加：项目要求且公司有文件，但模板没有对应占位符
+                qual_detail = uploaded_quals_map[qual_key]
+                file_path = qual_detail['file_path']
+                insert_hint = req_qual.get('source_detail', '')
+                qual_name = qual_mapping.get(qual_key, {}).get('category', qual_key)
+
+                # 在文档末尾追加该资质
+                try:
+                    if self._append_qualification_to_end(doc, file_path, qual_key, insert_hint):
+                        stats['images_inserted'] += 1
+                        stats['images_types'].append(f'{qual_key}_appended')
+                        stats['appended_qualifications'].append({
+                            'qual_key': qual_key,
+                            'qual_name': qual_name,
+                            'file_path': file_path,
+                            'reason': '项目要求但模板无占位符'
+                        })
+                        self.logger.info(f"✅ 追加资质: {qual_key} ({qual_name}) - 项目要求但模板无占位符")
+                    else:
+                        self.logger.error(f"❌ 追加资质失败: {qual_key}")
+                except Exception as e:
+                    self.logger.error(f"❌ 追加资质异常: {qual_key}, 错误: {e}")
+
+    def _append_qualification_to_end(self, doc: Document, image_path: str,
+                                    qual_key: str, insert_hint: str = None) -> bool:
+        """
+        在文档末尾追加资质证书
+
+        Args:
+            doc: Word文档对象
+            image_path: 图片路径
+            qual_key: 资质键
+            insert_hint: 插入提示（用于生成标题）
+
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            if not os.path.exists(image_path):
+                self.logger.error(f"资质图片不存在: {image_path}")
+                return False
+
+            # 生成标题（优先级: display_title > insert_hint > category + "认证证书"）
+            from .qualification_matcher import QUALIFICATION_MAPPING
+            if qual_key in QUALIFICATION_MAPPING:
+                qual_info = QUALIFICATION_MAPPING[qual_key]
+                # 优先使用 display_title（如果存在）
+                if 'display_title' in qual_info:
+                    title_text = qual_info['display_title']
+                elif insert_hint:
+                    title_text = insert_hint[:50]
+                else:
+                    title_text = f"{qual_info['category']}认证证书"
+            elif insert_hint:
+                title_text = insert_hint[:50]
+            else:
+                title_text = f"资质证书 ({qual_key})"
+
+            # 添加分页符
+            doc.add_page_break()
+
+            # 添加标题
+            title = doc.add_paragraph(title_text)
+            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if title.runs:
+                title.runs[0].font.bold = True
+
+            # 添加图片
+            paragraph = doc.add_paragraph()
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = paragraph.add_run()
+            run.add_picture(image_path, width=Inches(self.default_sizes.get(qual_key, (6, 0))[0]))
+
+            self.logger.info(f"✅ 已在文档末尾追加资质: {title_text}")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"❌ 追加资质到文档末尾失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return False

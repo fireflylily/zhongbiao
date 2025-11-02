@@ -51,101 +51,44 @@ except ImportError:
 
 def build_image_config_from_db(company_id: int, project_name: str = None) -> tuple:
     """
-    从数据库加载公司资质信息并构建图片配置（智能匹配项目资格要求）
+    从数据库加载公司所有资质并构建图片配置
+
+    核心原则：
+    1. 加载公司所有资质（不筛选）
+    2. 由Word模板决定填充哪些（模板驱动）
+    3. 可选：返回项目资格要求用于追加
 
     Args:
         company_id: 公司ID
-        project_name: 项目名称（可选）。如果提供，则只插入项目要求的资质
+        project_name: 项目名称（可选）。用于获取项目资格要求列表
 
     Returns:
-        (image_config, match_result) 元组:
-        - image_config: 图片配置字典
-        - match_result: 资质匹配结果（包含missing信息），如果没有项目名称则为None
+        (image_config, required_quals) 元组:
+        - image_config: 图片配置字典（包含所有资质）
+        - required_quals: 项目资格要求列表（用于追加和统计），如果没有项目名称则为空列表
     """
     try:
-        # 如果提供了项目名称，使用智能匹配
-        if project_name:
-            logger.info(f"🎯 为项目 '{project_name}' 智能匹配资质...")
-
-            # 导入资质匹配模块
-            from modules.business_response.qualification_matcher import match_qualifications_for_project
-
-            # 使用智能匹配，获取image_config和match_result
-            image_config, match_result = match_qualifications_for_project(
-                company_id, project_name, kb_manager, return_match_result=True
-            )
-
-            if not image_config:
-                logger.warning(f"⚠️  项目 '{project_name}' 无资质要求或匹配失败")
-                image_config = {}
-            else:
-                logger.info(f"✅ 智能匹配完成: {len(image_config)} 个类型")
-
-            # 无论是否有资质要求，都加载ID卡和营业执照（这些是基础文件）
-            logger.info("📋 加载基础证件（营业执照、公章、身份证）")
-            qualifications = kb_manager.db.get_company_qualifications(company_id)
-
-            for qual in qualifications:
-                qual_key = qual.get('qualification_key')
-                file_path = qual.get('file_path')
-
-                if not file_path:
-                    continue
-
-                # 营业执照
-                if qual_key == 'business_license' and 'license_path' not in image_config:
-                    image_config['license_path'] = file_path
-                    logger.info(f"  - 营业执照: {file_path}")
-
-                # 公章
-                elif qual_key == 'company_seal' and 'seal_path' not in image_config:
-                    image_config['seal_path'] = file_path
-                    logger.info(f"  - 公章: {file_path}")
-
-                # 法人身份证（正面/反面）
-                elif qual_key == 'legal_id_front':
-                    if 'legal_id' not in image_config:
-                        image_config['legal_id'] = {}
-                    image_config['legal_id']['front'] = file_path
-                    logger.info(f"  - 法人身份证正面: {file_path}")
-
-                elif qual_key == 'legal_id_back':
-                    if 'legal_id' not in image_config:
-                        image_config['legal_id'] = {}
-                    image_config['legal_id']['back'] = file_path
-                    logger.info(f"  - 法人身份证反面: {file_path}")
-
-                # 授权代表身份证（正面/反面）
-                elif qual_key == 'auth_id_front':
-                    if 'auth_id' not in image_config:
-                        image_config['auth_id'] = {}
-                    image_config['auth_id']['front'] = file_path
-                    logger.info(f"  - 授权代表身份证正面: {file_path}")
-
-                elif qual_key == 'auth_id_back':
-                    if 'auth_id' not in image_config:
-                        image_config['auth_id'] = {}
-                    image_config['auth_id']['back'] = file_path
-                    logger.info(f"  - 授权代表身份证反面: {file_path}")
-
-            return (image_config, match_result)
-
-        # 如果没有项目名称，使用旧逻辑（插入所有资质）
-        logger.info(f"📋 未指定项目，加载公司 {company_id} 的所有资质")
-
-        # 从数据库获取公司的所有资质
+        # 步骤1：获取公司的所有资质
         qualifications = kb_manager.db.get_company_qualifications(company_id)
 
         if not qualifications:
             logger.warning(f"公司 {company_id} 没有上传任何资质文件")
-            return ({}, None)  # 返回空配置和None的match_result
+            return ({}, [])
 
-        logger.info(f"从数据库加载公司 {company_id} 的资质信息，共 {len(qualifications)} 个资质")
+        logger.info(f"📋 从数据库加载公司资质，共 {len(qualifications)} 个")
 
+        # 步骤2：构建图片配置（加载所有资质）
         image_config = {}
         qualification_paths = []
+        qualification_details = []  # 新增：资质详细信息（包含qual_key）
 
-        # 遍历所有资质，按类型分类
+        # 定义基础证件（特殊处理）
+        BASIC_CREDENTIALS = {
+            'business_license', 'company_seal',
+            'legal_id_front', 'legal_id_back',
+            'auth_id_front', 'auth_id_back'
+        }
+
         for qual in qualifications:
             qual_key = qual.get('qualification_key')
             file_path = qual.get('file_path')
@@ -163,14 +106,7 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> tup
                 image_config['seal_path'] = file_path
                 logger.info(f"  - 公章: {file_path}")
 
-            # 资质证书 - 包括各类ISO认证、CMMI等
-            elif qual_key in ['iso9001', 'iso14001', 'iso20000', 'iso27001',
-                             'cmmi', 'itss', 'safety_production',
-                             'software_copyright', 'patent_certificate']:
-                qualification_paths.append(file_path)
-                logger.info(f"  - 资质证书 ({qual_key}): {file_path}")
-
-            # 法人身份证（正面/反面）
+            # 法人身份证
             elif qual_key == 'legal_id_front':
                 if 'legal_id' not in image_config:
                     image_config['legal_id'] = {}
@@ -183,7 +119,7 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> tup
                 image_config['legal_id']['back'] = file_path
                 logger.info(f"  - 法人身份证反面: {file_path}")
 
-            # 授权代表身份证（正面/反面）
+            # 授权代表身份证
             elif qual_key == 'auth_id_front':
                 if 'auth_id' not in image_config:
                     image_config['auth_id'] = {}
@@ -196,18 +132,62 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> tup
                 image_config['auth_id']['back'] = file_path
                 logger.info(f"  - 授权代表身份证反面: {file_path}")
 
+            # 所有其他资质（包括ISO认证、信用资质、等保等）
+            elif qual_key not in BASIC_CREDENTIALS:
+                qualification_paths.append(file_path)
+                # 添加资质详细信息
+                qualification_details.append({
+                    'qual_key': qual_key,
+                    'file_path': file_path,
+                    'original_filename': qual.get('original_filename', ''),
+                    'insert_hint': ''  # 后续会从项目要求中填充
+                })
+                logger.info(f"  - 资质证书 ({qual_key}): {file_path}")
+
         # 添加资质证书列表
         if qualification_paths:
             image_config['qualification_paths'] = qualification_paths
+            image_config['qualification_details'] = qualification_details
 
-        logger.info(f"构建的图片配置: {len(image_config)} 个类型，{len(qualification_paths)} 个资质证书")
-        return (image_config, None)  # 没有项目名称，没有match_result
+        logger.info(f"✅ 加载完成: {len(image_config)} 个类型，{len(qualification_paths)} 个资质证书")
+
+        # 步骤3：获取项目资格要求（用于追加和统计）
+        required_quals = []
+        if project_name:
+            try:
+                from modules.business_response.qualification_matcher import QualificationMatcher
+                matcher = QualificationMatcher()
+
+                # 从数据库查询项目资格要求
+                query = """SELECT qualifications_data FROM tender_projects
+                           WHERE company_id = ? AND project_name = ? LIMIT 1"""
+                result = kb_manager.db.execute_query(query, [company_id, project_name])
+
+                if result and len(result) > 0:
+                    qualifications_data = result[0].get('qualifications_data')
+                    if qualifications_data:
+                        required_quals = matcher.extract_required_qualifications(qualifications_data)
+                        logger.info(f"📊 项目资格要求: {len(required_quals)} 个")
+
+                        # 将项目要求的insert_hint填充到qualification_details中
+                        for req_qual in required_quals:
+                            qual_key = req_qual.get('qual_key')
+                            insert_hint = req_qual.get('source_detail', '')
+                            # 查找对应的qualification_detail并更新insert_hint
+                            for qual_detail in qualification_details:
+                                if qual_detail['qual_key'] == qual_key:
+                                    qual_detail['insert_hint'] = insert_hint
+                                    break
+            except Exception as e:
+                logger.warning(f"获取项目资格要求失败（不影响处理）: {e}")
+
+        return (image_config, required_quals)
 
     except Exception as e:
         logger.error(f"从数据库构建图片配置失败: {e}")
         import traceback
         logger.error(traceback.format_exc())
-        return ({}, None)  # 返回空配置和None的match_result
+        return ({}, [])  # 返回空配置和空列表
 
 
 def generate_output_filename(project_name: str, file_type: str, timestamp: str = None) -> str:
@@ -321,19 +301,17 @@ def process_business_response():
                 logger.info("用户未填写日期且无项目截止日期，date字段将不填充")
                 # 注意：这里不设置当前日期，而是保持为空，让后端填充器跳过
 
-        # 从数据库直接加载图片配置（智能匹配项目资格要求）
-        image_config, match_result = build_image_config_from_db(company_id_int, project_name)
+        # 从数据库加载所有资质（模板驱动）
+        image_config, required_quals = build_image_config_from_db(company_id_int, project_name)
 
         if image_config:
             logger.info(f"成功从数据库加载图片配置，包含 {len(image_config)} 个类型")
         else:
-            logger.warning(f"公司 {company_id} 没有可用的资质图片或项目无资质要求")
+            logger.warning(f"公司 {company_id} 没有可用的资质图片")
 
-        # 输出match_result信息用于调试
-        if match_result:
-            logger.info(f"资质匹配结果: 要求{match_result['stats']['total_required']}个, "
-                       f"匹配{match_result['stats']['total_matched']}个, "
-                       f"缺失{len(match_result['missing'])}个")
+        # 输出项目资格要求信息
+        if required_quals:
+            logger.info(f"📋 项目资格要求: {len(required_quals)} 个资质")
 
         # 从数据库获取公司信息
         company_db_data = kb_manager.get_company_detail(company_id_int)
@@ -361,7 +339,14 @@ def process_business_response():
             'officeAddress': 'office_address',
             'employeeCount': 'employee_count',
             'bankName': 'bank_name',
-            'bankAccount': 'bank_account'
+            'bankAccount': 'bank_account',
+            # 股权结构字段（2025-10-27添加）
+            'actual_controller': 'actual_controller',
+            'controlling_shareholder': 'controlling_shareholder',
+            'shareholders_info': 'shareholders_info',
+            # 管理关系字段（2025-10-28添加）
+            'managing_unit_name': 'managing_unit_name',
+            'managed_unit_name': 'managed_unit_name'
         }
         reverse_mapping = {v: k for k, v in field_mapping.items()}
         company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
@@ -425,8 +410,8 @@ def process_business_response():
                 project_name,
                 tender_no,
                 date_text,
-                image_config,  # 传递图片配置
-                match_result   # 传递资质匹配结果（包含missing信息）
+                image_config,     # 传递图片配置
+                required_quals    # 传递项目资格要求列表（用于追加和统计）
             )
 
             output_path = str(output_path)
@@ -461,8 +446,8 @@ def process_business_response():
                 project_name,
                 tender_no,
                 date_text,
-                image_config,  # 传递图片配置
-                match_result   # 传递资质匹配结果（包含missing信息）
+                image_config,     # 传递图片配置
+                required_quals    # 传递项目资格要求列表（用于追加和统计）
             )
 
             # 统一返回格式处理
@@ -726,7 +711,14 @@ def process_point_to_point():
             'officeAddress': 'office_address',
             'employeeCount': 'employee_count',
             'bankName': 'bank_name',
-            'bankAccount': 'bank_account'
+            'bankAccount': 'bank_account',
+            # 股权结构字段（2025-10-27添加）
+            'actual_controller': 'actual_controller',
+            'controlling_shareholder': 'controlling_shareholder',
+            'shareholders_info': 'shareholders_info',
+            # 管理关系字段（2025-10-28添加）
+            'managing_unit_name': 'managing_unit_name',
+            'managed_unit_name': 'managed_unit_name'
         }
         reverse_mapping = {v: k for k, v in field_mapping.items()}
         company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}

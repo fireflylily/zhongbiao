@@ -880,10 +880,10 @@ class CompanyProfileManager {
                 <thead class="table-light">
                     <tr>
                         <th style="width: 5%">#</th>
-                        <th style="width: 30%">股东名称</th>
-                        <th style="width: 20%">类型</th>
-                        <th style="width: 20%">出资比例</th>
-                        <th style="width: 25%">操作</th>
+                        <th style="width: 45%">股东名称</th>
+                        <th style="width: 15%">类型</th>
+                        <th style="width: 15%">出资比例</th>
+                        <th style="width: 20%">操作</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <!-- Background -->
+  <rect width="120" height="40" fill="#4a89dc" rx="4"/>
+
+  <!-- Icon/Symbol -->
+  <g fill="#ffffff">
+    <!-- AI Symbol -->
+    <path d="M 12 10 L 8 30 L 12 30 L 13 25 L 19 25 L 20 30 L 24 30 L 20 10 Z M 14 21 L 16 13 L 18 21 Z"/>
+    <rect x="26" y="10" width="3" height="20"/>
+  </g>
+
+  <!-- Text: 元景AI -->
+  <text x="36" y="26" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ffffff">元景AI</text>
+</svg>

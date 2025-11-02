@@ -100,6 +100,9 @@
     <!-- ⚡ SSE客户端工具 - 支持Server-Sent Events流式处理 -->
     <script src="/static/js/utils/sse-client.js" defer></script>
 
+    <!-- ⚡ HITL文件加载工具 - 统一处理从HITL加载文件 -->
+    <script src="/static/js/utils/hitl-file-loader.js" defer></script>
+
     <!--
     ========================================
     【已废弃】旧的全局状态管理对象
@@ -650,6 +653,20 @@
                     clearInterval(timer);
                 }
             }, stepTime);
+        }
+
+        // 导航到产品融合页面
+        function navigateToDocumentMerger() {
+            // 从全局状态获取项目ID
+            const projectId = window.globalState ? window.globalState.getProjectId() : null;
+
+            if (projectId) {
+                // 如果有项目ID，带参数跳转
+                window.location.href = `/tender-processing?project_id=${projectId}`;
+            } else {
+                // 没有项目ID，直接跳转到页面
+                window.location.href = '/tender-processing';
+            }
         }
 
         // 注意：switchToTab 和 initNavigationManager 已移至 navigation-manager.js 模块

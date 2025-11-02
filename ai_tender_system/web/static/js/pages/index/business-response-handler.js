@@ -99,15 +99,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
 
                         // 确保上传区域被隐藏
-                        const form = document.getElementById('businessResponseForm');
-                        if (form) {
-                            const uploadArea = form.querySelector('.upload-area');
-                            if (uploadArea) {
-                                uploadArea.style.display = 'none';
-                                uploadArea.onclick = null;
-                                uploadArea.style.pointerEvents = 'none';
-                                console.log('[Business Response] 已重新隐藏上传区域');
-                            }
+                        const uploadArea = document.getElementById('businessUploadArea');
+                        if (uploadArea) {
+                            uploadArea.style.display = 'none';
+                            uploadArea.onclick = null;
+                            uploadArea.style.pointerEvents = 'none';
+                            console.log('[Business Response] 已重新隐藏上传区域');
                         }
                     } else if (fileNameDiv) {
                         console.log('[Business Response] 文件信息仍然存在，无需重新设置');
@@ -233,19 +230,101 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if (result) result.classList.remove('d-none');
 
-                    // 显示处理统计
-                    if (data.stats) {
+                    // 显示处理统计（新增详细资质统计）
+                    if (data.image_insertion || data.info_filling || data.table_processing) {
                         const statsContent = document.getElementById('businessStatsContent');
                         let statsHtml = '';
 
-                        if (data.stats.bidder_name) {
-                            statsHtml += `<p><strong>投标人名称填写：</strong> 段落${data.stats.bidder_name.paragraphs_changed}个，表格${data.stats.bidder_name.tables_changed}个</p>`;
+                        // 1. 信息填充统计
+                        if (data.info_filling) {
+                            const totalFilled = data.info_filling.total_filled || 0;
+                            const unfilled = data.info_filling.unfilled_fields || [];
+                            if (totalFilled > 0) {
+                                statsHtml += `<p><strong>📝 信息填充：</strong> 填充了${totalFilled}个字段`;
+                                if (unfilled.length > 0) {
+                                    statsHtml += `（${unfilled.length}个字段因数据库无记录未填充）`;
+                                }
+                                statsHtml += `</p>`;
+                            }
                         }
-                        if (data.stats.project_info) {
-                            statsHtml += `<p><strong>项目信息填写：</strong> 替换${data.stats.project_info.replacements_made}项，投标人字段${data.stats.project_info.bidder_fields_filled}个</p>`;
+
+                        // 2. 表格处理统计
+                        if (data.table_processing) {
+                            const tablesProcessed = data.table_processing.tables_processed || 0;
+                            const cellsFilled = data.table_processing.cells_filled || 0;
+                            if (tablesProcessed > 0 || cellsFilled > 0) {
+                                statsHtml += `<p><strong>📋 表格处理：</strong>`;
+                                if (tablesProcessed > 0) statsHtml += ` 处理了${tablesProcessed}个表格`;
+                                if (cellsFilled > 0) statsHtml += `，填充了${cellsFilled}个单元格`;
+                                statsHtml += `</p>`;
+                            }
                         }
-                        if (data.stats.qualification_images) {
-                            statsHtml += `<p><strong>资质图片插入：</strong> 找到关键词${data.stats.qualification_images.keywords_found}个，插入图片${data.stats.qualification_images.images_inserted}张</p>`;
+
+                        // 3. 图片插入统计（三分类详细统计）
+                        if (data.image_insertion) {
+                            const totalImages = data.image_insertion.images_inserted || 0;
+                            const filled = data.image_insertion.filled_qualifications || [];
+                            const missing = data.image_insertion.missing_qualifications || [];
+                            const appended = data.image_insertion.appended_qualifications || [];
+
+                            if (totalImages > 0 || filled.length > 0) {
+                                statsHtml += `<p><strong>🖼️ 资质图片插入：</strong>`;
+
+                                // 成功填充统计
+                                if (filled.length > 0) {
+                                    statsHtml += ` 成功填充${filled.length}个资质（${totalImages}张图片）`;
+                                }
+
+                                // 追加资质统计
+                                if (appended.length > 0) {
+                                    statsHtml += `，追加了${appended.length}个项目要求的资质`;
+                                }
+
+                                // 缺失资质统计
+                                if (missing.length > 0) {
+                                    statsHtml += `，${missing.length}个模板资质因无文件未填充`;
+                                }
+
+                                statsHtml += `</p>`;
+
+                                // 显示缺失资质详情（折叠面板）
+                                if (missing.length > 0) {
+                                    statsHtml += `
+                                        <div class="alert alert-warning py-2 mb-2">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            <strong>未填充的资质：</strong>
+                                            <ul class="mb-0 mt-2" style="font-size: 0.9em;">
+                                    `;
+                                    missing.forEach(qual => {
+                                        const qualName = qual.qual_name || qual.qual_key || '未知资质';
+                                        statsHtml += `<li>${qualName}</li>`;
+                                    });
+                                    statsHtml += `
+                                            </ul>
+                                            <small class="text-muted">提示：请在企业信息库中上传相应资质文件</small>
+                                        </div>
+                                    `;
+                                }
+
+                                // 显示追加资质详情
+                                if (appended.length > 0) {
+                                    statsHtml += `
+                                        <div class="alert alert-info py-2 mb-2">
+                                            <i class="bi bi-info-circle"></i>
+                                            <strong>已追加的资质：</strong>
+                                            <ul class="mb-0 mt-2" style="font-size: 0.9em;">
+                                    `;
+                                    appended.forEach(qual => {
+                                        const qualName = qual.qual_name || qual.qual_key || '未知资质';
+                                        statsHtml += `<li>${qualName}</li>`;
+                                    });
+                                    statsHtml += `
+                                            </ul>
+                                            <small class="text-muted">这些资质在模板中没有预设位置，已追加到文档末尾</small>
+                                        </div>
+                                    `;
+                                }
+                            }
                         }
 
                         if (statsHtml && statsContent) {
@@ -738,7 +817,7 @@ function loadBusinessResponseFromHITL() {
         const loader = new window.HITLFileLoader({
             fileType: 'business',
             fileInfoElementId: 'businessTemplateFileName',
-            uploadAreaId: 'businessResponseForm',  // 将隐藏表单内的上传区域
+            uploadAreaId: 'businessUploadArea',  // 正确指向上传区域
             onFileLoaded: (fileData) => {
                 // 设置HITL加载标记
                 isFileLoadedFromHITL = true;

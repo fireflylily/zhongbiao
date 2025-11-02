@@ -110,6 +110,9 @@ class SmartDocumentFiller:
         # 输出统计报告
         self._print_stats(stats)
 
+        # 后处理：清理多余占位符
+        # self._post_process(doc)
+
         return stats
 
     def _process_paragraph(self,
@@ -345,6 +348,95 @@ class SmartDocumentFiller:
                 filtered.append(field_info)
 
         return filtered
+
+    def _post_process(self, doc: Document):
+        """
+        后处理：清理多余的占位符和格式
+
+        Args:
+            doc: Word文档对象
+        """
+        self.logger.info("开始后处理：清理多余占位符")
+        cleaned_count = 0
+
+        for paragraph in doc.paragraphs:
+            text = paragraph.text
+
+            # 清理多余的下划线
+            text = re.sub(r'_{3,}', '', text)
+
+            # 清理多余的空格（保留表格对齐所需的空格）
+            # 改进：只在真正的表格布局时跳过清理
+            is_table_layout = False
+            if re.search(r'\s{8,}', text):
+                # 检查是否是真正的表格布局：
+                # 1. 整行都是空格（纯对齐行）
+                if text.strip() == '':
+                    is_table_layout = True
+                # 2. 有多组8+空格分隔（表格列分隔）
+                elif len(re.findall(r'\s{8,}', text)) >= 2:
+                    is_table_layout = True
+                # 3. 如果包含实际内容（汉字、括号、标点），即使有长空格也应清理
+                elif re.search(r'[\u4e00-\u9fa5（）()：:，。、]', text):
+                    is_table_layout = False
+                else:
+                    is_table_layout = True
+
+            if not is_table_layout:
+                text = re.sub(r'\s{3,}', '  ', text)
+
+            # 清理多余的冒号
+            text = re.sub(r'[:：]{2,}', '：', text)
+
+            # 标准化冒号
+            text = re.sub(r':', '：', text)
+
+            # 去除多余的年月日标识
+            text = re.sub(r'(\d{4}年\d{1,2}月\d{1,2}日)\s*年\s*月\s*日', r'\1', text)
+
+            if text != paragraph.text:
+                self._update_paragraph_text(paragraph, text.strip())
+                cleaned_count += 1
+
+        self.logger.info(f"后处理完成，清理了 {cleaned_count} 个段落")
+
+    def _update_paragraph_text(self, paragraph: Paragraph, new_text: str):
+        """
+        更新段落文本，保持原有格式
+
+        Args:
+            paragraph: 段落对象
+            new_text: 新文本内容
+        """
+        # 保存第一个run的格式
+        if paragraph.runs:
+            first_run = paragraph.runs[0]
+            # 保存格式属性
+            font = first_run.font
+            bold = font.bold
+            italic = font.italic
+            underline = font.underline
+            font_size = font.size
+            font_name = font.name
+
+            # 清空段落
+            paragraph.clear()
+
+            # 添加新文本并恢复格式
+            new_run = paragraph.add_run(new_text)
+            if bold is not None:
+                new_run.font.bold = bold
+            if italic is not None:
+                new_run.font.italic = italic
+            if underline is not None:
+                new_run.font.underline = underline
+            if font_size:
+                new_run.font.size = font_size
+            if font_name:
+                new_run.font.name = font_name
+        else:
+            # 如果没有runs，直接设置文本
+            paragraph.text = new_text
 
 
 class PatternMatcher:
@@ -680,6 +772,32 @@ class FieldRecognizer:
             'date': [
                 '日期', 'date',
                 '签字日期', '签署日期', '落款日期'  # 新增：处理各种签署日期格式
+            ],
+
+            # 股权结构字段（2025-10-30添加）
+            'actual_controller': [
+                '实际控制人', '实际控制人姓名', '实际控制人名称',
+                '实控人', '实控人姓名'
+            ],
+            'controlling_shareholder': [
+                '控股股东', '控股股东名称', '控股股东及出资比例',
+                '第一大股东', '最大股东'
+            ],
+            'shareholders_info': [
+                '股东', '股东信息', '股东名称', '投资人信息',
+                '股东及出资比例', '投资人名称及出资比例',
+                '供应商的控股股东', '供应商的非控股股东',
+                '股权结构'
+            ],
+
+            # 管理关系字段（2025-10-30添加）
+            'managing_unit_name': [
+                '管理关系单位', '管理关系单位名称',
+                '下属单位', '下级单位', '分支机构'
+            ],
+            'managed_unit_name': [
+                '被管理关系单位', '被管理关系单位名称',
+                '上级单位', '主管单位', '隶属单位'
             ],
         }
 

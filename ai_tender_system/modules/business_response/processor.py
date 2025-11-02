@@ -123,10 +123,10 @@ class BusinessResponseProcessor:
                                  tender_no: str = "",
                                  date_text: str = "",
                                  image_config: Optional[Dict[str, Any]] = None,
-                                 match_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                                 required_quals: Optional[List[Dict]] = None) -> Dict[str, Any]:
         """
-        处理商务应答文档 - 主处理方法
-        
+        处理商务应答文档 - 主处理方法（模板驱动）
+
         Args:
             input_file: 输入文档路径
             output_file: 输出文档路径
@@ -134,10 +134,11 @@ class BusinessResponseProcessor:
             project_name: 项目名称
             tender_no: 招标编号
             date_text: 日期文本
-            image_config: 图片配置（可选）
-            
+            image_config: 图片配置（包含所有资质）
+            required_quals: 项目资格要求列表（用于追加和统计）
+
         Returns:
-            dict: 处理结果
+            dict: 处理结果，包含详细统计信息
         """
         try:
             self.logger.info(f"开始处理商务应答文档")
@@ -197,7 +198,7 @@ class BusinessResponseProcessor:
             image_stats = {}
             if image_config and any(image_config.values()):
                 self.logger.info("第3步：执行图片插入")
-                image_stats = self.image_handler.insert_images(doc, image_config)
+                image_stats = self.image_handler.insert_images(doc, image_config, required_quals)
             
             # 保存文档
             doc.save(output_file)
@@ -215,7 +216,7 @@ class BusinessResponseProcessor:
                     'cells_filled': table_stats.get('cells_filled', 0),
                     'images_inserted': image_stats.get('images_inserted', 0) if image_stats else 0
                 },
-                'message': self._generate_summary_message(info_stats, table_stats, image_stats, match_result)
+                'message': self._generate_summary_message(info_stats, table_stats, image_stats, required_quals)
             }
             
             self.logger.info(f"商务应答文档处理完成: {total_stats['message']}")
@@ -280,15 +281,15 @@ class BusinessResponseProcessor:
                 'message': '内联回复处理失败'
             }
 
-    def _generate_summary_message(self, info_stats: Dict, table_stats: Dict, image_stats: Dict, match_result: Optional[Dict[str, Any]] = None) -> str:
+    def _generate_summary_message(self, info_stats: Dict, table_stats: Dict, image_stats: Dict, required_quals: Optional[List[Dict]] = None) -> str:
         """
-        生成处理摘要消息（包含详细统计信息）
+        生成处理摘要消息（模板驱动，包含详细统计信息）
 
         Args:
             info_stats: 信息填充统计
             table_stats: 表格处理统计
-            image_stats: 图片插入统计
-            match_result: 资质匹配结果（包含missing字段）
+            image_stats: 图片插入统计（包含filled/missing/appended三类统计）
+            required_quals: 项目资格要求列表（用于显示）
 
         Returns:
             完整的处理摘要消息
@@ -316,48 +317,39 @@ class BusinessResponseProcessor:
         if table_stats.get('cells_filled', 0) > 0:
             messages.append(f"，填充了{table_stats['cells_filled']}个单元格")
 
-        # 3. 图片插入统计（详细版）
-        if match_result:
-            # 从match_result计算总的资质需求数（即图片插入点数）
-            total_required = match_result.get('stats', {}).get('total_required', 0)
-            total_matched = match_result.get('stats', {}).get('total_matched', 0)
-
-            if total_required > 0 and image_stats:
-                total_images_inserted = image_stats.get('images_inserted', 0)
-                missing_count = len(match_result.get('missing', []))
-
-                if missing_count > 0:
-                    messages.append(
-                        f"。识别了{total_required}个资质需求，"
-                        f"插入了{total_images_inserted}张资质图片"
-                        f"（{missing_count}个因无原文件未处理）"
-                    )
-                else:
-                    messages.append(
-                        f"。识别了{total_required}个资质需求，"
-                        f"插入了{total_images_inserted}张资质图片"
-                    )
-        elif image_stats and image_stats.get('images_inserted', 0) > 0:
-            # 降级：如果没有match_result，只显示插入的图片数
+        # 3. 图片插入统计（模板驱动三分类统计）
+        if image_stats and image_stats.get('images_inserted', 0) > 0:
             total_images_inserted = image_stats.get('images_inserted', 0)
-            messages.append(f"。插入了{total_images_inserted}张图片")
+            filled_count = len(image_stats.get('filled_qualifications', []))
+            missing_count = len(image_stats.get('missing_qualifications', []))
+            appended_count = len(image_stats.get('appended_qualifications', []))
 
-        # 4. 未上传资质提示
-        if match_result and match_result.get('missing'):
-            missing_quals = match_result['missing']
+            # 基础统计：插入的总图片数
+            if filled_count > 0:
+                messages.append(f"。成功填充{filled_count}个资质（{total_images_inserted}张图片）")
+            else:
+                messages.append(f"。插入了{total_images_inserted}张图片")
+
+            # 追加资质统计
+            if appended_count > 0:
+                messages.append(f"，追加了{appended_count}个项目要求的资质")
+
+            # 缺失资质统计
+            if missing_count > 0:
+                messages.append(f"，{missing_count}个模板资质因无文件未填充")
+
+        # 4. 缺失资质详细提示
+        if image_stats and image_stats.get('missing_qualifications'):
+            missing_quals = image_stats['missing_qualifications']
             if missing_quals:
-                # 将qual_key转换为可读名称
-                missing_qual_names = []
-                for qual_key in missing_quals:
-                    qual_info = QUALIFICATION_MAPPING.get(qual_key, {})
-                    qual_name = qual_info.get('category', qual_key)
-                    missing_qual_names.append(qual_name)
+                # 提取资质名称
+                missing_qual_names = [q.get('qual_name', q.get('qual_key', '未知资质')) for q in missing_quals]
 
                 # 添加提示信息
                 missing_list = "、".join(missing_qual_names)
                 messages.append(
-                    f"\n\n⚠️  以下资质未上传，没有找到相关图片：{missing_list}。"
-                    f"请更新企业信息库资质文件信息。"
+                    f"\n\n⚠️  以下资质模板有占位符但未上传文件：{missing_list}。"
+                    f"请在企业信息库中上传相应资质文件。"
                 )
 
         if not messages:

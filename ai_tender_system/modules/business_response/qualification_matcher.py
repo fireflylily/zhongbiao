@@ -86,22 +86,26 @@ QUALIFICATION_MAPPING = {
     'dishonest_executor': {
         'keywords': ['失信被执行人', '失信被执行人名单'],
         'priority': 'high',
-        'category': '信用证明'
+        'category': '信用证明',
+        'display_title': '失信被执行人（信用中国网站截图）'
     },
     'tax_violation_check': {
         'keywords': ['重大税收违法', '重大税收违法案件当事人名单', '税收违法案件'],
         'priority': 'high',
-        'category': '信用证明'
+        'category': '信用证明',
+        'display_title': '重大税收违法案件当事人名单（信用中国网站截图）'
     },
     'gov_procurement_creditchina': {
         'keywords': ['信用中国', 'creditchina.gov.cn', '政府采购严重违法失信'],
         'priority': 'high',
-        'category': '信用证明'
+        'category': '信用证明',
+        'display_title': '政府采购严重违法失信行为记录（信用中国网站截图）'
     },
     'gov_procurement_ccgp': {
         'keywords': ['中国政府采购网', 'ccgp.gov.cn', '政府采购严重违法失信行为信息记录'],
         'priority': 'high',
-        'category': '信用证明'
+        'category': '信用证明',
+        'display_title': '政府采购严重违法失信行为信息记录（中国政府采购网截图）'
     },
     'level_protection': {
         'keywords': ['等保三级', '等级保护三级', '信息安全等级保护', '等保',

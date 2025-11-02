@@ -1,0 +1,172 @@
+name: Deploy to Aliyun Server
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:  # 允许手动触发部署
+
+# 防止并发部署
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史，用于回滚
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.ALIYUN_SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.ALIYUN_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          DEPLOY_HOST: ${{ secrets.ALIYUN_HOST }}
+          DEPLOY_USER: ${{ secrets.ALIYUN_USERNAME }}
+          DEPLOY_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          ssh -p ${DEPLOY_PORT} ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+            set -e  # 遇到错误立即退出
+
+            echo "=========================================="
+            echo "🚀 开始部署到生产环境"
+            echo "时间: $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "=========================================="
+
+            # 切换到应用目录
+            cd /var/www/ai-tender-system
+
+            # 执行部署脚本
+            bash scripts/deploy.sh
+
+            echo "=========================================="
+            echo "✅ 部署完成！"
+            echo "=========================================="
+          ENDSSH
+
+      - name: Verify deployment
+        env:
+          DEPLOY_HOST: ${{ secrets.ALIYUN_HOST }}
+          DEPLOY_USER: ${{ secrets.ALIYUN_USERNAME }}
+          DEPLOY_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          echo "验证应用健康状态..."
+
+          # 等待3秒让服务完全启动
+          sleep 3
+
+          # 通过SSH检查服务状态
+          ssh -p ${DEPLOY_PORT} ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+            # 检查Gunicorn进程
+            if sudo supervisorctl status ai-tender-system | grep -q RUNNING; then
+              echo "✅ Gunicorn服务运行正常"
+            else
+              echo "❌ Gunicorn服务未运行"
+              sudo supervisorctl status ai-tender-system
+              exit 1
+            fi
+
+            # 检查HTTP响应
+            if curl -f -s -o /dev/null http://localhost:8000; then
+              echo "✅ HTTP健康检查通过"
+            else
+              echo "❌ HTTP健康检查失败"
+              exit 1
+            fi
+          ENDSSH
+
+          echo "✅ 部署验证成功！"
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "::notice::🎉 部署成功！应用已更新到最新版本。"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::❌ 部署失败！请检查日志并手动修复。"
+
+      - name: Rollback on failure
+        if: failure()
+        env:
+          DEPLOY_HOST: ${{ secrets.ALIYUN_HOST }}
+          DEPLOY_USER: ${{ secrets.ALIYUN_USERNAME }}
+          DEPLOY_PORT: ${{ secrets.ALIYUN_PORT }}
+        run: |
+          echo "⚠️  部署失败，尝试回滚到上一个版本..."
+
+          ssh -p ${DEPLOY_PORT} ${DEPLOY_USER}@${DEPLOY_HOST} << 'ENDSSH'
+            cd /var/www/ai-tender-system
+
+            # 回滚到上一个commit
+            if [ -f .last_deploy_commit ]; then
+              LAST_COMMIT=$(cat .last_deploy_commit)
+              echo "回滚到: $LAST_COMMIT"
+              git reset --hard $LAST_COMMIT
+
+              # 重启服务
+              sudo supervisorctl restart ai-tender-system
+
+              echo "✅ 回滚完成"
+            else
+              echo "⚠️  未找到回滚信息，请手动检查"
+            fi
+          ENDSSH
+
+  # 可选：部署后通知（可集成钉钉、企业微信等）
+  notify:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()  # 无论部署成功或失败都发送通知
+
+    steps:
+      - name: Get deployment result
+        id: result
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            echo "status=✅ 部署成功" >> $GITHUB_OUTPUT
+            echo "color=#00ff00" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ 部署失败" >> $GITHUB_OUTPUT
+            echo "color=#ff0000" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Print summary
+        run: |
+          echo "## 部署结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.result.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **提交**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **提交者**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **时间**: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+
+      # 如果需要，可以在这里添加钉钉/企业微信webhook通知
+      # - name: Send DingTalk notification
+      #   if: always()
+      #   run: |
+      #     curl -X POST "https://oapi.dingtalk.com/robot/send?access_token=${{ secrets.DINGTALK_TOKEN }}" \
+      #       -H 'Content-Type: application/json' \
+      #       -d '{
+      #         "msgtype": "markdown",
+      #         "markdown": {
+      #           "title": "部署通知",
+      #           "text": "### ${{ steps.result.outputs.status }}\n\n- 分支: ${{ github.ref_name }}\n- 提交: ${{ github.sha }}\n- 提交者: ${{ github.actor }}"
+      #         }
+      #       }'

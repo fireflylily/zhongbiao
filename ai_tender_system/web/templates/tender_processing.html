@@ -333,6 +333,52 @@
             </p>
         </div>
 
+        <!-- 项目和公司信息显示 -->
+        <div class="card mb-3" id="projectInfoDisplay">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>当前项目信息</h5>
+                <p class="card-text">
+                    <strong>项目ID:</strong> <span id="displayProjectId">加载中...</span><br>
+                    <strong>项目名称:</strong> <span id="displayProjectName">加载中...</span><br>
+                    <strong>公司名称:</strong> <span id="displayCompanyName">加载中...</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- 源文档显示和融合功能 -->
+        <div class="card mb-3" id="sourceDocumentsCard">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-file-alt me-2"></i>源文档与融合</h5>
+                <p class="card-text text-muted">以下是当前项目已完成的商务应答、点对点应答和技术方案文件。</p>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <h6>商务应答文件</h6>
+                        <div class="d-flex align-items-center">
+                            <span id="businessDocName" class="me-2">未找到</span>
+                            <button class="btn btn-sm btn-outline-primary preview-btn" data-doc-type="business" style="display:none;">预览</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>点对点应答文件</h6>
+                        <div class="d-flex align-items-center">
+                            <span id="p2pDocName" class="me-2">未找到</span>
+                            <button class="btn btn-sm btn-outline-primary preview-btn" data-doc-type="p2p" style="display:none;">预览</button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>技术方案文件</h6>
+                        <div class="d-flex align-items-center">
+                            <span id="techDocName" class="me-2">未找到</span>
+                            <button class="btn btn-sm btn-outline-primary preview-btn" data-doc-type="tech" style="display:none;">预览</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-success" id="mergeDocumentsBtn">
+                    <i class="fas fa-file-import me-2"></i>融合文件
+                </button>
+            </div>
+        </div>
+
         <!-- 上传区域 -->
         <div class="row mb-3">
             <div class="col-12">
@@ -407,6 +453,16 @@
                             <div class="step-content">
                                 <div class="step-title">精准要求提取</div>
                                 <div class="step-desc">使用高精度模型提取结构化要求</div>
+                                <div class="step-stats">等待中...</div>
+                            </div>
+                        </div>
+
+                        <!-- 新增文件融合步骤 -->
+                        <div class="step-item" data-step="merging">
+                            <div class="step-number"><i class="fas fa-file-import"></i></div>
+                            <div class="step-content">
+                                <div class="step-title">文件融合与格式化</div>
+                                <div class="step-desc">合并商务、点对点、技术文件，并生成目录和索引</div>
                                 <div class="step-stats">等待中...</div>
                             </div>
                         </div>
@@ -544,11 +600,51 @@
         </div>
     </div>
 
+    <!-- 格式化选项模态框 -->
+    <div class="modal fade" id="mergeOptionsModal" tabindex="-1" aria-labelledby="mergeOptionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mergeOptionsModalLabel">选择融合文件样式</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="styleOption" id="businessStyle" value="business_style" checked>
+                        <label class="form-check-label" for="businessStyle">
+                            使用商务应答文件样式 (保留商务应答文件的原有格式)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="styleOption" id="standardStyle" value="standard_style">
+                        <label class="form-check-label" for="standardStyle">
+                            使用标准样式 (全文仿宋、1.5倍行距、正文四号；一级标题三号加粗，二级标题三号，三级标题四号加粗)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmMergeBtn">确认融合</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- 通用上传组件 -->
     <script src="/static/js/components/universal-uploader.js"></script>
+
+    <!-- 核心工具类 -->
+    <script src="/static/js/core/global-state-manager.js"></script>
+    <script src="/static/js/core/api-client.js"></script>
+    <script src="/static/js/core/notification.js"></script>
+    <script src="/static/js/utils/sse-client.js"></script>
+    <script src="/static/js/utils/document-preview.js"></script>
+
+    <!-- 文档融合处理器 -->
+    <script src="/static/js/pages/index/document-merger-handler.js"></script>
 
     <!-- 主要JavaScript -->
     <script>
@@ -559,6 +655,7 @@
         let allChunks = [];
         let allRequirements = [];
         let uploadedFile = null;
+        let documentMergerHandler = null;  // 文档融合处理器实例
 
         // 初始化文件上传组件
         const tenderUploader = new UniversalUploader({
@@ -1153,17 +1250,53 @@
         }
 
         // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // 从URL参数中获取project_id
             const urlParams = new URLSearchParams(window.location.search);
             const projectIdFromUrl = urlParams.get('project_id');
 
             if (projectIdFromUrl) {
                 document.getElementById('projectId').value = projectIdFromUrl;
+                currentProjectId = parseInt(projectIdFromUrl);
                 console.log('已从URL参数加载项目ID:', projectIdFromUrl);
+
+                // 初始化文档融合处理器
+                try {
+                    // 先获取项目和公司信息
+                    const response = await window.apiClient.get(`/api/projects/${projectIdFromUrl}/source-documents`);
+                    if (response.success && response.data) {
+                        const { project_name, company_name } = response.data;
+
+                        // 创建 DocumentMergerHandler 实例
+                        documentMergerHandler = new DocumentMergerHandler(
+                            parseInt(projectIdFromUrl),
+                            project_name || '未知项目',
+                            company_name || '未知公司'
+                        );
+
+                        console.log('文档融合处理器已初始化');
+                    } else {
+                        console.warn('未能加载项目信息:', response.error);
+                        // 即使失败也显示基本信息
+                        document.getElementById('displayProjectId').textContent = projectIdFromUrl;
+                        document.getElementById('displayProjectName').textContent = '加载失败';
+                        document.getElementById('displayCompanyName').textContent = '加载失败';
+                    }
+                } catch (error) {
+                    console.error('初始化文档融合处理器失败:', error);
+                    // 显示错误提示
+                    if (window.notifications) {
+                        window.notifications.error('加载项目信息失败: ' + error.message);
+                    }
+                }
 
                 // 可选：如果有项目ID，可以自动加载项目相关信息
                 // 例如：加载之前的处理结果等
+            } else {
+                // 没有项目ID时，显示提示信息
+                document.getElementById('displayProjectId').textContent = '未指定';
+                document.getElementById('displayProjectName').textContent = '请先输入项目ID并开始处理';
+                document.getElementById('displayCompanyName').textContent = '-';
             }
         });
     </script>

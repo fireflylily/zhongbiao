@@ -801,16 +801,36 @@ async function navigateToTabImpl(config) {
                 const response = await fetch(`${config.apiEndpoint}/${hitlTaskId}`);
                 const data = await response.json();
 
-                if (data.success && data.has_file && data.file) {
-                    fileData = {
-                        fileName: data.file.filename,
-                        fileSize: data.file.file_size || 0,
-                        filePath: data.file.file_path,
-                        fileUrl: `${config.apiEndpoint.replace('-info', '')}/download-${config.fileType}-file/${hitlTaskId}`
-                    };
-                    // ✅ 保存到 globalState 供后续使用
-                    window.globalState.setFile(config.fileType, fileData);
-                    console.log(`${config.logPrefix} 从 API 获取到文件:`, fileData.fileName);
+                // ✅ 修复：支持两种API响应格式
+                // 格式1: technical-file-info 返回 { success, has_file, file: {...} }
+                // 格式2: response-file-info 返回 { success, has_file, filename, file_size, download_url }
+                if (data.success && data.has_file) {
+                    // 优先使用嵌套的 data.file 对象 (technical-file-info)
+                    if (data.file) {
+                        fileData = {
+                            fileName: data.file.filename,
+                            fileSize: data.file.file_size || 0,
+                            filePath: data.file.file_path,
+                            fileUrl: `${config.apiEndpoint.replace('-info', '')}/download-${config.fileType}-file/${hitlTaskId}`
+                        };
+                    }
+                    // 回退到扁平结构 (response-file-info)
+                    else if (data.filename) {
+                        fileData = {
+                            fileName: data.filename,
+                            fileSize: data.file_size || 0,
+                            filePath: null,  // response-file-info不返回file_path
+                            fileUrl: data.download_url || `${config.apiEndpoint.replace('-info', '')}/download-${config.fileType}-file/${hitlTaskId}`
+                        };
+                    }
+
+                    if (fileData && fileData.fileName) {
+                        // ✅ 保存到 globalState 供后续使用
+                        window.globalState.setFile(config.fileType, fileData);
+                        console.log(`${config.logPrefix} 从 API 获取到文件:`, fileData.fileName);
+                    } else {
+                        console.warn(`${config.logPrefix} API响应中缺少filename字段`);
+                    }
                 } else {
                     console.warn(`${config.logPrefix} API 返回无文件数据`);
                 }

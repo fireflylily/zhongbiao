@@ -102,7 +102,11 @@ def create_app() -> Flask:
 
     # 启用CSRF保护
     csrf = CSRFProtect(app)
-    logger.info("CSRF保护已启用，登录页面已豁免")
+
+    # 豁免登录API的CSRF检查
+    csrf.exempt('web.blueprints.auth_bp.login')
+
+    logger.info("CSRF保护已启用，登录API已豁免")
 
     # 提供CSRF token的API端点
     @app.route('/api/csrf-token', methods=['GET'])
@@ -219,41 +223,9 @@ def create_app() -> Flask:
     return app
 
 def register_routes(app: Flask, config, logger):
-    """注册所有路由"""
+    """注册遗留路由（待迁移到Blueprint）"""
 
-    # 使用共享的知识库管理器单例
-    from web.shared.instances import get_kb_manager
-    kb_manager = get_kb_manager()
-
-    # ===================
-    # 辅助函数 - 已迁移的函数
-    # login_required -> middleware/auth.py
-    # enrich_qualification_with_company_status -> blueprints/api_tender_bp.py
-    # ===================
-
-    # ===================
-    # 已迁移到蓝图的路由 (Phase 1 + Phase 2)
-    # ===================
-    # Phase 1: 认证和静态页面 -> blueprints/auth_bp.py, pages_bp.py, static_files_bp.py
-    # Phase 2: 核心API -> blueprints/api_core_bp.py (/api/health, /api/config)
-    # Phase 2: 文件管理 -> blueprints/api_files_bp.py (/upload, /download/<filename>)
-    # Phase 2: 招标信息 -> blueprints/api_tender_bp.py (/extract-tender-info, /extract-tender-info-step)
-    # ===================
-    
-    # ===================
-    # 已迁移到蓝图的路由 (Phase 3: 业务API)
-    # ===================
-    # Phase 3a: 商务应答和点对点 -> blueprints/api_business_bp.py (9个路由)
-    # Phase 3b: 技术需求 -> blueprints/api_tech_bp.py (1个路由)
-    # Phase 3c: 公司管理 -> blueprints/api_companies_bp.py (10个路由)
-    # Phase 3d: 招标项目管理 -> blueprints/api_projects_bp.py (4个路由)
-    # Phase 3e: 文档编辑器和表格 -> blueprints/api_editor_bp.py (5个路由)
-    #
-    # 辅助函数:
-    # - build_image_config_from_db() -> api_business_bp.py
-    # - generate_output_filename() -> api_business_bp.py, api_tech_bp.py
-    # ===================
-
+    # TODO: 将以下路由迁移到 blueprints/api_legacy_bp.py
 
     @app.route('/api/project-config')
     def get_project_config():
@@ -289,37 +261,11 @@ def register_routes(app: Flask, config, logger):
             logger.error(f"获取项目配置失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    # ===================
-    # 模型管理API - 已迁移到 blueprints/api_models_bp.py
-    # ===================
-
-    # ===================
-    # 标书智能处理API - 已迁移到 blueprints/api_tender_processing_bp.py
-    # ===================
-
-
-
-
-
-
-
-    # ===================
-    # 标书管理列表页API - 已迁移到 blueprints/api_tender_management_bp.py
-    # ===================
-
-    # ===================
-    # HITL（Human-in-the-Loop）API - 三步人工确认流程
-    # ===================
-
     # 注册 HITL API 路由
     from web.api_tender_processing_hitl import register_hitl_routes
     register_hitl_routes(app)
     logger.info("HITL API 路由已注册")
 
-    # ===================
-    # 错误处理
-    # ===================
-    
     @app.errorhandler(404)
     def not_found_error(error):
         return jsonify({'error': 'Not Found'}), 404
@@ -332,9 +278,6 @@ def register_routes(app: Flask, config, logger):
     @app.errorhandler(413)
     def file_too_large(error):
         return jsonify({'error': '文件太大'}), 413
-
-
-    # 调试API - 查看项目状态详情
     @app.route('/api/debug/project-status/<int:project_id>', methods=['GET'])
     def debug_project_status(project_id):
         """调试API：查看项目的完整状态信息"""

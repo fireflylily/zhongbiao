@@ -58,4 +58,10 @@ def tender_processing():
     return render_template('tender_processing.html')
 
 
+@pages_bp.route('/tender-processing')
+def tender_processing_hyphen():
+    """标书智能处理页面（连字符路径,用于产品融合导航）"""
+    return render_template('tender_processing.html')
+
+
 __all__ = ['pages_bp']

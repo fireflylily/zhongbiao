@@ -124,6 +124,13 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"标书智能处理API蓝图加载失败: {e}")
 
+    try:
+        from .document_merger_api import document_merger_api_bp
+        app.register_blueprint(document_merger_api_bp)
+        logger.info("文档融合API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"文档融合API蓝图加载失败: {e}")
+
     # 阶段4: 知识库扩展模块
     try:
         from ai_tender_system.modules.resume_library.api import resume_library_bp

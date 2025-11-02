@@ -8,6 +8,7 @@
 import sys
 from pathlib import Path
 from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
+from flask_wtf.csrf import CSRFProtect
 
 # 添加项目根目录到Python路径
 project_root = Path(__file__).parent.parent.parent
@@ -17,7 +18,10 @@ from common import get_module_logger
 
 # 创建蓝图
 # CSRFProtect will be applied at app level, but we need to exempt login route
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+
+# 创建CSRF保护实例（用于装饰器）
+csrf = CSRFProtect()
 
 # 日志记录器
 logger = get_module_logger("web.auth")
@@ -38,6 +42,7 @@ def index():
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@csrf.exempt
 def login():
     """
     登录页面和登录处理
@@ -57,8 +62,21 @@ def login():
     """
     if request.method == 'POST':
         data = request.get_json()
-        username = data.get('username', '').strip()
-        password = data.get('password', '').strip()
+
+        # 获取用户名和密码，添加类型检查
+        username = data.get('username', '')
+        password = data.get('password', '')
+
+        # 类型检查和健壮性处理
+        if not isinstance(username, str) or not isinstance(password, str):
+            logger.warning(f"登录请求数据格式错误: username={type(username)}, password={type(password)}")
+            return jsonify({
+                'success': False,
+                'message': '用户名或密码格式错误'
+            }), 400
+
+        username = username.strip()
+        password = password.strip()
 
         # 简单的用户名密码验证
         # TODO: 替换为真实的用户认证系统
@@ -66,7 +84,21 @@ def login():
             session['logged_in'] = True
             session['username'] = username
             logger.info(f"用户 {username} 登录成功")
-            return jsonify({'success': True, 'message': '登录成功'})
+
+            # 返回用户信息和token（前端期望的格式）
+            return jsonify({
+                'success': True,
+                'message': '登录成功',
+                'data': {
+                    'user': {
+                        'id': 1,
+                        'username': username,
+                        'email': 'admin@example.com',
+                        'role': 'admin'
+                    },
+                    'token': 'fake-jwt-token-for-development'  # TODO: 生成真实JWT token
+                }
+            })
         else:
             logger.warning(f"用户 {username} 登录失败：密码错误")
             return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
@@ -78,17 +110,50 @@ def login():
     return render_template('login.html')
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 def logout():
     """
-    退出登录
+    退出登录（API版本）
 
-    清除会话数据并重定向到登录页
+    POST: 清除session，返回JSON
     """
     username = session.get('username', 'Unknown')
     session.clear()
     logger.info(f"用户 {username} 已退出登录")
-    return redirect(url_for('auth.login'))
+    return jsonify({'success': True, 'message': '退出登录成功'})
+
+
+@auth_bp.route('/verify-token', methods=['GET'])
+def verify_token():
+    """
+    验证token有效性
+
+    Returns:
+        JSON响应 {"success": true, "data": {"valid": true, "user": {...}}}
+    """
+    # 检查session中是否有登录信息
+    if 'logged_in' in session and session.get('logged_in'):
+        username = session.get('username', '')
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'valid': True,
+                'user': {
+                    'id': 1,
+                    'username': username,
+                    'email': 'admin@example.com',
+                    'role': 'admin'
+                }
+            }
+        })
+    else:
+        return jsonify({
+            'success': True,
+            'data': {
+                'valid': False
+            }
+        })
 
 
 __all__ = ['auth_bp']
