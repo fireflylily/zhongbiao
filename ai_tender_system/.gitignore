@@ -27,6 +27,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# 但允许Vue前端构建产物
+!web/static/dist/
+
 # 日志文件
 data/logs/
 *.log
