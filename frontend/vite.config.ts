@@ -6,6 +6,9 @@ import path from 'path'
 export default defineConfig({
   plugins: [vue()],
 
+  // 公共路径 - 部署到 /static/dist/
+  base: '/static/dist/',
+
   // 公共静态资源目录（明确指定，修复logo.svg加载问题）
   publicDir: 'public',
 
