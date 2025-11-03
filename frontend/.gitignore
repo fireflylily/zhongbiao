@@ -59,3 +59,7 @@ lerna-debug.log*
 # 文档文件（不需要提交）
 *.md
 !README.md
+
+# 自动生成的类型声明文件
+src/auto-imports.d.ts
+src/components.d.ts

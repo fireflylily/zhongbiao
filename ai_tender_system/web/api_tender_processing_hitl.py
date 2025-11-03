@@ -765,6 +765,7 @@ def register_hitl_routes(app):
                 "success": True,
                 "has_file": file_exists,
                 "filename": response_file.get('filename'),
+                "file_path": response_file.get('file_path'),  # ✅ 添加 file_path 字段
                 "file_size": response_file.get('file_size'),
                 "saved_at": response_file.get('saved_at'),
                 "download_url": f"/api/tender-processing/download-response-file/{task_id}"

@@ -1,0 +1,203 @@
+
+> ai-tender-system-frontend@2.0.0 build
+> vue-tsc && vite build
+
+src/api/endpoints/business.ts(239,5): error TS2322: Type 'ApiResponse<Requirement[]>' is not assignable to type 'ListApiResponse<Requirement>'.
+  Types of property 'data' are incompatible.
+    Type 'Requirement[] | undefined' is not assignable to type 'Requirement[]'.
+      Type 'undefined' is not assignable to type 'Requirement[]'.
+src/api/endpoints/business.ts(287,5): error TS2322: Type 'ApiResponse<any[]>' is not assignable to type 'ListApiResponse<any>'.
+  Types of property 'data' are incompatible.
+    Type 'any[] | undefined' is not assignable to type 'any[]'.
+      Type 'undefined' is not assignable to type 'any[]'.
+src/api/endpoints/company.ts(14,3): error TS6196: 'PaginatedApiResponse' is declared but never used.
+src/api/endpoints/company.ts(28,5): error TS2322: Type 'ApiResponse<Company[]>' is not assignable to type 'ListApiResponse<Company>'.
+  Types of property 'data' are incompatible.
+    Type 'Company[] | undefined' is not assignable to type 'Company[]'.
+      Type 'undefined' is not assignable to type 'Company[]'.
+src/api/endpoints/company.ts(79,5): error TS2322: Type 'ApiResponse<CompanyQualification[]>' is not assignable to type 'ListApiResponse<CompanyQualification>'.
+  Types of property 'data' are incompatible.
+    Type 'CompanyQualification[] | undefined' is not assignable to type 'CompanyQualification[]'.
+      Type 'undefined' is not assignable to type 'CompanyQualification[]'.
+src/api/endpoints/company.ts(86,5): error TS2322: Type 'ApiResponse<QualificationType[]>' is not assignable to type 'ListApiResponse<QualificationType>'.
+  Types of property 'data' are incompatible.
+    Type 'QualificationType[] | undefined' is not assignable to type 'QualificationType[]'.
+      Type 'undefined' is not assignable to type 'QualificationType[]'.
+src/api/endpoints/company.ts(200,5): error TS2322: Type 'ApiResponse<CompanyQualification[]>' is not assignable to type 'ListApiResponse<CompanyQualification>'.
+src/api/endpoints/company.ts(207,5): error TS2322: Type 'ApiResponse<Company[]>' is not assignable to type 'ListApiResponse<Company>'.
+src/api/endpoints/knowledge.ts(34,5): error TS2322: Type 'ApiResponse<PaginatedData<KnowledgeDocument>>' is not assignable to type 'PaginatedApiResponse<KnowledgeDocument>'.
+  Types of property 'data' are incompatible.
+    Type 'PaginatedData<KnowledgeDocument> | undefined' is not assignable to type 'PaginatedData<KnowledgeDocument>'.
+      Type 'undefined' is not assignable to type 'PaginatedData<KnowledgeDocument>'.
+src/api/endpoints/knowledge.ts(95,5): error TS2322: Type 'ApiResponse<KnowledgeCategory[]>' is not assignable to type 'ListApiResponse<KnowledgeCategory>'.
+  Types of property 'data' are incompatible.
+    Type 'KnowledgeCategory[] | undefined' is not assignable to type 'KnowledgeCategory[]'.
+      Type 'undefined' is not assignable to type 'KnowledgeCategory[]'.
+src/api/endpoints/knowledge.ts(104,5): error TS2322: Type 'ApiResponse<KnowledgeDocument[]>' is not assignable to type 'ListApiResponse<KnowledgeDocument>'.
+  Types of property 'data' are incompatible.
+    Type 'KnowledgeDocument[] | undefined' is not assignable to type 'KnowledgeDocument[]'.
+      Type 'undefined' is not assignable to type 'KnowledgeDocument[]'.
+src/api/endpoints/knowledge.ts(122,5): error TS2322: Type 'ApiResponse<PaginatedData<Case>>' is not assignable to type 'PaginatedApiResponse<Case>'.
+  Types of property 'data' are incompatible.
+    Type 'PaginatedData<Case> | undefined' is not assignable to type 'PaginatedData<Case>'.
+      Type 'undefined' is not assignable to type 'PaginatedData<Case>'.
+src/api/endpoints/knowledge.ts(188,5): error TS2322: Type 'ApiResponse<Case[]>' is not assignable to type 'ListApiResponse<Case>'.
+  Types of property 'data' are incompatible.
+    Type 'Case[] | undefined' is not assignable to type 'Case[]'.
+      Type 'undefined' is not assignable to type 'Case[]'.
+src/api/endpoints/knowledge.ts(199,5): error TS2322: Type 'ApiResponse<PaginatedData<Resume>>' is not assignable to type 'PaginatedApiResponse<Resume>'.
+  Types of property 'data' are incompatible.
+    Type 'PaginatedData<Resume> | undefined' is not assignable to type 'PaginatedData<Resume>'.
+      Type 'undefined' is not assignable to type 'PaginatedData<Resume>'.
+src/api/endpoints/knowledge.ts(329,5): error TS2322: Type 'ApiResponse<Resume[]>' is not assignable to type 'ListApiResponse<Resume>'.
+  Types of property 'data' are incompatible.
+    Type 'Resume[] | undefined' is not assignable to type 'Resume[]'.
+      Type 'undefined' is not assignable to type 'Resume[]'.
+src/api/endpoints/tender.ts(23,3): error TS6196: 'DocumentMergeResponse' is declared but never used.
+src/api/endpoints/tender.ts(36,5): error TS2322: Type 'ApiResponse<PaginatedData<Project>>' is not assignable to type 'PaginatedApiResponse<Project>'.
+  Types of property 'data' are incompatible.
+    Type 'PaginatedData<Project> | undefined' is not assignable to type 'PaginatedData<Project>'.
+      Type 'undefined' is not assignable to type 'PaginatedData<Project>'.
+src/api/endpoints/tender.ts(141,5): error TS2322: Type 'ApiResponse<Document[]>' is not assignable to type 'ListApiResponse<Document>'.
+  Types of property 'data' are incompatible.
+    Type 'Document[] | undefined' is not assignable to type 'Document[]'.
+      Type 'undefined' is not assignable to type 'Document[]'.
+src/api/interceptors.ts(66,23): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/api/interceptors.ts(99,23): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/api/interceptors.ts(114,13): error TS2322: Type 'number' is not assignable to type 'string'.
+src/api/interceptors.ts(168,9): error TS2322: Type 'number' is not assignable to type 'string'.
+src/api/interceptors.ts(176,11): error TS2322: Type 'number' is not assignable to type 'string'.
+src/api/interceptors.ts(216,9): error TS2322: Type 'number' is not assignable to type 'string'.
+src/api/interceptors.ts(220,9): error TS2322: Type 'number' is not assignable to type 'string'.
+src/components/PageHeader.vue(92,7): error TS6133: 'props' is declared but its value is never read.
+src/components/PageHeader.vue(117,8): error TS1345: An expression of type 'void' cannot be tested for truthiness.
+src/components/UploadButton.vue(69,31): error TS6196: 'UploadProps' is declared but never used.
+src/composables/useFileUpload.ts(74,23): error TS6133: 'autoUpload' is declared but its value is never read.
+src/composables/useFileUpload.ts(207,17): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/composables/useForm.ts(60,5): error TS6133: 'rules' is declared but its value is never read.
+src/composables/useNotification.ts(9,1): error TS6133: 'ElMessageBoxOptions' is declared but its value is never read.
+src/composables/useSSE.ts(8,15): error TS6196: 'SSEEvent' is declared but never used.
+src/composables/useSSE.ts(170,24): error TS6133: 'event' is declared but its value is never read.
+src/composables/useSSE.ts(199,12): error TS6133: 'reset' is declared but its value is never read.
+src/composables/useSSE.ts(237,3): error TS6133: 'url' is declared but its value is never read.
+src/layouts/components/Breadcrumb.vue(36,15): error TS2305: Module '"@/types"' has no exported member 'Breadcrumb'.
+src/layouts/components/Breadcrumb.vue(44,7): error TS6133: 'props' is declared but its value is never read.
+src/layouts/components/Footer.vue(58,7): error TS6133: 'props' is declared but its value is never read.
+src/layouts/components/Footer.vue(82,22): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/layouts/components/Navbar.vue(131,7): error TS6133: 'props' is declared but its value is never read.
+src/layouts/components/Navbar.vue(166,45): error TS2339: Property 'avatar' does not exist on type 'Store<"user", Pick<{ currentUser: Ref<{ id: number; username: string; email?: string | undefined; role: "admin" | "user" | "viewer"; created_at: string; last_login?: string | undefined; } | null, User | ... 1 more ... | null>; ... 21 more ...; $reset: () => void; }, "error" | ... 3 more ... | "permissions">, Pick<.....'.
+src/layouts/components/Sidebar.vue(107,10): error TS6133: 'ref' is declared but its value is never read.
+src/layouts/components/Sidebar.vue(110,15): error TS2305: Module '"@/types"' has no exported member 'MenuItem'.
+src/layouts/components/TabsView.vue(67,15): error TS6133: 'computed' is declared but its value is never read.
+src/layouts/components/TabsView.vue(67,60): error TS6133: 'nextTick' is declared but its value is never read.
+src/layouts/components/TabsView.vue(267,22): error TS2352: Conversion of type 'RouteRecordNormalized' to type 'RouteLocationNormalizedGeneric' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'RouteRecordNormalized' is missing the following properties from type 'RouteLocationNormalizedGeneric': matched, fullPath, query, hash, and 2 more.
+src/router/guards.ts(104,21): error TS2339: Property 'showProgress' does not exist on type 'Store<"settings", Pick<{ theme: Ref<"light" | "dark", "light" | "dark">; language: Ref<"zh-CN" | "en-US", "zh-CN" | "en-US">; autoSave: Ref<boolean, boolean>; showHelpTooltips: Ref<...>; ... 31 more ...; $reset: () => void; }, "theme" | ... 9 more ... | "pageTransition">, Pick<...>, Pick<...>>'.
+src/router/guards.ts(126,3): error TS6133: 'to' is declared but its value is never read.
+src/router/guards.ts(148,3): error TS6133: 'from' is declared but its value is never read.
+src/router/index.ts(7,24): error TS6133: 'createWebHistory' is declared but its value is never read.
+src/router/index.ts(8,15): error TS6196: 'RouteLocationNormalized' is declared but never used.
+src/router/index.ts(15,51): error TS6133: 'from' is declared but its value is never read.
+src/router/index.ts(44,45): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/router/index.ts(72,47): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/router/routes.ts(210,35): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/router/utils.ts(9,10): error TS6133: 'routes' is declared but its value is never read.
+src/router/utils.ts(96,50): error TS2345: Argument of type 'RouteRecordRaw[]' is not assignable to parameter of type 'RouteRecordNormalized[]'.
+src/router/utils.ts(123,48): error TS2345: Argument of type 'RouteRecordRaw[]' is not assignable to parameter of type 'RouteRecordNormalized[]'.
+  Type 'RouteRecordRaw' is not assignable to type 'RouteRecordNormalized'.
+    Type 'RouteRecordSingleView' is missing the following properties from type 'RouteRecordNormalized': mods, leaveGuards, updateGuards, enterCallbacks, and 2 more.
+src/stores/aiModel.ts(10,24): error TS6196: 'AIModelState' is declared but never used.
+src/stores/company.ts(10,24): error TS6196: 'CompanyState' is declared but never used.
+src/stores/notification.ts(9,15): error TS6196: 'NotificationState' is declared but never used.
+src/stores/project.ts(10,39): error TS6196: 'ProjectState' is declared but never used.
+src/stores/project.ts(34,62): error TS2339: Property 'project_number' does not exist on type '{ tender_file_path?: string | undefined; business_doc_path?: string | undefined; p2p_doc_path?: string | undefined; tech_doc_path?: string | undefined; chapters?: { id: number; project_id: number; ... 8 more ...; children?: ...[] | undefined; }[] | undefined; ... 13 more ...; winner?: string | undefined; }'.
+src/stores/project.ts(44,42): error TS2339: Property 'project_number' does not exist on type '{ id: number; name: string; number?: string | undefined; company_id: number; company_name?: string | undefined; status: "pending" | "processing" | "hitl_review" | "completed" | "failed"; ... 6 more ...; winner?: string | undefined; }'.
+src/stores/project.ts(118,48): error TS2339: Property 'total' does not exist on type 'PaginatedData<Project>'.
+src/stores/project.ts(146,43): error TS2339: Property 'project_number' does not exist on type 'ProjectDetail'.
+src/stores/user.ts(10,21): error TS6196: 'UserState' is declared but never used.
+src/types/api.ts(7,15): error TS6196: 'Pagination' is declared but never used.
+src/utils/helpers.ts(32,16): error TS2503: Cannot find namespace 'NodeJS'.
+src/utils/helpers.ts(66,16): error TS2503: Cannot find namespace 'NodeJS'.
+src/utils/helpers.ts(149,9): error TS2862: Type 'T' is generic and can only be indexed for reading.
+src/utils/helpers.ts(149,53): error TS2345: Argument of type 'T[string] | undefined' is not assignable to parameter of type 'Partial<any>'.
+  Type 'undefined' is not assignable to type 'Partial<any>'.
+src/utils/helpers.ts(151,9): error TS2862: Type 'T' is generic and can only be indexed for reading.
+src/utils/validation.ts(290,17): error TS6133: 'rule' is declared but its value is never read.
+src/utils/validation.ts(310,17): error TS6133: 'rule' is declared but its value is never read.
+src/utils/validation.ts(348,17): error TS6133: 'rule' is declared but its value is never read.
+src/utils/validation.ts(369,17): error TS6133: 'rule' is declared but its value is never read.
+src/views/Business/PointToPoint.vue(15,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Business/PointToPoint.vue(15,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Business/PointToPoint.vue(15,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Business/Response.vue(15,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Business/Response.vue(15,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Business/Response.vue(15,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Business/TechProposal.vue(15,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Business/TechProposal.vue(15,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Business/TechProposal.vue(15,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Demo/ComposablesDemo.vue(204,20): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/ComposablesDemo.vue(208,18): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/ComposablesDemo.vue(212,16): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/ComposablesDemo.vue(216,14): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/ComposablesDemo.vue(221,27): error TS2554: Expected 1 arguments, but got 3.
+src/views/Demo/ComposablesDemo.vue(222,20): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/ComposablesDemo.vue(224,17): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/ComposablesDemo.vue(296,23): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/ComposablesDemo.vue(328,21): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Demo/HelpersDemo.vue(197,15): error TS6133: 'computed' is declared but its value is never read.
+src/views/Demo/HelpersDemo.vue(253,47): error TS2345: Argument of type '{ b: { y: number; }; c: number; }' is not assignable to parameter of type 'Partial<{ a: number; b: { x: number; }; }>'.
+  Types of property 'b' are incompatible.
+    Property 'x' is missing in type '{ y: number; }' but required in type '{ x: number; }'.
+src/views/Demo/ValidationDemo.vue(96,44): error TS2345: Argument of type 'string' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(97,67): error TS2345: Argument of type 'string' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(99,45): error TS2345: Argument of type 'string' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(100,67): error TS2345: Argument of type 'string' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(107,44): error TS2345: Argument of type 'number' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(108,47): error TS2345: Argument of type 'number' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(110,45): error TS2345: Argument of type 'number' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(111,48): error TS2345: Argument of type 'number' is not assignable to parameter of type 'File'.
+src/views/Demo/ValidationDemo.vue(219,19): error TS6133: 'rule' is declared but its value is never read.
+src/views/Home/Dashboard.vue(193,26): error TS6133: 'computed' is declared but its value is never read.
+src/views/Home/Dashboard.vue(198,10): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Home/Dashboard.vue(198,16): error TS2305: Module '"@/components"' has no exported member 'Loading'.
+src/views/Home/Dashboard.vue(198,25): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Home/Dashboard.vue(198,32): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Home/Dashboard.vue(198,44): error TS2305: Module '"@/components"' has no exported member 'IconButton'.
+src/views/Home/Dashboard.vue(326,37): error TS2339: Property 'total' does not exist on type 'PaginatedData<Project>'.
+src/views/Home/Dashboard.vue(426,5): error TS2554: Expected 1 arguments, but got 3.
+src/views/Knowledge/CaseLibrary.vue(19,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Knowledge/CaseLibrary.vue(19,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Knowledge/CaseLibrary.vue(19,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Knowledge/CompanyLibrary.vue(19,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Knowledge/CompanyLibrary.vue(19,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Knowledge/CompanyLibrary.vue(19,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Knowledge/DocumentLibrary.vue(25,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Knowledge/DocumentLibrary.vue(25,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Knowledge/DocumentLibrary.vue(25,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Knowledge/DocumentLibrary.vue(25,35): error TS2305: Module '"@/components"' has no exported member 'UploadButton'.
+src/views/Knowledge/DocumentLibrary.vue(31,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Knowledge/ResumeLibrary.vue(19,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Knowledge/ResumeLibrary.vue(19,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Knowledge/ResumeLibrary.vue(19,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/System/Help.vue(15,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/System/Help.vue(15,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/System/Help.vue(15,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/System/Status.vue(15,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/System/Status.vue(15,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/System/Status.vue(15,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Tender/Management.vue(36,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Tender/Management.vue(36,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Tender/Management.vue(36,28): error TS2305: Module '"@/components"' has no exported member 'Loading'.
+src/views/Tender/Management.vue(36,37): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Tender/Management.vue(58,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Tender/Management.vue(64,21): error TS6133: 'row' is declared but its value is never read.
+src/views/Tender/Management.vue(65,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Tender/Management.vue(68,23): error TS6133: 'row' is declared but its value is never read.
+src/views/Tender/Management.vue(69,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/views/Tender/Processing.vue(16,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Tender/Processing.vue(16,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Tender/Processing.vue(16,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.
+src/views/Tender/Scoring.vue(15,10): error TS2305: Module '"@/components"' has no exported member 'PageHeader'.
+src/views/Tender/Scoring.vue(15,22): error TS2305: Module '"@/components"' has no exported member 'Card'.
+src/views/Tender/Scoring.vue(15,28): error TS2305: Module '"@/components"' has no exported member 'Empty'.

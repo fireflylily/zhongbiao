@@ -819,7 +819,7 @@ async function navigateToTabImpl(config) {
                         fileData = {
                             fileName: data.filename,
                             fileSize: data.file_size || 0,
-                            filePath: null,  // response-file-info不返回file_path
+                            filePath: data.file_path || null,  // ✅ response-file-info 现在也返回 file_path
                             fileUrl: data.download_url || `${config.apiEndpoint.replace('-info', '')}/download-${config.fileType}-file/${hitlTaskId}`
                         };
                     }
