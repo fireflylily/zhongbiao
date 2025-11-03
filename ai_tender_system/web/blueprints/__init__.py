@@ -45,6 +45,14 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"静态文件蓝图加载失败: {e}")
 
+    # Vue 前端应用蓝图
+    try:
+        from .vue_app_bp import vue_app_bp
+        app.register_blueprint(vue_app_bp)
+        logger.info("Vue前端应用蓝图注册成功 (访问路径: /app)")
+    except ImportError as e:
+        logger.warning(f"Vue前端应用蓝图加载失败: {e}")
+
     # 阶段2: 核心API蓝图
     try:
         from .api_core_bp import api_core_bp
