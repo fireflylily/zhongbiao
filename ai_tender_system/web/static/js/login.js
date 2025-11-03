@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers['X-CSRFToken'] = csrfToken;
             }
 
-            const response = await fetch('/login', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({
