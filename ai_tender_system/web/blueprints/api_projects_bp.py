@@ -46,18 +46,26 @@ def get_tender_projects():
         company_id = request.args.get('company_id')
         status = request.args.get('status')
 
-        query = "SELECT * FROM tender_projects WHERE 1=1"
+        # 使用 LEFT JOIN 获取公司名称
+        query = """
+            SELECT
+                p.*,
+                c.company_name
+            FROM tender_projects p
+            LEFT JOIN companies c ON p.company_id = c.company_id
+            WHERE 1=1
+        """
         params = []
 
         if company_id:
-            query += " AND company_id = ?"
+            query += " AND p.company_id = ?"
             params.append(company_id)
 
         if status:
-            query += " AND status = ?"
+            query += " AND p.status = ?"
             params.append(status)
 
-        query += " ORDER BY created_at DESC LIMIT 100"
+        query += " ORDER BY p.created_at DESC LIMIT 100"
 
         projects = kb_manager.db.execute_query(query, params)
 

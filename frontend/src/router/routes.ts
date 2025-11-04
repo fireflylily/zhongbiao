@@ -111,8 +111,7 @@ export const routes: RouteRecordRaw[] = [
           icon: 'bi-star',
           category: 'ai-tools',
           order: 6,
-          description: 'AI辅助标书评分和风险分析',
-          showInMenu: false // 功能开发中，暂不显示
+          description: 'AI辅助标书评分和风险分析'
         }
       },
 

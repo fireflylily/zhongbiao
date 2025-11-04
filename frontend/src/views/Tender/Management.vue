@@ -12,13 +12,73 @@
     <Card title="项目列表">
       <Loading v-if="loading" text="加载中..." />
       <Empty v-else-if="!projects.length" type="no-data" description="暂无项目" />
-      <el-table v-else :data="projects" stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="项目名称" />
-        <el-table-column prop="status" label="状态" width="120" />
-        <el-table-column label="操作" width="200">
+      <el-table v-else :data="projects" stripe style="width: 100%">
+        <el-table-column prop="id" label="ID" width="70" fixed />
+        <el-table-column prop="name" label="项目名称" min-width="200" fixed show-overflow-tooltip />
+        <el-table-column prop="company_name" label="公司名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="authorized_person_name" label="被授权人" width="100" />
+
+        <!-- 文档生成状态列 -->
+        <el-table-column label="商务应答" width="100" align="center">
           <template #default="{ row }">
-            <el-button text type="primary" size="small" @click="handleEdit(row)">
+            <el-tag v-if="hasBusinessResponse(row)" type="success" size="small">
+              <i class="bi bi-check-circle-fill"></i> 已生成
+            </el-tag>
+            <el-tag v-else type="info" size="small">
+              <i class="bi bi-dash-circle"></i> 未生成
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="技术点对点" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="hasPointToPoint(row)" type="success" size="small">
+              <i class="bi bi-check-circle-fill"></i> 已生成
+            </el-tag>
+            <el-tag v-else type="info" size="small">
+              <i class="bi bi-dash-circle"></i> 未生成
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="技术方案" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="hasTechProposal(row)" type="success" size="small">
+              <i class="bi bi-check-circle-fill"></i> 已生成
+            </el-tag>
+            <el-tag v-else type="info" size="small">
+              <i class="bi bi-dash-circle"></i> 未生成
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="最后融合" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="hasFinalMerge(row)" type="success" size="small">
+              <i class="bi bi-check-circle-fill"></i> 已融合
+            </el-tag>
+            <el-tag v-else type="info" size="small">
+              <i class="bi bi-dash-circle"></i> 未融合
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="status" label="项目状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="row.status === 'active'" type="success">进行中</el-tag>
+            <el-tag v-else-if="row.status === 'completed'" type="primary">已完成</el-tag>
+            <el-tag v-else type="info">草稿</el-tag>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="created_at" label="创建时间" width="160" show-overflow-tooltip />
+
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button text type="primary" size="small" @click="handleView(row)">
+              查看
+            </el-button>
+            <el-button text type="warning" size="small" @click="handleEdit(row)">
               编辑
             </el-button>
             <el-button text type="danger" size="small" @click="handleDelete(row)">
@@ -35,6 +95,7 @@
 import { ref, onMounted } from 'vue'
 import { PageHeader, Card, Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
+import { tenderApi } from '@/api/endpoints/tender'
 
 // 状态
 const loading = ref(false)
@@ -47,18 +108,69 @@ const { success, error } = useNotification()
 const loadProjects = async () => {
   loading.value = true
   try {
-    // TODO: 调用API加载项目列表
-    // const data = await tenderApi.getProjects()
-    // projects.value = data
+    // 调用API加载项目列表
+    const response = await tenderApi.getProjects({ page: 1, page_size: 100 })
 
-    // 临时模拟数据
-    await new Promise(resolve => setTimeout(resolve, 500))
-    projects.value = []
+    // 处理响应数据，转换字段名以匹配前端
+    const rawData = response.data?.items || response.data || []
+    projects.value = rawData.map((project: any) => ({
+      id: project.project_id,
+      name: project.project_name,
+      number: project.project_number,
+      company_name: project.company_name,
+      status: project.status,
+      created_at: project.created_at,
+      ...project
+    }))
   } catch (err) {
+    console.error('加载项目列表失败:', err)
     error('加载失败', err instanceof Error ? err.message : '未知错误')
   } finally {
     loading.value = false
   }
+}
+
+// 判断是否有商务应答文档
+const hasBusinessResponse = (project: any): boolean => {
+  // 检查是否有商务应答相关文件或数据
+  // 可以根据以下字段判断：
+  // - project.business_response_file
+  // - project.business_response_status
+  // - 或者查询 file_storage 表中 business_type='business_response' 的文件
+  return project.business_response_file || project.business_response_status === 'completed'
+}
+
+// 判断是否有技术点对点文档
+const hasPointToPoint = (project: any): boolean => {
+  // 检查是否有技术点对点应答文件
+  // 可以根据以下字段判断：
+  // - project.point_to_point_file
+  // - project.point_to_point_status
+  return project.point_to_point_file || project.point_to_point_status === 'completed'
+}
+
+// 判断是否有技术方案文档
+const hasTechProposal = (project: any): boolean => {
+  // 检查是否有技术方案文件
+  // 可以根据以下字段判断：
+  // - project.tech_proposal_file
+  // - project.tech_proposal_status
+  // - project.technical_data (JSON字段，可能包含方案数据)
+  return project.tech_proposal_file || project.tech_proposal_status === 'completed' || !!project.technical_data
+}
+
+// 判断是否有最后融合文档
+const hasFinalMerge = (project: any): boolean => {
+  // 检查是否完成了最终文档融合
+  // 可以根据以下字段判断：
+  // - project.final_merge_file
+  // - project.merge_status
+  // - project.status === 'completed' (完成状态可能意味着已融合)
+  return project.final_merge_file || project.merge_status === 'completed'
+}
+
+const handleView = (row: any) => {
+  success('查看功能', '待实现')
 }
 
 const handleEdit = (row: any) => {

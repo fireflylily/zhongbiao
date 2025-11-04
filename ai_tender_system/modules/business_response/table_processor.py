@@ -29,6 +29,8 @@ class TableProcessor:
             '供应商名称': 'companyName',
             '投标人名称': 'companyName',
             '公司名称': 'companyName',
+            '响应人名称': 'companyName',  # 新增：响应人名称
+            '响应人全称': 'companyName',  # 新增：响应人全称
             '法定代表人': 'legalRepresentative',
             '注册资本': 'registeredCapital',
             '成立日期': 'establishDate',
