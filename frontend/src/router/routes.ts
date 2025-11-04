@@ -144,6 +144,22 @@ export const routes: RouteRecordRaw[] = [
             }
           },
 
+          // 企业详情
+          {
+            path: 'company/:id',
+            name: 'CompanyDetail',
+            component: () => import('@/views/Knowledge/CompanyDetail.vue'),
+            meta: {
+              title: '企业详情',
+              icon: 'bi-building',
+              category: 'knowledge',
+              parent: 'Knowledge',
+              showInMenu: false,
+              hideBreadcrumb: false,
+              description: '查看和编辑企业详细信息'
+            }
+          },
+
           // 案例库
           {
             path: 'case-library',

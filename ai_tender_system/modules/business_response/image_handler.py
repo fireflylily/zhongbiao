@@ -335,7 +335,18 @@ class ImageHandler:
                     for img_type, keywords in self.image_keywords.items():
                         for keyword in keywords:
                             if keyword in cell_text:
-                                # 表格位置的优先级固定为0（段落位置更优先）
+                                # 计算表格位置的优先级分数
+                                # 默认为0，但对于身份证类型，如果包含特征关键词则提升优先级
+                                score = 0
+
+                                # 【修复】针对身份证类型(legal_id/auth_id)，检测表格特征并提升优先级
+                                if img_type in ['legal_id', 'auth_id']:
+                                    # 检查单元格文本是否包含身份证表格特征关键词
+                                    id_table_features = ['正、反面', '正反面', '头像面', '国徽面', '人像面']
+                                    if any(feature in cell_text for feature in id_table_features):
+                                        score = 100  # 提升到100分，高于一般段落位置
+                                        self.logger.info(f"  [身份证表格特征] 检测到身份证表格特征，score提升到{score}")
+
                                 if img_type not in candidates:
                                     candidates[img_type] = []
 
@@ -344,11 +355,11 @@ class ImageHandler:
                                     'table_index': table_idx,
                                     'cell': cell,
                                     'matched_keyword': keyword,
-                                    'score': 0,  # 表格位置优先级较低
+                                    'score': score,
                                     'text': cell_text[:30]
                                 })
 
-                                self.logger.info(f"🔍 发现{img_type}候选位置(表格): 表格#{table_idx}, 关键词='{keyword}', 分数=0")
+                                self.logger.info(f"🔍 发现{img_type}候选位置(表格): 表格#{table_idx}, 关键词='{keyword}', 分数={score}")
                                 break  # 找到关键词后停止
 
                     # 在表格中查找具体资质类型
@@ -720,6 +731,21 @@ class ImageHandler:
                     self.logger.info(f"✅ 成功在指定位置插入{id_type}身份证（新建表格）: 正面={front_path}, 反面={back_path}")
                     return True
 
+            elif insert_point and insert_point['type'] == 'table_cell':
+                # 【修复】处理表格单元格类型的插入点
+                # 通过 table_index 从 doc.tables 获取表格对象
+                table_idx = insert_point['table_index']
+                self.logger.info(f"检测到table_cell类型插入点，表格索引={table_idx}")
+
+                # 从文档中获取表格对象
+                table = doc.tables[table_idx]
+
+                # 直接使用现有的表格插入方法
+                self.logger.info(f"将使用现有表格插入身份证图片")
+                return self._insert_id_into_existing_table(
+                    table, front_path, back_path, id_width_cm, id_type
+                )
+
             else:
                 # 降级：添加到文档末尾
                 doc.add_page_break()
@@ -781,15 +807,28 @@ class ImageHandler:
             bool: 插入是否成功
         """
         try:
+            # 【修复】增强边界检查：验证表格结构
+            if not table or not hasattr(table, 'columns') or not hasattr(table, 'rows'):
+                self.logger.error(f"❌ 无效的表格对象")
+                return False
+
             num_cols = len(table.columns)
             num_rows = len(table.rows)
+
+            # 【修复】检查表格是否为空
+            if num_cols == 0 or num_rows == 0:
+                self.logger.error(f"❌ 表格为空: {num_rows}行 x {num_cols}列")
+                return False
 
             self.logger.info(f"现有表格结构: {num_rows}行 x {num_cols}列")
 
             # 输出表格第一行的内容（标题行）
             if num_rows > 0:
-                header_texts = [cell.text.strip() for cell in table.rows[0].cells]
-                self.logger.info(f"表格标题行: {header_texts}")
+                try:
+                    header_texts = [cell.text.strip() for cell in table.rows[0].cells]
+                    self.logger.info(f"表格标题行: {header_texts}")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ 无法读取表格标题行: {e}")
 
             if num_cols >= 2:
                 # 情况1: 表格有2列或更多列
@@ -827,25 +866,65 @@ class ImageHandler:
 
                 # 确定插入的行（优先第二行，即索引1）
                 target_row_idx = 1 if num_rows >= 2 else 0
+
+                # 【修复】边界检查：确保目标行存在
+                if target_row_idx >= num_rows:
+                    self.logger.error(f"❌ 目标行索引{target_row_idx}超出范围(总行数={num_rows})")
+                    return False
+
                 target_row = table.rows[target_row_idx]
+
+                # 【修复】边界检查：确保列索引有效
+                if front_col_idx >= num_cols or back_col_idx >= num_cols:
+                    self.logger.error(
+                        f"❌ 列索引超出范围: 正面列{front_col_idx}, 反面列{back_col_idx}, "
+                        f"总列数={num_cols}"
+                    )
+                    return False
 
                 self.logger.info(f"📍 将插入到: 行{target_row_idx}, 正面列{front_col_idx}, 反面列{back_col_idx}")
 
-                # 插入正面图片
-                front_cell = target_row.cells[front_col_idx]
-                front_cell.text = ""  # 清空现有文本
-                front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
-                front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                front_run = front_para.add_run()
-                front_run.add_picture(front_path, width=Cm(id_width_cm))
+                # 【修复】增强错误处理：插入正面图片
+                try:
+                    front_cell = target_row.cells[front_col_idx]
+                    front_cell.text = ""  # 清空现有文本
+                    front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
+                    front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    front_run = front_para.add_run()
+                    front_run.add_picture(front_path, width=Cm(id_width_cm))
+                    self.logger.info(f"  ✅ 正面图片已插入到列{front_col_idx}")
+                except IndexError as e:
+                    self.logger.error(
+                        f"❌ 访问单元格失败: 行{target_row_idx}, 列{front_col_idx}, "
+                        f"表格结构={num_rows}x{num_cols}, 错误: {e}"
+                    )
+                    return False
+                except Exception as e:
+                    self.logger.error(f"❌ 插入正面图片失败: {e}")
+                    import traceback
+                    self.logger.error(traceback.format_exc())
+                    return False
 
-                # 插入反面图片
-                back_cell = target_row.cells[back_col_idx]
-                back_cell.text = ""  # 清空现有文本
-                back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
-                back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                back_run = back_para.add_run()
-                back_run.add_picture(back_path, width=Cm(id_width_cm))
+                # 【修复】增强错误处理：插入反面图片
+                try:
+                    back_cell = target_row.cells[back_col_idx]
+                    back_cell.text = ""  # 清空现有文本
+                    back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
+                    back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    back_run = back_para.add_run()
+                    back_run.add_picture(back_path, width=Cm(id_width_cm))
+                    self.logger.info(f"  ✅ 反面图片已插入到列{back_col_idx}")
+                except IndexError as e:
+                    self.logger.error(
+                        f"❌ 访问单元格失败: 行{target_row_idx}, 列{back_col_idx}, "
+                        f"表格结构={num_rows}x{num_cols}, 错误: {e}"
+                    )
+                    return False
+                except Exception as e:
+                    self.logger.error(f"❌ 插入反面图片失败: {e}")
+                    import traceback
+                    self.logger.error(traceback.format_exc())
+                    return False
 
                 self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（行{target_row_idx}，正面=列{front_col_idx}，反面=列{back_col_idx}）")
                 return True
@@ -870,29 +949,49 @@ class ImageHandler:
                         back_row_idx = row_idx
                         self.logger.info(f"✅ 识别到反面标题行: 第{row_idx}行 ('{cell_text}')")
 
-                # 插入正面图片（在"人像面"标题的下一行）
+                # 【修复】增强错误处理：插入正面图片（在"人像面"标题的下一行）
                 if front_row_idx is not None and front_row_idx + 1 < num_rows:
-                    front_cell = table.rows[front_row_idx + 1].cells[0]
-                    front_cell.text = ""  # 清空现有文本
-                    front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
-                    front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    front_run = front_para.add_run()
-                    front_run.add_picture(front_path, width=Cm(id_width_cm))
-                    self.logger.info(f"✅ 已插入正面图片到第{front_row_idx + 1}行")
+                    try:
+                        front_cell = table.rows[front_row_idx + 1].cells[0]
+                        front_cell.text = ""  # 清空现有文本
+                        front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
+                        front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        front_run = front_para.add_run()
+                        front_run.add_picture(front_path, width=Cm(id_width_cm))
+                        self.logger.info(f"✅ 已插入正面图片到第{front_row_idx + 1}行")
+                    except IndexError as e:
+                        self.logger.error(
+                            f"❌ 访问单元格失败: 行{front_row_idx + 1}, 列0, "
+                            f"表格结构={num_rows}x{num_cols}, 错误: {e}"
+                        )
+                    except Exception as e:
+                        self.logger.error(f"❌ 插入正面图片失败: {e}")
+                        import traceback
+                        self.logger.error(traceback.format_exc())
                 else:
-                    self.logger.warning(f"⚠️ 未找到正面插入位置")
+                    self.logger.warning(f"⚠️ 未找到正面插入位置 (front_row_idx={front_row_idx}, num_rows={num_rows})")
 
-                # 插入反面图片（在"国徽面"标题的下一行）
+                # 【修复】增强错误处理：插入反面图片（在"国徽面"标题的下一行）
                 if back_row_idx is not None and back_row_idx + 1 < num_rows:
-                    back_cell = table.rows[back_row_idx + 1].cells[0]
-                    back_cell.text = ""  # 清空现有文本
-                    back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
-                    back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    back_run = back_para.add_run()
-                    back_run.add_picture(back_path, width=Cm(id_width_cm))
-                    self.logger.info(f"✅ 已插入反面图片到第{back_row_idx + 1}行")
+                    try:
+                        back_cell = table.rows[back_row_idx + 1].cells[0]
+                        back_cell.text = ""  # 清空现有文本
+                        back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
+                        back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        back_run = back_para.add_run()
+                        back_run.add_picture(back_path, width=Cm(id_width_cm))
+                        self.logger.info(f"✅ 已插入反面图片到第{back_row_idx + 1}行")
+                    except IndexError as e:
+                        self.logger.error(
+                            f"❌ 访问单元格失败: 行{back_row_idx + 1}, 列0, "
+                            f"表格结构={num_rows}x{num_cols}, 错误: {e}"
+                        )
+                    except Exception as e:
+                        self.logger.error(f"❌ 插入反面图片失败: {e}")
+                        import traceback
+                        self.logger.error(traceback.format_exc())
                 else:
-                    self.logger.warning(f"⚠️ 未找到反面插入位置")
+                    self.logger.warning(f"⚠️ 未找到反面插入位置 (back_row_idx={back_row_idx}, num_rows={num_rows})")
 
                 self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（1列垂直模式）")
                 return True

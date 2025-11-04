@@ -53,6 +53,10 @@ def list_companies():
             result_companies.append({
                 'company_id': company_id,
                 'company_name': company.get('company_name', '未命名公司'),
+                'social_credit_code': company.get('social_credit_code', ''),
+                'legal_representative': company.get('legal_representative', ''),
+                'registered_capital': company.get('registered_capital', ''),
+                'employee_count': company.get('employee_count', ''),
                 'created_at': company.get('created_at', ''),
                 'updated_at': company.get('updated_at', ''),
                 'product_count': company.get('product_count', 0),
@@ -288,7 +292,7 @@ def get_company_qualifications(company_id):
             logger.info(f"获取公司 {company_id} 的资质文件列表，共 {len(qualifications_dict)} 个资质类型")
             return jsonify({
                 'success': True,
-                'qualifications': qualifications_dict
+                'data': qualifications_dict
             })
 
         except ValueError:

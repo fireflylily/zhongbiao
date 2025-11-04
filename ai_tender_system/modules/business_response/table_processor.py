@@ -297,8 +297,10 @@ class TableProcessor:
         # 遍历所有单元格，查找并填充
         for row_idx, row in enumerate(table.rows):
             for cell_idx, cell in enumerate(row.cells):
-                # 规范化单元格文本（移除空格等）
-                cell_text = self._normalize_field_name(cell.text)
+                # 原始单元格文本（用于检测占位符）
+                original_cell_text = cell.text
+                # 规范化单元格文本（移除空格等，用于字段匹配）
+                cell_text = self._normalize_field_name(original_cell_text)
 
                 # 检查是否包含字段名和占位符
                 for field_name, field_key in self.table_field_mapping.items():
@@ -307,8 +309,8 @@ class TableProcessor:
                     if normalized_field in cell_text:
                         self.logger.debug(f"  发现字段名 '{field_name}' 在单元格[{row_idx},{cell_idx}]: {cell_text[:30]}...")
 
-                        # 检查是否有占位符
-                        if re.search(r'[_\s]{3,}|[:：]\s*$', cell_text):
+                        # 检查是否有占位符（使用原始文本检测，而不是规范化后的文本）
+                        if re.search(r'[_\s]{3,}|[:：]\s*$', original_cell_text):
                             value = info.get(field_key, '')
 
                             # 新增：日期字段格式化
@@ -316,8 +318,8 @@ class TableProcessor:
                                 value = self._format_date(str(value))
 
                             if value:
-                                # 替换占位符
-                                new_text = self._replace_placeholder(cell.text.strip(), str(value))
+                                # 替换占位符（使用原始文本）
+                                new_text = self._replace_placeholder(original_cell_text.strip(), str(value))
                                 self._update_cell_text(cell, new_text)
                                 result['cells_filled'] += 1
                                 result['fields_matched'].append(field_name)

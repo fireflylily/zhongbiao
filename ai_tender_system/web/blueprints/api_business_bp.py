@@ -86,7 +86,8 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> tup
         BASIC_CREDENTIALS = {
             'business_license', 'company_seal',
             'legal_id_front', 'legal_id_back',
-            'auth_id_front', 'auth_id_back'
+            'auth_id_front', 'auth_id_back',
+            'id_card_front', 'id_card_back'  # PersonnelTab上传使用的字段名
         }
 
         for qual in qualifications:
@@ -119,14 +120,14 @@ def build_image_config_from_db(company_id: int, project_name: str = None) -> tup
                 image_config['legal_id']['back'] = file_path
                 logger.info(f"  - 法人身份证反面: {file_path}")
 
-            # 授权代表身份证
-            elif qual_key == 'auth_id_front':
+            # 授权代表身份证 - 支持多种字段名
+            elif qual_key in ['auth_id_front', 'id_card_front']:
                 if 'auth_id' not in image_config:
                     image_config['auth_id'] = {}
                 image_config['auth_id']['front'] = file_path
                 logger.info(f"  - 授权代表身份证正面: {file_path}")
 
-            elif qual_key == 'auth_id_back':
+            elif qual_key in ['auth_id_back', 'id_card_back']:
                 if 'auth_id' not in image_config:
                     image_config['auth_id'] = {}
                 image_config['auth_id']['back'] = file_path

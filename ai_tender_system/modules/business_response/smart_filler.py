@@ -77,6 +77,13 @@ class SmartDocumentFiller:
         else:
             self.logger.warning("⚠️  未检测到purchaserName字段")
 
+        # ✅ 专门检测 companyName 字段（响应人名称映射到此字段）
+        if 'companyName' in data:
+            self.logger.info(f"✅ 检测到companyName字段: {data.get('companyName')}")
+            self.logger.info(f"   → 此字段应填充到: 响应人名称/应答人名称/供应商名称等")
+        else:
+            self.logger.warning("⚠️  未检测到companyName字段")
+
         self.logger.info("="*60)
 
         # 处理所有段落
@@ -808,16 +815,18 @@ class FieldRecognizer:
             for variant in variants:
                 self.reverse_map[variant.lower()] = standard_name
 
-    def recognize_field(self, field_text: str) -> Optional[str]:
+    def recognize_field(self, field_text: str, enable_logging=False) -> Optional[str]:
         """
         识别字段名称，返回标准字段名
 
         Args:
             field_text: 原始字段文本
+            enable_logging: 是否启用详细日志（用于诊断）
 
         Returns:
             标准字段名，如 'companyName', 'projectName' 等
         """
+        original_field_text = field_text
         field_text = field_text.strip().lower()
 
         # 移除常见后缀
@@ -831,7 +840,20 @@ class FieldRecognizer:
         field_text = re.sub(r'\s+', '', field_text)
 
         # 查找匹配
-        return self.reverse_map.get(field_text)
+        std_field = self.reverse_map.get(field_text)
+
+        # ✅ 诊断日志：特别关注"响应人名称"相关字段
+        if enable_logging or '响应' in original_field_text or '应答' in original_field_text:
+            if std_field:
+                # 找到匹配 - 输出info日志
+                pass  # 由ContentFiller输出成功日志
+            else:
+                # 未找到匹配 - 输出warning日志
+                from common import get_module_logger
+                logger = get_module_logger("field_recognizer")
+                logger.warning(f"⚠️  字段识别失败: '{original_field_text}' → (清理后) '{field_text}' → 未匹配")
+
+        return std_field
 
     def recognize_combo_fields(self, fields: List[str]) -> List[Optional[str]]:
         """识别组合字段"""
