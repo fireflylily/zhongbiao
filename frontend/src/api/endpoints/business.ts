@@ -320,3 +320,51 @@ export const businessSSE = {
     return new EventSource(`/api/tech-proposal/stream/${taskId}`)
   }
 }
+
+/**
+ * 旧版商务应答API（直接调用后端处理Word模板）
+ */
+export const businessLegacyApi = {
+  /**
+   * 处理商务应答（调用旧版API）
+   *
+   * 功能：
+   * - 在Word模板上填充公司信息
+   * - 处理表格
+   * - 插入图片（营业执照、资质证书等）
+   * - 生成真实的.docx文档
+   */
+  async processBusinessResponse(data: {
+    company_id: number
+    project_name: string
+    tender_no?: string
+    date_text?: string
+    hitl_file_path: string
+    use_mcp?: boolean
+  }): Promise<ApiResponse<{
+    success: boolean
+    output_file: string
+    download_url: string
+    stats?: {
+      total_replacements?: number
+      tables_processed?: number
+      cells_filled?: number
+      images_inserted?: number
+    }
+    message: string
+  }>> {
+    const formData = new FormData()
+    formData.append('company_id', data.company_id.toString())
+    formData.append('project_name', data.project_name)
+    if (data.tender_no) formData.append('tender_no', data.tender_no)
+    if (data.date_text) formData.append('date_text', data.date_text)
+    formData.append('hitl_file_path', data.hitl_file_path)
+    formData.append('use_mcp', data.use_mcp !== false ? 'true' : 'false')
+
+    return apiClient.post('/process-business-response', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  }
+}

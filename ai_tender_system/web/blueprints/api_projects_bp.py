@@ -5,10 +5,11 @@
 提供招标项目的CRUD操作
 
 路由列表:
-- GET  /api/tender-projects - 获取招标项目列表
-- POST /api/tender-projects - 创建招标项目
-- GET  /api/tender-projects/<int:project_id> - 获取项目详情
-- PUT  /api/tender-projects/<int:project_id> - 更新项目
+- GET    /api/tender-projects - 获取招标项目列表
+- POST   /api/tender-projects - 创建招标项目
+- GET    /api/tender-projects/<int:project_id> - 获取项目详情
+- PUT    /api/tender-projects/<int:project_id> - 更新项目
+- DELETE /api/tender-projects/<int:project_id> - 删除项目
 """
 
 import sys
@@ -43,6 +44,9 @@ kb_manager = get_kb_manager()
 def get_tender_projects():
     """获取招标项目列表"""
     try:
+        # 获取分页参数
+        page = int(request.args.get('page', 1))
+        page_size = int(request.args.get('page_size', 20))
         company_id = request.args.get('company_id')
         status = request.args.get('status')
 
@@ -65,20 +69,50 @@ def get_tender_projects():
             query += " AND p.status = ?"
             params.append(status)
 
-        query += " ORDER BY p.created_at DESC LIMIT 100"
+        # 计算总数
+        count_query = query.replace("SELECT\n                p.*,\n                c.company_name", "SELECT COUNT(*) as total")
+        count_result = kb_manager.db.execute_query(count_query, params, fetch_one=True)
+        total = count_result['total'] if count_result else 0
+
+        # 添加分页
+        offset = (page - 1) * page_size
+        query += f" ORDER BY p.created_at DESC LIMIT {page_size} OFFSET {offset}"
 
         projects = kb_manager.db.execute_query(query, params)
 
+        # 字段映射：将 project_id 映射为 id（符合前端 Project 接口）
+        if projects:
+            for project in projects:
+                if 'project_id' in project:
+                    project['id'] = project['project_id']
+
+        # 返回符合前端期望的格式
         return jsonify({
             'success': True,
-            'data': projects or []
+            'data': {
+                'items': projects or [],
+                'pagination': {
+                    'page': page,
+                    'page_size': page_size,
+                    'total': total,
+                    'total_pages': (total + page_size - 1) // page_size
+                }
+            }
         })
     except Exception as e:
         logger.error(f"获取项目列表失败: {e}")
         return jsonify({
             'success': False,
             'message': str(e),
-            'data': []
+            'data': {
+                'items': [],
+                'pagination': {
+                    'page': 1,
+                    'page_size': 20,
+                    'total': 0,
+                    'total_pages': 0
+                }
+            }
         })
 
 
@@ -171,15 +205,41 @@ def create_tender_project():
 
 @api_projects_bp.route('/tender-projects/<int:project_id>', methods=['GET'])
 def get_tender_project(project_id):
-    """获取单个项目详情"""
+    """获取单个项目详情（包含HITL任务数据）"""
     try:
-        query = "SELECT * FROM tender_projects WHERE project_id = ?"
+        # LEFT JOIN 查询项目和HITL任务数据
+        query = """
+            SELECT
+                p.*,
+                c.company_name,
+                h.step1_data,
+                h.step2_data,
+                h.step3_data,
+                h.hitl_task_id,
+                h.task_id
+            FROM tender_projects p
+            LEFT JOIN companies c ON p.company_id = c.company_id
+            LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
+            WHERE p.project_id = ?
+        """
         projects = kb_manager.db.execute_query(query, [project_id])
 
         if projects and len(projects) > 0:
+            project_data = projects[0]
+
+            # 解析 JSON 字段（step1_data, step2_data, step3_data, qualifications_data, scoring_data）
+            import json
+            for field in ['step1_data', 'step2_data', 'step3_data', 'qualifications_data', 'scoring_data']:
+                if project_data.get(field):
+                    try:
+                        project_data[field] = json.loads(project_data[field])
+                    except (json.JSONDecodeError, TypeError):
+                        # 如果解析失败，保持原值
+                        pass
+
             return jsonify({
                 'success': True,
-                'data': projects[0]
+                'data': project_data
             })
         else:
             return jsonify({
@@ -276,6 +336,89 @@ def update_tender_project(project_id):
             'success': False,
             'message': str(e)
         })
+
+
+@api_projects_bp.route('/tender-projects/<int:project_id>', methods=['DELETE'])
+def delete_tender_project(project_id):
+    """
+    删除招标项目（级联删除相关数据）
+
+    删除顺序：
+    1. 删除项目相关的HITL任务
+    2. 删除项目相关的文件存储记录
+    3. 删除项目本身
+    """
+    try:
+        import os
+
+        # 1. 检查项目是否存在
+        check_query = "SELECT project_id, tender_document_path FROM tender_projects WHERE project_id = ?"
+        project = kb_manager.db.execute_query(check_query, [project_id], fetch_one=True)
+
+        if not project:
+            return jsonify({
+                'success': False,
+                'message': f'项目 ID {project_id} 不存在'
+            }), 404
+
+        # 2. 删除相关的HITL任务
+        try:
+            delete_hitl_query = "DELETE FROM tender_hitl_tasks WHERE project_id = ?"
+            kb_manager.db.execute_query(delete_hitl_query, [project_id])
+            logger.info(f"已删除项目 {project_id} 的HITL任务")
+        except Exception as e:
+            logger.warning(f"删除HITL任务失败（可能不存在）: {e}")
+
+        # 3. 删除相关的文件存储记录（从 file_storage 表）
+        try:
+            # 查询所有相关文件
+            file_query = "SELECT file_path FROM file_storage WHERE project_id = ?"
+            files = kb_manager.db.execute_query(file_query, [project_id])
+
+            if files:
+                # 删除物理文件
+                for file_record in files:
+                    file_path = file_record.get('file_path')
+                    if file_path and os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                            logger.info(f"已删除文件: {file_path}")
+                        except Exception as e:
+                            logger.warning(f"删除文件失败: {file_path}, 错误: {e}")
+
+                # 删除数据库记录
+                delete_files_query = "DELETE FROM file_storage WHERE project_id = ?"
+                kb_manager.db.execute_query(delete_files_query, [project_id])
+                logger.info(f"已删除项目 {project_id} 的 {len(files)} 个文件记录")
+        except Exception as e:
+            logger.warning(f"删除文件存储记录失败: {e}")
+
+        # 4. 删除招标文档文件（如果存在）
+        tender_doc_path = project.get('tender_document_path')
+        if tender_doc_path and os.path.exists(tender_doc_path):
+            try:
+                os.remove(tender_doc_path)
+                logger.info(f"已删除招标文档: {tender_doc_path}")
+            except Exception as e:
+                logger.warning(f"删除招标文档失败: {tender_doc_path}, 错误: {e}")
+
+        # 5. 删除项目本身
+        delete_query = "DELETE FROM tender_projects WHERE project_id = ?"
+        kb_manager.db.execute_query(delete_query, [project_id])
+
+        logger.info(f"项目 {project_id} 及其所有相关数据已成功删除")
+
+        return jsonify({
+            'success': True,
+            'message': f'项目 {project_id} 已成功删除'
+        })
+
+    except Exception as e:
+        logger.error(f"删除项目 {project_id} 失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'删除项目失败: {str(e)}'
+        }), 500
 
 
 __all__ = ['api_projects_bp']

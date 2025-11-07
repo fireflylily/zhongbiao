@@ -112,8 +112,19 @@ def create_app() -> Flask:
     @app.route('/api/csrf-token', methods=['GET'])
     def get_csrf_token():
         """获取CSRF token（用于AJAX请求）"""
+        from flask import make_response
         token = generate_csrf()
-        return jsonify({'csrf_token': token})
+        response = make_response(jsonify({'csrf_token': token}))
+        # 设置cookie，使前端能够读取（HttpOnly=False允许JavaScript读取）
+        response.set_cookie(
+            'csrf_token',
+            value=token,
+            max_age=3600,  # 1小时过期
+            httponly=False,  # 允许JavaScript读取
+            samesite='Lax',  # CSRF保护
+            secure=False  # 开发环境使用HTTP，生产环境应改为True
+        )
+        return response
 
     # 注册知识库API蓝图
     try:

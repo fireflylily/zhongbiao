@@ -750,10 +750,12 @@ import ChapterTree from '@/components/ChapterTree.vue'
 import TenderDocumentProcessor from '@/components/TenderDocumentProcessor.vue'
 import { tenderApi } from '@/api/endpoints/tender'
 import { companyApi } from '@/api/endpoints/company'
+import { useProjectStore } from '@/stores/project'
 import type { ProjectDetail } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
+const projectStore = useProjectStore()
 
 // 状态
 const loading = ref(false)
@@ -1260,14 +1262,11 @@ const handleStartBusiness = async () => {
     return
   }
 
+  // 将当前项目保存到 Pinia Store，以便商务应答页面可以读取
+  projectStore.setCurrentProject(projectDetail.value)
+
   await router.push({
-    name: 'BusinessResponse',
-    query: {
-      projectId: projectId.value.toString(),
-      hitlTaskId: projectId.value.toString(),
-      responseFileUrl,
-      fromHitl: 'true'
-    }
+    name: 'BusinessResponse'
   })
 }
 

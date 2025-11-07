@@ -50,9 +50,11 @@ def list_companies():
                 logger.warning(f"跳过无效的公司记录，company_id为None: {company.get('company_name', '未知')}")
                 continue
 
+            company_name = company.get('company_name', '未命名公司')
             result_companies.append({
                 'company_id': company_id,
-                'company_name': company.get('company_name', '未命名公司'),
+                'name': company_name,  # 前端 el-select 需要的字段
+                'company_name': company_name,  # 保持向后兼容
                 'social_credit_code': company.get('social_credit_code', ''),
                 'legal_representative': company.get('legal_representative', ''),
                 'registered_capital': company.get('registered_capital', ''),

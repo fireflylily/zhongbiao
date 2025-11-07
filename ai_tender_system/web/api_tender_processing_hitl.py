@@ -117,11 +117,14 @@ def register_hitl_routes(app):
                 db.execute_query("""
                     INSERT INTO tender_projects (
                         company_id, project_name,
+                        tender_document_path, original_filename,
                         status, created_at
-                    ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                    ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """, (
                     company_id,
                     f"标书项目_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    file_path,
+                    original_filename,
                     'draft'
                 ))
 
@@ -637,14 +640,8 @@ def register_hitl_routes(app):
             # 计算文件大小
             file_size = os.path.getsize(target_path)
 
-            # 更新任务的step1_data
-            response_file_info = {
-                "file_path": target_path,
-                "filename": filename,
-                "file_size": file_size,
-                "saved_at": now.isoformat()
-            }
-            step1_data['response_file'] = response_file_info
+            # 更新任务的step1_data - 直接保存路径字符串，符合前端设计
+            step1_data['response_file_path'] = target_path
 
             db.execute_query("""
                 UPDATE tender_hitl_tasks
@@ -660,7 +657,7 @@ def register_hitl_routes(app):
                 "file_url": f"/api/tender-processing/download-response-file/{task_id}",
                 "filename": filename,
                 "file_size": file_size,
-                "saved_at": response_file_info['saved_at']
+                "saved_at": now.isoformat()
             })
 
         except Exception as e:
@@ -841,15 +838,8 @@ def register_hitl_routes(app):
             # 计算文件大小
             file_size = os.path.getsize(target_path)
 
-            # 更新step1_data，保存技术需求文件信息
-            technical_file_info = {
-                'filename': filename,
-                'file_path': target_path,
-                'file_size': file_size,
-                'saved_at': now.isoformat(),
-                'chapter_ids': chapter_ids
-            }
-            step1_data['technical_file'] = technical_file_info
+            # 更新step1_data - 直接保存路径字符串，符合前端设计
+            step1_data['technical_file_path'] = target_path
 
             # 更新数据库
             db.execute_query("""
@@ -866,7 +856,7 @@ def register_hitl_routes(app):
                 "file_url": f"/api/tender-processing/download-technical-file/{task_id}",
                 "filename": filename,
                 "file_size": file_size,
-                "saved_at": technical_file_info['saved_at'],
+                "saved_at": now.isoformat(),
                 "message": "技术需求章节已成功保存"
             })
 
@@ -2068,7 +2058,7 @@ def register_hitl_routes(app):
             # 整合公司资质状态
             if company_id:
                 # 导入资质对比函数
-                from web.app import enrich_qualification_with_company_status
+                from web.blueprints.api_tender_bp import enrich_qualification_with_company_status
                 enriched_data = enrich_qualification_with_company_status(qualifications, company_id)
             else:
                 # 没有公司ID，只返回提取的资质要求
@@ -2089,6 +2079,22 @@ def register_hitl_routes(app):
                     'uploaded_count': 0,
                     'missing_count': required_count
                 }
+
+            # 保存资质数据到数据库
+            if project_id:
+                qualifications_json = json.dumps(
+                    enriched_data.get('qualifications', {}),
+                    ensure_ascii=False  # 保留中文字符
+                )
+
+                db.execute_query("""
+                    UPDATE tender_projects
+                    SET qualifications_data = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE project_id = ?
+                """, (qualifications_json, project_id))
+
+                logger.info(f"资质数据已保存到项目 {project_id}: {len(enriched_data.get('qualifications', {}))}项")
 
             logger.info(f"资质要求提取成功: {task_id}, 检测到{len(enriched_data.get('qualifications', {}))}项资质")
 

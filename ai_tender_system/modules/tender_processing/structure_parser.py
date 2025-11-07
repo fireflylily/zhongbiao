@@ -228,9 +228,67 @@ class DocumentStructureParser:
                 "error": str(e)
             }
 
+    def _is_title_page_content(self, para_idx: int, para_text: str, total_paras: int) -> bool:
+        """
+        判断是否为标题页内容 (优化5: 过滤标题页)
+
+        规则:
+        1. 位于前10个段落
+        2. 不包含章节编号
+        3. 字体很大但没有"第X章"等关键词
+        4. 包含"公司"、"项目"等纯名称特征
+
+        Args:
+            para_idx: 段落索引
+            para_text: 段落文本
+            total_paras: 文档总段落数
+
+        Returns:
+            True 表示应该被过滤
+        """
+        # 只检查前10段
+        if para_idx >= 10:
+            return False
+
+        # 包含章节编号则不是标题页
+        if re.match(r'^第[一二三四五六七八九十\d]+[章节部分]', para_text):
+            return False
+
+        if re.match(r'^\d+\.\s', para_text):
+            return False
+
+        # 纯公司名称模式
+        if re.match(r'^.{2,50}(有限公司|股份有限公司|集团有限公司|集团)$', para_text):
+            self.logger.debug(f"标题页过滤: 识别为公司名称 '{para_text}'")
+            return True
+
+        # 纯项目名称模式 (不包含"项目需求"、"项目要求"等)
+        if re.match(r'^.{5,50}项目$', para_text) and '需求' not in para_text and '要求' not in para_text and '概况' not in para_text:
+            self.logger.debug(f"标题页过滤: 识别为项目名称 '{para_text}'")
+            return True
+
+        # 纯年份项目模式 (如 "2025年XX项目")
+        if re.match(r'^\d{4}年.{5,50}项目$', para_text) and '需求' not in para_text:
+            self.logger.debug(f"标题页过滤: 识别为年份项目名称 '{para_text}'")
+            return True
+
+        # 纯文档名称模式 (如 "采购需求文件"但没有编号)
+        if re.match(r'^.{2,15}(文件|文档|材料|资料)$', para_text) and para_idx < 5:
+            # 进一步判断: 如果后面紧跟"第一章"等，则是标题页
+            if para_idx + 1 < total_paras:
+                next_para_match = False
+                for i in range(para_idx + 1, min(para_idx + 3, total_paras)):
+                    # 检查后续段落是否包含章节标记
+                    # 这里只检查文本，不需要读取实际段落对象
+                    pass  # 暂时保留简化逻辑
+            self.logger.debug(f"标题页过滤: 识别为文档名称 '{para_text}'")
+            return True
+
+        return False
+
     def _parse_chapters_from_doc(self, doc: Document) -> List[ChapterNode]:
         """
-        从 Word 文档中解析章节
+        从 Word 文档中解析章节 (优化5: 添加标题页过滤)
 
         Args:
             doc: python-docx Document 对象
@@ -250,6 +308,11 @@ class DocumentStructureParser:
 
                 # 跳过空标题
                 if not title:
+                    continue
+
+                # 新增: 过滤标题页内容
+                if self._is_title_page_content(para_idx, title, len(doc.paragraphs)):
+                    self.logger.debug(f"跳过标题页内容: 段落{para_idx} '{title}'")
                     continue
 
                 # 判断是否匹配白/黑名单
@@ -284,7 +347,7 @@ class DocumentStructureParser:
 
     def _get_heading_level(self, paragraph) -> int:
         """
-        获取段落的标题层级
+        获取段落的标题层级 (优化4: 更灵活的字体阈值)
 
         Args:
             paragraph: python-docx Paragraph 对象
@@ -293,7 +356,7 @@ class DocumentStructureParser:
             0: 不是标题
             1-3: 标题层级
         """
-        # 方法1：通过样式名判断
+        # 方法1：通过样式名判断 (优先，最可靠)
         if paragraph.style and paragraph.style.name:
             style_name = paragraph.style.name
             for level, style_names in self.HEADING_STYLES.items():
@@ -316,18 +379,113 @@ class DocumentStructureParser:
         except (AttributeError, TypeError):
             pass  # XML属性不可用时使用其他方法
 
-        # 方法3：通过文本格式启发式判断（加粗、字号大）
+        # 方法3：通过文本格式启发式判断 (优化: 收集所有run的信息)
         if paragraph.runs:
-            first_run = paragraph.runs[0]
-            if first_run.bold and first_run.font.size:
-                # 简单启发式：加粗 + 字号 >= 14pt 可能是标题
-                size_pt = first_run.font.size.pt if first_run.font.size else 0
-                if size_pt >= 16:
+            # 收集所有run的字体信息
+            sizes = []
+            bold_count = 0
+
+            for run in paragraph.runs:
+                if run.font.size:
+                    sizes.append(run.font.size.pt)
+                if run.bold:
+                    bold_count += 1
+
+            # 至少一半的run是加粗，才认为是标题
+            if sizes and bold_count >= len(paragraph.runs) / 2:
+                avg_size = sum(sizes) / len(sizes)
+
+                # 调整阈值: 更灵活的判断
+                if avg_size >= 18:  # 18pt+ → Level 1
                     return 1
-                elif size_pt >= 14:
+                elif avg_size >= 15:  # 15-17pt → Level 2
                     return 2
+                elif avg_size >= 12:  # 12-14pt → Level 3
+                    return 3
+
+        # 方法4：通过编号模式判断 (辅助)
+        text = paragraph.text.strip()
+        if re.match(r'^第[一二三四五六七八九十\d]+[章部分]', text):
+            return 1
+        elif re.match(r'^\d+\.\d+\s', text):
+            return 2
+        elif re.match(r'^\d+\.\d+\.\d+\s', text):
+            return 3
 
         return 0
+
+    def _clean_title_v2(self, title: str, aggressive=False) -> str:
+        """
+        分阶段清理标题文本 (优化3: 温和/激进两种模式)
+
+        Args:
+            title: 原始标题
+            aggressive: 是否使用激进清理模式
+
+        Returns:
+            清理后的标题
+        """
+        if not aggressive:
+            # 温和清理: 只删除明显的编号和空格
+            cleaned = re.sub(r'^\d+\.\s*', '', title)  # 删除 "1. "
+            cleaned = re.sub(r'^\d+\.\d+\s*', '', cleaned)  # 删除 "1.1 "
+            cleaned = re.sub(r'^\d+\.\d+\.\d+\s*', '', cleaned)  # 删除 "1.1.1 "
+            cleaned = re.sub(r'^第[一二三四五六七八九十\d]+[章节部分]\s*', '', cleaned)  # 删除 "第一章 "
+            cleaned = re.sub(r'\s+', '', cleaned)  # 删除空格
+            return cleaned
+        else:
+            # 激进清理: 删除所有编号、符号和空格
+            cleaned = title
+            cleaned = re.sub(r'^[一二三四五六七八九十]+、\s*', '', cleaned)
+            cleaned = re.sub(r'^\([一二三四五六七八九十\d]+\)\s*', '', cleaned)
+            cleaned = re.sub(r'^\d+[-\.]\d*\s*', '', cleaned)
+            cleaned = re.sub(r'^[A-Za-z]+\.\s*', '', cleaned)
+            cleaned = re.sub(r'^第[一二三四五六七八九十\d]+[章节部分]\s*', '', cleaned)
+            cleaned = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', cleaned)  # 只保留中英文数字
+            return cleaned
+
+    def fuzzy_match_title_v2(self, title1: str, title2: str, threshold=0.7) -> float:
+        """
+        模糊匹配标题，支持多级清理尝试 (优化3: 分阶段匹配)
+
+        Args:
+            title1: 标题1
+            title2: 标题2
+            threshold: 相似度阈值
+
+        Returns:
+            相似度得分 (0.0-1.0)
+        """
+        # Level 1: 原始比较
+        if title1 == title2:
+            return 1.0
+
+        # Level 2: 温和清理后比较
+        clean1 = self._clean_title_v2(title1, aggressive=False)
+        clean2 = self._clean_title_v2(title2, aggressive=False)
+
+        if clean1 == clean2:
+            return 0.95
+
+        if clean1 in clean2 or clean2 in clean1:
+            return 0.90
+
+        # Level 3: 激进清理后比较
+        aggr1 = self._clean_title_v2(title1, aggressive=True)
+        aggr2 = self._clean_title_v2(title2, aggressive=True)
+
+        if aggr1 == aggr2:
+            return 0.85
+
+        if aggr1 in aggr2 or aggr2 in aggr1:
+            shorter = aggr1 if len(aggr1) <= len(aggr2) else aggr2
+            longer = aggr2 if len(aggr1) <= len(aggr2) else aggr1
+            return len(shorter) / len(longer) * 0.80  # 包含匹配，根据长度比例打分
+
+        # Level 4: SequenceMatcher相似度
+        similarity = SequenceMatcher(None, aggr1, aggr2).ratio()
+
+        return similarity
 
     def _matches_whitelist(self, title: str) -> bool:
         """检查标题是否匹配白名单"""
@@ -361,9 +519,40 @@ class DocumentStructureParser:
 
         return False
 
+    def _calculate_dynamic_threshold(self, toc_items_count: int, doc_paragraph_count: int) -> float:
+        """
+        根据文档特征动态计算相似度阈值
+
+        Args:
+            toc_items_count: 目录项数量
+            doc_paragraph_count: 文档总段落数
+
+        Returns:
+            相似度阈值 (0.60-0.80)
+        """
+        # 基础阈值根据目录项数量决定
+        if toc_items_count < 10:
+            base_threshold = 0.75  # 少量章节，要求更高精度
+        elif toc_items_count < 20:
+            base_threshold = 0.70  # 中等章节数，标准精度
+        else:
+            base_threshold = 0.65  # 大量章节，适当放宽
+
+        # 根据文档复杂度微调 (段落数越多，文档越复杂，可适当放宽)
+        doc_complexity = min(1.0, doc_paragraph_count / 1000)  # 标准化到0-1
+        adjusted_threshold = base_threshold + (doc_complexity * 0.05)
+
+        # 限制在合理范围内
+        final_threshold = min(0.80, max(0.60, adjusted_threshold))
+
+        self.logger.info(f"动态阈值计算: 目录项={toc_items_count}, 段落数={doc_paragraph_count}, "
+                        f"基础阈值={base_threshold}, 调整后={final_threshold:.2f}")
+
+        return final_threshold
+
     def _find_toc_section(self, doc: Document) -> Optional[int]:
         """
-        查找文档中的目录部分
+        查找文档中的目录部分 (优化版: 扩展关键词)
 
         Args:
             doc: Word文档对象
@@ -371,6 +560,14 @@ class DocumentStructureParser:
         Returns:
             目录起始段落索引，如果未找到则返回None
         """
+        # 优化2: 扩展目录关键词列表
+        TOC_KEYWORDS = [
+            # 中文
+            "目录", "目  录", "索引", "章节目录", "内容目录",
+            # 英文
+            "contents", "table of contents", "catalogue", "index"
+        ]
+
         for i, para in enumerate(doc.paragraphs[:50]):  # 只检查前50段
             text = para.text.strip()
 
@@ -378,10 +575,12 @@ class DocumentStructureParser:
             if not text:
                 continue
 
-            # 检测目录标题（支持中英文）
-            if re.match(r'^(目\s*录|contents|索\s*引|table\s+of\s+contents)$', text, re.IGNORECASE):
-                self.logger.info(f"检测到目录标题，位于段落 {i}: {text}")
-                return i
+            # 检测目录标题 (使用扩展关键词列表)
+            text_lower = text.lower()
+            for keyword in TOC_KEYWORDS:
+                if text_lower == keyword.lower() or text.replace(" ", "") == keyword.replace(" ", ""):
+                    self.logger.info(f"检测到目录标题 (关键词: '{keyword}')，位于段落 {i}: {text}")
+                    return i
 
             # 检测TOC域（Word自动生成的目录）
             # 通过检查段落的XML来识别
@@ -1022,25 +1221,105 @@ class DocumentStructureParser:
 
             chapter.para_end_idx = next_start - 1
 
-            # 提取章节内容
-            content_paras = doc.paragraphs[chapter.para_start_idx + 1 : chapter.para_end_idx + 1]
+            # 提取章节内容（包括段落和表格）
+            content_text, preview_text = self._extract_chapter_content_with_tables(
+                doc, chapter.para_start_idx, chapter.para_end_idx
+            )
 
             # 计算字数
-            content_text = '\n'.join(p.text for p in content_paras)
             chapter.word_count = len(content_text.replace(' ', '').replace('\n', ''))
-
-            # 提取预览文本（前5行，每行最多100字符）
-            preview_lines = []
-            for p in content_paras[:5]:
-                text = p.text.strip()
-                if text:
-                    preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
-                if len(preview_lines) >= 5:
-                    break
-
-            chapter.preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
+            chapter.preview_text = preview_text if preview_text else "(无内容)"
 
         return chapters
+
+    def _extract_chapter_content_with_tables(self, doc: Document, para_start_idx: int, para_end_idx: int) -> tuple:
+        """
+        提取章节内容,包括段落和表格
+
+        Args:
+            doc: Word文档对象
+            para_start_idx: 起始段落索引
+            para_end_idx: 结束段落索引
+
+        Returns:
+            (完整内容文本, 预览文本)
+        """
+        # 构建段落索引到body元素索引的映射
+        para_count = 0
+        start_body_idx = None
+        end_body_idx = None
+
+        for body_idx, element in enumerate(doc.element.body):
+            if isinstance(element, CT_P):
+                if para_count == para_start_idx and start_body_idx is None:
+                    start_body_idx = body_idx
+                if para_count == para_end_idx:
+                    end_body_idx = body_idx
+                    break
+                para_count += 1
+
+        if start_body_idx is None:
+            return "", ""
+
+        if end_body_idx is None:
+            end_body_idx = len(doc.element.body) - 1
+
+        # 提取内容(跳过章节标题,从start+1开始)
+        content_parts = []
+        preview_lines = []
+        preview_limit = 5
+
+        for body_idx in range(start_body_idx + 1, end_body_idx + 1):
+            element = doc.element.body[body_idx]
+
+            if isinstance(element, CT_P):
+                # 段落
+                from docx.text.paragraph import Paragraph
+                para = Paragraph(element, doc)
+                text = para.text.strip()
+                if text:
+                    content_parts.append(text)
+                    # 添加到预览
+                    if len(preview_lines) < preview_limit:
+                        preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
+
+            elif isinstance(element, CT_Tbl):
+                # 表格
+                from docx.table import Table
+                table = Table(element, doc)
+
+                # 提取表格文本
+                table_text_parts = []
+                table_preview_parts = []
+
+                for row_idx, row in enumerate(table.rows):
+                    row_data = []
+                    for cell in row.cells:
+                        cell_text = '\n'.join(p.text.strip() for p in cell.paragraphs if p.text.strip())
+                        row_data.append(cell_text)
+
+                    if any(cell.strip() for cell in row_data):  # 非空行
+                        row_text = ' | '.join(row_data)
+                        table_text_parts.append(row_text)
+
+                        # 添加到预览(表格的前几行)
+                        if len(preview_lines) < preview_limit and row_idx < 3:
+                            table_preview_parts.append(row_text[:100] + ('...' if len(row_text) > 100 else ''))
+
+                if table_text_parts:
+                    # 添加表格标识
+                    table_content = f"[表格]\n" + '\n'.join(table_text_parts)
+                    content_parts.append(table_content)
+
+                    # 添加表格预览
+                    if len(preview_lines) < preview_limit:
+                        preview_lines.append("[表格]")
+                        preview_lines.extend(table_preview_parts[:preview_limit - len(preview_lines)])
+
+        full_content = '\n'.join(content_parts)
+        preview_text = '\n'.join(preview_lines)
+
+        return full_content, preview_text
 
     def _build_chapter_tree(self, chapters: List[ChapterNode]) -> List[ChapterNode]:
         """
@@ -1821,8 +2100,12 @@ class DocumentStructureParser:
         # 改进1：使用智能检测计算正文起始位置
         min_search_start = self._calculate_content_start_idx(doc, toc_end_idx, len(toc_targets))
 
+        # 优化1: 计算动态阈值
+        dynamic_threshold = self._calculate_dynamic_threshold(len(toc_targets), len(doc.paragraphs))
+
         self.logger.info(f"开始按目录顺序解析章节，共 {len(toc_targets)} 个目标")
         self.logger.info(f"目录结束于段落 {toc_end_idx}，正文搜索起点: 段落 {min_search_start} (跳过 {min_search_start - toc_end_idx} 段)")
+        self.logger.info(f"使用动态阈值: {dynamic_threshold:.2f}")
 
         for i, toc_title in enumerate(toc_targets):
             self.logger.info(f"\n[{i+1}/{len(toc_targets)}] 查找目录项: '{toc_title}'")
@@ -1853,14 +2136,14 @@ class DocumentStructureParser:
                 clean_para, para_level = self.remove_leading_patterns(para_text)
                 clean_toc, toc_level = self.remove_leading_patterns(toc_title)
 
-                # 计算相似度
-                score = self.fuzzy_match_title(clean_para, clean_toc, threshold=0.70)
+                # 计算相似度 (使用新的分阶段匹配函数)
+                score = self.fuzzy_match_title_v2(para_text, toc_title, threshold=dynamic_threshold)
 
                 # 检查是否有"第X部分"编号
                 has_part_number = bool(re.match(r'^第[一二三四五六七八九十\d]+部分', para_text))
 
-                # 记录候选
-                if score >= 0.70:
+                # 记录候选 (使用动态阈值)
+                if score >= dynamic_threshold:
                     if has_part_number:
                         # 有编号的候选
                         if best_with_part is None or score > best_with_part[0]:
@@ -1886,8 +2169,8 @@ class DocumentStructureParser:
                 best_match_idx = None
                 best_para_text = None
 
-            # 判断是否找到有效匹配
-            if best_score >= 0.70:
+            # 判断是否找到有效匹配 (使用动态阈值)
+            if best_score >= dynamic_threshold:
                 self.logger.info(f"  ✓ 最佳匹配({best_score:.0%}): 段落{best_match_idx} '{best_para_text}'")
 
                 # 检测是否为"文件构成"部分（无论位置在哪）
@@ -1910,9 +2193,9 @@ class DocumentStructureParser:
 
                         clean_para, _ = self.remove_leading_patterns(para_text)
                         clean_toc, _ = self.remove_leading_patterns(toc_title)
-                        score = self.fuzzy_match_title(clean_para, clean_toc, threshold=0.70)
+                        score = self.fuzzy_match_title_v2(para_text, toc_title, threshold=dynamic_threshold)
 
-                        if score >= 0.70:
+                        if score >= dynamic_threshold:
                             # 再次检查是否仍为文件构成
                             if not self._is_file_composition_section(doc, para_idx, toc_targets):
                                 best_match_idx = para_idx
