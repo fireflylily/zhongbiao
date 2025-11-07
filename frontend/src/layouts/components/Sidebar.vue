@@ -91,6 +91,63 @@
             <el-divider v-if="!collapsed" class="menu-group-divider" />
           </template>
         </template>
+
+        <!-- 显示未分组的菜单项(other分组) -->
+        <template v-if="groupedMenuItems['other'] && groupedMenuItems['other'].length > 0">
+          <template v-for="item in groupedMenuItems['other']" :key="item.path">
+            <!-- 单级菜单项 -->
+            <el-menu-item
+              v-if="!item.children || item.children.length === 0"
+              :index="item.path"
+            >
+              <template #title>
+                <i v-if="item.icon" :class="item.icon" class="menu-icon"></i>
+                <span class="menu-title">{{ item.title }}</span>
+              </template>
+            </el-menu-item>
+
+            <!-- 多级菜单（子菜单） -->
+            <el-sub-menu v-else :index="item.path">
+              <template #title>
+                <i v-if="item.icon" :class="item.icon" class="menu-icon"></i>
+                <span class="menu-title">{{ item.title }}</span>
+              </template>
+
+              <!-- 二级菜单项 -->
+              <template v-for="subItem in item.children" :key="subItem.path">
+                <!-- 二级普通菜单 -->
+                <el-menu-item
+                  v-if="!subItem.children || subItem.children.length === 0"
+                  :index="subItem.path"
+                >
+                  <template #title>
+                    <i v-if="subItem.icon" :class="subItem.icon" class="submenu-icon"></i>
+                    <span>{{ subItem.title }}</span>
+                  </template>
+                </el-menu-item>
+
+                <!-- 三级菜单 -->
+                <el-sub-menu v-else :index="subItem.path">
+                  <template #title>
+                    <i v-if="subItem.icon" :class="subItem.icon" class="submenu-icon"></i>
+                    <span>{{ subItem.title }}</span>
+                  </template>
+
+                  <el-menu-item
+                    v-for="thirdItem in subItem.children"
+                    :key="thirdItem.path"
+                    :index="thirdItem.path"
+                  >
+                    <template #title>
+                      <i v-if="thirdItem.icon" :class="thirdItem.icon" class="submenu-icon"></i>
+                      <span>{{ thirdItem.title }}</span>
+                    </template>
+                  </el-menu-item>
+                </el-sub-menu>
+              </template>
+            </el-sub-menu>
+          </template>
+        </template>
       </el-menu>
     </el-scrollbar>
 

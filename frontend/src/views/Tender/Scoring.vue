@@ -1,10 +1,5 @@
 <template>
   <div class="tender-scoring">
-    <PageHeader
-      title="标书评分"
-      description="AI辅助标书评分和风险分析"
-    />
-
     <!-- 项目选择 -->
     <el-card class="project-selector" shadow="never">
       <template #header>
@@ -27,7 +22,7 @@
                 <el-option
                   v-for="project in projects"
                   :key="project.id"
-                  :label="`${project.name} (${project.number})`"
+                  :label="`${project.project_name} (${project.project_number})`"
                   :value="project.id"
                 />
               </el-select>
@@ -212,7 +207,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
-import { PageHeader, SSEStreamViewer } from '@/components'
+import { SSEStreamViewer } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import { marked } from 'marked'
 import type { Project } from '@/types'
@@ -407,7 +402,7 @@ const exportReport = () => {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `标书评分报告-${selectedProject.value?.name || 'report'}-${Date.now()}.txt`
+  link.download = `标书评分报告-${selectedProject.value?.project_name || 'report'}-${Date.now()}.txt`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
@@ -422,8 +417,8 @@ const generateReport = () => {
 
   let report = `# 标书评分报告\n\n`
   report += `## 项目信息\n`
-  report += `- 项目名称: ${selectedProject.value?.name}\n`
-  report += `- 项目编号: ${selectedProject.value?.number}\n`
+  report += `- 项目名称: ${selectedProject.value?.project_name}\n`
+  report += `- 项目编号: ${selectedProject.value?.project_number}\n`
   report += `- 公司名称: ${selectedProject.value?.company_name}\n`
   report += `- 评分时间: ${new Date().toLocaleString()}\n\n`
 

@@ -1,14 +1,5 @@
 <template>
   <div class="company-library">
-    <PageHeader
-      title="企业库"
-      description="管理企业基本信息和资质证书"
-    >
-      <template #actions>
-        <el-button type="primary" icon="Plus" @click="handleCreate">新增企业</el-button>
-      </template>
-    </PageHeader>
-
     <!-- 统计信息 -->
     <div class="stats-bar">
       <el-card class="stat-card">
@@ -183,7 +174,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { PageHeader, Card, Loading, Empty } from '@/components'
+import { Card, Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
 import { OfficeBuilding, Filter, Search, RefreshLeft } from '@element-plus/icons-vue'

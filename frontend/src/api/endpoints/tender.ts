@@ -47,7 +47,7 @@ export const tenderApi = {
    * 创建新项目
    */
   async createProject(data: {
-    name: string
+    project_name: string
     project_number: string
     company_id: number
     description?: string
@@ -194,6 +194,73 @@ export const tenderApi = {
    */
   async getTaskResult(taskId: string): Promise<ApiResponse<TenderProcessingResponse>> {
     return apiClient.get(`/tasks/${taskId}/result`)
+  },
+
+  /**
+   * 解析文档结构（用于章节选择）
+   */
+  async parseDocumentStructure(formData: FormData): Promise<ApiResponse<{
+    task_id: string
+    project_id: number
+    chapters: any[]
+    statistics: any
+  }>> {
+    return apiClient.post('/tender-processing/parse-structure', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+
+  /**
+   * 保存应答文件章节
+   */
+  async saveResponseFile(taskId: string, chapterIds: string[]): Promise<ApiResponse<{
+    file_path: string
+    file_url: string
+    filename: string
+    file_size: number
+  }>> {
+    return apiClient.post(`/tender-processing/save-response-file/${taskId}`, {
+      chapter_ids: chapterIds
+    })
+  },
+
+  /**
+   * 保存技术需求章节
+   */
+  async saveTechnicalChapters(taskId: string, chapterIds: string[]): Promise<ApiResponse<{
+    file_path: string
+    file_url: string
+    filename: string
+    file_size: number
+  }>> {
+    return apiClient.post(`/tender-processing/save-technical-chapters/${taskId}`, {
+      chapter_ids: chapterIds
+    })
+  },
+
+  /**
+   * AI提取基本信息
+   */
+  async extractBasicInfo(taskId: string): Promise<ApiResponse<{
+    project_name?: string
+    project_number?: string
+    tender_party?: string
+    tender_agent?: string
+    tender_method?: string
+    tender_location?: string
+    tender_deadline?: string
+    winner_count?: number
+  }>> {
+    return apiClient.post(`/tender-processing/extract-basic-info/${taskId}`, {})
+  },
+
+  /**
+   * AI提取资格要求
+   */
+  async extractQualifications(taskId: string): Promise<ApiResponse<any>> {
+    return apiClient.post(`/tender-processing/extract-qualifications/${taskId}`, {})
   },
 
   // ==================== 文档融合 ====================

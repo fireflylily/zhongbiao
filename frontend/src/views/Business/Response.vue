@@ -1,10 +1,5 @@
 <template>
   <div class="business-response">
-    <PageHeader
-      title="商务应答"
-      description="智能生成商务应答文档"
-    />
-
     <!-- 项目选择 -->
     <el-card class="project-section" shadow="never">
       <template #header>
@@ -27,7 +22,7 @@
                 <el-option
                   v-for="project in projects"
                   :key="project.id"
-                  :label="`${project.name} (${project.number || '-'})`"
+                  :label="`${project.project_name} (${project.project_number || '-'})`"
                   :value="project.id"
                 />
               </el-select>
@@ -55,27 +50,10 @@
       </template>
 
       <el-row :gutter="20">
-        <!-- 招标文档 -->
-        <el-col :span="12">
-          <div class="upload-item">
-            <h4>招标文档 <span class="required">*</span></h4>
-            <DocumentUploader
-              v-model="form.tenderFiles"
-              :upload-url="`/api/tender-projects/${form.projectId}/upload-tender`"
-              accept=".pdf,.doc,.docx"
-              :limit="5"
-              :max-size="50"
-              drag
-              tip-text="支持PDF、Word格式，最大50MB，可上传多个文件"
-              @success="handleTenderUploadSuccess"
-            />
-          </div>
-        </el-col>
-
         <!-- 商务应答模板 -->
         <el-col :span="12">
           <div class="upload-item">
-            <h4>商务应答模板</h4>
+            <h4>商务应答模板 <span class="required">*</span></h4>
             <DocumentUploader
               v-model="form.templateFiles"
               :upload-url="`/api/tender-projects/${form.projectId}/upload-template`"
@@ -83,8 +61,25 @@
               :limit="1"
               :max-size="20"
               drag
-              tip-text="可选上传商务应答模板，用于保持格式一致"
+              tip-text="必须上传商务应答模板，用于生成应答文档"
               @success="handleTemplateUploadSuccess"
+            />
+          </div>
+        </el-col>
+
+        <!-- 招标文档 -->
+        <el-col :span="12">
+          <div class="upload-item">
+            <h4>招标文档（可选）</h4>
+            <DocumentUploader
+              v-model="form.tenderFiles"
+              :upload-url="`/api/tender-projects/${form.projectId}/upload-tender`"
+              accept=".pdf,.doc,.docx"
+              :limit="5"
+              :max-size="50"
+              drag
+              tip-text="可选上传招标文档作为参考，支持PDF、Word格式，最大50MB"
+              @success="handleTenderUploadSuccess"
             />
           </div>
         </el-col>
@@ -202,7 +197,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, RefreshRight } from '@element-plus/icons-vue'
-import { PageHeader, DocumentUploader, SSEStreamViewer } from '@/components'
+import { DocumentUploader, SSEStreamViewer } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import type { Project, UploadUserFile } from '@/types'
 
@@ -230,7 +225,7 @@ const selectedProject = computed(() =>
 
 // 能否开始生成
 const canGenerate = computed(() =>
-  form.value.projectId && form.value.tenderFiles.length > 0
+  form.value.projectId && form.value.templateFiles.length > 0
 )
 
 // 生成状态
@@ -252,12 +247,86 @@ const loadProjects = async () => {
 }
 
 // 项目切换
-const handleProjectChange = () => {
-  // 清空文件和结果
-  form.value.tenderFiles = []
-  form.value.templateFiles = []
+const handleProjectChange = async () => {
+  // 清空结果但保留文件列表，准备加载已上传的文件
   generationResult.value = null
   streamContent.value = ''
+
+  // 加载项目已上传的文档
+  if (form.value.projectId) {
+    await loadProjectDocuments(form.value.projectId)
+  }
+}
+
+// 加载项目文档（从项目详情的 step1_data 中提取）
+const loadProjectDocuments = async (projectId: number) => {
+  try {
+    // 获取项目详情，其中包含 step1_data
+    const response = await tenderApi.getProject(projectId)
+    const projectData = response.data
+
+    // 清空文件列表
+    form.value.tenderFiles = []
+    form.value.templateFiles = []
+
+    if (!projectData) {
+      return
+    }
+
+    let loadedCount = 0
+
+    // 提取招标文档：优先从 step1_data.file_path 读取（HITL任务中的标书）
+    let tenderFileLoaded = false
+    if (projectData.step1_data && projectData.step1_data.file_path) {
+      const step1Data = projectData.step1_data
+      form.value.tenderFiles.push({
+        name: step1Data.file_name || step1Data.original_filename || '招标文档',
+        url: step1Data.file_path,
+        status: 'success',
+        uid: Date.now() + Math.random(),
+        size: step1Data.file_size
+      })
+      loadedCount++
+      tenderFileLoaded = true
+    }
+
+    // 如果 step1_data 中没有，再从 tender_document_path 读取（项目级别的标书）
+    if (!tenderFileLoaded && projectData.tender_document_path) {
+      form.value.tenderFiles.push({
+        name: projectData.original_filename || '招标文档',
+        url: projectData.tender_document_path,
+        status: 'success',
+        uid: Date.now() + Math.random()
+      })
+      loadedCount++
+    }
+
+    // 从 step1_data 提取应答模板
+    if (projectData.step1_data) {
+      const step1Data = projectData.step1_data
+
+      // 应答文件模板（商务应答模板）
+      if (step1Data.response_file_path) {
+        form.value.templateFiles.push({
+          name: step1Data.response_filename || '商务应答模板',
+          url: step1Data.response_file_path,
+          status: 'success',
+          uid: Date.now() + Math.random(),
+          size: step1Data.response_file_size
+        })
+        loadedCount++
+      }
+    }
+
+    if (loadedCount > 0) {
+      ElMessage.success(`已加载 ${loadedCount} 个文件`)
+    }
+  } catch (error) {
+    console.error('加载项目文档失败:', error)
+    // 加载失败时清空文件列表
+    form.value.tenderFiles = []
+    form.value.templateFiles = []
+  }
 }
 
 // 招标文档上传成功
@@ -277,8 +346,8 @@ const startGeneration = async () => {
     return
   }
 
-  if (form.value.tenderFiles.length === 0) {
-    ElMessage.warning('请先上传招标文档')
+  if (form.value.templateFiles.length === 0) {
+    ElMessage.warning('请先上传商务应答模板')
     return
   }
 
@@ -368,7 +437,7 @@ const downloadDocument = () => {
     })
 
     // 生成文件名
-    const fileName = `商务应答-${selectedProject.value?.name || '文档'}-${Date.now()}.txt`
+    const fileName = `商务应答-${selectedProject.value?.project_name || '文档'}-${Date.now()}.txt`
 
     // 创建下载链接
     const url = URL.createObjectURL(blob)
@@ -393,8 +462,8 @@ const generateDocumentContent = (): string => {
 
   let content = `# 商务应答文档\n\n`
   content += `## 项目信息\n`
-  content += `- 项目名称: ${selectedProject.value?.name || '-'}\n`
-  content += `- 项目编号: ${selectedProject.value?.number || '-'}\n`
+  content += `- 项目名称: ${selectedProject.value?.project_name || '-'}\n`
+  content += `- 项目编号: ${selectedProject.value?.project_number || '-'}\n`
   content += `- 公司名称: ${selectedProject.value?.company_name || '-'}\n`
   content += `- 生成时间: ${new Date().toLocaleString()}\n\n`
 

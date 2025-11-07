@@ -1,10 +1,5 @@
 <template>
   <div class="tech-proposal">
-    <PageHeader
-      title="技术方案"
-      description="AI生成技术方案大纲"
-    />
-
     <!-- 项目选择与配置 -->
     <el-card shadow="never">
       <template #header>
@@ -24,7 +19,7 @@
                 <el-option
                   v-for="project in projects"
                   :key="project.id"
-                  :label="`${project.name} (${project.number || '-'})`"
+                  :label="`${project.project_name} (${project.project_number || '-'})`"
                   :value="project.id"
                 />
               </el-select>
@@ -143,7 +138,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, RefreshRight } from '@element-plus/icons-vue'
-import { PageHeader, SSEStreamViewer } from '@/components'
+import { SSEStreamViewer } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import type { Project } from '@/types'
 

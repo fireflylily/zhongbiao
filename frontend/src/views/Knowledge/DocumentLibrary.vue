@@ -1,20 +1,5 @@
 <template>
   <div class="document-library">
-    <PageHeader
-      title="文档库"
-      description="管理企业知识文档"
-    >
-      <template #actions>
-        <UploadButton
-          :auto-upload="false"
-          accept=".pdf,.doc,.docx"
-          @change="handleUpload"
-        >
-          <el-button type="primary" icon="Upload">上传文档</el-button>
-        </UploadButton>
-      </template>
-    </PageHeader>
-
     <Card title="文档列表">
       <Empty type="no-data" description="暂无文档数据" />
     </Card>
@@ -22,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { PageHeader, Card, Empty, UploadButton } from '@/components'
+import { Card, Empty, UploadButton } from '@/components'
 import { useNotification } from '@/composables'
 
 const { success } = useNotification()

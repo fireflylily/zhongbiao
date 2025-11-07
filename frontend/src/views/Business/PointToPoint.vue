@@ -1,10 +1,5 @@
 <template>
   <div class="point-to-point">
-    <PageHeader
-      title="点对点应答"
-      description="针对招标要求逐点响应"
-    />
-
     <!-- 项目选择 -->
     <el-card class="project-section" shadow="never">
       <template #header>
@@ -27,7 +22,7 @@
                 <el-option
                   v-for="project in projects"
                   :key="project.id"
-                  :label="`${project.name} (${project.number || '-'})`"
+                  :label="`${project.project_name} (${project.project_number || '-'})`"
                   :value="project.id"
                 />
               </el-select>
@@ -301,7 +296,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, Search } from '@element-plus/icons-vue'
-import { PageHeader, DocumentUploader, SSEStreamViewer } from '@/components'
+import { DocumentUploader, SSEStreamViewer } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import type { Project, UploadUserFile } from '@/types'
 
@@ -603,7 +598,7 @@ const exportResponses = () => {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `点对点应答-${selectedProject.value?.name || 'export'}-${Date.now()}.txt`
+  link.download = `点对点应答-${selectedProject.value?.project_name || 'export'}-${Date.now()}.txt`
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)

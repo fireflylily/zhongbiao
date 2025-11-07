@@ -10,6 +10,7 @@
 
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '@/types'
+import { setupInterceptors } from './interceptors'
 
 /**
  * API客户端配置选项
@@ -80,6 +81,12 @@ class ApiClient {
   constructor(config: ApiClientConfig = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.instance = createAxiosInstance(this.config)
+
+    // Setup interceptors for CSRF token injection and error handling
+    setupInterceptors(this.instance, {
+      maxRetries: this.config.retryCount,
+      retryDelay: this.config.retryDelay
+    })
   }
 
   /**

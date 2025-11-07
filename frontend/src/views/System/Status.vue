@@ -1,10 +1,5 @@
 <template>
   <div class="system-status">
-    <PageHeader
-      title="系统状态"
-      description="查看系统运行状态和监控信息"
-    />
-
     <!-- 系统概览 -->
     <el-row :gutter="20">
       <el-col :span="6" v-for="item in overviewData" :key="item.label">
@@ -156,7 +151,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Cpu, DataAnalysis, Document, Timer, Refresh } from '@element-plus/icons-vue'
-import { PageHeader } from '@/components'
+// import { PageHeader } from '@/components' // Removed
 
 // 系统概览数据
 const overviewData = ref([

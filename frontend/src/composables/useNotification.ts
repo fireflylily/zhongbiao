@@ -41,10 +41,11 @@ export interface ConfirmOptions {
  */
 export interface UseNotificationReturn {
   // Message（轻量级提示）
-  success: (message: string, duration?: number) => void
-  error: (message: string, duration?: number) => void
-  warning: (message: string, duration?: number) => void
-  info: (message: string, duration?: number) => void
+  // 支持三种调用方式: fn('消息'), fn('消息', 3000), fn('标题', '消息')
+  success: (titleOrMessage: string, messageOrDuration?: string | number) => void
+  error: (titleOrMessage: string, messageOrDuration?: string | number) => void
+  warning: (titleOrMessage: string, messageOrDuration?: string | number) => void
+  info: (titleOrMessage: string, messageOrDuration?: string | number) => void
 
   // Notification（通知框）
   notify: (options: NotificationOptions) => void
@@ -71,8 +72,25 @@ export function useNotification(): UseNotificationReturn {
 
   /**
    * 成功消息
+   * 支持两种调用方式:
+   * 1. success('消息') - 只显示消息
+   * 2. success('消息', 3000) - 消息 + 自定义持续时间
+   * 3. success('标题', '消息') - 标题和消息组合显示
    */
-  function success(message: string, duration: number = 3000): void {
+  function success(titleOrMessage: string, messageOrDuration?: string | number): void {
+    let message: string
+    let duration: number
+
+    if (typeof messageOrDuration === 'string') {
+      // 第二个参数是字符串，说明第一个是标题，第二个是消息
+      message = `${titleOrMessage}: ${messageOrDuration}`
+      duration = 3000
+    } else {
+      // 第二个参数是数字或未定义，第一个参数就是消息
+      message = titleOrMessage
+      duration = messageOrDuration || 3000
+    }
+
     ElMessage.success({
       message,
       duration,
@@ -85,8 +103,25 @@ export function useNotification(): UseNotificationReturn {
 
   /**
    * 错误消息
+   * 支持两种调用方式:
+   * 1. error('消息') - 只显示消息
+   * 2. error('消息', 5000) - 消息 + 自定义持续时间
+   * 3. error('标题', '消息') - 标题和消息组合显示
    */
-  function error(message: string, duration: number = 5000): void {
+  function error(titleOrMessage: string, messageOrDuration?: string | number): void {
+    let message: string
+    let duration: number
+
+    if (typeof messageOrDuration === 'string') {
+      // 第二个参数是字符串，说明第一个是标题，第二个是消息
+      message = `${titleOrMessage}: ${messageOrDuration}`
+      duration = 5000
+    } else {
+      // 第二个参数是数字或未定义，第一个参数就是消息
+      message = titleOrMessage
+      duration = messageOrDuration || 5000
+    }
+
     ElMessage.error({
       message,
       duration,
@@ -99,8 +134,25 @@ export function useNotification(): UseNotificationReturn {
 
   /**
    * 警告消息
+   * 支持两种调用方式:
+   * 1. warning('消息') - 只显示消息
+   * 2. warning('消息', 3000) - 消息 + 自定义持续时间
+   * 3. warning('标题', '消息') - 标题和消息组合显示
    */
-  function warning(message: string, duration: number = 3000): void {
+  function warning(titleOrMessage: string, messageOrDuration?: string | number): void {
+    let message: string
+    let duration: number
+
+    if (typeof messageOrDuration === 'string') {
+      // 第二个参数是字符串，说明第一个是标题，第二个是消息
+      message = `${titleOrMessage}: ${messageOrDuration}`
+      duration = 3000
+    } else {
+      // 第二个参数是数字或未定义，第一个参数就是消息
+      message = titleOrMessage
+      duration = messageOrDuration || 3000
+    }
+
     ElMessage.warning({
       message,
       duration,
@@ -113,8 +165,25 @@ export function useNotification(): UseNotificationReturn {
 
   /**
    * 信息消息
+   * 支持两种调用方式:
+   * 1. info('消息') - 只显示消息
+   * 2. info('消息', 3000) - 消息 + 自定义持续时间
+   * 3. info('标题', '消息') - 标题和消息组合显示
    */
-  function info(message: string, duration: number = 3000): void {
+  function info(titleOrMessage: string, messageOrDuration?: string | number): void {
+    let message: string
+    let duration: number
+
+    if (typeof messageOrDuration === 'string') {
+      // 第二个参数是字符串，说明第一个是标题，第二个是消息
+      message = `${titleOrMessage}: ${messageOrDuration}`
+      duration = 3000
+    } else {
+      // 第二个参数是数字或未定义，第一个参数就是消息
+      message = titleOrMessage
+      duration = messageOrDuration || 3000
+    }
+
     ElMessage.info({
       message,
       duration,

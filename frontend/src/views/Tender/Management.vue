@@ -1,15 +1,12 @@
 <template>
   <div class="tender-management">
-    <PageHeader
-      title="投标管理"
-      description="HITL人机协同系统"
-    >
-      <template #actions>
-        <el-button type="primary" icon="Plus">新建项目</el-button>
-      </template>
-    </PageHeader>
-
     <Card title="项目列表">
+      <template #actions>
+        <el-button type="primary" :loading="creating" @click="handleCreate">
+          <i class="bi bi-plus-lg"></i> 新建项目
+        </el-button>
+      </template>
+
       <Loading v-if="loading" text="加载中..." />
       <Empty v-else-if="!projects.length" type="no-data" description="暂无项目" />
       <el-table v-else :data="projects" stripe style="width: 100%">
@@ -73,13 +70,10 @@
 
         <el-table-column prop="created_at" label="创建时间" width="160" show-overflow-tooltip />
 
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="handleView(row)">
               查看
-            </el-button>
-            <el-button text type="warning" size="small" @click="handleEdit(row)">
-              编辑
             </el-button>
             <el-button text type="danger" size="small" @click="handleDelete(row)">
               删除
@@ -93,15 +87,19 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { PageHeader, Card, Loading, Empty } from '@/components'
+import { useRouter } from 'vue-router'
+import { Card, Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { tenderApi } from '@/api/endpoints/tender'
+import { companyApi } from '@/api/endpoints/company'
 
 // 状态
 const loading = ref(false)
+const creating = ref(false)
 const projects = ref<any[]>([])
 
 // Hooks
+const router = useRouter()
 const { success, error } = useNotification()
 
 // 方法
@@ -170,15 +168,68 @@ const hasFinalMerge = (project: any): boolean => {
 }
 
 const handleView = (row: any) => {
-  success('查看功能', '待实现')
+  // 跳转到项目详情页
+  router.push({
+    name: 'TenderManagementDetail',
+    params: { id: row.id }
+  })
 }
 
-const handleEdit = (row: any) => {
-  success('编辑功能', '待实现')
+const handleDelete = async (row: any) => {
+  try {
+    // 确认删除
+    if (!confirm(`确定要删除项目 "${row.name}" 吗？此操作将同时删除项目的所有文档，且不可恢复。`)) {
+      return
+    }
+
+    await tenderApi.deleteProject(row.id)
+    success('删除成功', `已删除项目: ${row.name}`)
+
+    // 重新加载列表
+    await loadProjects()
+  } catch (err) {
+    console.error('删除项目失败:', err)
+    error('删除失败', err instanceof Error ? err.message : '未知错误')
+  }
 }
 
-const handleDelete = (row: any) => {
-  success('删除功能', '待实现')
+// 创建新项目
+const handleCreate = async () => {
+  creating.value = true
+  try {
+    // 获取公司列表，使用第一个公司作为默认值
+    const companiesResponse = await companyApi.getCompanies()
+    const companies = companiesResponse.data || []
+
+    if (companies.length === 0) {
+      error('无法创建项目：请先添加公司信息')
+      return
+    }
+
+    // 创建空白项目
+    const response = await tenderApi.createProject({
+      project_name: '新项目',
+      project_number: `PRJ-${Date.now()}`,
+      company_id: companies[0].company_id
+    })
+
+    // 后端返回格式: { success: true, project_id: xxx, message: '' }
+    // apiClient.post已经返回response.data，所以response就是后端的响应体
+    const projectId = (response as any).project_id
+    success('创建成功')
+
+    // 跳转到项目详情页
+    router.push({
+      name: 'TenderManagementDetail',
+      params: { id: projectId }
+    })
+  } catch (err) {
+    console.error('创建项目失败:', err)
+    const errorMessage = err instanceof Error ? err.message : '未知错误'
+    error(`创建项目失败：${errorMessage}`)
+  } finally {
+    creating.value = false
+  }
 }
 
 // 生命周期

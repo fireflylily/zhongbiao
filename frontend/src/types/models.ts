@@ -66,11 +66,11 @@ export interface QualificationType {
 
 export interface Project {
   id: number
-  name: string
-  number?: string
+  project_name: string
+  project_number?: string
   company_id: number
   company_name?: string
-  status: 'pending' | 'processing' | 'hitl_review' | 'completed' | 'failed'
+  status: 'pending' | 'processing' | 'hitl_review' | 'completed' | 'failed' | 'draft' | 'active'
   created_at: string
   updated_at?: string
   deadline?: string
@@ -81,10 +81,41 @@ export interface Project {
 }
 
 export interface ProjectDetail extends Project {
+  // 别名字段 (用于兼容前端组件)
+  name?: string  // 别名 project_name
+  number?: string  // 别名 project_number
+
+  // 文档路径
   tender_file_path?: string
+  tender_document_path?: string
   business_doc_path?: string
   p2p_doc_path?: string
   tech_doc_path?: string
+
+  // 招标信息
+  tender_unit?: string
+  tender_agency?: string
+  budget_amount?: number
+  project_type?: string
+  registration_deadline?: string
+  bid_deadline?: string
+  bid_opening_time?: string
+  bid_opening_location?: string
+
+  // 联系人信息
+  project_manager_name?: string
+  project_manager_phone?: string
+  tech_lead_name?: string
+  tech_lead_phone?: string
+  business_contact_name?: string
+  business_contact_phone?: string
+  authorized_person_name?: string
+  authorized_person_id?: string
+
+  // AI处理数据
+  step1_data?: any  // 包含章节、文件路径等AI提取的数据
+
+  // 章节和需求
   chapters?: Chapter[]
   requirements?: Requirement[]
 }
@@ -381,4 +412,68 @@ export interface Statistics {
   total_documents: number
   total_cases: number
   total_resumes: number
+}
+
+// ============================================
+// 资格要求相关
+// ============================================
+
+// 资质证书要求
+export interface CertificationRequirement {
+  name: string
+  level?: string
+  note: string
+  required: boolean
+  detail?: string
+}
+
+// 业绩要求
+export interface PerformanceRequirement {
+  description: string
+  detail: string
+  amount?: number
+  time_range?: string
+  count?: number
+  required: boolean
+}
+
+// 人员配置要求
+export interface PersonnelRequirement {
+  position: string
+  detail: string
+  count?: number
+  qualification?: string
+  experience?: string
+  required: boolean
+}
+
+// 财务要求
+export interface FinancialRequirement {
+  description: string
+  registered_capital?: number
+  annual_revenue?: number
+  total_assets?: number
+  net_assets?: number
+  bank_credit?: boolean
+}
+
+// 资格要求汇总
+export interface QualificationsData {
+  certifications: CertificationRequirement[]
+  performance: PerformanceRequirement[]
+  personnel: PersonnelRequirement[]
+  financial: FinancialRequirement | null
+}
+
+// 后端存储的原始格式（tender_requirements表）
+export interface RawQualificationItem {
+  requirement_id: number
+  constraint_type: 'mandatory' | 'optional' | 'scoring'
+  detail: string
+  summary: string
+  source_location?: string
+  priority?: 'high' | 'medium' | 'low'
+  extraction_confidence?: number
+  is_verified?: boolean
+  created_at?: string
 }

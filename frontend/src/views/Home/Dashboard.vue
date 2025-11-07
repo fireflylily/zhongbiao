@@ -10,15 +10,6 @@
 
 <template>
   <div class="dashboard-page">
-    <!-- 页面头部 -->
-    <PageHeader title="工作台" description="欢迎使用AI智能标书生成平台">
-      <template #actions>
-        <el-button type="primary" icon="Plus" @click="handleCreateProject">
-          新建项目
-        </el-button>
-      </template>
-    </PageHeader>
-
     <!-- KPI统计卡片 -->
     <el-row :gutter="16" class="kpi-cards">
       <el-col :xs="12" :sm="12" :md="6" :lg="6">
@@ -95,10 +86,10 @@
 
       <template v-else>
         <el-table :data="projects" stripe style="width: 100%">
-          <el-table-column prop="name" label="项目名称" min-width="200">
+          <el-table-column prop="project_name" label="项目名称" min-width="200">
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewProject(row)">
-                {{ row.name }}
+                {{ row.project_name }}
               </el-link>
             </template>
           </el-table-column>
@@ -195,7 +186,7 @@ import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
 import { tenderApi } from '@/api'
 import { useNotification } from '@/composables'
-import { Card, Loading, Empty, PageHeader, IconButton } from '@/components'
+import { Card, Loading, Empty, IconButton } from '@/components'
 import type { Project } from '@/types'
 import dayjs from 'dayjs'
 
@@ -422,7 +413,7 @@ function handleContinueProject(project: Project): void {
  */
 async function handleArchiveProject(project: Project): Promise<void> {
   const confirmed = await confirm(
-    `确定要归档项目"${project.name}"吗?`,
+    `确定要归档项目"${project.project_name}"吗?`,
     '归档项目',
     '归档后项目将不再显示在进行中列表'
   )

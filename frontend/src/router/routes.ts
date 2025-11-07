@@ -60,6 +60,21 @@ export const routes: RouteRecordRaw[] = [
         }
       },
 
+      // 项目详情页
+      {
+        path: 'tender-management/:id',
+        name: 'TenderManagementDetail',
+        component: () => import('@/views/Tender/ManagementDetail.vue'),
+        meta: {
+          title: '项目详情',
+          icon: 'bi-file-earmark-text',
+          parent: 'TenderManagement',
+          showInMenu: false,
+          hideBreadcrumb: false,
+          description: '查看项目详细信息和资格要求'
+        }
+      },
+
       // ========== AI核心工具 - 智能应答 ==========
       {
         path: 'business-response',
@@ -123,7 +138,6 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           title: '知识中心',
           icon: 'bi-book',
-          category: 'knowledge',
           order: 7,
           description: 'AI系统的大脑和资料库'
         },
@@ -136,7 +150,6 @@ export const routes: RouteRecordRaw[] = [
             meta: {
               title: '企业库',
               icon: 'bi-building',
-              category: 'knowledge',
               order: 1,
               parent: 'Knowledge',
               keepAlive: true,
@@ -152,7 +165,6 @@ export const routes: RouteRecordRaw[] = [
             meta: {
               title: '企业详情',
               icon: 'bi-building',
-              category: 'knowledge',
               parent: 'Knowledge',
               showInMenu: false,
               hideBreadcrumb: false,
@@ -168,7 +180,6 @@ export const routes: RouteRecordRaw[] = [
             meta: {
               title: '案例库',
               icon: 'bi-archive',
-              category: 'knowledge',
               order: 2,
               parent: 'Knowledge',
               keepAlive: true,
@@ -184,7 +195,6 @@ export const routes: RouteRecordRaw[] = [
             meta: {
               title: '文档库',
               icon: 'bi-folder',
-              category: 'knowledge',
               order: 3,
               parent: 'Knowledge',
               keepAlive: true,
@@ -200,7 +210,6 @@ export const routes: RouteRecordRaw[] = [
             meta: {
               title: '简历库',
               icon: 'bi-person-badge',
-              category: 'knowledge',
               order: 4,
               parent: 'Knowledge',
               keepAlive: true,
