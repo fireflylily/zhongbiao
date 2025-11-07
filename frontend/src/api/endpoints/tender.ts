@@ -215,13 +215,13 @@ export const tenderApi = {
   /**
    * 保存应答文件章节
    */
-  async saveResponseFile(taskId: string, chapterIds: string[]): Promise<ApiResponse<{
+  async saveResponseFile(projectId: number, chapterIds: string[]): Promise<ApiResponse<{
     file_path: string
     file_url: string
     filename: string
     file_size: number
   }>> {
-    return apiClient.post(`/tender-processing/save-response-file/${taskId}`, {
+    return apiClient.post(`/tender-processing/save-response-file/${projectId}`, {
       chapter_ids: chapterIds
     })
   },
@@ -229,13 +229,13 @@ export const tenderApi = {
   /**
    * 保存技术需求章节
    */
-  async saveTechnicalChapters(taskId: string, chapterIds: string[]): Promise<ApiResponse<{
+  async saveTechnicalChapters(projectId: number, chapterIds: string[]): Promise<ApiResponse<{
     file_path: string
     file_url: string
     filename: string
     file_size: number
   }>> {
-    return apiClient.post(`/tender-processing/save-technical-chapters/${taskId}`, {
+    return apiClient.post(`/tender-processing/save-technical-chapters/${projectId}`, {
       chapter_ids: chapterIds
     })
   },
@@ -243,7 +243,7 @@ export const tenderApi = {
   /**
    * AI提取基本信息
    */
-  async extractBasicInfo(taskId: string): Promise<ApiResponse<{
+  async extractBasicInfo(projectId: number): Promise<ApiResponse<{
     project_name?: string
     project_number?: string
     tender_party?: string
@@ -253,14 +253,14 @@ export const tenderApi = {
     tender_deadline?: string
     winner_count?: number
   }>> {
-    return apiClient.post(`/tender-processing/extract-basic-info/${taskId}`, {})
+    return apiClient.post(`/tender-processing/extract-basic-info/${projectId}`, {})
   },
 
   /**
    * AI提取资格要求
    */
-  async extractQualifications(taskId: string): Promise<ApiResponse<any>> {
-    return apiClient.post(`/tender-processing/extract-qualifications/${taskId}`, {})
+  async extractQualifications(projectId: number): Promise<ApiResponse<any>> {
+    return apiClient.post(`/tender-processing/extract-qualifications/${projectId}`, {})
   },
 
   // ==================== 文档融合 ====================
@@ -313,22 +313,22 @@ export const tenderApi = {
   /**
    * 获取HITL任务详情
    */
-  async getHITLTask(hitlTaskId: string): Promise<ApiResponse<any>> {
-    return apiClient.get(`/hitl/${hitlTaskId}`)
+  async getHITLTask(projectId: number): Promise<ApiResponse<any>> {
+    return apiClient.get(`/tender-processing/hitl-tasks/${projectId}`)
   },
 
   /**
    * 更新HITL任务状态
    */
-  async updateHITLTask(hitlTaskId: string, data: any): Promise<ApiResponse<void>> {
-    return apiClient.put(`/hitl/${hitlTaskId}`, data)
+  async updateHITLTask(projectId: number, data: any): Promise<ApiResponse<void>> {
+    return apiClient.put(`/tender-processing/hitl-tasks/${projectId}`, data)
   },
 
   /**
    * 提交HITL审核
    */
-  async submitHITLReview(hitlTaskId: string, data: any): Promise<ApiResponse<void>> {
-    return apiClient.post(`/hitl/${hitlTaskId}/submit`, data)
+  async submitHITLReview(projectId: number, data: any): Promise<ApiResponse<void>> {
+    return apiClient.post(`/tender-processing/hitl-tasks/${projectId}/submit`, data)
   },
 
   // ==================== 统计数据 ====================

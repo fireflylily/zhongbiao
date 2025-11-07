@@ -75,8 +75,7 @@ class TenderProcessingPipeline:
         self.extract_model = extract_model
         self.progress_callback = progress_callback
 
-        # 生成任务ID
-        self.task_id = f"task_{project_id}_{uuid.uuid4().hex[:8]}"
+        # 不再生成task_id，直接使用project_id
 
         # 初始化组件
         self.chunker = DocumentChunker(max_chunk_size=800, overlap_size=100)
@@ -97,7 +96,7 @@ class TenderProcessingPipeline:
         self.start_time = None
         self.end_time = None
 
-        logger.info(f"初始化处理流程 - 任务ID: {self.task_id}, 项目ID: {project_id}")
+        logger.info(f"初始化处理流程 - 项目ID: {project_id}")
 
     def _update_progress(self, step: str, status: str, processed: int = 0, total: int = 0):
         """
@@ -138,7 +137,7 @@ class TenderProcessingPipeline:
         """更新任务状态到数据库"""
         try:
             self.db.update_processing_task(
-                task_id=self.task_id,
+                project_id=self.project_id,
                 current_step=current_step,
                 overall_status=status,
                 progress_percentage=progress
@@ -244,7 +243,7 @@ class TenderProcessingPipeline:
 
             # 更新任务统计
             self.db.update_processing_task(
-                task_id=self.task_id,
+                project_id=self.project_id,
                 total_chunks=len(self.chunks)
             )
 
@@ -295,7 +294,7 @@ class TenderProcessingPipeline:
 
             # 更新任务统计
             self.db.update_processing_task(
-                task_id=self.task_id,
+                project_id=self.project_id,
                 valuable_chunks=valuable_count
             )
 
@@ -360,7 +359,7 @@ class TenderProcessingPipeline:
 
             # 更新任务统计
             self.db.update_processing_task(
-                task_id=self.task_id,
+                project_id=self.project_id,
                 total_requirements=len(self.requirements)
             )
 
@@ -391,7 +390,6 @@ class TenderProcessingPipeline:
             result: 处理结果
         """
         logger.info("🚀 启动标书智能处理流程")
-        logger.info(f"   任务ID: {self.task_id}")
         logger.info(f"   项目ID: {self.project_id}")
         logger.info(f"   文档长度: {len(self.document_text)} 字符")
 
@@ -401,7 +399,6 @@ class TenderProcessingPipeline:
         try:
             self.db.create_processing_task(
                 project_id=self.project_id,
-                task_id=self.task_id,
                 pipeline_config={
                     'filter_model': self.filter_model,
                     'extract_model': self.extract_model
@@ -432,7 +429,7 @@ class TenderProcessingPipeline:
         # 更新任务状态
         final_status = 'completed' if overall_success else 'failed'
         self.db.update_processing_task(
-            task_id=self.task_id,
+            project_id=self.project_id,
             overall_status=final_status,
             progress_percentage=100.0 if overall_success else 0.0
         )
@@ -440,7 +437,6 @@ class TenderProcessingPipeline:
         # 生成结果报告
         result = {
             'success': overall_success,
-            'task_id': self.task_id,
             'project_id': self.project_id,
             'statistics': {
                 'total_chunks': len(self.chunks),
@@ -501,7 +497,6 @@ class TenderProcessingPipeline:
             try:
                 self.db.create_processing_task(
                     project_id=self.project_id,
-                    task_id=self.task_id,
                     pipeline_config={
                         'filter_model': self.filter_model,
                         'extract_model': self.extract_model
@@ -530,7 +525,6 @@ class TenderProcessingPipeline:
         # 构建返回结果
         result = {
             'success': success,
-            'task_id': self.task_id,
             'project_id': self.project_id,
             'step': step,
             'step_name': step_name

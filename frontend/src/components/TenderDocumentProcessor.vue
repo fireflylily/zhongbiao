@@ -28,6 +28,13 @@
                   <div>
                     <el-button
                       size="small"
+                      @click="handlePreviewExisting"
+                    >
+                      <i class="bi bi-eye me-1"></i>
+                      预览
+                    </el-button>
+                    <el-button
+                      size="small"
                       @click="handleClearExisting"
                     >
                       <i class="bi bi-arrow-repeat me-1"></i>
@@ -217,7 +224,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   success: [type: 'response' | 'technical']
   refresh: []
-  taskIdUpdate: [taskId: string]
+  preview: [fileUrl: string, fileName: string]
 }>()
 
 // 状态
@@ -233,7 +240,6 @@ const selectedChapterIds = ref<string[]>([])
 const selectedChapterNodes = ref<Chapter[]>([])
 const savingResponse = ref(false)
 const savingTechnical = ref(false)
-const currentTaskId = ref<string | null>(null) // 保存task_id
 const existingDocumentInfo = ref<any>(null) // 已存在的文档信息
 
 // 计算属性
@@ -278,12 +284,18 @@ const handleFileRemove = () => {
   selectedChapterIds.value = []
 }
 
+// 预览已上传的文档
+const handlePreviewExisting = () => {
+  if (existingDocumentInfo.value) {
+    emit('preview', existingDocumentInfo.value.path, existingDocumentInfo.value.name)
+  }
+}
+
 // 清除已存在的文档，允许重新上传
 const handleClearExisting = () => {
   existingDocumentInfo.value = null
   chapters.value = []
   selectedChapterIds.value = []
-  currentTaskId.value = null
   activeNames.value = ['upload']
 }
 
@@ -309,13 +321,6 @@ const handleParse = async () => {
     if (response.success) {
       // 后端直接返回chapters，不在data字段中
       chapters.value = (response as any).chapters || []
-
-      // 保存并发送task_id
-      const taskId = (response as any).task_id
-      if (taskId) {
-        currentTaskId.value = taskId
-        emit('taskIdUpdate', taskId)
-      }
 
       ElMessage.success('文档解析成功')
 
@@ -396,16 +401,11 @@ const handleSaveAsResponse = async () => {
     return
   }
 
-  if (!currentTaskId.value) {
-    ElMessage.warning('缺少任务ID，请重新解析文档')
-    return
-  }
-
   savingResponse.value = true
 
   try {
     // 调用API保存
-    await tenderApi.saveResponseFile(currentTaskId.value, selectedChapterIds.value)
+    await tenderApi.saveResponseFile(props.projectId, selectedChapterIds.value)
 
     ElMessage.success('应答文件保存成功')
     emit('success', 'response')
@@ -425,16 +425,11 @@ const handleSaveAsTechnical = async () => {
     return
   }
 
-  if (!currentTaskId.value) {
-    ElMessage.warning('缺少任务ID，请重新解析文档')
-    return
-  }
-
   savingTechnical.value = true
 
   try {
     // 调用API保存
-    await tenderApi.saveTechnicalChapters(currentTaskId.value, selectedChapterIds.value)
+    await tenderApi.saveTechnicalChapters(props.projectId, selectedChapterIds.value)
 
     ElMessage.success('技术需求保存成功')
     emit('success', 'technical')
@@ -510,12 +505,6 @@ const initializeExistingData = () => {
       name: filename,
       uploadedAt: props.projectDetail.created_at
     }
-  }
-
-  // 提取task_id
-  if (step1Data?.task_id) {
-    currentTaskId.value = step1Data.task_id
-    emit('taskIdUpdate', step1Data.task_id)
   }
 
   // 加载已解析的章节

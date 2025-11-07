@@ -51,7 +51,7 @@
 
       <DocumentUploader
         v-model="form.tenderFiles"
-        :upload-url="`/api/tender-projects/${form.projectId}/upload-tender`"
+        :http-request="handleTenderUpload"
         accept=".pdf,.doc,.docx"
         :limit="5"
         :max-size="50"
@@ -295,6 +295,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { UploadRequestOptions } from 'element-plus'
 import { Download, Search } from '@element-plus/icons-vue'
 import { DocumentUploader, SSEStreamViewer } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
@@ -371,6 +372,44 @@ const currentRequirement = ref<Requirement | null>(null)
 const canExtract = computed(() =>
   form.value.projectId && form.value.tenderFiles.length > 0
 )
+
+// 自定义上传函数：招标文档
+const handleTenderUpload = async (options: UploadRequestOptions) => {
+  const { file, onSuccess, onError } = options
+
+  if (!form.value.projectId) {
+    const error = new Error('请先选择项目')
+    onError(error)
+    ElMessage.error('请先选择项目')
+    return
+  }
+
+  if (!selectedProject.value?.company_id) {
+    const error = new Error('项目没有关联公司')
+    onError(error)
+    ElMessage.error('项目没有关联公司')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('company_id', selectedProject.value.company_id.toString())
+    formData.append('project_id', form.value.projectId.toString())
+
+    const response = await tenderApi.parseDocumentStructure(formData)
+
+    if (response.success) {
+      onSuccess(response.data)
+      ElMessage.success('招标文档上传成功')
+    } else {
+      throw new Error(response.message || '上传失败')
+    }
+  } catch (error: any) {
+    onError(error)
+    ElMessage.error(error.message || '招标文档上传失败')
+  }
+}
 
 // 加载项目列表
 const loadProjects = async () => {

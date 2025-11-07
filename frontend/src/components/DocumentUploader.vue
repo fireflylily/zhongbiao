@@ -3,6 +3,7 @@
     <el-upload
       ref="uploadRef"
       :action="uploadUrl"
+      :http-request="httpRequest"
       :headers="uploadHeaders"
       :data="uploadData"
       :accept="accept"
@@ -50,7 +51,7 @@
           <div class="upload-file-item">
             <el-icon class="file-icon"><Document /></el-icon>
             <span class="file-name">{{ file.name }}</span>
-            <span class="file-size">{{ formatFileSize(file.size) }}</span>
+            <!-- 文件大小已隐藏 -->
             <el-progress
               v-if="file.status === 'uploading'"
               :percentage="file.percentage"
@@ -95,6 +96,8 @@ interface Props {
   uploadHeaders?: Record<string, string>
   /** 上传额外数据 */
   uploadData?: Record<string, any>
+  /** 自定义上传函数 */
+  httpRequest?: UploadProps['httpRequest']
   /** 接受的文件类型 */
   accept?: string
   /** 最大上传文件数 */
@@ -196,22 +199,6 @@ const handleExceed: UploadProps['onExceed'] = (files, fileList) => {
 const handleRemove: UploadProps['onRemove'] = (file, fileList) => {
   emit('remove', file, fileList)
   emit('update:modelValue', fileList)
-}
-
-// 格式化文件大小
-const formatFileSize = (size?: number): string => {
-  if (!size) return '0 B'
-
-  const units = ['B', 'KB', 'MB', 'GB']
-  let unitIndex = 0
-  let fileSize = size
-
-  while (fileSize >= 1024 && unitIndex < units.length - 1) {
-    fileSize /= 1024
-    unitIndex++
-  }
-
-  return `${fileSize.toFixed(2)} ${units[unitIndex]}`
 }
 
 // 清空文件列表

@@ -545,6 +545,27 @@ class BiddingDocumentExtractor:
             # 创建新文档并保持格式
             new_doc = Document()
 
+            # 复制原文档的节属性（页面设置）
+            try:
+                if self.current_doc.sections:
+                    source_section = self.current_doc.sections[0]
+                    target_section = new_doc.sections[0]
+
+                    # 复制页面尺寸和方向
+                    target_section.page_width = source_section.page_width
+                    target_section.page_height = source_section.page_height
+                    target_section.orientation = source_section.orientation
+
+                    # 复制页边距
+                    target_section.top_margin = source_section.top_margin
+                    target_section.bottom_margin = source_section.bottom_margin
+                    target_section.left_margin = source_section.left_margin
+                    target_section.right_margin = source_section.right_margin
+
+                    logger.info(f"已复制节属性: 页面{source_section.page_width.mm:.0f}x{source_section.page_height.mm:.0f}mm")
+            except Exception as e:
+                logger.warning(f"复制节属性失败: {e}，将使用默认页面设置")
+
             # 按原文顺序复制内容，包括段落和表格
             logger.info(f"正在生成文件 '{section_name}', 包含 {len(section_info.content)} 个元素")
 

@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS tender_document_chunks (
     filter_confidence FLOAT DEFAULT NULL,  -- 筛选置信度 0.0-1.0
     filtered_at TIMESTAMP DEFAULT NULL,
     filter_model VARCHAR(50) DEFAULT NULL,  -- 使用的筛选模型
-    hitl_task_id VARCHAR(100),  -- HITL任务ID，用于按任务隔离chunks
 
     -- 元数据
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -31,8 +30,6 @@ CREATE INDEX IF NOT EXISTS idx_chunks_project_id ON tender_document_chunks(proje
 CREATE INDEX IF NOT EXISTS idx_chunks_project_index ON tender_document_chunks(project_id, chunk_index);
 CREATE INDEX IF NOT EXISTS idx_chunks_valuable ON tender_document_chunks(project_id, is_valuable);
 CREATE INDEX IF NOT EXISTS idx_chunks_type ON tender_document_chunks(chunk_type);
-CREATE INDEX IF NOT EXISTS idx_chunks_hitl_task ON tender_document_chunks(hitl_task_id);
-CREATE INDEX IF NOT EXISTS idx_chunks_project_hitl ON tender_document_chunks(project_id, hitl_task_id);
 
 
 -- 2. 提取的要求表
@@ -56,7 +53,6 @@ CREATE TABLE IF NOT EXISTS tender_requirements (
     extraction_confidence FLOAT DEFAULT NULL,  -- 提取置信度
     extraction_model VARCHAR(50) DEFAULT NULL,  -- 使用的提取模型
     extracted_at TIMESTAMP DEFAULT NULL,
-    hitl_task_id VARCHAR(100),  -- HITL任务ID，用于按任务隔离需求
 
     -- 验证和审核
     is_verified BOOLEAN DEFAULT FALSE,  -- 人工验证标记
@@ -78,15 +74,12 @@ CREATE INDEX IF NOT EXISTS idx_requirements_type ON tender_requirements(project_
 CREATE INDEX IF NOT EXISTS idx_requirements_category ON tender_requirements(project_id, category);
 CREATE INDEX IF NOT EXISTS idx_requirements_priority ON tender_requirements(priority);
 CREATE INDEX IF NOT EXISTS idx_requirements_verified ON tender_requirements(is_verified);
-CREATE INDEX IF NOT EXISTS idx_requirements_hitl_task ON tender_requirements(hitl_task_id);
-CREATE INDEX IF NOT EXISTS idx_requirements_project_hitl ON tender_requirements(project_id, hitl_task_id);
 
 
 -- 3. 处理日志表
 CREATE TABLE IF NOT EXISTS tender_processing_logs (
     log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL,
-    task_id VARCHAR(100) UNIQUE,  -- 唯一任务ID（用于前端查询进度）
+    project_id INTEGER NOT NULL UNIQUE,  -- 唯一项目ID（用于前端查询进度）
 
     -- 流程步骤
     step VARCHAR(20) NOT NULL,  -- chunking/filtering/extraction/completed/failed
@@ -123,15 +116,13 @@ CREATE TABLE IF NOT EXISTS tender_processing_logs (
 
 -- 为日志表创建索引
 CREATE INDEX IF NOT EXISTS idx_logs_project_id ON tender_processing_logs(project_id);
-CREATE INDEX IF NOT EXISTS idx_logs_task_id ON tender_processing_logs(task_id);
 CREATE INDEX IF NOT EXISTS idx_logs_step_status ON tender_processing_logs(step, status);
 CREATE INDEX IF NOT EXISTS idx_logs_created_at ON tender_processing_logs(created_at DESC);
 
 
 -- 4. 处理任务表（用于异步任务管理）
 CREATE TABLE IF NOT EXISTS tender_processing_tasks (
-    task_id VARCHAR(100) PRIMARY KEY,
-    project_id INTEGER NOT NULL,
+    project_id INTEGER PRIMARY KEY,  -- 项目ID作为主键（一个项目一个任务）
 
     -- 任务配置
     pipeline_config TEXT,  -- JSON格式的流程配置
@@ -155,7 +146,6 @@ CREATE TABLE IF NOT EXISTS tender_processing_tasks (
     FOREIGN KEY (project_id) REFERENCES tender_projects(project_id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tender_processing_tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tender_processing_tasks(overall_status);
 
 
@@ -192,16 +182,15 @@ END;
 CREATE VIEW IF NOT EXISTS v_processing_statistics AS
 SELECT
     t.project_id,
-    t.task_id,
     t.overall_status,
     t.progress_percentage,
     t.total_chunks,
     t.valuable_chunks,
     t.total_requirements,
     -- 成本汇总
-    SUM(l.actual_cost) as total_cost,
-    SUM(l.api_calls) as total_api_calls,
-    SUM(l.total_tokens) as total_tokens,
+    l.actual_cost as total_cost,
+    l.api_calls as total_api_calls,
+    l.total_tokens as total_tokens,
     -- 时间汇总
     t.created_at,
     t.started_at,
@@ -212,8 +201,7 @@ SELECT
         ELSE NULL
     END as duration_seconds
 FROM tender_processing_tasks t
-LEFT JOIN tender_processing_logs l ON t.task_id = l.task_id
-GROUP BY t.task_id;
+LEFT JOIN tender_processing_logs l ON t.project_id = l.project_id;
 
 
 -- =====================================================

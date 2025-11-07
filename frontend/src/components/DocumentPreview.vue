@@ -68,6 +68,47 @@ const dialogTitle = computed(() => {
   return `文档预览 - ${props.fileName || '未命名文档'}`
 })
 
+// 将文件路径转换为API URL
+const convertFilePathToUrl = (filePath: string): string => {
+  // 如果已经是完整的URL，直接返回
+  if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('/api/')) {
+    return filePath
+  }
+
+  // 处理本地文件路径
+  let apiPath = filePath
+
+  // 移除可能的前缀路径
+  const prefixes = [
+    '/Users/lvhe/Downloads/zhongbiao/zhongbiao/',
+    'ai_tender_system/data/',
+    'data/'
+  ]
+
+  for (const prefix of prefixes) {
+    if (apiPath.includes(prefix)) {
+      apiPath = apiPath.substring(apiPath.indexOf(prefix) + prefix.length)
+    }
+  }
+
+  // 处理以 /download/ 开头的路径（这些通常是output目录的文件）
+  if (apiPath.startsWith('/download/')) {
+    // 移除开头的斜杠，直接使用相对路径
+    apiPath = apiPath.substring(1)
+  }
+  // 处理以 download/ 开头的路径
+  else if (apiPath.startsWith('download/')) {
+    // 保持原样
+  }
+  // 确保其他路径以 uploads/ 开头
+  else if (!apiPath.startsWith('uploads/')) {
+    apiPath = 'uploads/' + apiPath
+  }
+
+  // 构建API URL
+  return `/api/files/serve/${apiPath}`
+}
+
 // 加载文档
 const loadDocument = async () => {
   if (!props.fileUrl) {
@@ -79,10 +120,12 @@ const loadDocument = async () => {
   error.value = ''
 
   try {
+    const fileUrl = convertFilePathToUrl(props.fileUrl)
     console.log('[DocumentPreview] 开始加载文档:', props.fileUrl)
+    console.log('[DocumentPreview] 转换后的URL:', fileUrl)
 
     // 获取文档数据
-    const response = await fetch(props.fileUrl)
+    const response = await fetch(fileUrl)
     if (!response.ok) {
       throw new Error(`HTTP错误: ${response.status}`)
     }
@@ -163,6 +206,18 @@ watch(
       padding: 40px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
       min-height: 500px;
+    }
+
+    // 统一页面宽度，防止不同尺寸的页面显示不一致
+    :deep(.docx-wrapper) {
+      max-width: 900px;
+      margin: 0 auto;
+
+      section {
+        margin: 20px auto !important;
+        max-width: 100%;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
     }
 
     // 保留Word文档的样式

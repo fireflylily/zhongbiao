@@ -112,28 +112,28 @@ def start_tender_processing():
         from modules.tender_processing.processing_pipeline import TenderProcessingPipeline
 
         # 创建流程实例（异步处理需要在后台线程中运行）
-        result_holder = {'task_id': None, 'error': None}
+        result_holder = {'project_id': None, 'error': None}
 
         def run_pipeline():
             try:
                 from web.shared.instances import set_pipeline_instance
 
                 pipeline = TenderProcessingPipeline(
-                    project_id=project_id,
+                    project_id=int(project_id),
                     document_text=document_text,
                     filter_model=filter_model,
                     extract_model=extract_model
                 )
-                result_holder['task_id'] = pipeline.task_id
+                result_holder['project_id'] = pipeline.project_id
 
-                # 保存pipeline实例到全局存储（线程安全）
-                set_pipeline_instance(pipeline.task_id, pipeline)
+                # 保存pipeline实例到全局存储（使用project_id作为key）
+                set_pipeline_instance(pipeline.project_id, pipeline)
 
                 # 运行指定步骤
                 result = pipeline.run_step(step)
                 result_holder['result'] = result
 
-                logger.info(f"步骤 {step} 处理完成 - 任务ID: {pipeline.task_id}, 成功: {result['success']}")
+                logger.info(f"步骤 {step} 处理完成 - 项目ID: {pipeline.project_id}, 成功: {result['success']}")
             except Exception as e:
                 logger.error(f"处理流程执行失败: {e}")
                 result_holder['error'] = str(e)
@@ -142,22 +142,22 @@ def start_tender_processing():
         thread = threading.Thread(target=run_pipeline, daemon=True)
         thread.start()
 
-        # 等待task_id生成
+        # 等待project_id确认
         for _ in range(TASK_START_MAX_RETRIES):
-            if result_holder['task_id'] or result_holder['error']:
+            if result_holder['project_id'] or result_holder['error']:
                 break
             time.sleep(TASK_START_RETRY_INTERVAL)
 
         if result_holder['error']:
             return jsonify({'success': False, 'error': result_holder['error']}), 500
 
-        if not result_holder['task_id']:
+        if not result_holder['project_id']:
             return jsonify({'success': False, 'error': '任务启动超时'}), 500
 
         return jsonify({
             'success': True,
-            'task_id': result_holder['task_id'],
-            'message': '处理任务已启动，请使用task_id查询进度'
+            'project_id': result_holder['project_id'],
+            'message': '处理任务已启动，请使用project_id查询进度'
         })
 
     except Exception as e:
@@ -166,13 +166,13 @@ def start_tender_processing():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_tender_processing_bp.route('/continue/<task_id>', methods=['POST'])
-def continue_tender_processing(task_id):
+@api_tender_processing_bp.route('/continue/<int:project_id>', methods=['POST'])
+def continue_tender_processing(project_id):
     """
     继续执行下一步骤
 
     Args:
-        task_id: 任务ID
+        project_id: 项目ID
 
     Request Body:
         {
@@ -182,7 +182,7 @@ def continue_tender_processing(task_id):
     Returns:
         {
             "success": true,
-            "task_id": "...",
+            "project_id": 123,
             "result": {...},
             "message": "步骤处理完成"
         }
@@ -194,10 +194,10 @@ def continue_tender_processing(task_id):
         data = request.get_json()
         step = data.get('step', 2)  # 默认执行第2步
 
-        # 从全局存储中获取pipeline实例（线程安全）
-        pipeline = get_pipeline_instance(task_id)
+        # 从全局存储中获取pipeline实例（使用project_id）
+        pipeline = get_pipeline_instance(project_id)
         if pipeline is None:
-            return jsonify({'success': False, 'error': f'找不到任务 {task_id} 的pipeline实例或已过期'}), 404
+            return jsonify({'success': False, 'error': f'找不到项目 {project_id} 的pipeline实例或已过期'}), 404
 
         # 在后台线程中执行步骤
         result_holder = {'result': None, 'error': None}
@@ -206,7 +206,7 @@ def continue_tender_processing(task_id):
             try:
                 result = pipeline.run_step(step)
                 result_holder['result'] = result
-                logger.info(f"步骤 {step} 处理完成 - 任务ID: {task_id}, 成功: {result['success']}")
+                logger.info(f"步骤 {step} 处理完成 - 项目ID: {project_id}, 成功: {result['success']}")
             except Exception as e:
                 logger.error(f"步骤 {step} 执行失败: {e}")
                 result_holder['error'] = str(e)
@@ -228,18 +228,18 @@ def continue_tender_processing(task_id):
             # 步骤仍在执行中，返回处理中状态
             return jsonify({
                 'success': True,
-                'task_id': task_id,
+                'project_id': project_id,
                 'message': f'步骤 {step} 正在处理中，请查询状态'
             })
 
         # 如果是最后一步，清理pipeline实例（线程安全）
         if step == STEP_3:
-            remove_pipeline_instance(task_id)
-            logger.info(f"任务 {task_id} 已完成，清理pipeline实例")
+            remove_pipeline_instance(project_id)
+            logger.info(f"项目 {project_id} 处理已完成，清理pipeline实例")
 
         return jsonify({
             'success': True,
-            'task_id': task_id,
+            'project_id': project_id,
             'result': result_holder['result'],
             'message': f'步骤 {step} 处理完成'
         })
@@ -250,13 +250,13 @@ def continue_tender_processing(task_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_tender_processing_bp.route('/status/<task_id>', methods=['GET'])
-def get_processing_status(task_id):
+@api_tender_processing_bp.route('/status/<int:project_id>', methods=['GET'])
+def get_processing_status(project_id):
     """
     查询处理进度
 
     Args:
-        task_id: 任务ID
+        project_id: 项目ID
 
     Returns:
         {
@@ -270,16 +270,16 @@ def get_processing_status(task_id):
         db = get_knowledge_base_db()
 
         # 获取任务信息
-        task = db.get_processing_task(task_id)
+        task = db.get_processing_task(project_id)
 
         if not task:
             return jsonify({'success': False, 'error': '任务不存在'}), 404
 
         # 获取处理日志
-        logs = db.get_processing_logs(task_id=task_id)
+        logs = db.get_processing_logs(project_id)
 
         # 获取统计信息
-        stats = db.get_processing_statistics(task_id)
+        stats = db.get_processing_statistics(project_id)
 
         return jsonify({
             'success': True,
@@ -507,13 +507,13 @@ def export_requirements(project_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_tender_processing_bp.route('/sync-point-to-point/<task_id>', methods=['POST'])
-def sync_point_to_point_to_hitl(task_id):
+@api_tender_processing_bp.route('/sync-point-to-point/<int:project_id>', methods=['POST'])
+def sync_point_to_point_to_hitl(project_id):
     """
     同步点对点应答文件到HITL投标项目
 
     Args:
-        task_id: HITL任务ID
+        project_id: 项目ID
 
     Request Body:
         {
@@ -557,7 +557,7 @@ def sync_point_to_point_to_hitl(task_id):
                 'error': '源文件不存在'
             }), 404
 
-        logger.info(f"同步点对点应答文件到HITL项目: task_id={task_id}, file_path={source_file_path}")
+        logger.info(f"同步点对点应答文件到HITL项目: project_id={project_id}, file_path={source_file_path}")
 
         # 获取数据库实例
         db = get_knowledge_base_db()
@@ -565,8 +565,8 @@ def sync_point_to_point_to_hitl(task_id):
         # 查询任务信息
         task_data = db.execute_query("""
             SELECT step1_data FROM tender_hitl_tasks
-            WHERE hitl_task_id = ?
-        """, (task_id,), fetch_one=True)
+            WHERE project_id = ?
+        """, (project_id,), fetch_one=True)
 
         if not task_data:
             return jsonify({
@@ -616,10 +616,10 @@ def sync_point_to_point_to_hitl(task_id):
         db.execute_query("""
             UPDATE tender_hitl_tasks
             SET step1_data = ?
-            WHERE hitl_task_id = ?
-        """, (json.dumps(step1_data), task_id))
+            WHERE project_id = ?
+        """, (json.dumps(step1_data), project_id))
 
-        logger.info(f"同步点对点应答文件到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
+        logger.info(f"同步点对点应答文件到HITL项目: {project_id}, 文件: {filename} ({file_size} bytes)")
 
         return jsonify({
             'success': True,
@@ -639,13 +639,13 @@ def sync_point_to_point_to_hitl(task_id):
         }), 500
 
 
-@api_tender_processing_bp.route('/sync-tech-proposal/<task_id>', methods=['POST'])
-def sync_tech_proposal_to_hitl(task_id):
+@api_tender_processing_bp.route('/sync-tech-proposal/<int:project_id>', methods=['POST'])
+def sync_tech_proposal_to_hitl(project_id):
     """
     同步技术方案文件到HITL投标项目
 
     Args:
-        task_id: HITL任务ID
+        project_id: 项目ID
 
     Request Body:
         {
@@ -691,7 +691,7 @@ def sync_tech_proposal_to_hitl(task_id):
                 'error': '源文件不存在'
             }), 404
 
-        logger.info(f"同步技术方案文件到HITL项目: task_id={task_id}, file_path={source_file_path}")
+        logger.info(f"同步技术方案文件到HITL项目: project_id={project_id}, file_path={source_file_path}")
 
         # 获取数据库实例
         db = get_knowledge_base_db()
@@ -699,8 +699,8 @@ def sync_tech_proposal_to_hitl(task_id):
         # 查询任务信息
         task_data = db.execute_query("""
             SELECT step1_data FROM tender_hitl_tasks
-            WHERE hitl_task_id = ?
-        """, (task_id,), fetch_one=True)
+            WHERE project_id = ?
+        """, (project_id,), fetch_one=True)
 
         if not task_data:
             return jsonify({
@@ -717,7 +717,7 @@ def sync_tech_proposal_to_hitl(task_id):
             'data/uploads/completed_response_files',
             str(now.year),
             f"{now.month:02d}",
-            task_id
+            str(project_id)
         )
         os.makedirs(save_dir, exist_ok=True)
 
@@ -751,10 +751,10 @@ def sync_tech_proposal_to_hitl(task_id):
         db.execute_query("""
             UPDATE tender_hitl_tasks
             SET step1_data = ?
-            WHERE hitl_task_id = ?
-        """, (json.dumps(step1_data), task_id))
+            WHERE project_id = ?
+        """, (json.dumps(step1_data), project_id))
 
-        logger.info(f"同步技术方案文件到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
+        logger.info(f"同步技术方案文件到HITL项目: {project_id}, 文件: {filename} ({file_size} bytes)")
 
         return jsonify({
             'success': True,

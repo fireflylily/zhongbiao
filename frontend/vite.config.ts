@@ -41,6 +41,11 @@ export default defineConfig({
         target: 'http://localhost:8110',
         changeOrigin: true
       },
+      // 代理文件下载请求
+      '/download': {
+        target: 'http://localhost:8110',
+        changeOrigin: true
+      },
       // 代理静态文件请求
       '/static/uploads': {
         target: 'http://localhost:8110',

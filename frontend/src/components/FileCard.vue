@@ -6,9 +6,7 @@
     <div class="file-card__info">
       <div class="file-card__name">{{ fileName }}</div>
       <div class="file-card__meta">
-        <span v-if="fileSize" class="meta-item">
-          <i class="bi bi-hdd"></i> {{ formattedFileSize }}
-        </span>
+        <!-- 文件大小已隐藏 -->
         <span v-if="uploadDate" class="meta-item">
           <i class="bi bi-calendar"></i> {{ uploadDate }}
         </span>
@@ -44,6 +42,10 @@ const props = withDefaults(
   }
 )
 
+const emit = defineEmits<{
+  preview: [fileUrl: string, fileName: string]
+}>()
+
 // 文件名
 const fileName = computed(() => {
   if (props.fileName) return props.fileName
@@ -66,16 +68,6 @@ const fileIcon = computed(() => {
   return iconMap[ext || ''] || 'bi-file-earmark-text'
 })
 
-// 文件大小
-const fileSize = computed(() => props.fileSize || 0)
-const formattedFileSize = computed(() => {
-  if (!fileSize.value) return ''
-  const kb = fileSize.value / 1024
-  if (kb < 1024) return `${kb.toFixed(2)} KB`
-  const mb = kb / 1024
-  return `${mb.toFixed(2)} MB`
-})
-
 // 上传日期
 const uploadDate = computed(() => {
   if (!props.uploadTime) return ''
@@ -96,7 +88,17 @@ const handleDownload = () => {
 
 // 预览
 const handlePreview = () => {
-  window.open(props.fileUrl, '_blank')
+  // 判断是否为Word文档
+  const ext = fileName.value.split('.').pop()?.toLowerCase()
+  const isWordDoc = ext === 'doc' || ext === 'docx'
+
+  if (isWordDoc) {
+    // Word文档使用DocumentPreview组件预览
+    emit('preview', props.fileUrl, fileName.value)
+  } else {
+    // 其他文件使用新窗口打开
+    window.open(props.fileUrl, '_blank')
+  }
 }
 </script>
 

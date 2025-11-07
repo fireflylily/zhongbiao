@@ -35,6 +35,7 @@
         @success="handleProcessSuccess"
         @refresh="loadProjectDetail"
         @task-id-update="handleTaskIdUpdate"
+        @preview="handlePreview"
       />
 
       <!-- Tab 导航 -->
@@ -362,7 +363,7 @@
                         <i class="bi bi-shield-check"></i>
                       </div>
                       <div class="requirement-text">
-                        <h4>{{ cert.name }}</h4>
+                        <h4>{{ getQualificationDisplayName(cert.name) }}</h4>
                         <p v-if="cert.level">等级要求: {{ cert.level }}</p>
                         <p v-if="cert.note">{{ cert.note }}</p>
                       </div>
@@ -495,6 +496,7 @@
                   :file-name="responseFileInfo.fileName"
                   :file-size="responseFileInfo.fileSize"
                   :show-actions="true"
+                  @preview="handlePreview"
                 />
                 <el-empty v-else description="暂未提取到应答文件模板" :image-size="80">
                   <template #extra>
@@ -527,6 +529,7 @@
                   :file-size="businessResponseFileInfo.fileSize"
                   :show-actions="true"
                   type="success"
+                  @preview="handlePreview"
                 />
                 <el-empty v-else description="暂未生成商务应答文件" :image-size="80">
                   <template #extra>
@@ -588,6 +591,7 @@
                     :file-size="doc.file_size"
                     :upload-time="doc.uploaded_at"
                     :show-actions="true"
+                    @preview="handlePreview"
                   />
                 </div>
                 <el-empty v-else description="暂无文档" :image-size="80">
@@ -646,6 +650,7 @@
                   :file-name="technicalFileInfo.fileName"
                   :file-size="technicalFileInfo.fileSize"
                   :show-actions="true"
+                  @preview="handlePreview"
                 />
                 <el-empty v-else description="暂未提取到技术需求文件" :image-size="80" />
               </section>
@@ -672,6 +677,7 @@
                   :file-size="technicalP2PFileInfo.fileSize"
                   :show-actions="true"
                   type="success"
+                  @preview="handlePreview"
                 />
                 <el-empty v-else description="暂未生成点对点应答文件" :image-size="80" />
               </section>
@@ -698,6 +704,7 @@
                   :file-size="technicalProposalFileInfo.fileSize"
                   :show-actions="true"
                   type="success"
+                  @preview="handlePreview"
                 />
                 <el-empty v-else description="暂未生成技术方案文件" :image-size="80" />
               </section>
@@ -737,6 +744,13 @@
 
     <!-- 错误状态 -->
     <el-empty v-else description="项目不存在或加载失败" />
+
+    <!-- 文档预览对话框 -->
+    <DocumentPreview
+      v-model="previewVisible"
+      :file-url="previewFileUrl"
+      :file-name="previewFileName"
+    />
   </div>
 </template>
 
@@ -744,7 +758,7 @@
 import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { PageHeader, Loading } from '@/components'
+import { PageHeader, Loading, DocumentPreview } from '@/components'
 import FileCard from '@/components/FileCard.vue'
 import ChapterTree from '@/components/ChapterTree.vue'
 import TenderDocumentProcessor from '@/components/TenderDocumentProcessor.vue'
@@ -769,6 +783,11 @@ const extractingBasicInfo = ref(false) // AI提取基本信息loading状态
 const extractingQualifications = ref(false) // AI提取资格要求loading状态
 const projectDocuments = ref<any[]>([]) // 项目文档列表
 const parsedChapters = ref<any[]>([]) // 已解析的章节
+
+// 预览相关状态
+const previewVisible = ref(false)
+const previewFileUrl = ref('')
+const previewFileName = ref('')
 
 // 表单数据
 const formData = reactive({
@@ -867,6 +886,56 @@ const technicalP2PFileInfo = computed(() => {
 const technicalProposalFileInfo = computed(() => {
   return getFileInfo(projectDetail.value?.step1_data?.technical_proposal_file)
 })
+
+// 资质名称中英文映射字典（基于后端extractor.py的定义）
+const qualificationNameMapping: Record<string, string> = {
+  // 基础资质类
+  'business_license': '营业执照信息',
+  'legal_id_front': '法人身份证正面',
+  'legal_id_back': '法人身份证反面',
+  'auth_id_front': '被授权人身份证正面',
+  'auth_id_back': '被授权人身份证反面',
+  'authorization_letter': '法人授权委托书',
+
+  // 认证证书类
+  'iso9001': 'ISO9001质量管理体系认证',
+  'iso20000': 'ISO20000信息技术服务管理体系认证',
+  'iso27001': 'ISO27001信息安全管理体系认证',
+  'cmmi': 'CMMI能力成熟度认证',
+  'itss': 'ITSS信息技术服务标准认证',
+
+  // 行业资质类
+  'telecom_license': '电信业务许可证',
+  'value_added_telecom_license': '增值电信业务许可证',
+  'basic_telecom_license': '基础电信业务许可证',
+  'level_protection': '等级保护认证',
+  'software_copyright': '软件著作权',
+  'patent_certificate': '专利证书',
+  'audit_report': '财务要求',
+  'project_performance': '项目业绩要求',
+
+  // 社保和信用资质类
+  'social_security': '社会保险证明',
+  'dishonest_executor': '失信被执行人',
+  'tax_violation_check': '重大税收违法',
+  'gov_procurement_creditchina': '政府采购严重违法失信记录（信用中国）',
+  'gov_procurement_ccgp': '政府采购严重违法失信记录（政府采购网）',
+  'tax_compliance': '依法纳税',
+  'commitment_letter': '承诺函',
+  'property_certificate': '营业办公场所房产证明',
+  'deposit_requirement': '保证金要求',
+  'purchaser_blacklist': '采购人黑名单'
+}
+
+// 获取资质的中文名称
+const getQualificationDisplayName = (nameOrKey: string): string => {
+  // 如果在映射字典中找到，返回中文名称
+  if (qualificationNameMapping[nameOrKey]) {
+    return qualificationNameMapping[nameOrKey]
+  }
+  // 否则返回原值（可能已经是中文名称）
+  return nameOrKey
+}
 
 // 资格要求数据转换辅助函数
 const convertQualificationsData = (rawData: Record<string, any>) => {
@@ -1285,7 +1354,6 @@ const handleStartPointToPoint = async () => {
     name: 'PointToPoint',
     query: {
       projectId: projectId.value.toString(),
-      hitlTaskId: projectId.value.toString(),
       technicalFileUrl,
       fromHitl: 'true'
     }
@@ -1307,7 +1375,6 @@ const handleStartProposal = async () => {
     name: 'TechProposal',
     query: {
       projectId: projectId.value.toString(),
-      hitlTaskId: projectId.value.toString(),
       technicalFileUrl,
       fromHitl: 'true'
     }
@@ -1338,14 +1405,14 @@ const handleTaskIdUpdate = (taskId: string) => {
 
 // AI提取基本信息
 const handleExtractBasicInfo = async () => {
-  if (!latestTaskId.value) {
+  if (!projectId.value) {
     ElMessage.warning('请先上传并解析招标文档')
     return
   }
 
   extractingBasicInfo.value = true
   try {
-    const response = await tenderApi.extractBasicInfo(latestTaskId.value)
+    const response = await tenderApi.extractBasicInfo(projectId.value)
 
     if (response.success && response.data) {
       const info = response.data
@@ -1377,14 +1444,14 @@ const handleExtractBasicInfo = async () => {
 
 // AI提取资格要求
 const handleExtractQualifications = async () => {
-  if (!latestTaskId.value) {
+  if (!projectId.value) {
     ElMessage.warning('请先上传并解析招标文档')
     return
   }
 
   extractingQualifications.value = true
   try {
-    const response = await tenderApi.extractQualifications(latestTaskId.value)
+    const response = await tenderApi.extractQualifications(projectId.value)
 
     if (response.success) {
       ElMessage.success('AI提取资格要求成功，正在刷新数据...')
@@ -1402,6 +1469,13 @@ const handleExtractQualifications = async () => {
   } finally {
     extractingQualifications.value = false
   }
+}
+
+// 处理文档预览
+const handlePreview = (fileUrl: string, fileName: string) => {
+  previewFileUrl.value = fileUrl
+  previewFileName.value = fileName
+  previewVisible.value = true
 }
 
 // 监听路由变化
@@ -1447,6 +1521,12 @@ onMounted(() => {
   }
 
   .tab-content {
+    // 统一所有 el-descriptions 的标签列宽度
+    :deep(.el-descriptions__label) {
+      width: 120px !important;
+      min-width: 120px;
+    }
+
     .info-section {
       margin-bottom: 30px;
 

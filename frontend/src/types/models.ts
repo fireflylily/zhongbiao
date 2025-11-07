@@ -151,7 +151,6 @@ export interface ChapterNode extends Chapter {
 export interface Requirement {
   id: number
   project_id: number
-  hitl_task_id?: string
   chapter_id?: number
   requirement_type: string
   requirement_text: string
@@ -183,7 +182,7 @@ export interface Document {
 
 export interface DocumentChunk {
   id: number
-  hitl_task_id: string
+  project_id: number
   chunk_index: number
   chunk_text: string
   embedding_vector?: number[]

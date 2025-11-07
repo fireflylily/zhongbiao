@@ -58,8 +58,7 @@ def register_hitl_routes(app):
         返回：
         {
             "success": True/False,
-            "task_id": "hitl_xxx",
-            "project_id": "proj_xxx",  # 新建或已有项目ID
+            "project_id": xxx,  # 新建或已有项目ID
             "chapters": [...],  # 章节树
             "statistics": {...}
         }
@@ -149,35 +148,60 @@ def register_hitl_routes(app):
             if not result["success"]:
                 return jsonify(result), 500
 
-            # 创建 HITL 任务
-            hitl_task_id = f"hitl_{uuid.uuid4().hex[:12]}"
-            task_id = f"task_{uuid.uuid4().hex[:12]}"
+            # 删除旧的章节数据（如果存在）
+            db.execute_query("""
+                DELETE FROM tender_document_chapters
+                WHERE project_id = ?
+            """, (project_id,))
+            logger.info(f"已清除项目 {project_id} 的旧章节数据")
 
             # 保存章节到数据库
             chapter_ids = _save_chapters_to_db(
-                db, result["chapters"], project_id, task_id, hitl_task_id
+                db, result["chapters"], project_id
             )
 
-            # 创建 HITL 任务记录
-            db.execute_query("""
-                INSERT INTO tender_hitl_tasks (
-                    hitl_task_id, project_id, task_id,
-                    step1_status, step1_data,
-                    estimated_words, estimated_cost
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                hitl_task_id, project_id, task_id,
-                'in_progress',
-                json.dumps({'file_path': file_path, 'file_name': original_filename}),
-                result["statistics"].get("total_words", 0),
-                result["statistics"].get("estimated_processing_cost", 0.0)
-            ))
+            # 检查是否已存在HITL任务
+            existing_task = db.execute_query("""
+                SELECT project_id FROM tender_hitl_tasks
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
-            logger.info(f"HITL任务已创建: {hitl_task_id}, project_id: {project_id}")
+            if existing_task:
+                # 更新现有任务
+                db.execute_query("""
+                    UPDATE tender_hitl_tasks
+                    SET step1_status = 'in_progress',
+                        step1_data = ?,
+                        estimated_words = ?,
+                        estimated_cost = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE project_id = ?
+                """, (
+                    json.dumps({'file_path': file_path, 'file_name': original_filename}),
+                    result["statistics"].get("total_words", 0),
+                    result["statistics"].get("estimated_processing_cost", 0.0),
+                    project_id
+                ))
+                logger.info(f"HITL任务已更新，project_id: {project_id}")
+            else:
+                # 创建新任务
+                db.execute_query("""
+                    INSERT INTO tender_hitl_tasks (
+                        project_id,
+                        step1_status, step1_data,
+                        estimated_words, estimated_cost
+                    ) VALUES (?, ?, ?, ?, ?)
+                """, (
+                    project_id,
+                    'in_progress',
+                    json.dumps({'file_path': file_path, 'file_name': original_filename}),
+                    result["statistics"].get("total_words", 0),
+                    result["statistics"].get("estimated_processing_cost", 0.0)
+                ))
+                logger.info(f"HITL任务已创建，project_id: {project_id}")
 
             return jsonify({
                 'success': True,
-                'task_id': hitl_task_id,
                 'project_id': project_id,  # 返回项目ID（新建或已有）
                 'chapters': result["chapters"],
                 'statistics': result["statistics"]
@@ -196,7 +220,7 @@ def register_hitl_routes(app):
 
         请求参数（JSON）：
         {
-            "task_id": "hitl_xxx",
+            "project_id": xxx,
             "selected_chapter_ids": ["ch_0", "ch_1", ...]
         }
 
@@ -210,11 +234,11 @@ def register_hitl_routes(app):
         """
         try:
             data = request.get_json()
-            hitl_task_id = data.get('task_id')
+            project_id = data.get('project_id')
             selected_ids = data.get('selected_chapter_ids', [])
 
-            if not hitl_task_id:
-                return jsonify({'success': False, 'error': '缺少task_id参数'}), 400
+            if not project_id:
+                return jsonify({'success': False, 'error': '缺少project_id参数'}), 400
 
             db = get_knowledge_base_db()
 
@@ -223,28 +247,24 @@ def register_hitl_routes(app):
                 db.execute_query("""
                     UPDATE tender_document_chapters
                     SET is_selected = 1, updated_at = CURRENT_TIMESTAMP
-                    WHERE chapter_node_id = ? AND task_id IN (
-                        SELECT task_id FROM tender_hitl_tasks WHERE hitl_task_id = ?
-                    )
-                """, (chapter_id, hitl_task_id))
+                    WHERE chapter_node_id = ? AND project_id = ?
+                """, (chapter_id, project_id))
 
             # 记录用户操作
             db.execute_query("""
                 INSERT INTO tender_user_actions (
-                    project_id, task_id, action_type, action_step, action_data
-                ) SELECT project_id, hitl_task_id, 'chapter_selected', 1, ?
-                FROM tender_hitl_tasks WHERE hitl_task_id = ?
-            """, (json.dumps({'selected_ids': selected_ids}), hitl_task_id))
+                    project_id, action_type, action_step, action_data
+                ) VALUES (?, 'chapter_selected', 1, ?)
+            """, (project_id, json.dumps({'selected_ids': selected_ids})))
 
             # 统计选中章节
             stats = db.execute_query("""
                 SELECT
                     COUNT(*) as selected_count,
                     SUM(word_count) as selected_words
-                FROM tender_document_chapters c
-                JOIN tender_hitl_tasks h ON c.task_id = h.task_id
-                WHERE h.hitl_task_id = ? AND c.is_selected = 1
-            """, (hitl_task_id,), fetch_one=True)
+                FROM tender_document_chapters
+                WHERE project_id = ? AND is_selected = 1
+            """, (project_id,), fetch_one=True)
 
             selected_words = stats['selected_words'] or 0
             estimated_cost = (selected_words / 1000) * 0.002  # 假设成本
@@ -252,8 +272,8 @@ def register_hitl_routes(app):
             # 读取原有的step1_data,保留file_path
             existing_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (hitl_task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             # 合并step1_data,保留file_path
             step1_data = {}
@@ -274,12 +294,12 @@ def register_hitl_routes(app):
                     step1_data = ?,
                     estimated_words = ?,
                     estimated_cost = ?
-                WHERE hitl_task_id = ?
+                WHERE project_id = ?
             """, (
                 json.dumps(step1_data),
                 selected_words,
                 estimated_cost,
-                hitl_task_id
+                project_id
             ))
 
             logger.info(f"步骤1完成: 选中 {stats['selected_count']} 个章节, {selected_words} 字")
@@ -289,21 +309,14 @@ def register_hitl_routes(app):
                 UPDATE tender_hitl_tasks
                 SET current_step = 2,
                     step2_status = 'in_progress'
-                WHERE hitl_task_id = ?
-            """, (hitl_task_id,))
+                WHERE project_id = ?
+            """, (project_id,))
 
             logger.info(f"任务状态已更新到步骤2，等待用户在Tab 3触发AI提取")
 
-            # 获取project_id
-            project_info = db.execute_query("""
-                SELECT project_id FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (hitl_task_id,), fetch_one=True)
-
             return jsonify({
                 'success': True,
-                'hitl_task_id': hitl_task_id,
-                'project_id': project_info['project_id'] if project_info else None,
+                'project_id': project_id,
                 'selected_count': stats['selected_count'],
                 'selected_words': selected_words,
                 'estimated_cost': estimated_cost
@@ -315,20 +328,20 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/tender-processing/extract-eligibility-requirements/<hitl_task_id>', methods=['POST'])
-    def extract_eligibility_requirements(hitl_task_id):
+    @app.route('/api/tender-processing/extract-eligibility-requirements/<int:project_id>', methods=['POST'])
+    def extract_eligibility_requirements(project_id):
         """
         提取13条供应商资格要求（关键词匹配）
         使用固定的13项清单模板，使用关键词匹配替代AI调用
         """
         try:
-            logger.info(f"开始提取19条供应商资格要求（关键词匹配）: hitl_task_id={hitl_task_id}")
+            logger.info(f"开始提取19条供应商资格要求（关键词匹配）: project_id={project_id}")
 
             # 查询任务信息
             task_info = db.execute_query("""
                 SELECT project_id, step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (hitl_task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_info:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
@@ -345,14 +358,14 @@ def register_hitl_routes(app):
             # 检查是否已有资格要求数据，清空旧数据
             existing_count = db.execute_query("""
                 SELECT COUNT(*) as count FROM tender_requirements
-                WHERE hitl_task_id = ? AND category = 'qualification'
-            """, (hitl_task_id,), fetch_one=True)
+                WHERE project_id = ? AND category = 'qualification'
+            """, (project_id,), fetch_one=True)
 
             if existing_count and existing_count['count'] > 0:
                 db.execute_query("""
                     DELETE FROM tender_requirements
-                    WHERE hitl_task_id = ? AND category = 'qualification'
-                """, (hitl_task_id,))
+                    WHERE project_id = ? AND category = 'qualification'
+                """, (project_id,))
                 logger.info(f"清除了 {existing_count['count']} 个旧资格要求记录")
 
             # 重新解析文档以获取章节内容
@@ -413,13 +426,12 @@ def register_hitl_routes(app):
                     for req in checklist_item['requirements']:
                         db.execute_query("""
                             INSERT INTO tender_requirements (
-                                project_id, hitl_task_id, constraint_type, category,
+                                project_id, constraint_type, category,
                                 subcategory, detail, summary, source_location, priority,
                                 extraction_confidence
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (
                             project_id,
-                            hitl_task_id,
                             req.get('constraint_type', 'mandatory'),
                             'qualification',
                             checklist_item['checklist_name'],
@@ -457,13 +469,13 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/tender-processing/export-chapter/<task_id>/<chapter_id>', methods=['GET'])
-    def export_chapter_as_template(task_id, chapter_id):
+    @app.route('/api/tender-processing/export-chapter/<int:project_id>/<chapter_id>', methods=['GET'])
+    def export_chapter_as_template(project_id, chapter_id):
         """
         导出单个章节为Word文档模板（步骤1功能扩展）
 
         Args:
-            task_id: HITL任务ID (如 "hitl_abc123")
+            project_id: 项目ID (如 "hitl_abc123")
             chapter_id: 章节ID (如 "ch_4")
 
         Returns:
@@ -483,8 +495,8 @@ def register_hitl_routes(app):
             # 1. 查询HITL任务，获取原始文档路径
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
@@ -527,8 +539,8 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/tender-processing/export-chapters/<task_id>', methods=['POST'])
-    def export_multiple_chapters(task_id):
+    @app.route('/api/tender-processing/export-chapters/<int:project_id>', methods=['POST'])
+    def export_multiple_chapters(project_id):
         """批量导出多个章节为单个Word文档"""
         try:
             data = request.get_json()
@@ -540,8 +552,8 @@ def register_hitl_routes(app):
             # 查询任务信息获取文档路径
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"error": "任务不存在"}), 404
@@ -579,8 +591,8 @@ def register_hitl_routes(app):
             logger.error(f"批量导出章节失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/tender-processing/save-response-file/<task_id>', methods=['POST'])
-    def save_response_file(task_id):
+    @app.route('/api/tender-processing/save-response-file/<int:project_id>', methods=['POST'])
+    def save_response_file(project_id):
         """保存应答文件到服务器"""
         try:
             data = request.get_json()
@@ -593,8 +605,8 @@ def register_hitl_routes(app):
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data, project_id FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"error": "任务不存在"}), 404
@@ -619,7 +631,7 @@ def register_hitl_routes(app):
                 'data/uploads/response_files',
                 str(now.year),
                 f"{now.month:02d}",
-                task_id
+                str(project_id)
             )
             os.makedirs(save_dir, exist_ok=True)
 
@@ -646,15 +658,15 @@ def register_hitl_routes(app):
             db.execute_query("""
                 UPDATE tender_hitl_tasks
                 SET step1_data = ?
-                WHERE hitl_task_id = ?
-            """, (json.dumps(step1_data), task_id))
+                WHERE project_id = ?
+            """, (json.dumps(step1_data), project_id))
 
             logger.info(f"保存应答文件: {filename} ({file_size} bytes)")
 
             return jsonify({
                 "success": True,
                 "file_path": target_path,
-                "file_url": f"/api/tender-processing/download-response-file/{task_id}",
+                "file_url": f"/api/tender-processing/download-response-file/{project_id}",
                 "filename": filename,
                 "file_size": file_size,
                 "saved_at": now.isoformat()
@@ -664,15 +676,15 @@ def register_hitl_routes(app):
             logger.error(f"保存应答文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/tender-processing/download-response-file/<task_id>', methods=['GET'])
-    def download_response_file(task_id):
+    @app.route('/api/tender-processing/download-response-file/<int:project_id>', methods=['GET'])
+    def download_response_file(project_id):
         """下载已保存的应答文件"""
         try:
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"error": "任务不存在"}), 404
@@ -698,15 +710,15 @@ def register_hitl_routes(app):
             logger.error(f"下载应答文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/tender-processing/preview-response-file/<task_id>', methods=['GET'])
-    def preview_response_file(task_id):
+    @app.route('/api/tender-processing/preview-response-file/<int:project_id>', methods=['GET'])
+    def preview_response_file(project_id):
         """预览已保存的应答文件"""
         try:
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"error": "任务不存在"}), 404
@@ -733,15 +745,15 @@ def register_hitl_routes(app):
             logger.error(f"预览应答文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/tender-processing/response-file-info/<task_id>', methods=['GET'])
-    def get_response_file_info(task_id):
+    @app.route('/api/tender-processing/response-file-info/<int:project_id>', methods=['GET'])
+    def get_response_file_info(project_id):
         """获取应答文件信息"""
         try:
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"success": False, "error": "任务不存在"}), 404
@@ -765,7 +777,7 @@ def register_hitl_routes(app):
                 "file_path": response_file.get('file_path'),  # ✅ 添加 file_path 字段
                 "file_size": response_file.get('file_size'),
                 "saved_at": response_file.get('saved_at'),
-                "download_url": f"/api/tender-processing/download-response-file/{task_id}"
+                "download_url": f"/api/tender-processing/download-response-file/{project_id}"
             })
 
         except Exception as e:
@@ -776,8 +788,8 @@ def register_hitl_routes(app):
     # 技术需求章节相关API
     # ============================================
 
-    @app.route('/api/tender-processing/save-technical-chapters/<task_id>', methods=['POST'])
-    def save_technical_chapters(task_id):
+    @app.route('/api/tender-processing/save-technical-chapters/<int:project_id>', methods=['POST'])
+    def save_technical_chapters(project_id):
         """保存技术需求章节"""
         try:
             data = request.get_json()
@@ -789,8 +801,8 @@ def register_hitl_routes(app):
             # 获取任务信息
             task_info = db.execute_query("""
                 SELECT project_id, task_id, step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_info:
                 return jsonify({"success": False, "error": "任务不存在"}), 404
@@ -821,7 +833,7 @@ def register_hitl_routes(app):
                 'data/uploads/technical_files',
                 str(now.year),
                 f"{now.month:02d}",
-                task_id
+                str(project_id)
             )
             os.makedirs(save_dir, exist_ok=True)
 
@@ -845,15 +857,15 @@ def register_hitl_routes(app):
             db.execute_query("""
                 UPDATE tender_hitl_tasks
                 SET step1_data = ?
-                WHERE hitl_task_id = ?
-            """, (json.dumps(step1_data, ensure_ascii=False), task_id))
+                WHERE project_id = ?
+            """, (json.dumps(step1_data, ensure_ascii=False), project_id))
 
             logger.info(f"✅ 技术需求章节已保存: {filename} ({file_size} bytes)")
 
             return jsonify({
                 "success": True,
                 "file_path": target_path,
-                "file_url": f"/api/tender-processing/download-technical-file/{task_id}",
+                "file_url": f"/api/tender-processing/download-technical-file/{project_id}",
                 "filename": filename,
                 "file_size": file_size,
                 "saved_at": now.isoformat(),
@@ -864,8 +876,8 @@ def register_hitl_routes(app):
             logger.error(f"保存技术需求章节失败: {str(e)}")
             return jsonify({"success": False, "error": str(e)}), 500
 
-    @app.route('/api/tender-processing/technical-file-info/<task_id>', methods=['GET'])
-    def get_technical_file_info(task_id):
+    @app.route('/api/tender-processing/technical-file-info/<int:project_id>', methods=['GET'])
+    def get_technical_file_info(project_id):
         """获取技术需求文件信息(支持文件系统扫描fallback)"""
         try:
             file_info = None
@@ -874,8 +886,8 @@ def register_hitl_routes(app):
             try:
                 task_data = db.execute_query("""
                     SELECT step1_data FROM tender_hitl_tasks
-                    WHERE hitl_task_id = ?
-                """, (task_id,), fetch_one=True)
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
 
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
@@ -886,7 +898,7 @@ def register_hitl_routes(app):
             # 如果数据库中没有文件信息,尝试从文件系统扫描
             if not file_info:
                 logger.info(f"数据库中无技术需求文件信息,尝试从文件系统扫描")
-                file_path = _find_file_in_filesystem(task_id, 'technical_file')
+                file_path = _find_file_in_filesystem(project_id, 'technical_file')
 
                 if file_path:
                     # 构建文件信息
@@ -911,7 +923,7 @@ def register_hitl_routes(app):
             # 如果数据库中的文件路径不存在,尝试从文件系统扫描
             if not file_exists and 'file_path' in file_info:
                 logger.warning(f"数据库中的文件路径不存在: {file_info['file_path']}, 尝试文件系统扫描")
-                file_path = _find_file_in_filesystem(task_id, 'technical_file')
+                file_path = _find_file_in_filesystem(project_id, 'technical_file')
 
                 if file_path:
                     # 更新文件信息
@@ -931,15 +943,15 @@ def register_hitl_routes(app):
                 "filename": file_info.get('filename'),
                 "file_size": file_info.get('file_size'),
                 "saved_at": file_info.get('saved_at'),
-                "download_url": f"/api/tender-processing/download-technical-file/{task_id}"
+                "download_url": f"/api/tender-processing/download-technical-file/{project_id}"
             })
 
         except Exception as e:
             logger.error(f"获取技术需求文件信息失败: {str(e)}")
             return jsonify({"success": False, "error": str(e)}), 500
 
-    @app.route('/api/tender-processing/download-technical-file/<task_id>', methods=['GET'])
-    def download_technical_file(task_id):
+    @app.route('/api/tender-processing/download-technical-file/<int:project_id>', methods=['GET'])
+    def download_technical_file(project_id):
         """下载技术需求文件(支持文件系统扫描fallback)"""
         try:
             file_info = None
@@ -949,8 +961,8 @@ def register_hitl_routes(app):
             try:
                 task_data = db.execute_query("""
                     SELECT step1_data FROM tender_hitl_tasks
-                    WHERE hitl_task_id = ?
-                """, (task_id,), fetch_one=True)
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
 
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
@@ -963,7 +975,7 @@ def register_hitl_routes(app):
             # 如果数据库中没有或文件不存在,尝试从文件系统扫描
             if not file_path or not os.path.exists(file_path):
                 logger.info(f"数据库中的文件路径无效,尝试从文件系统扫描")
-                found_path = _find_file_in_filesystem(task_id, 'technical_file')
+                found_path = _find_file_in_filesystem(project_id, 'technical_file')
                 if found_path:
                     file_path = str(found_path)
                     logger.info(f"从文件系统找到技术需求文件: {found_path.name}")
@@ -985,8 +997,8 @@ def register_hitl_routes(app):
             logger.error(f"下载技术需求文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/tender-processing/preview-technical-file/<task_id>', methods=['GET'])
-    def preview_technical_file(task_id):
+    @app.route('/api/tender-processing/preview-technical-file/<int:project_id>', methods=['GET'])
+    def preview_technical_file(project_id):
         """预览技术需求文件(支持文件系统扫描fallback)"""
         try:
             file_info = None
@@ -996,8 +1008,8 @@ def register_hitl_routes(app):
             try:
                 task_data = db.execute_query("""
                     SELECT step1_data FROM tender_hitl_tasks
-                    WHERE hitl_task_id = ?
-                """, (task_id,), fetch_one=True)
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
 
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
@@ -1010,7 +1022,7 @@ def register_hitl_routes(app):
             # 如果数据库中没有或文件不存在,尝试从文件系统扫描
             if not file_path or not os.path.exists(file_path):
                 logger.info(f"数据库中的文件路径无效,尝试从文件系统扫描")
-                found_path = _find_file_in_filesystem(task_id, 'technical_file')
+                found_path = _find_file_in_filesystem(project_id, 'technical_file')
                 if found_path:
                     file_path = str(found_path)
                     logger.info(f"从文件系统找到技术需求文件: {found_path.name}")
@@ -1036,8 +1048,8 @@ def register_hitl_routes(app):
     # 获取章节列表API（用于步骤3章节选择）
     # ============================================
 
-    @app.route('/api/tender-processing/chapters/<task_id>', methods=['GET'])
-    def get_chapters_list(task_id):
+    @app.route('/api/tender-processing/chapters/<int:project_id>', methods=['GET'])
+    def get_chapters_list(project_id):
         """
         获取任务的章节列表（从数据库读取）
 
@@ -1066,17 +1078,14 @@ def register_hitl_routes(app):
         try:
             db = get_knowledge_base_db()
 
-            # 获取任务关联的project_id
+            # 验证HITL任务是否存在
             hitl_task = db.execute_query("""
-                SELECT project_id, task_id FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                SELECT project_id FROM tender_hitl_tasks
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not hitl_task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
-
-            project_id = hitl_task['project_id']
-            parsing_task_id = hitl_task['task_id']
 
             # 从数据库获取章节列表
             chapters_raw = db.execute_query("""
@@ -1093,9 +1102,9 @@ def register_hitl_routes(app):
                     skip_recommended,
                     parent_chapter_id
                 FROM tender_document_chapters
-                WHERE project_id = ? AND task_id = ?
+                WHERE project_id = ?
                 ORDER BY para_start_idx ASC
-            """, (project_id, parsing_task_id))
+            """, (project_id,))
 
             if not chapters_raw:
                 return jsonify({
@@ -1133,13 +1142,13 @@ def register_hitl_routes(app):
             logger.error(f"获取章节列表失败: {str(e)}")
             return jsonify({"success": False, "error": str(e)}), 500
 
-    @app.route('/api/tender-processing/chapter-content/<task_id>/<chapter_id>', methods=['GET'])
-    def get_chapter_full_content(task_id, chapter_id):
+    @app.route('/api/tender-processing/chapter-content/<int:project_id>/<chapter_id>', methods=['GET'])
+    def get_chapter_full_content(project_id, chapter_id):
         """
         实时从原始文档提取章节的完整内容
 
         Args:
-            task_id: HITL任务ID
+            project_id: 项目ID
             chapter_id: 章节ID (如 ch_1, ch_1_2)
 
         Returns:
@@ -1157,16 +1166,13 @@ def register_hitl_routes(app):
 
             # 1. 获取章节信息
             hitl_task = db.execute_query("""
-                SELECT project_id, task_id, step1_data
+                SELECT project_id, step1_data
                 FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not hitl_task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
-
-            project_id = hitl_task['project_id']
-            parsing_task_id = hitl_task['task_id']
 
             # 2. 查询章节的段落范围
             chapter = db.execute_query("""
@@ -1176,8 +1182,8 @@ def register_hitl_routes(app):
                     para_end_idx,
                     word_count
                 FROM tender_document_chapters
-                WHERE project_id = ? AND task_id = ? AND chapter_node_id = ?
-            """, (project_id, parsing_task_id, chapter_id), fetch_one=True)
+                WHERE project_id = ? AND chapter_node_id = ?
+            """, (project_id, chapter_id), fetch_one=True)
 
             if not chapter:
                 return jsonify({'success': False, 'error': '章节不存在'}), 404
@@ -1241,8 +1247,8 @@ def register_hitl_routes(app):
     # 步骤2：章节要求预览相关API
     # ============================================
 
-    @app.route('/api/tender-processing/chapter-requirements/<task_id>', methods=['GET'])
-    def get_chapter_requirements_summary(task_id):
+    @app.route('/api/tender-processing/chapter-requirements/<int:project_id>', methods=['GET'])
+    def get_chapter_requirements_summary(project_id):
         """
         获取各章节的要求聚合信息（步骤2）
 
@@ -1279,8 +1285,8 @@ def register_hitl_routes(app):
             # 获取任务关联的project_id
             hitl_task = db.execute_query("""
                 SELECT project_id, task_id FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not hitl_task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
@@ -1294,9 +1300,9 @@ def register_hitl_routes(app):
                     is_selected,
                     level
                 FROM tender_document_chapters
-                WHERE task_id = ?
+                WHERE project_id = ?
                 ORDER BY chapter_node_id
-            """, (task_id,))
+            """, (project_id,))
 
             # 为每个章节统计要求数量
             chapter_list = []
@@ -1309,10 +1315,10 @@ def register_hitl_routes(app):
                         constraint_type,
                         COUNT(*) as count
                     FROM tender_requirements
-                    WHERE hitl_task_id = ?
+                    WHERE project_id = ?
                       AND source_location LIKE ?
                     GROUP BY constraint_type
-                """, (task_id, f"%{chapter['title']}%"))
+                """, (project_id, f"%{chapter['title']}%"))
 
                 # 构建统计数据
                 stats = {'total': 0, 'mandatory': 0, 'scoring': 0, 'optional': 0}
@@ -1351,8 +1357,8 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/tender-processing/filtered-blocks/<task_id>', methods=['GET'])
-    def get_filtered_blocks(task_id):
+    @app.route('/api/tender-processing/filtered-blocks/<int:project_id>', methods=['GET'])
+    def get_filtered_blocks(project_id):
         """
         获取被AI筛选掉的文本块（步骤2）
 
@@ -1382,8 +1388,8 @@ def register_hitl_routes(app):
             # 获取任务关联的project_id
             hitl_task = db.execute_query("""
                 SELECT project_id, task_id FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not hitl_task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
@@ -1403,9 +1409,9 @@ def register_hitl_routes(app):
                     r.reviewed_at
                 FROM tender_document_chunks c
                 LEFT JOIN tender_filter_review r ON c.chunk_id = r.chunk_id
-                WHERE c.hitl_task_id = ? AND c.is_valuable = 0
+                WHERE c.project_id = ? AND c.is_valuable = 0
                 ORDER BY c.chunk_index
-            """, (task_id,))
+            """, (project_id,))
 
             # 统计（处理None值）
             high_conf = sum(1 for b in filtered_blocks if (b.get('ai_confidence') or 0) >= 0.7)
@@ -1426,7 +1432,7 @@ def register_hitl_routes(app):
             return jsonify({'success': False, 'error': str(e)}), 500
 
     @app.route('/api/tender-processing/update-chapter-selection', methods=['POST'])
-    def update_chapter_selection_step2(task_id):
+    def update_chapter_selection_step2():
         """
         更新章节筛选状态（步骤2）
 
@@ -1448,12 +1454,12 @@ def register_hitl_routes(app):
         """
         try:
             data = request.get_json()
-            hitl_task_id = data.get('task_id')
+            project_id = data.get('project_id')
             selected_ids = data.get('chapter_ids', [])
             deselected_ids = data.get('deselected_chapter_ids', [])
 
-            if not hitl_task_id:
-                return jsonify({'success': False, 'error': '缺少task_id'}), 400
+            if not project_id:
+                return jsonify({'success': False, 'error': '缺少project_id'}), 400
 
             db = get_knowledge_base_db()
 
@@ -1479,12 +1485,12 @@ def register_hitl_routes(app):
             db.execute_query("""
                 INSERT INTO tender_user_actions (
                     project_id, task_id, action_type, action_step, action_data
-                ) SELECT project_id, hitl_task_id, 'chapter_reselection', 2, ?
-                FROM tender_hitl_tasks WHERE hitl_task_id = ?
+                ) SELECT project_id, project_id, 'chapter_reselection', 2, ?
+                FROM tender_hitl_tasks WHERE project_id = ?
             """, (json.dumps({
                 'selected_count': len(selected_ids),
                 'deselected_count': len(deselected_ids)
-            }), hitl_task_id))
+            }), project_id))
 
             logger.info(f"步骤2更新章节选择: 选中{len(selected_ids)}个, 取消{len(deselected_ids)}个")
 
@@ -1519,10 +1525,10 @@ def register_hitl_routes(app):
         """
         try:
             data = request.get_json()
-            hitl_task_id = data.get('task_id')
+            project_id = data.get('project_id')
             chunk_ids = data.get('chunk_ids', [])
 
-            if not hitl_task_id or not chunk_ids:
+            if not project_id or not chunk_ids:
                 return jsonify({'success': False, 'error': '参数不完整'}), 400
 
             db = get_knowledge_base_db()
@@ -1541,17 +1547,17 @@ def register_hitl_routes(app):
                         chunk_id, project_id, task_id,
                         ai_decision, user_decision, reviewed_by, reviewed_at
                     ) SELECT
-                        ?, project_id, hitl_task_id, 'NON-REQUIREMENT', 'restore', 'user', CURRENT_TIMESTAMP
-                    FROM tender_hitl_tasks WHERE hitl_task_id = ?
-                """, (chunk_id, hitl_task_id))
+                        ?, project_id, project_id, 'NON-REQUIREMENT', 'restore', 'user', CURRENT_TIMESTAMP
+                    FROM tender_hitl_tasks WHERE project_id = ?
+                """, (chunk_id, project_id))
 
             # 记录用户操作
             db.execute_query("""
                 INSERT INTO tender_user_actions (
                     project_id, task_id, action_type, action_step, action_data
-                ) SELECT project_id, hitl_task_id, 'chunk_restored', 2, ?
-                FROM tender_hitl_tasks WHERE hitl_task_id = ?
-            """, (json.dumps({'chunk_ids': chunk_ids}), hitl_task_id))
+                ) SELECT project_id, project_id, 'chunk_restored', 2, ?
+                FROM tender_hitl_tasks WHERE project_id = ?
+            """, (json.dumps({'chunk_ids': chunk_ids}), project_id))
 
             logger.info(f"恢复了 {len(chunk_ids)} 个被过滤的块")
 
@@ -1568,13 +1574,13 @@ def register_hitl_routes(app):
     # 步骤3：可编辑表格相关API
     # ============================================
 
-    @app.route('/api/tender-processing/requirements/<task_id>', methods=['GET'])
-    def get_task_requirements(task_id):
+    @app.route('/api/tender-processing/requirements/<int:project_id>', methods=['GET'])
+    def get_task_requirements(project_id):
         """
         获取HITL任务的所有要求及统计信息（步骤3）
 
-        注意：现在按 task_id（hitl_task_id）过滤，而不是 project_id
-        这确保只显示当前任务中选中章节提取的需求
+        注意：现在按 project_id 过滤
+        这确保只显示当前项目中选中章节提取的需求
 
         返回：
         {
@@ -1590,12 +1596,12 @@ def register_hitl_routes(app):
         try:
             db = get_knowledge_base_db()
 
-            # 获取当前HITL任务的所有要求（按hitl_task_id过滤）
+            # 获取当前项目的所有要求
             requirements = db.execute_query("""
                 SELECT * FROM tender_requirements
-                WHERE hitl_task_id = ?
+                WHERE project_id = ?
                 ORDER BY requirement_id
-            """, (task_id,))
+            """, (project_id,))
 
             # 统计各类型数量
             summary = db.execute_query("""
@@ -1603,11 +1609,11 @@ def register_hitl_routes(app):
                     constraint_type,
                     COUNT(*) as count
                 FROM tender_requirements
-                WHERE hitl_task_id = ?
+                WHERE project_id = ?
                 GROUP BY constraint_type
-            """, (task_id,))
+            """, (project_id,))
 
-            logger.info(f"加载HITL任务 {task_id} 的 {len(requirements)} 个要求")
+            logger.info(f"加载HITL任务 {project_id} 的 {len(requirements)} 个要求")
 
             return jsonify({
                 'success': True,
@@ -1640,7 +1646,7 @@ def register_hitl_routes(app):
         """
         try:
             data = request.get_json()
-            task_id = data.get('task_id')  # 可选
+            project_id = data.get('project_id')  # 可选
 
             if not data:
                 return jsonify({'success': False, 'error': '缺少更新数据'}), 400
@@ -1673,19 +1679,19 @@ def register_hitl_routes(app):
                 WHERE requirement_id = ?
             """, tuple(params))
 
-            # 如果提供了task_id，记录到草稿表
-            if task_id:
+            # 如果提供了project_id，记录到草稿表
+            if project_id:
                 db.execute_query("""
                     INSERT INTO tender_requirements_draft (
-                        requirement_id, project_id, task_id,
+                        requirement_id, project_id,
                         constraint_type, category, subcategory, detail, source_location, priority,
                         operation, edited_by, edited_at
                     ) SELECT
-                        ?, project_id, ?, constraint_type, category, subcategory,
+                        ?, project_id, constraint_type, category, subcategory,
                         detail, source_location, priority, 'edit', 'user', CURRENT_TIMESTAMP
                     FROM tender_requirements
                     WHERE requirement_id = ?
-                """, (req_id, task_id, req_id))
+                """, (req_id, req_id))
 
             logger.info(f"要求 {req_id} 已更新")
 
@@ -1721,10 +1727,10 @@ def register_hitl_routes(app):
         """
         try:
             data = request.get_json()
-            task_id = data.get('task_id')
+            project_id = data.get('project_id')
             operations = data.get('operations', [])
 
-            if not task_id or not operations:
+            if not project_id or not operations:
                 return jsonify({'success': False, 'error': '参数不完整'}), 400
 
             db = get_knowledge_base_db()
@@ -1734,24 +1740,21 @@ def register_hitl_routes(app):
                 action = op.get('action')
 
                 if action == 'add':
-                    # 添加新要求（包含hitl_task_id）
+                    # 添加新要求
                     req_data = op.get('data', {})
                     db.execute_query("""
                         INSERT INTO tender_requirements (
                             project_id, constraint_type, category, subcategory,
-                            detail, source_location, priority, hitl_task_id
-                        ) SELECT
-                            project_id, ?, ?, ?, ?, ?, ?, ?
-                        FROM tender_hitl_tasks WHERE hitl_task_id = ?
+                            detail, source_location, priority
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, (
+                        project_id,
                         req_data.get('constraint_type'),
                         req_data.get('category'),
                         req_data.get('subcategory'),
                         req_data.get('detail'),
                         req_data.get('source_location'),
-                        req_data.get('priority', 'medium'),
-                        task_id,  # 设置hitl_task_id
-                        task_id   # WHERE条件
+                        req_data.get('priority', 'medium')
                     ))
                     results.append({'action': 'add', 'success': True})
 
@@ -1773,8 +1776,8 @@ def register_hitl_routes(app):
             logger.error(f"批量操作失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/tender-processing/export-draft/<task_id>', methods=['GET'])
-    def export_draft_requirements(task_id):
+    @app.route('/api/tender-processing/export-draft/<int:project_id>', methods=['GET'])
+    def export_draft_requirements(project_id):
         """
         导出草稿要求（步骤3）
 
@@ -1789,9 +1792,9 @@ def register_hitl_routes(app):
             # 获取草稿要求
             drafts = db.execute_query("""
                 SELECT * FROM tender_requirements_draft
-                WHERE task_id = ?
+                WHERE project_id = ?
                 ORDER BY created_at DESC
-            """, (task_id,))
+            """, (project_id,))
 
             if not drafts:
                 return jsonify({'success': False, 'error': '没有草稿数据'}), 404
@@ -1808,7 +1811,7 @@ def register_hitl_routes(app):
                 output,
                 mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 as_attachment=True,
-                download_name=f'requirements_draft_{task_id}.xlsx'
+                download_name=f'requirements_draft_{project_id}.xlsx'
             )
 
         except Exception as e:
@@ -1819,8 +1822,8 @@ def register_hitl_routes(app):
     # 步骤3增强：基本信息和资质信息提取API
     # ============================================
 
-    @app.route('/api/tender-processing/extract-basic-info/<task_id>', methods=['POST'])
-    def extract_basic_info_step3(task_id):
+    @app.route('/api/tender-processing/extract-basic-info/<int:project_id>', methods=['POST'])
+    def extract_basic_info_step3(project_id):
         """
         提取基本信息（步骤3）
 
@@ -1852,13 +1855,13 @@ def register_hitl_routes(app):
             request_data = request.get_json() if request.is_json else {}
             model_name = request_data.get('model_name', 'yuanjing-deepseek-v3')  # 默认使用联通元景模型
 
-            logger.info(f"基本信息提取 - 任务ID: {task_id}, 使用模型: {model_name}")
+            logger.info(f"基本信息提取 - 任务ID: {project_id}, 使用模型: {model_name}")
 
             # 获取任务信息
             hitl_task = db.execute_query("""
                 SELECT project_id, step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not hitl_task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
@@ -1880,7 +1883,7 @@ def register_hitl_routes(app):
             # 提取基本信息
             basic_info = extractor.extract_basic_info(text)
 
-            logger.info(f"基本信息提取成功: {task_id}")
+            logger.info(f"基本信息提取成功: {project_id}")
 
             return jsonify({
                 'success': True,
@@ -1916,7 +1919,7 @@ def register_hitl_routes(app):
         """
         try:
             data = request.get_json()
-            task_id = data.get('task_id')
+            project_id = data.get('project_id')
 
             if not data:
                 return jsonify({'success': False, 'error': '缺少数据'}), 400
@@ -1976,8 +1979,8 @@ def register_hitl_routes(app):
             logger.error(f"保存基本信息失败: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/tender-processing/extract-qualifications/<task_id>', methods=['POST'])
-    def extract_qualifications_step3(task_id):
+    @app.route('/api/tender-processing/extract-qualifications/<int:project_id>', methods=['POST'])
+    def extract_qualifications_step3(project_id):
         """
         提取资质要求并对比公司状态（步骤3）
 
@@ -2010,15 +2013,15 @@ def register_hitl_routes(app):
             project_id = data.get('project_id')
             model_name = data.get('model_name', 'yuanjing-deepseek-v3')  # 默认使用联通元景模型
 
-            logger.info(f"资质提取 - 任务ID: {task_id}, 使用模型: {model_name}")
+            logger.info(f"资质提取 - 任务ID: {project_id}, 使用模型: {model_name}")
 
             db = get_knowledge_base_db()
 
             # 获取任务信息
             hitl_task = db.execute_query("""
                 SELECT project_id, step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not hitl_task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
@@ -2096,7 +2099,7 @@ def register_hitl_routes(app):
 
                 logger.info(f"资质数据已保存到项目 {project_id}: {len(enriched_data.get('qualifications', {}))}项")
 
-            logger.info(f"资质要求提取成功: {task_id}, 检测到{len(enriched_data.get('qualifications', {}))}项资质")
+            logger.info(f"资质要求提取成功: {project_id}, 检测到{len(enriched_data.get('qualifications', {}))}项资质")
 
             return jsonify({
                 'success': True,
@@ -2109,8 +2112,8 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
-    @app.route('/api/tender-processing/trigger-extraction/<task_id>', methods=['POST'])
-    def trigger_requirement_extraction(task_id):
+    @app.route('/api/tender-processing/trigger-extraction/<int:project_id>', methods=['POST'])
+    def trigger_requirement_extraction(project_id):
         """
         手动触发要求提取（用于已有任务补充提取）
 
@@ -2121,20 +2124,18 @@ def register_hitl_routes(app):
 
             # 检查任务是否存在
             task_info = db.execute_query("""
-                SELECT hitl_task_id, project_id FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                SELECT project_id FROM tender_hitl_tasks
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_info:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
 
-            project_id = task_info['project_id']
-
             # 先清除该任务的旧要求
             db.execute_query("""
                 DELETE FROM tender_requirements
-                WHERE hitl_task_id = ?
-            """, (task_id,))
+                WHERE project_id = ?
+            """, (project_id,))
 
             # 提取要求
             from modules.tender_processing.requirement_extractor import RequirementExtractor
@@ -2144,9 +2145,9 @@ def register_hitl_routes(app):
             valuable_chunks = db.execute_query("""
                 SELECT chunk_id, content, metadata
                 FROM tender_document_chunks
-                WHERE hitl_task_id = ? AND is_valuable = 1
+                WHERE project_id = ? AND is_valuable = 1
                 ORDER BY chunk_index
-            """, (task_id,))
+            """, (project_id,))
 
             if not valuable_chunks:
                 return jsonify({
@@ -2172,13 +2173,12 @@ def register_hitl_routes(app):
                 for req in requirements:
                     db.execute_query("""
                         INSERT INTO tender_requirements (
-                            project_id, hitl_task_id, constraint_type, category,
+                            project_id, constraint_type, category,
                             subcategory, detail, summary, source_location, priority,
                             extraction_confidence
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         project_id,
-                        task_id,
                         req.constraint_type,
                         req.category,
                         req.subcategory,
@@ -2208,8 +2208,8 @@ def register_hitl_routes(app):
     # 步骤3：保存和完成相关API
     # ============================================
 
-    @app.route('/api/tender-processing/save-basic-info/<task_id>', methods=['POST'])
-    def save_basic_info(task_id):
+    @app.route('/api/tender-processing/save-basic-info/<int:project_id>', methods=['POST'])
+    def save_basic_info(project_id):
         """保存基本信息到step3_data"""
         try:
             data = request.get_json()
@@ -2218,8 +2218,8 @@ def register_hitl_routes(app):
             # 获取当前step3_data和step1_data
             task_data = db.execute_query("""
                 SELECT step3_data, step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"success": False, "error": "任务不存在"}), 404
@@ -2244,10 +2244,10 @@ def register_hitl_routes(app):
                 UPDATE tender_hitl_tasks
                 SET step3_data = ?,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE hitl_task_id = ?
-            """, (json.dumps(step3_data, ensure_ascii=False), task_id))
+                WHERE project_id = ?
+            """, (json.dumps(step3_data, ensure_ascii=False), project_id))
 
-            logger.info(f"✅ 保存基本信息成功: {task_id}")
+            logger.info(f"✅ 保存基本信息成功: {project_id}")
             return jsonify({
                 "success": True,
                 "message": "基本信息保存成功"
@@ -2259,8 +2259,8 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({"success": False, "error": str(e)}), 500
 
-    @app.route('/api/tender-processing/complete-hitl/<task_id>', methods=['POST'])
-    def complete_hitl(task_id):
+    @app.route('/api/tender-processing/complete-hitl/<int:project_id>', methods=['POST'])
+    def complete_hitl(project_id):
         """完成HITL流程"""
         try:
             # 更新任务状态
@@ -2270,10 +2270,10 @@ def register_hitl_routes(app):
                     step3_completed_at = CURRENT_TIMESTAMP,
                     overall_status = 'completed',
                     updated_at = CURRENT_TIMESTAMP
-                WHERE hitl_task_id = ?
-            """, (task_id,))
+                WHERE project_id = ?
+            """, (project_id,))
 
-            logger.info(f"✅ HITL流程完成: {task_id}")
+            logger.info(f"✅ HITL流程完成: {project_id}")
             return jsonify({
                 "success": True,
                 "message": "HITL流程完成"
@@ -2290,7 +2290,7 @@ def register_hitl_routes(app):
 # 辅助函数
 # ============================================
 
-    def _save_chapters_to_db(db, chapters, project_id, task_id, hitl_task_id, parent_id=None):
+    def _save_chapters_to_db(db, chapters, project_id, parent_id=None):
         """递归保存章节树到数据库"""
         chapter_ids = []
 
@@ -2298,12 +2298,12 @@ def register_hitl_routes(app):
             # 插入章节
             chapter_db_id = db.execute_query("""
                 INSERT INTO tender_document_chapters (
-                    project_id, task_id, chapter_node_id, level, title,
+                    project_id, chapter_node_id, level, title,
                     para_start_idx, para_end_idx, word_count, preview_text,
                     is_selected, auto_selected, skip_recommended, parent_chapter_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                project_id, task_id, chapter['id'], chapter['level'], chapter['title'],
+                project_id, chapter['id'], chapter['level'], chapter['title'],
                 chapter['para_start_idx'], chapter.get('para_end_idx'),
                 chapter.get('word_count', 0), chapter.get('preview_text', ''),
                 False, chapter.get('auto_selected', False),
@@ -2316,7 +2316,7 @@ def register_hitl_routes(app):
             # 递归保存子章节
             if chapter.get('children'):
                 child_ids = _save_chapters_to_db(
-                    db, chapter['children'], project_id, task_id, hitl_task_id, chapter_db_id
+                    db, chapter['children'], project_id, chapter_db_id
                 )
                 chapter_ids.extend(child_ids)
 
@@ -2334,11 +2334,9 @@ def register_hitl_routes(app):
 
         Query参数：
         - category: 可选，筛选类别 (qualification/technical/commercial/service)
-        - hitl_task_id: 可选，筛选HITL任务
         """
         try:
             category = request.args.get('category')
-            hitl_task_id = request.args.get('hitl_task_id')
 
             query = """
                 SELECT * FROM tender_requirements
@@ -2349,10 +2347,6 @@ def register_hitl_routes(app):
             if category:
                 query += " AND category = ?"
                 params.append(category)
-
-            if hitl_task_id:
-                query += " AND hitl_task_id = ?"
-                params.append(hitl_task_id)
 
             query += " ORDER BY created_at DESC"
 
@@ -2422,37 +2416,37 @@ def register_hitl_routes(app):
             return jsonify({'success': False, 'error': str(e)}), 500
 
 
-    @app.route('/api/tender-processing/hitl-tasks/<hitl_task_id>', methods=['GET'])
-    def get_hitl_task_by_id(hitl_task_id):
+    @app.route('/api/tender-processing/hitl-tasks/<int:project_id>', methods=['GET'])
+    def get_hitl_task_by_id(project_id):
         """
-        根据 hitl_task_id 获取单个HITL任务详情
+        根据 project_id 获取单个HITL任务详情
 
         URL参数：
-        - hitl_task_id: HITL任务ID
+        - project_id: 项目ID
 
         返回：
         - success: 是否成功
         - task: 任务详情对象（包含step1_data, step2_data, step3_data等）
         """
         try:
-            logger.info(f"获取HITL任务详情: {hitl_task_id}")
+            logger.info(f"获取HITL任务详情: {project_id}")
 
             query = """
                 SELECT * FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
+                WHERE project_id = ?
             """
 
-            tasks = db.execute_query(query, [hitl_task_id])
+            tasks = db.execute_query(query, [project_id])
 
             if not tasks or len(tasks) == 0:
-                logger.warning(f"未找到HITL任务: {hitl_task_id}")
+                logger.warning(f"未找到HITL任务: {project_id}")
                 return jsonify({
                     'success': False,
-                    'error': f'未找到ID为 {hitl_task_id} 的HITL任务'
+                    'error': f'未找到ID为 {project_id} 的HITL任务'
                 }), 404
 
             task = tasks[0]
-            logger.info(f"成功获取HITL任务: {hitl_task_id}")
+            logger.info(f"成功获取HITL任务: {project_id}")
 
             return jsonify({
                 'success': True,
@@ -2560,12 +2554,12 @@ def register_hitl_routes(app):
         }
     }
 
-    def _find_file_in_filesystem(task_id, field_name):
+    def _find_file_in_filesystem(project_id, field_name):
         """
         从文件系统中查找文件(fallback机制,当数据库中没有数据时使用)
 
         Args:
-            task_id: HITL任务ID
+            project_id: 项目ID
             field_name: 字段名(如 'business_response_file')
 
         Returns:
@@ -2622,7 +2616,7 @@ def register_hitl_routes(app):
                         for month_dir in year_dir.iterdir():
                             if not month_dir.is_dir():
                                 continue
-                            task_dir = month_dir / task_id
+                            task_dir = month_dir / str(project_id)
                             if task_dir.exists() and task_dir.is_dir():
                                 # 查找docx文件
                                 for file_path in task_dir.iterdir():
@@ -2630,15 +2624,15 @@ def register_hitl_routes(app):
                                         logger.info(f"从文件系统找到文件: {file_path} (目录: {dir_name})")
                                         return file_path
 
-            logger.warning(f"文件系统中未找到文件: task_id={task_id}, field_name={field_name}, 搜索目录={dir_names}")
+            logger.warning(f"文件系统中未找到文件: task_id={project_id}, field_name={field_name}, 搜索目录={dir_names}")
             return None
 
         except Exception as e:
             logger.error(f"文件系统扫描失败: {str(e)}")
             return None
 
-    @app.route('/api/tender-processing/sync-file/<task_id>', methods=['POST'])
-    def sync_file_to_hitl(task_id):
+    @app.route('/api/tender-processing/sync-file/<int:project_id>', methods=['POST'])
+    def sync_file_to_hitl(project_id):
         """
         统一的文件同步API - 支持多种文件类型
 
@@ -2675,8 +2669,8 @@ def register_hitl_routes(app):
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"success": False, "error": "任务不存在"}), 404
@@ -2691,7 +2685,7 @@ def register_hitl_routes(app):
                 f'data/uploads/{config["dir_name"]}',
                 str(now.year),
                 f"{now.month:02d}",
-                task_id
+                str(project_id)
             )
             os.makedirs(save_dir, exist_ok=True)
 
@@ -2723,10 +2717,10 @@ def register_hitl_routes(app):
             db.execute_query("""
                 UPDATE tender_hitl_tasks
                 SET step1_data = ?
-                WHERE hitl_task_id = ?
-            """, (json.dumps(step1_data), task_id))
+                WHERE project_id = ?
+            """, (json.dumps(step1_data), project_id))
 
-            logger.info(f"同步{config['display_name']}到HITL任务: {task_id}, 文件: {filename} ({file_size} bytes)")
+            logger.info(f"同步{config['display_name']}到HITL任务: {project_id}, 文件: {filename} ({file_size} bytes)")
 
             return jsonify({
                 "success": True,
@@ -2748,8 +2742,8 @@ def register_hitl_routes(app):
     # 应答完成文件相关API (从商务应答同步)
     # ============================================
 
-    @app.route('/api/tender-processing/sync-business-response/<task_id>', methods=['POST'])
-    def sync_business_response_to_hitl(task_id):
+    @app.route('/api/tender-processing/sync-business-response/<int:project_id>', methods=['POST'])
+    def sync_business_response_to_hitl(project_id):
         """
         将商务应答生成的文件同步到HITL投标项目（向后兼容API）
         内部调用统一的sync_file_to_hitl API
@@ -2767,22 +2761,22 @@ def register_hitl_routes(app):
         request.get_json = lambda: unified_data
 
         # 调用统一API
-        result = sync_file_to_hitl(task_id)
+        result = sync_file_to_hitl(project_id)
 
         # 恢复原始request
         request.get_json = original_json
 
         return result
 
-    @app.route('/api/tender-processing/completed-response-info/<task_id>', methods=['GET'])
-    def get_completed_response_info(task_id):
+    @app.route('/api/tender-processing/completed-response-info/<int:project_id>', methods=['GET'])
+    def get_completed_response_info(project_id):
         """获取应答完成文件信息"""
         try:
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"success": False, "error": "任务不存在"}), 404
@@ -2806,22 +2800,22 @@ def register_hitl_routes(app):
                 "file_size": completed_response.get('file_size'),
                 "saved_at": completed_response.get('saved_at'),
                 "source": completed_response.get('source', 'unknown'),
-                "download_url": f"/api/tender-processing/download-completed-response/{task_id}"
+                "download_url": f"/api/tender-processing/download-completed-response/{project_id}"
             })
 
         except Exception as e:
             logger.error(f"获取应答完成文件信息失败: {str(e)}")
             return jsonify({"success": False, "error": str(e)}), 500
 
-    @app.route('/api/tender-processing/download-completed-response/<task_id>', methods=['GET'])
-    def download_completed_response(task_id):
+    @app.route('/api/tender-processing/download-completed-response/<int:project_id>', methods=['GET'])
+    def download_completed_response(project_id):
         """下载应答完成文件"""
         try:
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"error": "任务不存在"}), 404
@@ -2847,15 +2841,15 @@ def register_hitl_routes(app):
             logger.error(f"下载应答完成文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/tender-processing/preview-completed-response/<task_id>', methods=['GET'])
-    def preview_completed_response(task_id):
+    @app.route('/api/tender-processing/preview-completed-response/<int:project_id>', methods=['GET'])
+    def preview_completed_response(project_id):
         """预览应答完成文件"""
         try:
             # 查询任务信息
             task_data = db.execute_query("""
                 SELECT step1_data FROM tender_hitl_tasks
-                WHERE hitl_task_id = ?
-            """, (task_id,), fetch_one=True)
+                WHERE project_id = ?
+            """, (project_id,), fetch_one=True)
 
             if not task_data:
                 return jsonify({"error": "任务不存在"}), 404
@@ -2886,12 +2880,12 @@ def register_hitl_routes(app):
     # 新的三种文件类型的获取API
     # ============================================
 
-    def _get_file_info(task_id, field_name, file_display_name):
+    def _get_file_info(project_id, field_name, file_display_name):
         """
         通用的文件信息获取函数
 
         Args:
-            task_id: HITL任务ID
+            project_id: 项目ID
             field_name: step1_data中的字段名（如 'technical_point_to_point_file'）
             file_display_name: 文件显示名称（用于日志和错误提示）
 
@@ -2905,8 +2899,8 @@ def register_hitl_routes(app):
             try:
                 task_data = db.execute_query("""
                     SELECT step1_data FROM tender_hitl_tasks
-                    WHERE hitl_task_id = ?
-                """, (task_id,), fetch_one=True)
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
 
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
@@ -2917,7 +2911,7 @@ def register_hitl_routes(app):
             # 如果数据库中没有文件信息,尝试从文件系统扫描
             if not file_info:
                 logger.info(f"数据库中无{file_display_name}信息,尝试从文件系统扫描")
-                file_path = _find_file_in_filesystem(task_id, field_name)
+                file_path = _find_file_in_filesystem(project_id, field_name)
 
                 if file_path:
                     # 构建文件信息
@@ -2942,7 +2936,7 @@ def register_hitl_routes(app):
             # 如果数据库中的文件路径不存在,尝试从文件系统扫描
             if not file_exists and 'file_path' in file_info:
                 logger.warning(f"数据库中的文件路径不存在: {file_info['file_path']}, 尝试文件系统扫描")
-                file_path = _find_file_in_filesystem(task_id, field_name)
+                file_path = _find_file_in_filesystem(project_id, field_name)
 
                 if file_path:
                     # 更新文件信息
@@ -2962,25 +2956,25 @@ def register_hitl_routes(app):
                 "filename": file_info.get('filename'),
                 "file_size": file_info.get('file_size'),
                 "saved_at": file_info.get('saved_at'),
-                "download_url": f"/api/tender-processing/download-file/{task_id}/{field_name}"
+                "download_url": f"/api/tender-processing/download-file/{project_id}/{field_name}"
             })
 
         except Exception as e:
             logger.error(f"获取{file_display_name}信息失败: {str(e)}")
             return jsonify({"success": False, "error": str(e)}), 500
 
-    @app.route('/api/tender-processing/technical-point-to-point-info/<task_id>', methods=['GET'])
-    def get_technical_point_to_point_info(task_id):
+    @app.route('/api/tender-processing/technical-point-to-point-info/<int:project_id>', methods=['GET'])
+    def get_technical_point_to_point_info(project_id):
         """获取技术需求点对点应答文件信息"""
-        return _get_file_info(task_id, 'technical_point_to_point_file', '技术需求点对点应答文件')
+        return _get_file_info(project_id, 'technical_point_to_point_file', '技术需求点对点应答文件')
 
-    @app.route('/api/tender-processing/technical-proposal-info/<task_id>', methods=['GET'])
-    def get_technical_proposal_info(task_id):
+    @app.route('/api/tender-processing/technical-proposal-info/<int:project_id>', methods=['GET'])
+    def get_technical_proposal_info(project_id):
         """获取技术方案文件信息"""
-        return _get_file_info(task_id, 'technical_proposal_file', '技术方案文件')
+        return _get_file_info(project_id, 'technical_proposal_file', '技术方案文件')
 
-    @app.route('/api/tender-processing/business-response-info/<task_id>', methods=['GET'])
-    def get_business_response_info(task_id):
+    @app.route('/api/tender-processing/business-response-info/<int:project_id>', methods=['GET'])
+    def get_business_response_info(project_id):
         """获取商务应答完成文件信息（仅返回从商务应答同步的完成文件）"""
         try:
             file_info = None
@@ -2990,8 +2984,8 @@ def register_hitl_routes(app):
             try:
                 task_data = db.execute_query("""
                     SELECT step1_data FROM tender_hitl_tasks
-                    WHERE hitl_task_id = ?
-                """, (task_id,), fetch_one=True)
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
 
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
@@ -3005,7 +2999,7 @@ def register_hitl_routes(app):
             # 如果数据库中没有文件信息,尝试从文件系统扫描
             if not file_info:
                 logger.info(f"数据库中无商务应答完成文件,尝试从文件系统扫描")
-                file_path = _find_file_in_filesystem(task_id, field_name)
+                file_path = _find_file_in_filesystem(project_id, field_name)
 
                 if file_path:
                     # 构建文件信息
@@ -3030,7 +3024,7 @@ def register_hitl_routes(app):
             # 如果数据库中的文件路径不存在,尝试从文件系统扫描
             if not file_exists and 'file_path' in file_info:
                 logger.warning(f"数据库中的文件路径不存在: {file_info['file_path']}, 尝试文件系统扫描")
-                file_path = _find_file_in_filesystem(task_id, field_name)
+                file_path = _find_file_in_filesystem(project_id, field_name)
 
                 if file_path:
                     # 更新文件信息
@@ -3050,7 +3044,7 @@ def register_hitl_routes(app):
                 "filename": file_info.get('filename'),
                 "file_size": file_info.get('file_size'),
                 "saved_at": file_info.get('saved_at'),
-                "download_url": f"/api/tender-processing/download-file/{task_id}/{field_name}"
+                "download_url": f"/api/tender-processing/download-file/{project_id}/{field_name}"
             })
 
         except Exception as e:
@@ -3061,8 +3055,8 @@ def register_hitl_routes(app):
     # 统一的文件下载和预览API
     # ============================================
 
-    @app.route('/api/tender-processing/download-file/<task_id>/<field_name>', methods=['GET'])
-    def download_unified_file(task_id, field_name):
+    @app.route('/api/tender-processing/download-file/<int:project_id>/<field_name>', methods=['GET'])
+    def download_unified_file(project_id, field_name):
         """统一的文件下载接口(支持数据库和文件系统fallback)"""
         try:
             # 验证field_name合法性（防止SQL注入）
@@ -3076,8 +3070,8 @@ def register_hitl_routes(app):
             try:
                 task_data = db.execute_query("""
                     SELECT step1_data FROM tender_hitl_tasks
-                    WHERE hitl_task_id = ?
-                """, (task_id,), fetch_one=True)
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
 
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
@@ -3088,7 +3082,7 @@ def register_hitl_routes(app):
             # 如果数据库中没有文件信息,尝试从文件系统扫描
             if not file_info:
                 logger.info(f"数据库中无文件信息,尝试从文件系统扫描: {field_name}")
-                file_path_obj = _find_file_in_filesystem(task_id, field_name)
+                file_path_obj = _find_file_in_filesystem(project_id, field_name)
 
                 if file_path_obj:
                     file_info = {
@@ -3114,8 +3108,8 @@ def register_hitl_routes(app):
             logger.error(f"下载文件失败: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route('/api/tender-processing/preview-file/<task_id>/<field_name>', methods=['GET'])
-    def preview_unified_file(task_id, field_name):
+    @app.route('/api/tender-processing/preview-file/<int:project_id>/<field_name>', methods=['GET'])
+    def preview_unified_file(project_id, field_name):
         """统一的文件预览接口(支持数据库和文件系统fallback)"""
         try:
             # 验证field_name合法性
@@ -3129,8 +3123,8 @@ def register_hitl_routes(app):
             try:
                 task_data = db.execute_query("""
                     SELECT step1_data FROM tender_hitl_tasks
-                    WHERE hitl_task_id = ?
-                """, (task_id,), fetch_one=True)
+                    WHERE project_id = ?
+                """, (project_id,), fetch_one=True)
 
                 if task_data:
                     step1_data = json.loads(task_data['step1_data'])
@@ -3141,7 +3135,7 @@ def register_hitl_routes(app):
             # 如果数据库中没有文件信息,尝试从文件系统扫描
             if not file_info:
                 logger.info(f"数据库中无文件信息,尝试从文件系统扫描: {field_name}")
-                file_path_obj = _find_file_in_filesystem(task_id, field_name)
+                file_path_obj = _find_file_in_filesystem(project_id, field_name)
 
                 if file_path_obj:
                     file_info = {

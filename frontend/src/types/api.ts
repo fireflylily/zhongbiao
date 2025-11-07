@@ -169,7 +169,6 @@ export interface TenderProcessingRequest {
  * 投标处理响应
  */
 export interface TenderProcessingResponse extends TaskCreateResponse {
-  hitl_task_id: string
   project_id: number
 }
 
@@ -183,7 +182,6 @@ export interface TenderProcessingResponse extends TaskCreateResponse {
 export interface BusinessResponseRequest {
   project_id: number
   company_id: number
-  hitl_task_id?: string
   template_style?: 'business_style' | 'standard_style'
   ai_model?: string
   selected_chapters?: number[]
@@ -208,7 +206,6 @@ export interface PointToPointRequest {
   project_id: number
   company_id: number
   technical_file_path?: string
-  hitl_task_id?: string
   ai_model?: string
   requirements?: Array<{
     id: number
@@ -238,7 +235,6 @@ export interface TechProposalRequest {
   project_id: number
   company_id: number
   technical_file_path?: string
-  hitl_task_id?: string
   ai_model?: string
   outline?: any
   product_selection?: any

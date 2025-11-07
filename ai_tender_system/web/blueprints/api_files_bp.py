@@ -16,7 +16,7 @@ sys.path.insert(0, str(project_root))
 from common import get_module_logger, get_config, format_error_response
 
 # 创建蓝图
-api_files_bp = Blueprint('api_files', __name__)
+api_files_bp = Blueprint('api_files', __name__, url_prefix='/api/files')
 
 # 日志记录器
 logger = get_module_logger("web.api_files")
@@ -112,6 +112,85 @@ def download_file(filename):
     except Exception as e:
         logger.error(f"文件下载失败: {e}")
         return jsonify(format_error_response(e))
+
+
+@api_files_bp.route('/serve/<path:filepath>')
+def serve_file(filepath):
+    """
+    通用文件访问API - 用于访问uploads目录下的文件
+
+    Args:
+        filepath: 相对于uploads目录的文件路径
+
+    Query参数:
+        download: 是否作为下载（可选，默认False，即在线预览）
+
+    Returns:
+        文件内容
+
+    Raises:
+        404: 文件不存在
+    """
+    try:
+        import os
+        from pathlib import Path
+
+        # 获取项目根目录
+        project_root = Path(__file__).parent.parent.parent.parent
+
+        # 构建完整文件路径
+        # 处理可能的路径格式：
+        # 1. ai_tender_system/data/uploads/...
+        # 2. data/uploads/...
+        # 3. uploads/...
+        # 4. download/... (output目录)
+
+        if filepath.startswith('ai_tender_system/'):
+            full_path = project_root / filepath
+        elif filepath.startswith('data/'):
+            full_path = project_root / 'ai_tender_system' / filepath
+        elif filepath.startswith('uploads/'):
+            full_path = project_root / 'ai_tender_system' / 'data' / filepath
+        elif filepath.startswith('download/'):
+            # download/ 路径指向 outputs 目录
+            filename = filepath[9:]  # 移除 'download/' 前缀
+            full_path = project_root / 'ai_tender_system' / 'data' / 'outputs' / filename
+        else:
+            # 假设是相对于 uploads 目录
+            full_path = project_root / 'ai_tender_system' / 'data' / 'uploads' / filepath
+
+        # 安全检查：确保文件路径在允许的目录内（防止路径遍历攻击）
+        uploads_dir = project_root / 'ai_tender_system' / 'data' / 'uploads'
+        outputs_dir = project_root / 'ai_tender_system' / 'data' / 'outputs'
+        try:
+            full_path = full_path.resolve()
+            uploads_dir = uploads_dir.resolve()
+            outputs_dir = outputs_dir.resolve()
+            # 允许访问 uploads 或 outputs 目录
+            if not (str(full_path).startswith(str(uploads_dir)) or str(full_path).startswith(str(outputs_dir))):
+                raise PermissionError("访问被拒绝：文件路径超出允许范围")
+        except Exception as e:
+            logger.error(f"路径安全检查失败: {e}")
+            raise PermissionError("访问被拒绝")
+
+        if not full_path.exists():
+            raise FileNotFoundError(f"文件不存在: {filepath}")
+
+        # 检查是否为下载模式
+        as_attachment = request.args.get('download', 'false').lower() == 'true'
+
+        logger.info(f"文件访问: {filepath} (下载模式: {as_attachment})")
+        return send_file(str(full_path), as_attachment=as_attachment)
+
+    except FileNotFoundError as e:
+        logger.error(f"文件不存在: {filepath}")
+        return jsonify({'success': False, 'error': str(e)}), 404
+    except PermissionError as e:
+        logger.error(f"访问被拒绝: {filepath}")
+        return jsonify({'success': False, 'error': str(e)}), 403
+    except Exception as e:
+        logger.error(f"文件访问失败: {e}")
+        return jsonify(format_error_response(e)), 500
 
 
 __all__ = ['api_files_bp']

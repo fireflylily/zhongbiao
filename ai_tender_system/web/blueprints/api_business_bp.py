@@ -25,7 +25,7 @@ from common import (
 from web.shared.instances import get_kb_manager
 
 # 创建蓝图
-api_business_bp = Blueprint('api_business', __name__)
+api_business_bp = Blueprint('api_business', __name__, url_prefix='/api')
 
 # 日志记录器
 logger = get_module_logger("web.api_business")
@@ -467,6 +467,44 @@ def process_business_response():
                     'message': result_stats.get('message', '商务应答处理失败')
                 }
 
+        # 【新增】如果处理成功，调用现有的同步API保存结果到数据库
+        if result.get('success') and project_name:
+            try:
+                # 查询项目ID
+                query = """
+                    SELECT p.project_id
+                    FROM tender_projects p
+                    WHERE p.project_name = ? AND p.company_id = ?
+                    LIMIT 1
+                """
+                project_result = kb_manager.db.execute_query(query, [project_name, company_id_int], fetch_one=True)
+
+                if project_result and project_result.get('project_id'):
+                    import requests
+                    project_id = project_result['project_id']
+
+                    # 获取当前服务的端口号
+                    port = os.environ.get('FLASK_RUN_PORT', '8110')
+
+                    # 调用现有的文件同步API
+                    sync_url = f'http://localhost:{port}/api/tender-processing/sync-file/{project_id}'
+                    sync_data = {
+                        'file_path': output_path,
+                        'file_type': 'business_response'
+                    }
+
+                    sync_response = requests.post(sync_url, json=sync_data, timeout=10)
+
+                    if sync_response.status_code == 200 and sync_response.json().get('success'):
+                        logger.info(f"✅ 商务应答结果已同步到数据库: {os.path.basename(output_path)}")
+                    else:
+                        logger.warning(f"⚠️  同步商务应答结果失败: {sync_response.text}")
+                else:
+                    logger.warning(f"⚠️  项目 {project_name} 没有关联的HITL任务，无法保存商务应答结果到数据库")
+            except Exception as e:
+                logger.error(f"同步商务应答结果到数据库失败: {e}")
+                # 不影响主流程，继续返回成功结果
+
         logger.info("商务应答处理完成")
         return jsonify(result)
 
@@ -625,20 +663,20 @@ def process_point_to_point():
     try:
         # 检查是否使用HITL技术需求文件
         use_hitl_file = request.form.get('use_hitl_technical_file') == 'true'
-        hitl_task_id = request.form.get('hitl_task_id')
+        project_id = request.form.get('project_id')
 
-        if use_hitl_file and hitl_task_id:
+        if use_hitl_file and project_id:
             # 从HITL任务获取技术需求文件
-            logger.info(f"使用HITL任务的技术需求文件: {hitl_task_id}")
+            logger.info(f"使用HITL项目的技术需求文件: project_id={project_id}")
 
             # 查询HITL任务的技术需求文件路径
-            # 技术需求文件保存在 technical_files/{year}/{month}/{task_id}/ 目录下
+            # 技术需求文件保存在 technical_files/{year}/{month}/{project_id}/ 目录下
             from datetime import datetime
             now = datetime.now()
             year = now.strftime('%Y')
             month = now.strftime('%m')
 
-            technical_dir = Path(config.get_path('upload')) / 'technical_files' / year / month / hitl_task_id
+            technical_dir = Path(config.get_path('upload')) / 'technical_files' / year / month / str(project_id)
 
             if not technical_dir.exists():
                 raise ValueError(f"HITL任务技术需求文件目录不存在: {technical_dir}")

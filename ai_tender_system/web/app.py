@@ -302,7 +302,6 @@ def register_routes(app: Flask, config, logger):
                 SELECT
                     p.project_id,
                     p.project_name,
-                    h.hitl_task_id,
                     h.step1_status,
                     h.step2_status,
                     h.step3_status,
@@ -311,7 +310,7 @@ def register_routes(app: Flask, config, logger):
                     t.total_requirements
                 FROM tender_projects p
                 LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-                LEFT JOIN tender_hitl_tasks h ON t.task_id = h.task_id
+                LEFT JOIN tender_hitl_tasks h ON h.project_id = p.project_id
                 WHERE p.project_id = ?
             """
 
@@ -336,7 +335,6 @@ def register_routes(app: Flask, config, logger):
             debug_info = {
                 'project_id': result['project_id'],
                 'project_name': result['project_name'],
-                'hitl_task_id': result['hitl_task_id'],
                 'step1_status': result['step1_status'],
                 'step2_status': result['step2_status'],
                 'step3_status': result['step3_status'],

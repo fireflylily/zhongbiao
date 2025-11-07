@@ -1182,18 +1182,18 @@ class KnowledgeBaseDB:
                                   category: str, detail: str, chunk_id: int = None,
                                   subcategory: str = None, source_location: str = None,
                                   priority: str = 'medium', extraction_confidence: float = None,
-                                  extraction_model: str = None, hitl_task_id: str = None) -> int:
-        """创建标书要求记录（新增hitl_task_id参数）"""
+                                  extraction_model: str = None) -> int:
+        """创建标书要求记录（移除hitl_task_id参数）"""
         query = """
         INSERT INTO tender_requirements
         (project_id, chunk_id, constraint_type, category, subcategory, detail,
          source_location, priority, extraction_confidence, extraction_model,
-         hitl_task_id, extracted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         extracted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         """
         return self.execute_query(query, (
             project_id, chunk_id, constraint_type, category, subcategory, detail,
-            source_location, priority, extraction_confidence, extraction_model, hitl_task_id
+            source_location, priority, extraction_confidence, extraction_model
         ))
 
     def get_tender_requirements(self, project_id: int, constraint_type: str = None,
@@ -1237,7 +1237,7 @@ class KnowledgeBaseDB:
         return result is not None
 
     def batch_create_tender_requirements(self, requirements_data: List[Dict]) -> bool:
-        """批量创建标书要求（支持hitl_task_id）"""
+        """批量创建标书要求（移除hitl_task_id参数）"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
@@ -1247,13 +1247,12 @@ class KnowledgeBaseDB:
                         INSERT INTO tender_requirements
                         (project_id, chunk_id, constraint_type, category, subcategory,
                          detail, source_location, priority, extraction_confidence,
-                         extraction_model, hitl_task_id, extracted_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                         extraction_model, extracted_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     """, (req.get('project_id'), req.get('chunk_id'), req.get('constraint_type'),
                           req.get('category'), req.get('subcategory'), req.get('detail'),
                           req.get('source_location'), req.get('priority', 'medium'),
-                          req.get('extraction_confidence'), req.get('extraction_model'),
-                          req.get('hitl_task_id')))
+                          req.get('extraction_confidence'), req.get('extraction_model')))
 
                 conn.commit()
                 return True
@@ -1284,30 +1283,30 @@ class KnowledgeBaseDB:
         return summary
 
     # --- 处理任务管理 ---
-    def create_processing_task(self, project_id: int, task_id: str,
+    def create_processing_task(self, project_id: int,
                               pipeline_config: Dict = None, options: Dict = None) -> bool:
-        """创建处理任务"""
+        """创建处理任务（使用project_id作为主键）"""
         config_json = json.dumps(pipeline_config, ensure_ascii=False) if pipeline_config else None
         options_json = json.dumps(options, ensure_ascii=False) if options else None
 
         query = """
         INSERT INTO tender_processing_tasks
-        (task_id, project_id, pipeline_config, options)
-        VALUES (?, ?, ?, ?)
+        (project_id, pipeline_config, options)
+        VALUES (?, ?, ?)
         """
-        result = self.execute_query(query, (task_id, project_id, config_json, options_json))
+        result = self.execute_query(query, (project_id, config_json, options_json))
         return result is not None
 
-    def get_processing_task(self, task_id: str) -> Optional[Dict]:
-        """获取处理任务信息"""
-        query = "SELECT * FROM tender_processing_tasks WHERE task_id = ?"
-        return self.execute_query(query, (task_id,), fetch_one=True)
+    def get_processing_task(self, project_id: int) -> Optional[Dict]:
+        """获取处理任务信息（通过project_id）"""
+        query = "SELECT * FROM tender_processing_tasks WHERE project_id = ?"
+        return self.execute_query(query, (project_id,), fetch_one=True)
 
-    def update_processing_task(self, task_id: str, overall_status: str = None,
+    def update_processing_task(self, project_id: int, overall_status: str = None,
                               current_step: str = None, progress_percentage: float = None,
                               total_chunks: int = None, valuable_chunks: int = None,
                               total_requirements: int = None) -> bool:
-        """更新处理任务状态"""
+        """更新处理任务状态（通过project_id）"""
         updates = []
         params = []
 
@@ -1342,20 +1341,20 @@ class KnowledgeBaseDB:
         if not updates:
             return False
 
-        params.append(task_id)
-        query = f"UPDATE tender_processing_tasks SET {', '.join(updates)} WHERE task_id = ?"
+        params.append(project_id)
+        query = f"UPDATE tender_processing_tasks SET {', '.join(updates)} WHERE project_id = ?"
         result = self.execute_query(query, tuple(params))
         return result is not None
 
     # --- 处理日志管理 ---
-    def create_processing_log(self, project_id: int, task_id: str, step: str) -> int:
-        """创建处理日志"""
+    def create_processing_log(self, project_id: int, step: str) -> int:
+        """创建处理日志（移除task_id参数）"""
         query = """
         INSERT INTO tender_processing_logs
-        (project_id, task_id, step, status, started_at)
-        VALUES (?, ?, ?, 'pending', CURRENT_TIMESTAMP)
+        (project_id, step, status, started_at)
+        VALUES (?, ?, 'pending', CURRENT_TIMESTAMP)
         """
-        return self.execute_query(query, (project_id, task_id, step))
+        return self.execute_query(query, (project_id, step))
 
     def update_processing_log(self, log_id: int, status: str = None,
                              processed_items: int = None, success_items: int = None,
@@ -1408,32 +1407,19 @@ class KnowledgeBaseDB:
         result = self.execute_query(query, tuple(params))
         return result is not None
 
-    def get_processing_logs(self, task_id: str = None, project_id: int = None) -> List[Dict]:
-        """获取处理日志列表"""
-        conditions = []
-        params = []
-
-        if task_id:
-            conditions.append("task_id = ?")
-            params.append(task_id)
-
-        if project_id:
-            conditions.append("project_id = ?")
-            params.append(project_id)
-
-        where_clause = " AND ".join(conditions) if conditions else "1=1"
-
-        query = f"""
+    def get_processing_logs(self, project_id: int) -> List[Dict]:
+        """获取处理日志列表（通过project_id）"""
+        query = """
         SELECT * FROM tender_processing_logs
-        WHERE {where_clause}
+        WHERE project_id = ?
         ORDER BY created_at DESC
         """
-        return self.execute_query(query, tuple(params))
+        return self.execute_query(query, (project_id,))
 
-    def get_processing_statistics(self, task_id: str) -> Optional[Dict]:
-        """获取处理统计信息"""
-        query = "SELECT * FROM v_processing_statistics WHERE task_id = ?"
-        return self.execute_query(query, (task_id,), fetch_one=True)
+    def get_processing_statistics(self, project_id: int) -> Optional[Dict]:
+        """获取处理统计信息（通过project_id）"""
+        query = "SELECT * FROM v_processing_statistics WHERE project_id = ?"
+        return self.execute_query(query, (project_id,), fetch_one=True)
 
 
 # 全局数据库实例

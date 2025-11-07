@@ -7,7 +7,6 @@
 CREATE TABLE IF NOT EXISTS tender_document_chapters (
     chapter_id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL,
-    task_id VARCHAR(100) NOT NULL,
 
     -- 章节信息
     chapter_node_id VARCHAR(50) NOT NULL,  -- 如 "ch_1_2_3"
@@ -34,7 +33,7 @@ CREATE TABLE IF NOT EXISTS tender_document_chapters (
     FOREIGN KEY (parent_chapter_id) REFERENCES tender_document_chapters(chapter_id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_chapters_project_task ON tender_document_chapters(project_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_chapters_project ON tender_document_chapters(project_id);
 CREATE INDEX IF NOT EXISTS idx_chapters_selected ON tender_document_chapters(is_selected);
 CREATE INDEX IF NOT EXISTS idx_chapters_node_id ON tender_document_chapters(chapter_node_id);
 
@@ -44,7 +43,6 @@ CREATE TABLE IF NOT EXISTS tender_filter_review (
     review_id INTEGER PRIMARY KEY AUTOINCREMENT,
     chunk_id INTEGER NOT NULL,
     project_id INTEGER NOT NULL,
-    task_id VARCHAR(100) NOT NULL,
 
     -- 原始筛选结果
     ai_decision VARCHAR(20) NOT NULL,  -- 'REQUIREMENT' 或 'NON-REQUIREMENT'
@@ -65,7 +63,7 @@ CREATE TABLE IF NOT EXISTS tender_filter_review (
     FOREIGN KEY (project_id) REFERENCES tender_projects(project_id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_filter_review_project_task ON tender_filter_review(project_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_filter_review_project ON tender_filter_review(project_id);
 CREATE INDEX IF NOT EXISTS idx_filter_review_chunk ON tender_filter_review(chunk_id);
 CREATE INDEX IF NOT EXISTS idx_filter_review_decision ON tender_filter_review(ai_decision);
 
@@ -75,7 +73,6 @@ CREATE TABLE IF NOT EXISTS tender_requirements_draft (
     draft_id INTEGER PRIMARY KEY AUTOINCREMENT,
     requirement_id INTEGER,  -- NULL 表示新增的要求
     project_id INTEGER NOT NULL,
-    task_id VARCHAR(100) NOT NULL,
 
     -- 草稿内容（与 tender_requirements 字段一致）
     constraint_type VARCHAR(20) NOT NULL,
@@ -102,16 +99,14 @@ CREATE TABLE IF NOT EXISTS tender_requirements_draft (
     FOREIGN KEY (project_id) REFERENCES tender_projects(project_id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_draft_project_task ON tender_requirements_draft(project_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_draft_project ON tender_requirements_draft(project_id);
 CREATE INDEX IF NOT EXISTS idx_draft_requirement ON tender_requirements_draft(requirement_id);
 CREATE INDEX IF NOT EXISTS idx_draft_published ON tender_requirements_draft(is_published);
 
 
 -- 4. HITL 任务状态表（跨步骤状态追踪）
 CREATE TABLE IF NOT EXISTS tender_hitl_tasks (
-    hitl_task_id VARCHAR(100) PRIMARY KEY,
-    project_id INTEGER NOT NULL,
-    task_id VARCHAR(100) NOT NULL,  -- 关联主处理任务
+    project_id INTEGER PRIMARY KEY,  -- 项目ID作为主键（一个项目一个HITL任务）
 
     -- 步骤状态
     step1_status VARCHAR(20) DEFAULT 'pending',  -- pending/in_progress/completed/skipped
@@ -138,12 +133,9 @@ CREATE TABLE IF NOT EXISTS tender_hitl_tasks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (project_id) REFERENCES tender_projects(project_id) ON DELETE CASCADE,
-    FOREIGN KEY (task_id) REFERENCES tender_processing_tasks(task_id) ON DELETE CASCADE
+    FOREIGN KEY (project_id) REFERENCES tender_projects(project_id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_hitl_project ON tender_hitl_tasks(project_id);
-CREATE INDEX IF NOT EXISTS idx_hitl_task ON tender_hitl_tasks(task_id);
 CREATE INDEX IF NOT EXISTS idx_hitl_current_step ON tender_hitl_tasks(current_step);
 CREATE INDEX IF NOT EXISTS idx_hitl_overall_status ON tender_hitl_tasks(overall_status);
 
@@ -204,7 +196,7 @@ AFTER UPDATE ON tender_hitl_tasks
 BEGIN
     UPDATE tender_hitl_tasks
     SET updated_at = CURRENT_TIMESTAMP
-    WHERE hitl_task_id = NEW.hitl_task_id;
+    WHERE project_id = NEW.project_id;
 END;
 
 
@@ -214,30 +206,28 @@ END;
 
 CREATE VIEW IF NOT EXISTS v_hitl_progress AS
 SELECT
-    h.hitl_task_id,
     h.project_id,
-    h.task_id,
     h.current_step,
     h.overall_status,
 
     -- 步骤1统计
     (SELECT COUNT(*) FROM tender_document_chapters
-     WHERE task_id = h.task_id) as total_chapters,
+     WHERE project_id = h.project_id) as total_chapters,
     (SELECT COUNT(*) FROM tender_document_chapters
-     WHERE task_id = h.task_id AND is_selected = 1) as selected_chapters,
+     WHERE project_id = h.project_id AND is_selected = 1) as selected_chapters,
 
     -- 步骤2统计
     (SELECT COUNT(*) FROM tender_filter_review r
      JOIN tender_document_chunks c ON r.chunk_id = c.chunk_id
-     WHERE r.task_id = h.task_id AND r.ai_decision = 'NON-REQUIREMENT') as filtered_chunks,
+     WHERE r.project_id = h.project_id AND r.ai_decision = 'NON-REQUIREMENT') as filtered_chunks,
     (SELECT COUNT(*) FROM tender_filter_review r
-     WHERE r.task_id = h.task_id AND r.user_decision = 'restore') as restored_chunks,
+     WHERE r.project_id = h.project_id AND r.user_decision = 'restore') as restored_chunks,
 
     -- 步骤3统计
     (SELECT COUNT(*) FROM tender_requirements_draft
-     WHERE task_id = h.task_id) as draft_requirements,
+     WHERE project_id = h.project_id) as draft_requirements,
     (SELECT COUNT(*) FROM tender_requirements_draft
-     WHERE task_id = h.task_id AND is_published = 1) as published_requirements,
+     WHERE project_id = h.project_id AND is_published = 1) as published_requirements,
 
     -- 时间统计
     h.created_at,
@@ -257,11 +247,11 @@ FROM tender_hitl_tasks h;
 
 CREATE VIEW IF NOT EXISTS v_chapter_selection_stats AS
 SELECT
-    task_id,
+    project_id,
     COUNT(*) as total_chapters,
     SUM(CASE WHEN is_selected = 1 THEN 1 ELSE 0 END) as selected_count,
     SUM(CASE WHEN auto_selected = 1 THEN 1 ELSE 0 END) as auto_selected_count,
     SUM(CASE WHEN skip_recommended = 1 THEN 1 ELSE 0 END) as skip_recommended_count,
     SUM(CASE WHEN is_selected = 1 THEN word_count ELSE 0 END) as selected_words
 FROM tender_document_chapters
-GROUP BY task_id;
+GROUP BY project_id;

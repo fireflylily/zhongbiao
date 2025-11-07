@@ -74,16 +74,16 @@ def generate_proposal():
 
         # 1. 验证请求 - 支持两种文件来源：直接上传或从HITL传递
         use_hitl_file = request.form.get('use_hitl_technical_file', 'false').lower() == 'true'
-        hitl_task_id = request.form.get('hitl_task_id')
+        project_id = request.form.get('hitl_task_id') or request.form.get('project_id')
 
-        if use_hitl_file and hitl_task_id:
+        if use_hitl_file and project_id:
             # 使用HITL传递的技术需求文件
-            logger.info(f"使用HITL任务的技术需求文件: {hitl_task_id}")
+            logger.info(f"使用HITL项目的技术需求文件: project_id={project_id}")
 
-            # 在technical_files目录下搜索HITL任务目录（不依赖日期）
+            # 在technical_files目录下搜索项目目录（不依赖日期）
             technical_files_base = config.get_path('data') / 'uploads' / 'technical_files'
 
-            # 递归查找HITL任务目录
+            # 递归查找项目目录
             tender_path = None
             for year_dir in technical_files_base.glob('*'):
                 if not year_dir.is_dir():
@@ -91,10 +91,10 @@ def generate_proposal():
                 for month_dir in year_dir.glob('*'):
                     if not month_dir.is_dir():
                         continue
-                    task_dir = month_dir / hitl_task_id
-                    if task_dir.exists():
+                    project_dir = month_dir / str(project_id)
+                    if project_dir.exists():
                         # 查找技术需求文件（第一个文件）
-                        technical_files = list(task_dir.glob('*.*'))
+                        technical_files = list(project_dir.glob('*.*'))
                         if technical_files:
                             tender_path = technical_files[0]
                             logger.info(f"找到HITL技术需求文件: {tender_path.name}, 路径: {tender_path}")
@@ -105,7 +105,7 @@ def generate_proposal():
             if not tender_path:
                 return jsonify({
                     'success': False,
-                    'error': f'未找到HITL任务的技术需求文件: {hitl_task_id}'
+                    'error': f'未找到项目的技术需求文件: project_id={project_id}'
                 }), 400
         else:
             # 使用上传的文件
@@ -319,7 +319,7 @@ def generate_proposal_stream():
             output_prefix = request.form.get('outputPrefix', '技术方案')
             company_id = request.form.get('companyId')
             project_name = request.form.get('projectName', '')
-            hitl_task_id = request.form.get('technicalFileTaskId', '')
+            project_id = request.form.get('technicalFileTaskId', '') or request.form.get('projectId', '')
 
             # 生成选项
             options = {
@@ -329,15 +329,15 @@ def generate_proposal_stream():
             }
 
             # 2. 获取技术需求文件路径
-            if hitl_task_id:
-                # 从HITL任务加载
-                yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': f'从投标项目加载技术需求文件 ({hitl_task_id})...'}, ensure_ascii=False)}\n\n"
+            if project_id:
+                # 从HITL项目加载
+                yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': f'从投标项目加载技术需求文件 (project_id={project_id})...'}, ensure_ascii=False)}\n\n"
 
                 # 搜索HITL技术需求文件
                 technical_files_base = config.get_path('upload') / 'technical_files'
                 tender_path = None
 
-                logger.info(f"搜索HITL任务文件, task_id: {hitl_task_id}, 搜索路径: {technical_files_base}")
+                logger.info(f"搜索HITL项目文件, project_id: {project_id}, 搜索路径: {technical_files_base}")
 
                 for year_dir in technical_files_base.glob('*'):
                     if not year_dir.is_dir():
@@ -347,11 +347,11 @@ def generate_proposal_stream():
                         if not month_dir.is_dir():
                             continue
                         logger.debug(f"检查月份目录: {month_dir}")
-                        task_dir = month_dir / hitl_task_id
-                        logger.debug(f"检查任务目录: {task_dir}, 是否存在: {task_dir.exists()}")
-                        if task_dir.exists():
+                        project_dir = month_dir / str(project_id)
+                        logger.debug(f"检查项目目录: {project_dir}, 是否存在: {project_dir.exists()}")
+                        if project_dir.exists():
                             # 查找技术需求文件（第一个文件）
-                            technical_files = list(task_dir.glob('*.*'))
+                            technical_files = list(project_dir.glob('*.*'))
                             logger.debug(f"找到的文件: {technical_files}")
                             if technical_files:
                                 tender_path = technical_files[0]
@@ -362,19 +362,19 @@ def generate_proposal_stream():
 
                 if not tender_path:
                     # 添加详细的错误信息
-                    logger.error(f'未找到HITL任务的技术需求文件: {hitl_task_id}')
+                    logger.error(f'未找到项目的技术需求文件: project_id={project_id}')
                     logger.error(f'搜索路径: {technical_files_base}')
-                    # 列出所有可用的任务目录
-                    available_tasks = []
+                    # 列出所有可用的项目目录
+                    available_projects = []
                     for year_dir in technical_files_base.glob('*'):
                         if year_dir.is_dir():
                             for month_dir in year_dir.glob('*'):
                                 if month_dir.is_dir():
-                                    for task_dir in month_dir.glob('hitl_*'):
-                                        if task_dir.is_dir():
-                                            available_tasks.append(str(task_dir))
-                    logger.error(f'可用的任务目录: {available_tasks}')
-                    raise ValueError(f'未找到HITL任务的技术需求文件: {hitl_task_id}')
+                                    for proj_dir in month_dir.glob('*'):
+                                        if proj_dir.is_dir():
+                                            available_projects.append(str(proj_dir))
+                    logger.error(f'可用的项目目录: {available_projects}')
+                    raise ValueError(f'未找到项目的技术需求文件: project_id={project_id}')
             elif tender_file:
                 # 上传文件
                 yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': '保存上传的技术需求文件...'}, ensure_ascii=False)}\n\n"

@@ -56,7 +56,7 @@
             <h4>商务应答模板 <span class="required">*</span></h4>
             <DocumentUploader
               v-model="form.templateFiles"
-              :upload-url="`/api/tender-projects/${form.projectId}/upload-template`"
+              :http-request="handleTemplateUpload"
               accept=".doc,.docx"
               :limit="1"
               :max-size="20"
@@ -73,7 +73,7 @@
             <h4>招标文档（可选）</h4>
             <DocumentUploader
               v-model="form.tenderFiles"
-              :upload-url="`/api/tender-projects/${form.projectId}/upload-tender`"
+              :http-request="handleTenderUpload"
               accept=".pdf,.doc,.docx"
               :limit="5"
               :max-size="50"
@@ -123,7 +123,7 @@
     <el-card v-if="generationResult" class="result-section" shadow="never">
       <template #header>
         <div class="card-header">
-          <span>生成结果</span>
+          <span>{{ generationResult.isHistory ? '📄 历史应答文件' : '✅ 生成结果' }}</span>
           <div class="header-actions">
             <el-button
               type="primary"
@@ -154,7 +154,7 @@
       <div class="result-content">
         <!-- 成功消息 -->
         <el-alert
-          type="success"
+          :type="generationResult.isHistory ? 'info' : 'success'"
           :title="generationResult.message"
           :closable="false"
           show-icon
@@ -217,6 +217,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { UploadRequestOptions } from 'element-plus'
 import { Download, RefreshRight, Document, View } from '@element-plus/icons-vue'
 import { DocumentUploader, SSEStreamViewer, DocumentPreview } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
@@ -237,6 +238,7 @@ interface GenerationResult {
     images_inserted?: number
   }
   message: string
+  isHistory?: boolean  // 标识是否为历史记录
 }
 
 // 表单数据
@@ -265,6 +267,82 @@ const generationResult = ref<GenerationResult | null>(null)
 
 // 预览状态
 const previewVisible = ref(false)
+
+// 自定义上传函数：商务应答模板
+const handleTemplateUpload = async (options: UploadRequestOptions) => {
+  const { file, onSuccess, onError } = options
+
+  if (!form.value.projectId) {
+    const error = new Error('请先选择项目')
+    onError(error)
+    ElMessage.error('请先选择项目')
+    return
+  }
+
+  if (!selectedProject.value?.company_id) {
+    const error = new Error('项目没有关联公司')
+    onError(error)
+    ElMessage.error('项目没有关联公司')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('company_id', selectedProject.value.company_id.toString())
+    formData.append('project_id', form.value.projectId.toString())
+
+    const response = await tenderApi.parseDocumentStructure(formData)
+
+    if (response.success) {
+      onSuccess(response.data)
+      ElMessage.success('商务应答模板上传成功')
+    } else {
+      throw new Error(response.message || '上传失败')
+    }
+  } catch (error: any) {
+    onError(error)
+    ElMessage.error(error.message || '模板上传失败')
+  }
+}
+
+// 自定义上传函数：招标文档
+const handleTenderUpload = async (options: UploadRequestOptions) => {
+  const { file, onSuccess, onError } = options
+
+  if (!form.value.projectId) {
+    const error = new Error('请先选择项目')
+    onError(error)
+    ElMessage.error('请先选择项目')
+    return
+  }
+
+  if (!selectedProject.value?.company_id) {
+    const error = new Error('项目没有关联公司')
+    onError(error)
+    ElMessage.error('项目没有关联公司')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('company_id', selectedProject.value.company_id.toString())
+    formData.append('project_id', form.value.projectId.toString())
+
+    const response = await tenderApi.parseDocumentStructure(formData)
+
+    if (response.success) {
+      onSuccess(response.data)
+      ElMessage.success('招标文档上传成功')
+    } else {
+      throw new Error(response.message || '上传失败')
+    }
+  } catch (error: any) {
+    onError(error)
+    ElMessage.error(error.message || '招标文档上传失败')
+  }
+}
 
 // 加载项目列表
 const loadProjects = async () => {
@@ -322,7 +400,7 @@ const loadProjectDocuments = async (projectId: number) => {
         url: step1Data.file_path,
         status: 'success',
         uid: Date.now() + Math.random(),
-        size: step1Data.file_size
+        size: step1Data.file_size || 0
       })
       loadedCount++
       tenderFileLoaded = true
@@ -350,10 +428,27 @@ const loadProjectDocuments = async (projectId: number) => {
           url: step1Data.response_file_path,
           status: 'success',
           uid: Date.now() + Math.random(),
-          size: step1Data.response_file_size
+          size: step1Data.response_file_size || 0
         })
         loadedCount++
       }
+    }
+
+    // 提取已完成的商务应答文件
+    if (projectData.step1_data?.business_response_file) {
+      const businessFile = projectData.step1_data.business_response_file
+
+      // 自动设置 generationResult，显示结果界面
+      generationResult.value = {
+        success: true,
+        outputFile: businessFile.file_path || '',
+        downloadUrl: businessFile.file_path || '',
+        stats: {},
+        message: '该项目已有商务应答文件',
+        isHistory: true  // 标记为历史记录
+      }
+
+      loadedCount++
     }
 
     if (loadedCount > 0) {
@@ -422,22 +517,34 @@ const startGeneration = async () => {
     generationProgress.value = 80
     streamContent.value += '处理完成，正在生成结果...\n'
 
+    // 调试：打印完整响应结构
+    console.log('完整响应:', response)
+    console.log('response.data:', response.data)
+    console.log('response.success:', response.success)
+
+    // 适配不同的响应格式
+    // 格式1: { success: true, data: { ... } }
+    // 格式2: { success: true, output_file: "...", ... }
+    const result = response.data ? response.data : response
+
+    console.log('处理后的result:', result)
+
     // 处理成功
-    if (response.data.success) {
+    if (result.success) {
       generationProgress.value = 100
-      streamContent.value += response.data.message + '\n'
+      streamContent.value += result.message + '\n'
 
       generationResult.value = {
         success: true,
-        outputFile: response.data.output_file,
-        downloadUrl: response.data.download_url,
-        stats: response.data.stats || {},
-        message: response.data.message
+        outputFile: result.output_file,
+        downloadUrl: result.download_url,
+        stats: result.stats || {},
+        message: result.message
       }
 
       ElMessage.success('商务应答生成完成！')
     } else {
-      throw new Error(response.data.message || '处理失败')
+      throw new Error(result.message || result.error || '处理失败')
     }
   } catch (error: any) {
     console.error('生成失败:', error)

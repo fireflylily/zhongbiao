@@ -203,6 +203,40 @@ def create_tender_project():
         })
 
 
+def _build_chapter_tree(chapters_flat):
+    """
+    构建章节树结构（从扁平列表）
+
+    Args:
+        chapters_flat: 扁平的章节列表，按para_start_idx排序
+
+    Returns:
+        章节树（层级结构）
+    """
+    if not chapters_flat:
+        return []
+
+    # 构建chapter_id映射（使用chapter_id作为key，因为parent_chapter_id引用的是chapter_id）
+    chapter_map = {}
+    for ch in chapters_flat:
+        chapter_map[ch['chapter_id']] = ch
+        ch['children'] = []  # 初始化children字段
+
+    # 构建树结构
+    root_chapters = []
+
+    for ch in chapters_flat:
+        parent_id = ch.get('parent_chapter_id')
+        if parent_id and parent_id in chapter_map:
+            # 有父章节，添加到父章节的children中
+            chapter_map[parent_id]['children'].append(ch)
+        else:
+            # 没有父章节，是根级章节
+            root_chapters.append(ch)
+
+    return root_chapters
+
+
 @api_projects_bp.route('/tender-projects/<int:project_id>', methods=['GET'])
 def get_tender_project(project_id):
     """获取单个项目详情（包含HITL任务数据）"""
@@ -214,9 +248,7 @@ def get_tender_project(project_id):
                 c.company_name,
                 h.step1_data,
                 h.step2_data,
-                h.step3_data,
-                h.hitl_task_id,
-                h.task_id
+                h.step3_data
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
@@ -236,6 +268,65 @@ def get_tender_project(project_id):
                     except (json.JSONDecodeError, TypeError):
                         # 如果解析失败，保持原值
                         pass
+
+            # 如果存在HITL任务，加载章节数据
+            if project_data.get('step1_data'):
+                try:
+                    # 从tender_document_chapters表查询章节
+                    chapters_query = """
+                        SELECT
+                            chapter_id,
+                            chapter_node_id,
+                            level,
+                            title,
+                            para_start_idx,
+                            para_end_idx,
+                            word_count,
+                            preview_text,
+                            is_selected,
+                            auto_selected,
+                            skip_recommended,
+                            parent_chapter_id
+                        FROM tender_document_chapters
+                        WHERE project_id = ?
+                        ORDER BY para_start_idx ASC
+                    """
+                    chapters_raw = kb_manager.db.execute_query(chapters_query, [project_id])
+
+                    if chapters_raw:
+                        # 转换为前端期望的格式
+                        chapters_flat = []
+                        for ch in chapters_raw:
+                            chapter_dict = {
+                                'id': ch['chapter_node_id'],
+                                'chapter_id': ch['chapter_id'],
+                                'level': ch['level'],
+                                'title': ch['title'],
+                                'para_start_idx': ch['para_start_idx'],
+                                'para_end_idx': ch['para_end_idx'],
+                                'word_count': ch['word_count'] or 0,
+                                'preview_text': ch.get('preview_text', ''),
+                                'auto_selected': bool(ch.get('auto_selected', 0)),
+                                'skip_recommended': bool(ch.get('skip_recommended', 0)),
+                                'parent_chapter_id': ch.get('parent_chapter_id'),
+                                'chapter_node_id': ch['chapter_node_id']
+                            }
+                            chapters_flat.append(chapter_dict)
+
+                        # 构建章节树
+                        chapter_tree = _build_chapter_tree(chapters_flat)
+
+                        # 确保step1_data是字典
+                        if not isinstance(project_data['step1_data'], dict):
+                            project_data['step1_data'] = {}
+
+                        # 将章节数据添加到step1_data
+                        project_data['step1_data']['chapters'] = chapter_tree
+
+                        logger.info(f"为项目 {project_id} 加载了 {len(chapters_flat)} 个章节")
+                except Exception as e:
+                    logger.error(f"加载章节数据失败: {e}")
+                    # 不中断流程，继续返回项目数据
 
             return jsonify({
                 'success': True,
