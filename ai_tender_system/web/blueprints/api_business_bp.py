@@ -602,7 +602,7 @@ def preview_document(filename):
         }), 500
 
 
-@api_business_bp.route('/api/business-files')
+@api_business_bp.route('/business-files')
 def list_business_files():
     """获取商务应答文件列表"""
     try:

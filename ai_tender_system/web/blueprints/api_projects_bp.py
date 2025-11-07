@@ -241,17 +241,13 @@ def _build_chapter_tree(chapters_flat):
 def get_tender_project(project_id):
     """获取单个项目详情（包含HITL任务数据）"""
     try:
-        # LEFT JOIN 查询项目和HITL任务数据
+        # 查询项目数据（HITL数据已合并到项目表）
         query = """
             SELECT
                 p.*,
-                c.company_name,
-                h.step1_data,
-                h.step2_data,
-                h.step3_data
+                c.company_name
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
-            LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
             WHERE p.project_id = ?
         """
         projects = kb_manager.db.execute_query(query, [project_id])
@@ -452,13 +448,8 @@ def delete_tender_project(project_id):
                 'message': f'项目 ID {project_id} 不存在'
             }), 404
 
-        # 2. 删除相关的HITL任务
-        try:
-            delete_hitl_query = "DELETE FROM tender_hitl_tasks WHERE project_id = ?"
-            kb_manager.db.execute_query(delete_hitl_query, [project_id])
-            logger.info(f"已删除项目 {project_id} 的HITL任务")
-        except Exception as e:
-            logger.warning(f"删除HITL任务失败（可能不存在）: {e}")
+        # 2. HITL数据现已合并到tender_projects表中，无需单独删除
+        #    将在删除项目时一并删除
 
         # 3. 删除相关的文件存储记录（从 file_storage 表）
         try:

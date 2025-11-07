@@ -162,14 +162,14 @@ def register_hitl_routes(app):
 
             # 检查是否已存在HITL任务
             existing_task = db.execute_query("""
-                SELECT project_id FROM tender_hitl_tasks
+                SELECT project_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
             if existing_task:
                 # 更新现有任务
                 db.execute_query("""
-                    UPDATE tender_hitl_tasks
+                    UPDATE tender_projects
                     SET step1_status = 'in_progress',
                         step1_data = ?,
                         estimated_words = ?,
@@ -186,7 +186,7 @@ def register_hitl_routes(app):
             else:
                 # 创建新任务
                 db.execute_query("""
-                    INSERT INTO tender_hitl_tasks (
+                    INSERT INTO tender_projects (
                         project_id,
                         step1_status, step1_data,
                         estimated_words, estimated_cost
@@ -271,7 +271,7 @@ def register_hitl_routes(app):
 
             # 读取原有的step1_data,保留file_path
             existing_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -288,7 +288,7 @@ def register_hitl_routes(app):
 
             # 更新 HITL 任务状态
             db.execute_query("""
-                UPDATE tender_hitl_tasks
+                UPDATE tender_projects
                 SET step1_status = 'completed',
                     step1_completed_at = CURRENT_TIMESTAMP,
                     step1_data = ?,
@@ -306,7 +306,7 @@ def register_hitl_routes(app):
 
             # 更新任务状态到步骤2（移除自动提取逻辑）
             db.execute_query("""
-                UPDATE tender_hitl_tasks
+                UPDATE tender_projects
                 SET current_step = 2,
                     step2_status = 'in_progress'
                 WHERE project_id = ?
@@ -339,7 +339,7 @@ def register_hitl_routes(app):
 
             # 查询任务信息
             task_info = db.execute_query("""
-                SELECT project_id, step1_data FROM tender_hitl_tasks
+                SELECT project_id, step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -494,7 +494,7 @@ def register_hitl_routes(app):
 
             # 1. 查询HITL任务，获取原始文档路径
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -551,7 +551,7 @@ def register_hitl_routes(app):
 
             # 查询任务信息获取文档路径
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -604,7 +604,7 @@ def register_hitl_routes(app):
 
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data, project_id FROM tender_hitl_tasks
+                SELECT step1_data, project_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -656,7 +656,7 @@ def register_hitl_routes(app):
             step1_data['response_file_path'] = target_path
 
             db.execute_query("""
-                UPDATE tender_hitl_tasks
+                UPDATE tender_projects
                 SET step1_data = ?
                 WHERE project_id = ?
             """, (json.dumps(step1_data), project_id))
@@ -682,7 +682,7 @@ def register_hitl_routes(app):
         try:
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -716,7 +716,7 @@ def register_hitl_routes(app):
         try:
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -751,7 +751,7 @@ def register_hitl_routes(app):
         try:
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -800,7 +800,7 @@ def register_hitl_routes(app):
 
             # 获取任务信息
             task_info = db.execute_query("""
-                SELECT project_id, task_id, step1_data FROM tender_hitl_tasks
+                SELECT project_id, task_id, step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -855,7 +855,7 @@ def register_hitl_routes(app):
 
             # 更新数据库
             db.execute_query("""
-                UPDATE tender_hitl_tasks
+                UPDATE tender_projects
                 SET step1_data = ?
                 WHERE project_id = ?
             """, (json.dumps(step1_data, ensure_ascii=False), project_id))
@@ -885,7 +885,7 @@ def register_hitl_routes(app):
             # 尝试从数据库获取文件信息
             try:
                 task_data = db.execute_query("""
-                    SELECT step1_data FROM tender_hitl_tasks
+                    SELECT step1_data FROM tender_projects
                     WHERE project_id = ?
                 """, (project_id,), fetch_one=True)
 
@@ -960,7 +960,7 @@ def register_hitl_routes(app):
             # 尝试从数据库获取文件信息
             try:
                 task_data = db.execute_query("""
-                    SELECT step1_data FROM tender_hitl_tasks
+                    SELECT step1_data FROM tender_projects
                     WHERE project_id = ?
                 """, (project_id,), fetch_one=True)
 
@@ -1007,7 +1007,7 @@ def register_hitl_routes(app):
             # 尝试从数据库获取文件信息
             try:
                 task_data = db.execute_query("""
-                    SELECT step1_data FROM tender_hitl_tasks
+                    SELECT step1_data FROM tender_projects
                     WHERE project_id = ?
                 """, (project_id,), fetch_one=True)
 
@@ -1080,7 +1080,7 @@ def register_hitl_routes(app):
 
             # 验证HITL任务是否存在
             hitl_task = db.execute_query("""
-                SELECT project_id FROM tender_hitl_tasks
+                SELECT project_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -1167,7 +1167,7 @@ def register_hitl_routes(app):
             # 1. 获取章节信息
             hitl_task = db.execute_query("""
                 SELECT project_id, step1_data
-                FROM tender_hitl_tasks
+                FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -1284,7 +1284,7 @@ def register_hitl_routes(app):
 
             # 获取任务关联的project_id
             hitl_task = db.execute_query("""
-                SELECT project_id, task_id FROM tender_hitl_tasks
+                SELECT project_id, task_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -1387,7 +1387,7 @@ def register_hitl_routes(app):
 
             # 获取任务关联的project_id
             hitl_task = db.execute_query("""
-                SELECT project_id, task_id FROM tender_hitl_tasks
+                SELECT project_id, task_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -1486,7 +1486,7 @@ def register_hitl_routes(app):
                 INSERT INTO tender_user_actions (
                     project_id, task_id, action_type, action_step, action_data
                 ) SELECT project_id, project_id, 'chapter_reselection', 2, ?
-                FROM tender_hitl_tasks WHERE project_id = ?
+                FROM tender_projects WHERE project_id = ?
             """, (json.dumps({
                 'selected_count': len(selected_ids),
                 'deselected_count': len(deselected_ids)
@@ -1548,7 +1548,7 @@ def register_hitl_routes(app):
                         ai_decision, user_decision, reviewed_by, reviewed_at
                     ) SELECT
                         ?, project_id, project_id, 'NON-REQUIREMENT', 'restore', 'user', CURRENT_TIMESTAMP
-                    FROM tender_hitl_tasks WHERE project_id = ?
+                    FROM tender_projects WHERE project_id = ?
                 """, (chunk_id, project_id))
 
             # 记录用户操作
@@ -1556,7 +1556,7 @@ def register_hitl_routes(app):
                 INSERT INTO tender_user_actions (
                     project_id, task_id, action_type, action_step, action_data
                 ) SELECT project_id, project_id, 'chunk_restored', 2, ?
-                FROM tender_hitl_tasks WHERE project_id = ?
+                FROM tender_projects WHERE project_id = ?
             """, (json.dumps({'chunk_ids': chunk_ids}), project_id))
 
             logger.info(f"恢复了 {len(chunk_ids)} 个被过滤的块")
@@ -1859,7 +1859,7 @@ def register_hitl_routes(app):
 
             # 获取任务信息
             hitl_task = db.execute_query("""
-                SELECT project_id, step1_data FROM tender_hitl_tasks
+                SELECT project_id, step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2019,7 +2019,7 @@ def register_hitl_routes(app):
 
             # 获取任务信息
             hitl_task = db.execute_query("""
-                SELECT project_id, step1_data FROM tender_hitl_tasks
+                SELECT project_id, step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2124,7 +2124,7 @@ def register_hitl_routes(app):
 
             # 检查任务是否存在
             task_info = db.execute_query("""
-                SELECT project_id FROM tender_hitl_tasks
+                SELECT project_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2217,7 +2217,7 @@ def register_hitl_routes(app):
 
             # 获取当前step3_data和step1_data
             task_data = db.execute_query("""
-                SELECT step3_data, step1_data FROM tender_hitl_tasks
+                SELECT step3_data, step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2241,7 +2241,7 @@ def register_hitl_routes(app):
 
             # 保存回数据库
             db.execute_query("""
-                UPDATE tender_hitl_tasks
+                UPDATE tender_projects
                 SET step3_data = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE project_id = ?
@@ -2265,7 +2265,7 @@ def register_hitl_routes(app):
         try:
             # 更新任务状态
             db.execute_query("""
-                UPDATE tender_hitl_tasks
+                UPDATE tender_projects
                 SET step3_status = 'completed',
                     step3_completed_at = CURRENT_TIMESTAMP,
                     overall_status = 'completed',
@@ -2385,7 +2385,7 @@ def register_hitl_routes(app):
                 return jsonify({'success': False, 'error': '缺少project_id参数'}), 400
 
             query = """
-                SELECT * FROM tender_hitl_tasks
+                SELECT * FROM tender_projects
                 WHERE project_id = ?
                 ORDER BY created_at DESC
             """
@@ -2432,7 +2432,7 @@ def register_hitl_routes(app):
             logger.info(f"获取HITL任务详情: {project_id}")
 
             query = """
-                SELECT * FROM tender_hitl_tasks
+                SELECT * FROM tender_projects
                 WHERE project_id = ?
             """
 
@@ -2668,7 +2668,7 @@ def register_hitl_routes(app):
 
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2715,7 +2715,7 @@ def register_hitl_routes(app):
             step1_data[config['field_name']] = file_info
 
             db.execute_query("""
-                UPDATE tender_hitl_tasks
+                UPDATE tender_projects
                 SET step1_data = ?
                 WHERE project_id = ?
             """, (json.dumps(step1_data), project_id))
@@ -2774,7 +2774,7 @@ def register_hitl_routes(app):
         try:
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2813,7 +2813,7 @@ def register_hitl_routes(app):
         try:
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2847,7 +2847,7 @@ def register_hitl_routes(app):
         try:
             # 查询任务信息
             task_data = db.execute_query("""
-                SELECT step1_data FROM tender_hitl_tasks
+                SELECT step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -2898,7 +2898,7 @@ def register_hitl_routes(app):
             # 尝试从数据库获取文件信息
             try:
                 task_data = db.execute_query("""
-                    SELECT step1_data FROM tender_hitl_tasks
+                    SELECT step1_data FROM tender_projects
                     WHERE project_id = ?
                 """, (project_id,), fetch_one=True)
 
@@ -2983,7 +2983,7 @@ def register_hitl_routes(app):
             # 尝试从数据库获取文件信息
             try:
                 task_data = db.execute_query("""
-                    SELECT step1_data FROM tender_hitl_tasks
+                    SELECT step1_data FROM tender_projects
                     WHERE project_id = ?
                 """, (project_id,), fetch_one=True)
 
@@ -3069,7 +3069,7 @@ def register_hitl_routes(app):
             # 尝试从数据库获取文件信息
             try:
                 task_data = db.execute_query("""
-                    SELECT step1_data FROM tender_hitl_tasks
+                    SELECT step1_data FROM tender_projects
                     WHERE project_id = ?
                 """, (project_id,), fetch_one=True)
 
@@ -3122,7 +3122,7 @@ def register_hitl_routes(app):
             # 尝试从数据库获取文件信息
             try:
                 task_data = db.execute_query("""
-                    SELECT step1_data FROM tender_hitl_tasks
+                    SELECT step1_data FROM tender_projects
                     WHERE project_id = ?
                 """, (project_id,), fetch_one=True)
 

@@ -302,15 +302,14 @@ def register_routes(app: Flask, config, logger):
                 SELECT
                     p.project_id,
                     p.project_name,
-                    h.step1_status,
-                    h.step2_status,
-                    h.step3_status,
-                    h.step1_data,
+                    p.step1_status,
+                    p.step2_status,
+                    p.step3_status,
+                    p.step1_data,
                     t.overall_status as task_status,
                     t.total_requirements
                 FROM tender_projects p
                 LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-                LEFT JOIN tender_hitl_tasks h ON h.project_id = p.project_id
                 WHERE p.project_id = ?
             """
 

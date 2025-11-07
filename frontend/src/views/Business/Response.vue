@@ -381,11 +381,18 @@ const loadProjectDocuments = async (projectId: number) => {
     const response = await tenderApi.getProject(projectId)
     const projectData = response.data
 
+    // ✅ 添加调试日志
+    console.log('=== 项目数据调试 ===')
+    console.log('完整项目数据:', projectData)
+    console.log('step1_data:', projectData?.step1_data)
+    console.log('business_response_file:', projectData?.step1_data?.business_response_file)
+
     // 清空文件列表
     form.value.tenderFiles = []
     form.value.templateFiles = []
 
     if (!projectData) {
+      console.log('❌ projectData 为空')
       return
     }
 
@@ -436,26 +443,40 @@ const loadProjectDocuments = async (projectId: number) => {
 
     // 提取已完成的商务应答文件
     if (projectData.step1_data?.business_response_file) {
+      console.log('✅ 找到商务应答文件（从数据库），设置generationResult')
       const businessFile = projectData.step1_data.business_response_file
+      console.log('商务应答文件信息:', businessFile)
+
+      // 从file_path提取文件名
+      const fileName = businessFile.file_path.split('/').pop()
 
       // 自动设置 generationResult，显示结果界面
       generationResult.value = {
         success: true,
         outputFile: businessFile.file_path || '',
-        downloadUrl: businessFile.file_path || '',
+        downloadUrl: `/download/${fileName}`,  // ✅ 使用下载URL
         stats: {},
         message: '该项目已有商务应答文件',
         isHistory: true  // 标记为历史记录
       }
 
       loadedCount++
+      console.log('generationResult 已设置:', generationResult.value)
+    } else {
+      console.log('⚠️  数据库中未找到 business_response_file，尝试从文件系统查找...')
+      console.log('- step1_data 存在?', !!projectData.step1_data)
+      console.log('- business_response_file 存在?', !!projectData.step1_data?.business_response_file)
+
+      // 尝试从文件系统查找历史商务应答文件
+      await loadHistoryBusinessResponseFile(projectData.project_name)
     }
 
     if (loadedCount > 0) {
       ElMessage.success(`已加载 ${loadedCount} 个文件`)
     }
   } catch (error) {
-    console.error('加载项目文档失败:', error)
+    console.error('❌ 加载项目文档失败:', error)
+    console.error('错误详情:', error)
     // 加载失败时清空文件列表
     form.value.tenderFiles = []
     form.value.templateFiles = []
@@ -465,6 +486,50 @@ const loadProjectDocuments = async (projectId: number) => {
 // 招标文档上传成功
 const handleTenderUploadSuccess = () => {
   ElMessage.success('招标文档上传成功')
+}
+
+// 从文件系统查找历史商务应答文件（用于没有database记录的老项目）
+const loadHistoryBusinessResponseFile = async (projectName: string) => {
+  try {
+    console.log('尝试从文件系统查找项目商务应答文件:', projectName)
+
+    // 调用后端API获取所有商务应答文件
+    const response = await fetch('/api/business-files')
+    const result = await response.json()
+
+    if (!result.success || !result.files || result.files.length === 0) {
+      console.log('❌ 文件系统中没有找到商务应答文件')
+      return
+    }
+
+    console.log('文件系统中的商务应答文件列表:', result.files)
+
+    // 查找匹配项目名称的文件（模糊匹配）
+    const matchedFile = result.files.find((file: any) =>
+      file.name.includes(projectName) || file.name.includes('商务应答')
+    )
+
+    if (matchedFile) {
+      console.log('✅ 找到匹配的历史商务应答文件:', matchedFile.name)
+
+      // 设置 generationResult，显示历史文件卡片
+      generationResult.value = {
+        success: true,
+        outputFile: matchedFile.name,
+        downloadUrl: matchedFile.download_url,
+        stats: {},
+        message: `找到历史商务应答文件（${matchedFile.date}）`,
+        isHistory: true
+      }
+
+      console.log('generationResult 已设置（从文件系统）:', generationResult.value)
+      ElMessage.success('已加载历史商务应答文件')
+    } else {
+      console.log('❌ 未找到匹配的商务应答文件')
+    }
+  } catch (error) {
+    console.error('查找历史商务应答文件失败:', error)
+  }
 }
 
 // 模板上传成功

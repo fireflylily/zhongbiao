@@ -564,7 +564,7 @@ def sync_point_to_point_to_hitl(project_id):
 
         # 查询任务信息
         task_data = db.execute_query("""
-            SELECT step1_data FROM tender_hitl_tasks
+            SELECT step1_data FROM tender_projects
             WHERE project_id = ?
         """, (project_id,), fetch_one=True)
 
@@ -614,7 +614,7 @@ def sync_point_to_point_to_hitl(project_id):
         step1_data['technical_point_to_point_file'] = point_to_point_file_info
 
         db.execute_query("""
-            UPDATE tender_hitl_tasks
+            UPDATE tender_projects
             SET step1_data = ?
             WHERE project_id = ?
         """, (json.dumps(step1_data), project_id))
@@ -698,7 +698,7 @@ def sync_tech_proposal_to_hitl(project_id):
 
         # 查询任务信息
         task_data = db.execute_query("""
-            SELECT step1_data FROM tender_hitl_tasks
+            SELECT step1_data FROM tender_projects
             WHERE project_id = ?
         """, (project_id,), fetch_one=True)
 
@@ -749,7 +749,7 @@ def sync_tech_proposal_to_hitl(project_id):
         step1_data['technical_proposal_file'] = tech_proposal_file_info
 
         db.execute_query("""
-            UPDATE tender_hitl_tasks
+            UPDATE tender_projects
             SET step1_data = ?
             WHERE project_id = ?
         """, (json.dumps(step1_data), project_id))

@@ -82,7 +82,7 @@ def get_tender_management_list():
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN tender_hitl_tasks h ON h.project_id = p.project_id
+            LEFT JOIN (SELECT project_id, step1_status, step2_status, step3_status, step1_data, hitl_overall_status as overall_status, hitl_current_step as current_step FROM tender_projects) h ON h.project_id = p.project_id
             WHERE {where_clause}
         """
 
@@ -126,7 +126,7 @@ def get_tender_management_list():
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN tender_hitl_tasks h ON h.project_id = p.project_id
+            LEFT JOIN (SELECT project_id, step1_status, step2_status, step3_status, step1_data, hitl_overall_status as overall_status, hitl_current_step as current_step FROM tender_projects) h ON h.project_id = p.project_id
             WHERE {where_clause}
             ORDER BY p.updated_at DESC, p.created_at DESC
             LIMIT ? OFFSET ?
@@ -290,7 +290,7 @@ def get_tender_project_stats(project_id):
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN tender_hitl_tasks h ON h.project_id = p.project_id
+            LEFT JOIN (SELECT project_id, step1_status, step2_status, step3_status, step1_data, hitl_overall_status as overall_status, hitl_current_step as current_step FROM tender_projects) h ON h.project_id = p.project_id
             WHERE p.project_id = ?
         """
 
@@ -382,12 +382,9 @@ def delete_tender_project(project_id):
         # 3. 删除关联数据 (按外键依赖顺序)
         deleted_counts = {}
 
-        # 3.1 删除HITL任务相关数据
-        # 删除HITL任务
-        result = db.execute_query("""
-            DELETE FROM tender_hitl_tasks WHERE project_id = ?
-        """, (project_id,))
-        deleted_counts['hitl_tasks'] = result if result else 0
+        # 3.1 HITL数据现已合并到tender_projects表中，无需单独删除
+        #     将在删除项目时一并删除
+        deleted_counts['hitl_tasks'] = 0  # HITL数据已合并到项目表
 
         if task_id:
 
