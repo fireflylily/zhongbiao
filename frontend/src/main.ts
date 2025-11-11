@@ -6,6 +6,9 @@ import axios from 'axios'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
+// Bootstrap Icons 图标库
+import 'bootstrap-icons/font/bootstrap-icons.css'
+
 import App from './App.vue'
 import router from './router'
 

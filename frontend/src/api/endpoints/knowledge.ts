@@ -9,6 +9,7 @@ import type {
   KnowledgeDocument,
   KnowledgeCategory,
   Case,
+  CaseAttachment,
   Resume,
   ProjectExperience,
   ApiResponse,
@@ -117,16 +118,16 @@ export const knowledgeApi = {
    * 获取案例列表
    */
   async getCases(
-    params?: PaginationParams & { company_id?: number; category?: string }
-  ): Promise<PaginatedApiResponse<Case>> {
-    return apiClient.get('/knowledge/cases', params)
+    params?: PaginationParams & { company_id?: number; industry?: string; contract_type?: string; case_status?: string }
+  ): Promise<ListApiResponse<Case>> {
+    return apiClient.get('/case_library/cases', params)
   },
 
   /**
    * 获取案例详情
    */
   async getCase(caseId: number): Promise<ApiResponse<Case>> {
-    return apiClient.get(`/knowledge/cases/${caseId}`)
+    return apiClient.get(`/case_library/cases/${caseId}`)
   },
 
   /**
@@ -134,31 +135,40 @@ export const knowledgeApi = {
    */
   async createCase(data: {
     company_id: number
-    project_name: string
+    case_title: string
     customer_name: string
-    contract_amount?: number
-    start_date?: string
-    end_date?: string
-    category?: string
-    description?: string
-    outcomes?: string
-    technologies?: string[]
+    industry?: string
+    contract_type: '订单' | '合同'
+    contract_amount?: string
+    contract_start_date?: string
+    contract_end_date?: string
+    party_a_contact_name?: string
+    party_a_contact_phone?: string
+    party_a_contact_email?: string
+    case_status?: 'success' | 'in_progress' | 'pending_acceptance'
   }): Promise<ApiResponse<Case>> {
-    return apiClient.post('/knowledge/cases', data)
+    return apiClient.post('/case_library/cases', data)
   },
 
   /**
    * 更新案例
    */
   async updateCase(caseId: number, data: Partial<Case>): Promise<ApiResponse<Case>> {
-    return apiClient.put(`/knowledge/cases/${caseId}`, data)
+    return apiClient.put(`/case_library/cases/${caseId}`, data)
   },
 
   /**
    * 删除案例
    */
   async deleteCase(caseId: number): Promise<ApiResponse<void>> {
-    return apiClient.delete(`/knowledge/cases/${caseId}`)
+    return apiClient.delete(`/case_library/cases/${caseId}`)
+  },
+
+  /**
+   * 获取案例附件列表
+   */
+  async getCaseAttachments(caseId: number): Promise<ListApiResponse<CaseAttachment>> {
+    return apiClient.get(`/case_library/cases/${caseId}/attachments`)
   },
 
   /**
@@ -167,13 +177,18 @@ export const knowledgeApi = {
   async uploadCaseAttachment(
     caseId: number,
     file: File,
+    attachmentType: 'contract' | 'acceptance' | 'testimony' | 'photo' | 'other',
+    description?: string,
     onProgress?: (progress: number) => void
   ): Promise<ApiResponse<any>> {
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('case_id', caseId.toString())
+    formData.append('attachment_type', attachmentType)
+    if (description) {
+      formData.append('description', description)
+    }
 
-    return apiClient.upload('/knowledge/cases/upload-attachment', formData, (event) => {
+    return apiClient.upload(`/case_library/cases/${caseId}/attachments`, formData, (event) => {
       if (onProgress && event.total) {
         const progress = Math.round((event.loaded * 100) / event.total)
         onProgress(progress)
@@ -182,10 +197,31 @@ export const knowledgeApi = {
   },
 
   /**
+   * 删除案例附件
+   */
+  async deleteCaseAttachment(attachmentId: number): Promise<ApiResponse<void>> {
+    return apiClient.delete(`/case_library/attachments/${attachmentId}`)
+  },
+
+  /**
+   * 下载案例附件
+   */
+  downloadCaseAttachment(attachmentId: number): string {
+    return `${apiClient.getInstance().defaults.baseURL}/case_library/attachments/${attachmentId}/download`
+  },
+
+  /**
    * 搜索案例
    */
-  async searchCases(keyword: string): Promise<ListApiResponse<Case>> {
-    return apiClient.get('/knowledge/cases/search', { keyword })
+  async searchCases(query: string, companyId?: number): Promise<ListApiResponse<Case>> {
+    return apiClient.get('/case_library/search', { q: query, company_id: companyId })
+  },
+
+  /**
+   * 获取案例统计信息
+   */
+  async getCaseStatistics(companyId?: number): Promise<ApiResponse<any>> {
+    return apiClient.get('/case_library/statistics', companyId ? { company_id: companyId } : undefined)
   },
 
   // ==================== 简历库 ====================

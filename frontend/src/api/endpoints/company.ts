@@ -11,7 +11,6 @@ import type {
   QualificationType,
   ApiResponse,
   ListApiResponse,
-  PaginatedApiResponse,
   PaginationParams
 } from '@/types'
 
@@ -72,10 +71,11 @@ export const companyApi = {
 
   /**
    * 获取公司资质列表
+   * 返回格式：{ data: { id_card_front: {...}, business_license: {...}, ... } }
    */
   async getCompanyQualifications(
     companyId: number
-  ): Promise<ListApiResponse<CompanyQualification>> {
+  ): Promise<ApiResponse<Record<string, CompanyQualification>>> {
     return apiClient.get(`/companies/${companyId}/qualifications`)
   },
 
@@ -103,18 +103,23 @@ export const companyApi = {
     onProgress?: (progress: number) => void
   ): Promise<ApiResponse<CompanyQualification>> {
     const formData = new FormData()
-    formData.append('file', file)
-    formData.append('company_id', companyId.toString())
-    formData.append('type_key', typeKey)
 
-    // 添加可选字段
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value)
-      }
-    })
+    // 后端期望的格式是 qualifications[typeKey] 而不是单独的 file 字段
+    formData.append(`qualifications[${typeKey}]`, file)
 
-    return apiClient.upload('/qualifications/upload', formData, (event) => {
+    // 如果有额外的资质名称，添加到 qualification_names（JSON格式）
+    const qualificationNames: Record<string, string> = {}
+    formData.append('qualification_names', JSON.stringify(qualificationNames))
+
+    // 如果有文件版本信息，添加到 file_versions（JSON格式）
+    const fileVersions: Record<string, string> = {}
+    if (data.notes) {
+      // 可以将 notes 作为文件版本使用
+      fileVersions[typeKey] = data.notes
+    }
+    formData.append('file_versions', JSON.stringify(fileVersions))
+
+    return apiClient.upload(`/companies/${companyId}/qualifications/upload`, formData, (event) => {
       if (onProgress && event.total) {
         const progress = Math.round((event.loaded * 100) / event.total)
         onProgress(progress)

@@ -105,6 +105,34 @@ class SmartDocumentFiller:
             if result['errors']:
                 stats['errors'].extend(result['errors'])
 
+        # 处理所有表格
+        self.logger.info("开始处理表格...")
+        table_para_idx = len(doc.paragraphs)  # 表格段落从这个索引开始编号
+        for table_idx, table in enumerate(doc.tables):
+            self.logger.debug(f"处理表格#{table_idx}")
+            for row_idx, row in enumerate(table.rows):
+                for cell_idx, cell in enumerate(row.cells):
+                    for cell_para_idx, paragraph in enumerate(cell.paragraphs):
+                        if not paragraph.text.strip():
+                            continue
+
+                        # 匹配并填充（使用统一的段落处理逻辑）
+                        para_id = f"table{table_idx}_row{row_idx}_cell{cell_idx}_para{cell_para_idx}"
+                        result = self._process_paragraph(paragraph, data, table_para_idx)
+                        table_para_idx += 1
+
+                        # 更新统计
+                        if result['filled']:
+                            stats['total_filled'] += 1
+                            pattern = result['pattern']
+                            stats['pattern_counts'][pattern] = stats['pattern_counts'].get(pattern, 0) + 1
+                            self.logger.debug(f"  表格填充成功: {para_id}")
+                        elif result['unfilled_fields']:
+                            stats['unfilled_fields'].extend(result['unfilled_fields'])
+
+                        if result['errors']:
+                            stats['errors'].extend(result['errors'])
+
         # 过滤未填充字段，排除误识别内容
         if stats['unfilled_fields']:
             filtered_unfilled = self._filter_invalid_fields(stats['unfilled_fields'])
@@ -330,7 +358,9 @@ class SmartDocumentFiller:
             # 条款标题
             '情况', '承诺', '声明', '说明', '注意', '备注',
             # 网址和特殊字符
-            'http', 'www.', '://','满足招标','见附件'
+            'http', 'www.', '://','满足招标','见附件',
+            # 文档材料类关键词（文档清单项）
+            '身份证', '复印件', '证明', '原件', '扫描件', '材料', '文件'
         ]
 
         # 过滤逻辑
@@ -446,6 +476,167 @@ class SmartDocumentFiller:
             paragraph.text = new_text
 
 
+class FieldClassifier:
+    """字段分类器 - 根据字段类型决定处理策略
+
+    核心规则：
+    1. 单位盖章填名称 - 单位/公司字段即使有盖章标记也要填充
+    2. 个人签字留空白 - 个人字段有签字/盖章标记则不填充
+    """
+
+    # 单位/公司相关字段（可能出现盖章）
+    UNIT_FIELDS = {
+        'companyName',      # 供应商名称、公司名称
+        'supplierName',     # 供应商
+        'vendorName',       # 投标人
+        'purchaserName',    # 采购人（可能需要盖章）
+    }
+
+    # 个人相关字段（可能出现签字/盖章）
+    PERSON_FIELDS = {
+        'legalRepresentative',      # 法定代表人
+        'representativeName',       # 授权代表人、被授权人
+        'authorizedPerson',         # 被授权人
+        'representativeTitle',      # 职务（与个人相关）
+        'authorizedPersonId',       # 身份证号（与个人相关）
+    }
+
+    # 格式标记定义
+    SEAL_MARKERS = [
+        '（盖章）', '（公章）', '（盖公章）', '(盖章)', '(公章)', '(盖公章)',
+        '（盖单位章）', '（盖企业章）', '（加盖公章）', '（加盖单位公章）',  # 新增：单位盖章变体
+        '(盖单位章)', '(盖企业章)', '(加盖公章)', '(加盖单位公章)'  # 半角版本
+    ]
+    SIGNATURE_MARKERS = ['（签字）', '（签名）', '(签字)', '(签名)', '（签章）', '(签章)']
+    COMBO_MARKERS = ['（签字或盖章）', '（签字及盖章）', '（签字并盖章）',
+                     '(签字或盖章)', '(签字及盖章)', '(签字并盖章)']
+    ALL_MARKERS = SEAL_MARKERS + SIGNATURE_MARKERS + COMBO_MARKERS
+
+    @classmethod
+    def classify_field(cls, standard_field: str) -> str:
+        """分类字段
+
+        Args:
+            standard_field: 标准字段名（如 'companyName', 'legalRepresentative'）
+
+        Returns:
+            字段类型：'unit' | 'person' | 'general'
+        """
+        if not standard_field:
+            return 'general'
+
+        if standard_field in cls.UNIT_FIELDS:
+            return 'unit'
+        elif standard_field in cls.PERSON_FIELDS:
+            return 'person'
+        else:
+            return 'general'
+
+    @classmethod
+    def should_fill(cls, field_text: str, standard_field: str) -> bool:
+        """判断是否应该填充字段
+
+        核心规则：
+        - 个人字段 + 签字/盖章标记 = 不填充（留空白供手写）
+        - 单位字段 + 任何标记 = 填充（需要填公司名）
+        - 其他字段 = 正常填充
+        - 未识别字段 + 人员关键词 + 签字标记 = 不填充（如"法定代表人或委托代理人（签字）"）
+        - 文档清单项（包含"身份证"、"复印件"等） = 不填充
+
+        Args:
+            field_text: 原始字段文本（如 "法定代表人（签字或盖章）"）
+            standard_field: 标准字段名（如 'legalRepresentative'）
+
+        Returns:
+            是否应该填充
+        """
+        # ⚠️ 关键修复：即使 std_field 是 None，也要检查签字/文档关键词
+        # 这样可以正确处理"法定代表人或委托代理人（签字）"等复合字段
+
+        # 1. 检查是否包含签字/盖章标记
+        has_signature_marker = any(marker in field_text for marker in cls.ALL_MARKERS)
+
+        # 2. 检查是否包含人员相关关键词
+        person_keywords = ['法定代表人', '法人', '授权代表', '委托代理人', '代理人', '被授权人', '代表']
+        has_person_keyword = any(keyword in field_text for keyword in person_keywords)
+
+        # 3. 如果同时包含人员关键词和签字标记，不填充（无论是否识别）
+        if has_person_keyword and has_signature_marker:
+            return False
+
+        # 4. 检查是否包含文档材料关键词（文档清单项）
+        document_keywords = ['身份证', '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件']
+        if any(keyword in field_text for keyword in document_keywords):
+            return False
+
+        # 如果 std_field 是 None（未识别字段），默认不填充（安全策略）
+        if not standard_field:
+            return False
+
+        field_type = cls.classify_field(standard_field)
+
+        # 个人字段：检查是否有签字/盖章标记
+        if field_type == 'person':
+            # 任何签字/盖章标记都不填充
+            has_marker = any(marker in field_text for marker in cls.ALL_MARKERS)
+            return not has_marker  # 有标记则不填充，留空白
+
+        # 单位字段和普通字段都填充
+        return True
+
+    @classmethod
+    def extract_format_marker(cls, text: str) -> str:
+        """提取格式标记
+
+        Args:
+            text: 文本（可能包含格式标记）
+
+        Returns:
+            找到的格式标记，如 "（盖章）"，没有则返回空字符串
+        """
+        for marker in cls.ALL_MARKERS:
+            if marker in text:
+                return marker
+        return ""
+
+    @classmethod
+    def should_preserve_marker(cls, standard_field: str, marker: str) -> bool:
+        """判断是否应该保留格式标记
+
+        规则：
+        - 单位字段 + 盖章/公章标记 = 保留（填充后仍需盖章）
+        - 其他情况不保留
+
+        Args:
+            standard_field: 标准字段名
+            marker: 格式标记
+
+        Returns:
+            是否保留标记
+        """
+        field_type = cls.classify_field(standard_field)
+
+        # 单位字段保留盖章/公章标记
+        if field_type == 'unit' and marker in cls.SEAL_MARKERS:
+            return True
+
+        return False
+
+    @classmethod
+    def is_format_marker(cls, text: str) -> bool:
+        """判断文本是否只是格式标记
+
+        Args:
+            text: 要判断的文本
+
+        Returns:
+            是否为纯格式标记
+        """
+        # 去除空格后检查
+        clean_text = text.strip()
+        return clean_text in cls.ALL_MARKERS
+
+
 class PatternMatcher:
     """模式匹配器 - 识别文档中的各种填空模式"""
 
@@ -490,6 +681,52 @@ class PatternMatcher:
             patterns['date'] = date_matches
 
         return patterns
+
+    def _detect_abbreviation_field(self, text_inside_bracket: str) -> Optional[str]:
+        """
+        检测是否是带空格占位符的简写字段
+
+        判断规则：
+        1. 必须有足够的空格占位符（≥5个）
+        2. 去除空格后核心文本≤3个字
+        3. 核心文本匹配简写映射表
+
+        Examples:
+            "                 项目"  → 'projectName' ✅
+            "该项目"                 → None ❌
+            "公司章程"               → None ❌
+
+        Args:
+            text_inside_bracket: 括号内的文本（包含可能的空格）
+
+        Returns:
+            标准字段名，如 'projectName'，如果不是简写则返回 None
+        """
+        # 计算空格数量
+        stripped = text_inside_bracket.strip()
+        total_spaces = len(text_inside_bracket) - len(stripped)
+
+        # 关键条件1：必须有足够的空格（说明是占位符）
+        if total_spaces < 5:
+            return None
+
+        # 关键条件2：核心文本必须很短（≤3字）
+        if len(stripped) > 3:
+            return None
+
+        # 简写映射表
+        abbr_map = {
+            '项目': 'projectName',
+            '编号': 'projectNumber',
+            '公司': 'companyName',
+            '单位': 'companyName',
+            '地址': 'address',
+            '电话': 'phone',
+            '邮箱': 'email',
+            '传真': 'fax',
+        }
+
+        return abbr_map.get(stripped)
 
     def _match_combo_pattern(self, text: str) -> List[Dict]:
         """匹配组合字段：（xxx、yyy）或（xxx和yyy）或[xxx、yyy、zzz]
@@ -545,7 +782,24 @@ class PatternMatcher:
         matches = []
 
         for match in re.finditer(pattern, text):
-            field_name = match.group(1).strip()
+            # 🆕 Step 1: 先尝试简写字段检测（使用原始括号内文本）
+            text_inside_bracket = match.group(1)  # 包含空格的原始文本
+            abbr_field = self._detect_abbreviation_field(text_inside_bracket)
+
+            if abbr_field:
+                # 匹配到简写字段，直接添加到结果
+                matches.append({
+                    'full_match': match.group(0),
+                    'field': text_inside_bracket.strip(),  # 显示用（如"项目"）
+                    'standard_field': abbr_field,  # 直接提供标准字段名
+                    'is_abbreviation': True,  # 标记为简写
+                    'start': match.start(),
+                    'end': match.end()
+                })
+                continue  # 跳过常规字段识别流程
+
+            # Step 2: 常规字段识别流程
+            field_name = text_inside_bracket.strip()
 
             # 过滤掉组合字段（已在combo中处理）
             if '、' in field_name or '，' in field_name:
@@ -559,15 +813,20 @@ class PatternMatcher:
                     field_name = field_name[len(prefix):].strip()
                     break
 
-            # ✅ 新增：清理冒号和后面的占位符（空格/下划线）
-            # 匹配 "字段名：空格或下划线结尾" 的格式，如"项目编号：       "
+            # ✅ 新增：清理冒号和后面的占位符（空格/下划线/文字占位符）
+            # 匹配 "字段名：占位符" 的格式
+            # 支持的占位符：空格、下划线、XXX、xxx、待填、待填写、请填写等
             # 只匹配冒号后面是占位符的情况，不会影响实际内容（如"成立日期：2020-01-01"）
-            colon_match = re.match(r'^([^：:]+)[：:]\s*[_\s]*$', field_name)
+            colon_match = re.match(r'^([^：:]+)[：:]\s*([_\s]*|XXX|xxx|待填|待填写|请填写|待确定|暂无)?$', field_name)
             if colon_match:
                 field_name = colon_match.group(1).strip()
 
             # 过滤掉明显不是字段的内容
-            skip_keywords = ['如有', '如果', 'www.', 'http', '说明', '注意', '备注']
+            skip_keywords = [
+                '如有', '如果', 'www.', 'http', '说明', '注意', '备注',
+                # 文档材料类关键词
+                '身份证', '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件'
+            ]
             if any(skip in field_name for skip in skip_keywords):
                 continue
 
@@ -597,8 +856,10 @@ class PatternMatcher:
 
     def _match_colon_pattern(self, text: str) -> List[Dict]:
         """匹配冒号填空：xxx：___  或 xxx：（空白）或 xxx："""
-        # 修改正则以捕获冒号后的所有内容（不限制为空白或下划线）
-        pattern = r'([^：:\n]{2,20})[:：]\s*([^\n]*)'
+        # 修改正则：正确处理冒号后的内容（包括括号内的中文）
+        # 策略：先匹配冒号前的字段名，然后捕获冒号后到行尾或下一个字段的内容
+        # 使用正向前瞻来识别下一个字段（2个以上中文字符后跟冒号）
+        pattern = r'([^：:\n]{2,20})[:：]\s*(.*)(?=(?:\s{2,}[\u4e00-\u9fa5]{2,}[:：])|$)'
         matches = []
 
         for match in re.finditer(pattern, text):
@@ -617,15 +878,38 @@ class PatternMatcher:
                 # 去除下划线、空格等占位符
                 content_without_placeholder = re.sub(r'[_\s]+', '', after_colon)
 
-                # 如果还有剩余内容（不是纯占位符），说明已填写，跳过
+                # 🆕 增强检测：区分"真实内容"、"格式标记"和"下一个字段名"
                 if len(content_without_placeholder) > 0:
-                    # 记录日志：跳过已填写的字段
-                    continue  # 跳过已填写的字段
+                    # 检查是否只是格式标记
+                    if FieldClassifier.is_format_marker(content_without_placeholder):
+                        # 是格式标记（如"（盖章）"），不是内容，应该继续处理
+                        pass
+                    # 如果内容以冒号结尾，说明是下一个字段名（如"邮政编码："），不算已填写
+                    elif content_without_placeholder.endswith(('：', ':')):
+                        # 这是横向多字段格式，继续处理当前字段
+                        pass
+                    else:
+                        # 可能是真正的内容，但需要进一步检查
+                        # 去除格式标记后再判断
+                        real_content = content_without_placeholder
+                        for marker in FieldClassifier.ALL_MARKERS:
+                            real_content = real_content.replace(marker, '')
+
+                        # 如果去除格式标记后还有内容（超过2个字符），才认为是已填写
+                        if real_content.strip() and len(real_content.strip()) > 2:
+                            # 真正的内容，跳过已填写的字段
+                            continue
+
+            # 调试：打印匹配的内容
+            import logging
+            logger = logging.getLogger("ai_tender_system.smart_filler")
+            logger.debug(f"  [_match_colon_pattern] 匹配到: full_match='{match.group(0)}', after_colon='{after_colon}'")
 
             matches.append({
                 'full_match': match.group(0),
                 'field': clean_field_name,  # 清理后的字段名（用于数据匹配）
                 'original_field': original_field_name,  # 原始字段名（包含括号，用于替换）
+                'after_colon': after_colon,  # 保存冒号后的内容（可能包含格式标记）
                 'start': match.start(),
                 'end': match.end()
             })
@@ -661,7 +945,11 @@ class PatternMatcher:
             clean_field_name = re.sub(r'[（(][^）)]*[）)]', '', field_name).strip()
 
             # 跳过明显不是字段的内容
-            skip_keywords = ['本条', '时间从', '以相关', '我公司', '如有', '如果', '见附件', '满足']
+            skip_keywords = [
+                '本条', '时间从', '以相关', '我公司', '如有', '如果', '见附件', '满足',
+                # 文档材料类关键词
+                '身份证', '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件'
+            ]
             if any(skip in clean_field_name for skip in skip_keywords):
                 continue
 
@@ -690,10 +978,20 @@ class PatternMatcher:
         return matches
 
     def _match_date_pattern(self, text: str) -> List[Dict]:
-        """匹配日期格式：____年____月____日"""
+        """
+        匹配日期格式：
+        - ____年____月____日 (下划线占位符)
+        - XXXX年X月X日 (字母X占位符)
+        - 日期：____年____月____日
+        - 日期：XXXX年X月X日
+        """
         patterns = [
-            r'日期\s*[:：]?\s*[_\s]*年[_\s]*月[_\s]*日',
-            r'[_\s]*年[_\s]*月[_\s]*日',  # 更宽松的匹配
+            # 带"日期："前缀的模式
+            r'日期\s*[:：]?\s*[_\s]*年[_\s]*月[_\s]*日',  # 日期：____年____月____日
+            r'日期\s*[:：]?\s*[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # 日期：XXXX年X月X日
+            # 不带前缀的模式
+            r'[_\s]+年[_\s]+月[_\s]+日',  # ____年____月____日（多个占位符）
+            r'[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # XXXX年X月X日
         ]
 
         matches = []
@@ -719,9 +1017,10 @@ class FieldRecognizer:
         self.field_variants = {
             # 供应商名称
             'companyName': [
-                '供应商名称', '供应商全称', '投标人名称', '投标人全称', '公司名称',
-                '单位名称', '应答人名称', '企业名称',
-                '响应人名称', '响应人全称'  # 新增：响应人名称变体
+                '供应商', '供应商名称', '供应商全称',  # 添加"供应商"简写
+                '投标人', '投标人名称', '投标人全称',  # 添加"投标人"简写
+                '公司名称', '单位名称', '应答人名称', '企业名称',
+                '响应人', '响应人名称', '响应人全称'  # 添加"响应人"简写
             ],
 
             # 项目信息
@@ -732,7 +1031,7 @@ class FieldRecognizer:
             'purchaserName': ['采购人', '采购人名称', '招标人', '招标人名称', '甲方', '甲方名称'],
 
             # 联系方式
-            'address': ['地址', '注册地址', '办公地址', '联系地址', '通讯地址'],
+            'address': ['地址', '注册地址', '办公地址', '联系地址', '通讯地址', '供应商地址', '公司地址'],
             'phone': ['电话', '联系电话', '固定电话', '电话号码'],
             'email': ['电子邮件', '电子邮箱', '邮箱', 'email', 'Email', 'E-mail', 'E-Mail', '电子函件'],
             'fax': ['传真', '传真号码', '传真号'],
@@ -782,19 +1081,22 @@ class FieldRecognizer:
                 '签字日期', '签署日期', '落款日期'  # 新增：处理各种签署日期格式
             ],
 
-            # 股权结构字段（2025-10-30添加）
+            # 股权结构字段（2025-10-30添加，2025-11-09增强）
             'actual_controller': [
                 '实际控制人', '实际控制人姓名', '实际控制人名称',
                 '实控人', '实控人姓名'
             ],
             'controlling_shareholder': [
                 '控股股东', '控股股东名称', '控股股东及出资比例',
-                '第一大股东', '最大股东'
+                '第一大股东', '最大股东',
+                '供应商的控股股东/投资人名称及出资比例',  # 🆕 支持长字段名
+                '供应商的控股股东'  # 支持部分匹配
             ],
             'shareholders_info': [
                 '股东', '股东信息', '股东名称', '投资人信息',
                 '股东及出资比例', '投资人名称及出资比例',
                 '供应商的控股股东', '供应商的非控股股东',
+                '供应商的非控股股东/投资人名称及出资比例',  # 🆕 支持长字段名
                 '股权结构'
             ],
 
@@ -827,6 +1129,32 @@ class FieldRecognizer:
             标准字段名，如 'companyName', 'projectName' 等
         """
         original_field_text = field_text
+
+        # ✅ 关键检查：如果原始字段包含签字/盖章相关关键词，通常需要跳过
+        # 根据规则："法定代表人，授权代表人，后面带有"签字"字样的，不需要做填空规则或替换格式"
+        signature_keywords = ['签字', '签名', '签章', '盖章处']  # 注意：不包括单独的"盖章"，因为有些字段如"单位名称（盖章）"需要填充
+
+        # 特殊处理：对于以下关键人员字段，如果包含签字相关词，则跳过
+        person_fields = ['法定代表人', '法人代表', '法人', '授权代表', '授权人', '被授权人', '代表人', '负责人']
+
+        # 检查是否包含签字相关关键词
+        has_signature_keyword = any(keyword in original_field_text for keyword in signature_keywords)
+
+        # 特殊检查："（签字或盖章）"这种格式也要跳过
+        if '签字或盖章' in original_field_text or '签字及盖章' in original_field_text or '签字并盖章' in original_field_text:
+            has_signature_keyword = True
+
+        # 检查是否是人员字段
+        is_person_field = any(field in original_field_text for field in person_fields)
+
+        # 如果是签字/盖章相关的人员字段，返回None表示跳过
+        if has_signature_keyword and is_person_field:
+            if enable_logging:
+                from common import get_module_logger
+                logger = get_module_logger("field_recognizer")
+                logger.info(f"⚠️  跳过签字/盖章字段: '{original_field_text}'")
+            return None
+
         field_text = field_text.strip().lower()
 
         # 移除常见后缀
@@ -937,7 +1265,14 @@ class ContentFiller:
         # 从后往前替换（避免位置偏移，不需要重新构建映射）
         for match in reversed(matches):
             field_name = match['field']
-            std_field = self.field_recognizer.recognize_field(field_name)
+
+            # 🆕 支持简写字段：如果是简写，直接使用提供的standard_field
+            if match.get('is_abbreviation'):
+                std_field = match.get('standard_field')
+                self.logger.info(f"    识别到简写字段: {field_name} → {std_field}")
+            else:
+                # 常规字段识别
+                std_field = self.field_recognizer.recognize_field(field_name)
 
             if std_field and std_field in data:
                 value = str(data[std_field])
@@ -974,7 +1309,13 @@ class ContentFiller:
                         text: str,
                         matches: List[Dict],
                         data: Dict[str, Any]) -> bool:
-        """填充冒号字段（使用run精确替换）"""
+        """填充冒号字段（使用run精确替换）
+
+        增强功能：
+        1. 使用FieldClassifier判断是否填充
+        2. 正确处理格式标记（盖章、签字等）
+        3. 单位盖章字段保留标记，个人签字字段跳过
+        """
         if not matches:
             return False
 
@@ -986,7 +1327,19 @@ class ContentFiller:
         for match in reversed(matches):
             field_name = match['field']  # 清理后的字段名（用于数据匹配）
             original_field_name = match.get('original_field', field_name)  # 原始字段名（包含括号）
+            after_colon = match.get('after_colon', '')  # 冒号后的内容（可能包含格式标记）
             std_field = self.field_recognizer.recognize_field(field_name)
+
+            # ⚠️  关键修复：将冒号后的内容也传入should_fill，以便检测签字标记
+            # 例如："法定代表人（负责人）或其委托代理人：                 （签字）"
+            # original_field_name只包含冒号前的部分，after_colon包含"（签字）"
+            full_field_text = f"{original_field_name}：{after_colon}" if after_colon else original_field_name
+
+            # 使用FieldClassifier判断是否应该填充
+            if not FieldClassifier.should_fill(full_field_text, std_field):
+                # 个人签字字段不填充
+                self.logger.info(f"    跳过签字字段: {full_field_text}")
+                continue
 
             if std_field and std_field in data:
                 value = str(data[std_field])
@@ -1003,6 +1356,21 @@ class ContentFiller:
                 # 保留冒号，移除下划线
                 colon = '：' if '：' in match['full_match'] else ':'
 
+                # 提取并处理格式标记
+                format_marker = ''
+                if after_colon:
+                    # 调试日志：查看after_colon的内容
+                    self.logger.debug(f"  after_colon内容: '{after_colon}'")
+                    # 从after_colon中提取格式标记
+                    marker = FieldClassifier.extract_format_marker(after_colon)
+                    self.logger.debug(f"  提取的格式标记: '{marker}'")
+                    if marker and FieldClassifier.should_preserve_marker(std_field, marker):
+                        # 确保格式标记前有适当的空格
+                        format_marker = f"{marker}"
+                        self.logger.info(f"  保留格式标记: {marker}")
+                    else:
+                        self.logger.debug(f"  不保留格式标记，marker={marker}, should_preserve={FieldClassifier.should_preserve_marker(std_field, marker) if marker else False}")
+
                 # 检查后面是否紧跟着其他字段，如果是则添加空格分隔
                 next_char_pos = match['end']
                 trailing_space = ''
@@ -1012,15 +1380,16 @@ class ContentFiller:
                     if next_chars and any('\u4e00' <= c <= '\u9fff' for c in next_chars[:2]):
                         trailing_space = '  '  # 添加两个空格分隔
 
-                # 使用原始字段名（保留括号后缀如"（加盖公章）"）
-                replacement = f"{original_field_name}{colon}{value}{trailing_space}"
+                # 构建替换文本：保留原始字段名、冒号、值、格式标记
+                replacement = f"{original_field_name}{colon}{value}{format_marker}{trailing_space}"
+
                 # 使用run精确替换
                 success = WordDocumentUtils.apply_replacement_to_runs(
                     runs, char_to_run_map, match, replacement, self.logger
                 )
                 if success:
                     filled_count += 1
-                    self.logger.info(f"    冒号字段填充: {original_field_name} → {value}")
+                    self.logger.info(f"    冒号字段填充: {original_field_name} → {value}{format_marker}")
 
         return filled_count > 0
 
@@ -1029,7 +1398,12 @@ class ContentFiller:
                         text: str,
                         matches: List[Dict],
                         data: Dict[str, Any]) -> bool:
-        """填充空格填空字段（使用run精确替换）"""
+        """填充空格填空字段（使用run精确替换）
+
+        增强功能：
+        1. 使用FieldClassifier判断是否填充
+        2. 正确处理格式标记（盖章、签字等）
+        """
         if not matches:
             return False
 
@@ -1039,8 +1413,15 @@ class ContentFiller:
 
         # 从后往前处理（避免位置偏移）
         for match in reversed(matches):
-            field_name = match['field']
+            field_name = match['field']  # 清理后的字段名
+            original_field_name = match.get('original_field', field_name)  # 原始字段名（可能包含括号）
             std_field = self.field_recognizer.recognize_field(field_name)
+
+            # 使用FieldClassifier判断是否应该填充
+            if not FieldClassifier.should_fill(original_field_name, std_field):
+                # 个人签字字段不填充
+                self.logger.info(f"    跳过签字字段: {original_field_name}")
+                continue
 
             if std_field and std_field in data:
                 value = str(data[std_field])
@@ -1050,9 +1431,14 @@ class ContentFiller:
                     self.logger.debug(f"  跳过空值字段: {field_name}")
                     continue
 
-                # 替换格式：字段名 + 空格 + 值
-                # 保留一些空格以保持对齐
-                replacement = f"{field_name}  {value}"
+                # 提取格式标记（如果有）
+                format_marker = FieldClassifier.extract_format_marker(original_field_name)
+                if format_marker and FieldClassifier.should_preserve_marker(std_field, format_marker):
+                    # 单位字段保留盖章标记
+                    replacement = f"{field_name}{format_marker}  {value}"
+                else:
+                    # 普通字段或不需要保留标记
+                    replacement = f"{field_name}  {value}"
 
                 # 使用run精确替换
                 success = WordDocumentUtils.apply_replacement_to_runs(
@@ -1060,7 +1446,7 @@ class ContentFiller:
                 )
                 if success:
                     filled_count += 1
-                    self.logger.info(f"    空格填空字段填充: {field_name} → {value}")
+                    self.logger.info(f"    空格填空字段填充: {original_field_name} → {value}")
 
         return filled_count > 0
 

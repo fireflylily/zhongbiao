@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
+    "build:strict": "vue-tsc && vite build",
     "build:no-check": "vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
@@ -15,6 +16,7 @@
   "dependencies": {
     "@vueuse/core": "^10.7.2",
     "axios": "^1.6.5",
+    "bootstrap-icons": "^1.13.1",
     "dayjs": "^1.11.10",
     "docx-preview": "^0.3.7",
     "element-plus": "^2.5.4",

@@ -62,7 +62,10 @@ def list_companies():
                 'created_at': company.get('created_at', ''),
                 'updated_at': company.get('updated_at', ''),
                 'product_count': company.get('product_count', 0),
-                'document_count': company.get('document_count', 0)
+                'document_count': company.get('document_count', 0),
+                # 被授权人信息 - 用于项目自动填充
+                'authorized_person_name': company.get('authorized_person_name', ''),
+                'authorized_person_id': company.get('authorized_person_id', '')
             })
 
         # 安全排序，处理可能的 None 值
@@ -154,6 +157,41 @@ def update_company(company_id):
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': '请提供公司信息'}), 400
+
+        # 🆕 自动提取控股股东和实际控制人信息
+        if 'shareholders_info' in data:
+            try:
+                # 解析股东信息JSON
+                shareholders = data['shareholders_info']
+                if isinstance(shareholders, str):
+                    shareholders = json.loads(shareholders)
+
+                # 查找标记为控股股东的股东
+                controlling = next((s for s in shareholders if s.get('is_controlling')), None)
+                if controlling:
+                    # 格式：股东名称，出资比例
+                    data['controlling_shareholder'] = f"{controlling['name']}，{controlling['ratio']}"
+                    logger.info(f"自动提取控股股东: {data['controlling_shareholder']}")
+                else:
+                    # 如果没有标记，保持原值或设为空
+                    if 'controlling_shareholder' not in data:
+                        data['controlling_shareholder'] = ''
+
+                # 查找标记为实际控制人的股东
+                actual_controller = next((s for s in shareholders if s.get('is_actual_controller')), None)
+                if actual_controller:
+                    # 格式：只保存名称
+                    data['actual_controller'] = actual_controller['name']
+                    logger.info(f"自动提取实际控制人: {data['actual_controller']}")
+                else:
+                    # 如果没有标记，保持原值或设为空
+                    if 'actual_controller' not in data:
+                        data['actual_controller'] = ''
+
+            except json.JSONDecodeError as e:
+                logger.warning(f"解析股东信息JSON失败: {e}")
+            except Exception as e:
+                logger.error(f"提取控股股东/实际控制人信息失败: {e}")
 
         # 使用知识库管理器更新公司信息
         result = kb_manager.update_company(company_id_int, data)
@@ -307,8 +345,12 @@ def get_company_qualifications(company_id):
 
 @api_companies_bp.route('/companies/<company_id>/qualifications/upload', methods=['POST'])
 def upload_company_qualifications(company_id):
-    """上传公司资质文件（支持多文件版本）"""
+    """上传公司资质文件（支持多文件版本和PDF自动转换）"""
     try:
+        # 导入PDF处理工具
+        from common.pdf_utils import PDFDetector, get_pdf_converter
+        from datetime import datetime
+
         # 首先检查数据库中是否存在该公司
         try:
             company_id_int = int(company_id)
@@ -320,6 +362,7 @@ def upload_company_qualifications(company_id):
 
         # 处理上传的文件
         uploaded_files = {}
+        pdf_conversions = {}  # 记录PDF转换信息
         qualification_names = request.form.get('qualification_names', '{}')
         qualification_names = json.loads(qualification_names) if qualification_names else {}
 
@@ -354,11 +397,67 @@ def upload_company_qualifications(company_id):
                         'file_version': file_version
                     }
 
+                    # 检测并转换PDF文件
+                    if result.get('file_path'):
+                        saved_path = result['file_path']
+
+                        # 检测是否为PDF
+                        if PDFDetector.is_pdf(saved_path):
+                            logger.info(f"检测到PDF文件: {file.filename}，准备转换为图片")
+
+                            # 获取配置好的PDF转换器
+                            converter = get_pdf_converter(qual_key)
+
+                            # 转换PDF为图片
+                            conversion_result = converter.convert_to_images(
+                                saved_path,
+                                custom_prefix=qual_key
+                            )
+
+                            if conversion_result['success']:
+                                pdf_conversions[qual_key] = conversion_result
+
+                                # 更新数据库记录，保存转换信息
+                                try:
+                                    kb_manager.db.execute_query("""
+                                        UPDATE company_qualifications
+                                        SET
+                                            original_file_type = 'PDF',
+                                            converted_images = ?,
+                                            conversion_info = ?,
+                                            conversion_date = ?
+                                        WHERE qualification_id = ?
+                                    """, [
+                                        json.dumps(conversion_result['images']),
+                                        json.dumps({
+                                            'total_pages': conversion_result['total_pages'],
+                                            'output_dir': conversion_result['output_dir'],
+                                            'dpi': converter.config.dpi,
+                                            'format': converter.config.output_format
+                                        }),
+                                        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                        result['qualification_id']
+                                    ])
+
+                                    logger.info(f"PDF转换成功: {qual_key}, 共{conversion_result['total_pages']}页")
+                                    uploaded_files[qual_key]['pdf_conversion'] = {
+                                        'total_pages': conversion_result['total_pages'],
+                                        'output_dir': conversion_result['output_dir']
+                                    }
+                                except Exception as e:
+                                    logger.error(f"保存PDF转换信息失败: {e}")
+                            else:
+                                logger.warning(f"PDF转换失败: {conversion_result.get('error')}")
+
         logger.info(f"公司 {company_id} 上传了 {len(uploaded_files)} 个资质文件")
+        if pdf_conversions:
+            logger.info(f"其中 {len(pdf_conversions)} 个PDF文件已自动转换为图片")
+
         return jsonify({
             'success': True,
             'message': f'成功上传 {len(uploaded_files)} 个资质文件',
-            'uploaded_files': uploaded_files
+            'uploaded_files': uploaded_files,
+            'pdf_conversions': len(pdf_conversions)  # 返回PDF转换数量
         })
 
     except Exception as e:

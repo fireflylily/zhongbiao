@@ -68,7 +68,7 @@ export interface Project {
   id: number
   project_name: string
   project_number?: string
-  company_id: number
+  company_id?: number  // 改为可选，更新时允许不传
   company_name?: string
   status: 'pending' | 'processing' | 'hitl_review' | 'completed' | 'failed' | 'draft' | 'active'
   created_at: string
@@ -78,6 +78,22 @@ export interface Project {
   description?: string
   authorized_person?: string
   winner?: string
+  // 招标信息（用于更新）
+  tenderer?: string
+  agency?: string
+  bidding_method?: string
+  bidding_location?: string
+  bidding_time?: string
+  budget_amount?: number
+  // 联系人信息（用于更新）
+  business_contact_name?: string
+  business_contact_phone?: string
+  tenderer_contact_person?: string
+  tenderer_contact_method?: string
+  agency_contact_person?: string
+  agency_contact_method?: string
+  authorized_person_name?: string
+  authorized_person_id?: string
 }
 
 export interface ProjectDetail extends Project {
@@ -95,6 +111,11 @@ export interface ProjectDetail extends Project {
   // 招标信息
   tender_unit?: string
   tender_agency?: string
+  tenderer?: string  // 别名 tender_unit
+  agency?: string  // 别名 tender_agency
+  bidding_method?: string  // 招标方式
+  bidding_location?: string  // 开标地点
+  bidding_time?: string  // 开标时间
   budget_amount?: number
   project_type?: string
   registration_deadline?: string
@@ -109,6 +130,10 @@ export interface ProjectDetail extends Project {
   tech_lead_phone?: string
   business_contact_name?: string
   business_contact_phone?: string
+  tenderer_contact_person?: string  // 招标方联系人
+  tenderer_contact_method?: string  // 招标方联系方式
+  agency_contact_person?: string  // 代理机构联系人
+  agency_contact_method?: string  // 代理机构联系方式
   authorized_person_name?: string
   authorized_person_id?: string
 
@@ -222,21 +247,106 @@ export interface KnowledgeCategory {
 // 案例库相关
 // ============================================
 
+/**
+ * 案例库主表 (case_studies)
+ * 对应数据库: ai_tender_system/database/case_library_schema.sql
+ */
 export interface Case {
-  id: number
-  title: string
+  // 主键和外键
+  case_id: number
   company_id: number
-  company_name?: string
-  project_name: string
-  project_date: string
-  project_amount?: number
-  description: string
-  success_factors?: string
-  technologies?: string[]
-  file_path?: string
+  company_name?: string  // 前端显示用（Join查询）
+  product_id?: number
+
+  // 基本信息
+  case_title: string  // 案例标题/合同名称（统一字段）
+  case_number?: string  // 案例编号/合同编号
+  customer_name: string  // 甲方客户名称（统一字段）
+  industry?: string  // 所属行业
+
+  // 合同信息
+  contract_name?: string  // 合同名称（等同于case_title）
+  contract_type: '订单' | '合同'  // 合同类型
+  final_customer_name?: string  // 最终客户名称（订单类型时填写）
+  contract_amount?: string  // 合同金额（支持数字或文字描述，如"100万元"、"百万级"）
+  contract_start_date?: string  // 合同开始日期
+  contract_end_date?: string  // 合同结束日期
+  party_a_customer_name?: string  // 甲方客户名称（等同于customer_name）
+  party_b_company_name?: string  // 乙方公司名称
+
+  // 甲方客户详细信息
+  party_a_name?: string  // 甲方名称（等同于customer_name）
+  party_a_address?: string  // 甲方地址
+  party_a_contact_name?: string  // 甲方联系人姓名
+  party_a_contact_phone?: string  // 甲方联系电话
+  party_a_contact_email?: string  // 甲方联系邮箱
+
+  // 乙方公司详细信息
+  party_b_name?: string  // 乙方名称
+  party_b_address?: string  // 乙方地址
+  party_b_contact_name?: string  // 乙方联系人姓名
+  party_b_contact_phone?: string  // 乙方联系电话
+  party_b_contact_email?: string  // 乙方联系邮箱
+
+  // 案例状态
+  case_status: 'success' | 'in_progress' | 'pending_acceptance'  // 成功/进行中/待验收
+
+  // 时间戳
+  created_by?: string
   created_at: string
   updated_at?: string
-  tags?: string[]
+
+  // 前端扩展字段（非数据库字段）
+  attachments?: CaseAttachment[]  // 关联的附件列表
+}
+
+/**
+ * 案例附件表 (case_attachments)
+ */
+export interface CaseAttachment {
+  // 主键和外键
+  attachment_id: number
+  case_id: number
+
+  // 文件信息
+  file_name: string  // 存储的文件名
+  original_filename: string  // 原始文件名
+  file_path: string  // 文件路径
+  file_type?: string  // pdf/doc/docx/jpg/png
+  file_size?: number  // 文件大小（字节）
+
+  // 附件类型和说明
+  attachment_type: 'contract' | 'acceptance' | 'testimony' | 'photo' | 'other'  // 合同/验收证明/客户证明/项目照片/其他
+  attachment_description?: string  // 附件说明
+
+  // 时间戳
+  uploaded_by?: string
+  uploaded_at: string
+}
+
+/**
+ * 案例表单数据（用于创建/编辑）
+ */
+export interface CaseFormData {
+  company_id: number
+  case_title: string
+  customer_name: string
+  industry?: string
+  contract_type: '订单' | '合同'
+  final_customer_name?: string
+  contract_amount?: string
+  contract_start_date?: string
+  contract_end_date?: string
+  party_a_address?: string
+  party_a_contact_name?: string
+  party_a_contact_phone?: string
+  party_a_contact_email?: string
+  party_b_company_name?: string
+  party_b_address?: string
+  party_b_contact_name?: string
+  party_b_contact_phone?: string
+  party_b_contact_email?: string
+  case_status?: 'success' | 'in_progress' | 'pending_acceptance'
 }
 
 // ============================================
@@ -366,6 +476,14 @@ export interface FileInfo {
   fileUrl?: string
   fileSize?: number
   uploadDate?: string
+}
+
+export interface UploadUserFile {
+  name: string
+  url: string
+  status: 'success' | 'uploading' | 'failed'
+  uid: number
+  size?: number
 }
 
 export interface SelectOption {

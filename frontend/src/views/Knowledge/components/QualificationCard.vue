@@ -92,31 +92,38 @@
 
     <!-- 操作按钮 -->
     <div class="card-footer">
-      <input
-        ref="fileInputRef"
-        type="file"
-        :accept="acceptTypes"
-        :multiple="qualification.allowMultiple"
-        style="display: none"
-        @change="handleFileChange"
-      >
-      <el-button
-        type="primary"
-        size="small"
-        @click="triggerFileInput"
-      >
-        <el-icon><Upload /></el-icon>
-        {{ qualification.allowMultiple ? '批量上传' : '上传文件' }}
-      </el-button>
-      <el-button
-        v-if="isCustom"
-        type="danger"
-        size="small"
-        @click="$emit('remove-custom')"
-      >
-        <el-icon><Delete /></el-icon>
-        移除
-      </el-button>
+      <div class="upload-section">
+        <DocumentUploader
+          ref="uploaderRef"
+          :accept="acceptTypes"
+          :multiple="qualification.allowMultiple"
+          :show-file-list="false"
+          :http-request="handleCustomUpload"
+          :max-size="20"
+        >
+          <template #trigger>
+            <el-button type="primary" size="small">
+              <el-icon><Upload /></el-icon>
+              {{ qualification.allowMultiple ? '批量上传' : '上传文件' }}
+            </el-button>
+          </template>
+        </DocumentUploader>
+        <el-button
+          v-if="isCustom"
+          type="danger"
+          size="small"
+          @click="$emit('remove-custom')"
+        >
+          <el-icon><Delete /></el-icon>
+          移除
+        </el-button>
+      </div>
+      <!-- PDF转换提示 -->
+      <div class="upload-tips">
+        <el-text type="info" size="small">
+          支持JPG、PNG、PDF格式 <span class="pdf-tip">（PDF将自动转换为图片）</span>
+        </el-text>
+      </div>
     </div>
   </el-card>
 </template>
@@ -124,12 +131,16 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Document, Upload, Download, Delete, Files } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import type { UploadRequestOptions } from 'element-plus'
+import { DocumentUploader } from '@/components'
 
 // Props
 const props = defineProps<{
   qualification: any
   fileInfo?: any
   isCustom?: boolean
+  onUpload?: (file: File) => Promise<void>
 }>()
 
 // Emits
@@ -141,7 +152,7 @@ const emit = defineEmits<{
 }>()
 
 // Refs
-const fileInputRef = ref<HTMLInputElement>()
+const uploaderRef = ref()
 
 // 计算属性
 const hasFile = computed(() => {
@@ -157,35 +168,35 @@ const isMultipleFiles = computed(() => {
 })
 
 const acceptTypes = computed(() => {
+  // 所有资质类型都支持PDF（会自动转换为图片）
   // 根据资质类型决定接受的文件类型
   if (props.qualification.key === 'financial_audit_report') {
-    return '.pdf,.xls,.xlsx'
+    return '.pdf,.xls,.xlsx,.jpg,.jpeg,.png'
   }
+  // 默认支持图片和PDF格式
   return '.pdf,.jpg,.jpeg,.png'
 })
 
 // 方法
-const triggerFileInput = () => {
-  fileInputRef.value?.click()
-}
+// 自定义上传处理器（使用DocumentUploader的接口）
+const handleCustomUpload = async (options: UploadRequestOptions) => {
+  const { file, onSuccess, onError } = options
 
-const handleFileChange = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const files = target.files
-  if (!files || files.length === 0) return
+  try {
+    // 如果提供了 onUpload 属性，调用它
+    if (props.onUpload) {
+      await props.onUpload(file as File)
+    } else {
+      // 否则使用旧的 emit 方式（向后兼容）
+      emit('upload', file as File)
+    }
 
-  // 如果是多文件上传，处理所有文件
-  if (props.qualification.allowMultiple) {
-    Array.from(files).forEach(file => {
-      emit('upload', file)
-    })
-  } else {
-    // 单文件上传
-    emit('upload', files[0])
+    // 调用成功回调
+    onSuccess({ success: true })
+  } catch (error: any) {
+    // 调用错误回调
+    onError(error)
   }
-
-  // 清空input以便下次可以选择相同文件
-  target.value = ''
 }
 
 const handleDownload = () => {
@@ -346,10 +357,24 @@ const formatDate = (dateStr: string) => {
   }
 
   .card-footer {
-    display: flex;
-    gap: 8px;
     padding-top: 12px;
     border-top: 1px solid #e4e7ed;
+
+    .upload-section {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .upload-tips {
+      font-size: 12px;
+      color: #909399;
+
+      .pdf-tip {
+        color: #67c23a;
+        font-weight: 500;
+      }
+    }
   }
 }
 </style>

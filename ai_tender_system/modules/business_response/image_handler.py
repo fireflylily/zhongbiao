@@ -40,6 +40,7 @@ class ImageHandler:
         # 默认图片尺寸（英寸）
         self.default_sizes = {
             'license': (6, 0),    # 营业执照：宽6英寸（约15.24厘米）
+            'seal': (2.5, 0),     # 公章：宽2.5英寸（约6.35厘米）
             'qualification': (6, 0),  # 资质证书：宽6英寸（约15.24厘米）
             'authorization': (6, 0),   # 授权书：宽6英寸（约15.24厘米）
             'certificate': (6, 0),      # 其他证书：宽6英寸（约15.24厘米）
@@ -113,6 +114,14 @@ class ImageHandler:
                 stats['images_types'].append('营业执照')
             else:
                 stats['errors'].append('营业执照插入失败')
+
+        # 插入公章
+        if image_config.get('seal_path'):
+            if self._insert_seal(doc, image_config['seal_path'], insert_points.get('seal')):
+                stats['images_inserted'] += 1
+                stats['images_types'].append('公章')
+            else:
+                stats['errors'].append('公章插入失败')
 
         # 插入资质证书（使用详细信息进行精确插入，并追踪统计）
         qualification_details = image_config.get('qualification_details', [])

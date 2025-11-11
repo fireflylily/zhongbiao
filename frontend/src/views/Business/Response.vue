@@ -8,14 +8,23 @@
         </div>
       </template>
 
+      <!-- 提示信息 -->
+      <el-alert type="info" :closable="false" style="margin-bottom: 16px">
+        <template #default>
+          💡 提示：可选择现有项目，或选择公司后新建项目并上传文档
+        </template>
+      </el-alert>
+
       <el-form :model="form" label-width="100px">
+        <!-- 项目选择 -->
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="项目">
               <el-select
                 v-model="form.projectId"
-                placeholder="请选择项目"
+                placeholder="请选择项目或直接新建"
                 filterable
+                clearable
                 @change="handleProjectChange"
                 style="width: 100%"
               >
@@ -29,11 +38,50 @@
             </el-form-item>
           </el-col>
 
+          <!-- 公司：根据是否选择项目显示不同内容 -->
           <el-col :span="12">
             <el-form-item label="公司">
+              <!-- 现有项目模式：只读显示 -->
               <el-input
+                v-if="form.projectId"
                 :value="selectedProject?.company_name || '-'"
                 disabled
+              />
+              <!-- 新建项目模式：可选择 -->
+              <el-select
+                v-else
+                v-model="form.companyId"
+                placeholder="请选择公司（必填）"
+                filterable
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="company in companies"
+                  :key="company.company_id"
+                  :label="company.company_name"
+                  :value="company.company_id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 新建项目信息：仅当未选择项目时显示 -->
+        <el-row v-if="!form.projectId" :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="项目名称">
+              <el-input
+                v-model="form.projectName"
+                placeholder="新项目"
+              />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="项目编号">
+              <el-input
+                v-model="form.projectNumber"
+                placeholder="PRJ-..."
               />
             </el-form-item>
           </el-col>
@@ -42,7 +90,7 @@
     </el-card>
 
     <!-- 文档上传 -->
-    <el-card v-if="form.projectId" class="upload-section" shadow="never">
+    <el-card class="upload-section" shadow="never">
       <template #header>
         <div class="card-header">
           <span>Step 2: 上传相关文档</span>
@@ -54,7 +102,18 @@
         <el-col :span="12">
           <div class="upload-item">
             <h4>商务应答模板 <span class="required">*</span></h4>
+
+            <!-- HITL模板文件Alert -->
+            <HitlFileAlert
+              v-if="useHitlTemplate"
+              :file-info="hitlTemplateInfo"
+              label="使用HITL商务应答模板:"
+              @cancel="cancelHitlTemplate"
+            />
+
+            <!-- 文件上传器（不使用HITL模板时显示） -->
             <DocumentUploader
+              v-if="!useHitlTemplate"
               v-model="form.templateFiles"
               :http-request="handleTemplateUpload"
               accept=".doc,.docx"
@@ -71,7 +130,19 @@
         <el-col :span="12">
           <div class="upload-item">
             <h4>招标文档（可选）</h4>
+
+            <!-- HITL招标文档Alert -->
+            <HitlFileAlert
+              v-if="useHitlTender"
+              :file-info="hitlTenderInfo"
+              label="使用HITL招标文档:"
+              type="info"
+              @cancel="cancelHitlTender"
+            />
+
+            <!-- 文件上传器（不使用HITL时显示） -->
             <DocumentUploader
+              v-if="!useHitlTender"
               v-model="form.tenderFiles"
               :http-request="handleTenderUpload"
               accept=".pdf,.doc,.docx"
@@ -139,6 +210,21 @@
             >
               下载Word文档
             </el-button>
+
+            <!-- 同步状态显示 -->
+            <el-button
+              v-if="!synced"
+              type="info"
+              :icon="Upload"
+              :loading="syncing"
+              @click="handleSyncToHitl"
+            >
+              同步到投标项目
+            </el-button>
+            <el-tag v-else type="success" size="large">
+              已同步到投标项目
+            </el-tag>
+
             <el-button
               type="primary"
               :icon="RefreshRight"
@@ -162,31 +248,10 @@
         />
 
         <!-- 处理统计 -->
-        <div class="stats-section">
-          <h4>处理统计</h4>
-          <el-row :gutter="20">
-            <el-col :span="6">
-              <el-statistic title="文本替换" :value="generationResult.stats.total_replacements || 0">
-                <template #suffix>处</template>
-              </el-statistic>
-            </el-col>
-            <el-col :span="6">
-              <el-statistic title="表格处理" :value="generationResult.stats.tables_processed || 0">
-                <template #suffix>个</template>
-              </el-statistic>
-            </el-col>
-            <el-col :span="6">
-              <el-statistic title="单元格填充" :value="generationResult.stats.cells_filled || 0">
-                <template #suffix>个</template>
-              </el-statistic>
-            </el-col>
-            <el-col :span="6">
-              <el-statistic title="图片插入" :value="generationResult.stats.images_inserted || 0">
-                <template #suffix>张</template>
-              </el-statistic>
-            </el-col>
-          </el-row>
-        </div>
+        <StatsCard
+          title="处理统计"
+          :stats="generationResult.stats"
+        />
 
         <!-- 文件信息 -->
         <div class="file-info-section">
@@ -218,14 +283,62 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
-import { Download, RefreshRight, Document, View } from '@element-plus/icons-vue'
-import { DocumentUploader, SSEStreamViewer, DocumentPreview } from '@/components'
+import { Download, RefreshRight, Document, View, Upload } from '@element-plus/icons-vue'
+import { DocumentUploader, SSEStreamViewer, DocumentPreview, StatsCard, HitlFileAlert } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import { businessLegacyApi } from '@/api/endpoints/business'
+import { companyApi } from '@/api/endpoints/company'
 import { useProjectStore } from '@/stores/project'
-import type { Project, UploadUserFile } from '@/types'
+import { useProjectDocuments, useHitlIntegration } from '@/composables'
+import { downloadFile } from '@/utils/helpers'
+import type { Project, UploadUserFile, Company } from '@/types'
 
 const projectStore = useProjectStore()
+
+// ============================================
+// 使用 useProjectDocuments Composable
+// ============================================
+const {
+  projects,
+  selectedProject,
+  currentDocuments,
+  loadProjects,
+  handleProjectChange: handleProjectChangeComposable,
+  restoreProjectFromStore
+} = useProjectDocuments()
+
+// ============================================
+// 使用 useHitlIntegration Composable
+// ============================================
+
+// HITL集成 - 商务应答模板
+const {
+  useHitlFile: useHitlTemplate,
+  hitlFileInfo: hitlTemplateInfo,
+  syncing,
+  synced,
+  loadFromHITL: loadTemplateFromHITL,
+  cancelHitlFile: cancelHitlTemplate,
+  syncToHitl
+} = useHitlIntegration({
+  onFileLoaded: () => {
+    // 清空上传的文件
+    form.value.templateFiles = []
+  }
+})
+
+// HITL集成 - 招标文档（第二个实例）
+const {
+  useHitlFile: useHitlTender,
+  hitlFileInfo: hitlTenderInfo,
+  loadFromHITL: loadTenderFromHITL,
+  cancelHitlFile: cancelHitlTender
+} = useHitlIntegration({
+  onFileLoaded: () => {
+    // 清空上传的文件
+    form.value.tenderFiles = []
+  }
+})
 
 interface GenerationResult {
   success: boolean
@@ -244,19 +357,22 @@ interface GenerationResult {
 // 表单数据
 const form = ref({
   projectId: null as number | null,
+  companyId: null as number | null,  // 新建项目：公司ID
+  projectName: '新项目',                // 新建项目：项目名称
+  projectNumber: `PRJ-${Date.now()}`,  // 新建项目：项目编号
   tenderFiles: [] as UploadUserFile[],
   templateFiles: [] as UploadUserFile[]
 })
 
-// 项目列表
-const projects = ref<Project[]>([])
-const selectedProject = computed(() =>
-  projects.value.find(p => p.id === form.value.projectId)
+// 公司列表（项目列表由 Composable 提供）
+const companies = ref<Company[]>([])
+const selectedCompany = computed(() =>
+  companies.value.find(c => c.company_id === form.value.companyId)
 )
 
 // 能否开始生成
 const canGenerate = computed(() =>
-  form.value.projectId && form.value.templateFiles.length > 0
+  form.value.projectId && (form.value.templateFiles.length > 0 || useHitlTemplate.value)
 )
 
 // 生成状态
@@ -272,24 +388,44 @@ const previewVisible = ref(false)
 const handleTemplateUpload = async (options: UploadRequestOptions) => {
   const { file, onSuccess, onError } = options
 
-  if (!form.value.projectId) {
-    const error = new Error('请先选择项目')
-    onError(error)
-    ElMessage.error('请先选择项目')
-    return
-  }
-
-  if (!selectedProject.value?.company_id) {
-    const error = new Error('项目没有关联公司')
-    onError(error)
-    ElMessage.error('项目没有关联公司')
-    return
-  }
-
   try {
+    // 【关键】如果未选择项目，先创建项目
+    if (!form.value.projectId) {
+      if (!form.value.companyId) {
+        throw new Error('请先选择公司')
+      }
+
+      ElMessage.info('正在创建新项目...')
+
+      // 创建新项目
+      const createResponse = await tenderApi.createProject({
+        company_id: form.value.companyId,
+        project_name: form.value.projectName || '新项目',
+        project_number: form.value.projectNumber || `PRJ-${Date.now()}`
+      })
+
+      // 获取新项目ID
+      form.value.projectId = createResponse.project_id
+
+      // 刷新项目列表
+      await loadProjects()
+
+      ElMessage.success('新项目已创建')
+
+      // 触发项目切换逻辑（更新UI）
+      await handleProjectChange()
+    }
+
+    // 获取公司ID（现在一定有项目了）
+    const companyId = selectedProject.value?.company_id
+    if (!companyId) {
+      throw new Error('项目没有关联公司')
+    }
+
+    // 上传文件
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('company_id', selectedProject.value.company_id.toString())
+    formData.append('company_id', companyId.toString())
     formData.append('project_id', form.value.projectId.toString())
 
     const response = await tenderApi.parseDocumentStructure(formData)
@@ -310,24 +446,44 @@ const handleTemplateUpload = async (options: UploadRequestOptions) => {
 const handleTenderUpload = async (options: UploadRequestOptions) => {
   const { file, onSuccess, onError } = options
 
-  if (!form.value.projectId) {
-    const error = new Error('请先选择项目')
-    onError(error)
-    ElMessage.error('请先选择项目')
-    return
-  }
-
-  if (!selectedProject.value?.company_id) {
-    const error = new Error('项目没有关联公司')
-    onError(error)
-    ElMessage.error('项目没有关联公司')
-    return
-  }
-
   try {
+    // 【关键】如果未选择项目，先创建项目
+    if (!form.value.projectId) {
+      if (!form.value.companyId) {
+        throw new Error('请先选择公司')
+      }
+
+      ElMessage.info('正在创建新项目...')
+
+      // 创建新项目
+      const createResponse = await tenderApi.createProject({
+        company_id: form.value.companyId,
+        project_name: form.value.projectName || '新项目',
+        project_number: form.value.projectNumber || `PRJ-${Date.now()}`
+      })
+
+      // 获取新项目ID
+      form.value.projectId = createResponse.project_id
+
+      // 刷新项目列表
+      await loadProjects()
+
+      ElMessage.success('新项目已创建')
+
+      // 触发项目切换逻辑（更新UI）
+      await handleProjectChange()
+    }
+
+    // 获取公司ID（现在一定有项目了）
+    const companyId = selectedProject.value?.company_id
+    if (!companyId) {
+      throw new Error('项目没有关联公司')
+    }
+
+    // 上传文件
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('company_id', selectedProject.value.company_id.toString())
+    formData.append('company_id', companyId.toString())
     formData.append('project_id', form.value.projectId.toString())
 
     const response = await tenderApi.parseDocumentStructure(formData)
@@ -344,192 +500,62 @@ const handleTenderUpload = async (options: UploadRequestOptions) => {
   }
 }
 
-// 加载项目列表
-const loadProjects = async () => {
+// 加载公司列表
+const loadCompanies = async () => {
   try {
-    const response = await tenderApi.getProjects({ page: 1, page_size: 100 })
-    projects.value = response.data?.items || []
+    const response = await companyApi.getCompanies()
+    companies.value = response.data || []
   } catch (error) {
-    console.error('加载项目列表失败:', error)
-    ElMessage.error('加载项目列表失败')
+    console.error('加载公司列表失败:', error)
+    ElMessage.error('加载公司列表失败')
   }
 }
 
-// 项目切换
+// 项目切换（使用 Composable + 页面特定逻辑）
 const handleProjectChange = async () => {
-  // 清空结果但保留文件列表，准备加载已上传的文件
-  generationResult.value = null
-  streamContent.value = ''
-
-  // 获取选中的项目并保存到 Pinia Store
-  if (form.value.projectId) {
-    const project = projects.value.find(p => p.id === form.value.projectId)
-    if (project) {
-      // 将选中的项目保存到 Store，实现跨页面状态共享
-      projectStore.setCurrentProject(project as any)
-    }
-
-    // 加载项目已上传的文档
-    await loadProjectDocuments(form.value.projectId)
-  }
-}
-
-// 加载项目文档（从项目详情的 step1_data 中提取）
-const loadProjectDocuments = async (projectId: number) => {
-  try {
-    // 获取项目详情，其中包含 step1_data
-    const response = await tenderApi.getProject(projectId)
-    const projectData = response.data
-
-    // ✅ 添加调试日志
-    console.log('=== 项目数据调试 ===')
-    console.log('完整项目数据:', projectData)
-    console.log('step1_data:', projectData?.step1_data)
-    console.log('business_response_file:', projectData?.step1_data?.business_response_file)
-
-    // 清空文件列表
-    form.value.tenderFiles = []
-    form.value.templateFiles = []
-
-    if (!projectData) {
-      console.log('❌ projectData 为空')
-      return
-    }
-
-    let loadedCount = 0
-
-    // 提取招标文档：优先从 step1_data.file_path 读取（HITL任务中的标书）
-    let tenderFileLoaded = false
-    if (projectData.step1_data && projectData.step1_data.file_path) {
-      const step1Data = projectData.step1_data
-      form.value.tenderFiles.push({
-        name: step1Data.file_name || step1Data.original_filename || '招标文档',
-        url: step1Data.file_path,
-        status: 'success',
-        uid: Date.now() + Math.random(),
-        size: step1Data.file_size || 0
-      })
-      loadedCount++
-      tenderFileLoaded = true
-    }
-
-    // 如果 step1_data 中没有，再从 tender_document_path 读取（项目级别的标书）
-    if (!tenderFileLoaded && projectData.tender_document_path) {
-      form.value.tenderFiles.push({
-        name: projectData.original_filename || '招标文档',
-        url: projectData.tender_document_path,
-        status: 'success',
-        uid: Date.now() + Math.random()
-      })
-      loadedCount++
-    }
-
-    // 从 step1_data 提取应答模板
-    if (projectData.step1_data) {
-      const step1Data = projectData.step1_data
-
-      // 应答文件模板（商务应答模板）
-      if (step1Data.response_file_path) {
-        form.value.templateFiles.push({
-          name: step1Data.response_filename || '商务应答模板',
-          url: step1Data.response_file_path,
-          status: 'success',
-          uid: Date.now() + Math.random(),
-          size: step1Data.response_file_size || 0
-        })
-        loadedCount++
+  await handleProjectChangeComposable(form.value.projectId, {
+    // 清空回调：清空页面特定状态
+    onClear: () => {
+      generationResult.value = null
+      streamContent.value = ''
+      form.value.tenderFiles = []
+      form.value.templateFiles = []
+      // 取消使用HITL文件
+      if (useHitlTemplate.value) {
+        cancelHitlTemplate()
       }
-    }
-
-    // 提取已完成的商务应答文件
-    if (projectData.step1_data?.business_response_file) {
-      console.log('✅ 找到商务应答文件（从数据库），设置generationResult')
-      const businessFile = projectData.step1_data.business_response_file
-      console.log('商务应答文件信息:', businessFile)
-
-      // 从file_path提取文件名
-      const fileName = businessFile.file_path.split('/').pop()
-
-      // 自动设置 generationResult，显示结果界面
-      generationResult.value = {
-        success: true,
-        outputFile: businessFile.file_path || '',
-        downloadUrl: `/download/${fileName}`,  // ✅ 使用下载URL
-        stats: {},
-        message: '该项目已有商务应答文件',
-        isHistory: true  // 标记为历史记录
+      if (useHitlTender.value) {
+        cancelHitlTender()
+      }
+    },
+    // 文档加载完成回调：同步到页面状态
+    onDocumentsLoaded: (docs) => {
+      // 从HITL加载招标文档
+      if (docs.tenderFile) {
+        loadTenderFromHITL(docs, 'tenderFile')
       }
 
-      loadedCount++
-      console.log('generationResult 已设置:', generationResult.value)
-    } else {
-      console.log('⚠️  数据库中未找到 business_response_file，尝试从文件系统查找...')
-      console.log('- step1_data 存在?', !!projectData.step1_data)
-      console.log('- business_response_file 存在?', !!projectData.step1_data?.business_response_file)
+      // 从HITL加载应答模板
+      if (docs.templateFile) {
+        loadTemplateFromHITL(docs, 'templateFile')
+      }
 
-      // 尝试从文件系统查找历史商务应答文件
-      await loadHistoryBusinessResponseFile(projectData.project_name)
+      // 同步历史商务应答文件
+      if (docs.businessResponseFile) {
+        generationResult.value = docs.businessResponseFile
+      }
     }
+  })
 
-    if (loadedCount > 0) {
-      ElMessage.success(`已加载 ${loadedCount} 个文件`)
-    }
-  } catch (error) {
-    console.error('❌ 加载项目文档失败:', error)
-    console.error('错误详情:', error)
-    // 加载失败时清空文件列表
-    form.value.tenderFiles = []
-    form.value.templateFiles = []
+  // 【新建项目模式】重置项目编号
+  if (!form.value.projectId) {
+    form.value.projectNumber = `PRJ-${Date.now()}`
   }
 }
 
 // 招标文档上传成功
 const handleTenderUploadSuccess = () => {
   ElMessage.success('招标文档上传成功')
-}
-
-// 从文件系统查找历史商务应答文件（用于没有database记录的老项目）
-const loadHistoryBusinessResponseFile = async (projectName: string) => {
-  try {
-    console.log('尝试从文件系统查找项目商务应答文件:', projectName)
-
-    // 调用后端API获取所有商务应答文件
-    const response = await fetch('/api/business-files')
-    const result = await response.json()
-
-    if (!result.success || !result.files || result.files.length === 0) {
-      console.log('❌ 文件系统中没有找到商务应答文件')
-      return
-    }
-
-    console.log('文件系统中的商务应答文件列表:', result.files)
-
-    // 查找匹配项目名称的文件（模糊匹配）
-    const matchedFile = result.files.find((file: any) =>
-      file.name.includes(projectName) || file.name.includes('商务应答')
-    )
-
-    if (matchedFile) {
-      console.log('✅ 找到匹配的历史商务应答文件:', matchedFile.name)
-
-      // 设置 generationResult，显示历史文件卡片
-      generationResult.value = {
-        success: true,
-        outputFile: matchedFile.name,
-        downloadUrl: matchedFile.download_url,
-        stats: {},
-        message: `找到历史商务应答文件（${matchedFile.date}）`,
-        isHistory: true
-      }
-
-      console.log('generationResult 已设置（从文件系统）:', generationResult.value)
-      ElMessage.success('已加载历史商务应答文件')
-    } else {
-      console.log('❌ 未找到匹配的商务应答文件')
-    }
-  } catch (error) {
-    console.error('查找历史商务应答文件失败:', error)
-  }
 }
 
 // 模板上传成功
@@ -544,10 +570,7 @@ const startGeneration = async () => {
     return
   }
 
-  if (form.value.templateFiles.length === 0) {
-    ElMessage.warning('请先上传商务应答模板')
-    return
-  }
+  // 模板检查已通过canGenerate控制，此处不重复检查
 
   generating.value = true
   generationProgress.value = 0
@@ -608,6 +631,15 @@ const startGeneration = async () => {
       }
 
       ElMessage.success('商务应答生成完成！')
+
+      // 自动同步到HITL项目
+      if (result.output_file && form.value.projectId) {
+        await syncToHitl(
+          form.value.projectId,
+          result.output_file,
+          'business_response'
+        )
+      }
     } else {
       throw new Error(result.message || result.error || '处理失败')
     }
@@ -644,7 +676,7 @@ const previewDocument = () => {
   previewVisible.value = true
 }
 
-// 下载文档（下载后端生成的真实Word文档）
+// 下载文档（使用公用函数）
 const downloadDocument = () => {
   if (!generationResult.value) {
     ElMessage.warning('暂无文档可下载')
@@ -652,20 +684,11 @@ const downloadDocument = () => {
   }
 
   try {
-    // 使用后端返回的下载地址
-    const downloadUrl = generationResult.value.downloadUrl
+    const url = generationResult.value.downloadUrl
+    const filename = `商务应答-${selectedProject.value?.project_name || '文档'}-${Date.now()}.docx`
 
-    // 生成文件名
-    const fileName = `商务应答-${selectedProject.value?.project_name || '文档'}-${Date.now()}.docx`
-
-    // 创建下载链接
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = fileName
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    // 使用公用下载函数
+    downloadFile(url, filename)
 
     ElMessage.success('Word文档下载成功')
   } catch (error) {
@@ -674,19 +697,69 @@ const downloadDocument = () => {
   }
 }
 
+// 手动同步到HITL
+const handleSyncToHitl = async () => {
+  if (!generationResult.value?.outputFile) {
+    ElMessage.warning('没有可同步的文件')
+    return
+  }
+
+  if (!form.value.projectId) {
+    ElMessage.error('项目ID无效')
+    return
+  }
+
+  await syncToHitl(
+    form.value.projectId,
+    generationResult.value.outputFile,
+    'business_response'
+  )
+}
+
 onMounted(async () => {
-  // 加载项目列表
-  await loadProjects()
+  // 并行加载项目列表和公司列表
+  await Promise.all([
+    loadProjects(),
+    loadCompanies()
+  ])
 
-  // 检查 Pinia Store 中是否有当前项目
-  if (projectStore.currentProject && projectStore.currentProject.id) {
-    // 自动选中从其他页面跳转过来时设置的项目
-    form.value.projectId = projectStore.currentProject.id
+  // 从Store恢复项目（如果是从HITL页面跳转过来）
+  const restoredProjectId = await restoreProjectFromStore({
+    onClear: () => {
+      generationResult.value = null
+      streamContent.value = ''
+      form.value.tenderFiles = []
+      form.value.templateFiles = []
+      // 取消使用HITL文件
+      if (useHitlTemplate.value) {
+        cancelHitlTemplate()
+      }
+      if (useHitlTender.value) {
+        cancelHitlTender()
+      }
+    },
+    onDocumentsLoaded: (docs) => {
+      // 从HITL加载招标文档
+      if (docs.tenderFile) {
+        loadTenderFromHITL(docs, 'tenderFile')
+      }
 
-    // 触发项目切换逻辑，加载项目文档
-    await handleProjectChange()
+      // 从HITL加载应答模板
+      if (docs.templateFile) {
+        loadTemplateFromHITL(docs, 'templateFile')
+      }
 
-    console.log('已自动选中项目:', projectStore.currentProject.name)
+      // 同步历史商务应答文件
+      if (docs.businessResponseFile) {
+        generationResult.value = docs.businessResponseFile
+      }
+    }
+  })
+
+  // 如果成功恢复项目，同步到表单
+  if (restoredProjectId) {
+    form.value.projectId = restoredProjectId
+    console.log('✅ 已从Store恢复项目:', restoredProjectId)
   }
 })
 </script>
@@ -745,7 +818,6 @@ onMounted(async () => {
   }
 
   .result-content {
-    .stats-section,
     .file-info-section {
       margin-bottom: 24px;
 
@@ -755,15 +827,7 @@ onMounted(async () => {
         font-weight: 600;
         color: var(--el-text-color-primary);
       }
-    }
 
-    .stats-section {
-      padding: 20px;
-      background: var(--el-fill-color-light);
-      border-radius: 4px;
-    }
-
-    .file-info-section {
       :deep(.el-descriptions__label) {
         font-weight: 600;
       }

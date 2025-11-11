@@ -252,6 +252,10 @@ export const tenderApi = {
     tender_location?: string
     tender_deadline?: string
     winner_count?: number
+    tenderer_contact_person?: string
+    tenderer_contact_method?: string
+    agency_contact_person?: string
+    agency_contact_method?: string
   }>> {
     return apiClient.post(`/tender-processing/extract-basic-info/${projectId}`, {})
   },

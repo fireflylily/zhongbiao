@@ -56,6 +56,9 @@
       class="sidebar-overlay"
       @click="toggleSidebar"
     />
+
+    <!-- 标书预览悬浮按钮 -->
+    <TenderDocumentFloatingButton />
   </div>
 </template>
 
@@ -68,6 +71,7 @@ import Sidebar from './components/Sidebar.vue'
 import Breadcrumb from './components/Breadcrumb.vue'
 import TabsView from './components/TabsView.vue'
 import Footer from './components/Footer.vue'
+import TenderDocumentFloatingButton from '@/components/TenderDocumentFloatingButton.vue'
 
 // ==================== State ====================
 

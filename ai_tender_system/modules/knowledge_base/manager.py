@@ -1088,6 +1088,7 @@ class KnowledgeBaseManager:
                 'filename': file_metadata.safe_name,
                 'original_filename': file_metadata.original_name,
                 'file_id': file_metadata.file_id,
+                'file_path': file_metadata.file_path,  # 添加文件路径（PDF转换需要）
                 'file_version': file_version,
                 'file_sequence': file_sequence,
                 'message': f"资质文件 '{original_filename}' 上传成功"

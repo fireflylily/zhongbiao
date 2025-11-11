@@ -50,11 +50,15 @@ class TableProcessor:
             '投标报价': 'bidPrice',
             '交货期': 'deliveryTime',
             '质保期': 'warrantyPeriod',
-            # 股权结构字段（2025-10-27添加）
+            # 股权结构字段（2025-10-27添加，2025-11-09增强）
             '实际控制人': 'actual_controller',
             '控股股东': 'controlling_shareholder',
+            '控股股东及出资比例': 'controlling_shareholder',
+            '供应商的控股股东/投资人名称及出资比例': 'controlling_shareholder',  # 🆕 支持长字段名
             '股东': 'shareholders_info',
             '股东信息': 'shareholders_info',  # 支持变体
+            '供应商的非控股股东/投资人名称及出资比例': 'shareholders_info',  # 🆕 支持长字段名
+            '投资人名称及出资比例': 'shareholders_info',  # 🆕 支持简化名
             # 管理关系字段（2025-10-28添加）
             '管理关系单位': 'managing_unit_name',
             '管理关系单位名称': 'managing_unit_name',  # 支持变体
@@ -224,6 +228,15 @@ class TableProcessor:
                     if value and (field_key in ['date', 'establishDate'] or '日期' in field_name):
                         value = self._format_date(str(value))
 
+                    # 🆕 格式化股东信息JSON
+                    if value and field_key == 'shareholders_info':
+                        value = self._format_shareholders_info(value)
+
+                    # 🔧 修复：跳过"无"、"/" 等占位值
+                    if value and str(value).strip() in ['无', '/', '-', 'N/A', 'NA']:
+                        self.logger.debug(f"  跳过占位值字段: {field_name} = '{value}'")
+                        continue
+
                     if value and self._should_fill_cell(value_cell):
                         self._fill_cell(value_cell, str(value))
                         result['cells_filled'] += 1
@@ -251,12 +264,22 @@ class TableProcessor:
         for col_idx, cell in enumerate(header_row.cells):
             # 规范化表头文本（移除空格等）
             header_text = self._normalize_field_name(cell.text)
-            for field_name, field_key in self.table_field_mapping.items():
+
+            # 🔧 修复：使用精确匹配而不是包含匹配，避免"管理关系单位"匹配到"管理关系单位名称"
+            # 方法：先按字段名长度降序排序，优先匹配更长的字段名
+            sorted_fields = sorted(
+                self.table_field_mapping.items(),
+                key=lambda x: len(self._normalize_field_name(x[0])),
+                reverse=True  # 从长到短排序
+            )
+
+            for field_name, field_key in sorted_fields:
                 # 规范化映射表中的字段名进行匹配
                 normalized_field = self._normalize_field_name(field_name)
-                if normalized_field in header_text:
+                # 使用精确匹配
+                if normalized_field == header_text:
                     column_mapping[col_idx] = field_key
-                    self.logger.debug(f"  表头列{col_idx}识别为: {field_name} -> {field_key}")
+                    self.logger.debug(f"  表头列{col_idx}识别为: {field_name} -> {field_key} (精确匹配)")
                     break
 
         self.logger.debug(f"  表头分析完成，识别到{len(column_mapping)}个字段列")
@@ -271,6 +294,15 @@ class TableProcessor:
                     # 新增：日期字段格式化
                     if value and field_key in ['date', 'establishDate']:
                         value = self._format_date(str(value))
+
+                    # 🆕 格式化股东信息JSON
+                    if value and field_key == 'shareholders_info':
+                        value = self._format_shareholders_info(value)
+
+                    # 🔧 修复：跳过"无"、"/" 等占位值
+                    if value and str(value).strip() in ['无', '/', '-', 'N/A', 'NA']:
+                        self.logger.debug(f"  跳过占位值字段: 行{row_idx}列{col_idx} {field_key} = '{value}'")
+                        continue
 
                     if value and self._should_fill_cell(row.cells[col_idx]):
                         self._fill_cell(row.cells[col_idx], str(value))
@@ -479,3 +511,56 @@ class TableProcessor:
             return date_str
 
         return date_str
+
+    def _format_shareholders_info(self, shareholders_json: str) -> str:
+        """
+        格式化股东信息JSON为可读文本
+
+        输入示例：
+        [
+            {"name": "股东A", "type": "企业", "ratio": "30%"},
+            {"name": "股东B", "type": "自然人", "ratio": "20%"}
+        ]
+
+        输出示例：
+        股东A（企业，30%）、股东B（自然人，20%）
+
+        Args:
+            shareholders_json: 股东信息JSON字符串
+
+        Returns:
+            格式化后的股东信息文本
+        """
+        try:
+            import json
+
+            # 解析JSON
+            if isinstance(shareholders_json, str):
+                shareholders = json.loads(shareholders_json)
+            else:
+                shareholders = shareholders_json
+
+            if not shareholders or not isinstance(shareholders, list):
+                return ''
+
+            # 格式化每个股东信息
+            formatted_list = []
+            for shareholder in shareholders:
+                name = shareholder.get('name', '')
+                shareholder_type = shareholder.get('type', '')
+                ratio = shareholder.get('ratio', '')
+
+                # 格式：股东名称（类型，出资比例）
+                if shareholder_type and ratio:
+                    formatted_list.append(f"{name}（{shareholder_type}，{ratio}）")
+                elif ratio:
+                    formatted_list.append(f"{name}（{ratio}）")
+                else:
+                    formatted_list.append(name)
+
+            # 用顿号连接
+            return '、'.join(formatted_list)
+
+        except Exception as e:
+            self.logger.error(f"格式化股东信息失败: {e}")
+            return str(shareholders_json)

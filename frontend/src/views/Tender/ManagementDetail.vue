@@ -34,7 +34,6 @@
         :project-detail="projectDetail"
         @success="handleProcessSuccess"
         @refresh="loadProjectDetail"
-        @task-id-update="handleTaskIdUpdate"
         @preview="handlePreview"
       />
 
@@ -94,16 +93,6 @@
                         <el-input v-model="formData.authorized_person_id" placeholder="请输入身份证号" />
                       </el-form-item>
                     </el-col>
-                    <el-col :span="24">
-                      <el-form-item label="项目描述">
-                        <el-input
-                          v-model="formData.description"
-                          type="textarea"
-                          :rows="4"
-                          placeholder="请输入项目描述"
-                        />
-                      </el-form-item>
-                    </el-col>
                   </el-row>
                 </el-form>
 
@@ -136,12 +125,17 @@
               <!-- 招标信息 -->
               <section class="info-section">
                 <div class="section-header">
-                  <h3><i class="bi bi-megaphone"></i> 招标信息</h3>
+                  <h3>
+                    <i class="bi bi-megaphone"></i> 招标信息
+                    <el-tag v-if="hasUnsavedChanges && isEditing" type="warning" size="small" style="margin-left: 10px;">
+                      <i class="bi bi-exclamation-triangle-fill"></i> 有未保存的更改
+                    </el-tag>
+                  </h3>
                   <el-button
                     size="small"
                     type="primary"
                     :loading="extractingBasicInfo"
-                    :disabled="!latestTaskId"
+                    :disabled="!projectId || extractingBasicInfo"
                     @click="handleExtractBasicInfo"
                   >
                     <i v-if="!extractingBasicInfo" class="bi bi-magic me-1"></i>
@@ -154,12 +148,27 @@
                   <el-row :gutter="20">
                     <el-col :span="12">
                       <el-form-item label="招标单位">
-                        <el-input v-model="formData.tender_unit" placeholder="请输入招标单位" />
+                        <el-input v-model="formData.tenderer" placeholder="请输入招标单位" />
                       </el-form-item>
                     </el-col>
                     <el-col :span="12">
                       <el-form-item label="招标代理">
-                        <el-input v-model="formData.tender_agency" placeholder="请输入招标代理" />
+                        <el-input v-model="formData.agency" placeholder="请输入招标代理" />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="招标方式">
+                        <el-input v-model="formData.bidding_method" placeholder="请输入招标方式" />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="开标地点">
+                        <el-input v-model="formData.bidding_location" placeholder="请输入开标地点" />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="开标时间">
+                        <el-input v-model="formData.bidding_time" placeholder="请输入开标时间" />
                       </el-form-item>
                     </el-col>
                     <el-col :span="12">
@@ -174,43 +183,23 @@
                       </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                      <el-form-item label="项目类型">
-                        <el-input v-model="formData.project_type" placeholder="请输入项目类型" />
+                      <el-form-item label="招标方联系人">
+                        <el-input v-model="formData.tenderer_contact_person" placeholder="请输入招标方联系人" />
                       </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                      <el-form-item label="报名截止时间">
-                        <el-date-picker
-                          v-model="formData.registration_deadline"
-                          type="datetime"
-                          placeholder="选择报名截止时间"
-                          style="width: 100%"
-                        />
+                      <el-form-item label="招标方联系电话">
+                        <el-input v-model="formData.tenderer_contact_method" placeholder="请输入招标方联系电话" />
                       </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                      <el-form-item label="投标截止时间">
-                        <el-date-picker
-                          v-model="formData.bid_deadline"
-                          type="datetime"
-                          placeholder="选择投标截止时间"
-                          style="width: 100%"
-                        />
+                      <el-form-item label="代理机构联系人">
+                        <el-input v-model="formData.agency_contact_person" placeholder="请输入代理机构联系人" />
                       </el-form-item>
                     </el-col>
                     <el-col :span="12">
-                      <el-form-item label="开标时间">
-                        <el-date-picker
-                          v-model="formData.bid_opening_time"
-                          type="datetime"
-                          placeholder="选择开标时间"
-                          style="width: 100%"
-                        />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="开标地点">
-                        <el-input v-model="formData.bid_opening_location" placeholder="请输入开标地点" />
+                      <el-form-item label="代理机构联系电话">
+                        <el-input v-model="formData.agency_contact_method" placeholder="请输入代理机构联系电话" />
                       </el-form-item>
                     </el-col>
                   </el-row>
@@ -219,10 +208,19 @@
                 <!-- 查看模式 -->
                 <el-descriptions v-else :column="2" border size="large">
                   <el-descriptions-item label="招标单位">
-                    {{ projectDetail.tender_unit || '-' }}
+                    {{ projectDetail.tenderer || '-' }}
                   </el-descriptions-item>
                   <el-descriptions-item label="招标代理">
-                    {{ projectDetail.tender_agency || '-' }}
+                    {{ projectDetail.agency || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="招标方式">
+                    {{ projectDetail.bidding_method || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="开标地点">
+                    {{ projectDetail.bidding_location || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="开标时间">
+                    {{ projectDetail.bidding_time || '-' }}
                   </el-descriptions-item>
                   <el-descriptions-item label="预算金额">
                     <span v-if="projectDetail.budget_amount" class="amount">
@@ -230,97 +228,17 @@
                     </span>
                     <span v-else>-</span>
                   </el-descriptions-item>
-                  <el-descriptions-item label="项目类型">
-                    {{ projectDetail.project_type || '-' }}
+                  <el-descriptions-item label="招标方联系人">
+                    {{ projectDetail.tenderer_contact_person || '-' }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="报名截止时间">
-                    <span v-if="projectDetail.registration_deadline" class="deadline">
-                      <i class="bi bi-calendar-event"></i>
-                      {{ projectDetail.registration_deadline }}
-                    </span>
-                    <span v-else>-</span>
+                  <el-descriptions-item label="招标方联系电话">
+                    {{ projectDetail.tenderer_contact_method || '-' }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="投标截止时间">
-                    <span v-if="projectDetail.bid_deadline" class="deadline">
-                      <i class="bi bi-calendar-event"></i>
-                      {{ projectDetail.bid_deadline }}
-                    </span>
-                    <span v-else>-</span>
+                  <el-descriptions-item label="代理机构联系人">
+                    {{ projectDetail.agency_contact_person || '-' }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="开标时间">
-                    <span v-if="projectDetail.bid_opening_time" class="deadline">
-                      <i class="bi bi-calendar-event"></i>
-                      {{ projectDetail.bid_opening_time }}
-                    </span>
-                    <span v-else>-</span>
-                  </el-descriptions-item>
-                  <el-descriptions-item label="开标地点">
-                    {{ projectDetail.bid_opening_location || '-' }}
-                  </el-descriptions-item>
-                </el-descriptions>
-              </section>
-
-              <!-- 联系人信息 -->
-              <section class="info-section">
-                <div class="section-header">
-                  <h3><i class="bi bi-person-lines-fill"></i> 联系人信息</h3>
-                </div>
-
-                <!-- 编辑模式 -->
-                <el-form v-if="isEditing" :model="formData" label-width="120px" class="edit-form">
-                  <el-row :gutter="20">
-                    <el-col :span="12">
-                      <el-form-item label="项目经理">
-                        <el-input v-model="formData.project_manager_name" placeholder="请输入项目经理姓名" />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="联系电话">
-                        <el-input v-model="formData.project_manager_phone" placeholder="请输入联系电话" />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="技术负责人">
-                        <el-input v-model="formData.tech_lead_name" placeholder="请输入技术负责人姓名" />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="联系电话">
-                        <el-input v-model="formData.tech_lead_phone" placeholder="请输入联系电话" />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="商务联系人">
-                        <el-input v-model="formData.business_contact_name" placeholder="请输入商务联系人姓名" />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="联系电话">
-                        <el-input v-model="formData.business_contact_phone" placeholder="请输入联系电话" />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
-                </el-form>
-
-                <!-- 查看模式 -->
-                <el-descriptions v-else :column="2" border size="large">
-                  <el-descriptions-item label="项目经理">
-                    {{ projectDetail.project_manager_name || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="联系电话">
-                    {{ projectDetail.project_manager_phone || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="技术负责人">
-                    {{ projectDetail.tech_lead_name || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="联系电话">
-                    {{ projectDetail.tech_lead_phone || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="商务联系人">
-                    {{ projectDetail.business_contact_name || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="联系电话">
-                    {{ projectDetail.business_contact_phone || '-' }}
+                  <el-descriptions-item label="代理机构联系电话">
+                    {{ projectDetail.agency_contact_method || '-' }}
                   </el-descriptions-item>
                 </el-descriptions>
               </section>
@@ -344,7 +262,7 @@
                     size="small"
                     type="primary"
                     :loading="extractingQualifications"
-                    :disabled="!latestTaskId"
+                    :disabled="!projectId || extractingQualifications"
                     @click="handleExtractQualifications"
                   >
                     <i v-if="!extractingQualifications" class="bi bi-magic me-1"></i>
@@ -778,11 +696,11 @@ const isEditing = ref(false)
 const projectDetail = ref<ProjectDetail | null>(null)
 const activeTab = ref('basic') // 默认显示基本信息
 const companies = ref<any[]>([]) // 公司列表
-const latestTaskId = ref<string | null>(null) // 最新的文档解析task_id
 const extractingBasicInfo = ref(false) // AI提取基本信息loading状态
 const extractingQualifications = ref(false) // AI提取资格要求loading状态
 const projectDocuments = ref<any[]>([]) // 项目文档列表
 const parsedChapters = ref<any[]>([]) // 已解析的章节
+const hasUnsavedChanges = ref(false) // 标记是否有未保存的更改
 
 // 预览相关状态
 const previewVisible = ref(false)
@@ -794,21 +712,18 @@ const formData = reactive({
   name: '',
   number: '',
   company_id: null as number | null,
-  description: '',
-  tender_unit: '',
-  tender_agency: '',
+  tenderer: '',
+  agency: '',
+  bidding_method: '',
+  bidding_location: '',
+  bidding_time: '',
   budget_amount: null as number | null,
-  project_type: '',
-  registration_deadline: '',
-  bid_deadline: '',
-  bid_opening_time: '',
-  bid_opening_location: '',
-  project_manager_name: '',
-  project_manager_phone: '',
-  tech_lead_name: '',
-  tech_lead_phone: '',
   business_contact_name: '',
   business_contact_phone: '',
+  tenderer_contact_person: '',  // 招标方联系人
+  tenderer_contact_method: '',  // 招标方联系方式
+  agency_contact_person: '',  // 代理机构联系人
+  agency_contact_method: '',  // 代理机构联系方式
   authorized_person_name: '',
   authorized_person_id: ''
 })
@@ -860,7 +775,7 @@ const getFileInfo = (fileData: any) => {
     }
   }
   return {
-    fileUrl: fileData.file_url || fileData.file_path || '',
+    fileUrl: fileData.file_url || fileData.download_url || fileData.file_path || '',  // 优先使用file_url和download_url
     fileName: fileData.filename || fileData.file_name,
     fileSize: fileData.file_size
   }
@@ -1048,23 +963,19 @@ const loadProjectDetail = async () => {
       authorized_person_name: rawData.authorized_person_name,
       authorized_person_id: rawData.authorized_person_id,
       // 招标信息
-      tender_unit: rawData.tender_unit,
-      tender_agency: rawData.tender_agency,
+      tenderer: rawData.tenderer,
+      agency: rawData.agency,
+      bidding_method: rawData.bidding_method,
+      bidding_location: rawData.bidding_location,
+      bidding_time: rawData.bidding_time,
       budget_amount: rawData.budget_amount,
-      project_type: rawData.project_type,
-      registration_deadline: rawData.registration_deadline,
-      bid_deadline: rawData.bid_deadline,
-      bid_opening_time: rawData.bid_opening_time,
-      bid_opening_location: rawData.bid_opening_location,
       // 联系人信息
-      project_manager_name: rawData.project_manager_name,
-      project_manager_phone: rawData.project_manager_phone,
-      tech_lead_name: rawData.tech_lead_name,
-      tech_lead_phone: rawData.tech_lead_phone,
       business_contact_name: rawData.business_contact_name,
       business_contact_phone: rawData.business_contact_phone,
-      // 项目描述
-      description: rawData.description,
+      tenderer_contact_person: rawData.tenderer_contact_person,
+      tenderer_contact_method: rawData.tenderer_contact_method,
+      agency_contact_person: rawData.agency_contact_person,
+      agency_contact_method: rawData.agency_contact_method,
       // step1_data 包含 AI 提取的文件路径
       step1_data: rawData.step1_data,
       // 保留原始数据
@@ -1075,21 +986,18 @@ const loadProjectDetail = async () => {
     formData.name = projectDetail.value.name || ''
     formData.number = projectDetail.value.number || ''
     formData.company_id = projectDetail.value.company_id || null
-    formData.description = projectDetail.value.description || ''
-    formData.tender_unit = projectDetail.value.tender_unit || ''
-    formData.tender_agency = projectDetail.value.tender_agency || ''
+    formData.tenderer = projectDetail.value.tenderer || ''
+    formData.agency = projectDetail.value.agency || ''
+    formData.bidding_method = projectDetail.value.bidding_method || ''
+    formData.bidding_location = projectDetail.value.bidding_location || ''
+    formData.bidding_time = projectDetail.value.bidding_time || ''
     formData.budget_amount = projectDetail.value.budget_amount || null
-    formData.project_type = projectDetail.value.project_type || ''
-    formData.registration_deadline = projectDetail.value.registration_deadline || ''
-    formData.bid_deadline = projectDetail.value.bid_deadline || ''
-    formData.bid_opening_time = projectDetail.value.bid_opening_time || ''
-    formData.bid_opening_location = projectDetail.value.bid_opening_location || ''
-    formData.project_manager_name = projectDetail.value.project_manager_name || ''
-    formData.project_manager_phone = projectDetail.value.project_manager_phone || ''
-    formData.tech_lead_name = projectDetail.value.tech_lead_name || ''
-    formData.tech_lead_phone = projectDetail.value.tech_lead_phone || ''
     formData.business_contact_name = projectDetail.value.business_contact_name || ''
     formData.business_contact_phone = projectDetail.value.business_contact_phone || ''
+    formData.tenderer_contact_person = projectDetail.value.tenderer_contact_person || ''
+    formData.tenderer_contact_method = projectDetail.value.tenderer_contact_method || ''
+    formData.agency_contact_person = projectDetail.value.agency_contact_person || ''
+    formData.agency_contact_method = projectDetail.value.agency_contact_method || ''
     formData.authorized_person_name = projectDetail.value.authorized_person_name || ''
     formData.authorized_person_id = projectDetail.value.authorized_person_id || ''
 
@@ -1102,7 +1010,35 @@ const loadProjectDetail = async () => {
 
         // 提取章节信息
         if (step1Data.chapters && Array.isArray(step1Data.chapters)) {
-          parsedChapters.value = step1Data.chapters
+          // ⭐️ 过滤异常章节（索引倒置或0字章节）
+          const filterInvalidChapters = (chapters: any[]): any[] => {
+            return chapters.filter((ch: any) => {
+              // 过滤条件1: 索引合法性检查
+              if (ch.para_start_idx >= ch.para_end_idx) {
+                console.warn(`过滤异常章节: ${ch.title} (索引: ${ch.para_start_idx} >= ${ch.para_end_idx})`)
+                return false
+              }
+              // 过滤条件2: 过滤0字章节（可能是数据错误）
+              if (ch.word_count === 0) {
+                console.warn(`过滤0字章节: ${ch.title}`)
+                return false
+              }
+              // 递归过滤子章节
+              if (ch.children && Array.isArray(ch.children)) {
+                ch.children = filterInvalidChapters(ch.children)
+              }
+              return true
+            })
+          }
+
+          parsedChapters.value = filterInvalidChapters(step1Data.chapters)
+
+          if (parsedChapters.value.length < step1Data.chapters.length) {
+            console.info(
+              `已过滤 ${step1Data.chapters.length - parsedChapters.value.length} 个异常章节，` +
+              `剩余 ${parsedChapters.value.length} 个有效章节`
+            )
+          }
         }
 
         // 从step1_data中提取文档信息
@@ -1208,6 +1144,12 @@ const loadProjectDetail = async () => {
     if (projectDetail.value.name === '新项目' || projectDetail.value.status === 'draft') {
       isEditing.value = true
     }
+
+    // 🔧 修复：同步到全局 projectStore，确保悬浮按钮可以检测到当前项目
+    if (projectDetail.value) {
+      projectStore.setCurrentProject(projectDetail.value)
+      console.log('✅ 项目详情已同步到全局Store:', projectDetail.value.id, projectDetail.value.name)
+    }
   } catch (error) {
     console.error('加载项目详情失败:', error)
     ElMessage.error('加载项目详情失败')
@@ -1287,21 +1229,18 @@ const handleSave = async () => {
       project_name: formData.name,
       project_number: formData.number,
       company_id: formData.company_id,
-      description: formData.description,
-      tender_unit: formData.tender_unit,
-      tender_agency: formData.tender_agency,
+      tenderer: formData.tenderer,
+      agency: formData.agency,
+      bidding_method: formData.bidding_method,
+      bidding_location: formData.bidding_location,
+      bidding_time: formData.bidding_time,
       budget_amount: formData.budget_amount,
-      project_type: formData.project_type,
-      registration_deadline: formData.registration_deadline,
-      bid_deadline: formData.bid_deadline,
-      bid_opening_time: formData.bid_opening_time,
-      bid_opening_location: formData.bid_opening_location,
-      project_manager_name: formData.project_manager_name,
-      project_manager_phone: formData.project_manager_phone,
-      tech_lead_name: formData.tech_lead_name,
-      tech_lead_phone: formData.tech_lead_phone,
       business_contact_name: formData.business_contact_name,
       business_contact_phone: formData.business_contact_phone,
+      tenderer_contact_person: formData.tenderer_contact_person,
+      tenderer_contact_method: formData.tenderer_contact_method,
+      agency_contact_person: formData.agency_contact_person,
+      agency_contact_method: formData.agency_contact_method,
       authorized_person_name: formData.authorized_person_name,
       authorized_person_id: formData.authorized_person_id,
       status: 'active' // 保存后更新为活跃状态
@@ -1310,11 +1249,18 @@ const handleSave = async () => {
     await tenderApi.updateProject(projectId.value, updateData)
     ElMessage.success('保存成功')
     isEditing.value = false
+    hasUnsavedChanges.value = false // 清除未保存标记
     // 重新加载项目数据
     await loadProjectDetail()
-  } catch (error) {
+  } catch (error: any) {
     console.error('保存失败:', error)
-    ElMessage.error('保存失败')
+    // 提取后端返回的友好错误消息
+    const errorMessage = error?.response?.data?.message || error?.message || '保存失败，请检查项目名称和编号是否与其他项目重复'
+    ElMessage.error({
+      message: errorMessage,
+      duration: 5000,
+      showClose: true
+    })
   } finally {
     saving.value = false
   }
@@ -1350,13 +1296,11 @@ const handleStartPointToPoint = async () => {
     return
   }
 
+  // 将当前项目保存到 Pinia Store，以便点对点应答页面可以读取
+  projectStore.setCurrentProject(projectDetail.value)
+
   await router.push({
-    name: 'PointToPoint',
-    query: {
-      projectId: projectId.value.toString(),
-      technicalFileUrl,
-      fromHitl: 'true'
-    }
+    name: 'PointToPoint'
   })
 }
 
@@ -1371,13 +1315,11 @@ const handleStartProposal = async () => {
     return
   }
 
+  // 将当前项目保存到 Pinia Store，以便技术方案页面可以读取
+  projectStore.setCurrentProject(projectDetail.value)
+
   await router.push({
-    name: 'TechProposal',
-    query: {
-      projectId: projectId.value.toString(),
-      technicalFileUrl,
-      fromHitl: 'true'
-    }
+    name: 'TechProposal'
   })
 }
 
@@ -1397,12 +1339,6 @@ const handleProcessSuccess = async (type: 'response' | 'technical') => {
   }
 }
 
-// 处理任务ID更新事件
-const handleTaskIdUpdate = (taskId: string) => {
-  latestTaskId.value = taskId
-  console.log('收到task_id:', taskId)
-}
-
 // AI提取基本信息
 const handleExtractBasicInfo = async () => {
   if (!projectId.value) {
@@ -1417,20 +1353,66 @@ const handleExtractBasicInfo = async () => {
     if (response.success && response.data) {
       const info = response.data
 
-      // 填充表单字段
-      if (info.project_name) formData.name = info.project_name
-      if (info.project_number) formData.number = info.project_number
-      if (info.tender_party) formData.tender_unit = info.tender_party
-      if (info.tender_agent) formData.tender_agency = info.tender_agent
-      if (info.tender_location) formData.bid_opening_location = info.tender_location
-      if (info.tender_deadline) formData.bid_deadline = info.tender_deadline
+      // 添加调试日志，查看API返回的实际数据
+      console.log('AI提取API返回的原始数据:', response.data)
+      console.log('info对象:', info)
+      console.log('project_name:', info.project_name)
+      console.log('project_number:', info.project_number)
 
-      ElMessage.success('AI提取基本信息成功')
+      // 使用Object.assign批量更新reactive对象，确保触发响应式更新
+      Object.assign(formData, {
+        name: info.project_name || formData.name,
+        number: info.project_number || formData.number,
+        tenderer: info.tender_party || formData.tenderer,
+        agency: info.tender_agent || formData.agency,
+        bidding_method: info.tender_method || formData.bidding_method,
+        bidding_location: info.tender_location || formData.bidding_location,
+        bidding_time: info.tender_deadline || formData.bidding_time,
+        tenderer_contact_person: info.tenderer_contact_person || formData.tenderer_contact_person,
+        tenderer_contact_method: info.tenderer_contact_method || formData.tenderer_contact_method,
+        agency_contact_person: info.agency_contact_person || formData.agency_contact_person,
+        agency_contact_method: info.agency_contact_method || formData.agency_contact_method
+      })
+
+      // 同步更新projectDetail对象，确保在查看模式下也能看到提取的数据
+      if (projectDetail.value) {
+        Object.assign(projectDetail.value, {
+          name: info.project_name || projectDetail.value.name,
+          number: info.project_number || projectDetail.value.number,
+          tenderer: info.tender_party || projectDetail.value.tenderer,
+          agency: info.tender_agent || projectDetail.value.agency,
+          bidding_method: info.tender_method || projectDetail.value.bidding_method,
+          bidding_location: info.tender_location || projectDetail.value.bidding_location,
+          bidding_time: info.tender_deadline || projectDetail.value.bidding_time,
+          tenderer_contact_person: info.tenderer_contact_person || projectDetail.value.tenderer_contact_person,
+          tenderer_contact_method: info.tenderer_contact_method || projectDetail.value.tenderer_contact_method,
+          agency_contact_person: info.agency_contact_person || projectDetail.value.agency_contact_person,
+          agency_contact_method: info.agency_contact_method || projectDetail.value.agency_contact_method
+        })
+      }
 
       // 如果不在编辑模式，自动进入编辑模式
       if (!isEditing.value) {
         isEditing.value = true
       }
+
+      // 标记有未保存的更改
+      hasUnsavedChanges.value = true
+
+      // 显示成功消息，提示用户检查和手动保存
+      ElMessage.success({
+        message: 'AI提取基本信息成功，已进入编辑模式，请检查信息后手动保存',
+        duration: 5000,
+        showClose: true
+      })
+
+      // 滚动到基本信息区域，让用户看到更新的内容
+      setTimeout(() => {
+        const basicInfoSection = document.querySelector('.info-section')
+        if (basicInfoSection) {
+          basicInfoSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 300)
     } else {
       throw new Error((response as any).error || 'AI提取失败')
     }
@@ -1478,6 +1460,28 @@ const handlePreview = (fileUrl: string, fileName: string) => {
   previewVisible.value = true
 }
 
+// 监听公司选择变化,自动填充被授权人信息
+watch(() => formData.company_id, (newCompanyId) => {
+  if (newCompanyId && companies.value.length > 0) {
+    const selectedCompany = companies.value.find(c => c.company_id === newCompanyId)
+    if (selectedCompany) {
+      // 自动填充被授权人姓名和身份证号到表单数据
+      formData.authorized_person_name = selectedCompany.authorized_person_name || ''
+      formData.authorized_person_id = selectedCompany.authorized_person_id || ''
+
+      // 同时更新projectDetail，使查看模式也能立即显示
+      if (projectDetail.value) {
+        projectDetail.value.authorized_person_name = selectedCompany.authorized_person_name || ''
+        projectDetail.value.authorized_person_id = selectedCompany.authorized_person_id || ''
+      }
+
+      if (selectedCompany.authorized_person_name) {
+        ElMessage.success(`已自动填充被授权人信息: ${selectedCompany.authorized_person_name}`)
+      }
+    }
+  }
+})
+
 // 监听路由变化
 watch(() => route.params.id, () => {
   loadProjectDetail()
@@ -1523,8 +1527,8 @@ onMounted(() => {
   .tab-content {
     // 统一所有 el-descriptions 的标签列宽度
     :deep(.el-descriptions__label) {
-      width: 120px !important;
-      min-width: 120px;
+      width: 150px !important;
+      min-width: 150px;
     }
 
     .info-section {

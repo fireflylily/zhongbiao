@@ -78,6 +78,28 @@
           <el-table-column prop="name" label="股东名称" min-width="150" />
           <el-table-column prop="type" label="类型" width="100" />
           <el-table-column prop="ratio" label="出资比例" width="120" />
+          <el-table-column label="控股股东" width="100" align="center">
+            <template #default="{ $index }">
+              <el-radio
+                v-model="controllingShareholderIndex"
+                :label="$index"
+                @change="handleControllingShareholderChange"
+              >
+                <span></span>
+              </el-radio>
+            </template>
+          </el-table-column>
+          <el-table-column label="实际控制人" width="110" align="center">
+            <template #default="{ $index }">
+              <el-radio
+                v-model="actualControllerIndex"
+                :label="$index"
+                @change="handleActualControllerChange"
+              >
+                <span></span>
+              </el-radio>
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="150">
             <template #default="{ row, $index }">
               <el-button text type="primary" size="small" @click="handleEditShareholder($index)">
@@ -229,6 +251,10 @@ const managementForm = ref({
 
 const shareholders = ref<any[]>([])
 
+// 控股股东和实际控制人的索引（-1表示未选择）
+const controllingShareholderIndex = ref<number>(-1)
+const actualControllerIndex = ref<number>(-1)
+
 // 股东对话框
 const shareholderDialogVisible = ref(false)
 const editingIndex = ref(-1)
@@ -271,10 +297,24 @@ watch(
           shareholders.value = typeof shareholdersInfo === 'string'
             ? JSON.parse(shareholdersInfo)
             : shareholdersInfo
+
+          // 🆕 读取控股股东和实际控制人的标记
+          controllingShareholderIndex.value = shareholders.value.findIndex(
+            (s: any) => s.is_controlling === true
+          )
+          actualControllerIndex.value = shareholders.value.findIndex(
+            (s: any) => s.is_actual_controller === true
+          )
+        } else {
+          shareholders.value = []
+          controllingShareholderIndex.value = -1
+          actualControllerIndex.value = -1
         }
       } catch (err) {
         console.error('解析股东信息失败:', err)
         shareholders.value = []
+        controllingShareholderIndex.value = -1
+        actualControllerIndex.value = -1
       }
     }
   },
@@ -307,8 +347,49 @@ const handleEditShareholder = (index: number) => {
 // 删除股东
 const handleDeleteShareholder = (index: number) => {
   if (confirm('确定要删除此股东吗？')) {
+    // 如果删除的是已标记的股东，清除标记
+    if (index === controllingShareholderIndex.value) {
+      controllingShareholderIndex.value = -1
+    }
+    if (index === actualControllerIndex.value) {
+      actualControllerIndex.value = -1
+    }
+
     shareholders.value.splice(index, 1)
+
+    // 更新索引（如果删除的股东在已标记股东之前）
+    if (index < controllingShareholderIndex.value) {
+      controllingShareholderIndex.value--
+    }
+    if (index < actualControllerIndex.value) {
+      actualControllerIndex.value--
+    }
+
     success('删除成功', '股东已删除，请点击保存按钮保存更改')
+  }
+}
+
+// 🆕 处理控股股东标记变更
+const handleControllingShareholderChange = () => {
+  // 清除所有股东的控股标记
+  shareholders.value.forEach((s: any) => {
+    s.is_controlling = false
+  })
+  // 设置新的控股股东标记
+  if (controllingShareholderIndex.value !== -1) {
+    shareholders.value[controllingShareholderIndex.value].is_controlling = true
+  }
+}
+
+// 🆕 处理实际控制人标记变更
+const handleActualControllerChange = () => {
+  // 清除所有股东的实际控制人标记
+  shareholders.value.forEach((s: any) => {
+    s.is_actual_controller = false
+  })
+  // 设置新的实际控制人标记
+  if (actualControllerIndex.value !== -1) {
+    shareholders.value[actualControllerIndex.value].is_actual_controller = true
   }
 }
 
@@ -320,12 +401,21 @@ const handleConfirmShareholder = async () => {
     if (!valid) return
 
     if (editingIndex.value === -1) {
-      // 添加新股东
-      shareholders.value.push({ ...shareholderForm.value })
+      // 添加新股东（带标记字段）
+      shareholders.value.push({
+        ...shareholderForm.value,
+        is_controlling: false,       // 🆕 默认不是控股股东
+        is_actual_controller: false  // 🆕 默认不是实际控制人
+      })
       success('添加成功', '股东已添加，请点击保存按钮保存更改')
     } else {
-      // 更新股东
-      shareholders.value[editingIndex.value] = { ...shareholderForm.value }
+      // 更新股东（保留原有标记）
+      const existingShareholder = shareholders.value[editingIndex.value]
+      shareholders.value[editingIndex.value] = {
+        ...shareholderForm.value,
+        is_controlling: existingShareholder.is_controlling || false,
+        is_actual_controller: existingShareholder.is_actual_controller || false
+      }
       success('编辑成功', '股东信息已更新，请点击保存按钮保存更改')
     }
 
@@ -379,8 +469,25 @@ const handleUploadFile = async (qualKey: string, file: File) => {
     // 使用fetch直接上传，因为companyApi.uploadQualification的参数不匹配
     const response = await fetch(`/api/companies/${props.companyId}/qualifications/upload`, {
       method: 'POST',
-      body: formData
+      body: formData,
+      credentials: 'include', // 包含cookies进行认证
+      headers: {
+        // 注意：不要设置 Content-Type，让浏览器自动设置multipart/form-data边界
+      }
     })
+
+    // 检查响应状态
+    if (!response.ok) {
+      // 尝试解析错误信息
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `服务器错误: ${response.status}`)
+      } else {
+        // 如果不是JSON，可能是HTML错误页面
+        throw new Error(`上传失败: 服务器返回错误 ${response.status}`)
+      }
+    }
 
     const result = await response.json()
 
@@ -428,7 +535,8 @@ const handleDeleteFile = async (qualKey: string, qualId?: number) => {
     } else {
       // 通过key删除（单文件资质）
       const response = await fetch(`/api/companies/${props.companyId}/qualifications/${qualKey}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include' // 包含cookies进行认证
       })
       if (!response.ok) throw new Error('删除失败')
     }

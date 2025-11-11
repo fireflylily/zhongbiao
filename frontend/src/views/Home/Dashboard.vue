@@ -5,7 +5,6 @@
   - KPI关键指标展示
   - 快捷入口
   - 进行中的项目列表
-  - 最近活动时间线
 -->
 
 <template>
@@ -150,33 +149,6 @@
         </div>
       </template>
     </Card>
-
-    <!-- 最近活动 -->
-    <Card title="最近活动" class="activities-card">
-      <Loading
-        v-if="loadingActivities"
-        :visible="true"
-        :fullscreen="false"
-        text="加载活动记录..."
-      />
-
-      <Empty v-else-if="activities.length === 0" type="no-data" description="暂无活动记录" />
-
-      <el-timeline v-else>
-        <el-timeline-item
-          v-for="activity in activities"
-          :key="activity.id"
-          :timestamp="formatDate(activity.created_at)"
-          :type="getActivityType(activity.type)"
-          placement="top"
-        >
-          <div class="activity-content">
-            <i :class="getActivityIcon(activity.type)" class="activity-icon"></i>
-            <span>{{ activity.description }}</span>
-          </div>
-        </el-timeline-item>
-      </el-timeline>
-    </Card>
   </div>
 </template>
 
@@ -200,7 +172,6 @@ const { success, error: showError, confirm } = useNotification()
 
 const loadingStats = ref(false)
 const loadingProjects = ref(false)
-const loadingActivities = ref(false)
 
 // KPI统计数据
 const statistics = ref({
@@ -215,9 +186,6 @@ const projects = ref<Project[]>([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-
-// 活动记录
-const activities = ref<any[]>([])
 
 // 快捷入口配置
 const quickActions = [
@@ -325,52 +293,6 @@ async function loadProjects(): Promise<void> {
 }
 
 /**
- * 加载活动记录
- */
-async function loadActivities(): Promise<void> {
-  loadingActivities.value = true
-
-  try {
-    // 模拟API调用 - 实际应该调用 tenderApi.getRecentActivities()
-    // const response = await tenderApi.getRecentActivities()
-
-    // 临时模拟数据
-    setTimeout(() => {
-      activities.value = [
-        {
-          id: 1,
-          type: 'document_upload',
-          description: '上传了招标文档《某市政府采购项目招标文件.pdf》',
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 2,
-          type: 'business_response',
-          description: '商务应答文档生成完成',
-          created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 3,
-          type: 'tech_proposal',
-          description: '技术方案已提交审核',
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 4,
-          type: 'project_won',
-          description: '项目"智慧城市建设项目"中标',
-          created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-        }
-      ]
-      loadingActivities.value = false
-    }, 300)
-  } catch (err: any) {
-    showError('加载活动记录失败: ' + err.message)
-    loadingActivities.value = false
-  }
-}
-
-/**
  * 刷新项目列表
  */
 async function refreshProjects(): Promise<void> {
@@ -397,7 +319,10 @@ function handleCreateProject(): void {
  */
 function handleViewProject(project: Project): void {
   projectStore.setCurrentProject(project as any)
-  router.push(`/tender-processing/${project.id}`)
+  router.push({
+    name: 'TenderManagementDetail',
+    params: { id: project.id }
+  })
 }
 
 /**
@@ -405,7 +330,10 @@ function handleViewProject(project: Project): void {
  */
 function handleContinueProject(project: Project): void {
   projectStore.setCurrentProject(project as any)
-  router.push(`/tender-processing/${project.id}`)
+  router.push({
+    name: 'TenderManagementDetail',
+    params: { id: project.id }
+  })
 }
 
 /**
@@ -477,34 +405,6 @@ function getStatusLabel(status: string): string {
 }
 
 /**
- * 获取活动类型
- */
-function getActivityType(type: string): string {
-  const typeMap: Record<string, string> = {
-    document_upload: 'primary',
-    business_response: 'success',
-    tech_proposal: 'warning',
-    project_won: 'success',
-    project_lost: 'danger'
-  }
-  return typeMap[type] || 'primary'
-}
-
-/**
- * 获取活动图标
- */
-function getActivityIcon(type: string): string {
-  const iconMap: Record<string, string> = {
-    document_upload: 'bi bi-file-earmark-arrow-up',
-    business_response: 'bi bi-briefcase-fill',
-    tech_proposal: 'bi bi-file-code-fill',
-    project_won: 'bi bi-trophy-fill',
-    project_lost: 'bi bi-x-circle-fill'
-  }
-  return iconMap[type] || 'bi bi-circle-fill'
-}
-
-/**
  * 格式化日期
  */
 function formatDate(date: string | Date): string {
@@ -517,7 +417,6 @@ function formatDate(date: string | Date): string {
 onMounted(() => {
   loadStatistics()
   loadProjects()
-  loadActivities()
 })
 </script>
 
@@ -598,23 +497,6 @@ onMounted(() => {
   margin-top: var(--spacing-lg, 24px);
   display: flex;
   justify-content: flex-end;
-}
-
-// ==================== 活动时间线 ====================
-
-.activities-card {
-  margin-bottom: var(--spacing-xl, 32px);
-}
-
-.activity-content {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm, 8px);
-}
-
-.activity-icon {
-  font-size: 16px;
-  color: var(--brand-primary, #4a89dc);
 }
 
 // ==================== 响应式 ====================

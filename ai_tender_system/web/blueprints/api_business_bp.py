@@ -39,6 +39,8 @@ BUSINESS_RESPONSE_AVAILABLE = False
 POINT_TO_POINT_AVAILABLE = False
 try:
     from modules.business_response.processor import BusinessResponseProcessor, PointToPointProcessor
+    # 【重构】导入统一的图片配置构建器
+    from modules.business_response.image_config_builder import build_image_config_from_db
     BUSINESS_RESPONSE_AVAILABLE = True
     POINT_TO_POINT_AVAILABLE = True  # 保持向后兼容
 except ImportError:
@@ -48,147 +50,6 @@ except ImportError:
 # ===================
 # 辅助函数
 # ===================
-
-def build_image_config_from_db(company_id: int, project_name: str = None) -> tuple:
-    """
-    从数据库加载公司所有资质并构建图片配置
-
-    核心原则：
-    1. 加载公司所有资质（不筛选）
-    2. 由Word模板决定填充哪些（模板驱动）
-    3. 可选：返回项目资格要求用于追加
-
-    Args:
-        company_id: 公司ID
-        project_name: 项目名称（可选）。用于获取项目资格要求列表
-
-    Returns:
-        (image_config, required_quals) 元组:
-        - image_config: 图片配置字典（包含所有资质）
-        - required_quals: 项目资格要求列表（用于追加和统计），如果没有项目名称则为空列表
-    """
-    try:
-        # 步骤1：获取公司的所有资质
-        qualifications = kb_manager.db.get_company_qualifications(company_id)
-
-        if not qualifications:
-            logger.warning(f"公司 {company_id} 没有上传任何资质文件")
-            return ({}, [])
-
-        logger.info(f"📋 从数据库加载公司资质，共 {len(qualifications)} 个")
-
-        # 步骤2：构建图片配置（加载所有资质）
-        image_config = {}
-        qualification_paths = []
-        qualification_details = []  # 新增：资质详细信息（包含qual_key）
-
-        # 定义基础证件（特殊处理）
-        BASIC_CREDENTIALS = {
-            'business_license', 'company_seal',
-            'legal_id_front', 'legal_id_back',
-            'auth_id_front', 'auth_id_back',
-            'id_card_front', 'id_card_back'  # PersonnelTab上传使用的字段名
-        }
-
-        for qual in qualifications:
-            qual_key = qual.get('qualification_key')
-            file_path = qual.get('file_path')
-
-            if not file_path:
-                continue
-
-            # 营业执照
-            if qual_key == 'business_license':
-                image_config['license_path'] = file_path
-                logger.info(f"  - 营业执照: {file_path}")
-
-            # 公章
-            elif qual_key == 'company_seal':
-                image_config['seal_path'] = file_path
-                logger.info(f"  - 公章: {file_path}")
-
-            # 法人身份证
-            elif qual_key == 'legal_id_front':
-                if 'legal_id' not in image_config:
-                    image_config['legal_id'] = {}
-                image_config['legal_id']['front'] = file_path
-                logger.info(f"  - 法人身份证正面: {file_path}")
-
-            elif qual_key == 'legal_id_back':
-                if 'legal_id' not in image_config:
-                    image_config['legal_id'] = {}
-                image_config['legal_id']['back'] = file_path
-                logger.info(f"  - 法人身份证反面: {file_path}")
-
-            # 授权代表身份证 - 支持多种字段名
-            elif qual_key in ['auth_id_front', 'id_card_front']:
-                if 'auth_id' not in image_config:
-                    image_config['auth_id'] = {}
-                image_config['auth_id']['front'] = file_path
-                logger.info(f"  - 授权代表身份证正面: {file_path}")
-
-            elif qual_key in ['auth_id_back', 'id_card_back']:
-                if 'auth_id' not in image_config:
-                    image_config['auth_id'] = {}
-                image_config['auth_id']['back'] = file_path
-                logger.info(f"  - 授权代表身份证反面: {file_path}")
-
-            # 所有其他资质（包括ISO认证、信用资质、等保等）
-            elif qual_key not in BASIC_CREDENTIALS:
-                qualification_paths.append(file_path)
-                # 添加资质详细信息
-                qualification_details.append({
-                    'qual_key': qual_key,
-                    'file_path': file_path,
-                    'original_filename': qual.get('original_filename', ''),
-                    'insert_hint': ''  # 后续会从项目要求中填充
-                })
-                logger.info(f"  - 资质证书 ({qual_key}): {file_path}")
-
-        # 添加资质证书列表
-        if qualification_paths:
-            image_config['qualification_paths'] = qualification_paths
-            image_config['qualification_details'] = qualification_details
-
-        logger.info(f"✅ 加载完成: {len(image_config)} 个类型，{len(qualification_paths)} 个资质证书")
-
-        # 步骤3：获取项目资格要求（用于追加和统计）
-        required_quals = []
-        if project_name:
-            try:
-                from modules.business_response.qualification_matcher import QualificationMatcher
-                matcher = QualificationMatcher()
-
-                # 从数据库查询项目资格要求
-                query = """SELECT qualifications_data FROM tender_projects
-                           WHERE company_id = ? AND project_name = ? LIMIT 1"""
-                result = kb_manager.db.execute_query(query, [company_id, project_name])
-
-                if result and len(result) > 0:
-                    qualifications_data = result[0].get('qualifications_data')
-                    if qualifications_data:
-                        required_quals = matcher.extract_required_qualifications(qualifications_data)
-                        logger.info(f"📊 项目资格要求: {len(required_quals)} 个")
-
-                        # 将项目要求的insert_hint填充到qualification_details中
-                        for req_qual in required_quals:
-                            qual_key = req_qual.get('qual_key')
-                            insert_hint = req_qual.get('source_detail', '')
-                            # 查找对应的qualification_detail并更新insert_hint
-                            for qual_detail in qualification_details:
-                                if qual_detail['qual_key'] == qual_key:
-                                    qual_detail['insert_hint'] = insert_hint
-                                    break
-            except Exception as e:
-                logger.warning(f"获取项目资格要求失败（不影响处理）: {e}")
-
-        return (image_config, required_quals)
-
-    except Exception as e:
-        logger.error(f"从数据库构建图片配置失败: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return ({}, [])  # 返回空配置和空列表
 
 
 def generate_output_filename(project_name: str, file_type: str, timestamp: str = None) -> str:
@@ -303,7 +164,7 @@ def process_business_response():
                 # 注意：这里不设置当前日期，而是保持为空，让后端填充器跳过
 
         # 从数据库加载所有资质（模板驱动）
-        image_config, required_quals = build_image_config_from_db(company_id_int, project_name)
+        image_config, required_quals = build_image_config_from_db(company_id_int, project_name, kb_manager)
 
         if image_config:
             logger.info(f"成功从数据库加载图片配置，包含 {len(image_config)} 个类型")
@@ -341,6 +202,10 @@ def process_business_response():
             'employeeCount': 'employee_count',
             'bankName': 'bank_name',
             'bankAccount': 'bank_account',
+            # 被授权人信息（2025-11-07添加）
+            'representativeName': 'authorized_person_name',
+            'representativeTitle': 'authorized_person_position',
+            'authorizedPersonId': 'authorized_person_id',
             # 股权结构字段（2025-10-27添加）
             'actual_controller': 'actual_controller',
             'controlling_shareholder': 'controlling_shareholder',
@@ -427,8 +292,8 @@ def process_business_response():
                     'success': True,
                     'message': result_stats.get('message', '商务应答处理完成'),
                     'output_file': output_path,
-                    'download_url': f'/download/{os.path.basename(output_path)}',
-                    'stats': result_stats.get('stats', {})
+                    'download_url': f'/api/files/download/{os.path.basename(output_path)}',
+                    'stats': result_stats.get('summary', {})  # 修复：使用'summary'字段（与processor返回的字段名一致）
                 }
             else:
                 logger.error(f"新架构处理器执行失败: {result_stats.get('error', '未知错误')}")
@@ -457,7 +322,7 @@ def process_business_response():
                     'success': True,
                     'message': result_stats.get('message', '商务应答处理完成'),
                     'output_file': str(output_path),
-                    'download_url': f'/download/{os.path.basename(output_path)}',
+                    'download_url': f'/api/files/download/{os.path.basename(output_path)}',
                     'stats': result_stats.get('summary', {})
                 }
             else:
@@ -467,43 +332,74 @@ def process_business_response():
                     'message': result_stats.get('message', '商务应答处理失败')
                 }
 
-        # 【新增】如果处理成功，调用现有的同步API保存结果到数据库
+        # 【优化】如果处理成功，直接同步文件信息到数据库（不使用HTTP调用）
         if result.get('success') and project_name:
             try:
-                # 查询项目ID
+                import json
+
+                # 1. 查询项目信息（包括project_id和step1_data）
                 query = """
-                    SELECT p.project_id
-                    FROM tender_projects p
-                    WHERE p.project_name = ? AND p.company_id = ?
+                    SELECT project_id, step1_data
+                    FROM tender_projects
+                    WHERE project_name = ? AND company_id = ?
                     LIMIT 1
                 """
-                project_result = kb_manager.db.execute_query(query, [project_name, company_id_int], fetch_one=True)
+                project_result = kb_manager.db.execute_query(
+                    query, [project_name, company_id_int], fetch_one=True
+                )
 
-                if project_result and project_result.get('project_id'):
-                    import requests
+                if project_result:
                     project_id = project_result['project_id']
 
-                    # 获取当前服务的端口号
-                    port = os.environ.get('FLASK_RUN_PORT', '8110')
+                    # 2. 解析现有的step1_data
+                    step1_data_raw = project_result.get('step1_data', '{}')
+                    step1_data = json.loads(step1_data_raw) if step1_data_raw else {}
 
-                    # 调用现有的文件同步API
-                    sync_url = f'http://localhost:{port}/api/tender-processing/sync-file/{project_id}'
-                    sync_data = {
-                        'file_path': output_path,
-                        'file_type': 'business_response'
+                    # 3. 构建文件信息
+                    now = datetime.now()
+                    file_info = {
+                        "file_path": str(output_path),
+                        "filename": os.path.basename(output_path),
+                        "file_name": os.path.basename(output_path),  # 兼容性字段
+                        "file_size": os.path.getsize(output_path),
+                        "file_url": f"/api/files/download/{os.path.basename(output_path)}",  # 可访问的下载URL
+                        "download_url": f"/api/files/download/{os.path.basename(output_path)}",  # 与API响应保持一致
+                        "saved_at": now.isoformat(),
+                        "source": "business_response_api"
                     }
 
-                    sync_response = requests.post(sync_url, json=sync_data, timeout=10)
+                    # 4. 更新step1_data
+                    step1_data['business_response_file'] = file_info
 
-                    if sync_response.status_code == 200 and sync_response.json().get('success'):
-                        logger.info(f"✅ 商务应答结果已同步到数据库: {os.path.basename(output_path)}")
-                    else:
-                        logger.warning(f"⚠️  同步商务应答结果失败: {sync_response.text}")
+                    # 5. 保存到数据库
+                    update_query = """
+                        UPDATE tender_projects
+                        SET step1_data = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE project_id = ?
+                    """
+                    kb_manager.db.execute_query(
+                        update_query,
+                        [json.dumps(step1_data, ensure_ascii=False), project_id]
+                    )
+
+                    logger.info(
+                        f"✅ 商务应答文件已同步到数据库: "
+                        f"project_id={project_id}, "
+                        f"file={os.path.basename(output_path)}, "
+                        f"size={file_info['file_size']} bytes"
+                    )
                 else:
-                    logger.warning(f"⚠️  项目 {project_name} 没有关联的HITL任务，无法保存商务应答结果到数据库")
+                    logger.warning(
+                        f"⚠️  未找到匹配的项目记录: "
+                        f"project_name='{project_name}', "
+                        f"company_id={company_id_int}"
+                    )
             except Exception as e:
-                logger.error(f"同步商务应答结果到数据库失败: {e}")
-                # 不影响主流程，继续返回成功结果
+                logger.error(
+                    f"❌ 同步商务应答文件到数据库失败: {e}",
+                    exc_info=True  # 打印完整堆栈
+                )
+                # 注意：不影响主流程，文件已生成成功
 
         logger.info("商务应答处理完成")
         return jsonify(result)
@@ -632,7 +528,7 @@ def list_business_files():
                             'name': filename,
                             'size': format_size(stat.st_size),
                             'date': modified_time.strftime('%Y-%m-%d %H:%M:%S'),
-                            'download_url': f'/download/{filename}',
+                            'download_url': f'/api/files/download/{filename}',
                             'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
                             'modified': modified_time.isoformat()
                         })
@@ -751,6 +647,10 @@ def process_point_to_point():
             'employeeCount': 'employee_count',
             'bankName': 'bank_name',
             'bankAccount': 'bank_account',
+            # 被授权人信息（2025-11-07添加）
+            'representativeName': 'authorized_person_name',
+            'representativeTitle': 'authorized_person_position',
+            'authorizedPersonId': 'authorized_person_id',
             # 股权结构字段（2025-10-27添加）
             'actual_controller': 'actual_controller',
             'controlling_shareholder': 'controlling_shareholder',
@@ -808,8 +708,87 @@ def process_point_to_point():
         if result_stats.get('success'):
             logger.info(f"内联回复处理成功: {result_stats.get('message')}")
 
-            # 生成下载URL
-            download_url = f'/download/{output_filename}'
+            # 【优化】如果处理成功，直接同步文件信息到数据库（不使用HTTP调用）
+            if project_name or project_id:
+                try:
+                    import json
+
+                    # 1. 查询项目信息（包括project_id和step1_data）
+                    # 优先使用project_id，如果没有则使用project_name和company_id
+                    if project_id:
+                        query = """
+                            SELECT project_id, step1_data
+                            FROM tender_projects
+                            WHERE project_id = ?
+                            LIMIT 1
+                        """
+                        query_params = [project_id]
+                    else:
+                        query = """
+                            SELECT project_id, step1_data
+                            FROM tender_projects
+                            WHERE project_name = ? AND company_id = ?
+                            LIMIT 1
+                        """
+                        query_params = [project_name, company_id_int]
+
+                    project_result = kb_manager.db.execute_query(
+                        query, query_params, fetch_one=True
+                    )
+
+                    if project_result:
+                        # 2. 解析现有的step1_data
+                        step1_data_raw = project_result.get('step1_data', '{}')
+                        step1_data = json.loads(step1_data_raw) if step1_data_raw else {}
+
+                        # 3. 构建文件信息
+                        from datetime import datetime
+                        now = datetime.now()
+                        file_info = {
+                            "file_path": str(output_path),
+                            "filename": output_filename,
+                            "file_name": output_filename,  # 兼容性字段
+                            "file_size": os.path.getsize(output_path),
+                            "file_url": f"/api/files/download/{output_filename}",
+                            "download_url": f"/api/files/download/{output_filename}",
+                            "saved_at": now.isoformat(),
+                            "source": "point_to_point_api"
+                        }
+
+                        # 4. 更新step1_data
+                        step1_data['technical_point_to_point_file'] = file_info
+
+                        # 5. 保存到数据库
+                        update_query = """
+                            UPDATE tender_projects
+                            SET step1_data = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE project_id = ?
+                        """
+                        kb_manager.db.execute_query(
+                            update_query,
+                            [json.dumps(step1_data, ensure_ascii=False), project_id]
+                        )
+
+                        logger.info(
+                            f"✅ 点对点应答文件已同步到数据库: "
+                            f"project_id={project_id}, "
+                            f"file={output_filename}, "
+                            f"size={file_info['file_size']} bytes"
+                        )
+                    else:
+                        logger.warning(
+                            f"⚠️  未找到匹配的项目记录: "
+                            f"project_id={project_id}"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"❌ 同步点对点应答文件到数据库失败: {e}",
+                        exc_info=True  # 打印完整堆栈
+                    )
+                    # 注意：不影响主流程，文件已生成成功
+
+            # 生成下载URL（使用 /api/downloads/ 路由）
+            download_url = f'/api/downloads/{output_filename}'
 
             return jsonify({
                 'success': True,
@@ -846,7 +825,7 @@ def process_point_to_point():
         return jsonify(format_error_response(e))
 
 
-@api_business_bp.route('/api/point-to-point/files')
+@api_business_bp.route('/point-to-point/files')
 def list_point_to_point_files():
     """获取点对点应答文件列表"""
     try:
@@ -886,7 +865,7 @@ def list_point_to_point_files():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_business_bp.route('/api/point-to-point/preview')
+@api_business_bp.route('/point-to-point/preview')
 def preview_point_to_point_document():
     """预览点对点应答文档 - 直接返回.docx文件供前端mammoth.js转换"""
     try:
@@ -951,7 +930,7 @@ def preview_point_to_point_document():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_business_bp.route('/api/point-to-point/edit', methods=['GET', 'POST'])
+@api_business_bp.route('/point-to-point/edit', methods=['GET', 'POST'])
 def edit_point_to_point_document():
     """编辑点对点应答文档"""
 
@@ -1125,7 +1104,7 @@ def edit_point_to_point_document():
             return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@api_business_bp.route('/api/point-to-point/download')
+@api_business_bp.route('/point-to-point/download')
 def download_point_to_point_document():
     """下载点对点应答文档"""
     try:

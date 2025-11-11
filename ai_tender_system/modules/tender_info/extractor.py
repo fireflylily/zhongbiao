@@ -101,7 +101,7 @@ class TenderInfoExtractor:
 
         # 所有策略都失败
         self.logger.error(f"{task_name} - 所有JSON解析策略都失败")
-        self.logger.debug(f"{task_name} - 原始响应: {response[:500]}...")
+        self.logger.error(f"{task_name} - 原始响应: {response[:500]}...")  # 改为error级别，确保能看到
         return None
 
     def _clean_json_string(self, json_str: str) -> str:
@@ -123,6 +123,141 @@ class TenderInfoExtractor:
         json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
 
         return json_str
+
+    def _validate_project_name(self, project_name: str) -> bool:
+        """
+        验证项目名称是否合理
+
+        Args:
+            project_name: 待验证的项目名称
+
+        Returns:
+            True if valid, False otherwise
+        """
+        if not project_name or not project_name.strip():
+            return False
+
+        project_name = project_name.strip()
+
+        # === 基础检查 ===
+
+        # 1. 长度检查（通常不超过100字符）
+        if len(project_name) > 100:
+            self.logger.warning(f"项目名称过长（{len(project_name)}字符）: {project_name[:50]}...")
+            return False
+
+        # 2. 最短有效长度检查（去除空格和标点后至少10个有效字符）
+        effective_chars = re.sub(r'[\s\.\d\-、，。]', '', project_name)
+        if len(effective_chars) < 10:
+            self.logger.warning(f"项目名称有效字符过少（{len(effective_chars)}字符）: {project_name}")
+            return False
+
+        # === 条款编号模式检测 ===
+
+        # 3. 检测条款编号（如"5.4"、"3.2.1"、"第三条"）
+        clause_number_patterns = [
+            r'^\d+\.\d+',              # "5.4"、"3.2"
+            r'^\d+\.\d+\.\d+',         # "3.2.1"
+            r'^第[一二三四五六七八九十\d]+条',  # "第三条"
+            r'^第[一二三四五六七八九十\d]+款',  # "第五款"
+            r'^第[一二三四五六七八九十\d]+项',  # "第二项"
+            r'^\(\d+\)',               # "(1)"、"(2)"
+            r'^（[一二三四五六七八九十\d]+）',  # "（一）"
+        ]
+
+        for pattern in clause_number_patterns:
+            if re.match(pattern, project_name):
+                self.logger.warning(f"项目名称疑似条款编号（模式: {pattern}）: {project_name}")
+                return False
+
+        # === 单字/双字无意义词检测 ===
+
+        # 4. 检测单字或双字无意义前缀/后缀（如"本"、"该"、"此"）
+        meaningless_words = ['本', '该', '此', '其', '上述', '前述', '下述', '如下', '所述']
+        for word in meaningless_words:
+            # 检查是否以无意义词开头或结尾
+            if project_name.startswith(word) or project_name.endswith(word):
+                self.logger.warning(f"项目名称包含无意义词（'{word}'）: {project_name}")
+                return False
+            # 检查整个名称是否只有无意义词+标点
+            if re.match(f'^{word}[\\s\\.、，。]*$', project_name):
+                self.logger.warning(f"项目名称只是无意义词: {project_name}")
+                return False
+
+        # === 描述性词汇检测 ===
+
+        # 5. 检测描述性词汇（这些词通常出现在描述性语句中，而非真实项目名称）
+        descriptive_patterns = [
+            r'技术.*规范.*中.*所述',  # "技术规范中所述"
+            r'本项目.*的.*相关',      # "本项目的相关"
+            r'上述.*项目',            # "上述项目"
+            r'前述.*内容',            # "前述内容"
+            r'如下.*所述',            # "如下所述"
+            r'详见.*附件',            # "详见附件"
+            r'参见.*文件',            # "参见文件"
+            r'按照.*要求',            # "按照要求"
+            r'^该项目',               # "该项目XX"
+            r'^本项目',               # "本项目XX"
+            r'^此项目',               # "此项目XX"
+        ]
+
+        for pattern in descriptive_patterns:
+            if re.search(pattern, project_name):
+                self.logger.warning(f"项目名称包含描述性词汇（模式: {pattern}）: {project_name}")
+                return False
+
+        # === 文件类型描述检测 ===
+
+        # 6. 检测是否只是文件类型描述
+        file_type_only_patterns = [
+            r'^(招标|磋商|询价|采购)文件$',
+            r'^技术(服务)?规范$',
+            r'^投标须知$',
+            r'^供应商须知$',
+        ]
+
+        for pattern in file_type_only_patterns:
+            if re.match(pattern, project_name):
+                self.logger.warning(f"项目名称只是文件类型描述: {project_name}")
+                return False
+
+        return True
+
+    def _extract_project_name_by_regex(self, text: str) -> Optional[str]:
+        """
+        使用正则表达式提取项目名称（辅助方法）
+
+        Args:
+            text: 文档文本
+
+        Returns:
+            提取的项目名称，如果未找到则返回None
+        """
+        # 正则表达式模式（按优先级排序）
+        patterns = [
+            # 明确的"项目名称："字段
+            r"项目名称[：:]\s*([^\n\r]{5,100})",
+            # "关于XX项目的公告"格式（贪婪匹配，保留"项目"）
+            r"关于[""\"']?(.{5,80}?项目)[""\"']?(?:的|之)",
+            # "XX项目招标/磋商/采购文件"格式
+            r"([^\n\r]{5,80}?)项目.*?(?:招标|磋商|采购)文件",
+            # 标题中的"XX项目"
+            r"^([^\n\r]{5,80}?)项目",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, text, re.MULTILINE)
+            if match:
+                project_name = match.group(1).strip()
+                # 清理项目名称中的特殊字符
+                project_name = re.sub(r'\s+', ' ', project_name)  # 多个空格合并为一个
+
+                # 验证提取的项目名称
+                if self._validate_project_name(project_name):
+                    self.logger.info(f"正则提取到项目名称: {project_name} (模式: {pattern})")
+                    return project_name
+
+        return None
 
     def _get_qualification_keywords(self) -> Dict[str, List[str]]:
         """
@@ -1064,10 +1199,236 @@ class TenderInfoExtractor:
         except Exception as e:
             raise FileProcessingError(f"文本文件读取失败: {str(e)}")
     
-    def extract_basic_info(self, text: str) -> Dict[str, str]:
-        """提取基本项目信息 - 使用提示词管理器"""
+    def extract_chapters_for_basic_info(self, project_id: int) -> str:
+        """
+        根据章节识别结果，智能提取包含基础信息的章节文本
+
+        Args:
+            project_id: 项目ID
+
+        Returns:
+            合并的相关章节文本
+        """
+        try:
+            self.logger.info(f"开始基于章节识别提取项目基础信息文本: project_id={project_id}")
+
+            # 定义包含项目基础信息的章节关键词
+            BASIC_INFO_KEYWORDS = [
+                "项目概况", "项目基本信息", "招标公告", "采购公告",
+                "投标邀请", "竞争性谈判公告", "竞争性磋商公告",
+                "投标须知", "供应商须知", "投标人须知", "响应人须知",
+                "项目简介", "采购需求概况", "项目背景",
+                "单一来源", "询价公告", "谈判邀请", "磋商邀请"
+            ]
+
+            # 1. 查询相关章节
+            query = """
+                SELECT chapter_node_id, title, para_start_idx, para_end_idx, word_count
+                FROM tender_document_chapters
+                WHERE project_id = ?
+                AND level <= 2
+                ORDER BY para_start_idx
+            """
+            chapters = self.db.execute_query(query, [project_id])
+
+            if not chapters:
+                self.logger.warning(f"项目 {project_id} 未找到章节数据，将回退到传统方法")
+                return None
+
+            # ⭐️ 容错处理：二次排序 + 过滤异常章节
+            # 确保章节按段落索引顺序排列（数据库排序可能不可靠）
+            chapters = sorted(chapters, key=lambda ch: ch.get('para_start_idx', 0))
+
+            # 过滤索引异常的章节（para_start_idx >= para_end_idx）
+            valid_chapters = []
+            invalid_count = 0
+            skipped_critical_chapters = []  # 记录被跳过的关键章节
+
+            # 定义关键章节（包含项目基本信息）
+            CRITICAL_CHAPTER_KEYWORDS = ["公告", "邀请", "项目概况", "项目基本信息", "项目简介"]
+
+            for chapter in chapters:
+                start_idx = chapter.get('para_start_idx')
+                end_idx = chapter.get('para_end_idx')
+                title = chapter.get('title', '')
+
+                # 检查索引有效性
+                if end_idx is None or start_idx >= end_idx:
+                    # 检查是否为关键章节
+                    is_critical = any(kw in title for kw in CRITICAL_CHAPTER_KEYWORDS)
+                    if is_critical:
+                        skipped_critical_chapters.append(title)
+
+                    self.logger.warning(
+                        f"⚠️ 跳过异常章节: '{title}' "
+                        f"(索引: {start_idx} >= {end_idx}) "
+                        f"{'【关键章节！】' if is_critical else ''}"
+                    )
+                    invalid_count += 1
+                    continue
+
+                valid_chapters.append(chapter)
+
+            if invalid_count > 0:
+                self.logger.warning(f"共发现 {invalid_count} 个异常章节，已过滤")
+
+            # ⭐️ 关键改进：如果关键章节被跳过，直接返回None触发智能回退
+            if skipped_critical_chapters:
+                self.logger.error(
+                    f"❌ 关键章节被跳过: {skipped_critical_chapters}，"
+                    f"建议使用智能回退读取文档原文"
+                )
+                return None
+
+            if not valid_chapters:
+                self.logger.warning("所有章节数据均异常，回退到传统方法")
+                return None
+
+            # 使用过滤后的有效章节列表
+            chapters = valid_chapters
+            self.logger.info(f"有效章节数量: {len(chapters)}")
+
+            # 2. 根据关键词匹配章节
+            selected_chapters = []
+            for chapter in chapters:
+                title = chapter['title']
+                for keyword in BASIC_INFO_KEYWORDS:
+                    if keyword in title:
+                        selected_chapters.append(chapter)
+                        self.logger.info(f"匹配到相关章节: {title} (关键词: {keyword})")
+                        break
+
+            # 3. 如果没有匹配到，选择前几个章节作为兜底
+            if not selected_chapters:
+                selected_chapters = chapters[:3]  # 默认前3个章节
+                self.logger.info(f"未匹配到特定关键词，使用前 {len(selected_chapters)} 个章节")
+            else:
+                # 最多选择前5个匹配的章节
+                selected_chapters = selected_chapters[:5]
+                self.logger.info(f"共匹配到 {len(selected_chapters)} 个相关章节")
+
+            # 4. 获取文档路径
+            project_data = self.db.execute_query(
+                "SELECT step1_data FROM tender_projects WHERE project_id = ?",
+                [project_id],
+                fetch_one=True
+            )
+
+            if not project_data or not project_data.get('step1_data'):
+                self.logger.warning("无法获取文档路径")
+                return None
+
+            step1_data = json.loads(project_data['step1_data'])
+            doc_path = step1_data.get('file_path')
+
+            if not doc_path or not Path(doc_path).exists():
+                self.logger.warning(f"文档路径无效: {doc_path}")
+                return None
+
+            # 5. 提取章节文本
+            from docx import Document
+            doc = Document(doc_path)
+            paragraphs = [p.text for p in doc.paragraphs]
+
+            chapter_texts = []
+            total_chars = 0
+            MAX_CHARS = 20000  # 最大字符数限制
+
+            for chapter in selected_chapters:
+                start_idx = chapter['para_start_idx']
+                end_idx = chapter['para_end_idx'] or len(paragraphs)
+
+                # 提取章节文本
+                chapter_content = "\n".join(paragraphs[start_idx:end_idx])
+
+                # 检查是否超过限制
+                if total_chars + len(chapter_content) > MAX_CHARS:
+                    self.logger.info(f"已达到字符数限制 ({MAX_CHARS})，停止添加更多章节")
+                    break
+
+                chapter_texts.append(f"【{chapter['title']}】\n{chapter_content}")
+                total_chars += len(chapter_content)
+                self.logger.info(f"提取章节: {chapter['title']} ({len(chapter_content)} 字符)")
+
+            # 6. 合并文本
+            merged_text = "\n\n".join(chapter_texts)
+
+            self.logger.info(f"章节文本提取完成，共 {len(chapter_texts)} 个章节，总计 {len(merged_text)} 字符")
+
+            return merged_text
+
+        except Exception as e:
+            self.logger.warning(f"基于章节提取文本失败: {e}，将回退到传统方法")
+            import traceback
+            self.logger.debug(traceback.format_exc())
+            return None
+
+    def extract_basic_info(self, text: str = None, project_id: int = None) -> Dict[str, str]:
+        """
+        提取基本项目信息 - 使用提示词管理器
+
+        Args:
+            text: 文档全文（向后兼容）
+            project_id: 项目ID（新方法，优先使用章节识别）
+
+        Returns:
+            提取的基础信息字典
+        """
         try:
             self.logger.info("开始提取基本项目信息")
+
+            # 优先使用章节识别方法
+            text_for_extraction = None
+            if project_id:
+                try:
+                    text_for_extraction = self.extract_chapters_for_basic_info(project_id)
+                    if text_for_extraction:
+                        self.logger.info(f"✅ 使用章节识别方法，提取文本长度: {len(text_for_extraction)} 字符")
+                    else:
+                        self.logger.info("章节识别方法未返回文本，回退到传统方法")
+                except Exception as e:
+                    self.logger.warning(f"章节识别方法失败，回退到传统方法: {e}")
+
+            # 回退方案：使用原有的前3000字符方法
+            if not text_for_extraction:
+                if text:
+                    text_for_extraction = text[:3000] + "..." if len(text) > 3000 else text
+                    self.logger.info(f"使用传统方法（前3000字符），实际文本长度: {len(text_for_extraction)} 字符")
+                elif project_id:
+                    # ⭐️ 新增智能回退：当章节提取失败时，直接读取文档前N段
+                    self.logger.warning("章节识别失败，尝试直接读取文档前50段")
+                    try:
+                        # 获取文档路径
+                        project_data = self.db.execute_query(
+                            "SELECT step1_data FROM tender_projects WHERE project_id = ?",
+                            [project_id],
+                            fetch_one=True
+                        )
+
+                        if project_data and project_data.get('step1_data'):
+                            import json
+                            step1_data = json.loads(project_data['step1_data'])
+                            doc_path = step1_data.get('file_path')
+
+                            if doc_path and Path(doc_path).exists():
+                                from docx import Document
+                                doc = Document(doc_path)
+
+                                # 提取前50段（通常包含公告和项目基本信息）
+                                first_paras = [p.text for p in doc.paragraphs[:50]]
+                                text_for_extraction = '\n'.join(first_paras)
+
+                                self.logger.info(f"✅ 直接读取文档前50段，文本长度: {len(text_for_extraction)} 字符")
+                            else:
+                                raise TenderInfoExtractionError("文档路径无效")
+                        else:
+                            raise TenderInfoExtractionError("无法获取文档路径")
+
+                    except Exception as fallback_error:
+                        self.logger.error(f"智能回退失败: {fallback_error}")
+                        raise TenderInfoExtractionError("未提供文本且所有提取方法均失败")
+                else:
+                    raise TenderInfoExtractionError("未提供文本且无法使用章节识别方法")
 
             # 从提示词管理器获取提示词模板
             prompt_template = self.prompt_manager.get_prompt(
@@ -1076,17 +1437,71 @@ class TenderInfoExtractor:
                 default="请从招标文档中提取基本信息并以JSON格式返回。"
             )
 
-            # 使用模板生成提示词
-            prompt = prompt_template.format(text=text[:3000] + "...")
+            # 使用提取的文本生成提示词
+            prompt = prompt_template.format(text=text_for_extraction)
 
             response = self.llm_callback(prompt, "基本信息提取")
 
+            # 添加详细日志记录LLM原始响应
+            self.logger.info(f"LLM原始响应（前500字符）: {response[:500]}")
+
             # 解析JSON响应
             basic_info = self._safe_json_parse(response, "基本信息提取")
+
+            # 记录解析结果
+            self.logger.info(f"JSON解析结果: {basic_info}")
+
             if basic_info:
+                # ===== 项目名称验证和修正逻辑 =====
+                project_name = basic_info.get('project_name')
+
+                if project_name:
+                    # 验证LLM提取的项目名称
+                    if self._validate_project_name(project_name):
+                        self.logger.info(f"✅ LLM提取的项目名称验证通过: {project_name}")
+                    else:
+                        self.logger.warning(f"❌ LLM提取的项目名称验证失败，尝试正则提取: {project_name}")
+                        # 验证失败，尝试使用正则提取
+                        if text_for_extraction:
+                            regex_project_name = self._extract_project_name_by_regex(text_for_extraction)
+                            if regex_project_name:
+                                self.logger.info(f"✅ 正则提取成功，替换项目名称: {regex_project_name}")
+                                basic_info['project_name'] = regex_project_name
+                            else:
+                                self.logger.warning("⚠️ 正则提取也失败，保留原始值但标记为可疑")
+                                # 保留原值但添加警告标记
+                                basic_info['project_name'] = project_name
+                else:
+                    # LLM未提取到项目名称，尝试正则提取
+                    self.logger.warning("LLM未提取到项目名称，尝试正则提取")
+                    if text_for_extraction:
+                        regex_project_name = self._extract_project_name_by_regex(text_for_extraction)
+                        if regex_project_name:
+                            self.logger.info(f"✅ 正则提取成功: {regex_project_name}")
+                            basic_info['project_name'] = regex_project_name
+                        else:
+                            self.logger.warning("⚠️ 正则提取也失败，项目名称为None")
+                            basic_info['project_name'] = None
+
+                # 确保返回的字典包含所有期望的字段
                 return basic_info
             else:
-                return {}
+                self.logger.warning("JSON解析失败或返回空字典，返回默认结构")
+                # 返回包含所有期望字段的默认结构，值为None
+                return {
+                    "project_name": None,
+                    "project_number": None,
+                    "tender_party": None,
+                    "tender_agent": None,
+                    "tender_method": None,
+                    "tender_location": None,
+                    "tender_deadline": None,
+                    "winner_count": None,
+                    "tenderer_contact_person": None,
+                    "tenderer_contact_method": None,
+                    "agency_contact_person": None,
+                    "agency_contact_method": None
+                }
 
         except Exception as e:
             self.logger.error(f"提取基本信息失败: {e}")
@@ -1403,8 +1818,11 @@ class TenderInfoExtractor:
                         project_name, project_number, tenderer, agency, bidding_method,
                         bidding_location, bidding_time, winner_count, tender_document_path,
                         original_filename, file_size, file_hash, extraction_time,
-                        extraction_summary, total_score, items_count, status, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'analyzed', ?)
+                        extraction_summary, total_score, items_count,
+                        tenderer_contact_person, tenderer_contact_method,
+                        agency_contact_person, agency_contact_method,
+                        status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'analyzed', ?)
                 """
 
                 project_params = (
@@ -1424,6 +1842,10 @@ class TenderInfoExtractor:
                     data.get('extraction_summary', ''),
                     data.get('total_score', ''),
                     data.get('items_count', 0),
+                    data.get('tenderer_contact_person', ''),
+                    data.get('tenderer_contact_method', ''),
+                    data.get('agency_contact_person', ''),
+                    data.get('agency_contact_method', ''),
                     datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 )
 
@@ -1512,7 +1934,9 @@ class TenderInfoExtractor:
             config['PROJECT_INFO'] = {}
             for key in ['project_name', 'project_number', 'extraction_time',
                        'tenderer', 'agency', 'bidding_method', 'bidding_location',
-                       'bidding_time', 'winner_count']:
+                       'bidding_time', 'winner_count',
+                       'tenderer_contact_person', 'tenderer_contact_method',
+                       'agency_contact_person', 'agency_contact_method']:
                 if key in data:
                     config['PROJECT_INFO'][key] = str(data[key])
 

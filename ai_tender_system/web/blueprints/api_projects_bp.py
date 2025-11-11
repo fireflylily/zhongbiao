@@ -82,9 +82,37 @@ def get_tender_projects():
 
         # 字段映射：将 project_id 映射为 id（符合前端 Project 接口）
         if projects:
+            import json
             for project in projects:
                 if 'project_id' in project:
                     project['id'] = project['project_id']
+                    del project['project_id']  # 删除重复字段，避免混淆
+
+                # 解析 step1_data JSON 并提取文档状态信息
+                step1_data_raw = project.get('step1_data')
+                if step1_data_raw:
+                    try:
+                        step1_data = json.loads(step1_data_raw) if isinstance(step1_data_raw, str) else step1_data_raw
+
+                        # 提取文档状态信息作为顶层字段，供前端判断
+                        if isinstance(step1_data, dict):
+                            # 商务应答文件
+                            if 'business_response_file' in step1_data:
+                                project['business_response_file'] = step1_data['business_response_file']
+
+                            # 技术方案文件
+                            if 'technical_proposal_file' in step1_data:
+                                project['tech_proposal_file'] = step1_data['technical_proposal_file']
+
+                            # 点对点应答文件
+                            if 'technical_point_to_point_file' in step1_data:
+                                project['point_to_point_file'] = step1_data['technical_point_to_point_file']
+
+                            # 最终融合文件
+                            if 'final_merge_file' in step1_data:
+                                project['final_merge_file'] = step1_data['final_merge_file']
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"解析项目 {project.get('project_id')} 的 step1_data 失败: {e}")
 
         # 返回符合前端期望的格式
         return jsonify({
@@ -265,64 +293,68 @@ def get_tender_project(project_id):
                         # 如果解析失败，保持原值
                         pass
 
-            # 如果存在HITL任务，加载章节数据
-            if project_data.get('step1_data'):
-                try:
-                    # 从tender_document_chapters表查询章节
-                    chapters_query = """
-                        SELECT
-                            chapter_id,
-                            chapter_node_id,
-                            level,
-                            title,
-                            para_start_idx,
-                            para_end_idx,
-                            word_count,
-                            preview_text,
-                            is_selected,
-                            auto_selected,
-                            skip_recommended,
-                            parent_chapter_id
-                        FROM tender_document_chapters
-                        WHERE project_id = ?
-                        ORDER BY para_start_idx ASC
-                    """
-                    chapters_raw = kb_manager.db.execute_query(chapters_query, [project_id])
+            # 确保step1_data至少是一个空字典（为后续章节数据提供容器）
+            if not project_data.get('step1_data') or not isinstance(project_data.get('step1_data'), dict):
+                project_data['step1_data'] = {}
 
-                    if chapters_raw:
-                        # 转换为前端期望的格式
-                        chapters_flat = []
-                        for ch in chapters_raw:
-                            chapter_dict = {
-                                'id': ch['chapter_node_id'],
-                                'chapter_id': ch['chapter_id'],
-                                'level': ch['level'],
-                                'title': ch['title'],
-                                'para_start_idx': ch['para_start_idx'],
-                                'para_end_idx': ch['para_end_idx'],
-                                'word_count': ch['word_count'] or 0,
-                                'preview_text': ch.get('preview_text', ''),
-                                'auto_selected': bool(ch.get('auto_selected', 0)),
-                                'skip_recommended': bool(ch.get('skip_recommended', 0)),
-                                'parent_chapter_id': ch.get('parent_chapter_id'),
-                                'chapter_node_id': ch['chapter_node_id']
-                            }
-                            chapters_flat.append(chapter_dict)
+            # 无条件加载章节数据（章节数据存储在独立的表中，不依赖step1_data）
+            try:
+                # 从tender_document_chapters表查询章节
+                chapters_query = """
+                    SELECT
+                        chapter_id,
+                        chapter_node_id,
+                        level,
+                        title,
+                        para_start_idx,
+                        para_end_idx,
+                        word_count,
+                        preview_text,
+                        is_selected,
+                        auto_selected,
+                        skip_recommended,
+                        parent_chapter_id
+                    FROM tender_document_chapters
+                    WHERE project_id = ?
+                    ORDER BY para_start_idx ASC
+                """
+                chapters_raw = kb_manager.db.execute_query(chapters_query, [project_id])
 
-                        # 构建章节树
-                        chapter_tree = _build_chapter_tree(chapters_flat)
+                if chapters_raw:
+                    # 转换为前端期望的格式
+                    chapters_flat = []
+                    for ch in chapters_raw:
+                        chapter_dict = {
+                            'id': ch['chapter_node_id'],
+                            'chapter_id': ch['chapter_id'],
+                            'level': ch['level'],
+                            'title': ch['title'],
+                            'para_start_idx': ch['para_start_idx'],
+                            'para_end_idx': ch['para_end_idx'],
+                            'word_count': ch['word_count'] or 0,
+                            'preview_text': ch.get('preview_text', ''),
+                            'auto_selected': bool(ch.get('auto_selected', 0)),
+                            'skip_recommended': bool(ch.get('skip_recommended', 0)),
+                            'parent_chapter_id': ch.get('parent_chapter_id'),
+                            'chapter_node_id': ch['chapter_node_id']
+                        }
+                        chapters_flat.append(chapter_dict)
 
-                        # 确保step1_data是字典
-                        if not isinstance(project_data['step1_data'], dict):
-                            project_data['step1_data'] = {}
+                    # 构建章节树
+                    chapter_tree = _build_chapter_tree(chapters_flat)
 
-                        # 将章节数据添加到step1_data
-                        project_data['step1_data']['chapters'] = chapter_tree
+                    # 将章节数据添加到step1_data
+                    project_data['step1_data']['chapters'] = chapter_tree
 
-                        logger.info(f"为项目 {project_id} 加载了 {len(chapters_flat)} 个章节")
-                except Exception as e:
-                    logger.error(f"加载章节数据失败: {e}")
-                    # 不中断流程，继续返回项目数据
+                    logger.info(f"为项目 {project_id} 加载了 {len(chapters_flat)} 个章节")
+            except Exception as e:
+                logger.error(f"加载章节数据失败: {e}")
+                # 不中断流程，继续返回项目数据
+
+            # 字段映射：将 project_id 映射为 id（与列表API保持一致）
+            if 'project_id' in project_data:
+                project_data['id'] = project_data['project_id']
+                del project_data['project_id']  # 删除重复字段，避免混淆
 
             return jsonify({
                 'success': True,
@@ -348,6 +380,45 @@ def update_tender_project(project_id):
         import json
         data = request.get_json()
 
+        # 【新增】检查唯一性约束：如果更新了 company_id, project_name, project_number
+        # 确保更新后的组合不与其他项目（不包括当前项目）重复
+        if any(key in data for key in ['company_id', 'project_name', 'project_number']):
+            # 获取当前项目的信息
+            current_query = "SELECT company_id, project_name, project_number FROM tender_projects WHERE project_id = ?"
+            current = kb_manager.db.execute_query(current_query, [project_id], fetch_one=True)
+
+            if current:
+                # 确定更新后的值（使用请求中的新值或保持原值）
+                check_company_id = data.get('company_id', current['company_id'])
+                check_project_name = data.get('project_name', current['project_name'])
+                check_project_number = data.get('project_number', current['project_number'])
+
+                # 检查是否与其他项目冲突（排除当前项目本身）
+                check_query = """
+                    SELECT project_id, project_name FROM tender_projects
+                    WHERE company_id = ?
+                      AND project_name = ?
+                      AND project_number = ?
+                      AND project_id != ?
+                """
+                conflict = kb_manager.db.execute_query(
+                    check_query,
+                    [check_company_id, check_project_name, check_project_number, project_id],
+                    fetch_one=True
+                )
+
+                if conflict:
+                    logger.warning(f"项目更新失败：与项目ID {conflict['project_id']} 重复")
+                    return jsonify({
+                        'success': False,
+                        'message': f'项目名称"{check_project_name}"和编号"{check_project_number}"的组合已被使用，请使用不同的名称或编号',
+                        'code': 200,
+                        'details': {
+                            'conflict_project_id': conflict['project_id'],
+                            'conflict_project_name': conflict['project_name']
+                        }
+                    })
+
         # 定义可更新的字段映射（数据库字段名 -> 请求字段名）
         field_mapping = {
             'project_name': 'project_name',
@@ -367,7 +438,16 @@ def update_tender_project(project_id):
             'status': 'status',
             'qualifications_data': 'qualifications_data',
             'scoring_data': 'scoring_data',
-            'technical_data': 'technical_data'
+            'technical_data': 'technical_data',
+            # 保留的新增字段
+            'budget_amount': 'budget_amount',
+            'business_contact_name': 'business_contact_name',
+            'business_contact_phone': 'business_contact_phone',
+            # 联系人信息字段
+            'tenderer_contact_person': 'tenderer_contact_person',
+            'tenderer_contact_method': 'tenderer_contact_method',
+            'agency_contact_person': 'agency_contact_person',
+            'agency_contact_method': 'agency_contact_method'
         }
 
         # 构建动态更新语句
@@ -419,6 +499,14 @@ def update_tender_project(project_id):
         })
     except Exception as e:
         logger.error(f"更新项目失败: {e}")
+        # 检查是否是UNIQUE约束错误
+        error_msg = str(e)
+        if 'UNIQUE constraint failed' in error_msg:
+            return jsonify({
+                'success': False,
+                'message': '项目名称和编号的组合已被使用，请使用不同的名称或编号',
+                'code': 200
+            })
         return jsonify({
             'success': False,
             'message': str(e)

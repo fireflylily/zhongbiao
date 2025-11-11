@@ -53,7 +53,7 @@
               drag
               :auto-upload="false"
               :limit="1"
-              accept=".doc,.docx"
+              accept=".docx"
               :on-change="handleFileChange"
               :on-remove="handleFileRemove"
               :file-list="fileList"
@@ -64,7 +64,11 @@
               </div>
               <template #tip>
                 <div class="el-upload__tip">
-                  支持 .doc 和 .docx 格式，文件大小不超过 50MB（可选上传，用于辅助解析）
+                  <div>推荐使用 <strong>.docx</strong> 格式（兼容性更好），文件大小不超过 50MB</div>
+                  <div class="text-warning" style="font-size: 12px; margin-top: 4px;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    注意：旧版 .doc 格式暂不支持章节解析，请先转换为 .docx
+                  </div>
                 </div>
               </template>
             </el-upload>
@@ -195,7 +199,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import ChapterTree from './ChapterTree.vue'
 import { tenderApi } from '@/api/endpoints/tender'
@@ -331,7 +335,28 @@ const handleParse = async () => {
     }
   } catch (error) {
     console.error('文档解析失败:', error)
-    ElMessage.error(`解析失败: ${error instanceof Error ? error.message : '未知错误'}`)
+
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
+
+    // ⭐️ 特殊处理：.doc 格式不支持的错误
+    if (errorMessage.includes('.doc') || errorMessage.includes('另存为') || errorMessage.includes('docx')) {
+      // 使用 MessageBox 显示详细的转换引导
+      ElMessageBox.alert(
+        errorMessage,
+        '不支持 .doc 格式',
+        {
+          confirmButtonText: '我知道了',
+          type: 'warning',
+          dangerouslyUseHTMLString: false,
+          customStyle: {
+            width: '500px'
+          }
+        }
+      )
+    } else {
+      // 其他错误使用普通提示
+      ElMessage.error(`解析失败: ${errorMessage}`)
+    }
   } finally {
     parsing.value = false
   }
@@ -407,7 +432,7 @@ const handleSaveAsResponse = async () => {
     // 调用API保存
     await tenderApi.saveResponseFile(props.projectId, selectedChapterIds.value)
 
-    ElMessage.success('应答文件保存成功')
+    // 不在这里显示成功提示，由父组件统一处理
     emit('success', 'response')
     emit('refresh')
   } catch (error) {
@@ -431,7 +456,7 @@ const handleSaveAsTechnical = async () => {
     // 调用API保存
     await tenderApi.saveTechnicalChapters(props.projectId, selectedChapterIds.value)
 
-    ElMessage.success('技术需求保存成功')
+    // 不在这里显示成功提示，由父组件统一处理
     emit('success', 'technical')
     emit('refresh')
   } catch (error) {

@@ -35,6 +35,7 @@ class ChapterNode:
     auto_selected: bool          # 是否自动选中（白名单匹配）
     skip_recommended: bool       # 是否推荐跳过（黑名单匹配）
     content_tags: List[str] = None  # 内容标签（基于内容关键词检测）
+    content_sample: str = None   # 内容样本（用于合同识别，1500-2000字）
     children: List['ChapterNode'] = None  # 子章节列表
 
     def __post_init__(self):
@@ -166,6 +167,20 @@ class DocumentStructureParser:
         """
         try:
             self.logger.info(f"开始解析文档结构: {doc_path}")
+
+            # ⭐️ 文件格式检测：不支持旧版.doc格式
+            if doc_path.lower().endswith('.doc'):
+                error_message = (
+                    "暂不支持旧版 .doc 格式文档的章节解析。\n\n"
+                    "请按以下步骤操作：\n"
+                    "1. 使用 Microsoft Word 或 WPS Office 打开该文件\n"
+                    '2. 点击"文件" → "另存为"\n'
+                    '3. 在"保存类型"中选择 "Word 文档 (*.docx)"\n'
+                    "4. 保存后重新上传 .docx 文件\n\n"
+                    "提示：.docx 格式兼容性更好，推荐使用。"
+                )
+                self.logger.error(f".doc 文件不支持: {doc_path}")
+                raise ValueError(error_message)
 
             # 打开文档
             doc = Document(doc_path)
@@ -519,6 +534,126 @@ class DocumentStructureParser:
 
         return False
 
+    def _calculate_contract_density(self, text: str) -> float:
+        """
+        计算文本的合同密度（合同特征词出现频率）
+
+        Args:
+            text: 待分析的文本内容
+
+        Returns:
+            合同密度（0-1之间的浮点数）
+        """
+        if not text or len(text) < 100:  # 文本太短，无法判断
+            return 0.0
+
+        # 定义合同特征词及其权重
+        contract_keywords = {
+            # 强合同特征（权重 x3）
+            '甲方': 3, '乙方': 3, '丙方': 3,
+            # 中等合同特征（权重 x2）
+            '违约金': 2, '违约责任': 2, '履约保证金': 2, '本合同': 2,
+            '合同生效': 2, '合同终止': 2, '合同解除': 2,
+            # 弱合同特征（权重 x1）
+            '付款': 1, '验收': 1, '保密': 1, '争议': 1,
+            '仲裁': 1, '管辖': 1, '双方': 1, '签订': 1
+        }
+
+        # 计算加权出现次数
+        total_weight = 0
+        for keyword, weight in contract_keywords.items():
+            count = text.count(keyword)
+            total_weight += count * weight
+
+        # 计算密度（每1000字符的加权关键词出现次数）
+        text_length = len(text)
+        density = (total_weight / text_length) * 1000
+
+        # 归一化到0-1之间（假设密度>50就是100%的合同）
+        normalized_density = min(density / 50.0, 1.0)
+
+        return normalized_density
+
+    def _is_contract_chapter(self, title: str, content_sample: str = None) -> tuple:
+        """
+        判断章节是否为合同章节（结合标题和内容特征）
+
+        Args:
+            title: 章节标题
+            content_sample: 章节内容样本（可选）
+
+        Returns:
+            (is_contract, density, reason): 是否为合同章节、合同密度、判断理由
+        """
+        # 1. 基于标题的强合同标识（保留原有逻辑）
+        strong_contract_keywords = [
+            "合同条款", "合同文本", "合同范本", "合同格式", "合同协议",
+            "通用条款", "专用条款", "合同主要条款", "合同草稿", "拟签合同",
+            "服务合同", "采购合同", "买卖合同", "销售合同", "施工合同",
+            "分包合同", "劳务合同", "租赁合同", "委托合同", "代理合同",
+        ]
+
+        for keyword in strong_contract_keywords:
+            if keyword in title:
+                return (True, 1.0, f"标题强匹配: '{keyword}'")
+
+        # 2. 基于内容的合同密度检测（核心新增功能）
+        if content_sample:
+            density = self._calculate_contract_density(content_sample)
+
+            # 阈值：密度 > 5% 认为是合同章节
+            if density > 0.05:
+                return (True, density, f"内容密度: {density:.1%}")
+
+        # 3. 弱合同标识（标题模糊但可能是合同）
+        weak_contract_patterns = [
+            r'(第[一二三四五六七八九十\d]+部分|附件\d*)[^\u4e00-\u9fa5]*(协议|条款|权利|义务)',
+            r'双方.*权利.*义务',
+            r'甲.*乙.*方',
+        ]
+
+        import re
+        for pattern in weak_contract_patterns:
+            if re.search(pattern, title):
+                # 如果有内容样本，进一步验证
+                if content_sample:
+                    density = self._calculate_contract_density(content_sample)
+                    if density > 0.03:  # 降低阈值到3%
+                        return (True, density, f"标题弱匹配+内容验证: {density:.1%}")
+
+        return (False, 0.0, "非合同章节")
+
+    def _extract_content_sample(self, doc: Document, para_start_idx: int, para_end_idx: int, sample_size: int = 2000) -> str:
+        """
+        提取章节内容样本（用于合同识别）
+
+        Args:
+            doc: Word文档对象
+            para_start_idx: 起始段落索引
+            para_end_idx: 结束段落索引
+            sample_size: 样本大小（字符数）
+
+        Returns:
+            内容样本字符串
+        """
+        if para_end_idx is None or para_end_idx <= para_start_idx:
+            return ""
+
+        # 提取章节内容（跳过标题本身）
+        content_paras = doc.paragraphs[para_start_idx + 1 : para_end_idx + 1]
+
+        # 合并文本
+        sample_text = ""
+        for para in content_paras:
+            text = para.text.strip()
+            if text:
+                sample_text += text + "\n"
+                if len(sample_text) >= sample_size:
+                    break
+
+        # 截取指定长度
+        return sample_text[:sample_size]
+
     def _calculate_dynamic_threshold(self, toc_items_count: int, doc_paragraph_count: int) -> float:
         """
         根据文档特征动态计算相似度阈值
@@ -647,6 +782,9 @@ class DocumentStructureParser:
         consecutive_non_toc = 0  # 连续非目录项计数
         toc_end_idx = toc_start_idx  # 目录结束位置
 
+        # ⭐️ 目录项数量限制（避免扫描过远）
+        MAX_TOC_ITEMS = 20
+
         for i in range(toc_start_idx + 1, min(toc_start_idx + 100, len(doc.paragraphs))):
             para = doc.paragraphs[i]
             text = para.text.strip()
@@ -669,6 +807,16 @@ class DocumentStructureParser:
                 title = match.group(1).strip()
                 page_num = int(match.group(2))
 
+                # ⭐️ 重复检测：如果与第一项重复，说明扫描到正文了
+                if toc_items and title == toc_items[0]['title']:
+                    self.logger.info(f"检测到重复目录项（与第1项相同），目录解析结束")
+                    break
+
+                # ⭐️ 数量限制检查
+                if len(toc_items) >= MAX_TOC_ITEMS:
+                    self.logger.info(f"目录项已达上限({MAX_TOC_ITEMS})，停止解析")
+                    break
+
                 # 检测层级
                 level = self._detect_toc_level(para, title)
 
@@ -685,11 +833,56 @@ class DocumentStructureParser:
                 # 重置计数
                 consecutive_non_toc = 0
             else:
+                # 新增：尝试识别无页码的简单目录项
+                # 特征1：有统一缩进（目录项通常缩进对齐）
+                has_indent = (para.paragraph_format.left_indent and
+                              para.paragraph_format.left_indent > 200000)
+
+                # 特征2：匹配章节模式
+                is_chapter_pattern = (
+                    re.match(r'^第[一二三四五六七八九十\d]+章', text) or
+                    re.match(r'^第[一二三四五六七八九十\d]+部分', text) or
+                    text in ['竞争性磋商公告', '招标公告', '采购公告', '谈判公告', '询价公告']
+                )
+
+                # 如果满足条件，作为无页码目录项
+                if (has_indent or is_chapter_pattern) and len(text) < 50 and not text.startswith('项目'):
+                    title = text.strip()
+
+                    # ⭐️ 重复检测：如果与第一项重复，说明扫描到正文了
+                    if toc_items and title == toc_items[0]['title']:
+                        self.logger.info(f"检测到重复目录项（与第1项相同），目录解析结束")
+                        break
+
+                    # ⭐️ 数量限制检查
+                    if len(toc_items) >= MAX_TOC_ITEMS:
+                        self.logger.info(f"目录项已达上限({MAX_TOC_ITEMS})，停止解析")
+                        break
+
+                    page_num = -1  # 标记为无页码
+                    level = self._detect_toc_level(para, title)
+
+                    toc_items.append({
+                        'title': title,
+                        'page_num': page_num,
+                        'level': level
+                    })
+
+                    self.logger.debug(f"目录项(无页码) [{level}级]: {title}")
+                    toc_end_idx = i
+                    consecutive_non_toc = 0
+                    continue  # 成功识别，继续下一个
+
                 # 非目录项
                 consecutive_non_toc += 1
                 # 连续5行不匹配，认为目录结束
                 if consecutive_non_toc >= 5 and len(toc_items) > 0:
                     self.logger.info(f"目录解析完成，共 {len(toc_items)} 项，结束于段落 {toc_end_idx}")
+                    break
+                # 新增：如果找到了目录项但遇到空行后的Heading样式，认为目录结束
+                if (len(toc_items) > 0 and consecutive_non_toc >= 2 and
+                    para.style and para.style.name.startswith('Heading')):
+                    self.logger.info(f"检测到Heading样式，目录结束于段落 {toc_end_idx}")
                     break
 
         # 改进3：确保 toc_end_idx 严格大于 toc_start_idx
@@ -1208,15 +1401,20 @@ class DocumentStructureParser:
         Returns:
             更新后的章节列表（包含 para_end_idx、word_count、preview_text）
         """
+        # ⭐️ 关键修复：按段落索引排序，确保章节顺序与文档物理顺序一致
+        # 防止索引倒置问题（如 para_start_idx=542 > para_end_idx=62）
+        chapters_sorted = sorted(chapters, key=lambda ch: ch.para_start_idx)
+        self.logger.info(f"章节已按段落索引排序，共 {len(chapters_sorted)} 个章节")
+
         total_paras = len(doc.paragraphs)
 
-        for i, chapter in enumerate(chapters):
+        for i, chapter in enumerate(chapters_sorted):
             # 确定章节结束位置（下一个同级或更高级标题的前一个段落）
             next_start = total_paras  # 默认到文档末尾
 
-            for j in range(i + 1, len(chapters)):
-                if chapters[j].level <= chapter.level:
-                    next_start = chapters[j].para_start_idx
+            for j in range(i + 1, len(chapters_sorted)):
+                if chapters_sorted[j].level <= chapter.level:
+                    next_start = chapters_sorted[j].para_start_idx
                     break
 
             chapter.para_end_idx = next_start - 1
@@ -1230,7 +1428,32 @@ class DocumentStructureParser:
             chapter.word_count = len(content_text.replace(' ', '').replace('\n', ''))
             chapter.preview_text = preview_text if preview_text else "(无内容)"
 
-        return chapters
+            # 【新增】对于level 1-2的章节，提取内容样本并进行合同识别
+            if chapter.level <= 2:
+                # 提取内容样本用于合同识别
+                chapter.content_sample = self._extract_content_sample(
+                    doc, chapter.para_start_idx, chapter.para_end_idx, sample_size=2000
+                )
+
+                # 基于内容进行合同识别
+                is_contract, density, reason = self._is_contract_chapter(
+                    chapter.title, chapter.content_sample
+                )
+
+                if is_contract:
+                    # 更新skip_recommended标记
+                    if not chapter.skip_recommended:  # 避免重复标记
+                        chapter.skip_recommended = True
+                        chapter.auto_selected = False
+                        self.logger.info(
+                            f"  ✓ 合同章节识别: '{chapter.title}' - {reason}"
+                        )
+                    else:
+                        self.logger.debug(
+                            f"  ✓ 合同章节已标记: '{chapter.title}' - {reason}"
+                        )
+
+        return chapters_sorted
 
     def _extract_chapter_content_with_tables(self, doc: Document, para_start_idx: int, para_end_idx: int) -> tuple:
         """
@@ -1944,55 +2167,30 @@ class DocumentStructureParser:
 
     def _calculate_content_start_idx(self, doc: Document, toc_end_idx: int, toc_items_count: int) -> int:
         """
-        智能计算正文起始位置（改进1：增强目录后过滤机制）
+        计算正文起始位置（简化版：直接从目录结束后开始）
 
         策略：
-        1. 基础跳过：50段（覆盖大多数目录页）
-        2. 动态跳过：目录项数量 × 2（每个目录项可能占1-2行）
-        3. 安全余量：+10段缓冲
-        4. 智能检测：扫描前100段，寻找第一个真实章节标题（"第X部分"或"一、"等）
+        目录已通过重复检测正确结束，直接从目录结束位置的下一段开始搜索即可
 
         Args:
             doc: Word文档对象
             toc_end_idx: 目录结束段落索引
-            toc_items_count: 目录项数量
+            toc_items_count: 目录项数量（保留参数以兼容调用）
 
         Returns:
             正文起始段落索引
         """
-        base_skip = 50
-        dynamic_skip = toc_items_count * 2
-        safety_margin = 10
-        min_start = toc_end_idx + max(base_skip, dynamic_skip) + safety_margin
+        # ⭐️ 最简单策略：目录结束后直接开始搜索
+        # 理由：
+        # 1. 目录重复检测已确保目录正确结束
+        # 2. 目录后可能只有分页符或几行空白
+        # 3. 跳过太多段会错过真实章节（如"竞争性磋商公告"）
+        min_start = toc_end_idx + 1
 
-        self.logger.info(f"计算正文起始位置: 目录结束于段落{toc_end_idx}, 基准起点段落{min_start}")
+        self.logger.info(f"正文起始位置: 目录结束于段落{toc_end_idx}, 从段落{min_start}开始搜索")
 
-        # 智能检测：在基准位置之后扫描，寻找第一个真实的章节标题
-        # 这可以避免匹配到"招标文件构成"等元数据章节
-        for i in range(min_start, min(min_start + 100, len(doc.paragraphs))):
-            para_text = doc.paragraphs[i].text.strip()
-
-            if not para_text or len(para_text) > 100:  # 跳过空行和过长段落
-                continue
-
-            # 检测是否为真实的章节起始标题
-            # 匹配"第X部分"、"一、"、"1."等一级章节标题格式
-            is_chapter_title = (
-                re.match(r'^第[一二三四五六七八九十\d]+部分', para_text) or
-                re.match(r'^第[一二三四五六七八九十\d]+章', para_text) or
-                re.match(r'^[一二三四五六七八九十]+、\s*.{3,30}$', para_text) or  # 一、XXX（标题长度3-30字）
-                re.match(r'^\d+\.\s+.{3,30}$', para_text) or  # 1. XXX
-                re.match(r'^\d+\s+.{3,30}$', para_text)  # 1 XXX（无点号）
-            )
-
-            if is_chapter_title:
-                # 验证：确保不是"招标文件构成"这类元数据标题
-                if not self._is_metadata_section_title(para_text):
-                    self.logger.info(f"  ✓ 智能检测到第一个真实章节标题: 段落{i} '{para_text}'")
-                    return i
-
-        # 如果未找到明确的章节标题，返回基准位置
-        self.logger.info(f"  ⚠ 未检测到明确章节标题，使用基准起点: 段落{min_start}")
+        # 直接返回min_start，让语义锚点算法自己去找章节
+        # 不再做复杂的智能检测，避免跳过真实章节
         return min_start
 
     def _is_metadata_section_title(self, title: str) -> bool:
@@ -2048,6 +2246,9 @@ class DocumentStructureParser:
         1. 段落文本匹配某个目录项
         2. 前后段落也是连续的章节标题
         3. 章节标题之间无内容或只有极少内容
+        4. 前置段落包含"由...组成"、"文件构成"等关键词
+
+        Bug修复: 需要同时满足"有关键词"和"连续标题"两个条件，避免误判真实章节
 
         Args:
             doc: Word文档对象
@@ -2057,28 +2258,79 @@ class DocumentStructureParser:
         Returns:
             是否为文件构成部分
         """
-        # 检查当前段落及前后5个段落
+        # 方法1: 检查前置段落是否包含"文件构成"相关关键词
+        composition_keywords = [
+            '由下述部分组成', '由以下部分组成', '文件构成', '包括以下部分',
+            '包括下列部分', '由下列部分组成', '文件包括', '文件由',
+            '由以下文件组成', '包含以下文件', '谈判文件'
+        ]
+
+        has_composition_keyword = False
+        # 检查前5个段落（扩大范围）
+        for i in range(max(0, para_idx - 5), para_idx):
+            prev_text = doc.paragraphs[i].text.strip()
+            if any(keyword in prev_text for keyword in composition_keywords):
+                self.logger.debug(f"检测到文件构成关键词: 段落{i} 含 '{prev_text[:50]}'")
+                has_composition_keyword = True
+                break
+
+        # 方法2: 检查当前段落及前后区域是否有连续的章节标题且之间无内容
         check_range = 5
         consecutive_titles = 0
+        title_positions = []  # 记录标题位置
 
         for i in range(max(0, para_idx - check_range), min(len(doc.paragraphs), para_idx + check_range + 1)):
             para_text = doc.paragraphs[i].text.strip()
 
-            # 检查是否为章节标题格式
+            # 检查是否为章节标题格式（扩展：包含数字列表格式）
             is_chapter_title = bool(
                 re.match(r'^第[一二三四五六七八九十\d]+部分', para_text) or
-                re.match(r'^第[一二三四五六七八九十\d]+章', para_text)
+                re.match(r'^第[一二三四五六七八九十\d]+章', para_text) or
+                re.match(r'^\d+[\.\、][\u4e00-\u9fa5]{3,20}$', para_text)  # 匹配 "1.xxx" 或 "2、xxx" 格式
             )
 
             if is_chapter_title:
                 consecutive_titles += 1
+                title_positions.append(i)
 
-        # 如果周围有3个以上的章节标题（包括自己），很可能是文件构成
-        if consecutive_titles >= 3:
-            self.logger.debug(f"检测到疑似文件构成: 段落{para_idx}周围有{consecutive_titles}个连续章节标题")
-            return True
+        # 方法3: 检查标题之间是否有实质内容
+        has_content_between_titles = False
+        if len(title_positions) >= 2:
+            # 检查任意两个相邻标题之间的段落
+            for j in range(len(title_positions) - 1):
+                start_pos = title_positions[j]
+                end_pos = title_positions[j + 1]
 
-        return False
+                # 计算之间的内容字数
+                content_chars = 0
+                for k in range(start_pos + 1, end_pos):
+                    content_chars += len(doc.paragraphs[k].text.strip())
+
+                # 如果任意两个标题之间有超过100字的内容，说明不是文件构成列表
+                if content_chars > 100:
+                    has_content_between_titles = True
+                    self.logger.debug(f"检测到标题间有实质内容: 段落{start_pos}-{end_pos}之间有{content_chars}字")
+                    break
+
+        # 判断逻辑：需要同时满足以下条件才判定为文件构成
+        # 1. 有"文件构成"关键词 AND
+        # 2. 有3个以上连续标题 AND
+        # 3. 标题之间没有实质内容
+        is_composition = (
+            has_composition_keyword and
+            consecutive_titles >= 3 and
+            not has_content_between_titles
+        )
+
+        if is_composition:
+            self.logger.debug(
+                f"确认为文件构成: 段落{para_idx}, "
+                f"有关键词={has_composition_keyword}, "
+                f"连续标题={consecutive_titles}, "
+                f"无实质内容={not has_content_between_titles}"
+            )
+
+        return is_composition
 
     def _parse_chapters_by_semantic_anchors(self, doc: Document, toc_targets: List[str], toc_end_idx: int = 0) -> List[ChapterNode]:
         """
@@ -2115,22 +2367,27 @@ class DocumentStructureParser:
             best_score = 0.0
             best_para_text = None
 
-            # 从上一个找到的位置之后开始搜索，但至少从 min_search_start 开始
+            # 统一搜索策略：所有章节从目录结束后或上一个位置开始搜索
             search_start = max(last_found_idx, min_search_start)
-            self.logger.info(f"  搜索范围: 段落 {search_start} - {len(doc.paragraphs)}")
+            search_end = len(doc.paragraphs)
+            self.logger.info(f"  搜索范围: 段落 {search_start} - {search_end}")
 
-            # 从上一个找到的位置之后开始搜索
-            # 优先级：有"第X部分"的段落 > 高相似度段落
-            best_with_part = None  # 有"第X部分"编号的最佳匹配
-            best_without_part = None  # 没有"第X部分"的最佳匹配
+            # ⭐️ 改进：收集所有符合阈值的候选，而不是只记录最佳
+            # 这样可以在最佳候选是"文件构成"时，使用次优候选
+            all_candidates = []  # 所有符合阈值的候选
 
-            for para_idx in range(search_start, len(doc.paragraphs)):
+            for para_idx in range(search_start, search_end):
                 paragraph = doc.paragraphs[para_idx]
                 para_text = paragraph.text.strip()
 
                 # 跳过空行或太长的段落
                 if not para_text or len(para_text) > 100:
                     continue
+
+                # ⭐️ 跳过模板占位符文本（如"（项目名称）"、"（采购编号）"）
+                template_placeholders = ['（项目名称）', '（采购编号）', '（供应商名称）', '（姓名、职务）']
+                if any(placeholder in para_text for placeholder in template_placeholders):
+                    continue  # 这是模板示例文字，不是真实章节标题
 
                 # 移除编号
                 clean_para, para_level = self.remove_leading_patterns(para_text)
@@ -2142,39 +2399,55 @@ class DocumentStructureParser:
                 # 检查是否有"第X部分"编号
                 has_part_number = bool(re.match(r'^第[一二三四五六七八九十\d]+部分', para_text))
 
-                # 记录候选 (使用动态阈值)
-                if score >= dynamic_threshold:
-                    if has_part_number:
-                        # 有编号的候选
-                        if best_with_part is None or score > best_with_part[0]:
-                            best_with_part = (score, para_idx, para_text)
-                    else:
-                        # 无编号的候选
-                        if best_without_part is None or score > best_without_part[0]:
-                            best_without_part = (score, para_idx, para_text)
+                # 检查是否为数字列表格式（如 "1.xxx" 或 "2、xxx"）
+                is_numbered_list = bool(re.match(r'^\d+[\.\、][\u4e00-\u9fa5]{3,20}$', para_text))
+
+                # 收集所有符合阈值的候选
+                if score >= dynamic_threshold and not is_numbered_list:
+                    # 优先级权重：有"第X部分"的加0.05
+                    priority_score = score + (0.05 if has_part_number else 0)
+                    all_candidates.append((priority_score, score, para_idx, para_text, has_part_number))
 
                 # 限制搜索范围：最多向后搜索800段（覆盖大部分标书）
                 if para_idx - search_start > 800:
                     break
 
-            # 优先选择有"第X部分"编号的匹配
-            if best_with_part:
-                best_score, best_match_idx, best_para_text = best_with_part
-                self.logger.info(f"  ✓ 选择有编号的匹配({best_score:.0%}): 段落{best_match_idx} '{best_para_text}'")
-            elif best_without_part:
-                best_score, best_match_idx, best_para_text = best_without_part
-                self.logger.info(f"  ✓ 选择无编号的匹配({best_score:.0%}): 段落{best_match_idx} '{best_para_text}'")
-            else:
-                best_score = 0.0
-                best_match_idx = None
-                best_para_text = None
+            # 按优先级分数排序（从高到低）
+            all_candidates.sort(reverse=True, key=lambda x: x[0])
 
-            # 判断是否找到有效匹配 (使用动态阈值)
-            if best_score >= dynamic_threshold:
-                self.logger.info(f"  ✓ 最佳匹配({best_score:.0%}): 段落{best_match_idx} '{best_para_text}'")
+            # ⭐️ 核心改进：逐个验证候选，跳过文件构成，选择第一个有效的
+            best_score = 0.0
+            best_match_idx = None
+            best_para_text = None
 
-                # 检测是否为"文件构成"部分（无论位置在哪）
-                if self._is_file_composition_section(doc, best_match_idx, toc_targets):
+            for priority_score, score, para_idx, para_text, has_part_number in all_candidates:
+                # 检查是否为文件构成
+                if not self._is_file_composition_section(doc, para_idx, toc_targets):
+                    # 不是文件构成，使用这个候选！
+                    best_score = score
+                    best_match_idx = para_idx
+                    best_para_text = para_text
+                    self.logger.info(
+                        f"  ✓ 选择候选({score:.0%}): 段落{para_idx} '{para_text}' "
+                        f"{'[有编号]' if has_part_number else ''}"
+                    )
+                    break
+                else:
+                    self.logger.debug(
+                        f"  ⊗ 跳过文件构成候选({score:.0%}): 段落{para_idx} '{para_text}'"
+                    )
+
+            # 如果所有候选都是文件构成，记录日志
+            if not best_match_idx and all_candidates:
+                self.logger.warning(f"  所有{len(all_candidates)}个候选都是文件构成，将尝试重新搜索")
+
+            # 判断是否找到有效匹配
+            if best_match_idx is not None:
+                # 候选列表验证已确保best_match_idx不是文件构成
+                # 直接使用，不需要再次检测
+
+                # 下面这段旧的检测逻辑已被候选列表验证替代，保留用于兼容
+                if False and self._is_file_composition_section(doc, best_match_idx, toc_targets):
                     self.logger.warning(
                         f"  ⚠ 跳过文件构成部分: 段落{best_match_idx}检测到连续章节标题"
                     )
@@ -2268,12 +2541,81 @@ class DocumentStructureParser:
                 chapters.append(chapter)
                 last_found_idx = best_match_idx + 1  # 更新搜索起点
             else:
+                # Bug修复: 在智能起点之后未找到，尝试回溯到目录后区域搜索
                 self.logger.warning(f"  ✗ 未找到匹配（最佳相似度{best_score:.0%}）: '{toc_title}'")
 
+                # 如果智能起点大于目录结束位置，说明跳过了一些段落，尝试在跳过的区域搜索
+                if min_search_start > toc_end_idx + 1:
+                    self.logger.info(f"  → 回溯搜索: 尝试在目录后区域(段落{toc_end_idx + 1}-{min_search_start})搜索")
+
+                    found_in_backtrack = False
+                    backtrack_best_score = 0.0
+                    backtrack_best_idx = None
+                    backtrack_best_text = None
+
+                    for para_idx in range(toc_end_idx + 1, min_search_start):
+                        paragraph = doc.paragraphs[para_idx]
+                        para_text = paragraph.text.strip()
+
+                        if not para_text or len(para_text) > 100:
+                            continue
+
+                        # 计算相似度（降低阈值到0.70）
+                        clean_para, _ = self.remove_leading_patterns(para_text)
+                        clean_toc, _ = self.remove_leading_patterns(toc_title)
+                        score = self.fuzzy_match_title(clean_para, clean_toc, threshold=0.70)
+
+                        if score >= 0.70 and score > backtrack_best_score:
+                            # 检查是否为文件构成
+                            if not self._is_file_composition_section(doc, para_idx, toc_targets):
+                                backtrack_best_score = score
+                                backtrack_best_idx = para_idx
+                                backtrack_best_text = para_text
+
+                    if backtrack_best_idx is not None:
+                        self.logger.info(f"  ✓ 回溯找到章节({backtrack_best_score:.0%}): 段落{backtrack_best_idx} '{backtrack_best_text}'")
+
+                        # 创建章节节点
+                        clean_title, level = self.remove_leading_patterns(toc_title)
+                        auto_selected = self._matches_whitelist(toc_title)
+                        skip_recommended = self._matches_blacklist(toc_title)
+                        if skip_recommended:
+                            auto_selected = False
+
+                        chapter = ChapterNode(
+                            id=f"ch_{i}",
+                            level=level,
+                            title=toc_title,
+                            para_start_idx=backtrack_best_idx,
+                            para_end_idx=len(doc.paragraphs) - 1,
+                            word_count=0,
+                            preview_text="",
+                            auto_selected=auto_selected,
+                            skip_recommended=skip_recommended
+                        )
+
+                        chapters.append(chapter)
+                        last_found_idx = backtrack_best_idx + 1
+                        found_in_backtrack = True
+
+                    if not found_in_backtrack:
+                        self.logger.warning(f"  ✗ 回溯搜索也未找到，跳过目录项: '{toc_title}'")
+
+        # ⭐️ 关键修复：按段落索引排序章节，确保章节顺序与文档物理顺序一致
+        # 这可以防止索引倒置问题（如 para_start_idx=542 > para_end_idx=62）
+        chapters_sorted = sorted(chapters, key=lambda ch: ch.para_start_idx)
+        self.logger.info(f"章节已按段落索引排序，共 {len(chapters_sorted)} 个章节")
+
+        # ⭐️ 关键修复：排序后重新分配章节ID，确保ID顺序与文档物理顺序一致
+        # 避免前端按ID排序时出现乱序
+        for idx, chapter in enumerate(chapters_sorted):
+            chapter.id = f"ch_{idx}"
+        self.logger.info(f"章节ID已按物理顺序重新分配")
+
         # 更新所有章节的结束位置和内容
-        for i, chapter in enumerate(chapters):
-            if i + 1 < len(chapters):
-                chapter.para_end_idx = chapters[i + 1].para_start_idx - 1
+        for i, chapter in enumerate(chapters_sorted):
+            if i + 1 < len(chapters_sorted):
+                chapter.para_end_idx = chapters_sorted[i + 1].para_start_idx - 1
 
             # 提取内容和预览
             self._extract_chapter_content(doc, chapter)
@@ -2284,9 +2626,9 @@ class DocumentStructureParser:
                 f"(段落 {chapter.para_start_idx}-{chapter.para_end_idx}, {chapter.word_count}字)"
             )
 
-        self.logger.info(f"\n语义锚点解析完成，成功识别 {len(chapters)}/{len(toc_targets)} 个章节")
+        self.logger.info(f"\n语义锚点解析完成，成功识别 {len(chapters_sorted)}/{len(toc_targets)} 个章节")
 
-        return chapters
+        return chapters_sorted
 
     def _detect_content_tags(self, content_text: str) -> List[str]:
         """
@@ -2351,6 +2693,31 @@ class DocumentStructureParser:
 
         # 检测内容标签
         chapter.content_tags = self._detect_content_tags(content_text)
+
+        # 【新增】对于level 1-2的章节，提取内容样本并进行合同识别
+        if chapter.level <= 2 and chapter.para_end_idx and chapter.para_end_idx > chapter.para_start_idx:
+            # 提取内容样本用于合同识别
+            chapter.content_sample = self._extract_content_sample(
+                doc, chapter.para_start_idx, chapter.para_end_idx, sample_size=2000
+            )
+
+            # 基于内容进行合同识别
+            is_contract, density, reason = self._is_contract_chapter(
+                chapter.title, chapter.content_sample
+            )
+
+            if is_contract:
+                # 更新skip_recommended标记
+                if not chapter.skip_recommended:  # 避免重复标记
+                    chapter.skip_recommended = True
+                    chapter.auto_selected = False
+                    self.logger.info(
+                        f"  ✓ 合同章节识别: '{chapter.title}' - {reason}"
+                    )
+                else:
+                    self.logger.debug(
+                        f"  ✓ 合同章节已标记: '{chapter.title}' - {reason}"
+                    )
 
 
 if __name__ == '__main__':

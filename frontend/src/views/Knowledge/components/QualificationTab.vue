@@ -22,7 +22,7 @@
               <QualificationCard
                 :qualification="qual"
                 :file-info="qualificationFiles[qual.key]"
-                @upload="handleUpload(qual.key, $event)"
+                :on-upload="createUploadHandler(qual.key)"
                 @download="handleDownload"
                 @delete="handleDelete"
               />
@@ -53,7 +53,7 @@
                 :qualification="qual"
                 :file-info="qualificationFiles[qual.key]"
                 :is-custom="true"
-                @upload="handleUpload(qual.key, $event)"
+                :on-upload="createUploadHandler(qual.key)"
                 @download="handleDownload"
                 @delete="handleDelete"
                 @remove-custom="removeCustomQualification(index)"
@@ -124,10 +124,12 @@ const categories = [
   { key: 'industry', name: '行业专业资质', color: 'danger' }
 ]
 
-// 标准资质类型（17种）
+// 标准资质类型（19种）
 const standardQualifications = [
-  // 基本证件 (3项)
+  // 基本证件 (5项)
   { key: 'business_license', name: '营业执照', icon: 'Document', category: 'basic', required: true },
+  { key: 'legal_id_front', name: '法人身份证(正面)', icon: 'CreditCard', category: 'basic', required: true },
+  { key: 'legal_id_back', name: '法人身份证(反面)', icon: 'CreditCard', category: 'basic', required: true },
   { key: 'bank_account_permit', name: '银行开户许可证', icon: 'CreditCard', category: 'basic' },
   { key: 'tax_registration', name: '税务登记证', icon: 'DocumentChecked', category: 'basic' },
 
@@ -175,20 +177,13 @@ const loadQualifications = async () => {
   }
 }
 
-// 处理文件上传
-const handleUpload = async (qualKey: string, file: File) => {
+// 处理文件上传（返回Promise以配合DocumentUploader）
+const handleUpload = async (qualKey: string, file: File): Promise<void> => {
+  // 查找资质信息
+  const qual = standardQualifications.find(q => q.key === qualKey) ||
+               customQualifications.value.find(q => q.key === qualKey)
+
   try {
-    const formData = new FormData()
-    formData.append(`qualifications[${qualKey}]`, file)
-
-    // 查找资质信息
-    const qual = standardQualifications.find(q => q.key === qualKey) ||
-                 customQualifications.value.find(q => q.key === qualKey)
-
-    if (qual) {
-      formData.append('qualification_names', JSON.stringify({ [qualKey]: qual.name }))
-    }
-
     const response = await companyApi.uploadQualification(
       props.companyId,
       qualKey,
@@ -200,11 +195,20 @@ const handleUpload = async (qualKey: string, file: File) => {
       success('上传成功', `${qual?.name || '资质文件'}上传成功`)
       await loadQualifications()
       emit('update')
+    } else {
+      throw new Error(response.message || '上传失败')
     }
   } catch (err) {
     console.error('上传资质文件失败:', err)
-    error('上传失败', err instanceof Error ? err.message : '未知错误')
+    const errorMsg = err instanceof Error ? err.message : '未知错误'
+    error('上传失败', errorMsg)
+    throw err  // 重新抛出错误以便DocumentUploader处理
   }
+}
+
+// 为每个资质创建上传处理函数
+const createUploadHandler = (qualKey: string) => {
+  return (file: File) => handleUpload(qualKey, file)
 }
 
 // 处理文件下载

@@ -168,28 +168,34 @@ def register_hitl_routes(app):
 
             if existing_task:
                 # 更新现有任务
+                # 🔧 修复：同时更新 tender_document_path 和 original_filename 字段
+                # 确保悬浮按钮可以检测到文件路径
                 db.execute_query("""
                     UPDATE tender_projects
                     SET step1_status = 'in_progress',
                         step1_data = ?,
-                        estimated_words = ?,
-                        estimated_cost = ?,
+                        tender_document_path = ?,
+                        original_filename = ?,
+                        hitl_estimated_words = ?,
+                        hitl_estimated_cost = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE project_id = ?
                 """, (
                     json.dumps({'file_path': file_path, 'file_name': original_filename}),
+                    file_path,
+                    original_filename,
                     result["statistics"].get("total_words", 0),
                     result["statistics"].get("estimated_processing_cost", 0.0),
                     project_id
                 ))
-                logger.info(f"HITL任务已更新，project_id: {project_id}")
+                logger.info(f"HITL任务已更新，project_id: {project_id}, 文件路径: {file_path}")
             else:
                 # 创建新任务
                 db.execute_query("""
                     INSERT INTO tender_projects (
                         project_id,
                         step1_status, step1_data,
-                        estimated_words, estimated_cost
+                        hitl_estimated_words, hitl_estimated_cost
                     ) VALUES (?, ?, ?, ?, ?)
                 """, (
                     project_id,
@@ -292,8 +298,8 @@ def register_hitl_routes(app):
                 SET step1_status = 'completed',
                     step1_completed_at = CURRENT_TIMESTAMP,
                     step1_data = ?,
-                    estimated_words = ?,
-                    estimated_cost = ?
+                    hitl_estimated_words = ?,
+                    hitl_estimated_cost = ?
                 WHERE project_id = ?
             """, (
                 json.dumps(step1_data),
@@ -800,7 +806,7 @@ def register_hitl_routes(app):
 
             # 获取任务信息
             task_info = db.execute_query("""
-                SELECT project_id, task_id, step1_data FROM tender_projects
+                SELECT project_id, step1_data FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -808,7 +814,6 @@ def register_hitl_routes(app):
                 return jsonify({"success": False, "error": "任务不存在"}), 404
 
             project_id = task_info['project_id']
-            parsing_task_id = task_info['task_id']
 
             # 获取原始文档路径
             step1_data = json.loads(task_info['step1_data'])
@@ -1284,7 +1289,7 @@ def register_hitl_routes(app):
 
             # 获取任务关联的project_id
             hitl_task = db.execute_query("""
-                SELECT project_id, task_id FROM tender_projects
+                SELECT project_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -1387,7 +1392,7 @@ def register_hitl_routes(app):
 
             # 获取任务关联的project_id
             hitl_task = db.execute_query("""
-                SELECT project_id, task_id FROM tender_projects
+                SELECT project_id FROM tender_projects
                 WHERE project_id = ?
             """, (project_id,), fetch_one=True)
 
@@ -1484,8 +1489,8 @@ def register_hitl_routes(app):
             # 记录用户操作
             db.execute_query("""
                 INSERT INTO tender_user_actions (
-                    project_id, task_id, action_type, action_step, action_data
-                ) SELECT project_id, project_id, 'chapter_reselection', 2, ?
+                    project_id, action_type, action_step, action_data
+                ) SELECT project_id, 'chapter_reselection', 2, ?
                 FROM tender_projects WHERE project_id = ?
             """, (json.dumps({
                 'selected_count': len(selected_ids),
@@ -1544,18 +1549,18 @@ def register_hitl_routes(app):
                 # 记录复核操作
                 db.execute_query("""
                     INSERT OR REPLACE INTO tender_filter_review (
-                        chunk_id, project_id, task_id,
+                        chunk_id, project_id,
                         ai_decision, user_decision, reviewed_by, reviewed_at
                     ) SELECT
-                        ?, project_id, project_id, 'NON-REQUIREMENT', 'restore', 'user', CURRENT_TIMESTAMP
+                        ?, project_id, 'NON-REQUIREMENT', 'restore', 'user', CURRENT_TIMESTAMP
                     FROM tender_projects WHERE project_id = ?
                 """, (chunk_id, project_id))
 
             # 记录用户操作
             db.execute_query("""
                 INSERT INTO tender_user_actions (
-                    project_id, task_id, action_type, action_step, action_data
-                ) SELECT project_id, project_id, 'chunk_restored', 2, ?
+                    project_id, action_type, action_step, action_data
+                ) SELECT project_id, 'chunk_restored', 2, ?
                 FROM tender_projects WHERE project_id = ?
             """, (json.dumps({'chunk_ids': chunk_ids}), project_id))
 
@@ -1877,11 +1882,11 @@ def register_hitl_routes(app):
             config = get_config()
             extractor = TenderInfoExtractor(model_name=model_name)
 
-            # 读取文档内容
-            text = extractor.read_document(doc_path)
+            # 读取文档内容（用于向后兼容，新方法使用章节识别）
+            # text = extractor.read_document(doc_path)
 
-            # 提取基本信息
-            basic_info = extractor.extract_basic_info(text)
+            # 提取基本信息 - 使用章节识别方法
+            basic_info = extractor.extract_basic_info(project_id=project_id)
 
             logger.info(f"基本信息提取成功: {project_id}")
 
@@ -1926,6 +1931,22 @@ def register_hitl_routes(app):
 
             db = get_knowledge_base_db()
 
+            # 字段名映射：支持前端字段名和数据库列名两种方式
+            # LLM返回的是数据库列名，前端可能使用不同的字段名
+            field_mapping = {
+                'tender_party': 'tenderer',
+                'tender_agent': 'agency',
+                'tender_method': 'bidding_method',
+                'tender_location': 'bidding_location',
+                'tender_deadline': 'bidding_time',
+            }
+
+            # 获取字段值，优先使用数据库列名，其次使用前端字段名
+            def get_field_value(field_name):
+                db_column = field_mapping.get(field_name, field_name)
+                # 先尝试数据库列名，再尝试前端字段名
+                return data.get(db_column, data.get(field_name, ''))
+
             # 检查项目是否已存在
             existing_project = db.execute_query("""
                 SELECT project_id FROM tender_projects
@@ -1952,11 +1973,11 @@ def register_hitl_routes(app):
                 """, (
                     data.get('project_name', ''),
                     data.get('project_number', ''),
-                    data.get('tender_party', ''),
-                    data.get('tender_agent', ''),
-                    data.get('tender_method', ''),
-                    data.get('tender_location', ''),
-                    data.get('tender_deadline', ''),
+                    get_field_value('tender_party'),
+                    get_field_value('tender_agent'),
+                    get_field_value('tender_method'),
+                    get_field_value('tender_location'),
+                    get_field_value('tender_deadline'),
                     data.get('winner_count', ''),
                     data.get('authorized_person_name', ''),
                     data.get('authorized_person_id', ''),
@@ -2010,7 +2031,7 @@ def register_hitl_routes(app):
             from common import get_config
 
             data = request.get_json() or {}
-            project_id = data.get('project_id')
+            # project_id already comes from URL path parameter, don't overwrite it
             model_name = data.get('model_name', 'yuanjing-deepseek-v3')  # 默认使用联通元景模型
 
             logger.info(f"资质提取 - 任务ID: {project_id}, 使用模型: {model_name}")
@@ -2025,10 +2046,6 @@ def register_hitl_routes(app):
 
             if not hitl_task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
-
-            # 使用提供的project_id或任务中的project_id
-            if not project_id:
-                project_id = hitl_task['project_id']
 
             # 获取文档路径
             step1_data = json.loads(hitl_task['step1_data'])
@@ -2675,7 +2692,11 @@ def register_hitl_routes(app):
             if not task_data:
                 return jsonify({"success": False, "error": "任务不存在"}), 404
 
-            step1_data = json.loads(task_data['step1_data'])
+            # 解析step1_data，如果为空则初始化为空字典
+            step1_data_raw = task_data.get('step1_data') or task_data.get('step1_data', '{}')
+            if not step1_data_raw or step1_data_raw == '':
+                step1_data_raw = '{}'
+            step1_data = json.loads(step1_data_raw)
 
             # 创建存储目录
             now = datetime.now()

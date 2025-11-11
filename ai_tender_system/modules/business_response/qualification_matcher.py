@@ -313,71 +313,6 @@ class QualificationMatcher:
 
         return result
 
-    def build_image_config_from_match(self, match_result: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        根据匹配结果构建图片配置
-
-        Args:
-            match_result: 匹配结果 (从match_company_qualifications获取)
-
-        Returns:
-            图片配置字典:
-            {
-                'license_path': '/path/to/营业执照.jpg',
-                'seal_path': '/path/to/公章.png',
-                'qualification_paths': ['/path/to/iso9001.jpg', '/path/to/cmmi.jpg'],
-                'qualification_details': [
-                    {
-                        'qual_key': 'iso9001',
-                        'file_path': '/path/to/iso9001.jpg',
-                        'insert_hint': 'ISO9001质量管理体系'
-                    }
-                ]
-            }
-        """
-        image_config = {}
-        qualification_paths = []
-        qualification_details = []
-
-        for matched_qual in match_result.get('matched', []):
-            qual_key = matched_qual['qual_key']
-            file_path = matched_qual.get('file_path')
-
-            if not file_path:
-                continue
-
-            # 营业执照
-            if qual_key == 'business_license':
-                image_config['license_path'] = file_path
-                self.logger.info(f"  - 营业执照: {file_path}")
-
-            # 公章
-            elif qual_key == 'company_seal':
-                image_config['seal_path'] = file_path
-                self.logger.info(f"  - 公章: {file_path}")
-
-            # 资质证书
-            elif qual_key in ['iso9001', 'iso20000', 'iso27001',
-                             'cmmi', 'itss', 'safety_production',
-                             'software_copyright', 'patent_certificate',
-                             'basic_telecom_permit', 'value_added_telecom_permit',
-                             'dishonest_executor', 'tax_violation_check',
-                             'gov_procurement_creditchina', 'gov_procurement_ccgp',
-                             'level_protection']:
-                qualification_paths.append(file_path)
-                qualification_details.append(matched_qual)
-                self.logger.info(f"  - 资质证书 ({qual_key}): {file_path}")
-
-        # 添加资质证书列表
-        if qualification_paths:
-            image_config['qualification_paths'] = qualification_paths
-            image_config['qualification_details'] = qualification_details
-
-        self.logger.info(f"📋 构建图片配置完成: {len(image_config)} 个类型, {len(qualification_paths)} 个资质证书")
-
-        return image_config
-
-
 # 便捷函数
 def match_qualifications_for_project(company_id: int, project_name: str, kb_manager, return_match_result: bool = False):
     """
@@ -393,6 +328,9 @@ def match_qualifications_for_project(company_id: int, project_name: str, kb_mana
         如果return_match_result=False: 返回图片配置字典（向后兼容）
         如果return_match_result=True: 返回 (image_config, match_result) 元组
     """
+    # 【重构】使用统一的图片配置构建器
+    from .image_config_builder import build_image_config
+
     matcher = QualificationMatcher()
 
     # 1. 获取公司所有资质
@@ -411,11 +349,11 @@ def match_qualifications_for_project(company_id: int, project_name: str, kb_mana
             if qualifications_data:
                 required_quals = matcher.extract_required_qualifications(qualifications_data)
 
-    # 3. 匹配资质
-    match_result = matcher.match_company_qualifications(company_quals, required_quals)
+    # 3. 【重构】使用新模块构建图片配置（包含身份证处理）
+    image_config, qualification_details = build_image_config(company_quals, required_quals)
 
-    # 4. 构建图片配置
-    image_config = matcher.build_image_config_from_match(match_result)
+    # 4. 匹配资质（用于统计）
+    match_result = matcher.match_company_qualifications(company_quals, required_quals)
 
     # 根据参数决定返回格式
     if return_match_result:

@@ -231,8 +231,13 @@ const menuItems = computed((): MenuItem[] => {
 const groupedMenuItems = computed(() => {
   const groups: Record<string, MenuItem[]> = {}
 
-  // 按category分组
+  // 按category分组，过滤掉有parent属性的子菜单（它们应该只显示在父菜单下）
   menuItems.value.forEach((item) => {
+    // 跳过有parent属性的菜单项（它们应该只作为子菜单显示）
+    if (item.meta?.parent) {
+      return
+    }
+
     const category = item.meta?.category || 'other'
     if (!groups[category]) {
       groups[category] = []

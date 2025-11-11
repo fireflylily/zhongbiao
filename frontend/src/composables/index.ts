@@ -33,3 +33,19 @@ export type { UseFormOptions, UseFormReturn } from './useForm'
 // 异步数据加载
 export { useAsync, useAsyncList, usePolling } from './useAsync'
 export type { UseAsyncOptions, UseAsyncReturn } from './useAsync'
+
+// 项目文档管理
+export { useProjectDocuments } from './useProjectDocuments'
+export type { ProjectDocuments, ProjectChangeCallbacks } from './useProjectDocuments'
+
+// 项目创建
+export { useProjectCreation } from './useProjectCreation'
+export type { ProjectCreationForm, UseProjectCreationOptions } from './useProjectCreation'
+
+// HITL集成
+export { useHitlIntegration } from './useHitlIntegration'
+export type { HitlFileInfo, HitlFileType, UseHitlIntegrationOptions } from './useHitlIntegration'
+
+// 历史文件管理
+export { useHistoryFiles } from './useHistoryFiles'
+export type { HistoryFile, UseHistoryFilesOptions } from './useHistoryFiles'

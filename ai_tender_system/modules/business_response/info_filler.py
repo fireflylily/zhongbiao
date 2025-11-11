@@ -309,16 +309,27 @@ class InfoFiller:
                             return True
         
         # 特殊处理日期
-        date_pattern = r'日\s*期\s*[:：]?\s*[_\s]*年[_\s]*月[_\s]*日'
-        if re.search(date_pattern, text):
-            date_text = info.get('date', '')
-            if date_text:
-                # 格式化日期
-                formatted_date = self._format_date(date_text)
-                new_text = re.sub(date_pattern, f'日期：{formatted_date}', text)
-                self._update_paragraph_text(paragraph, new_text)
-                self.logger.info(f"日期填空: {formatted_date}")
-                return True
+        # 支持多种日期占位符格式：____年____月____日 或 XXXX年X月X日
+        date_patterns = [
+            r'日\s*期\s*[:：]?\s*[_\s]*年[_\s]*月[_\s]*日',  # 日期：____年____月____日
+            r'日\s*期\s*[:：]?\s*[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # 日期：XXXX年X月X日
+            r'[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # XXXX年X月X日（不带日期前缀）
+        ]
+
+        for date_pattern in date_patterns:
+            if re.search(date_pattern, text):
+                date_text = info.get('date', '')
+                if date_text:
+                    # 格式化日期
+                    formatted_date = self._format_date(date_text)
+                    # 如果模式包含"日期"，保留格式；否则直接替换
+                    if '日' in date_pattern and '期' in date_pattern:
+                        new_text = re.sub(date_pattern, f'日期：{formatted_date}', text)
+                    else:
+                        new_text = re.sub(date_pattern, formatted_date, text)
+                    self._update_paragraph_text(paragraph, new_text)
+                    self.logger.info(f"日期填空: {formatted_date}")
+                    return True
         
         return False
     

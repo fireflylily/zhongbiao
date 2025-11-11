@@ -122,10 +122,11 @@ class RequirementAnalyzer:
             # 生成提示词
             prompt = prompt_template.format(text=text)
 
-            # 调用LLM
+            # 调用LLM（增加max_tokens以支持复杂JSON输出）
             response = self.llm_client.call(
                 prompt=prompt,
                 temperature=0.7,
+                max_tokens=4000,  # 增加到4000以支持完整的需求分析JSON
                 max_retries=3,
                 purpose="需求分析"
             )

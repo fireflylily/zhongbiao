@@ -178,7 +178,7 @@ const handleProgress: UploadProps['onProgress'] = (event, file, fileList) => {
 
 // 上传成功
 const handleSuccess: UploadProps['onSuccess'] = (response, file, fileList) => {
-  ElMessage.success('文件上传成功')
+  // 不在这里显示成功消息，由父组件负责显示更具体的提示
   emit('success', file, fileList)
   emit('update:modelValue', fileList)
 }

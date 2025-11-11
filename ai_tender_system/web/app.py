@@ -18,7 +18,7 @@ from functools import wraps
 from flask import Flask, request, jsonify, render_template, send_file, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
 from flask_compress import Compress
-from flask_wtf.csrf import CSRFProtect, generate_csrf
+# from flask_wtf.csrf import CSRFProtect, generate_csrf  # CSRF 已禁用
 from werkzeug.utils import secure_filename
 
 # 添加项目根目录到Python路径
@@ -82,9 +82,7 @@ def create_app() -> Flask:
     web_config = config.get_web_config()
     app.config.update({
         'SECRET_KEY': web_config['secret_key'],
-        'MAX_CONTENT_LENGTH': config.get_upload_config()['max_file_size'],
-        # CSRF豁免列表 - 登录页面不需要CSRF token
-        'WTF_CSRF_EXEMPT_LIST': ['auth.login']
+        'MAX_CONTENT_LENGTH': config.get_upload_config()['max_file_size']
     })
 
     # 开发模式下禁用静态文件缓存
@@ -100,31 +98,9 @@ def create_app() -> Flask:
     compress.init_app(app)
     logger.info("已启用响应压缩(Gzip/Brotli)")
 
-    # 启用CSRF保护
-    csrf = CSRFProtect(app)
-
-    # 豁免登录API的CSRF检查
-    csrf.exempt('web.blueprints.auth_bp.login')
-
-    logger.info("CSRF保护已启用，登录API已豁免")
-
-    # 提供CSRF token的API端点
-    @app.route('/api/csrf-token', methods=['GET'])
-    def get_csrf_token():
-        """获取CSRF token（用于AJAX请求）"""
-        from flask import make_response
-        token = generate_csrf()
-        response = make_response(jsonify({'csrf_token': token}))
-        # 设置cookie，使前端能够读取（HttpOnly=False允许JavaScript读取）
-        response.set_cookie(
-            'csrf_token',
-            value=token,
-            max_age=3600,  # 1小时过期
-            httponly=False,  # 允许JavaScript读取
-            samesite='Lax',  # CSRF保护
-            secure=False  # 开发环境使用HTTP，生产环境应改为True
-        )
-        return response
+    # CSRF 保护已禁用（内部系统使用，通过其他安全措施保护）
+    # csrf = CSRFProtect(app)
+    logger.info("CSRF保护已禁用（内部系统）")
 
     # 注册知识库API蓝图
     try:

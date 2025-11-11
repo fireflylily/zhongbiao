@@ -27,11 +27,23 @@ export const useProjectStore = defineStore('project', () => {
 
   // ==================== Getters ====================
 
-  const projectId = computed(() => currentProject.value?.id || null)
+  const projectId = computed(() =>
+    currentProject.value?.id ||
+    currentProject.value?.project_id ||
+    null
+  )
 
-  const projectName = computed(() => currentProject.value?.name || '')
+  const projectName = computed(() =>
+    currentProject.value?.name ||
+    currentProject.value?.project_name ||
+    ''
+  )
 
-  const projectNumber = computed(() => currentProject.value?.project_number || '')
+  const projectNumber = computed(() =>
+    currentProject.value?.number ||
+    currentProject.value?.project_number ||
+    ''
+  )
 
   const projectStatus = computed(() => currentProject.value?.status || null)
 

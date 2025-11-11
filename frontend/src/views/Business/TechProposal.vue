@@ -1,9 +1,11 @@
 <template>
   <div class="tech-proposal">
-    <!-- 项目选择与配置 -->
-    <el-card shadow="never">
+    <!-- Step 1: 项目选择 -->
+    <el-card class="project-section" shadow="never">
       <template #header>
-        <span>方案配置</span>
+        <div class="card-header">
+          <span>Step 1: 选择项目</span>
+        </div>
       </template>
 
       <el-form :model="form" label-width="100px">
@@ -14,6 +16,7 @@
                 v-model="form.projectId"
                 placeholder="请选择项目"
                 filterable
+                @change="handleProjectChange"
                 style="width: 100%"
               >
                 <el-option
@@ -27,44 +30,107 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="方案类型">
-              <el-select v-model="form.proposalType" style="width: 100%">
-                <el-option label="系统集成方案" value="integration" />
-                <el-option label="软件开发方案" value="development" />
-                <el-option label="运维服务方案" value="operation" />
-                <el-option label="云服务方案" value="cloud" />
+            <el-form-item label="公司">
+              <el-input
+                :value="selectedProject?.company_name || '-'"
+                disabled
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+    </el-card>
+
+    <!-- Step 2: 文件上传和配置 -->
+    <el-card v-if="form.projectId" class="upload-section" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>Step 2: 上传技术需求文档</span>
+          <el-button
+            v-if="currentDocuments.technicalFile && !useHitlFile"
+            type="primary"
+            size="small"
+            @click="loadFromHITL(currentDocuments, 'technicalFile')"
+          >
+            使用HITL技术需求文件
+          </el-button>
+        </div>
+      </template>
+
+      <!-- HITL文件Alert -->
+      <HitlFileAlert
+        v-if="useHitlFile"
+        :file-info="hitlFileInfo"
+        label="使用HITL技术需求文件:"
+        @cancel="cancelHitlFile"
+      />
+
+      <!-- 文件上传器（不使用HITL文件时显示） -->
+      <DocumentUploader
+        v-if="!useHitlFile"
+        v-model="form.tenderFiles"
+        :http-request="handleTenderUpload"
+        accept=".pdf,.doc,.docx"
+        :limit="1"
+        :max-size="50"
+        drag
+        tip-text="上传技术需求文档，或使用HITL流程中提取的技术需求文件"
+        @success="handleUploadSuccess"
+      />
+
+      <!-- 生成配置 -->
+      <el-divider>生成选项</el-divider>
+
+      <el-form :model="config" label-width="140px" class="config-form">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="输出文件前缀">
+              <el-input
+                v-model="config.outputPrefix"
+                placeholder="技术方案"
+              />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="AI模型">
+              <el-select v-model="config.aiModel" style="width: 100%">
+                <el-option label="GPT-4O Mini（推荐）" value="gpt-4o-mini" />
+                <el-option label="GPT-4O（高质量）" value="gpt-4o" />
+                <el-option label="始皇-GPT4o迷你版" value="shihuang-gpt4o-mini" />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="技术要求">
-          <el-input
-            v-model="form.requirements"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入主要技术要求，AI将基于此生成技术方案大纲"
-          />
-        </el-form-item>
-
-        <el-form-item>
-          <el-button
-            type="primary"
-            size="large"
-            :disabled="!canGenerate"
-            :loading="generating"
-            @click="generateProposal"
-          >
-            生成技术方案大纲
-          </el-button>
+        <el-form-item label="附加输出">
+          <el-checkbox-group v-model="config.additionalOutputs">
+            <el-checkbox label="includeAnalysis">需求分析报告</el-checkbox>
+            <el-checkbox label="includeMapping">需求匹配表</el-checkbox>
+            <el-checkbox label="includeSummary">生成总结报告</el-checkbox>
+          </el-checkbox-group>
         </el-form-item>
       </el-form>
+
+      <!-- 操作按钮 -->
+      <div class="action-controls">
+        <el-button
+          type="primary"
+          size="large"
+          :disabled="!canGenerate"
+          :loading="generating"
+          @click="generateProposal"
+        >
+          <el-icon><Promotion /></el-icon>
+          生成技术方案
+        </el-button>
+      </div>
     </el-card>
 
     <!-- AI生成流式输出 -->
-    <el-card v-if="generating" shadow="never" style="margin-top: 20px">
+    <el-card v-if="generating" class="generation-output" shadow="never">
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="card-header">
           <span>AI正在生成技术方案...</span>
           <el-progress
             :percentage="generationProgress"
@@ -81,175 +147,721 @@
       />
     </el-card>
 
-    <!-- 方案结果 -->
-    <el-card v-if="proposalResult" shadow="never" style="margin-top: 20px">
+    <!-- 需求分析结果 -->
+    <el-card v-if="analysisResult" class="analysis-section" shadow="never">
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="card-header">
+          <span>需求分析结果</span>
+          <el-button
+            size="small"
+            @click="analysisExpanded = !analysisExpanded"
+          >
+            {{ analysisExpanded ? '收起' : '展开' }}
+          </el-button>
+        </div>
+      </template>
+
+      <div v-show="analysisExpanded">
+        <!-- 文档摘要统计 -->
+        <StatsCard
+          title="文档摘要"
+          :stats="analysisResult.document_summary || {}"
+          :stat-items="[
+            { key: 'total_requirements', label: '总需求数', suffix: '项' },
+            { key: 'mandatory_count', label: '强制需求', suffix: '项' },
+            { key: 'optional_count', label: '可选需求', suffix: '项' }
+          ]"
+        />
+
+        <!-- 需求分类 -->
+        <div class="requirement-categories">
+          <h4>需求分类</h4>
+          <el-collapse accordion>
+            <el-collapse-item
+              v-for="(category, index) in analysisResult.requirement_categories"
+              :key="index"
+              :name="index"
+            >
+              <template #title>
+                <div class="category-title">
+                  <span>{{ category.category }}</span>
+                  <el-tag :type="getPriorityType(category.priority)" size="small">
+                    {{ category.priority }}
+                  </el-tag>
+                  <el-tag type="info" size="small">
+                    {{ category.requirements_count || 0 }}项
+                  </el-tag>
+                </div>
+              </template>
+
+              <div class="category-content">
+                <p v-if="category.summary" class="category-summary">
+                  {{ category.summary }}
+                </p>
+
+                <div v-if="category.keywords && category.keywords.length > 0" class="category-keywords">
+                  <strong>关键词：</strong>
+                  <el-tag
+                    v-for="keyword in category.keywords"
+                    :key="keyword"
+                    size="small"
+                    style="margin-right: 8px"
+                  >
+                    {{ keyword }}
+                  </el-tag>
+                </div>
+
+                <div v-if="category.key_points && category.key_points.length > 0" class="category-points">
+                  <strong>要点：</strong>
+                  <ul>
+                    <li v-for="(point, idx) in category.key_points" :key="idx">
+                      {{ point }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 大纲展示 -->
+    <el-card v-if="outlineData" class="outline-section" shadow="never">
+      <template #header>
+        <div class="card-header">
           <span>技术方案大纲</span>
-          <div style="display: flex; gap: 12px">
-            <el-button type="success" :icon="Download" @click="exportProposal">
-              导出方案
+          <el-button
+            size="small"
+            @click="outlineExpanded = !outlineExpanded"
+          >
+            {{ outlineExpanded ? '收起' : '展开' }}
+          </el-button>
+        </div>
+      </template>
+
+      <div v-show="outlineExpanded">
+        <!-- 大纲统计 -->
+        <StatsCard
+          title="大纲概览"
+          :stats="outlineData"
+          :stat-items="[
+            { key: 'total_chapters', label: '总章节数', suffix: '章' },
+            { key: 'estimated_pages', label: '预计页数', suffix: '页' }
+          ]"
+          :span="12"
+        />
+
+        <!-- 章节树 -->
+        <div class="章节结构">
+          <h4>章节结构</h4>
+          <el-tree
+            :data="chapterTreeData"
+            :props="{ label: 'title', children: 'subsections' }"
+            default-expand-all
+            node-key="chapter_number"
+          >
+            <template #default="{ node, data }">
+              <span class="tree-node">
+                <el-icon v-if="data.level === 1"><Folder /></el-icon>
+                <el-icon v-else><Document /></el-icon>
+                <span class="node-title">{{ data.chapter_number }} {{ data.title }}</span>
+                <span v-if="data.description" class="node-desc">{{ data.description }}</span>
+              </span>
+            </template>
+          </el-tree>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 生成结果 -->
+    <el-card v-if="generationResult" class="result-section" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>✅ 生成结果</span>
+          <div class="header-actions">
+            <el-button
+              type="primary"
+              :icon="View"
+              @click="previewDocument"
+            >
+              预览文档
             </el-button>
-            <el-button type="primary" :icon="RefreshRight" @click="generateProposal">
+            <el-button
+              type="success"
+              :icon="Download"
+              @click="downloadDocument('proposal')"
+            >
+              下载技术方案
+            </el-button>
+
+            <!-- 同步状态 -->
+            <el-button
+              v-if="!synced"
+              type="info"
+              :icon="Upload"
+              :loading="syncing"
+              @click="handleSyncToHitl"
+            >
+              同步到投标项目
+            </el-button>
+            <el-tag v-else type="success" size="large">
+              已同步到投标项目
+            </el-tag>
+
+            <el-button
+              type="primary"
+              :icon="RefreshRight"
+              @click="generateProposal"
+            >
               重新生成
             </el-button>
           </div>
         </div>
       </template>
 
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="方案大纲" name="outline">
-          <SSEStreamViewer
-            :content="proposalResult.outline"
-            :is-streaming="false"
-            :enable-markdown="true"
-          />
-        </el-tab-pane>
+      <div class="result-content">
+        <!-- 生成统计 -->
+        <StatsCard
+          title="生成统计"
+          :stats="generationResult"
+          :stat-items="[
+            { key: 'requirements_count', label: '需求数量', suffix: '项' },
+            { key: 'sections_count', label: '章节数量', suffix: '章' },
+            { key: 'matches_count', label: '匹配数量', suffix: '项' }
+          ]"
+        />
 
-        <el-tab-pane label="技术架构" name="architecture">
-          <SSEStreamViewer
-            :content="proposalResult.architecture"
-            :is-streaming="false"
-            :enable-markdown="true"
-          />
-        </el-tab-pane>
-
-        <el-tab-pane label="实施计划" name="plan">
-          <SSEStreamViewer
-            :content="proposalResult.plan"
-            :is-streaming="false"
-            :enable-markdown="true"
-          />
-        </el-tab-pane>
-
-        <el-tab-pane label="风险评估" name="risks">
-          <SSEStreamViewer
-            :content="proposalResult.risks"
-            :is-streaming="false"
-            :enable-markdown="true"
-          />
-        </el-tab-pane>
-      </el-tabs>
+        <!-- 输出文件列表 -->
+        <div class="output-files">
+          <h4>输出文件</h4>
+          <div class="file-buttons">
+            <el-button
+              v-if="generationResult.output_files?.proposal"
+              type="success"
+              @click="downloadDocument('proposal')"
+            >
+              <el-icon><Download /></el-icon>
+              下载技术方案
+            </el-button>
+            <el-button
+              v-if="generationResult.output_files?.analysis"
+              type="primary"
+              @click="downloadDocument('analysis')"
+            >
+              <el-icon><Download /></el-icon>
+              下载需求分析
+            </el-button>
+            <el-button
+              v-if="generationResult.output_files?.mapping"
+              type="info"
+              @click="downloadDocument('mapping')"
+            >
+              <el-icon><Download /></el-icon>
+              下载匹配表
+            </el-button>
+            <el-button
+              v-if="generationResult.output_files?.summary"
+              type="warning"
+              @click="downloadDocument('summary')"
+            >
+              <el-icon><Download /></el-icon>
+              下载生成报告
+            </el-button>
+          </div>
+        </div>
+      </div>
     </el-card>
+
+    <!-- 历史文件管理 -->
+    <HistoryFilesPanel
+      v-if="form.projectId"
+      title="该项目的技术方案文件"
+      :current-file="currentTechFile"
+      :history-files="historyFiles"
+      :loading="loadingHistory"
+      :show-stats="false"
+      @preview="previewFile"
+      @download="downloadHistoryFile"
+      @regenerate="handleRegenerate"
+      @refresh="loadHistoryFiles"
+    />
+
+    <!-- 文档预览对话框 -->
+    <DocumentPreview
+      v-model="previewVisible"
+      :file-url="previewFileUrl"
+      :file-name="previewFileName"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Download, RefreshRight } from '@element-plus/icons-vue'
-import { SSEStreamViewer } from '@/components'
+import type { UploadRequestOptions } from 'element-plus'
+import {
+  Download,
+  RefreshRight,
+  View,
+  Upload,
+  Promotion,
+  Folder,
+  Document
+} from '@element-plus/icons-vue'
+import {
+  DocumentUploader,
+  SSEStreamViewer,
+  DocumentPreview,
+  StatsCard,
+  HitlFileAlert,
+  HistoryFilesPanel
+} from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
-import type { Project } from '@/types'
+import {
+  useProjectDocuments,
+  useHitlIntegration,
+  useHistoryFiles
+} from '@/composables'
+import { downloadFile } from '@/utils/helpers'
+import type { Project, UploadUserFile } from '@/types'
 
-interface ProposalResult {
-  outline: string
-  architecture: string
-  plan: string
-  risks: string
-}
+// ============================================
+// Composables
+// ============================================
+const {
+  projects,
+  selectedProject,
+  currentDocuments,
+  loadProjects,
+  handleProjectChange: handleProjectChangeComposable,
+  restoreProjectFromStore
+} = useProjectDocuments()
 
-const form = ref({
-  projectId: null as number | null,
-  proposalType: 'integration',
-  requirements: ''
+const {
+  useHitlFile,
+  hitlFileInfo,
+  syncing,
+  synced,
+  loadFromHITL,
+  cancelHitlFile,
+  syncToHitl
+} = useHitlIntegration({
+  onFileLoaded: () => {
+    form.value.tenderFiles = []
+  }
 })
 
-const projects = ref<Project[]>([])
-const generating = ref(false)
-const generationProgress = ref(0)
-const streamContent = ref('')
-const proposalResult = ref<ProposalResult | null>(null)
-const activeTab = ref('outline')
-
-const canGenerate = computed(() =>
-  form.value.projectId && form.value.requirements.trim().length > 0
-)
-
-const loadProjects = async () => {
+// 暂时禁用历史文件API（接口未实现）
+const historyFiles = ref<any[]>([])
+const loadingHistory = ref(false)
+const loadHistoryFiles = async () => {
+  console.log('历史文件API暂未实现')
+}
+const downloadHistoryFile = async (file: any) => {
   try {
-    const response = await tenderApi.getProjects({ page: 1, page_size: 100 })
-    projects.value = response.data?.items || []
-  } catch (error) {
-    ElMessage.error('加载项目列表失败')
+    if (!file.downloadUrl) {
+      ElMessage.error('下载地址无效')
+      return
+    }
+
+    const filename = file.filename || file.downloadUrl.split('/').pop() || '技术方案.docx'
+
+    // 使用公用下载函数
+    downloadFile(file.downloadUrl, filename)
+
+    ElMessage.success('文件下载中...')
+  } catch (error: any) {
+    console.error('下载文件失败:', error)
+    ElMessage.error(error.message || '下载文件失败')
   }
 }
 
+// ============================================
+// 响应式数据
+// ============================================
+const form = ref({
+  projectId: null as number | null,
+  tenderFiles: [] as UploadUserFile[]
+})
+
+const config = ref({
+  outputPrefix: '技术方案',
+  aiModel: 'gpt-4o-mini',
+  additionalOutputs: ['includeAnalysis', 'includeMapping', 'includeSummary'] as string[]
+})
+
+// 生成状态
+const generating = ref(false)
+const generationProgress = ref(0)
+const streamContent = ref('')
+
+// 分析结果
+const analysisResult = ref<any>(null)
+const analysisExpanded = ref(true)
+
+// 大纲数据
+const outlineData = ref<any>(null)
+const outlineExpanded = ref(true)
+
+// 生成结果
+const generationResult = ref<any>(null)
+
+// 当前项目技术方案文件
+const currentTechFile = ref<any>(null)
+
+// 预览状态
+const previewVisible = ref(false)
+const previewFileUrl = ref('')
+const previewFileName = ref('')
+
+// 章节树数据
+const chapterTreeData = computed(() => {
+  if (!outlineData.value?.chapters) return []
+  return outlineData.value.chapters
+})
+
+// 能否生成
+const canGenerate = computed(() =>
+  form.value.projectId && (useHitlFile.value || form.value.tenderFiles.length > 0)
+)
+
+// 优先级类型映射
+const getPriorityType = (priority: string) => {
+  const types: Record<string, any> = {
+    '高': 'danger',
+    'high': 'danger',
+    '中': 'warning',
+    'medium': 'warning',
+    '低': 'info',
+    'low': 'info'
+  }
+  return types[priority] || 'info'
+}
+
+// ============================================
+// 自定义上传处理
+// ============================================
+const handleTenderUpload = async (options: UploadRequestOptions) => {
+  const { file, onSuccess, onError } = options
+
+  if (!form.value.projectId) {
+    const error = new Error('请先选择项目')
+    onError(error)
+    ElMessage.error('请先选择项目')
+    return
+  }
+
+  if (!selectedProject.value?.company_id) {
+    const error = new Error('项目没有关联公司')
+    onError(error)
+    ElMessage.error('项目没有关联公司')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('company_id', selectedProject.value.company_id.toString())
+    formData.append('project_id', form.value.projectId.toString())
+
+    const response = await tenderApi.parseDocumentStructure(formData)
+
+    if (response.success) {
+      onSuccess(response.data)
+      ElMessage.success('技术需求文档上传成功')
+    } else {
+      throw new Error(response.message || '上传失败')
+    }
+  } catch (error: any) {
+    onError(error)
+    ElMessage.error(error.message || '文档上传失败')
+  }
+}
+
+const handleUploadSuccess = () => {
+  ElMessage.success('文档上传成功')
+}
+
+// ============================================
+// 项目切换
+// ============================================
+const handleProjectChange = async () => {
+  await handleProjectChangeComposable(form.value.projectId, {
+    onClear: () => {
+      form.value.tenderFiles = []
+      analysisResult.value = null
+      outlineData.value = null
+      generationResult.value = null
+      currentTechFile.value = null
+      streamContent.value = ''
+      if (useHitlFile.value) {
+        cancelHitlFile()
+      }
+    },
+    onDocumentsLoaded: (docs) => {
+      // 自动加载HITL技术文件
+      if (docs.technicalFile) {
+        loadFromHITL(docs, 'technicalFile')
+      }
+
+      // 显示历史技术方案文件
+      if (docs.techProposalFile) {
+        currentTechFile.value = docs.techProposalFile
+        ElMessage.success('已加载历史技术方案文件')
+      }
+    }
+  })
+}
+
+// ============================================
+// 生成技术方案
+// ============================================
 const generateProposal = async () => {
   if (!canGenerate.value) {
-    ElMessage.warning('请填写必要信息')
+    ElMessage.warning('请选择项目并上传技术需求文档')
     return
   }
 
   generating.value = true
   generationProgress.value = 0
   streamContent.value = ''
-  proposalResult.value = null
+  analysisResult.value = null
+  outlineData.value = null
+  generationResult.value = null
 
   try {
-    await simulateGeneration()
+    const formData = new FormData()
+
+    // 判断使用HITL文件还是上传文件
+    if (useHitlFile.value && hitlFileInfo.value) {
+      formData.append('use_hitl_technical_file', 'true')
+      formData.append('project_id', form.value.projectId!.toString())
+    } else if (form.value.tenderFiles[0]?.raw) {
+      formData.append('tender_file', form.value.tenderFiles[0].raw)
+    } else {
+      throw new Error('请上传技术需求文档或使用HITL技术文件')
+    }
+
+    // 添加配置参数
+    formData.append('outputPrefix', config.value.outputPrefix)
+    formData.append('companyId', selectedProject.value!.company_id.toString())
+    formData.append('projectName', selectedProject.value!.project_name || '')
+    formData.append('projectId', form.value.projectId!.toString())
+
+    // 附加输出选项
+    formData.append('includeAnalysis', config.value.additionalOutputs.includes('includeAnalysis') ? 'true' : 'false')
+    formData.append('includeMapping', config.value.additionalOutputs.includes('includeMapping') ? 'true' : 'false')
+    formData.append('includeSummary', config.value.additionalOutputs.includes('includeSummary') ? 'true' : 'false')
+
+    // 使用SSE流式处理
+    await generateWithSSE(formData)
+
     ElMessage.success('技术方案生成完成')
-  } catch (error) {
-    ElMessage.error('生成失败，请重试')
+
+    // 刷新历史文件列表（暂时禁用）
+    // await loadHistoryFiles()
+  } catch (error: any) {
+    console.error('生成失败:', error)
+    ElMessage.error(error.message || '生成失败，请重试')
   } finally {
     generating.value = false
   }
 }
 
-const simulateGeneration = async () => {
-  return new Promise<void>((resolve) => {
-    const stages = [
-      { progress: 25, message: '正在分析技术要求...' },
-      { progress: 50, message: '正在生成方案大纲...' },
-      { progress: 75, message: '正在完善技术细节...' },
-      { progress: 100, message: '生成完成！' }
-    ]
-
-    let currentStage = 0
-    const interval = setInterval(() => {
-      if (currentStage < stages.length) {
-        const stage = stages[currentStage]
-        generationProgress.value = stage.progress
-        streamContent.value += `\n[${stage.progress}%] ${stage.message}`
-        currentStage++
-      } else {
-        clearInterval(interval)
-        proposalResult.value = {
-          outline: `# 技术方案大纲\n\n## 1. 项目概述\n\n### 1.1 项目背景\n本项目旨在构建xxx系统，满足xxx业务需求。\n\n### 1.2 建设目标\n- 提升xxx效率\n- 优化xxx流程\n- 保障xxx安全\n\n## 2. 需求分析\n\n### 2.1 功能需求\n- 核心功能1\n- 核心功能2\n- 扩展功能\n\n### 2.2 性能需求\n- 并发用户数：xxx\n- 响应时间：< 3s\n- 系统可用性：99.9%\n\n## 3. 技术选型\n\n### 3.1 技术栈\n- 前端：Vue 3 + TypeScript\n- 后端：Python Flask\n- 数据库：PostgreSQL\n\n### 3.2 选型理由\n详细说明技术选型的合理性...`,
-          architecture: `# 技术架构设计\n\n## 1. 总体架构\n\n采用分层架构设计：\n- 展现层\n- 业务层\n- 数据层\n\n## 2. 系统架构图\n\n\`\`\`\n┌─────────────┐\n│   用户层    │\n└──────┬──────┘\n       │\n┌──────▼──────┐\n│  前端应用   │\n└──────┬──────┘\n       │\n┌──────▼──────┐\n│   API网关   │\n└──────┬──────┘\n       │\n┌──────▼──────┐\n│  业务服务   │\n└──────┬──────┘\n       │\n┌──────▼──────┐\n│   数据库    │\n└─────────────┘\n\`\`\`\n\n## 3. 关键技术\n\n### 3.1 高可用设计\n- 负载均衡\n- 服务冗余\n- 故障切换\n\n### 3.2 安全设计\n- 身份认证\n- 权限控制\n- 数据加密`,
-          plan: `# 实施计划\n\n## 1. 项目阶段\n\n### 阶段一：需求调研（2周）\n- 用户访谈\n- 需求文档\n- 原型设计\n\n### 阶段二：系统设计（3周）\n- 架构设计\n- 数据库设计\n- 接口设计\n\n### 阶段三：开发实施（12周）\n- 前端开发\n- 后端开发\n- 接口联调\n\n### 阶段四：测试验收（4周）\n- 单元测试\n- 集成测试\n- 用户验收\n\n## 2. 资源配置\n\n### 2.1 人员配置\n- 项目经理：1名\n- 架构师：1名\n- 开发人员：5名\n- 测试人员：2名\n\n## 3. 质量保障\n\n- 代码审查\n- 自动化测试\n- 持续集成`,
-          risks: `# 风险评估与应对\n\n## 1. 技术风险\n\n### 1.1 性能风险\n**风险描述**: 系统并发量不足\n**风险等级**: 中\n**应对措施**:\n- 进行压力测试\n- 优化数据库查询\n- 增加缓存机制\n\n### 1.2 安全风险\n**风险描述**: 数据泄露风险\n**风险等级**: 高\n**应对措施**:\n- 实施数据加密\n- 完善权限控制\n- 定期安全审计\n\n## 2. 项目风险\n\n### 2.1 进度风险\n**风险描述**: 项目延期\n**风险等级**: 中\n**应对措施**:\n- 合理安排进度\n- 增加人力投入\n- 及时沟通调整\n\n## 3. 运维风险\n\n- 系统故障应急预案\n- 数据备份恢复策略\n- 7x24技术支持`
-        }
-        resolve()
-      }
-    }, 700)
+// SSE流式处理
+const generateWithSSE = async (formData: FormData) => {
+  const response = await fetch('/api/generate-proposal-stream', {
+    method: 'POST',
+    body: formData
   })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new Error('无法读取响应流')
+  }
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6))
+
+          // 更新进度
+          if (data.progress !== undefined) {
+            generationProgress.value = data.progress
+          }
+
+          // 更新消息
+          if (data.message) {
+            streamContent.value += data.message + '\n'
+          }
+
+          // 处理需求分析完成
+          if (data.stage === 'analysis_completed' && data.analysis_result) {
+            analysisResult.value = data.analysis_result
+          }
+
+          // 处理大纲生成完成
+          if (data.stage === 'outline_completed' && data.outline_data) {
+            outlineData.value = data.outline_data
+          }
+
+          // 处理完成
+          if (data.stage === 'completed' && data.success) {
+            generationResult.value = data
+            currentTechFile.value = {
+              outputFile: data.output_file,
+              downloadUrl: data.output_files?.proposal,
+              stats: {
+                requirements_count: data.requirements_count,
+                sections_count: data.sections_count,
+                matches_count: data.matches_count
+              },
+              message: '技术方案已生成'
+            }
+
+            // 自动同步到HITL
+            if (data.output_file && form.value.projectId) {
+              await syncToHitl(
+                form.value.projectId,
+                data.output_file,
+                'tech_proposal'
+              )
+            }
+          }
+
+          // 处理错误
+          if (data.stage === 'error') {
+            // 显示详细错误信息
+            streamContent.value += `\n❌ 错误: ${data.error || data.message}\n`
+            throw new Error(data.error || data.message || '生成失败')
+          }
+        } catch (e: any) {
+          // 如果是JSON解析错误，可能是正常的非data行，忽略
+          if (e.message?.includes('JSON')) {
+            // 忽略JSON解析错误
+          } else {
+            // 其他错误抛出
+            console.error('SSE处理错误:', e, '原始数据:', line)
+            throw e
+          }
+        }
+      }
+    }
+  }
 }
 
+// ============================================
+// 操作函数
+// ============================================
 const stopGeneration = () => {
   generating.value = false
   ElMessage.info('已停止生成')
 }
 
-const exportProposal = () => {
-  if (!proposalResult.value) return
+const downloadDocument = (fileType: string) => {
+  if (!generationResult.value?.output_files?.[fileType]) {
+    ElMessage.warning('文件不存在')
+    return
+  }
 
-  const content = `# 技术方案文档\n\n${proposalResult.value.outline}\n\n${proposalResult.value.architecture}\n\n${proposalResult.value.plan}\n\n${proposalResult.value.risks}`
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `技术方案-${Date.now()}.txt`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  const url = generationResult.value.output_files[fileType]
+  const filename = url.split('/').pop() || `技术方案_${fileType}.docx`
 
-  ElMessage.success('导出成功')
+  // 使用公用下载函数
+  downloadFile(url, filename)
+
+  ElMessage.success('下载已开始')
 }
 
-onMounted(() => {
-  loadProjects()
+const previewDocument = () => {
+  if (!generationResult.value?.output_files?.proposal) {
+    ElMessage.warning('暂无文档可预览')
+    return
+  }
+
+  previewFileUrl.value = generationResult.value.output_files.proposal
+  previewFileName.value = `技术方案-${selectedProject.value?.project_name || '文档'}.docx`
+  previewVisible.value = true
+}
+
+const previewFile = (file: any) => {
+  previewFileUrl.value = file.file_path || file.outputFile
+  previewFileName.value = file.filename || '技术方案.docx'
+  previewVisible.value = true
+}
+
+const handleSyncToHitl = async () => {
+  if (!generationResult.value?.output_file) {
+    ElMessage.warning('没有可同步的文件')
+    return
+  }
+
+  if (!form.value.projectId) {
+    ElMessage.error('项目ID无效')
+    return
+  }
+
+  await syncToHitl(
+    form.value.projectId,
+    generationResult.value.output_file,
+    'tech_proposal'
+  )
+}
+
+const handleRegenerate = () => {
+  currentTechFile.value = null
+  generationResult.value = null
+  analysisResult.value = null
+  outlineData.value = null
+  ElMessage.info('请配置参数后重新生成')
+}
+
+// ============================================
+// 生命周期
+// ============================================
+onMounted(async () => {
+  await loadProjects()
+
+  const restoredProjectId = await restoreProjectFromStore({
+    onClear: () => {
+      form.value.tenderFiles = []
+      analysisResult.value = null
+      outlineData.value = null
+      generationResult.value = null
+      currentTechFile.value = null
+      if (useHitlFile.value) {
+        cancelHitlFile()
+      }
+    },
+    onDocumentsLoaded: (docs) => {
+      if (docs.technicalFile) {
+        loadFromHITL(docs, 'technicalFile')
+      }
+      if (docs.techProposalFile) {
+        currentTechFile.value = docs.techProposalFile
+      }
+    }
+  })
+
+  if (restoredProjectId) {
+    form.value.projectId = restoredProjectId
+  }
 })
 </script>
 
@@ -262,10 +874,126 @@ onMounted(() => {
   flex-direction: column;
   gap: 20px;
 
-  :deep(.el-card__header) {
-    padding: 16px 20px;
-    background: var(--el-fill-color-light);
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-weight: 600;
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+  }
+
+  .project-section,
+  .upload-section,
+  .generation-output,
+  .analysis-section,
+  .outline-section,
+  .result-section {
+    :deep(.el-card__header) {
+      padding: 16px 20px;
+      background: var(--el-fill-color-light);
+    }
+  }
+
+  .config-form {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 8px;
+  }
+
+  .action-controls {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+
+  .requirement-categories,
+  .章节结构 {
+    margin-top: 20px;
+
+    h4 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .category-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .category-content {
+      padding: 16px;
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
+
+      .category-summary {
+        margin-bottom: 12px;
+        font-style: italic;
+        color: var(--el-text-color-secondary);
+      }
+
+      .category-keywords,
+      .category-points {
+        margin-top: 12px;
+      }
+
+      ul {
+        margin: 8px 0;
+        padding-left: 20px;
+      }
+    }
+
+    .tree-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+
+      .el-icon {
+        color: var(--el-color-primary);
+      }
+
+      .node-title {
+        font-weight: 500;
+      }
+
+      .node-desc {
+        margin-left: 12px;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .result-content {
+    .output-files {
+      margin-top: 24px;
+
+      h4 {
+        margin: 0 0 16px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .file-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+    }
   }
 }
 </style>

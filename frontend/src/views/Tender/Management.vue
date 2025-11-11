@@ -11,7 +11,13 @@
       <Empty v-else-if="!projects.length" type="no-data" description="暂无项目" />
       <el-table v-else :data="projects" stripe style="width: 100%">
         <el-table-column prop="id" label="ID" width="70" fixed />
-        <el-table-column prop="name" label="项目名称" min-width="200" fixed show-overflow-tooltip />
+        <el-table-column prop="name" label="项目名称" min-width="200" fixed>
+          <template #default="{ row }">
+            <el-link type="primary" @click="handleView(row)">
+              {{ row.name }}
+            </el-link>
+          </template>
+        </el-table-column>
         <el-table-column prop="company_name" label="公司名称" min-width="180" show-overflow-tooltip />
         <el-table-column prop="authorized_person_name" label="被授权人" width="100" />
 
@@ -68,19 +74,42 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="created_at" label="创建时间" width="160" show-overflow-tooltip />
-
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column prop="created_at" label="创建时间" width="160">
           <template #default="{ row }">
-            <el-button text type="primary" size="small" @click="handleView(row)">
-              查看
-            </el-button>
-            <el-button text type="danger" size="small" @click="handleDelete(row)">
-              删除
-            </el-button>
+            {{ formatDate(row.created_at) }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="{ row }">
+            <IconButton
+              icon="bi-eye"
+              type="primary"
+              tooltip="查看详情"
+              @click="handleView(row)"
+            />
+            <IconButton
+              icon="bi-trash"
+              type="danger"
+              tooltip="删除项目"
+              @click="handleDelete(row)"
+            />
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分页 -->
+      <div v-if="projects.length > 0" class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </Card>
   </div>
 </template>
@@ -88,15 +117,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Card, Loading, Empty } from '@/components'
+import { Card, Loading, Empty, IconButton } from '@/components'
 import { useNotification } from '@/composables'
 import { tenderApi } from '@/api/endpoints/tender'
 import { companyApi } from '@/api/endpoints/company'
+import dayjs from 'dayjs'
 
 // 状态
 const loading = ref(false)
 const creating = ref(false)
 const projects = ref<any[]>([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
 // Hooks
 const router = useRouter()
@@ -107,7 +140,10 @@ const loadProjects = async () => {
   loading.value = true
   try {
     // 调用API加载项目列表
-    const response = await tenderApi.getProjects({ page: 1, page_size: 100 })
+    const response = await tenderApi.getProjects({
+      page: currentPage.value,
+      page_size: pageSize.value
+    })
 
     // 处理响应数据，转换字段名以匹配前端
     const rawData = response.data?.items || response.data || []
@@ -120,6 +156,9 @@ const loadProjects = async () => {
       created_at: project.created_at,
       ...project
     }))
+
+    // 更新总数
+    total.value = response.data?.total || projects.value.length
   } catch (err) {
     console.error('加载项目列表失败:', err)
     error('加载失败', err instanceof Error ? err.message : '未知错误')
@@ -232,6 +271,24 @@ const handleCreate = async () => {
   }
 }
 
+// 分页处理
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
+  loadProjects()
+}
+
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  loadProjects()
+}
+
+// 日期格式化
+const formatDate = (date: string | Date): string => {
+  if (!date) return '-'
+  return dayjs(date).format('YYYY-MM-DD HH:mm')
+}
+
 // 生命周期
 onMounted(() => {
   loadProjects()
@@ -240,6 +297,28 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .tender-management {
-  padding: 20px;
+  padding: var(--spacing-lg, 24px);
+  background: var(--bg-light, #f8f9fa);
+  min-height: 100vh;
+}
+
+// ==================== 分页 ====================
+
+.pagination-wrapper {
+  margin-top: var(--spacing-lg, 24px);
+  display: flex;
+  justify-content: flex-end;
+}
+
+// ==================== 响应式 ====================
+
+@media (max-width: 768px) {
+  .tender-management {
+    padding: var(--spacing-md, 16px);
+  }
+
+  .pagination-wrapper {
+    justify-content: center;
+  }
 }
 </style>
