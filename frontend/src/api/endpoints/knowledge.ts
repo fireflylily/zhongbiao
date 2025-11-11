@@ -11,6 +11,7 @@ import type {
   Case,
   CaseAttachment,
   Resume,
+  ResumeAttachment,
   ProjectExperience,
   ApiResponse,
   ListApiResponse,
@@ -229,36 +230,50 @@ export const knowledgeApi = {
   /**
    * 获取简历列表
    */
-  async getResumes(
-    params?: PaginationParams & { company_id?: number; position?: string }
-  ): Promise<PaginatedApiResponse<Resume>> {
-    return apiClient.get('/knowledge/resumes', params)
+  async getResumes(params?: {
+    company_id?: number
+    status?: string
+    search?: string
+    education_level?: string
+    position?: string
+    tags?: string[]
+    page?: number
+    page_size?: number
+  }): Promise<ApiResponse<any>> {
+    return apiClient.get('/resume_library/list', params)
   },
 
   /**
    * 获取简历详情
    */
   async getResume(resumeId: number): Promise<ApiResponse<Resume>> {
-    return apiClient.get(`/knowledge/resumes/${resumeId}`)
+    return apiClient.get(`/resume_library/detail/${resumeId}`)
   },
 
   /**
    * 创建简历
    */
   async createResume(data: {
-    company_id: number
+    company_id?: number
     name: string
-    position: string
-    department?: string
+    gender?: string
+    birth_date?: string
     phone?: string
     email?: string
-    education?: string
-    years_of_experience?: number
-    skills?: string[]
-    certifications?: string[]
-    summary?: string
+    education_level?: string
+    degree?: string
+    university?: string
+    major?: string
+    current_position?: string
+    professional_title?: string
+    work_years?: number
+    current_company?: string
+    skills?: string
+    certificates?: string
+    introduction?: string
+    status?: 'active' | 'inactive' | 'archived'
   }): Promise<ApiResponse<Resume>> {
-    return apiClient.post('/knowledge/resumes', data)
+    return apiClient.post('/resume_library/create', data)
   },
 
   /**
@@ -268,101 +283,99 @@ export const knowledgeApi = {
     resumeId: number,
     data: Partial<Resume>
   ): Promise<ApiResponse<Resume>> {
-    return apiClient.put(`/knowledge/resumes/${resumeId}`, data)
+    return apiClient.put(`/resume_library/update/${resumeId}`, data)
   },
 
   /**
    * 删除简历
    */
   async deleteResume(resumeId: number): Promise<ApiResponse<void>> {
-    return apiClient.delete(`/knowledge/resumes/${resumeId}`)
+    return apiClient.delete(`/resume_library/delete/${resumeId}`)
   },
 
   /**
-   * 上传简历文件
+   * 解析简历文件
    */
-  async uploadResumeFile(
+  async parseResumeFile(
+    file: File,
+    autoCreate: boolean = false,
+    companyId?: number,
+    onProgress?: (progress: number) => void
+  ): Promise<ApiResponse<any>> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('auto_create', autoCreate.toString())
+    if (companyId) {
+      formData.append('company_id', companyId.toString())
+    }
+
+    return apiClient.upload('/resume_library/parse-resume', formData, (event) => {
+      if (onProgress && event.total) {
+        const progress = Math.round((event.loaded * 100) / event.total)
+        onProgress(progress)
+      }
+    })
+  },
+
+  /**
+   * 上传简历附件
+   */
+  async uploadResumeAttachment(
     resumeId: number,
     file: File,
+    category: 'resume' | 'id_card' | 'education' | 'degree' | 'qualification' | 'award' | 'other',
+    description?: string,
     onProgress?: (progress: number) => void
   ): Promise<ApiResponse<any>> {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('resume_id', resumeId.toString())
-
-    return apiClient.upload('/knowledge/resumes/upload-file', formData, (event) => {
-      if (onProgress && event.total) {
-        const progress = Math.round((event.loaded * 100) / event.total)
-        onProgress(progress)
-      }
-    })
-  },
-
-  /**
-   * 上传简历照片
-   */
-  async uploadResumePhoto(
-    resumeId: number,
-    file: File,
-    onProgress?: (progress: number) => void
-  ): Promise<ApiResponse<any>> {
-    const formData = new FormData()
-    formData.append('photo', file)
-    formData.append('resume_id', resumeId.toString())
-
-    return apiClient.upload('/knowledge/resumes/upload-photo', formData, (event) => {
-      if (onProgress && event.total) {
-        const progress = Math.round((event.loaded * 100) / event.total)
-        onProgress(progress)
-      }
-    })
-  },
-
-  /**
-   * 添加项目经验
-   */
-  async addProjectExperience(
-    resumeId: number,
-    data: {
-      project_name: string
-      role: string
-      start_date: string
-      end_date?: string
-      description?: string
-      achievements?: string
-      technologies?: string[]
+    formData.append('attachment_category', category)
+    if (description) {
+      formData.append('description', description)
     }
-  ): Promise<ApiResponse<ProjectExperience>> {
-    return apiClient.post(`/knowledge/resumes/${resumeId}/experiences`, data)
+
+    return apiClient.upload('/resume_library/upload-attachment', formData, (event) => {
+      if (onProgress && event.total) {
+        const progress = Math.round((event.loaded * 100) / event.total)
+        onProgress(progress)
+      }
+    })
   },
 
   /**
-   * 更新项目经验
+   * 获取简历附件列表
    */
-  async updateProjectExperience(
-    experienceId: number,
-    data: Partial<ProjectExperience>
-  ): Promise<ApiResponse<ProjectExperience>> {
-    return apiClient.put(`/knowledge/project-experiences/${experienceId}`, data)
+  async getResumeAttachments(resumeId: number, category?: string): Promise<ApiResponse<ResumeAttachment[]>> {
+    return apiClient.get(`/resume_library/attachments/${resumeId}`, category ? { category } : undefined)
   },
 
   /**
-   * 删除项目经验
+   * 删除简历附件
    */
-  async deleteProjectExperience(experienceId: number): Promise<ApiResponse<void>> {
-    return apiClient.delete(`/knowledge/project-experiences/${experienceId}`)
+  async deleteResumeAttachment(attachmentId: number): Promise<ApiResponse<void>> {
+    return apiClient.delete(`/resume_library/attachment/${attachmentId}`)
+  },
+
+  /**
+   * 下载简历附件
+   */
+  downloadResumeAttachment(attachmentId: number): string {
+    return `${apiClient.getInstance().defaults.baseURL}/resume_library/attachment/${attachmentId}/download`
   },
 
   /**
    * 搜索简历
    */
-  async searchResumes(params: {
-    keyword?: string
-    position?: string
-    skills?: string[]
-    min_experience?: number
-  }): Promise<ListApiResponse<Resume>> {
-    return apiClient.get('/knowledge/resumes/search', params)
+  async searchResumes(keyword: string, limit: number = 10): Promise<ApiResponse<Resume[]>> {
+    return apiClient.get('/resume_library/search', { keyword, limit })
+  },
+
+  /**
+   * 获取简历统计信息
+   */
+  async getResumeStatistics(companyId?: number): Promise<ApiResponse<any>> {
+    return apiClient.get('/resume_library/statistics', companyId ? { company_id: companyId } : undefined)
   },
 
   /**
@@ -370,13 +383,22 @@ export const knowledgeApi = {
    */
   async exportResumes(
     resumeIds: number[],
-    format: 'pdf' | 'docx' = 'pdf'
-  ): Promise<Blob> {
-    const response = await apiClient.getInstance().post(
-      '/knowledge/resumes/export',
-      { resume_ids: resumeIds, format },
-      { responseType: 'blob' }
-    )
-    return response.data
+    options?: any
+  ): Promise<ApiResponse<any>> {
+    return apiClient.post('/resume_library/export', { resume_ids: resumeIds, options })
+  },
+
+  /**
+   * 获取附件类别列表
+   */
+  async getAttachmentCategories(): Promise<ApiResponse<any[]>> {
+    return apiClient.get('/resume_library/categories')
+  },
+
+  /**
+   * 获取学历级别列表
+   */
+  async getEducationLevels(): Promise<ApiResponse<any[]>> {
+    return apiClient.get('/resume_library/education-levels')
   }
 }

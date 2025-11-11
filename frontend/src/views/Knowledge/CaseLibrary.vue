@@ -38,7 +38,7 @@
     </div>
 
     <Card title="案例列表">
-      <template #header-right>
+      <template #actions>
         <el-button type="primary" @click="handleCreate">
           <el-icon><Plus /></el-icon>
           新建案例

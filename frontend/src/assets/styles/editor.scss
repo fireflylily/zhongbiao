@@ -1,0 +1,350 @@
+/**
+ * 富文本编辑器自定义样式
+ * 用于覆盖和扩展Umo Editor的默认样式
+ *
+ * 注意：Umo Editor的样式会自动加载，这里只定义自定义样式
+ */
+
+// 自定义编辑器样式
+.umo-editor {
+  // 分页模式样式优化
+  :deep(.umo-page-wrapper) {
+    background: #f5f5f5;  // 浅灰色背景，突出纸张效果
+    padding: 20px;
+  }
+
+  :deep(.umo-page) {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);  // 纸张阴影
+    margin-bottom: 20px;  // 页面间隙
+  }
+
+  :deep(.umo-page-break) {
+    border-top: 2px dashed var(--el-border-color);  // 分页标记样式
+    margin: 20px 0;
+    position: relative;
+
+    &::after {
+      content: '--- 分页 ---';
+      position: absolute;
+      left: 50%;
+      top: -10px;
+      transform: translateX(-50%);
+      background: var(--el-bg-color);
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+
+  // 工具栏样式定制
+  :deep(.umo-toolbar) {
+    background: var(--el-fill-color-light);
+    border-bottom: 1px solid var(--el-border-color);
+    padding: 8px 12px;
+
+    .umo-toolbar-button {
+      border-radius: 4px;
+      transition: all 0.2s;
+
+      &:hover {
+        background: var(--el-fill-color-darker);
+      }
+
+      &.is-active {
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+      }
+    }
+  }
+
+  // 编辑区域样式
+  :deep(.umo-content),
+  :deep(.ProseMirror) {
+    font-family: var(--el-font-family), 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+    line-height: 1.8;
+    color: var(--el-text-color-primary);
+    padding: 20px;
+    min-height: 400px;
+
+    // 标题样式
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--el-text-color-primary);
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 16px;
+      line-height: 1.4;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    h1 {
+      font-size: 28px;
+      border-bottom: 2px solid var(--el-border-color);
+      padding-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 24px;
+    }
+
+    h3 {
+      font-size: 20px;
+    }
+
+    h4 {
+      font-size: 18px;
+    }
+
+    // 段落样式
+    p {
+      margin: 12px 0;
+      line-height: 1.8;
+
+      &:first-child {
+        margin-top: 0;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    // 列表样式
+    ul, ol {
+      margin: 12px 0;
+      padding-left: 28px;
+
+      li {
+        margin: 6px 0;
+        line-height: 1.8;
+
+        p {
+          margin: 0;
+        }
+      }
+    }
+
+    ul {
+      list-style-type: disc;
+
+      ul {
+        list-style-type: circle;
+
+        ul {
+          list-style-type: square;
+        }
+      }
+    }
+
+    // 表格样式
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+
+      th, td {
+        padding: 10px 12px;
+        border: 1px solid var(--el-border-color);
+        text-align: left;
+      }
+
+      th {
+        background: var(--el-fill-color-light);
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      tbody tr:hover {
+        background: var(--el-fill-color-lighter);
+      }
+    }
+
+    // 引用样式
+    blockquote {
+      margin: 16px 0;
+      padding: 12px 20px;
+      border-left: 4px solid var(--el-color-primary);
+      background: var(--el-fill-color-lighter);
+      color: var(--el-text-color-secondary);
+      font-style: italic;
+
+      p {
+        margin: 8px 0;
+
+        &:first-child {
+          margin-top: 0;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+
+    // 代码样式
+    code {
+      padding: 2px 6px;
+      background: var(--el-fill-color);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      color: var(--el-color-danger);
+    }
+
+    pre {
+      margin: 16px 0;
+      padding: 16px;
+      background: var(--el-fill-color);
+      border: 1px solid var(--el-border-color);
+      border-radius: 6px;
+      overflow-x: auto;
+
+      code {
+        padding: 0;
+        background: none;
+        border: none;
+        color: var(--el-text-color-primary);
+        font-size: 13px;
+      }
+    }
+
+    // 链接样式
+    a {
+      color: var(--el-color-primary);
+      text-decoration: none;
+      transition: all 0.2s;
+
+      &:hover {
+        text-decoration: underline;
+        color: var(--el-color-primary-light-3);
+      }
+    }
+
+    // 图片样式
+    img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      margin: 12px 0;
+    }
+
+    // 分隔线样式
+    hr {
+      margin: 24px 0;
+      border: none;
+      border-top: 2px dashed var(--el-border-color);
+    }
+
+    // 任务列表样式
+    ul[data-type="taskList"] {
+      list-style: none;
+      padding-left: 0;
+
+      li {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+
+        input[type="checkbox"] {
+          margin-top: 6px;
+          cursor: pointer;
+        }
+      }
+    }
+
+    // 占位符样式
+    &.is-empty::before {
+      color: var(--el-text-color-placeholder);
+      content: attr(data-placeholder);
+      pointer-events: none;
+    }
+  }
+
+  // 焦点状态
+  &:focus-within {
+    outline: none;
+  }
+}
+
+// 点对点应答特殊样式
+.requirement-box {
+  padding: 16px;
+  margin: 12px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+
+  h3 {
+    margin: 0 0 8px 0;
+    color: white !important;
+    font-size: 14px;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.6;
+  }
+}
+
+.response-box {
+  padding: 16px;
+  margin: 12px 0;
+  background: var(--el-fill-color-lighter);
+  border-left: 4px solid var(--el-color-success);
+  border-radius: 4px;
+
+  h4 {
+    margin: 0 0 8px 0;
+    color: var(--el-color-success);
+    font-size: 14px;
+  }
+}
+
+.requirement-footer {
+  padding: 12px;
+  background: var(--el-color-success-light-9);
+  border-left: 4px solid var(--el-color-success);
+  margin: 16px 0;
+  border-radius: 4px;
+
+  p {
+    margin: 0;
+
+    strong {
+      color: var(--el-color-success);
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .umo-editor {
+    :deep(.umo-content),
+    :deep(.ProseMirror) {
+      padding: 12px;
+      font-size: 14px;
+    }
+  }
+}
+
+// 打印样式
+@media print {
+  .umo-editor {
+    :deep(.umo-toolbar) {
+      display: none;
+    }
+
+    :deep(.umo-content),
+    :deep(.ProseMirror) {
+      padding: 0;
+      background: white;
+      color: black;
+    }
+  }
+}

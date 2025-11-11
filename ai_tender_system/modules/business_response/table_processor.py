@@ -5,6 +5,7 @@
 """
 
 import re
+import logging
 from typing import Dict, Any, List, Optional
 from docx import Document
 from docx.table import Table, _Cell
@@ -23,7 +24,9 @@ class TableProcessor:
     
     def __init__(self):
         self.logger = get_module_logger("table_processor")
-        
+        # 🔧 启用DEBUG日志以诊断表格处理问题
+        self.logger.setLevel(logging.DEBUG)
+
         # 表格中的关键字段映射
         self.table_field_mapping = {
             '供应商名称': 'companyName',
@@ -232,9 +235,9 @@ class TableProcessor:
                     if value and field_key == 'shareholders_info':
                         value = self._format_shareholders_info(value)
 
-                    # 🔧 修复：跳过"无"、"/" 等占位值
-                    if value and str(value).strip() in ['无', '/', '-', 'N/A', 'NA']:
-                        self.logger.debug(f"  跳过占位值字段: {field_name} = '{value}'")
+                    # 🔧 修复：跳过空值和明确的占位符（移除"无"，因为它可能是合法的业务数据）
+                    if not value or str(value).strip() in ['/', '-', 'N/A', 'NA', '']:
+                        self.logger.debug(f"  跳过空值或占位符字段: {field_name} = '{value}'")
                         continue
 
                     if value and self._should_fill_cell(value_cell):
@@ -299,9 +302,9 @@ class TableProcessor:
                     if value and field_key == 'shareholders_info':
                         value = self._format_shareholders_info(value)
 
-                    # 🔧 修复：跳过"无"、"/" 等占位值
-                    if value and str(value).strip() in ['无', '/', '-', 'N/A', 'NA']:
-                        self.logger.debug(f"  跳过占位值字段: 行{row_idx}列{col_idx} {field_key} = '{value}'")
+                    # 🔧 修复：跳过空值和明确的占位符（移除"无"，因为它可能是合法的业务数据）
+                    if not value or str(value).strip() in ['/', '-', 'N/A', 'NA', '']:
+                        self.logger.debug(f"  跳过空值或占位符字段: 行{row_idx}列{col_idx} {field_key} = '{value}'")
                         continue
 
                     if value and self._should_fill_cell(row.cells[col_idx]):

@@ -353,36 +353,149 @@ export interface CaseFormData {
 // 简历库相关
 // ============================================
 
+/**
+ * 简历库主表 (resumes)
+ * 对应数据库: ai_tender_system/database/resume_library_schema.sql
+ */
 export interface Resume {
-  id: number
+  // 主键和外键
+  resume_id: number
+  company_id?: number
+  company_name?: string  // 前端显示用（Join查询）
+
+  // 基本信息
+  name: string  // 姓名（必填）
+  gender?: string  // 性别
+  birth_date?: string  // 出生日期
+  nationality?: string  // 民族
+  native_place?: string  // 籍贯
+  political_status?: string  // 政治面貌
+  id_number?: string  // 身份证号
+
+  // 教育信息
+  education_level?: string  // 学历（本科/硕士/博士等）
+  degree?: string  // 学位
+  university?: string  // 毕业院校
+  major?: string  // 专业
+  graduation_date?: string  // 毕业时间
+
+  // 工作信息
+  current_position?: string  // 当前职位
+  professional_title?: string  // 职称
+  work_years?: number  // 工作年限
+  current_company?: string  // 当前工作单位
+  department?: string  // 所在部门
+
+  // 技能信息（JSON格式字符串，前端需解析）
+  skills?: string  // 技能特长（JSON数组）
+  certificates?: string  // 证书列表（JSON数组）
+  languages?: string  // 语言能力（JSON数组）
+  project_experience?: string  // 项目经验（JSON数组）
+  work_experience?: string  // 工作经历（JSON数组）
+
+  // 联系方式
+  phone?: string  // 手机号码
+  email?: string  // 邮箱
+  address?: string  // 联系地址
+
+  // 其他信息
+  salary_expectation?: string  // 期望薪资
+  work_location?: string  // 工作地点
+  introduction?: string  // 个人简介
+  awards?: string  // 获奖情况
+
+  // 系统字段
+  status?: 'active' | 'inactive' | 'archived'  // 状态
+  tags?: string  // 标签（逗号分隔）
+  created_by?: string  // 创建人
+  created_at: string
+  updated_at?: string
+
+  // 前端扩展字段（非数据库字段）
+  attachments?: ResumeAttachment[]  // 关联的附件列表
+  skills_array?: string[]  // 解析后的技能数组
+  certificates_array?: string[]  // 解析后的证书数组
+}
+
+/**
+ * 简历附件表 (resume_attachments)
+ */
+export interface ResumeAttachment {
+  // 主键和外键
+  attachment_id: number
+  resume_id: number
+
+  // 文件信息
+  file_name: string  // 文件名（系统生成）
+  original_filename: string  // 原始文件名
+  file_path: string  // 文件路径
+  file_type?: string  // pdf/jpg/png等
+  file_size?: number  // 文件大小（字节）
+
+  // 附件分类
+  attachment_category: 'resume' | 'id_card' | 'education' | 'degree' | 'qualification' | 'award' | 'other'
+  // resume: 简历文件
+  // id_card: 身份证
+  // education: 学历证书
+  // degree: 学位证书
+  // qualification: 资质证书
+  // award: 获奖证书
+  // other: 其他
+  attachment_description?: string  // 附件说明
+
+  // 时间戳
+  uploaded_by?: string  // 上传人
+  uploaded_at: string
+}
+
+/**
+ * 简历表单数据（用于创建/编辑）
+ */
+export interface ResumeFormData {
+  company_id?: number
   name: string
-  gender?: 'male' | 'female'
+  gender?: string
   birth_date?: string
   phone?: string
   email?: string
-  education: string
+  education_level?: string
+  degree?: string
+  university?: string
   major?: string
-  title?: string
-  company?: string
-  years_experience?: number
-  skills?: string[]
-  certifications?: string[]
-  project_experience?: ProjectExperience[]
-  file_path?: string
-  created_at: string
-  updated_at?: string
+  graduation_date?: string
+  current_position?: string
+  professional_title?: string
+  work_years?: number
+  current_company?: string
+  department?: string
+  skills?: string
+  certificates?: string
+  introduction?: string
+  status?: 'active' | 'inactive' | 'archived'
 }
 
+/**
+ * 项目经验（用于前端展示，从project_experience JSON解析）
+ */
 export interface ProjectExperience {
-  id: number
-  resume_id: number
   project_name: string
   role: string
   start_date: string
   end_date?: string
-  description: string
+  description?: string
   responsibilities?: string
   achievements?: string
+}
+
+/**
+ * 工作经历（从work_experience JSON解析）
+ */
+export interface WorkExperience {
+  company: string
+  position: string
+  start_date: string
+  end_date?: string
+  description?: string
 }
 
 // ============================================

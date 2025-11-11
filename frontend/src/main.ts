@@ -9,11 +9,16 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 // Bootstrap Icons 图标库
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
+// Umo Editor 富文本编辑器
+import { useUmoEditor } from '@umoteam/editor'
+// 样式将在组件中按需引入
+
 import App from './App.vue'
 import router from './router'
 
 // 全局样式
 import './assets/styles/global.scss'
+import './assets/styles/editor.scss'
 
 // 初始化CSRF Token
 async function initCsrfToken() {
@@ -38,6 +43,17 @@ async function initApp() {
 
   // 路由
   app.use(router)
+
+  // Umo Editor 富文本编辑器 (v8.x)
+  try {
+    app.use(useUmoEditor, {
+      // v8.x 使用默认配置
+      // 图片上传和保存等功能在组件层面配置
+    })
+    console.log('[App] Umo Editor v8.x 注册成功')
+  } catch (error) {
+    console.error('[App] Umo Editor 注册失败:', error)
+  }
 
   // Element Plus 组件会通过 unplugin-vue-components 自动按需引入
   // 不再需要 app.use(ElementPlus)

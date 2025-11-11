@@ -16,6 +16,9 @@ import SSEStreamViewer from './SSEStreamViewer.vue'
 import DocumentUploader from './DocumentUploader.vue'
 import DocumentPreview from './DocumentPreview.vue'
 
+// 编辑器组件
+import RichTextEditor from './Editor/RichTextEditor.vue'
+
 // 布局组件
 import ListPageLayout from './layouts/ListPageLayout.vue'
 import DetailPageLayout from './layouts/DetailPageLayout.vue'
@@ -25,6 +28,9 @@ import FormTabLayout from './layouts/FormTabLayout.vue'
 import StatsCard from './business/StatsCard.vue'
 import HitlFileAlert from './business/HitlFileAlert.vue'
 import HistoryFilesPanel from './business/HistoryFilesPanel.vue'
+
+// 全局组件
+import FeedbackButton from './FeedbackButton.vue'
 
 // 默认导出所有组件
 export {
@@ -38,6 +44,8 @@ export {
   SSEStreamViewer,
   DocumentUploader,
   DocumentPreview,
+  // 编辑器组件
+  RichTextEditor,
   // 布局组件
   ListPageLayout,
   DetailPageLayout,
@@ -45,7 +53,9 @@ export {
   // 业务组件
   StatsCard,
   HitlFileAlert,
-  HistoryFilesPanel
+  HistoryFilesPanel,
+  // 全局组件
+  FeedbackButton
 }
 
 // 类型导出
@@ -66,6 +76,8 @@ export default {
   SSEStreamViewer,
   DocumentUploader,
   DocumentPreview,
+  // 编辑器组件
+  RichTextEditor,
   // 布局组件
   ListPageLayout,
   DetailPageLayout,
@@ -73,5 +85,7 @@ export default {
   // 业务组件
   StatsCard,
   HitlFileAlert,
-  HistoryFilesPanel
+  HistoryFilesPanel,
+  // 全局组件
+  FeedbackButton
 }

@@ -1,10 +1,13 @@
 <template>
   <router-view />
+  <!-- 全局反馈按钮 -->
+  <FeedbackButton />
 </template>
 
 <script setup lang="ts">
 // App根组件
 // 所有页面通过router-view渲染
+import FeedbackButton from '@/components/FeedbackButton.vue'
 </script>
 
 <style lang="scss">

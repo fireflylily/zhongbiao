@@ -169,29 +169,93 @@
       </div>
     </el-card>
 
-    <!-- AI生成流式输出 -->
-    <el-card v-if="generating" class="generation-output" shadow="never">
+    <!-- 历史商务应答文件卡片（有历史文件但未打开编辑器时显示） -->
+    <el-card v-if="generationResult && !showEditor" class="history-file-card" shadow="never">
       <template #header>
         <div class="card-header">
-          <span>AI正在生成商务应答...</span>
-          <el-progress
-            :percentage="generationProgress"
-            :status="generationProgress === 100 ? 'success' : undefined"
-            style="width: 300px"
-          />
+          <span>📄 该项目已有商务应答文件</span>
+          <el-tag type="info">历史文件</el-tag>
         </div>
       </template>
 
-      <SSEStreamViewer
-        :content="streamContent"
-        :is-streaming="generating"
-        @stop="stopGeneration"
-        @regenerate="startGeneration"
+      <el-alert
+        type="info"
+        :title="generationResult.message || '检测到该项目的历史商务应答文件'"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 20px"
+      />
+
+      <!-- 文件信息 -->
+      <el-descriptions :column="2" border style="margin-bottom: 20px">
+        <el-descriptions-item label="文件路径">
+          {{ generationResult.outputFile }}
+        </el-descriptions-item>
+        <el-descriptions-item label="下载地址">
+          <el-link :href="generationResult.downloadUrl" type="primary">
+            点击下载
+          </el-link>
+        </el-descriptions-item>
+      </el-descriptions>
+
+      <!-- 处理统计（如果有） -->
+      <StatsCard
+        v-if="generationResult.stats && Object.keys(generationResult.stats).length > 0"
+        title="处理统计"
+        :stats="generationResult.stats"
+      />
+
+      <!-- 操作按钮 -->
+      <div class="history-actions">
+        <el-button
+          type="primary"
+          size="large"
+          @click="openHistoryInEditor"
+        >
+          <el-icon><Edit /></el-icon>
+          在编辑器中打开
+        </el-button>
+        <el-button
+          type="primary"
+          :icon="View"
+          @click="previewDocument"
+        >
+          预览Word
+        </el-button>
+        <el-button
+          type="success"
+          :icon="Download"
+          @click="downloadDocument"
+        >
+          下载
+        </el-button>
+        <el-button
+          :icon="RefreshRight"
+          @click="startGeneration"
+        >
+          重新生成
+        </el-button>
+      </div>
+    </el-card>
+
+    <!-- 富文本编辑器（生成时立即显示） -->
+    <el-card v-if="showEditor" class="editor-section" shadow="never">
+      <RichTextEditor
+        ref="editorRef"
+        v-model="editorContent"
+        title="商务应答文档"
+        :streaming="generating"
+        :height="600"
+        @save="handleEditorSave"
+        @preview="previewDocument"
+        @export="downloadDocument"
       />
     </el-card>
 
-    <!-- 生成结果 -->
-    <el-card v-if="generationResult" class="result-section" shadow="never">
+    <!-- 原始生成结果（折叠查看） -->
+    <el-collapse v-if="showEditor && generationResult" v-model="activeCollapse" class="result-collapse">
+      <el-collapse-item name="result" title="📄 查看原始生成结果">
+        <el-card class="result-section" shadow="never">
       <template #header>
         <div class="card-header">
           <span>{{ generationResult.isHistory ? '📄 历史应答文件' : '✅ 生成结果' }}</span>
@@ -269,6 +333,8 @@
         </div>
       </div>
     </el-card>
+      </el-collapse-item>
+    </el-collapse>
 
     <!-- 文档预览对话框 -->
     <DocumentPreview
@@ -283,8 +349,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
-import { Download, RefreshRight, Document, View, Upload } from '@element-plus/icons-vue'
-import { DocumentUploader, SSEStreamViewer, DocumentPreview, StatsCard, HitlFileAlert } from '@/components'
+import { Download, RefreshRight, Document, View, Upload, Edit } from '@element-plus/icons-vue'
+import { DocumentUploader, SSEStreamViewer, DocumentPreview, StatsCard, HitlFileAlert, RichTextEditor } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import { businessLegacyApi } from '@/api/endpoints/business'
 import { companyApi } from '@/api/endpoints/company'
@@ -381,8 +447,17 @@ const generationProgress = ref(0)
 const streamContent = ref('')
 const generationResult = ref<GenerationResult | null>(null)
 
+// 编辑器状态
+const showEditor = ref(false)
+const editorRef = ref<any>(null)
+const editorContent = ref('')
+const editorSaving = ref(false)
+
 // 预览状态
 const previewVisible = ref(false)
+
+// 折叠面板状态
+const activeCollapse = ref<string[]>([])
 
 // 自定义上传函数：商务应答模板
 const handleTemplateUpload = async (options: UploadRequestOptions) => {
@@ -520,6 +595,10 @@ const handleProjectChange = async () => {
       streamContent.value = ''
       form.value.tenderFiles = []
       form.value.templateFiles = []
+      // 清空编辑器
+      showEditor.value = false
+      editorContent.value = ''
+      activeCollapse.value = []
       // 取消使用HITL文件
       if (useHitlTemplate.value) {
         cancelHitlTemplate()
@@ -540,9 +619,13 @@ const handleProjectChange = async () => {
         loadTemplateFromHITL(docs, 'templateFile')
       }
 
-      // 同步历史商务应答文件
+      // 同步历史商务应答文件（不自动打开编辑器）
       if (docs.businessResponseFile) {
         generationResult.value = docs.businessResponseFile
+        showEditor.value = false  // 明确不自动打开编辑器
+
+        console.log('[Response] 检测到历史商务应答文件:', docs.businessResponseFile.outputFile)
+        ElMessage.info('检测到历史商务应答文件，点击"在编辑器中打开"可编辑')
       }
     }
   })
@@ -576,6 +659,18 @@ const startGeneration = async () => {
   generationProgress.value = 0
   streamContent.value = ''
   generationResult.value = null
+
+  // 立即显示编辑器
+  showEditor.value = true
+  editorContent.value = '<h1>📄 商务应答文档</h1><p style="color: #909399;">AI正在生成内容，请稍候...</p>'
+
+  // 滚动到编辑器
+  setTimeout(() => {
+    document.querySelector('.editor-section')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
+  }, 100)
 
   try {
     // 获取项目详情
@@ -630,7 +725,10 @@ const startGeneration = async () => {
         message: result.message
       }
 
-      ElMessage.success('商务应答生成完成！')
+      // 加载Word文档到编辑器
+      await loadWordToEditor(result.output_file)
+
+      ElMessage.success('商务应答生成完成！可以编辑了')
 
       // 自动同步到HITL项目
       if (result.output_file && form.value.projectId) {
@@ -646,6 +744,12 @@ const startGeneration = async () => {
   } catch (error: any) {
     console.error('生成失败:', error)
     streamContent.value += `\n❌ 错误: ${error.message}\n`
+
+    // 在编辑器中也显示错误
+    if (editorRef.value) {
+      editorRef.value.appendContent(`<p style="color: red;">❌ 错误: ${error.message}</p>`)
+    }
+
     ElMessage.error(error.message || '生成失败，请重试')
   } finally {
     generating.value = false
@@ -659,6 +763,108 @@ const startGeneration = async () => {
 const stopGeneration = () => {
   generating.value = false
   ElMessage.info('已停止生成')
+}
+
+// 加载Word文档到编辑器
+const loadWordToEditor = async (filePath: string) => {
+  try {
+    editorContent.value = '<p style="color: #409EFF;">正在转换Word文档为可编辑格式...</p>'
+
+    // 调用后端API将Word转换为HTML
+    const response = await fetch('/api/editor/convert-word-to-html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_path: filePath })
+    })
+
+    const result = await response.json()
+
+    if (result.success && result.html_content) {
+      editorContent.value = result.html_content
+
+      if (editorRef.value) {
+        editorRef.value.setContent(result.html_content)
+      }
+
+      console.log('[Response] Word文档已加载到编辑器')
+    } else {
+      throw new Error(result.error || '转换失败')
+    }
+  } catch (error: any) {
+    console.error('[Response] 加载文档到编辑器失败:', error)
+
+    // 如果转换失败，显示基础提示
+    editorContent.value = `
+      <h1>📄 商务应答文档</h1>
+      <div style="padding: 20px; background: #FFF3E0; border-left: 4px solid #FF9800; margin: 16px 0;">
+        <p><strong>⚠️ 提示：</strong>Word文档转换失败</p>
+        <p>原因：${error.message}</p>
+        <p>您可以：</p>
+        <ul>
+          <li>直接在此编辑器中输入内容</li>
+          <li>或点击下方"查看原始生成结果"下载Word文档查看</li>
+        </ul>
+      </div>
+      <p>开始编辑您的内容...</p>
+    `
+
+    ElMessage.warning('Word转换HTML失败，请使用下载功能或手动输入')
+  }
+}
+
+// 保存编辑器内容
+const handleEditorSave = async (htmlContent: string) => {
+  if (!form.value.projectId) {
+    ElMessage.error('项目ID无效')
+    return
+  }
+
+  editorSaving.value = true
+
+  try {
+    // 调用后端API将HTML保存为Word
+    const response = await fetch('/api/editor/save-html-to-word', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        html_content: htmlContent,
+        project_id: form.value.projectId,
+        document_type: 'business_response',
+        original_file: generationResult.value?.outputFile
+      })
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      // 更新生成结果
+      generationResult.value = {
+        success: true,
+        outputFile: result.output_file,
+        downloadUrl: result.download_url,
+        stats: generationResult.value?.stats || {},
+        message: '文档已保存'
+      }
+
+      console.log('[Response] 编辑内容已保存:', result.output_file)
+
+      // 同步到HITL
+      if (result.output_file) {
+        await syncToHitl(
+          form.value.projectId,
+          result.output_file,
+          'business_response'
+        )
+      }
+    } else {
+      throw new Error(result.error || '保存失败')
+    }
+  } catch (error: any) {
+    console.error('[Response] 保存编辑内容失败:', error)
+    throw error // 让RichTextEditor显示错误
+  } finally {
+    editorSaving.value = false
+  }
 }
 
 // 预览文档
@@ -716,6 +922,35 @@ const handleSyncToHitl = async () => {
   )
 }
 
+// 在编辑器中打开历史文件
+const openHistoryInEditor = async () => {
+  if (!generationResult.value?.outputFile) {
+    ElMessage.error('历史文件信息无效')
+    return
+  }
+
+  try {
+    // 显示编辑器
+    showEditor.value = true
+
+    // 加载Word文档到编辑器
+    await loadWordToEditor(generationResult.value.outputFile)
+
+    ElMessage.success('历史文件已加载到编辑器')
+
+    // 滚动到编辑器
+    setTimeout(() => {
+      document.querySelector('.editor-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      })
+    }, 100)
+  } catch (error: any) {
+    console.error('[Response] 打开历史文件失败:', error)
+    ElMessage.error('打开历史文件失败: ' + error.message)
+  }
+}
+
 onMounted(async () => {
   // 并行加载项目列表和公司列表
   await Promise.all([
@@ -730,6 +965,9 @@ onMounted(async () => {
       streamContent.value = ''
       form.value.tenderFiles = []
       form.value.templateFiles = []
+      // 清空编辑器
+      showEditor.value = false
+      editorContent.value = ''
       // 取消使用HITL文件
       if (useHitlTemplate.value) {
         cancelHitlTemplate()
@@ -749,9 +987,13 @@ onMounted(async () => {
         loadTemplateFromHITL(docs, 'templateFile')
       }
 
-      // 同步历史商务应答文件
+      // 同步历史商务应答文件（不自动打开编辑器）
       if (docs.businessResponseFile) {
         generationResult.value = docs.businessResponseFile
+        showEditor.value = false  // 明确不自动打开编辑器
+
+        console.log('[Response] 从Store恢复历史商务应答文件:', docs.businessResponseFile.outputFile)
+        ElMessage.info('检测到历史商务应答文件，点击"在编辑器中打开"可编辑')
       }
     }
   })
@@ -788,10 +1030,45 @@ onMounted(async () => {
   .project-section,
   .upload-section,
   .generation-output,
-  .result-section {
+  .result-section,
+  .editor-section,
+  .history-file-card {
     :deep(.el-card__header) {
       padding: 16px 20px;
       background: var(--el-fill-color-light);
+    }
+  }
+
+  .editor-section {
+    min-height: 600px;
+
+    :deep(.el-card__body) {
+      padding: 0;
+    }
+  }
+
+  .history-file-card {
+    .history-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--el-border-color-lighter);
+    }
+  }
+
+  .result-collapse {
+    margin-top: 20px;
+
+    :deep(.el-collapse-item__header) {
+      padding: 12px 20px;
+      background: var(--el-fill-color-lighter);
+      font-weight: 600;
+    }
+
+    :deep(.el-collapse-item__content) {
+      padding: 0;
     }
   }
 

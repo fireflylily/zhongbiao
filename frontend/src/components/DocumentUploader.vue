@@ -88,6 +88,7 @@ import {
   CircleClose,
   InfoFilled
 } from '@element-plus/icons-vue'
+import { smartCompressImage } from '@/utils/imageCompressor'
 
 interface Props {
   /** 上传地址 */
@@ -116,6 +117,10 @@ interface Props {
   tipText?: string
   /** 已上传文件列表 */
   modelValue?: UploadUserFile[]
+  /** 是否自动压缩图片（默认true） */
+  autoCompressImage?: boolean
+  /** 图片压缩类型（用于选择压缩参数） */
+  imageType?: 'license' | 'qualification' | 'id_card' | 'seal' | 'photo' | 'default'
 }
 
 interface Emits {
@@ -135,7 +140,9 @@ const props = withDefaults(defineProps<Props>(), {
   drag: false,
   showFileList: true,
   triggerText: '选择文件',
-  tipText: ''
+  tipText: '',
+  autoCompressImage: true,
+  imageType: 'default'
 })
 
 const emit = defineEmits<Emits>()
@@ -150,7 +157,7 @@ const fileList = computed({
 })
 
 // 上传前钩子
-const handleBeforeUpload: UploadProps['beforeUpload'] = (rawFile) => {
+const handleBeforeUpload: UploadProps['beforeUpload'] = async (rawFile) => {
   // 文件大小验证
   if (props.maxSize && rawFile.size / 1024 / 1024 > props.maxSize) {
     ElMessage.error(`文件大小不能超过 ${props.maxSize}MB`)
@@ -165,6 +172,37 @@ const handleBeforeUpload: UploadProps['beforeUpload'] = (rawFile) => {
     if (!acceptTypes.some(type => fileExt === type.toLowerCase())) {
       ElMessage.error(`不支持的文件格式：${fileExt}`)
       return false
+    }
+  }
+
+  // 图片自动压缩
+  if (props.autoCompressImage && rawFile.type.startsWith('image/')) {
+    try {
+      console.log(`[DocumentUploader] 检测到图片文件，开始压缩: ${rawFile.name}, ${(rawFile.size / 1024).toFixed(0)}KB`)
+
+      const compressedFile = await smartCompressImage(rawFile, props.imageType)
+
+      // 显示压缩效果
+      const originalSize = rawFile.size
+      const compressedSize = compressedFile.size
+      const savings = ((originalSize - compressedSize) / originalSize * 100).toFixed(1)
+
+      if (compressedSize < originalSize) {
+        console.log(
+          `[DocumentUploader] ✅ 图片已压缩: ` +
+          `${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB ` +
+          `(节省${savings}%)`
+        )
+
+        // 返回压缩后的文件（Element Plus会用这个文件上传）
+        return compressedFile as any
+      } else {
+        console.log(`[DocumentUploader] 图片无需压缩，使用原文件`)
+      }
+    } catch (error) {
+      console.error('[DocumentUploader] 图片压缩失败:', error)
+      // 压缩失败，继续使用原文件
+      ElMessage.warning('图片压缩失败，将上传原文件')
     }
   }
 

@@ -134,6 +134,22 @@ def create_app() -> Flask:
     except ImportError as e:
         logger.warning(f"技术方案大纲生成API模块加载失败: {e}")
 
+    # 注册富文本编辑器API蓝图
+    try:
+        from web.routes.editor_routes import editor_bp
+        app.register_blueprint(editor_bp)
+        logger.info("富文本编辑器API模块注册成功")
+    except ImportError as e:
+        logger.warning(f"富文本编辑器API模块加载失败: {e}")
+
+    # 注册用户反馈API蓝图
+    try:
+        from web.routes.feedback_routes import feedback_bp
+        app.register_blueprint(feedback_bp)
+        logger.info("用户反馈API模块注册成功")
+    except ImportError as e:
+        logger.warning(f"用户反馈API模块加载失败: {e}")
+
     # 注册案例库API蓝图
     try:
         from modules.case_library.api import case_library_api
