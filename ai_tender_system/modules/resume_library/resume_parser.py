@@ -11,8 +11,8 @@ import json
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ai_tender_system.modules.document_parser.parser_manager import ParserManager
-from ai_tender_system.common.llm_client import LLMClient
+from modules.document_parser.parser_manager import ParserManager
+from common.llm_client import LLMClient
 
 
 class ResumeParser:
@@ -307,11 +307,11 @@ class ResumeParser:
 
         try:
             # 调用AI模型
-            response = self.llm_client.generate_response(
+            response = self.llm_client.call(
                 prompt=prompt,
-                model="gpt-4o-mini",
                 temperature=0.1,
-                max_tokens=2000
+                max_tokens=2000,
+                purpose="简历信息提取"
             )
 
             # 解析JSON响应

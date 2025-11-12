@@ -66,6 +66,7 @@ class CaseLibraryManager:
             insert_data = {
                 'company_id': company_id,
                 'product_id': data.get('product_id'),
+                'product_category': data.get('product_category'),
                 'case_title': data['case_title'],
                 'case_number': data.get('case_number'),
                 'customer_name': data['customer_name'],
@@ -99,9 +100,11 @@ class CaseLibraryManager:
 
             if case_id:
                 logger.info(f"创建案例成功: {data['case_title']} (ID: {case_id})")
+                # 获取完整的案例信息返回
+                case_data = self.get_case_by_id(case_id)
                 return {
                     'success': True,
-                    'case_id': case_id,
+                    'data': case_data,
                     'message': f"案例 '{data['case_title']}' 创建成功"
                 }
             else:
@@ -147,7 +150,7 @@ class CaseLibraryManager:
             # 构建更新数据
             update_data = {}
             allowed_fields = [
-                'product_id', 'case_title', 'case_number', 'customer_name', 'industry',
+                'product_id', 'product_category', 'case_title', 'case_number', 'customer_name', 'industry',
                 'contract_name', 'contract_type', 'final_customer_name', 'contract_amount',
                 'contract_start_date', 'contract_end_date', 'party_a_customer_name', 'party_b_company_name',
                 'party_a_name', 'party_a_address', 'party_a_contact_name', 'party_a_contact_phone', 'party_a_contact_email',

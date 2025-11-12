@@ -8,8 +8,8 @@
         <el-tag v-if="caseData.contract_type" :type="caseData.contract_type === '合同' ? 'primary' : 'success'">
           {{ caseData.contract_type }}
         </el-tag>
-        <el-tag v-if="caseData.case_status" :type="getCaseStatusType(caseData.case_status)">
-          {{ getCaseStatusLabel(caseData.case_status) }}
+        <el-tag v-if="caseData.product_category" type="primary">
+          {{ caseData.product_category }}
         </el-tag>
       </div>
     </div>
@@ -19,53 +19,11 @@
 
     <!-- 详情内容 -->
     <div v-else class="detail-content">
-      <!-- Tab 导航 -->
-      <el-tabs v-model="activeTab" class="case-tabs" @tab-change="handleTabChange">
-        <!-- 基本信息 Tab -->
-        <el-tab-pane name="basic">
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Document /></el-icon>
-              基本信息
-            </span>
-          </template>
-          <CaseBasicInfoTab
-            :case-id="caseId"
-            :case-data="caseData"
-            @update="handleDataUpdate"
-          />
-        </el-tab-pane>
-
-        <!-- 合同信息 Tab -->
-        <el-tab-pane name="contract">
-          <template #label>
-            <span class="tab-label">
-              <el-icon><DocumentCopy /></el-icon>
-              合同信息
-            </span>
-          </template>
-          <CaseContractInfoTab
-            :case-id="caseId"
-            :case-data="caseData"
-            @update="handleDataUpdate"
-          />
-        </el-tab-pane>
-
-        <!-- 附件管理 Tab -->
-        <el-tab-pane name="attachments">
-          <template #label>
-            <span class="tab-label">
-              <el-icon><Folder /></el-icon>
-              附件管理
-            </span>
-          </template>
-          <CaseAttachmentsTab
-            :case-id="caseId"
-            :case-data="caseData"
-            @update="handleDataUpdate"
-          />
-        </el-tab-pane>
-      </el-tabs>
+      <CaseBasicInfoTab
+        :case-id="caseId"
+        :case-data="caseData"
+        @update="handleDataUpdate"
+      />
     </div>
   </div>
 </template>
@@ -76,12 +34,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { Loading } from '@/components'
 import { useNotification } from '@/composables'
 import { knowledgeApi } from '@/api/endpoints/knowledge'
-import { Document, DocumentCopy, Folder, ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft } from '@element-plus/icons-vue'
 
 // Tab组件
 import CaseBasicInfoTab from './components/CaseBasicInfoTab.vue'
-import CaseContractInfoTab from './components/CaseContractInfoTab.vue'
-import CaseAttachmentsTab from './components/CaseAttachmentsTab.vue'
 
 // Router
 const route = useRoute()
@@ -92,29 +48,8 @@ const { error } = useNotification()
 
 // 状态
 const loading = ref(false)
-const activeTab = ref('basic')
 const caseId = ref<number>(0)
 const caseData = ref<any>({})
-
-// 案例状态标签类型
-const getCaseStatusType = (status: string) => {
-  switch (status) {
-    case 'success': return 'success'
-    case 'in_progress': return 'warning'
-    case 'pending_acceptance': return 'info'
-    default: return 'info'
-  }
-}
-
-// 案例状态标签文本
-const getCaseStatusLabel = (status: string) => {
-  switch (status) {
-    case 'success': return '成功'
-    case 'in_progress': return '进行中'
-    case 'pending_acceptance': return '待验收'
-    default: return status
-  }
-}
 
 // 加载案例数据
 const loadCaseData = async () => {
@@ -134,11 +69,6 @@ const loadCaseData = async () => {
   } finally {
     loading.value = false
   }
-}
-
-// Tab 切换处理
-const handleTabChange = (tabName: string) => {
-  console.log('切换到Tab:', tabName)
 }
 
 // 数据更新处理
@@ -204,30 +134,6 @@ onMounted(() => {
 }
 
 .detail-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-}
-
-.case-tabs {
-  :deep(.el-tabs__header) {
-    margin-bottom: 20px;
-  }
-
-  :deep(.el-tabs__nav-wrap::after) {
-    height: 1px;
-  }
-
-  .tab-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-
-    .el-icon {
-      font-size: 16px;
-    }
-  }
+  // 内容直接展示，无需额外样式
 }
 </style>

@@ -7,7 +7,7 @@
 
 import requests
 import time
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Generator
 from datetime import datetime, timedelta
 from collections import deque
 
@@ -124,6 +124,75 @@ class LLMClient:
             return self._call_openai_compatible(
                 prompt, system_prompt, temperature, actual_max_tokens, max_retries, purpose
             )
+
+    def call_stream(self,
+                   prompt: str,
+                   system_prompt: Optional[str] = None,
+                   temperature: float = 0.7,
+                   max_tokens: Optional[int] = None,
+                   purpose: str = "LLM流式调用") -> Generator[str, None, None]:
+        """
+        流式LLM调用接口（使用Generator返回）
+
+        Args:
+            prompt: 用户提示词
+            system_prompt: 系统提示词
+            temperature: 温度参数
+            max_tokens: 最大生成token数
+            purpose: 调用目的（用于日志）
+
+        Yields:
+            str: 生成的文本片段
+
+        Raises:
+            APIError: API调用失败
+        """
+        actual_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+
+        self.logger.info(f"{purpose} - 使用流式生成")
+
+        # 目前仅支持OpenAI兼容格式的流式调用
+        if self.model_name.startswith('unicom') or self.model_name.startswith('yuanjing'):
+            # 联通元景暂不支持流式，fallback到普通调用
+            self.logger.warning("联通元景API暂不支持流式调用，使用普通调用")
+            result = self.call(prompt, system_prompt, temperature, actual_max_tokens, purpose=purpose)
+            yield result
+            return
+
+        # 使用OpenAI SDK的流式调用
+        try:
+            client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
+
+            messages = []
+            if system_prompt:
+                messages.append({'role': 'system', 'content': system_prompt})
+            messages.append({'role': 'user', 'content': prompt})
+
+            # 流式调用
+            stream = client.chat.completions.create(
+                model=self.actual_model_name,
+                messages=messages,
+                max_tokens=actual_max_tokens,
+                temperature=temperature,
+                stream=True  # 启用流式输出
+            )
+
+            # 逐个yield生成的内容
+            for chunk in stream:
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, 'content') and delta.content:
+                        yield delta.content
+
+            self.logger.info(f"{purpose} - 流式生成完成")
+
+        except Exception as e:
+            error_msg = f"流式调用失败: {str(e)}"
+            self.logger.error(error_msg)
+            raise APIError(error_msg)
 
     def _call_openai_compatible(self,
                                prompt: str,

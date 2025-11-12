@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>清理浏览器存储</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #409EFF;
+      margin-top: 0;
+    }
+    button {
+      background: #409EFF;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-right: 12px;
+    }
+    button:hover {
+      background: #66b1ff;
+    }
+    button.danger {
+      background: #F56C6C;
+    }
+    button.danger:hover {
+      background: #f78989;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 4px;
+      background: #f0f9ff;
+      border-left: 4px solid #409EFF;
+    }
+    .success {
+      background: #f0f9ff;
+      border-color: #67C23A;
+    }
+    .warning {
+      background: #fdf6ec;
+      border-color: #E6A23C;
+    }
+    ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    li {
+      margin: 5px 0;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 清理浏览器存储</h1>
+    <p>Umo Editor默认会将文档保存到localStorage，当文档过大时会导致"QuotaExceededError"错误。</p>
+    <p>点击下方按钮清理存储：</p>
+
+    <button onclick="clearUmoStorage()">清理Umo Editor存储</button>
+    <button class="danger" onclick="clearAllStorage()">清空所有localStorage</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function clearUmoStorage() {
+      const result = document.getElementById('result');
+      const keys = Object.keys(localStorage);
+      const umoKeys = keys.filter(key => key.startsWith('umo-editor:'));
+
+      if (umoKeys.length === 0) {
+        result.innerHTML = '<div class="result warning"><strong>⚠️ 没有找到Umo Editor数据</strong><p>localStorage已经是干净的。</p></div>';
+        return;
+      }
+
+      const deletedKeys = [];
+      umoKeys.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+          deletedKeys.push(key);
+        } catch (e) {
+          console.error('删除失败:', key, e);
+        }
+      });
+
+      result.innerHTML = `
+        <div class="result success">
+          <strong>✅ 清理完成</strong>
+          <p>已删除 ${deletedKeys.length} 项数据：</p>
+          <ul>
+            ${deletedKeys.map(key => `<li>${key}</li>`).join('')}
+          </ul>
+          <p style="margin-top: 16px; color: #67C23A;">
+            <strong>请刷新页面（Ctrl+Shift+R）以生效</strong>
+          </p>
+        </div>
+      `;
+    }
+
+    function clearAllStorage() {
+      if (!confirm('⚠️ 这将清空所有localStorage数据，包括登录状态等。\n\n确定要继续吗？')) {
+        return;
+      }
+
+      const count = Object.keys(localStorage).length;
+      localStorage.clear();
+
+      document.getElementById('result').innerHTML = `
+        <div class="result success">
+          <strong>✅ 已清空所有localStorage</strong>
+          <p>共删除 ${count} 项数据</p>
+          <p style="margin-top: 16px; color: #67C23A;">
+            <strong>请刷新页面（Ctrl+Shift+R）以生效</strong>
+          </p>
+        </div>
+      `;
+    }
+
+    // 页面加载时显示当前存储状态
+    window.onload = () => {
+      const keys = Object.keys(localStorage);
+      const umoKeys = keys.filter(key => key.startsWith('umo-editor:'));
+
+      if (umoKeys.length > 0) {
+        const totalSize = umoKeys.reduce((sum, key) => {
+          return sum + (localStorage.getItem(key)?.length || 0);
+        }, 0);
+
+        document.getElementById('result').innerHTML = `
+          <div class="result warning">
+            <strong>⚠️ 检测到 ${umoKeys.length} 项Umo Editor数据</strong>
+            <p>占用空间：约 ${(totalSize / 1024).toFixed(2)} KB</p>
+            <p>建议点击"清理Umo Editor存储"按钮清理</p>
+          </div>
+        `;
+      }
+    };
+  </script>
+</body>
+</html>

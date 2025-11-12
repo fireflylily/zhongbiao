@@ -10,6 +10,7 @@ import re
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 导入公共模块
 import sys
@@ -278,11 +279,59 @@ class OutlineGenerator:
 
         return subsections
 
+    def _generate_single_suggestion(
+        self, category: Dict[str, Any], prompt_template: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        为单个需求类别生成应答建议（用于并发调用）
+
+        Args:
+            category: 需求类别数据
+            prompt_template: 提示词模板
+
+        Returns:
+            生成的建议字典，失败返回None
+        """
+        try:
+            category_name = category.get('category', '')
+            keywords = ', '.join(category.get('keywords', []))
+            priority = category.get('priority', 'medium')
+            summary = category.get('summary', '')
+
+            # 生成提示词
+            prompt = prompt_template.format(
+                category=category_name,
+                requirement=summary,
+                priority=priority,
+                keywords=keywords
+            )
+
+            # 调用LLM
+            response = self.llm_client.call(
+                prompt=prompt,
+                temperature=0.7,
+                max_retries=1,
+                purpose=f"应答建议生成: {category_name}"
+            )
+
+            # 解析响应
+            suggestion = self._parse_json_response(response)
+            if suggestion:
+                self.logger.info(f"✓ 成功生成'{category_name}'的应答建议")
+                return suggestion
+            else:
+                self.logger.warning(f"⚠️  '{category_name}'应答建议解析失败")
+                return None
+
+        except Exception as e:
+            self.logger.warning(f"❌ 生成'{category_name}'应答建议失败: {e}")
+            return None
+
     def _generate_response_suggestions(
         self, outline: Dict[str, Any], analysis: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        为大纲章节生成应答建议
+        为大纲章节生成应答建议（并发版本）
 
         Args:
             outline: 大纲数据
@@ -292,7 +341,7 @@ class OutlineGenerator:
             增强后的大纲
         """
         try:
-            self.logger.info("生成应答建议...")
+            self.logger.info("生成应答建议（并发模式）...")
 
             # 获取应答建议提示词
             prompt_template = self.prompt_manager.get_prompt(
@@ -304,38 +353,44 @@ class OutlineGenerator:
                 self.logger.warning("未找到generate_response_suggestions提示词，跳过")
                 return outline
 
-            # 为每个需求类别生成建议
-            for category in analysis.get('requirement_categories', []):
-                category_name = category.get('category', '')
-                keywords = ', '.join(category.get('keywords', []))
-                priority = category.get('priority', 'medium')
-                summary = category.get('summary', '')
+            categories = analysis.get('requirement_categories', [])
+            if not categories:
+                self.logger.info("无需求类别，跳过应答建议生成")
+                return outline
 
-                # 生成提示词
-                prompt = prompt_template.format(
-                    category=category_name,
-                    requirement=summary,
-                    priority=priority,
-                    keywords=keywords
-                )
+            # 并发生成所有类别的应答建议
+            self.logger.info(f"开始并发生成 {len(categories)} 个类别的应答建议...")
 
-                try:
-                    # 调用LLM（不重试，避免超时）
-                    response = self.llm_client.call(
-                        prompt=prompt,
-                        temperature=0.7,
-                        max_retries=1,
-                        purpose="应答建议生成"
-                    )
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                # 提交所有任务
+                future_to_category = {
+                    executor.submit(self._generate_single_suggestion, category, prompt_template): category
+                    for category in categories
+                }
 
-                    # 解析并附加到category
-                    suggestion = self._parse_json_response(response)
-                    if suggestion:
-                        category['response_suggestion'] = suggestion
+                # 收集结果
+                completed_count = 0
+                failed_count = 0
 
-                except Exception as e:
-                    self.logger.warning(f"生成'{category_name}'应答建议失败: {e}")
-                    continue
+                for future in as_completed(future_to_category):
+                    category = future_to_category[future]
+                    try:
+                        # 设置120秒超时
+                        suggestion = future.result(timeout=120)
+                        if suggestion:
+                            category['response_suggestion'] = suggestion
+                            completed_count += 1
+                        else:
+                            failed_count += 1
+                    except Exception as e:
+                        category_name = category.get('category', '未知类别')
+                        self.logger.warning(f"处理'{category_name}'结果时出错: {e}")
+                        failed_count += 1
+
+            self.logger.info(
+                f"应答建议生成完成: 成功 {completed_count}个, 失败 {failed_count}个, "
+                f"总计 {len(categories)}个"
+            )
 
             return outline
 

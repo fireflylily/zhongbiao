@@ -52,7 +52,7 @@
             size="small"
             @click="loadFromHITL(currentDocuments, 'technicalFile')"
           >
-            使用HITL技术需求文件
+            使用技术需求文件
           </el-button>
         </div>
       </template>
@@ -61,7 +61,7 @@
       <HitlFileAlert
         v-if="useHitlFile"
         :file-info="hitlFileInfo"
-        label="使用HITL技术需求文件:"
+        label="技术需求文件:"
         @cancel="cancelHitlFile"
       />
 
@@ -74,7 +74,7 @@
         :limit="1"
         :max-size="50"
         drag
-        tip-text="上传技术需求文档，或使用HITL流程中提取的技术需求文件"
+        tip-text="上传技术需求文档"
         @success="handleUploadSuccess"
       />
 
@@ -272,6 +272,18 @@
           </el-tree>
         </div>
       </div>
+    </el-card>
+
+    <!-- 富文本编辑器（生成完成后显示） -->
+    <el-card v-if="showEditor" class="editor-section" shadow="never">
+      <RichTextEditor
+        ref="editorRef"
+        v-model="editorContent"
+        title="技术方案文档"
+        :loading="editorLoading"
+        :saving="editorSaving"
+        @save="handleEditorSave"
+      />
     </el-card>
 
     <!-- 生成结果 -->
@@ -515,6 +527,13 @@ const previewVisible = ref(false)
 const previewFileUrl = ref('')
 const previewFileName = ref('')
 
+// 编辑器状态
+const showEditor = ref(false)
+const editorRef = ref(null)
+const editorContent = ref('')
+const editorLoading = ref(false)
+const editorSaving = ref(false)
+
 // 章节树数据
 const chapterTreeData = computed(() => {
   if (!outlineData.value?.chapters) return []
@@ -595,6 +614,8 @@ const handleProjectChange = async () => {
       generationResult.value = null
       currentTechFile.value = null
       streamContent.value = ''
+      showEditor.value = false
+      editorContent.value = ''
       if (useHitlFile.value) {
         cancelHitlFile()
       }
@@ -640,7 +661,7 @@ const generateProposal = async () => {
     } else if (form.value.tenderFiles[0]?.raw) {
       formData.append('tender_file', form.value.tenderFiles[0].raw)
     } else {
-      throw new Error('请上传技术需求文档或使用HITL技术文件')
+      throw new Error('请上传技术需求文档或使用技术文件')
     }
 
     // 添加配置参数
@@ -669,9 +690,13 @@ const generateProposal = async () => {
   }
 }
 
-// SSE流式处理
+// SSE流式处理（支持实时内容推送）
 const generateWithSSE = async (formData: FormData) => {
-  const response = await fetch('/api/generate-proposal-stream', {
+  // 选择使用V2接口（支持流式内容）
+  const useStreamingContent = true
+  const apiEndpoint = useStreamingContent ? '/api/generate-proposal-stream-v2' : '/api/generate-proposal-stream'
+
+  const response = await fetch(apiEndpoint, {
     method: 'POST',
     body: formData
   })
@@ -687,6 +712,10 @@ const generateWithSSE = async (formData: FormData) => {
 
   const decoder = new TextDecoder()
   let buffer = ''
+
+  // 章节内容累积器
+  const chapterContents: Record<string, string> = {}
+  let currentChapterNumber = ''
 
   while (true) {
     const { done, value } = await reader.read()
@@ -721,6 +750,27 @@ const generateWithSSE = async (formData: FormData) => {
             outlineData.value = data.outline_data
           }
 
+          // 【新增】处理流式内容生成事件
+          if (data.stage === 'content_generation') {
+            if (data.event === 'chapter_start') {
+              // 章节开始
+              currentChapterNumber = data.chapter_number || ''
+              chapterContents[currentChapterNumber] = ''
+              streamContent.value += `\n\n## ${data.chapter_number} ${data.chapter_title}\n\n`
+            } else if (data.event === 'content_chunk') {
+              // 接收内容片段
+              const chapterNum = data.chapter_number || currentChapterNumber
+              if (chapterNum) {
+                chapterContents[chapterNum] = (chapterContents[chapterNum] || '') + (data.content || '')
+                // 更新编辑器内容（增量更新）
+                updateEditorContent(chapterContents)
+              }
+            } else if (data.event === 'chapter_end') {
+              // 章节完成
+              streamContent.value += `\n✓ ${data.chapter_title || '章节'} 生成完成\n`
+            }
+          }
+
           // 处理完成
           if (data.stage === 'completed' && data.success) {
             generationResult.value = data
@@ -733,6 +783,11 @@ const generateWithSSE = async (formData: FormData) => {
                 matches_count: data.matches_count
               },
               message: '技术方案已生成'
+            }
+
+            // 显示编辑器
+            if (useStreamingContent) {
+              showEditor.value = true
             }
 
             // 自动同步到HITL
@@ -764,6 +819,19 @@ const generateWithSSE = async (formData: FormData) => {
       }
     }
   }
+}
+
+// 更新编辑器内容（增量更新）
+const updateEditorContent = (chapterContents: Record<string, string>) => {
+  // 将所有章节内容合并为HTML
+  let htmlContent = ''
+
+  for (const [chapterNum, content] of Object.entries(chapterContents)) {
+    htmlContent += `<h2>${chapterNum}</h2>\n`
+    htmlContent += `<div>${content.replace(/\n/g, '<br>')}</div>\n`
+  }
+
+  editorContent.value = htmlContent
 }
 
 // ============================================
@@ -829,7 +897,57 @@ const handleRegenerate = () => {
   generationResult.value = null
   analysisResult.value = null
   outlineData.value = null
+  showEditor.value = false
+  editorContent.value = ''
   ElMessage.info('请配置参数后重新生成')
+}
+
+// 编辑器保存处理
+const handleEditorSave = async (content: string) => {
+  if (!generationResult.value?.output_file) {
+    ElMessage.warning('没有可保存的文件')
+    return
+  }
+
+  try {
+    editorSaving.value = true
+
+    // 调用后端保存编辑内容
+    const response = await fetch('/api/tech-proposal/save-edited-content', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        file_path: generationResult.value.output_file,
+        content: content,
+        project_id: form.value.projectId
+      })
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      ElMessage.success('技术方案内容已保存')
+
+      // 更新文件路径（如果有新路径）
+      if (result.output_file) {
+        generationResult.value.output_file = result.output_file
+        if (result.download_url) {
+          if (generationResult.value.output_files) {
+            generationResult.value.output_files.proposal = result.download_url
+          }
+        }
+      }
+    } else {
+      throw new Error(result.error || '保存失败')
+    }
+  } catch (error: any) {
+    console.error('[TechProposal] 保存编辑内容失败:', error)
+    throw error // 让RichTextEditor显示错误
+  } finally {
+    editorSaving.value = false
+  }
 }
 
 // ============================================

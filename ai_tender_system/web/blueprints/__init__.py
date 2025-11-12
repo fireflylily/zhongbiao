@@ -141,7 +141,7 @@ def register_all_blueprints(app: Flask, config, logger):
 
     # 阶段4: 知识库扩展模块
     try:
-        from ai_tender_system.modules.resume_library.api import resume_library_bp
+        from modules.resume_library.api import resume_library_bp
         app.register_blueprint(resume_library_bp)
         logger.info("简历库API蓝图注册成功")
     except ImportError as e:

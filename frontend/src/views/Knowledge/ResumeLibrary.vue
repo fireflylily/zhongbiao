@@ -118,7 +118,11 @@
       <el-table v-else :data="filteredResumes" stripe style="width: 100%">
         <el-table-column prop="resume_id" label="ID" width="70" fixed />
         <el-table-column prop="name" label="姓名" width="100" fixed />
-        <el-table-column prop="gender" label="性别" width="60" align="center" />
+        <el-table-column prop="gender" label="性别" width="60" align="center">
+          <template #default="{ row }">
+            {{ row.gender || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="education_level" label="学历" width="80">
           <template #default="{ row }">
             <el-tag :type="getEducationTagType(row.education_level)" size="small">
@@ -301,6 +305,7 @@
       v-model="uploadDialogVisible"
       title="智能导入简历"
       width="500px"
+      @close="handleUploadDialogClose"
     >
       <el-alert
         title="智能解析"
@@ -311,10 +316,13 @@
       />
       <el-upload
         ref="uploadRef"
+        v-model:file-list="uploadFileList"
         :auto-upload="false"
         :limit="1"
         accept=".pdf,.doc,.docx"
         drag
+        :on-change="handleFileChange"
+        :on-remove="handleFileRemove"
       >
         <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
         <div class="el-upload__text">
@@ -354,7 +362,7 @@ import {
   Search,
   RefreshLeft
 } from '@element-plus/icons-vue'
-import type { FormInstance, FormRules, UploadInstance } from 'element-plus'
+import type { FormInstance, FormRules, UploadInstance, UploadFile } from 'element-plus'
 import type { Resume } from '@/types'
 
 // Router
@@ -410,6 +418,8 @@ const createFormRules: FormRules = {
 const uploadDialogVisible = ref(false)
 const parsing = ref(false)
 const uploadRef = ref<UploadInstance>()
+const uploadFileList = ref<UploadFile[]>([])
+const currentUploadFile = ref<File | null>(null)
 
 // 计算属性
 const filteredResumes = computed(() => {
@@ -574,26 +584,41 @@ const handleUploadResume = () => {
   uploadDialogVisible.value = true
 }
 
+// 文件变化处理
+const handleFileChange = (uploadFile: UploadFile) => {
+  console.log('文件变化:', uploadFile)
+  if (uploadFile.raw) {
+    // 验证文件大小（10MB限制）
+    const maxSize = 10 * 1024 * 1024
+    if (uploadFile.raw.size > maxSize) {
+      error('文件过大', '文件大小不能超过10MB')
+      uploadFileList.value = []
+      currentUploadFile.value = null
+      return
+    }
+    currentUploadFile.value = uploadFile.raw
+  }
+}
+
+// 文件移除处理
+const handleFileRemove = () => {
+  currentUploadFile.value = null
+}
+
 // 确认上传并解析
 const handleConfirmUpload = async () => {
-  if (!uploadRef.value) return
-
-  const files = uploadRef.value.uploadFiles
-  if (files.length === 0) {
+  // 验证是否有文件
+  if (!currentUploadFile.value) {
     error('请选择文件', '请先选择要上传的简历文件')
     return
   }
 
-  const file = files[0].raw
-  if (!file) return
-
   parsing.value = true
   try {
-    const response = await knowledgeApi.parseResumeFile(file, true)
+    const response = await knowledgeApi.parseResumeFile(currentUploadFile.value, true)
     if (response.success) {
       success('导入成功', '简历已自动解析并创建')
       uploadDialogVisible.value = false
-      uploadRef.value.clearFiles()
       await loadResumes()
     } else {
       error('导入失败', response.error || '解析失败')
@@ -604,6 +629,12 @@ const handleConfirmUpload = async () => {
   } finally {
     parsing.value = false
   }
+}
+
+// 关闭上传对话框
+const handleUploadDialogClose = () => {
+  uploadFileList.value = []
+  currentUploadFile.value = null
 }
 
 // 关闭对话框

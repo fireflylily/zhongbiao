@@ -4,33 +4,9 @@
     <el-card v-if="currentFile" shadow="never" class="current-file-card">
       <template #header>
         <div class="card-header">
-          <span>{{ title || '📄 该项目的生成文件' }}</span>
-          <div class="header-actions">
-            <el-button
-              type="primary"
-              :icon="View"
-              size="small"
-              @click="$emit('preview', currentFile)"
-            >
-              预览文档
-            </el-button>
-            <el-button
-              type="success"
-              :icon="Download"
-              size="small"
-              @click="$emit('download', currentFile)"
-            >
-              下载文档
-            </el-button>
-            <el-button
-              v-if="showRegenerate"
-              type="info"
-              :icon="RefreshRight"
-              size="small"
-              @click="$emit('regenerate')"
-            >
-              重新生成
-            </el-button>
+          <div class="header-title">
+            <span>{{ title || '📄 该项目的生成文件' }}</span>
+            <el-tag type="info">历史文件</el-tag>
           </div>
         </div>
       </template>
@@ -53,23 +29,53 @@
         />
 
         <!-- 文件详情 -->
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="文件路径">
-            {{ currentFile.outputFile || currentFile.file_path }}
+        <el-descriptions :column="2" border style="margin-bottom: 20px">
+          <el-descriptions-item label="文件名">
+            {{ getFileName(currentFile.outputFile || currentFile.file_path) }}
           </el-descriptions-item>
-          <el-descriptions-item
-            v-if="currentFile.generated_at || currentFile.process_time"
-            label="生成时间"
-          >
-            {{ formatDate(currentFile.generated_at || currentFile.process_time, 'YYYY-MM-DD HH:mm:ss') }}
-          </el-descriptions-item>
-          <el-descriptions-item
-            v-if="currentFile.size"
-            label="文件大小"
-          >
-            {{ formatFileSize(currentFile.size) }}
+          <el-descriptions-item label="下载地址">
+            <el-link :href="currentFile.downloadUrl" type="primary">
+              {{ getFileName(currentFile.downloadUrl) }}
+            </el-link>
           </el-descriptions-item>
         </el-descriptions>
+
+        <!-- 操作按钮 -->
+        <div class="history-actions">
+          <el-button
+            v-if="showEditorOpen"
+            type="primary"
+            size="large"
+            @click="$emit('openInEditor', currentFile)"
+          >
+            <el-icon><Edit /></el-icon>
+            在编辑器中打开
+          </el-button>
+          <el-button
+            type="primary"
+            size="large"
+            :icon="View"
+            @click="$emit('preview', currentFile)"
+          >
+            预览Word
+          </el-button>
+          <el-button
+            type="success"
+            size="large"
+            :icon="Download"
+            @click="$emit('download', currentFile)"
+          >
+            下载
+          </el-button>
+          <el-button
+            v-if="showRegenerate"
+            size="large"
+            :icon="RefreshRight"
+            @click="$emit('regenerate')"
+          >
+            重新生成
+          </el-button>
+        </div>
       </div>
     </el-card>
 
@@ -153,7 +159,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { View, Download, RefreshRight, Document } from '@element-plus/icons-vue'
+import { View, Download, RefreshRight, Document, Edit } from '@element-plus/icons-vue'
 import { StatsCard } from '@/components'
 import { formatFileSize, formatDate } from '@/utils/format'
 import type { StatItem } from './StatsCard.vue'
@@ -228,6 +234,12 @@ export interface HistoryFilesPanelProps {
    * 当前文件的提示消息
    */
   currentFileMessage?: string
+
+  /**
+   * 是否显示"在编辑器中打开"按钮
+   * @default false
+   */
+  showEditorOpen?: boolean
 }
 
 const props = withDefaults(defineProps<HistoryFilesPanelProps>(), {
@@ -235,11 +247,16 @@ const props = withDefaults(defineProps<HistoryFilesPanelProps>(), {
   loading: false,
   showRegenerate: true,
   showStats: true,
-  currentFileMessage: '该项目已有生成文件'
+  currentFileMessage: '该项目已有生成文件',
+  showEditorOpen: false
 })
 
 // Events
 defineEmits<{
+  /**
+   * 在编辑器中打开文件
+   */
+  openInEditor: [file: any]
   /**
    * 预览文件
    */
@@ -260,6 +277,27 @@ defineEmits<{
 
 // 折叠面板状态
 const activeNames = ref<string[]>([])
+
+/**
+ * 从完整路径中提取文件名
+ * @param path 完整文件路径或URL
+ * @returns 文件名
+ */
+const getFileName = (path: string | undefined) => {
+  if (!path) return '-'
+
+  // 如果是URL，先解码
+  let decodedPath = path
+  try {
+    decodedPath = decodeURIComponent(path)
+  } catch {
+    // 解码失败则使用原始路径
+  }
+
+  // 提取最后一个斜杠后的文件名
+  const parts = decodedPath.split('/')
+  return parts[parts.length - 1] || '-'
+}
 </script>
 
 <style scoped lang="scss">
@@ -281,6 +319,12 @@ const activeNames = ref<string[]>([])
       align-items: center;
       font-weight: 600;
 
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
       .header-actions {
         display: flex;
         gap: 8px;
@@ -289,7 +333,14 @@ const activeNames = ref<string[]>([])
     }
 
     .current-file-content {
-      // 内容区域样式
+      .history-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--el-border-color-lighter);
+      }
     }
   }
 

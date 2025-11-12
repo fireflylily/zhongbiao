@@ -56,7 +56,7 @@ class DocumentConverter:
 
     def word_to_html(self, docx_path: str) -> str:
         """
-        将Word文档转换为HTML
+        将Word文档转换为HTML（保留分页符）
 
         Args:
             docx_path: Word文档路径
@@ -79,7 +79,7 @@ class DocumentConverter:
             print(f"[DocumentConverter] 开始转换Word为HTML: {docx_path}")
 
             with open(docx_path, "rb") as docx_file:
-                # 使用mammoth转换，保留样式
+                # 使用mammoth转换，保留样式和分页符
                 result = mammoth.convert_to_html(
                     docx_file,
                     style_map="""
@@ -91,10 +91,15 @@ class DocumentConverter:
                     p[style-name='标题 2'] => h2:fresh
                     p[style-name='标题 3'] => h3:fresh
                     table => table.tender-table
+                    br[type='page'] => hr.page-break
                     """
                 )
 
             html_content = result.value
+
+            # 📄 手动检测Word中的分页符并插入HTML分页标记
+            # 因为mammoth可能不完全支持分页符转换，我们需要额外处理
+            html_content = self._insert_page_breaks_from_word(docx_path, html_content)
 
             # 添加基础样式
             html_with_style = f"""
@@ -116,6 +121,74 @@ class DocumentConverter:
         except Exception as e:
             print(f"[DocumentConverter] Word转HTML失败: {e}")
             raise Exception(f"Word转HTML失败: {str(e)}")
+
+    def _insert_page_breaks_from_word(self, docx_path: str, html_content: str) -> str:
+        """
+        从Word文档中检测分页符，并在HTML中插入对应的分页标记
+
+        Args:
+            docx_path: Word文档路径
+            html_content: 已转换的HTML内容
+
+        Returns:
+            添加了分页标记的HTML内容
+        """
+        try:
+            if not PYTHON_DOCX_AVAILABLE:
+                print("[DocumentConverter] python-docx未安装，跳过分页符检测")
+                return html_content
+
+            # 读取Word文档
+            doc = Document(docx_path)
+
+            # 统计每个章节（heading）后的段落数，用于估算分页位置
+            # 简化策略：在每个大章节（h2）后插入分页符
+            heading_positions = []
+            paragraph_count = 0
+
+            for para in doc.paragraphs:
+                # 检查是否是标题
+                if para.style.name.startswith('Heading') or '标题' in para.style.name:
+                    # 获取标题级别
+                    if '2' in para.style.name or para.style.name == 'Heading 2':
+                        # 记录h2标题的位置（用于插入分页符）
+                        heading_positions.append({
+                            'level': 2,
+                            'text': para.text.strip(),
+                            'position': paragraph_count
+                        })
+
+                paragraph_count += 1
+
+            # 在HTML中查找对应的h2标题，并在其前面插入分页标记
+            if heading_positions and BS4_AVAILABLE:
+                soup = BeautifulSoup(html_content, 'html.parser')
+                inserted_count = 0
+
+                # 跳过第一个h2（文档开头不需要分页）
+                for heading_info in heading_positions[1:]:
+                    # 查找HTML中对应的h2标题
+                    h2_tags = soup.find_all('h2')
+                    for h2 in h2_tags:
+                        if h2.get_text().strip() == heading_info['text']:
+                            # 在h2前插入分页标记
+                            page_break = soup.new_tag('hr')
+                            page_break['class'] = 'page-break'
+                            page_break['data-page-break'] = 'true'
+                            h2.insert_before(page_break)
+                            inserted_count += 1
+                            break
+
+                if inserted_count > 0:
+                    print(f"[DocumentConverter] 插入了 {inserted_count} 个分页标记")
+                    html_content = str(soup)
+
+            return html_content
+
+        except Exception as e:
+            print(f"[DocumentConverter] 分页符检测失败: {e}")
+            # 失败时返回原内容，不影响整体转换
+            return html_content
 
     def html_to_word(
         self,
@@ -235,9 +308,16 @@ class DocumentConverter:
             elif element.name == 'table':
                 self._parse_table(element, doc)
 
-            # 水平线
+            # 水平线 / 分页符
             elif element.name == 'hr':
-                doc.add_paragraph('─' * 50)
+                # 检查是否是分页标记
+                if 'page-break' in element.get('class', []) or element.get('data-page-break') == 'true':
+                    # 插入分页符
+                    doc.add_page_break()
+                    print("[DocumentConverter] 插入分页符到Word")
+                else:
+                    # 普通水平线
+                    doc.add_paragraph('─' * 50)
 
             # 引用
             elif element.name == 'blockquote':

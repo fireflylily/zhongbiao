@@ -116,6 +116,8 @@
         <UmoEditor
           ref="umoEditorRef"
           v-bind="editorOptions"
+          @changed="handleContentChange"
+          @created="handleEditorCreated"
         />
       </div>
     </div>
@@ -169,13 +171,25 @@ const saving = ref(false)
 const isFullscreen = ref(false)
 const isStreaming = computed(() => props.streaming)
 const hasContent = computed(() => !!content.value && content.value !== '<p></p>')
+const needsSwitchToPageLayout = ref(false)  // 标记是否需要切换到分页模式
 
 // Umo Editor 配置选项 (v8.x)
 // 完整类型定义：UmoEditorOptions (types/index.d.ts)
 const editorOptions = computed(() => ({
+  // 字典配置（定义可用的页面尺寸等）
+  dicts: {
+    pageSizes: [
+      {
+        label: 'A4',
+        width: 21,
+        height: 29.7,
+        default: true  // 设置为默认尺寸
+      }
+    ]
+  },
   // 页面配置 (PageOption)
   page: {
-    layouts: ['page'],                    // 只启用分页模式 (LayoutOption[])
+    layouts: ['page', 'web'],             // 允许的布局模式（v8.x需要包含两种）
     showBreakMarks: true,                 // 显示分页标记
     defaultMargin: {                      // A4 默认边距 (cm)
       left: 3.18,
@@ -226,7 +240,10 @@ const editorOptions = computed(() => ({
   },
   // 文件删除回调（顶级配置）- 必须是普通函数（非 async）
   onFileDelete: (file: any) => {
-    console.log('[RichTextEditor] 文件删除:', file)
+    // 只在file存在时打印日志（避免转换时的噪音日志）
+    if (file) {
+      console.log('[RichTextEditor] 文件删除:', file)
+    }
     // 使用 base64，无需从服务器删除
     return true
   }
@@ -327,65 +344,90 @@ watch(isStreaming, (streaming) => {
   }
 })
 
-// 监听编辑器实例变化
-watch(umoEditorRef, (newRef) => {
-  if (newRef) {
-    console.log('[RichTextEditor] 编辑器实例已创建')
+// ===== Umo Editor v8 事件处理 =====
 
-    // 设置内容更新监听
-    try {
-      const editor = newRef.getEditor?.()
-      if (editor) {
-        console.log('[RichTextEditor] Tiptap编辑器实例获取成功')
+// 编辑器创建完成事件（替代watch监听器）
+const handleEditorCreated = () => {
+  console.log('[RichTextEditor] ✅ 编辑器创建完成 (@created事件)')
 
-        // 监听内容变化
-        editor.on('update', ({ editor: ed }: any) => {
-          console.log('[RichTextEditor] ✨ update事件触发')
+  // 统一在创建后切换到分页模式，保留延迟以确保编辑器就绪
+  setTimeout(() => {
+    switchToPageLayout()
+  }, 300)
 
-          const html = ed.getHTML()
-          console.log('[RichTextEditor] 当前内容长度:', html.length)
-          console.log('[RichTextEditor] 之前内容长度:', content.value.length)
-          console.log('[RichTextEditor] 内容是否变化:', html !== content.value)
+  // 设置初始内容
+  if (props.modelValue) {
+    // 延迟设置内容，确保布局切换先生效
+    setTimeout(() => {
+      setEditorContent(props.modelValue)
+    }, 100)
+  }
 
-          if (html !== content.value) {
-            content.value = html
-            isDirty.value = true
-            console.log('[RichTextEditor] ✅ isDirty设置为true')
-            emit('update:modelValue', html)
-
-            // 防抖更新目录
-            debouncedRefreshOutline()
-          } else {
-            console.log('[RichTextEditor] ⚠️ 内容未变化，不更新isDirty')
-          }
-        })
-
-        // 设置初始内容
-        if (props.modelValue) {
-          setTimeout(() => {
-            setEditorContent(props.modelValue)
-          }, 100)
-        }
-
-        // 设置只读状态
-        if (props.readonly || props.streaming) {
-          newRef.setReadOnly(true)
-        }
-
-        // 触发就绪事件
-        emit('ready')
-        console.log('[RichTextEditor] 编辑器就绪')
-
-        // 初始化时刷新目录
-        setTimeout(() => {
-          refreshOutline()
-        }, 800)
-      }
-    } catch (error) {
-      console.error('[RichTextEditor] 设置监听器失败:', error)
+  // 设置只读状态
+  if (props.readonly || props.streaming) {
+    if (umoEditorRef.value && typeof umoEditorRef.value.setReadOnly === 'function') {
+      umoEditorRef.value.setReadOnly(true)
     }
   }
-}, { immediate: true })
+
+  // 触发就绪事件
+  emit('ready')
+  console.log('[RichTextEditor] 编辑器就绪')
+
+  // 初始化时刷新目录
+  setTimeout(() => {
+    refreshOutline()
+  }, 800)
+}
+
+// 切换到分页模式的辅助函数
+const switchToPageLayout = () => {
+  if (!umoEditorRef.value) return
+
+  try {
+    if (typeof umoEditorRef.value.setLayout === 'function') {
+      umoEditorRef.value.setLayout('page')
+      console.log('[RichTextEditor] ✅ 已切换到分页模式')
+      needsSwitchToPageLayout.value = false // 更新状态
+
+      // 切换后等待一下，让DOM更新
+      setTimeout(() => {
+        console.log('[RichTextEditor] 分页模式DOM应该已更新')
+      }, 500)
+    } else {
+      console.warn('[RichTextEditor] setLayout方法不可用')
+    }
+  } catch (error) {
+    console.error('[RichTextEditor] 切换分页模式失败:', error)
+  }
+}
+
+// 内容变化事件（替代editor.on('update')）
+const handleContentChange = () => {
+  console.log('[RichTextEditor] ✨ 内容变化 (@changed事件)')
+
+  if (!umoEditorRef.value) return
+
+  try {
+    const html = umoEditorRef.value.getHTML()
+    console.log('[RichTextEditor] 当前内容长度:', html.length)
+    console.log('[RichTextEditor] 之前内容长度:', content.value.length)
+
+    if (html !== content.value) {
+      content.value = html
+      isDirty.value = true
+      console.log('[RichTextEditor] ✅ isDirty设置为true')
+      emit('update:modelValue', html)
+
+      // 防抖更新目录
+      debouncedRefreshOutline()
+    } else {
+      console.log('[RichTextEditor] ⚠️ 内容未变化，不更新isDirty')
+    }
+  } catch (error) {
+    console.error('[RichTextEditor] 处理内容变化失败:', error)
+  }
+}
 
 // 设置编辑器内容
 const setEditorContent = (html: string) => {

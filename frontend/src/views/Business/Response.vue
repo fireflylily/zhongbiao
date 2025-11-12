@@ -107,7 +107,7 @@
             <HitlFileAlert
               v-if="useHitlTemplate"
               :file-info="hitlTemplateInfo"
-              label="使用HITL商务应答模板:"
+              label="商务应答模板:"
               @cancel="cancelHitlTemplate"
             />
 
@@ -135,7 +135,7 @@
             <HitlFileAlert
               v-if="useHitlTender"
               :file-info="hitlTenderInfo"
-              label="使用HITL招标文档:"
+              label="招标文档:"
               type="info"
               @cancel="cancelHitlTender"
             />
@@ -169,74 +169,20 @@
       </div>
     </el-card>
 
-    <!-- 历史商务应答文件卡片（有历史文件但未打开编辑器时显示） -->
-    <el-card v-if="generationResult && !showEditor" class="history-file-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>📄 该项目已有商务应答文件</span>
-          <el-tag type="info">历史文件</el-tag>
-        </div>
-      </template>
-
-      <el-alert
-        type="info"
-        :title="generationResult.message || '检测到该项目的历史商务应答文件'"
-        :closable="false"
-        show-icon
-        style="margin-bottom: 20px"
-      />
-
-      <!-- 文件信息 -->
-      <el-descriptions :column="2" border style="margin-bottom: 20px">
-        <el-descriptions-item label="文件路径">
-          {{ generationResult.outputFile }}
-        </el-descriptions-item>
-        <el-descriptions-item label="下载地址">
-          <el-link :href="generationResult.downloadUrl" type="primary">
-            点击下载
-          </el-link>
-        </el-descriptions-item>
-      </el-descriptions>
-
-      <!-- 处理统计（如果有） -->
-      <StatsCard
-        v-if="generationResult.stats && Object.keys(generationResult.stats).length > 0"
-        title="处理统计"
-        :stats="generationResult.stats"
-      />
-
-      <!-- 操作按钮 -->
-      <div class="history-actions">
-        <el-button
-          type="primary"
-          size="large"
-          @click="openHistoryInEditor"
-        >
-          <el-icon><Edit /></el-icon>
-          在编辑器中打开
-        </el-button>
-        <el-button
-          type="primary"
-          :icon="View"
-          @click="previewDocument"
-        >
-          预览Word
-        </el-button>
-        <el-button
-          type="success"
-          :icon="Download"
-          @click="downloadDocument"
-        >
-          下载
-        </el-button>
-        <el-button
-          :icon="RefreshRight"
-          @click="startGeneration"
-        >
-          重新生成
-        </el-button>
-      </div>
-    </el-card>
+    <!-- 历史商务应答文件卡片（使用统一组件） -->
+    <HistoryFilesPanel
+      v-if="generationResult && !showEditor"
+      title="📄 该项目已有商务应答文件"
+      :current-file="generationResult"
+      :history-files="[]"
+      :show-editor-open="true"
+      :show-stats="true"
+      current-file-message="检测到该项目的历史商务应答文件"
+      @open-in-editor="openHistoryInEditor"
+      @preview="previewDocument"
+      @download="downloadDocument"
+      @regenerate="startGeneration"
+    />
 
     <!-- 富文本编辑器（生成时立即显示） -->
     <el-card v-if="showEditor" class="editor-section" shadow="never">
@@ -245,7 +191,7 @@
         v-model="editorContent"
         title="商务应答文档"
         :streaming="generating"
-        :height="600"
+        :height="1000"
         @save="handleEditorSave"
         @preview="previewDocument"
         @export="downloadDocument"
@@ -321,12 +267,12 @@
         <div class="file-info-section">
           <h4>生成文件</h4>
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="文件路径">
-              {{ generationResult.outputFile }}
+            <el-descriptions-item label="文件名">
+              {{ getFileName(generationResult.outputFile) }}
             </el-descriptions-item>
             <el-descriptions-item label="下载地址">
               <el-link :href="generationResult.downloadUrl" type="primary">
-                点击下载
+                {{ getFileName(generationResult.downloadUrl) }}
               </el-link>
             </el-descriptions-item>
           </el-descriptions>
@@ -350,7 +296,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
 import { Download, RefreshRight, Document, View, Upload, Edit } from '@element-plus/icons-vue'
-import { DocumentUploader, SSEStreamViewer, DocumentPreview, StatsCard, HitlFileAlert, RichTextEditor } from '@/components'
+import { DocumentUploader, SSEStreamViewer, DocumentPreview, StatsCard, HitlFileAlert, RichTextEditor, HistoryFilesPanel } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import { businessLegacyApi } from '@/api/endpoints/business'
 import { companyApi } from '@/api/endpoints/company'
@@ -922,6 +868,27 @@ const handleSyncToHitl = async () => {
   )
 }
 
+/**
+ * 从完整路径中提取文件名
+ * @param path 完整文件路径或URL
+ * @returns 文件名
+ */
+const getFileName = (path: string | undefined) => {
+  if (!path) return '-'
+
+  // 如果是URL，先解码
+  let decodedPath = path
+  try {
+    decodedPath = decodeURIComponent(path)
+  } catch {
+    // 解码失败则使用原始路径
+  }
+
+  // 提取最后一个斜杠后的文件名
+  const parts = decodedPath.split('/')
+  return parts[parts.length - 1] || '-'
+}
+
 // 在编辑器中打开历史文件
 const openHistoryInEditor = async () => {
   if (!generationResult.value?.outputFile) {
@@ -1031,8 +998,7 @@ onMounted(async () => {
   .upload-section,
   .generation-output,
   .result-section,
-  .editor-section,
-  .history-file-card {
+  .editor-section {
     :deep(.el-card__header) {
       padding: 16px 20px;
       background: var(--el-fill-color-light);
@@ -1040,21 +1006,13 @@ onMounted(async () => {
   }
 
   .editor-section {
-    min-height: 600px;
+    height: 1050px;       // 固定卡片高度（包含header）
+    overflow: hidden;     // 防止溢出
 
     :deep(.el-card__body) {
       padding: 0;
-    }
-  }
-
-  .history-file-card {
-    .history-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid var(--el-border-color-lighter);
+      height: 1000px;     // 内容区域1000px（编辑器高度）
+      overflow: hidden;   // 防止溢出
     }
   }
 

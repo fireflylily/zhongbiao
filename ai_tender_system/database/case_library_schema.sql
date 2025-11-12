@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS case_studies (
     case_id INTEGER PRIMARY KEY AUTOINCREMENT,
     company_id INTEGER NOT NULL,
     product_id INTEGER,  -- 关联产品(可选)
+    product_category VARCHAR(100),  -- 产品分类: 风控产品/实修/免密/风控位置
 
     -- 基本信息
     case_title VARCHAR(255) NOT NULL,  -- 案例标题/合同名称（统一字段）
@@ -80,6 +81,7 @@ CREATE TABLE IF NOT EXISTS case_attachments (
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_case_studies_company ON case_studies(company_id);
 CREATE INDEX IF NOT EXISTS idx_case_studies_product ON case_studies(product_id);
+CREATE INDEX IF NOT EXISTS idx_case_studies_product_category ON case_studies(product_category);
 CREATE INDEX IF NOT EXISTS idx_case_studies_customer ON case_studies(customer_name);
 CREATE INDEX IF NOT EXISTS idx_case_studies_industry ON case_studies(industry);
 CREATE INDEX IF NOT EXISTS idx_case_studies_status ON case_studies(case_status);

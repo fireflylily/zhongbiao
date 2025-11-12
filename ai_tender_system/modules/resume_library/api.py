@@ -16,7 +16,7 @@ from typing import Dict, Any
 from .manager import ResumeLibraryManager
 from .resume_parser import ResumeParser
 from .export_handler import ResumeExportHandler
-from ai_tender_system.web.utils.response_helper import success_response, error_response
+from web.utils.response_helper import success_response, error_response
 
 # 创建蓝图
 resume_library_bp = Blueprint('resume_library', __name__, url_prefix='/api/resume_library')
@@ -181,7 +181,7 @@ def parse_resume():
             return error_response(f"不支持的文件格式，请上传 {', '.join(allowed_extensions)} 格式的文件")
 
         # 保存临时文件
-        temp_dir = 'ai_tender_system/data/temp'
+        temp_dir = 'data/temp'
         os.makedirs(temp_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -292,7 +292,7 @@ def upload_attachment():
             return error_response("请选择文件")
 
         # 保存临时文件
-        temp_dir = 'ai_tender_system/data/temp'
+        temp_dir = 'data/temp'
         os.makedirs(temp_dir, exist_ok=True)
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -421,7 +421,7 @@ def download_export(filename):
     try:
         init_managers()
 
-        file_path = os.path.join('ai_tender_system/data/exports', filename)
+        file_path = os.path.join('data/exports', filename)
         if not os.path.exists(file_path):
             return error_response("文件不存在", code=404)
 

@@ -7,33 +7,57 @@
 
 // 自定义编辑器样式
 .umo-editor {
-  // 分页模式样式优化
+  // 分页模式样式优化 - 打造类似Word的页面视图
   :deep(.umo-page-wrapper) {
-    background: #f5f5f5;  // 浅灰色背景，突出纸张效果
-    padding: 20px;
+    background: #e8e8e8;  // 深灰色背景，强化纸张对比度
+    padding: 30px 20px;  // 增加上下padding，突出页面间隙
+    min-height: 100%;
   }
 
   :deep(.umo-page) {
     background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);  // 纸张阴影
-    margin-bottom: 20px;  // 页面间隙
-  }
-
-  :deep(.umo-page-break) {
-    border-top: 2px dashed var(--el-border-color);  // 分页标记样式
-    margin: 20px 0;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.05),
+      0 2px 4px rgba(0, 0, 0, 0.08),
+      0 8px 16px rgba(0, 0, 0, 0.12);  // 多层阴影，更立体
+    margin-bottom: 30px !important;  // 页面间隙更大
+    border-radius: 2px;  // 轻微圆角
     position: relative;
 
-    &::after {
-      content: '--- 分页 ---';
+    // A4纸张尺寸视觉提示
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      pointer-events: none;
+    }
+  }
+
+  // 分页标记样式 - 更明显的视觉效果
+  :deep(.umo-page-break) {
+    border-top: 3px double var(--el-border-color);  // 双线分页标记
+    margin: 30px 0;
+    position: relative;
+    height: 1px;
+
+    &::before {
+      content: '━━━ 第 N 页结束 ━━━';
       position: absolute;
       left: 50%;
-      top: -10px;
+      top: -12px;
       transform: translateX(-50%);
-      background: var(--el-bg-color);
-      padding: 0 12px;
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
+      background: #e8e8e8;
+      padding: 4px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--el-text-color-placeholder);
+      border: 1px solid var(--el-border-color-lighter);
+      border-radius: 12px;
+      white-space: nowrap;
     }
   }
 

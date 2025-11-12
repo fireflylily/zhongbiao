@@ -29,12 +29,12 @@ class ResumeLibraryManager:
         Args:
             db_path: 数据库路径，默认使用系统配置
         """
-        self.db_path = db_path or 'ai_tender_system/data/knowledge_base.db'
+        self.db_path = db_path or 'data/knowledge_base.db'
         self._init_database()
 
     def _init_database(self):
         """初始化数据库表"""
-        schema_file = 'ai_tender_system/database/resume_library_schema.sql'
+        schema_file = 'database/resume_library_schema.sql'
         if os.path.exists(schema_file):
             with open(schema_file, 'r', encoding='utf-8') as f:
                 schema_sql = f.read()
@@ -380,7 +380,7 @@ class ResumeLibraryManager:
         file_name = f"resume_{resume_id}_{attachment_category}_{timestamp}.{file_type}"
 
         # 创建附件存储目录（使用绝对路径）
-        storage_dir = os.path.abspath('ai_tender_system/data/uploads/resume_attachments')
+        storage_dir = os.path.abspath('data/uploads/resume_attachments')
         os.makedirs(storage_dir, exist_ok=True)
 
         # 构建最终文件路径

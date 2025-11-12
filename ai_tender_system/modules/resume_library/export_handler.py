@@ -14,7 +14,6 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from .manager import ResumeLibraryManager
-from ai_tender_system.core.storage_service import storage_service
 
 
 class ResumeExportHandler:
@@ -27,8 +26,8 @@ class ResumeExportHandler:
             db_path: 数据库路径
         """
         self.manager = ResumeLibraryManager(db_path)
-        self.temp_dir = Path('ai_tender_system/data/temp')
-        self.export_dir = Path('ai_tender_system/data/exports')
+        self.temp_dir = Path('data/temp')
+        self.export_dir = Path('data/exports')
 
         # 确保目录存在
         self.temp_dir.mkdir(parents=True, exist_ok=True)
