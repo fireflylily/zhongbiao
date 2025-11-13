@@ -187,6 +187,21 @@ export const routes: RouteRecordRaw[] = [
             }
           },
 
+          // 案例详情
+          {
+            path: 'case/:id',
+            name: 'CaseDetail',
+            component: () => import('@/views/Knowledge/CaseDetail.vue'),
+            meta: {
+              title: '案例详情',
+              icon: 'bi-archive',
+              parent: 'Knowledge',
+              showInMenu: false,
+              hideBreadcrumb: false,
+              description: '查看和编辑案例详细信息'
+            }
+          },
+
           // 文档库
           {
             path: 'document-library',
@@ -215,6 +230,21 @@ export const routes: RouteRecordRaw[] = [
               keepAlive: true,
               description: '管理人员简历信息'
             }
+          },
+
+          // 简历详情
+          {
+            path: 'resume/:id',
+            name: 'ResumeDetail',
+            component: () => import('@/views/Knowledge/ResumeDetail.vue'),
+            meta: {
+              title: '简历详情',
+              icon: 'bi-person-badge',
+              parent: 'Knowledge',
+              showInMenu: false,
+              hideBreadcrumb: false,
+              description: '查看和编辑简历详细信息'
+            }
           }
         ]
       },
@@ -231,6 +261,21 @@ export const routes: RouteRecordRaw[] = [
           order: 8,
           keepAlive: true,
           description: '工具函数和组合式函数演示',
+          showInMenu: import.meta.env.DEV // 仅在开发环境显示
+        }
+      },
+
+      // ========== 编辑器测试 ==========
+      {
+        path: 'editor-test',
+        name: 'EditorTest',
+        component: () => import('@/views/EditorTest.vue'),
+        meta: {
+          title: '编辑器测试',
+          icon: 'bi-pencil-square',
+          category: 'dev-tools',
+          order: 9,
+          description: 'Umo Editor功能测试',
           showInMenu: import.meta.env.DEV // 仅在开发环境显示
         }
       }

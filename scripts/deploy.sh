@@ -229,16 +229,29 @@ run_migrations() {
     log SUCCESS "迁移检查完成"
 }
 
-# 7. 收集静态文件（如果需要）
+# 7. 收集静态文件（构建前端）
 collect_static() {
     log INFO "=========================================="
-    log INFO "检查静态文件..."
+    log INFO "构建Vue.js前端..."
     log INFO "=========================================="
 
-    # 当前系统使用原生JS，无需构建
-    # 如果未来使用Vue前端，在这里添加构建步骤
+    cd "${APP_DIR}/frontend"
 
-    log SUCCESS "静态文件检查完成"
+    # 检查Node.js和npm是否安装
+    if ! command -v npm > /dev/null 2>&1; then
+        log ERROR "npm未安装，请在服务器上安装Node.js和npm"
+        exit 1
+    fi
+
+    log INFO "安装前端依赖..."
+    npm install --quiet --legacy-peer-deps
+
+    log INFO "开始构建前端应用 (npm run build)..."
+    # 使用 --no-check 忽略TypeScript类型检查，加快部署速度
+    npm run build:no-check
+
+    log SUCCESS "前端构建完成！"
+    cd "$APP_DIR" # 返回应用根目录
 }
 
 # 8. 重启应用
