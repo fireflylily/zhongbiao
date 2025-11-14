@@ -189,8 +189,13 @@ const editorOptions = computed(() => ({
   },
   // 页面配置 (PageOption)
   page: {
-    layouts: ['page', 'web'],             // 允许的布局模式（v8.x需要包含两种）
+    layouts: ['page'],                    // 🔥 只允许分页模式（强制启用）
     showBreakMarks: true,                 // 显示分页标记
+    size: {                               // 🔥 明确指定 A4 尺寸（必需）
+      width: 21,                          // cm
+      height: 29.7,                       // cm
+      label: 'A4'
+    },
     defaultMargin: {                      // A4 默认边距 (cm)
       left: 3.18,
       right: 3.18,

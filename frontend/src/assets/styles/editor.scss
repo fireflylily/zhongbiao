@@ -5,37 +5,39 @@
  * 注意：Umo Editor的样式会自动加载，这里只定义自定义样式
  */
 
+// 全局样式：直接针对 Umo Editor 的分页结构
+// 注意：这些类名由 Umo Editor 生成，需要全局覆盖
+.umo-page-container {
+  background: #e8e8e8 !important;  // 深灰色背景，强化纸张对比度
+  padding: 30px 20px !important;  // 增加上下padding，突出页面间隙
+  min-height: 100%;
+}
+
+.umo-page-content {
+  background: white !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.05),
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 8px 16px rgba(0, 0, 0, 0.12) !important;  // 多层阴影，更立体
+  margin-bottom: 30px !important;  // 页面间隙更大
+  border-radius: 2px;  // 轻微圆角
+  position: relative;
+
+  // A4纸张尺寸视觉提示
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+  }
+}
+
 // 自定义编辑器样式
 .umo-editor {
-  // 分页模式样式优化 - 打造类似Word的页面视图
-  :deep(.umo-page-wrapper) {
-    background: #e8e8e8;  // 深灰色背景，强化纸张对比度
-    padding: 30px 20px;  // 增加上下padding，突出页面间隙
-    min-height: 100%;
-  }
-
-  :deep(.umo-page) {
-    background: white;
-    box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.05),
-      0 2px 4px rgba(0, 0, 0, 0.08),
-      0 8px 16px rgba(0, 0, 0, 0.12);  // 多层阴影，更立体
-    margin-bottom: 30px !important;  // 页面间隙更大
-    border-radius: 2px;  // 轻微圆角
-    position: relative;
-
-    // A4纸张尺寸视觉提示
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      border: 1px solid rgba(0, 0, 0, 0.05);
-      pointer-events: none;
-    }
-  }
 
   // 分页标记样式 - 更明显的视觉效果
   :deep(.umo-page-break) {
