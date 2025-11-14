@@ -21,25 +21,29 @@ from web.utils.response_helper import success_response, error_response
 # 创建蓝图
 resume_library_bp = Blueprint('resume_library', __name__, url_prefix='/api/resume_library')
 
-# 初始化管理器
+# 初始化管理器（注意：这些是全局单例，会在第一次调用时创建）
 resume_manager = None
 resume_parser = None  # 懒加载：只在需要解析时初始化
 export_handler = None
 
+# 清空全局manager（确保使用新的路径重新创建）
+resume_manager = None
 
-def init_managers(include_parser=False):
+
+def init_managers(include_parser=False, force_reinit=False):
     """
     初始化管理器实例
     Args:
         include_parser: 是否初始化解析器(需要AI模型),默认False
+        force_reinit: 是否强制重新初始化，默认False
     """
     global resume_manager, resume_parser, export_handler
-    if not resume_manager:
+    if not resume_manager or force_reinit:
         resume_manager = ResumeLibraryManager()
-    if include_parser and not resume_parser:
+    if include_parser and (not resume_parser or force_reinit):
         # 只在需要解析简历时才初始化(避免加载AI模型)
         resume_parser = ResumeParser()
-    if not export_handler:
+    if not export_handler or force_reinit:
         export_handler = ResumeExportHandler()
 
 

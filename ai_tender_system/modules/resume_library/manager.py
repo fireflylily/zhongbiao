@@ -12,6 +12,7 @@ import shutil
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 from contextlib import contextmanager
+from pathlib import Path
 
 
 def dict_factory(cursor, row):
@@ -29,7 +30,16 @@ class ResumeLibraryManager:
         Args:
             db_path: 数据库路径，默认使用系统配置
         """
-        self.db_path = db_path or 'data/knowledge_base.db'
+        # 使用绝对路径
+        if db_path:
+            self.db_path = db_path
+        else:
+            # 获取ai_tender_system目录的绝对路径
+            # __file__ = /path/to/ai_tender_system/modules/resume_library/manager.py
+            # parent.parent.parent = /path/to/ai_tender_system
+            ai_tender_system_root = Path(__file__).parent.parent.parent
+            self.db_path = str(ai_tender_system_root / 'data/knowledge_base.db')
+
         self._init_database()
 
     def _init_database(self):
