@@ -23,7 +23,7 @@ def register_all_blueprints(app: Flask, config, logger):
         - 每个蓝图独立，互不依赖
     """
 
-    # 阶段1: 认证和静态页面蓝图
+    # 阶段1: 认证蓝图 (优先级最高)
     try:
         from .auth_bp import auth_bp
         app.register_blueprint(auth_bp)
@@ -31,13 +31,7 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"认证蓝图加载失败: {e}")
 
-    try:
-        from .pages_bp import pages_bp
-        app.register_blueprint(pages_bp)
-        logger.info("页面蓝图注册成功")
-    except ImportError as e:
-        logger.warning(f"页面蓝图加载失败: {e}")
-
+    # 静态文件蓝图
     try:
         from .static_files_bp import static_files_bp
         app.register_blueprint(static_files_bp)
@@ -45,13 +39,13 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"静态文件蓝图加载失败: {e}")
 
-    # Vue 前端应用蓝图
+    # 旧版页面蓝图 (兼容性保留,降低优先级)
     try:
-        from .vue_app_bp import vue_app_bp
-        app.register_blueprint(vue_app_bp)
-        logger.info("Vue前端应用蓝图注册成功 (访问路径: /app)")
+        from .pages_bp import pages_bp
+        app.register_blueprint(pages_bp)
+        logger.info("旧版页面蓝图注册成功 (兼容性路径: /old/*)")
     except ImportError as e:
-        logger.warning(f"Vue前端应用蓝图加载失败: {e}")
+        logger.warning(f"旧版页面蓝图加载失败: {e}")
 
     # 阶段2: 核心API蓝图
     try:
@@ -149,6 +143,17 @@ def register_all_blueprints(app: Flask, config, logger):
 
     # 阶段5: HITL任务处理蓝图
     # (待实现)
+
+    # ============================================================
+    # Vue前端应用蓝图 - 必须最后注册(作为catch-all路由)
+    # ============================================================
+    try:
+        from .vue_app_bp import vue_app_bp
+        app.register_blueprint(vue_app_bp)
+        logger.info("✅ Vue前端应用蓝图注册成功 (主路径: / - 已切换到新前端)")
+    except ImportError as e:
+        logger.error(f"❌ Vue前端应用蓝图加载失败: {e}")
+        logger.error("   系统将无法访问新Vue前端,请检查构建是否完成!")
 
     logger.info("所有蓝图注册完成")
 

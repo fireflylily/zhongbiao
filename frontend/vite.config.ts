@@ -20,7 +20,7 @@ export default defineConfig({
     })
   ],
 
-  // 公共路径 - 部署到 /static/dist/
+  // 公共路径 - 静态资源路径(必须匹配Flask的static路由)
   base: '/static/dist/',
 
   // 公共静态资源目录（明确指定，修复logo.svg加载问题）

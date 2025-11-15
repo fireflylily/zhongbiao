@@ -23,10 +23,10 @@ logger = get_module_logger("pages_bp")
 pages_bp = Blueprint('pages', __name__)
 
 
-@pages_bp.route('/')
+@pages_bp.route('/old')
 def index():
     """
-    主页 - 重定向到登录页或仪表板
+    旧版主页 - 已废弃,保留用于兼容性
 
     根据登录状态自动重定向
     """
@@ -48,11 +48,11 @@ def login_page():
     return render_template('login.html')
 
 
-@pages_bp.route('/dashboard')
+@pages_bp.route('/old/dashboard')
 @login_required
 def dashboard():
     """
-    主仪表板页面
+    旧版仪表板页面 - 已废弃,保留用于兼容性
 
     需要登录才能访问
     """

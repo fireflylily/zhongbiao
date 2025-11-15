@@ -1,0 +1,1 @@
+import{aB as a,aC as r,aD as s}from"./index.js";import{b as t}from"./_baseIteratee-C8Rg9s0Y.js";import{b as e}from"./_baseEach-CWxoirs-.js";function n(r,s){var t=-1,n=a(r)?Array(r.length):[];return e(r,function(a,r,e){n[++t]=s(a,r,e)}),n}function o(a,e){return(s(a)?r:n)(a,t(e))}export{n as b,o as m};

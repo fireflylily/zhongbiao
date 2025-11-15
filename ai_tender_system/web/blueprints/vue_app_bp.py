@@ -17,8 +17,8 @@ from common.logger import get_module_logger
 
 logger = get_module_logger("vue_app_bp")
 
-# 创建蓝图
-vue_app_bp = Blueprint('vue_app', __name__, url_prefix='/app')
+# 创建蓝图 - 移除url_prefix,直接在根路径提供服务
+vue_app_bp = Blueprint('vue_app', __name__)
 
 
 @vue_app_bp.route('/')
