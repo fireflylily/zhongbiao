@@ -217,12 +217,80 @@ def process_business_response():
         reverse_mapping = {v: k for k, v in field_mapping.items()}
         company_data = {reverse_mapping.get(k, k): v for k, v in company_db_data.items()}
 
+        # 确保company_id被正确传递(用于案例库和简历库查询)
+        company_data['company_id'] = company_id_int
+        logger.info(f"✅ 已添加company_id到company_data: company_id={company_id_int}")
+
         # 添加采购人信息到company_data（采购人是项目信息，但为了方便传递，加到这里）
         if purchaser_name:
             company_data['purchaserName'] = purchaser_name
             logger.info(f"✅ 已添加采购人到company_data: purchaserName={purchaser_name}")
         else:
             logger.warning("⚠️  项目无采购人信息（tenderer字段为空）")
+
+        # 🆕 加载公司资质信息（用于表格填充）
+        try:
+            qualifications_query = """
+                SELECT qualification_key, qualification_name, file_path
+                FROM company_qualifications
+                WHERE company_id = ? AND is_valid = 1
+                ORDER BY upload_time DESC
+            """
+            qualifications = kb_manager.db.execute_query(qualifications_query, (company_id_int,))
+
+            # 将资质信息添加到company_data中
+            for qual in qualifications:
+                qual_key = qual.get('qualification_key')
+                file_path = qual.get('file_path')
+                qual_name = qual.get('qualification_name', '')
+
+                # 特殊处理：审计报告（填充友好提示文本而不是文件路径）
+                if qual_key == 'audit_report' and file_path:
+                    # 填充提示文本："见附件-财务审计报告"
+                    company_data['audit_report'] = f"见附件-{qual_name}" if qual_name else "见附件"
+                    company_data['audit_organization'] = "见审计报告附件"  # 审计机构也填充提示
+                    logger.info(f"✅ 已添加审计报告到company_data: {company_data['audit_report']}")
+
+                # 其他资质也可以类似处理（后续可扩展）
+
+            logger.info(f"✅ 成功加载{len(qualifications)}个资质记录")
+        except Exception as e:
+            logger.warning(f"⚠️  加载资质信息失败: {e}")
+
+        # 🆕 加载人员信息摘要（用于表格字段填充）
+        try:
+            from modules.resume_library.manager import ResumeLibraryManager
+            resume_manager = ResumeLibraryManager()
+
+            # 查询该公司的简历（或所有简历，如果company_id为None）
+            resume_result = resume_manager.get_resumes(company_id=company_id_int, page_size=100)
+            resumes = resume_result.get('resumes', [])
+
+            if resumes:
+                # 生成人员摘要：列出主要人员姓名和职位
+                staff_summary = []
+                for idx, resume in enumerate(resumes[:5]):  # 最多显示5个
+                    name = resume.get('name', '')
+                    position = resume.get('current_position', '')
+                    if name and position:
+                        staff_summary.append(f"{name}({position})")
+                    elif name:
+                        staff_summary.append(name)
+
+                if staff_summary:
+                    company_data['staff_info'] = '、'.join(staff_summary) + (f'等{len(resumes)}人' if len(resumes) > 5 else '')
+                    company_data['project_manager_name'] = resumes[0].get('name', '') if resumes else ''
+                    logger.info(f"✅ 已添加人员信息到company_data: {len(resumes)}份简历")
+                else:
+                    company_data['staff_info'] = "见简历附件"
+            else:
+                # 没有简历数据，填充提示
+                company_data['staff_info'] = "见简历附件"
+                logger.info("ℹ️  公司暂无简历数据")
+
+        except Exception as e:
+            logger.warning(f"⚠️  加载人员信息失败: {e}")
+            company_data['staff_info'] = "见简历附件"
 
         # 如果没有使用HITL文件路径,才需要保存上传的文件
         if not hitl_file_path:
@@ -827,10 +895,11 @@ def process_point_to_point():
 
 @api_business_bp.route('/point-to-point/files')
 def list_point_to_point_files():
-    """获取点对点应答文件列表"""
+    """获取点对点应答文件列表（自动去重，每个项目只保留最新的文件）"""
     try:
         import os
         from datetime import datetime
+        import re
 
         files = []
         output_dir = config.get_path('output')
@@ -842,6 +911,12 @@ def list_point_to_point_files():
                     file_path = output_dir / filename
                     try:
                         stat = file_path.stat()
+
+                        # 提取项目名称(文件名格式: {项目名称}_点对点应答_{时间戳}.docx)
+                        # 使用正则提取项目名称部分(去掉后面的时间戳)
+                        project_name_match = re.match(r'^(.+?)_点对点应答_\d{8}_\d{6}\.', filename)
+                        project_name = project_name_match.group(1) if project_name_match else filename
+
                         files.append({
                             'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
                             'filename': filename,
@@ -852,13 +927,30 @@ def list_point_to_point_files():
                             'created_at': datetime.fromtimestamp(stat.st_ctime).isoformat(),
                             'process_time': datetime.fromtimestamp(stat.st_mtime).isoformat(),
                             'status': 'completed',
-                            'company_name': '未知公司'  # 暂时使用默认值，后续会从数据库获取
+                            'company_name': '未知公司',  # 暂时使用默认值，后续会从数据库获取
+                            'project_name': project_name  # 添加项目名称用于去重
                         })
                     except Exception as e:
                         logger.warning(f"读取文件信息失败 {filename}: {e}")
 
+        # 按时间排序(最新的在前)
         files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
-        return jsonify({'success': True, 'data': files})
+
+        # 去重:每个项目只保留最新的文件
+        unique_files = []
+        seen_projects = set()
+        for file in files:
+            project_name = file.get('project_name', file['filename'])
+            if project_name not in seen_projects:
+                unique_files.append(file)
+                seen_projects.add(project_name)
+                logger.debug(f"保留文件: {file['filename']} (项目: {project_name})")
+            else:
+                logger.debug(f"跳过重复项目文件: {file['filename']} (项目: {project_name})")
+
+        logger.info(f"文件去重: 原始{len(files)}个 -> 去重后{len(unique_files)}个")
+
+        return jsonify({'success': True, 'data': unique_files})
 
     except Exception as e:
         logger.error(f"获取点对点应答文件列表失败: {e}")

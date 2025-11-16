@@ -126,6 +126,7 @@ import { Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { knowledgeApi } from '@/api/endpoints/knowledge'
 import { formatFileSize, formatDate } from '@/utils/formatters'
+import { smartCompressImage } from '@/utils/imageCompressor'
 import {
   Upload,
   UploadFilled,
@@ -268,9 +269,18 @@ const handleConfirmUpload = async () => {
 
     uploading.value = true
     try {
+      // 压缩图片（如果是图片类型）
+      let fileToUpload = uploadForm.value.file
+      if (fileToUpload.type.startsWith('image/')) {
+        // 根据附件类型选择压缩配置
+        const imageType = uploadForm.value.attachment_category === 'id_card' ? 'id_card' : 'photo'
+        fileToUpload = await smartCompressImage(fileToUpload, imageType)
+        console.log('[ResumeAttachments] 图片已压缩')
+      }
+
       const response = await knowledgeApi.uploadResumeAttachment(
         props.resumeId,
-        uploadForm.value.file,
+        fileToUpload,
         uploadForm.value.attachment_category,
         uploadForm.value.description || undefined
       )

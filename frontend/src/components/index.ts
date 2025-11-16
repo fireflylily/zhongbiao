@@ -10,7 +10,6 @@ import Loading from './Loading.vue'
 import Empty from './Empty.vue'
 import PageHeader from './PageHeader.vue'
 import Card from './Card.vue'
-import UploadButton from './UploadButton.vue'
 import IconButton from './IconButton.vue'
 import SSEStreamViewer from './SSEStreamViewer.vue'
 import DocumentUploader from './DocumentUploader.vue'
@@ -39,7 +38,6 @@ export {
   Empty,
   PageHeader,
   Card,
-  UploadButton,
   IconButton,
   SSEStreamViewer,
   DocumentUploader,
@@ -71,7 +69,6 @@ export default {
   Empty,
   PageHeader,
   Card,
-  UploadButton,
   IconButton,
   SSEStreamViewer,
   DocumentUploader,

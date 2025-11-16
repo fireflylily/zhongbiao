@@ -6,7 +6,7 @@ AI标书系统公共模块
 
 from .config import get_config, Config
 from .logger import setup_logging, get_module_logger
-from .llm_client import LLMClient
+from .llm_client import LLMClient, create_llm_client, get_available_models
 from .prompt_manager import get_prompt_manager, PromptManager, get_prompt, reload_prompts
 from .exceptions import (
     AITenderSystemError, ConfigurationError, APIError,
@@ -19,7 +19,8 @@ from .utils import (
     generate_timestamp, generate_file_hash, safe_filename,
     allowed_file, ensure_dir, cleanup_temp_files, create_temp_copy,
     format_file_size, validate_file_type, extract_text_preview,
-    merge_configs, sanitize_json_value, batch_process_files
+    merge_configs, sanitize_json_value, batch_process_files,
+    get_project_root, to_relative_path, to_absolute_path, resolve_file_path
 )
 from .pdf_utils import (
     PDFConverter, PDFDetector, PDFConversionConfig,
@@ -41,7 +42,7 @@ __all__ = [
     # 日志
     'setup_logging', 'get_module_logger',
     # LLM客户端
-    'LLMClient',
+    'LLMClient', 'create_llm_client', 'get_available_models',
     # 提示词管理
     'get_prompt_manager', 'PromptManager', 'get_prompt', 'reload_prompts',
     # 异常
@@ -55,6 +56,7 @@ __all__ = [
     'allowed_file', 'ensure_dir', 'cleanup_temp_files', 'create_temp_copy',
     'format_file_size', 'validate_file_type', 'extract_text_preview',
     'merge_configs', 'sanitize_json_value', 'batch_process_files',
+    'get_project_root', 'to_relative_path', 'to_absolute_path', 'resolve_file_path',
     # 常量
     'BYTES_PER_KB', 'BYTES_PER_MB', 'BYTES_PER_GB',
     'MAX_FILE_SIZE_BYTES', 'DEFAULT_CHUNK_READ_SIZE',

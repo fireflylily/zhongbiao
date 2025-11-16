@@ -68,7 +68,7 @@ const dialogTitle = computed(() => {
   return `文档预览 - ${props.fileName || '未命名文档'}`
 })
 
-// 将文件路径转换为API URL
+// 将文件路径转换为API URL（简化版）
 const convertFilePathToUrl = (filePath: string): string => {
   // 如果已经是完整的URL或API路径，直接返回
   if (filePath.startsWith('http://') ||
@@ -77,46 +77,37 @@ const convertFilePathToUrl = (filePath: string): string => {
     return filePath
   }
 
-  // 特殊处理：将 /download/ 路径转换为API路径（outputs目录文件）
+  // 特殊处理：将 /download/ 路径转换为API路径
   if (filePath.startsWith('/download/')) {
-    const filename = filePath.substring(10) // 移除 '/download/' 前缀
+    const filename = filePath.substring(10)
     return `/api/files/serve/download/${filename}`
   }
 
-  // 处理本地文件路径
+  // 现在后端存储的是相对路径（ai_tender_system/data/...）
+  // 直接构建API URL即可
   let apiPath = filePath
 
-  // 步骤1: 移除绝对路径前缀
-  const absolutePrefix = '/Users/lvhe/Downloads/zhongbiao/zhongbiao/'
-  if (apiPath.startsWith(absolutePrefix)) {
-    apiPath = apiPath.substring(absolutePrefix.length)
+  // 如果是旧数据的绝对路径，移除绝对路径前缀（向下兼容）
+  const absolutePrefixes = [
+    '/Users/lvhe/Downloads/zhongbiao/zhongbiao/',
+    '/var/www/ai-tender-system/'
+  ]
+
+  for (const prefix of absolutePrefixes) {
+    if (apiPath.startsWith(prefix)) {
+      apiPath = apiPath.substring(prefix.length)
+      break
+    }
   }
 
-  // 步骤2: 移除 ai_tender_system/data/ 或 data/ 前缀
-  // 现在apiPath可能是：
-  // - ai_tender_system/data/outputs/xxx.docx
-  // - ai_tender_system/data/uploads/xxx/xxx.docx
-  // - data/outputs/xxx.docx
-  // - data/uploads/xxx/xxx.docx
+  // 移除 ai_tender_system/data/ 前缀（如果有）
   if (apiPath.startsWith('ai_tender_system/data/')) {
     apiPath = apiPath.substring('ai_tender_system/data/'.length)
-  } else if (apiPath.startsWith('data/')) {
-    apiPath = apiPath.substring('data/'.length)
   }
 
-  // 步骤3: 判断是outputs还是uploads目录
-  // 现在apiPath应该是：
-  // - outputs/xxx.docx
-  // - uploads/xxx/xxx.docx
+  // 处理 outputs 目录：转换为 download/ 前缀
   if (apiPath.startsWith('outputs/')) {
-    // outputs目录的文件，转换为download/前缀
     apiPath = 'download/' + apiPath.substring('outputs/'.length)
-  } else if (apiPath.startsWith('uploads/')) {
-    // uploads目录的文件，保持uploads/前缀
-    // 不做任何修改
-  } else {
-    // 其他情况（无法识别），默认当作outputs目录处理
-    apiPath = 'download/' + apiPath
   }
 
   // 构建API URL

@@ -7,14 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { Card, Empty, UploadButton } from '@/components'
-import { useNotification } from '@/composables'
-
-const { success } = useNotification()
-
-const handleUpload = (file: File) => {
-  success('上传文档', `已选择文件: ${file.name}`)
-}
+import { Card, Empty } from '@/components'
 </script>
 
 <style scoped lang="scss">

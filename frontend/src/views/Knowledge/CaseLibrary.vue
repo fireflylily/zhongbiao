@@ -190,6 +190,7 @@ const loading = ref(false)
 const creating = ref(false)
 const allCases = ref<Case[]>([])
 const companies = ref<any[]>([])
+const currentCompanyId = ref<number | undefined>()
 const filters = ref({
   keyword: '',
   productCategory: '',
@@ -267,7 +268,10 @@ const totalContractAmount = computed(() => {
 const loadCases = async () => {
   loading.value = true
   try {
-    const response = await knowledgeApi.getCases()
+    // 传递company_id参数,实现权限过滤:显示当前公司的案例 + 所有公开案例
+    const response = await knowledgeApi.getCases({
+      company_id: currentCompanyId.value
+    })
     if (response.success && response.data) {
       allCases.value = response.data.map((c: any) => ({
         ...c,
@@ -289,6 +293,12 @@ const loadCompanies = async () => {
     const response = await companyApi.getCompanies()
     if (response.success && response.data) {
       companies.value = response.data
+      // 设置默认公司为第一个公司
+      if (companies.value.length > 0 && !currentCompanyId.value) {
+        currentCompanyId.value = companies.value[0].company_id
+        // 加载该公司的案例
+        await loadCases()
+      }
     }
   } catch (err) {
     console.error('加载企业列表失败:', err)
@@ -318,11 +328,11 @@ const handleCreate = async () => {
 
   creating.value = true
   try {
-    // 使用第一个企业或默认企业创建最小化案例
-    const defaultCompanyId = companies.value[0]?.company_id
+    // 使用当前选中的公司创建案例
+    const companyId = currentCompanyId.value || companies.value[0]?.company_id
 
     const response = await knowledgeApi.createCase({
-      company_id: defaultCompanyId,
+      company_id: companyId,
       case_title: '新建案例',
       customer_name: '待完善',
       industry: '金融',
@@ -378,9 +388,9 @@ const handleDelete = async (row: Case) => {
 }
 
 // 生命周期
-onMounted(() => {
-  loadCases()
-  loadCompanies()
+onMounted(async () => {
+  // 先加载公司列表,loadCompanies会自动设置默认公司并加载案例
+  await loadCompanies()
 })
 </script>
 

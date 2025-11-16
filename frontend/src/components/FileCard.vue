@@ -75,10 +75,37 @@ const uploadDate = computed(() => {
   return props.uploadTime.split(' ')[0] || props.uploadTime
 })
 
+// 将文件路径转换为API URL
+const convertToApiUrl = (filePath: string): string => {
+  // 如果已经是完整的URL或API路径，直接返回
+  if (filePath.startsWith('http://') ||
+      filePath.startsWith('https://') ||
+      filePath.startsWith('/api/')) {
+    return filePath
+  }
+
+  // 现在后端存储的是相对路径（ai_tender_system/data/...）
+  let apiPath = filePath
+
+  // 移除 ai_tender_system/data/ 前缀（如果有）
+  if (apiPath.startsWith('ai_tender_system/data/')) {
+    apiPath = apiPath.substring('ai_tender_system/data/'.length)
+  }
+
+  // 处理 outputs 目录：转换为 download/ 前缀
+  if (apiPath.startsWith('outputs/')) {
+    apiPath = 'download/' + apiPath.substring('outputs/'.length)
+  }
+
+  // 构建API URL
+  return `/api/files/serve/${apiPath}`
+}
+
 // 下载
 const handleDownload = () => {
+  const apiUrl = convertToApiUrl(props.fileUrl)
   const link = document.createElement('a')
-  link.href = props.fileUrl
+  link.href = apiUrl + '?download=true'  // 添加download参数
   link.download = fileName.value
   document.body.appendChild(link)
   link.click()
@@ -89,15 +116,35 @@ const handleDownload = () => {
 // 预览
 const handlePreview = () => {
   // 判断是否为Word文档
-  const ext = fileName.value.split('.').pop()?.toLowerCase()
+  // 从fileName和fileUrl两处尝试提取扩展名
+  let ext = ''
+
+  // 优先从fileName提取
+  if (fileName.value) {
+    const parts = fileName.value.split('.')
+    if (parts.length > 1) {
+      ext = parts[parts.length - 1].toLowerCase()
+    }
+  }
+
+  // 如果fileName没有扩展名，从fileUrl提取
+  if (!ext && props.fileUrl) {
+    const urlWithoutQuery = props.fileUrl.split('?')[0] // 移除查询参数
+    const parts = urlWithoutQuery.split('.')
+    if (parts.length > 1) {
+      ext = parts[parts.length - 1].toLowerCase()
+    }
+  }
+
   const isWordDoc = ext === 'doc' || ext === 'docx'
 
   if (isWordDoc) {
     // Word文档使用DocumentPreview组件预览
     emit('preview', props.fileUrl, fileName.value)
   } else {
-    // 其他文件使用新窗口打开
-    window.open(props.fileUrl, '_blank')
+    // 其他文件（PDF等）使用API URL打开
+    const apiUrl = convertToApiUrl(props.fileUrl)
+    window.open(apiUrl, '_blank')
   }
 }
 </script>

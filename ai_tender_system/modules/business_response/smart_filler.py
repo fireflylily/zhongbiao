@@ -859,6 +859,9 @@ class PatternMatcher:
         # 修改正则：正确处理冒号后的内容（包括括号内的中文）
         # 策略：先匹配冒号前的字段名，然后捕获冒号后到行尾或下一个字段的内容
         # 使用正向前瞻来识别下一个字段（2个以上中文字符后跟冒号）
+        import logging
+        logger = logging.getLogger("ai_tender_system.smart_filler")
+
         pattern = r'([^：:\n]{2,20})[:：]\s*(.*)(?=(?:\s{2,}[\u4e00-\u9fa5]{2,}[:：])|$)'
         matches = []
 
@@ -895,14 +898,32 @@ class PatternMatcher:
                         for marker in FieldClassifier.ALL_MARKERS:
                             real_content = real_content.replace(marker, '')
 
-                        # 如果去除格式标记后还有内容（超过2个字符），才认为是已填写
-                        if real_content.strip() and len(real_content.strip()) > 2:
+                        # 🆕 检查是否是说明性文字占位符（2025-11-15新增）
+                        # 识别类似"注: 如控股股东/投资人为自然人需提供姓名和身份证号"的说明文字
+                        instruction_patterns = [
+                            r'^注[:：]',                    # 以"注:"开头
+                            r'^说明[:：]',                  # 以"说明:"开头
+                            r'^备注[:：]',                  # 以"备注:"开头
+                            r'^提示[:：]',                  # 以"提示:"开头
+                            r'^如果.*需要?提供',            # "如果...需提供"或"如果...需要提供"
+                            r'需要?提供.*身份证',           # 包含"需提供...身份证"
+                            r'如.*为.*人.*需',              # "如...为自然人需..."或"如...为法人需..."
+                            r'如.*人.*提供',                # "如...人...提供"
+                        ]
+
+                        is_instruction = any(re.search(p, real_content) for p in instruction_patterns)
+
+                        # 如果不是说明性文字，且去除格式标记后还有内容（超过2个字符），才认为是已填写
+                        if not is_instruction and real_content.strip() and len(real_content.strip()) > 2:
                             # 真正的内容，跳过已填写的字段
+                            logger.debug(f"  [_match_colon_pattern] 跳过已填写字段: '{clean_field_name}', 内容='{real_content[:30]}...'")
                             continue
+                        elif is_instruction:
+                            # 是说明性文字占位符，应该继续处理
+                            logger.debug(f"  [_match_colon_pattern] 识别到说明性占位符: '{real_content[:50]}...'")
+                            pass
 
             # 调试：打印匹配的内容
-            import logging
-            logger = logging.getLogger("ai_tender_system.smart_filler")
             logger.debug(f"  [_match_colon_pattern] 匹配到: full_match='{match.group(0)}', after_colon='{after_colon}'")
 
             matches.append({

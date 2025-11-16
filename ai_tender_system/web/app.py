@@ -197,13 +197,14 @@ def create_app() -> Flask:
         if not app.debug:
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
-        # CSP - 内容安全策略 (根据实际需求调整)
+        # CSP - 内容安全策略 (支持 docx-preview 的 base64 图片)
         csp = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "font-src 'self' data:; "
-            "img-src 'self' data: https:; "
+            "img-src 'self' data: blob: https:; "  # 添加 blob: 支持
+            "media-src 'self' data: blob:; "        # 添加 media-src 支持媒体文件
             "connect-src 'self' https://maas-gz.ai-yuanjing.com https://maas.ai-yuanjing.com; "
             "frame-ancestors 'self';"
         )

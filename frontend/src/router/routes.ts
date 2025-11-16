@@ -278,6 +278,21 @@ export const routes: RouteRecordRaw[] = [
           description: 'Umo Editor功能测试',
           showInMenu: import.meta.env.DEV // 仅在开发环境显示
         }
+      },
+
+      // ========== 解析方法对比工具 ==========
+      {
+        path: 'parser-comparison',
+        name: 'ParserComparison',
+        component: () => import('@/views/Debug/ParserComparison.vue'),
+        meta: {
+          title: '目录解析对比',
+          icon: 'bi-file-earmark-diff',
+          category: 'dev-tools',
+          order: 10,
+          description: '对比不同解析方法的准确率',
+          showInMenu: import.meta.env.DEV // 仅在开发环境显示
+        }
       }
     ]
   },

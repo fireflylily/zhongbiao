@@ -100,6 +100,8 @@
           :show-file-list="false"
           :http-request="handleCustomUpload"
           :max-size="20"
+          :auto-compress-image="true"
+          :image-type="imageType"
         >
           <template #trigger>
             <el-button type="primary" size="small">
@@ -175,6 +177,35 @@ const acceptTypes = computed(() => {
   }
   // 默认支持图片和PDF格式
   return '.pdf,.jpg,.jpeg,.png'
+})
+
+// 根据资质类型智能选择压缩配置
+const imageType = computed(() => {
+  const key = props.qualification.key
+
+  // 营业执照
+  if (key === 'business_license') {
+    return 'license'
+  }
+
+  // 身份证类型
+  if (key.includes('id') || key === 'legal_id_front' || key === 'legal_id_back') {
+    return 'id_card'
+  }
+
+  // 公章
+  if (key.includes('seal')) {
+    return 'seal'
+  }
+
+  // ISO、CMMI等资质证书
+  if (key.includes('iso') || key.includes('cmmi') || key.includes('certificate') ||
+      key.includes('qualification') || key.includes('认证')) {
+    return 'qualification'
+  }
+
+  // 默认
+  return 'default'
 })
 
 // 方法

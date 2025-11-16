@@ -1,20 +1,21 @@
 <template>
   <div class="tender-document-processor">
-    <!-- 折叠面板 -->
-    <el-collapse v-model="activeNames" accordion>
-      <!-- 步骤1: 文档上传 -->
-      <el-collapse-item name="upload">
-        <template #title>
-          <div class="collapse-title">
-            <i class="bi bi-upload me-2 text-primary"></i>
-            <span>步骤1: 上传招标文档（可选）</span>
-            <el-tag v-if="uploadedFile" type="success" size="small" class="ms-2">
-              已上传
-            </el-tag>
-          </div>
-        </template>
+    <!-- 两列布局 -->
+    <el-row :gutter="20">
+      <!-- 左列：步骤1 上传招标文档 (占比稍小) -->
+      <el-col :xs="24" :sm="24" :md="10" :lg="10">
+        <el-card shadow="hover" class="step-card">
+          <template #header>
+            <div class="card-header">
+              <i class="bi bi-upload me-2 text-primary"></i>
+              <span class="step-title">步骤1: 上传招标文档（可选）</span>
+              <el-tag v-if="uploadedFile || hasExistingDocument" type="success" size="small" class="ms-2">
+                已上传
+              </el-tag>
+            </div>
+          </template>
 
-        <div class="upload-section">
+          <div class="upload-section">
           <!-- 显示已上传的文档 -->
           <div v-if="hasExistingDocument" class="existing-document">
             <el-alert type="success" :closable="false">
@@ -58,7 +59,7 @@
               :on-remove="handleFileRemove"
               :file-list="fileList"
             >
-              <i class="bi bi-cloud-upload" style="font-size: 48px; color: var(--el-color-primary)"></i>
+              <i class="bi bi-cloud-upload" style="font-size: 36px; color: var(--el-color-primary)"></i>
               <div class="el-upload__text">
                 拖拽文件到此处或 <em>点击上传</em>
               </div>
@@ -96,21 +97,23 @@
             </div>
           </div>
         </div>
-      </el-collapse-item>
+        </el-card>
+      </el-col>
 
-      <!-- 步骤2: 章节选择 (解析完成后显示) -->
-      <el-collapse-item v-if="chapters.length > 0" name="chapters">
-        <template #title>
-          <div class="collapse-title">
-            <i class="bi bi-list-nested me-2 text-success"></i>
-            <span>步骤2: 选择章节</span>
-            <el-tag v-if="selectedCount > 0" type="success" size="small" class="ms-2">
-              已选 {{ selectedCount }} 个
-            </el-tag>
-          </div>
-        </template>
+      <!-- 右列：步骤2 选择章节 (占比稍大，解析完成后显示) -->
+      <el-col :xs="24" :sm="24" :md="14" :lg="14">
+        <el-card v-if="chapters.length > 0" shadow="hover" class="step-card">
+          <template #header>
+            <div class="card-header">
+              <i class="bi bi-list-nested me-2 text-success"></i>
+              <span class="step-title">步骤2: 选择章节</span>
+              <el-tag v-if="selectedCount > 0" type="success" size="small" class="ms-2">
+                已选 {{ selectedCount }} 个
+              </el-tag>
+            </div>
+          </template>
 
-        <div class="chapter-section">
+          <div class="chapter-section">
           <!-- 统计信息 -->
           <div class="stats-grid mb-3">
             <div class="stat-card">
@@ -178,8 +181,9 @@
             </el-space>
           </div>
         </div>
-      </el-collapse-item>
-    </el-collapse>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 解析进度提示 -->
     <div v-if="parsing" class="parsing-progress mt-3">
@@ -234,7 +238,6 @@ const emit = defineEmits<{
 // 状态
 const uploadRef = ref<UploadInstance>()
 const chapterTreeRef = ref<InstanceType<typeof ChapterTree>>()
-const activeNames = ref(['upload'])
 const fileList = ref<UploadFile[]>([])
 const uploadedFile = ref<File | null>(null)
 const parsing = ref(false)
@@ -300,7 +303,6 @@ const handleClearExisting = () => {
   existingDocumentInfo.value = null
   chapters.value = []
   selectedChapterIds.value = []
-  activeNames.value = ['upload']
 }
 
 // 解析文档
@@ -326,10 +328,7 @@ const handleParse = async () => {
       // 后端直接返回chapters，不在data字段中
       chapters.value = (response as any).chapters || []
 
-      ElMessage.success('文档解析成功')
-
-      // 自动展开章节选择面板
-      activeNames.value = ['chapters']
+      ElMessage.success('文档解析成功，请选择章节')
     } else {
       throw new Error((response as any).message || (response as any).error || '解析失败')
     }
@@ -535,8 +534,6 @@ const initializeExistingData = () => {
   // 加载已解析的章节
   if (step1Data?.chapters && Array.isArray(step1Data.chapters) && step1Data.chapters.length > 0) {
     chapters.value = step1Data.chapters
-    // 自动展开章节面板
-    activeNames.value = ['chapters']
   }
 }
 
@@ -553,26 +550,49 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .tender-document-processor {
-  margin-bottom: 20px;
+  margin-bottom: 16px; // 从20px减小到16px
 
-  .collapse-title {
+  .step-card {
+    height: 100%;
+
+    :deep(.el-card__header) {
+      background: var(--el-fill-color-light);
+      border-bottom: 2px solid var(--el-border-color-lighter);
+      padding: 12px 20px; // 减小头部内边距
+    }
+
+    :deep(.el-card__body) {
+      min-height: 150px; // 从250px减小到150px
+      padding: 16px; // 减小body内边距
+    }
+  }
+
+  // 响应式布局：小屏幕下章节卡片上移
+  @media (max-width: 768px) {
+    .step-card:last-child {
+      margin-top: 20px;
+    }
+  }
+
+  .card-header {
     display: flex;
     align-items: center;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
+
+    .step-title {
+      flex: 1;
+    }
   }
 
   .upload-section {
-    padding: 20px;
-
     :deep(.el-upload-dragger) {
       width: 100%;
-      padding: 40px;
+      padding: 20px 16px; // 从30px 20px减小到20px 16px
     }
   }
 
   .chapter-section {
-    padding: 20px;
 
     .stats-grid {
       display: grid;

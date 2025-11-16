@@ -91,17 +91,21 @@
             </div>
           </div>
           <div v-else class="no-file">未上传</div>
-          <input
-            ref="idCardFrontRef"
-            type="file"
+          <DocumentUploader
             accept=".jpg,.jpeg,.png,.pdf"
-            style="display: none"
-            @change="handleFileUpload('id_card_front', $event)"
+            :show-file-list="false"
+            :http-request="createUploadHandler('id_card_front')"
+            :auto-compress-image="true"
+            :image-type="'id_card'"
+            :max-size="10"
           >
-          <el-button size="small" @click="idCardFrontRef?.click()">
-            <el-icon><Upload /></el-icon>
-            上传文件
-          </el-button>
+            <template #trigger>
+              <el-button size="small">
+                <el-icon><Upload /></el-icon>
+                上传文件
+              </el-button>
+            </template>
+          </DocumentUploader>
         </div>
 
         <!-- 身份证反面 -->
@@ -123,17 +127,21 @@
             </div>
           </div>
           <div v-else class="no-file">未上传</div>
-          <input
-            ref="idCardBackRef"
-            type="file"
+          <DocumentUploader
             accept=".jpg,.jpeg,.png,.pdf"
-            style="display: none"
-            @change="handleFileUpload('id_card_back', $event)"
+            :show-file-list="false"
+            :http-request="createUploadHandler('id_card_back')"
+            :auto-compress-image="true"
+            :image-type="'id_card'"
+            :max-size="10"
           >
-          <el-button size="small" @click="idCardBackRef?.click()">
-            <el-icon><Upload /></el-icon>
-            上传文件
-          </el-button>
+            <template #trigger>
+              <el-button size="small">
+                <el-icon><Upload /></el-icon>
+                上传文件
+              </el-button>
+            </template>
+          </DocumentUploader>
         </div>
 
         <!-- 项目经理简历 -->
@@ -155,17 +163,20 @@
             </div>
           </div>
           <div v-else class="no-file">未上传</div>
-          <input
-            ref="managerResumeRef"
-            type="file"
+          <DocumentUploader
             accept=".pdf,.doc,.docx"
-            style="display: none"
-            @change="handleFileUpload('manager_resume', $event)"
+            :show-file-list="false"
+            :http-request="createUploadHandler('manager_resume')"
+            :auto-compress-image="false"
+            :max-size="20"
           >
-          <el-button size="small" @click="managerResumeRef?.click()">
-            <el-icon><Upload /></el-icon>
-            上传文件
-          </el-button>
+            <template #trigger>
+              <el-button size="small">
+                <el-icon><Upload /></el-icon>
+                上传文件
+              </el-button>
+            </template>
+          </DocumentUploader>
         </div>
 
         <!-- 社保证明 -->
@@ -187,17 +198,21 @@
             </div>
           </div>
           <div v-else class="no-file">未上传</div>
-          <input
-            ref="socialSecurityRef"
-            type="file"
+          <DocumentUploader
             accept=".pdf,.jpg,.jpeg,.png"
-            style="display: none"
-            @change="handleFileUpload('social_security', $event)"
+            :show-file-list="false"
+            :http-request="createUploadHandler('social_security')"
+            :auto-compress-image="true"
+            :image-type="'default'"
+            :max-size="20"
           >
-          <el-button size="small" @click="socialSecurityRef?.click()">
-            <el-icon><Upload /></el-icon>
-            上传文件
-          </el-button>
+            <template #trigger>
+              <el-button size="small">
+                <el-icon><Upload /></el-icon>
+                上传文件
+              </el-button>
+            </template>
+          </DocumentUploader>
         </div>
       </div>
     </Card>
@@ -206,11 +221,11 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
-import { Card } from '@/components'
+import { Card, DocumentUploader } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
 import { Select, CreditCard, User, DocumentChecked, Document, Upload, Download, Delete } from '@element-plus/icons-vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 
 // Props
 const props = defineProps<{
@@ -228,10 +243,6 @@ const { success, error } = useNotification()
 
 // Refs
 const formRef = ref<FormInstance>()
-const idCardFrontRef = ref<HTMLInputElement>()
-const idCardBackRef = ref<HTMLInputElement>()
-const managerResumeRef = ref<HTMLInputElement>()
-const socialSecurityRef = ref<HTMLInputElement>()
 
 // 状态
 const saving = ref(false)
@@ -307,30 +318,33 @@ const handleSave = async () => {
   })
 }
 
-// 文件上传
-const handleFileUpload = async (type: string, event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+// 创建上传处理器工厂函数（用于DocumentUploader）
+const createUploadHandler = (qualKey: string) => {
+  return async (options: UploadRequestOptions) => {
+    const { file, onSuccess, onError } = options
 
-  try {
-    const response = await companyApi.uploadQualification(
-      props.companyId,
-      type,
-      file,
-      {}
-    )
+    try {
+      const response = await companyApi.uploadQualification(
+        props.companyId,
+        qualKey,
+        file as File,
+        {}
+      )
 
-    if (response.success) {
-      success('上传成功', '附件上传成功')
-      loadAttachments()
-      emit('update')
+      if (response.success) {
+        success('上传成功', '附件上传成功')
+        loadAttachments()
+        emit('update')
+        onSuccess(response)
+      } else {
+        throw new Error(response.error || '上传失败')
+      }
+    } catch (err) {
+      console.error('上传附件失败:', err)
+      const errorMsg = err instanceof Error ? err.message : '未知错误'
+      error('上传失败', errorMsg)
+      onError(err as Error)
     }
-  } catch (err) {
-    console.error('上传附件失败:', err)
-    error('上传失败', err instanceof Error ? err.message : '未知错误')
-  } finally {
-    target.value = ''
   }
 }
 

@@ -113,6 +113,13 @@ QUALIFICATION_MAPPING = {
                      '等保测评', '等保认证'],
         'priority': 'high',
         'category': '信息安全'
+    },
+    'audit_report': {
+        'keywords': ['审计报告', '财务审计报告', '年度审计报告', '会计师事务所出具的审计报告',
+                     '会计师事务所', '验资报告'],
+        'priority': 'medium',
+        'category': '财务文件',
+        'display_title': '审计报告'
     }
 }
 

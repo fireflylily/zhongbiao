@@ -124,6 +124,7 @@ import { Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { knowledgeApi } from '@/api/endpoints/knowledge'
 import { formatFileSize, formatDate } from '@/utils/formatters'
+import { smartCompressImage } from '@/utils/imageCompressor'
 import {
   Upload,
   UploadFilled,
@@ -257,9 +258,18 @@ const handleConfirmUpload = async () => {
 
     uploading.value = true
     try {
+      // 压缩图片（如果是图片类型）
+      let fileToUpload = uploadForm.value.file
+      if (fileToUpload.type.startsWith('image/')) {
+        // 项目照片使用 photo 配置，其他使用默认配置
+        const imageType = uploadForm.value.attachment_type === 'photo' ? 'photo' : 'default'
+        fileToUpload = await smartCompressImage(fileToUpload, imageType)
+        console.log('[CaseAttachments] 图片已压缩')
+      }
+
       const response = await knowledgeApi.uploadCaseAttachment(
         props.caseId,
-        uploadForm.value.file,
+        fileToUpload,
         uploadForm.value.attachment_type,
         uploadForm.value.description || undefined
       )

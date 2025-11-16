@@ -1008,6 +1008,11 @@ const loadProjectDetail = async () => {
           ? JSON.parse(rawData.step1_data)
           : rawData.step1_data
 
+        console.log('[项目详情] step1_data:', step1Data)
+        console.log('[项目详情] chapters字段存在?', !!step1Data.chapters)
+        console.log('[项目详情] chapters类型:', typeof step1Data.chapters)
+        console.log('[项目详情] chapters内容:', step1Data.chapters)
+
         // 提取章节信息
         if (step1Data.chapters && Array.isArray(step1Data.chapters)) {
           // ⭐️ 过滤异常章节（索引倒置或0字章节）

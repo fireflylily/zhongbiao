@@ -51,6 +51,14 @@ class LLMClient:
             self.api_key = api_key or self.model_config.get('access_token', '')
             self.base_url = self.model_config.get('base_url', 'https://maas-api.ai-yuanjing.com/openapi/compatible-mode/v1')
             self.api_endpoint = f"{self.base_url}/chat/completions"
+        elif model_name.startswith('azure'):
+            # Azure OpenAI配置
+            self.api_key = api_key or self.model_config.get('api_key', '')
+            self.azure_endpoint = self.model_config.get('azure_endpoint', '')
+            self.azure_deployment = self.model_config.get('azure_deployment', '')
+            self.api_version = self.model_config.get('api_version', '2024-02-15-preview')
+            # Azure使用特殊的base_url格式（用于某些场景）
+            self.base_url = f"{self.azure_endpoint}/openai/deployments/{self.azure_deployment}"
         elif model_name.startswith('shihuang'):
             # 始皇API配置 - OpenAI兼容格式
             self.api_key = api_key or self.model_config.get('api_key', '')
@@ -114,6 +122,11 @@ class LLMClient:
                     )
                 else:
                     raise  # 对于其他错误，直接抛出
+        elif self.model_name.startswith('azure'):
+            # Azure OpenAI使用专用方法
+            return self._call_azure_openai(
+                prompt, system_prompt, temperature, actual_max_tokens, max_retries, purpose
+            )
         elif self.model_name.startswith('shihuang'):
             # 始皇API使用OpenAI兼容格式，但使用配置的温度参数
             actual_temperature = self.temperature if hasattr(self, 'temperature') else temperature
@@ -158,6 +171,44 @@ class LLMClient:
             result = self.call(prompt, system_prompt, temperature, actual_max_tokens, purpose=purpose)
             yield result
             return
+
+        # Azure OpenAI的流式调用
+        if self.model_name.startswith('azure'):
+            try:
+                from openai import AzureOpenAI
+                client = AzureOpenAI(
+                    api_key=self.api_key,
+                    azure_endpoint=self.azure_endpoint,
+                    api_version=self.api_version
+                )
+
+                messages = []
+                if system_prompt:
+                    messages.append({'role': 'system', 'content': system_prompt})
+                messages.append({'role': 'user', 'content': prompt})
+
+                # 流式调用
+                stream = client.chat.completions.create(
+                    model=self.azure_deployment,  # Azure使用deployment名称
+                    messages=messages,
+                    max_tokens=actual_max_tokens,
+                    temperature=temperature,
+                    stream=True
+                )
+
+                for chunk in stream:
+                    if chunk.choices and len(chunk.choices) > 0:
+                        delta = chunk.choices[0].delta
+                        if hasattr(delta, 'content') and delta.content:
+                            yield delta.content
+
+                self.logger.info(f"{purpose} - Azure流式生成完成")
+                return
+
+            except Exception as e:
+                error_msg = f"Azure流式调用失败: {str(e)}"
+                self.logger.error(error_msg)
+                raise APIError(error_msg)
 
         # 使用OpenAI SDK的流式调用
         try:
@@ -305,6 +356,70 @@ class LLMClient:
                 now = datetime.now()
                 while self.unicom_call_times and self.unicom_call_times[0] < now - timedelta(seconds=self.UNICOM_TIME_WINDOW):
                     self.unicom_call_times.popleft()
+
+    def _call_azure_openai(self,
+                          prompt: str,
+                          system_prompt: Optional[str] = None,
+                          temperature: float = 0.7,
+                          max_tokens: int = None,
+                          max_retries: int = 3,
+                          purpose: str = "Azure OpenAI调用") -> str:
+        """
+        调用Azure OpenAI API
+        """
+        try:
+            from openai import AzureOpenAI
+
+            # 创建Azure OpenAI客户端
+            client = AzureOpenAI(
+                api_key=self.api_key,
+                azure_endpoint=self.azure_endpoint,
+                api_version=self.api_version
+            )
+
+            # 构建消息格式
+            messages = []
+            if system_prompt:
+                messages.append({'role': 'system', 'content': system_prompt})
+            messages.append({'role': 'user', 'content': prompt})
+
+            actual_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+
+            self.logger.info(f"{purpose} - 使用Azure部署: {self.azure_deployment}, max_tokens: {actual_max_tokens}")
+
+            for attempt in range(max_retries):
+                try:
+                    self.logger.info(f"{purpose} (尝试 {attempt + 1}/{max_retries})")
+
+                    # 调用Azure API
+                    completion = client.chat.completions.create(
+                        model=self.azure_deployment,  # Azure使用deployment名称而非model名称
+                        messages=messages,
+                        max_tokens=actual_max_tokens,
+                        temperature=temperature
+                    )
+
+                    # 提取响应内容
+                    content = completion.choices[0].message.content
+                    self.logger.info(f"{purpose} 成功")
+                    return content
+
+                except Exception as e:
+                    error_msg = str(e)
+                    self.logger.error(f"{purpose} 尝试 {attempt + 1} 失败: {error_msg}")
+
+                    if attempt == max_retries - 1:
+                        raise APIError(f"{purpose}: {error_msg}")
+
+                    # 重试前等待
+                    time.sleep(2 ** attempt)
+
+        except APIError:
+            raise
+        except Exception as e:
+            error_msg = f"Azure OpenAI API调用失败: {str(e)}"
+            self.logger.error(error_msg)
+            raise APIError(error_msg)
 
     def _call_unicom_yuanjing(self,
                              prompt: str,
@@ -539,7 +654,7 @@ class LLMClient:
         result = {
             'valid': False,
             'model_name': self.model_name,
-            'endpoint': self.api_endpoint,
+            'endpoint': getattr(self, 'api_endpoint', getattr(self, 'azure_endpoint', 'N/A')),
             'has_api_key': bool(self.api_key),
             'error': None
         }
@@ -582,8 +697,13 @@ class LLMClient:
         if self.model_name.startswith('unicom') or self.model_name.startswith('yuanjing'):
             info['base_url'] = getattr(self, 'base_url', '')
             info['api_endpoint'] = f"{info['base_url']}/chat/completions"
+        elif self.model_name.startswith('azure'):
+            info['azure_endpoint'] = getattr(self, 'azure_endpoint', '')
+            info['azure_deployment'] = getattr(self, 'azure_deployment', '')
+            info['api_version'] = getattr(self, 'api_version', '')
+            info['api_endpoint'] = f"{info['azure_endpoint']}/openai/deployments/{info['azure_deployment']}/chat/completions?api-version={info['api_version']}"
         else:
-            info['api_endpoint'] = self.api_endpoint
+            info['api_endpoint'] = getattr(self, 'api_endpoint', '')
 
         return info
 
@@ -617,6 +737,8 @@ def get_available_models() -> List[Dict[str, Any]]:
         # 检查API密钥 - 联通元景模型使用access_token，其他模型使用api_key
         if model_name.startswith('unicom') or model_name.startswith('yuanjing'):
             has_key = bool(model_config.get('access_token', ''))
+        elif model_name.startswith('azure'):
+            has_key = bool(model_config.get('api_key', '')) and bool(model_config.get('azure_endpoint', ''))
         else:
             has_key = bool(model_config.get('api_key', ''))
 

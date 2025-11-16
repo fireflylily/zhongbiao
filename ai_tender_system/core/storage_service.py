@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from common.config import get_config
 from common.database import get_db_connection
 from common.logger import get_module_logger
+from common.utils import to_relative_path, to_absolute_path
 
 # 初始化配置实例
 config = get_config()
@@ -128,12 +129,14 @@ class FileStorageService:
         # 检测MIME类型
         mime_type = self._detect_mime_type(original_name)
 
-        # 创建文件元数据
+        # 创建文件元数据（使用相对路径）
+        relative_path = to_relative_path(file_path)
+
         file_metadata = FileMetadata(
             file_id=file_id,
             original_name=original_name,
             safe_name=safe_name,
-            file_path=str(file_path),
+            file_path=relative_path,  # ← 存储相对路径
             file_size=file_size,
             mime_type=mime_type,
             category=category,
@@ -163,10 +166,18 @@ class FileStorageService:
             return None
 
     def get_file_path(self, file_id: str) -> Optional[Path]:
-        """根据文件ID获取文件路径"""
+        """
+        根据文件ID获取文件绝对路径
+
+        Returns:
+            绝对路径的Path对象（用于文件操作）
+        """
         metadata = self.get_file_metadata(file_id)
-        if metadata and os.path.exists(metadata.file_path):
-            return Path(metadata.file_path)
+        if metadata:
+            # 将相对路径转换为绝对路径
+            abs_path = to_absolute_path(metadata.file_path)
+            if abs_path.exists():
+                return abs_path
         return None
 
     def get_files_by_category(self, category: str, limit: int = 100) -> List[FileMetadata]:
@@ -202,9 +213,10 @@ class FileStorageService:
             return False
 
         try:
-            # 删除物理文件
-            if os.path.exists(metadata.file_path):
-                os.remove(metadata.file_path)
+            # 删除物理文件（将相对路径转换为绝对路径）
+            abs_path = to_absolute_path(metadata.file_path)
+            if abs_path.exists():
+                os.remove(str(abs_path))
 
             # 删除数据库记录
             with get_db_connection() as conn:

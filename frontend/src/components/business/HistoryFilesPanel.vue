@@ -79,8 +79,8 @@
       </div>
     </el-card>
 
-    <!-- 所有历史文件列表（折叠） -->
-    <el-collapse v-model="activeNames" class="history-collapse">
+    <!-- 所有历史文件列表（折叠） - 仅当有历史文件时显示 -->
+    <el-collapse v-if="historyFiles.length > 0" v-model="activeNames" class="history-collapse">
       <el-collapse-item name="history">
         <template #title>
           <div class="collapse-header">

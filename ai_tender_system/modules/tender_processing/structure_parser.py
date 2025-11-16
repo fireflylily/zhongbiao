@@ -301,6 +301,66 @@ class DocumentStructureParser:
 
         return False
 
+    def _is_valid_chapter_title(self, text: str) -> bool:
+        """
+        判断文本是否是合法的章节标题 (过滤列表项、说明性内容等)
+
+        Args:
+            text: 段落文本
+
+        Returns:
+            True 表示可能是章节标题，False 表示应该被过滤
+        """
+        if not text or len(text.strip()) == 0:
+            return False
+
+        # 1. 过滤纯编号（如 "1"、"1.1"）
+        if re.match(r'^[\d\.]+$', text):
+            return False
+
+        # 2. 过滤纯列表项标记（如 "1."、"2."、"(1)"）
+        if re.match(r'^[\d]+\.$', text):  # "1." "2."
+            return False
+        if re.match(r'^\([\d]+\)$', text):  # "(1)" "(2)"
+            return False
+        if re.match(r'^[一二三四五六七八九十]+、$', text):  # "一、" "二、"
+            return False
+
+        # 3. 过滤说明性内容的特征关键词
+        note_keywords = ['注：', '注:', '说明：', '说明:', '备注：', '备注:']
+        if any(text.startswith(kw) for kw in note_keywords):
+            # "注："本身可能不是章节，但如果后面有内容可能是
+            # 如果只有"注："两个字，肯定不是章节标题
+            if len(text) <= 4:
+                return False
+
+        # 4. 过滤超长内容（章节标题一般不超过50个字符）
+        # 但允许包含长条款编号的章节（如 "7.3 双方均应当..."）
+        if len(text) > 100:  # 超过100字符肯定不是标题
+            return False
+
+        # 5. 过滤纯列表项格式（开头是编号+简短内容）
+        # 例如: "1.以上响应文件的构成为必须包含的内容..."
+        if re.match(r'^[\d]+\.[\u4e00-\u9fa5]{2,}', text):
+            # 如果匹配 "数字.中文"，且没有明确的章节特征词，则可能是列表项
+            # 检查是否包含章节特征词
+            chapter_markers = ['章', '节', '部分', '第', '条款', '要求', '标准', '方法', '原则']
+            if not any(marker in text for marker in chapter_markers):
+                # 进一步检查：如果内容很长（>20字符），可能是说明性列表项
+                if len(text) > 30:
+                    return False
+
+        # 6. 特殊过滤：排除纯条款编号（如 "1.1.1"、"2.3.4.5"）
+        if re.match(r'^[\d]+\.[\d]+\.[\d]+(\.[\d]+)*$', text):
+            return False
+
+        # 7. 特殊过滤：排除以条款编号开头且过长的内容
+        # 例如: "7.3 双方均应当严格按照相关法律法规..."（这不是章节标题）
+        if re.match(r'^[\d]+\.[\d]+\s+', text) and len(text) > 50:
+            return False
+
+        return True
+
     def _parse_chapters_from_doc(self, doc: Document) -> List[ChapterNode]:
         """
         从 Word 文档中解析章节 (优化5: 添加标题页过滤)
@@ -362,7 +422,7 @@ class DocumentStructureParser:
 
     def _get_heading_level(self, paragraph) -> int:
         """
-        获取段落的标题层级 (优化4: 更灵活的字体阈值)
+        获取段落的标题层级 (优化6: 添加前置过滤和大纲级别检查)
 
         Args:
             paragraph: python-docx Paragraph 对象
@@ -371,14 +431,33 @@ class DocumentStructureParser:
             0: 不是标题
             1-3: 标题层级
         """
-        # 方法1：通过样式名判断 (优先，最可靠)
+        text = paragraph.text.strip()
+
+        # ⚠️ 方法0：前置过滤 - 排除明显不是章节的内容
+        if not self._is_valid_chapter_title(text):
+            return 0
+
+        # ⭐ 方法1：大纲级别判断（最可靠，优先级最高）
+        try:
+            pPr = paragraph._element.pPr
+            if pPr is not None:
+                outlineLvl = pPr.outlineLvl
+                if outlineLvl is not None:
+                    level = int(outlineLvl.val)
+                    if level <= 2:  # 0=一级, 1=二级, 2=三级
+                        self.logger.debug(f"✓ 大纲级别识别: Level {level} → '{text[:30]}'")
+                        return level + 1  # 转换为1-3
+        except (AttributeError, TypeError):
+            pass  # 没有大纲级别，继续其他方法
+
+        # 方法2：通过样式名判断 (优先，最可靠)
         if paragraph.style and paragraph.style.name:
             style_name = paragraph.style.name
             for level, style_names in self.HEADING_STYLES.items():
                 if any(sn.lower() in style_name.lower() for sn in style_names):
                     return level
 
-        # 方法2：通过 XML 属性判断（更准确）
+        # 方法3：通过 XML 样式属性判断（更准确）
         try:
             pPr = paragraph._element.pPr
             if pPr is not None:
@@ -394,7 +473,7 @@ class DocumentStructureParser:
         except (AttributeError, TypeError):
             pass  # XML属性不可用时使用其他方法
 
-        # 方法3：通过文本格式启发式判断 (优化: 收集所有run的信息)
+        # 方法4：通过文本格式启发式判断 (优化: 收集所有run的信息)
         if paragraph.runs:
             # 收集所有run的字体信息
             sizes = []
@@ -418,14 +497,10 @@ class DocumentStructureParser:
                 elif avg_size >= 12:  # 12-14pt → Level 3
                     return 3
 
-        # 方法4：通过编号模式判断 (辅助)
-        text = paragraph.text.strip()
+        # 方法5：通过编号模式判断 (辅助) - 仅保留明确的章节编号
         if re.match(r'^第[一二三四五六七八九十\d]+[章部分]', text):
             return 1
-        elif re.match(r'^\d+\.\d+\s', text):
-            return 2
-        elif re.match(r'^\d+\.\d+\.\d+\s', text):
-            return 3
+        # ⚠️ 移除 "1.1 " 和 "1.1.1 " 的模式匹配，避免误判列表项
 
         return 0
 

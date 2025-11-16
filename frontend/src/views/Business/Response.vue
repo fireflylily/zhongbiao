@@ -136,7 +136,6 @@
               v-if="useHitlTender"
               :file-info="hitlTenderInfo"
               label="招标文档:"
-              type="info"
               @cancel="cancelHitlTender"
             />
 

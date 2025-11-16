@@ -177,12 +177,12 @@ def sanitize_json_value(value: Any) -> Any:
 def batch_process_files(file_list: List[Path], processor_func, max_workers: int = 4):
     """批量处理文件（并发）"""
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    
+
     results = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_file = {executor.submit(processor_func, file_path): file_path 
+        future_to_file = {executor.submit(processor_func, file_path): file_path
                          for file_path in file_list}
-        
+
         for future in as_completed(future_to_file):
             file_path = future_to_file[future]
             try:
@@ -190,8 +190,121 @@ def batch_process_files(file_list: List[Path], processor_func, max_workers: int 
                 results.append({'file': file_path, 'result': result, 'success': True})
             except Exception as e:
                 results.append({'file': file_path, 'error': str(e), 'success': False})
-    
+
     return results
+
+# ========================================
+# 路径处理工具方法
+# ========================================
+
+def get_project_root() -> Path:
+    """
+    获取项目根目录
+
+    Returns:
+        项目根目录的Path对象
+        例如: /Users/lvhe/Downloads/zhongbiao/zhongbiao
+    """
+    # 从当前文件(common/utils.py)向上2级到达项目根
+    return Path(__file__).parent.parent
+
+def to_relative_path(absolute_path: Union[str, Path], base_path: Optional[Path] = None) -> str:
+    """
+    将绝对路径转换为相对于项目根目录（或指定base_path）的路径
+
+    Args:
+        absolute_path: 绝对路径
+        base_path: 基准路径（可选，默认为项目根目录）
+
+    Returns:
+        相对路径字符串
+
+    Examples:
+        输入: /Users/lvhe/.../zhongbiao/ai_tender_system/data/uploads/xxx.docx
+        输出: ai_tender_system/data/uploads/xxx.docx
+    """
+    abs_path = Path(absolute_path)
+    base = base_path or get_project_root()
+
+    try:
+        # 计算相对路径
+        relative = abs_path.relative_to(base)
+        return str(relative)
+    except ValueError:
+        # 如果路径不在base_path下，返回绝对路径（兼容处理）
+        return str(abs_path)
+
+def to_absolute_path(relative_path: Union[str, Path], base_path: Optional[Path] = None) -> Path:
+    """
+    将相对路径转换为绝对路径
+
+    Args:
+        relative_path: 相对路径
+        base_path: 基准路径（可选，默认为项目根目录）
+
+    Returns:
+        绝对路径的Path对象
+
+    Examples:
+        输入: ai_tender_system/data/uploads/xxx.docx
+        输出: /Users/lvhe/.../zhongbiao/ai_tender_system/data/uploads/xxx.docx
+    """
+    base = base_path or get_project_root()
+    return base / relative_path
+
+def resolve_file_path(file_path: Union[str, Path]) -> Optional[Path]:
+    """
+    智能解析文件路径（自动处理相对路径和绝对路径）
+
+    功能:
+    1. 如果是绝对路径且存在，直接返回
+    2. 如果是相对路径，尝试从项目根目录解析
+    3. 支持多种相对路径格式（data/..., ai_tender_system/data/...）
+
+    Args:
+        file_path: 原始文件路径（可能是相对路径或绝对路径）
+
+    Returns:
+        解析后的绝对路径Path对象，如果无法解析返回None
+
+    Examples:
+        输入: data/uploads/xxx.jpg (相对路径)
+        输出: /Users/.../zhongbiao/ai_tender_system/data/uploads/xxx.jpg
+
+        输入: /Users/.../xxx.jpg (绝对路径)
+        输出: /Users/.../xxx.jpg
+    """
+    if not file_path:
+        return None
+
+    path_obj = Path(file_path)
+    project_root = get_project_root()
+
+    # 情况1: 已经是绝对路径且存在
+    if path_obj.is_absolute():
+        return path_obj if path_obj.exists() else None
+
+    # 情况2: 相对路径，尝试多种解析方式
+    # 2.1 直接从项目根解析: ai_tender_system/data/...
+    resolved = project_root / file_path
+    if resolved.exists():
+        return resolved
+
+    # 2.2 添加 ai_tender_system 前缀: data/... -> ai_tender_system/data/...
+    if not str(file_path).startswith('ai_tender_system/'):
+        resolved = project_root / 'ai_tender_system' / file_path
+        if resolved.exists():
+            return resolved
+
+    # 2.3 去除 ai_tender_system 前缀（如果有）
+    file_path_str = str(file_path)
+    if file_path_str.startswith('ai_tender_system/'):
+        resolved = project_root / file_path_str[len('ai_tender_system/'):]
+        if resolved.exists():
+            return resolved
+
+    # 无法解析
+    return None
 
 if __name__ == "__main__":
     # 测试工具函数

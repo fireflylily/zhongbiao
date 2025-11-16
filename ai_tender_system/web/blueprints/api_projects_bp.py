@@ -299,6 +299,7 @@ def get_tender_project(project_id):
 
             # 无条件加载章节数据（章节数据存储在独立的表中，不依赖step1_data）
             try:
+                logger.info(f"🔍 开始为项目 {project_id} 加载章节数据...")
                 # 从tender_document_chapters表查询章节
                 chapters_query = """
                     SELECT
@@ -319,6 +320,7 @@ def get_tender_project(project_id):
                     ORDER BY para_start_idx ASC
                 """
                 chapters_raw = kb_manager.db.execute_query(chapters_query, [project_id])
+                logger.info(f"🔍 数据库返回 {len(chapters_raw) if chapters_raw else 0} 条章节记录")
 
                 if chapters_raw:
                     # 转换为前端期望的格式

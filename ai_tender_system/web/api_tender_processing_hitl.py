@@ -661,11 +661,13 @@ def register_hitl_routes(app):
             # 更新任务的step1_data - 直接保存路径字符串，符合前端设计
             step1_data['response_file_path'] = target_path
 
+            # ⭐ 同时更新独立的路径字段（新设计）
             db.execute_query("""
                 UPDATE tender_projects
-                SET step1_data = ?
+                SET step1_data = ?,
+                    response_template_path = ?
                 WHERE project_id = ?
-            """, (json.dumps(step1_data), project_id))
+            """, (json.dumps(step1_data), target_path, project_id))
 
             logger.info(f"保存应答文件: {filename} ({file_size} bytes)")
 
@@ -858,12 +860,13 @@ def register_hitl_routes(app):
             # 更新step1_data - 直接保存路径字符串，符合前端设计
             step1_data['technical_file_path'] = target_path
 
-            # 更新数据库
+            # ⭐ 更新数据库（同时更新独立字段）
             db.execute_query("""
                 UPDATE tender_projects
-                SET step1_data = ?
+                SET step1_data = ?,
+                    technical_requirement_path = ?
                 WHERE project_id = ?
-            """, (json.dumps(step1_data, ensure_ascii=False), project_id))
+            """, (json.dumps(step1_data, ensure_ascii=False), target_path, project_id))
 
             logger.info(f"✅ 技术需求章节已保存: {filename} ({file_size} bytes)")
 

@@ -56,8 +56,9 @@ class OutlineGenerator:
             # 2. 后处理大纲
             outline_data = self._post_process_outline(outline_data, project_name)
 
-            # 3. 生成应答建议
-            outline_data = self._generate_response_suggestions(outline_data, analysis_result)
+            # 3. 生成应答建议 - 已禁用以加快生成速度（该数据未被后续流程使用）
+            # outline_data = self._generate_response_suggestions(outline_data, analysis_result)
+            self.logger.info("⚡ 跳过应答建议生成（加速模式，预计节省5-10分钟）")
 
             self.logger.info("技术方案大纲生成完成")
             return outline_data

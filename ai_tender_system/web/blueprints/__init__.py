@@ -133,6 +133,14 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"文档融合API蓝图加载失败: {e}")
 
+    # 解析方法对比调试工具
+    try:
+        from .api_parser_debug_bp import api_parser_debug_bp
+        app.register_blueprint(api_parser_debug_bp)
+        logger.info("解析方法对比调试API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"解析方法对比调试API蓝图加载失败: {e}")
+
     # 阶段4: 知识库扩展模块
     try:
         from modules.resume_library.api import resume_library_bp

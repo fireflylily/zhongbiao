@@ -189,9 +189,65 @@ class ProposalAssembler:
                         'level': chapter.get('level', 1),
                         'title': chapter_title,
                         'description': chapter.get('description', ''),
+                        'response_strategy': chapter.get('response_strategy', ''),
+                        'content_hints': chapter.get('content_hints', []),
+                        'response_tips': chapter.get('response_tips', []),
+                        'suggested_references': chapter.get('suggested_references', []),
+                        'evidence_needed': chapter.get('evidence_needed', []),
                         'ai_generated_content': ''.join(chapter_content),
                         'subsections': []
                     }
+
+                    # 处理子章节（流式生成）
+                    if 'subsections' in chapter and chapter['subsections']:
+                        self.logger.info(f"开始流式生成 {len(chapter['subsections'])} 个子章节...")
+
+                        for j, subsection in enumerate(chapter['subsections'], 1):
+                            subsection_title = subsection.get('title', f'子章节{j}')
+                            subsection_num = subsection.get('chapter_number', f"{chapter_num}.{j}")
+
+                            # 推送子章节开始事件
+                            yield {
+                                'type': 'subsection_start',
+                                'chapter_number': chapter_num,
+                                'subsection_number': subsection_num,
+                                'subsection_title': subsection_title
+                            }
+
+                            # 流式生成子章节内容
+                            subsection_content = []
+                            for content_chunk in self.generate_chapter_content_stream(subsection, analysis):
+                                subsection_content.append(content_chunk)
+                                # 推送子章节内容片段
+                                yield {
+                                    'type': 'content_chunk',
+                                    'chapter_number': subsection_num,
+                                    'chunk': content_chunk
+                                }
+
+                            # 组装子章节
+                            assembled_subsection = {
+                                'chapter_number': subsection_num,
+                                'level': subsection.get('level', 2),
+                                'title': subsection_title,
+                                'description': subsection.get('description', ''),
+                                'response_strategy': subsection.get('response_strategy', ''),
+                                'content_hints': subsection.get('content_hints', []),
+                                'response_tips': subsection.get('response_tips', []),
+                                'suggested_references': subsection.get('suggested_references', []),
+                                'evidence_needed': subsection.get('evidence_needed', []),
+                                'ai_generated_content': ''.join(subsection_content)
+                            }
+
+                            assembled_chapter['subsections'].append(assembled_subsection)
+
+                            # 推送子章节完成事件
+                            yield {
+                                'type': 'subsection_end',
+                                'chapter_number': chapter_num,
+                                'subsection_number': subsection_num,
+                                'subsection_title': subsection_title
+                            }
 
                     proposal['chapters'].append(assembled_chapter)
 

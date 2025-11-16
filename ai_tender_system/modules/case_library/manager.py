@@ -150,6 +150,7 @@ class CaseLibraryManager:
             # 构建更新数据
             update_data = {}
             allowed_fields = [
+                'company_id',  # 允许修改所属公司
                 'product_id', 'product_category', 'case_title', 'case_number', 'customer_name', 'industry',
                 'contract_name', 'contract_type', 'final_customer_name', 'contract_amount',
                 'contract_start_date', 'contract_end_date', 'party_a_customer_name', 'party_b_company_name',
@@ -211,15 +212,25 @@ class CaseLibraryManager:
             return False
 
     def get_cases(self, company_id: int = None, filters: Dict = None) -> List[Dict]:
-        """获取案例列表"""
+        """
+        获取案例列表
+
+        权限规则:
+        - 如果提供了company_id,返回: 该公司的案例 + 所有公开案例
+        - 如果没有提供company_id,返回: 所有公开案例
+        """
         try:
             conditions = []
             params = []
 
-            # 公司筛选
+            # 权限筛选
             if company_id:
-                conditions.append("company_id = ?")
+                # 当前公司的案例 OR 公开案例
+                conditions.append("(company_id = ? OR visibility = 'public')")
                 params.append(company_id)
+            else:
+                # 只返回公开案例
+                conditions.append("visibility = 'public'")
 
             # 其他筛选条件
             if filters:
@@ -335,14 +346,25 @@ class CaseLibraryManager:
             }
 
     def search_cases(self, query: str, company_id: int = None) -> List[Dict]:
-        """搜索案例"""
+        """
+        搜索案例
+
+        权限规则:
+        - 如果提供了company_id,搜索: 该公司的案例 + 所有公开案例
+        - 如果没有提供company_id,搜索: 所有公开案例
+        """
         try:
             conditions = []
             params = []
 
+            # 权限筛选
             if company_id:
-                conditions.append("company_id = ?")
+                # 当前公司的案例 OR 公开案例
+                conditions.append("(company_id = ? OR visibility = 'public')")
                 params.append(company_id)
+            else:
+                # 只搜索公开案例
+                conditions.append("visibility = 'public'")
 
             # 搜索条件
             search_condition = """

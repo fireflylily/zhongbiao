@@ -208,6 +208,40 @@ class Config:
                 'provider': 'China Unicom',
                 'display_name': '联通元景大模型 (兼容)',
                 'description': '通用对话模型'
+            },
+            # Azure OpenAI配置
+            'azure-gpt4': {
+                'api_key': clean_env_value(os.getenv('AZURE_OPENAI_API_KEY', '')),
+                'azure_endpoint': clean_env_value(os.getenv('AZURE_OPENAI_ENDPOINT', '')),
+                'azure_deployment': clean_env_value(os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-4')),
+                'api_version': clean_env_value(os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')),
+                'max_tokens': int(os.getenv('AZURE_MAX_TOKENS', '2000')),
+                'timeout': int(os.getenv('AZURE_TIMEOUT', '60')),
+                'provider': 'Azure OpenAI',
+                'display_name': 'Azure GPT-4',
+                'description': 'Microsoft Azure部署的GPT-4模型，企业级稳定性和安全性'
+            },
+            'azure-gpt4o': {
+                'api_key': clean_env_value(os.getenv('AZURE_OPENAI_API_KEY', '')),
+                'azure_endpoint': clean_env_value(os.getenv('AZURE_OPENAI_ENDPOINT', '')),
+                'azure_deployment': clean_env_value(os.getenv('AZURE_OPENAI_DEPLOYMENT_4O', 'gpt-4o')),
+                'api_version': clean_env_value(os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')),
+                'max_tokens': int(os.getenv('AZURE_MAX_TOKENS', '2000')),
+                'timeout': int(os.getenv('AZURE_TIMEOUT', '60')),
+                'provider': 'Azure OpenAI',
+                'display_name': 'Azure GPT-4o',
+                'description': 'Azure部署的GPT-4o模型，多模态能力，适合复杂标书处理'
+            },
+            'azure-gpt35-turbo': {
+                'api_key': clean_env_value(os.getenv('AZURE_OPENAI_API_KEY', '')),
+                'azure_endpoint': clean_env_value(os.getenv('AZURE_OPENAI_ENDPOINT', '')),
+                'azure_deployment': clean_env_value(os.getenv('AZURE_OPENAI_DEPLOYMENT_35', 'gpt-35-turbo')),
+                'api_version': clean_env_value(os.getenv('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')),
+                'max_tokens': int(os.getenv('AZURE_MAX_TOKENS', '2000')),
+                'timeout': int(os.getenv('AZURE_TIMEOUT', '60')),
+                'provider': 'Azure OpenAI',
+                'display_name': 'Azure GPT-3.5 Turbo',
+                'description': 'Azure部署的GPT-3.5模型，快速且经济的AI助手'
             }
         }
         

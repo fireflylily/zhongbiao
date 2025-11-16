@@ -15,14 +15,14 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 # 导入公共模块
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from common import get_module_logger
+from common import get_module_logger, resolve_file_path
 
 class ImageHandler:
     """图片处理器"""
-    
+
     def __init__(self):
         self.logger = get_module_logger("image_handler")
-        
+
         # 图片类型关键词映射
         self.image_keywords = {
             'license': ['营业执照', '营业执照副本', '执照'],
@@ -30,11 +30,16 @@ class ImageHandler:
             'authorization': ['授权书', '授权委托书', '法人授权'],
             'certificate': ['证书', '认证', '资格证'],
             'legal_id': ['法定代表人身份证复印件', '法定代表人身份证', '法人身份证', '法定代表人身份证明'],
-            'auth_id': ['授权代表身份证', '授权人身份证', '被授权人身份证'],
+            'auth_id': [
+                '授权代表身份证', '授权人身份证', '被授权人身份证',
+                '授权代表身份证复印件', '被授权人身份证复印件',
+                '委托代理人身份证', '代理人身份证复印件'
+            ],
             'dishonest_executor': ['失信被执行人', '失信被执行人名单'],
             'tax_violation_check': ['重大税收违法', '税收违法案件当事人名单'],
             'gov_procurement_creditchina': ['政府采购严重违法失信', '政府采购信用记录'],
-            'gov_procurement_ccgp': ['政府采购严重违法失信行为信息记录', '政府采购网查询']
+            'gov_procurement_ccgp': ['政府采购严重违法失信行为信息记录', '政府采购网查询'],
+            'audit_report': ['审计报告', '财务审计报告', '年度审计报告', '会计师事务所出具']
         }
 
         # 默认图片尺寸（英寸）
@@ -49,8 +54,26 @@ class ImageHandler:
             'dishonest_executor': (6, 0),              # 失信被执行人查询截图：宽6英寸
             'tax_violation_check': (6, 0),             # 税收违法查询截图：宽6英寸
             'gov_procurement_creditchina': (6, 0),     # 信用中国政采查询截图：宽6英寸
-            'gov_procurement_ccgp': (6, 0)             # 政府采购网查询截图：宽6英寸
+            'gov_procurement_ccgp': (6, 0),            # 政府采购网查询截图：宽6英寸
+            'audit_report': (6, 0)                     # 审计报告：宽6英寸
         }
+
+    def _resolve_file_path(self, file_path: str) -> str:
+        """
+        解析文件路径（支持相对路径和绝对路径）
+
+        使用公共的resolve_file_path函数处理路径解析
+        """
+        if not file_path:
+            return file_path
+
+        resolved = resolve_file_path(file_path)
+        if resolved:
+            self.logger.debug(f"路径解析: {file_path} -> {resolved}")
+            return str(resolved)
+        else:
+            self.logger.warning(f"无法解析文件路径: {file_path}")
+            return file_path
     
     def insert_images(self, doc: Document, image_config: Dict[str, Any],
                      required_quals: List[Dict] = None) -> Dict[str, Any]:
@@ -126,12 +149,23 @@ class ImageHandler:
         # 插入资质证书（使用详细信息进行精确插入，并追踪统计）
         qualification_details = image_config.get('qualification_details', [])
         if qualification_details:
-            # 使用新的智能插入逻辑 + 统计追踪
-            for idx, qual_detail in enumerate(qualification_details):
+            # 【优化】分组处理同一资质的多页（如审计报告多页PDF）
+            # 按qual_key分组: {qual_key: [detail1, detail2, ...]}
+            grouped_quals = {}
+            for qual_detail in qualification_details:
                 qual_key = qual_detail.get('qual_key')
-                file_path = qual_detail.get('file_path')
-                insert_hint = qual_detail.get('insert_hint', '')
+                if qual_key:
+                    if qual_key not in grouped_quals:
+                        grouped_quals[qual_key] = []
+                    grouped_quals[qual_key].append(qual_detail)
 
+            # 对每组内的页面按page_num排序（确保顺序正确）
+            for qual_key, details in grouped_quals.items():
+                details.sort(key=lambda x: x.get('page_num', 0))
+
+            # 处理每个资质（分组后）
+            idx = 0
+            for qual_key, details_group in grouped_quals.items():
                 # 获取资质名称
                 qual_name = QUALIFICATION_MAPPING.get(qual_key, {}).get('category', qual_key)
 
@@ -139,19 +173,36 @@ class ImageHandler:
                 insert_point = insert_points.get(qual_key) or insert_points.get('qualification')
 
                 if insert_point:
-                    # 有占位符：尝试插入
-                    if self._insert_qualification(doc, file_path, insert_point, idx, qual_key, insert_hint):
-                        stats['images_inserted'] += 1
-                        stats['images_types'].append(f'{qual_key}')
-                        # 记录成功填充
-                        stats['filled_qualifications'].append({
-                            'qual_key': qual_key,
-                            'qual_name': qual_name,
-                            'file_path': file_path
-                        })
-                        self.logger.info(f"✅ 填充资质: {qual_key} ({qual_name})")
-                    else:
-                        stats['errors'].append(f'{qual_key}插入失败')
+                    # 有占位符：插入该资质的所有页面
+                    is_multi_page = len(details_group) > 1
+
+                    for page_idx, qual_detail in enumerate(details_group):
+                        file_path = qual_detail.get('file_path')
+                        insert_hint = qual_detail.get('insert_hint', '')
+                        page_num = qual_detail.get('page_num', page_idx + 1)
+                        is_first_page = (page_idx == 0)
+
+                        # 插入图片（第一页插入标题，后续页只插入图片）
+                        if self._insert_qualification(
+                            doc, file_path, insert_point, idx, qual_key, insert_hint,
+                            is_first_page=is_first_page, is_multi_page=is_multi_page, page_num=page_num
+                        ):
+                            stats['images_inserted'] += 1
+                            stats['images_types'].append(f'{qual_key}_p{page_num}')
+
+                            # 只在第一页记录到filled_qualifications
+                            if is_first_page:
+                                stats['filled_qualifications'].append({
+                                    'qual_key': qual_key,
+                                    'qual_name': qual_name,
+                                    'file_path': file_path,
+                                    'total_pages': len(details_group)
+                                })
+                                self.logger.info(f"✅ 填充资质: {qual_key} ({qual_name}), {len(details_group)}页")
+                        else:
+                            stats['errors'].append(f'{qual_key}_p{page_num}插入失败')
+
+                    idx += 1
                 else:
                     # 无占位符：暂不处理（后续统一追加项目要求的资质）
                     self.logger.debug(f"⏭️ 跳过无占位符的资质: {qual_key}")
@@ -504,9 +555,12 @@ class ImageHandler:
     def _insert_license(self, doc: Document, image_path: str, insert_point: Optional[Dict]) -> bool:
         """插入营业执照"""
         try:
-            if not os.path.exists(image_path):
-                self.logger.error(f"营业执照图片不存在: {image_path}")
+            # 解析路径（支持相对路径）
+            resolved_path = self._resolve_file_path(image_path)
+            if not os.path.exists(resolved_path):
+                self.logger.error(f"营业执照图片不存在: {image_path} (resolved: {resolved_path})")
                 return False
+            image_path = resolved_path  # 使用解析后的路径
 
             if insert_point and insert_point['type'] == 'paragraph':
                 # 在找到的段落位置插入
@@ -554,22 +608,30 @@ class ImageHandler:
     
     def _insert_qualification(self, doc: Document, image_path: str,
                             insert_point: Optional[Dict], index: int,
-                            qual_key: str = None, insert_hint: str = None) -> bool:
+                            qual_key: str = None, insert_hint: str = None,
+                            is_first_page: bool = True, is_multi_page: bool = False,
+                            page_num: int = 1) -> bool:
         """
-        插入资质证书（支持智能标题和精确位置）
+        插入资质证书（支持智能标题、精确位置和多页处理）
 
         Args:
             doc: Word文档对象
             image_path: 图片路径
             insert_point: 插入点信息
             index: 索引（用于排序）
-            qual_key: 资质键（如iso9001, cmmi），用于生成更好的标题
+            qual_key: 资质键（如iso9001, cmmi, audit_report），用于生成更好的标题
             insert_hint: 插入提示（来自项目要求），用于生成标题
+            is_first_page: 是否为第一页（多页文档时，只有第一页插入标题）
+            is_multi_page: 是否为多页文档
+            page_num: 页码（用于日志）
         """
         try:
-            if not os.path.exists(image_path):
-                self.logger.error(f"资质证书图片不存在: {image_path}")
+            # 解析路径（支持相对路径）
+            resolved_path = self._resolve_file_path(image_path)
+            if not os.path.exists(resolved_path):
+                self.logger.error(f"资质证书图片不存在: {image_path} (resolved: {resolved_path})")
                 return False
+            image_path = resolved_path  # 使用解析后的路径
 
             # 生成标题（优先级: display_title > insert_hint > category + "认证证书"）
             from .qualification_matcher import QUALIFICATION_MAPPING
@@ -592,41 +654,70 @@ class ImageHandler:
                 # 在找到的段落位置插入（所有有插入点的资质都使用各自的插入点）
                 target_para = insert_point['paragraph']
 
-                # 插入分页符
-                page_break_para = self._insert_paragraph_after(target_para)
-                page_break_para.add_run().add_break()
+                # 【多页优化】只在第一页插入分页符和标题
+                if is_first_page:
+                    # 插入分页符
+                    page_break_para = self._insert_paragraph_after(target_para)
+                    page_break_para.add_run().add_break()
 
-                # 插入标题
-                title = self._insert_paragraph_after(page_break_para)
-                title.text = title_text
-                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                if title.runs:
-                    title.runs[0].font.bold = True
+                    # 插入标题
+                    title = self._insert_paragraph_after(page_break_para)
+                    title.text = title_text
+                    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    if title.runs:
+                        title.runs[0].font.bold = True
+
+                    # 记录当前位置,后续页面从这里继续插入
+                    self._last_insert_para = title
+                    log_msg = f"✅ 在指定位置插入 {qual_key or '资质证书'} 标题: {title_text}"
+                else:
+                    # 后续页：从上次插入位置继续
+                    if hasattr(self, '_last_insert_para'):
+                        title = self._last_insert_para
+                    else:
+                        # 降级：如果找不到上次位置,使用target_para
+                        title = target_para
+                    log_msg = f"✅ 继续插入 {qual_key} 第{page_num}页"
 
                 # 插入图片
                 img_para = self._insert_paragraph_after(title)
                 img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = img_para.add_run()
-                run.add_picture(image_path, width=Inches(self.default_sizes['qualification'][0]))
+                run.add_picture(image_path, width=Inches(self.default_sizes.get(qual_key, self.default_sizes['qualification'])[0]))
 
-                self.logger.info(f"✅ 在指定位置插入 {qual_key or '资质证书'}: {title_text}")
+                # 更新插入位置（供下一页使用）
+                self._last_insert_para = img_para
+
+                self.logger.info(log_msg)
                 return True
 
             else:
                 # 降级：没找到插入点，添加到文档末尾
-                doc.add_page_break()
+                # 【多页优化】只在第一页插入分页符和标题
+                if is_first_page:
+                    doc.add_page_break()
 
-                title = doc.add_paragraph(title_text)
-                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                if title.runs:
-                    title.runs[0].font.bold = True
+                    title = doc.add_paragraph(title_text)
+                    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    if title.runs:
+                        title.runs[0].font.bold = True
 
+                    self._last_insert_para = title
+                    log_msg = f"✅ 在文档末尾插入 {qual_key or '资质证书'} 标题: {title_text}"
+                else:
+                    # 后续页：不插入标题
+                    log_msg = f"✅ 继续在文档末尾插入 {qual_key} 第{page_num}页"
+
+                # 插入图片
                 paragraph = doc.add_paragraph()
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = paragraph.add_run()
-                run.add_picture(image_path, width=Inches(self.default_sizes['qualification'][0]))
+                run.add_picture(image_path, width=Inches(self.default_sizes.get(qual_key, self.default_sizes['qualification'])[0]))
 
-                self.logger.info(f"✅ 在文档末尾插入 {qual_key or '资质证书'}: {title_text}")
+                # 更新插入位置
+                self._last_insert_para = paragraph
+
+                self.logger.info(log_msg)
                 return True
 
         except Exception as e:
@@ -655,14 +746,28 @@ class ImageHandler:
             bool: 插入是否成功
         """
         try:
-            # 验证图片是否存在
-            if not front_path or not os.path.exists(front_path):
-                self.logger.error(f"{id_type}身份证正面图片不存在: {front_path}")
+            # 解析并验证图片路径（支持相对路径）
+            if not front_path:
+                self.logger.error(f"{id_type}身份证正面图片路径为空")
                 return False
 
-            if not back_path or not os.path.exists(back_path):
-                self.logger.error(f"{id_type}身份证反面图片不存在: {back_path}")
+            front_path_resolved = self._resolve_file_path(front_path)
+            if not os.path.exists(front_path_resolved):
+                self.logger.error(f"{id_type}身份证正面图片不存在: {front_path} (resolved: {front_path_resolved})")
                 return False
+
+            if not back_path:
+                self.logger.error(f"{id_type}身份证反面图片路径为空")
+                return False
+
+            back_path_resolved = self._resolve_file_path(back_path)
+            if not os.path.exists(back_path_resolved):
+                self.logger.error(f"{id_type}身份证反面图片不存在: {back_path} (resolved: {back_path_resolved})")
+                return False
+
+            # 使用解析后的路径
+            front_path = front_path_resolved
+            back_path = back_path_resolved
 
             # 使用7厘米宽度
             id_width_cm = 7
@@ -1151,9 +1256,12 @@ class ImageHandler:
             bool: 是否成功
         """
         try:
-            if not os.path.exists(image_path):
-                self.logger.error(f"资质图片不存在: {image_path}")
+            # 解析路径（支持相对路径）
+            resolved_path = self._resolve_file_path(image_path)
+            if not os.path.exists(resolved_path):
+                self.logger.error(f"资质图片不存在: {image_path} (resolved: {resolved_path})")
                 return False
+            image_path = resolved_path  # 使用解析后的路径
 
             # 生成标题（优先级: display_title > insert_hint > category + "认证证书"）
             from .qualification_matcher import QUALIFICATION_MAPPING
