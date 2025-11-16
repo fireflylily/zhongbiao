@@ -10,6 +10,7 @@ import json
 import re
 import threading
 import configparser
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, List, Any
@@ -754,8 +755,6 @@ class TenderInfoExtractor:
     def _read_doc_with_antiword(self, file_path: Path) -> str:
         """使用antiword读取.doc文件"""
         try:
-            import subprocess
-
             # 尝试使用antiword命令行工具
             result = subprocess.run(
                 ['/opt/homebrew/bin/antiword', str(file_path)],
@@ -783,11 +782,6 @@ class TenderInfoExtractor:
 
     def _read_doc_with_libreoffice(self, file_path: Path) -> str:
         """使用LibreOffice转换.doc文件为.docx后读取"""
-        import subprocess
-        import tempfile
-        import os
-        from pathlib import Path
-
         temp_dir = None
         temp_docx = None
 
@@ -887,7 +881,6 @@ class TenderInfoExtractor:
     def _detect_office_suite(self, file_path: Path) -> str:
         """检测文档的创建软件"""
         try:
-            import subprocess
             # 使用 errors='ignore' 来处理编码问题
             result = subprocess.run(['file', str(file_path)],
                                   capture_output=True, timeout=10)

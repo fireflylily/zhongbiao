@@ -11,6 +11,7 @@ Azure Form Recognizer 文档解析器
 import os
 import time
 import tempfile
+import subprocess
 from typing import List, Dict, Optional
 from pathlib import Path
 
@@ -91,7 +92,6 @@ class AzureDocumentParser:
 
             # 方法2: 使用 LibreOffice (Linux/Mac/Windows)
             self.logger.info("尝试使用 LibreOffice 转换...")
-            import subprocess
 
             # 尝试不同的 LibreOffice 命令名
             for cmd in ['soffice', 'libreoffice']:
