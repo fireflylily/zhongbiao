@@ -235,6 +235,10 @@ class TableProcessor:
                     if value and field_key == 'shareholders_info':
                         value = self._format_shareholders_info(value)
 
+                    # 🆕 格式化控股股东信息JSON
+                    if value and field_key == 'controlling_shareholder':
+                        value = self._format_shareholders_info(value)
+
                     # 🔧 修复：跳过空值和明确的占位符（移除"无"，因为它可能是合法的业务数据）
                     if not value or str(value).strip() in ['/', '-', 'N/A', 'NA', '']:
                         self.logger.debug(f"  跳过空值或占位符字段: {field_name} = '{value}'")
@@ -300,6 +304,10 @@ class TableProcessor:
 
                     # 🆕 格式化股东信息JSON
                     if value and field_key == 'shareholders_info':
+                        value = self._format_shareholders_info(value)
+
+                    # 🆕 格式化控股股东信息JSON
+                    if value and field_key == 'controlling_shareholder':
                         value = self._format_shareholders_info(value)
 
                     # 🔧 修复：跳过空值和明确的占位符（移除"无"，因为它可能是合法的业务数据）
@@ -522,11 +530,13 @@ class TableProcessor:
         输入示例：
         [
             {"name": "股东A", "type": "企业", "ratio": "30%"},
-            {"name": "股东B", "type": "自然人", "ratio": "20%"}
+            {"name": "张三", "type": "自然人", "ratio": "20%", "id_number": "110101199001011234"}
         ]
 
         输出示例：
-        股东A（企业，30%）、股东B（自然人，20%）
+        股东A（企业，30%）、张三（自然人，20%，110101199001011234）
+
+        注: 自然人股东会显示身份证号(如果有)
 
         Args:
             shareholders_json: 股东信息JSON字符串
@@ -552,13 +562,23 @@ class TableProcessor:
                 name = shareholder.get('name', '')
                 shareholder_type = shareholder.get('type', '')
                 ratio = shareholder.get('ratio', '')
+                id_number = shareholder.get('id_number', '')  # 身份证号(自然人才有)
 
-                # 格式：股东名称（类型，出资比例）
-                if shareholder_type and ratio:
+                # 格式：
+                # - 企业: 名称（企业，出资比例）
+                # - 自然人(有身份证): 名称（自然人，出资比例，身份证号）
+                # - 自然人(无身份证): 名称（自然人，出资比例）
+                if shareholder_type == '自然人' and id_number:
+                    # 自然人且有身份证号
+                    formatted_list.append(f"{name}（{shareholder_type}，{ratio}，{id_number}）")
+                elif shareholder_type and ratio:
+                    # 有类型和比例
                     formatted_list.append(f"{name}（{shareholder_type}，{ratio}）")
                 elif ratio:
+                    # 只有比例
                     formatted_list.append(f"{name}（{ratio}）")
                 else:
+                    # 只有名称
                     formatted_list.append(name)
 
             # 用顿号连接

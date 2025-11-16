@@ -55,6 +55,23 @@ class BusinessResponseProcessor:
         self.model_name = model_name or "shihuang-gpt4o-mini"
         self.inline_processor = InlineReplyProcessor(model_name=self.model_name)
 
+        # 初始化案例库和简历库填充器
+        try:
+            from ..case_library.manager import CaseLibraryManager
+            from ..resume_library.manager import ResumeLibraryManager
+            from .case_table_filler import CaseTableFiller
+            from .resume_table_filler import ResumeTableFiller
+
+            self.case_manager = CaseLibraryManager()
+            self.resume_manager = ResumeLibraryManager()
+            self.case_filler = CaseTableFiller(self.case_manager, self.image_handler)  # 传入image_handler
+            self.resume_filler = ResumeTableFiller(self.resume_manager, self.image_handler)  # 传入image_handler
+            self.case_resume_available = True
+            self.logger.info("案例库和简历库填充器初始化完成")
+        except Exception as e:
+            self.logger.warning(f"案例库/简历库填充器初始化失败: {e}")
+            self.case_resume_available = False
+
         self.logger.info(f"商务应答处理器初始化完成，内联回复模型: {self.model_name}")
 
     def _format_date_for_document(self, date_text: str) -> str:
@@ -199,7 +216,27 @@ class BusinessResponseProcessor:
             if image_config and any(image_config.values()):
                 self.logger.info("第3步：执行图片插入")
                 image_stats = self.image_handler.insert_images(doc, image_config, required_quals)
-            
+
+            # 第4步：案例表格填充（如果可用）
+            case_stats = {}
+            if self.case_resume_available:
+                self.logger.info("第4步：执行案例表格填充")
+                company_id = company_info.get('company_id')
+                if company_id:
+                    case_stats = self.case_filler.fill_case_tables(doc, company_id)
+                else:
+                    self.logger.warning("  ⚠️  缺少company_id,跳过案例表格填充")
+
+            # 第5步：简历表格填充（如果可用）
+            resume_stats = {}
+            if self.case_resume_available:
+                self.logger.info("第5步：执行简历表格填充")
+                company_id = company_info.get('company_id')
+                if company_id:
+                    resume_stats = self.resume_filler.fill_resume_tables(doc, company_id)
+                else:
+                    self.logger.warning("  ⚠️  缺少company_id,跳过简历表格填充")
+
             # 保存文档
             doc.save(output_file)
             
@@ -210,13 +247,19 @@ class BusinessResponseProcessor:
                 'info_filling': info_stats,
                 'table_processing': table_stats,
                 'image_insertion': image_stats,
+                'case_filling': case_stats,
+                'resume_filling': resume_stats,
                 'summary': {
                     'total_replacements': info_stats.get('total_replacements', 0),
                     'tables_processed': table_stats.get('tables_processed', 0),
                     'cells_filled': table_stats.get('cells_filled', 0),
-                    'images_inserted': image_stats.get('images_inserted', 0) if image_stats else 0
+                    'images_inserted': image_stats.get('images_inserted', 0) if image_stats else 0,
+                    'case_tables_filled': case_stats.get('tables_filled', 0) if case_stats else 0,
+                    'case_rows_filled': case_stats.get('rows_filled', 0) if case_stats else 0,
+                    'resume_tables_filled': resume_stats.get('tables_filled', 0) if resume_stats else 0,
+                    'resume_rows_filled': resume_stats.get('rows_filled', 0) if resume_stats else 0
                 },
-                'message': self._generate_summary_message(info_stats, table_stats, image_stats, required_quals)
+                'message': self._generate_summary_message(info_stats, table_stats, image_stats, required_quals, case_stats, resume_stats)
             }
             
             self.logger.info(f"商务应答文档处理完成: {total_stats['message']}")
@@ -281,7 +324,7 @@ class BusinessResponseProcessor:
                 'message': '内联回复处理失败'
             }
 
-    def _generate_summary_message(self, info_stats: Dict, table_stats: Dict, image_stats: Dict, required_quals: Optional[List[Dict]] = None) -> str:
+    def _generate_summary_message(self, info_stats: Dict, table_stats: Dict, image_stats: Dict, required_quals: Optional[List[Dict]] = None, case_stats: Optional[Dict] = None, resume_stats: Optional[Dict] = None) -> str:
         """
         生成处理摘要消息（模板驱动，包含详细统计信息）
 
@@ -290,6 +333,8 @@ class BusinessResponseProcessor:
             table_stats: 表格处理统计
             image_stats: 图片插入统计（包含filled/missing/appended三类统计）
             required_quals: 项目资格要求列表（用于显示）
+            case_stats: 案例表格填充统计（可选）
+            resume_stats: 简历表格填充统计（可选）
 
         Returns:
             完整的处理摘要消息
@@ -351,6 +396,38 @@ class BusinessResponseProcessor:
                     f"\n\n⚠️  以下资质模板有占位符但未上传文件：{missing_list}。"
                     f"请在企业信息库中上传相应资质文件。"
                 )
+
+        # 5. 案例表格填充统计
+        if case_stats and case_stats.get('tables_filled', 0) > 0:
+            tables_filled = case_stats.get('tables_filled', 0)
+            rows_filled = case_stats.get('rows_filled', 0)
+            cases_used = case_stats.get('cases_used', 0)
+            images_inserted = case_stats.get('images_inserted', 0)
+
+            # 基础统计
+            msg = f"\n填充了{tables_filled}个案例表格，共{rows_filled}行数据（使用{cases_used}个案例）"
+
+            # 图片统计
+            if images_inserted > 0:
+                msg += f"，插入了{images_inserted}张案例附件图片"
+
+            messages.append(msg)
+
+        # 6. 简历表格填充统计
+        if resume_stats and resume_stats.get('tables_filled', 0) > 0:
+            tables_filled = resume_stats.get('tables_filled', 0)
+            rows_filled = resume_stats.get('rows_filled', 0)
+            resumes_used = resume_stats.get('resumes_used', 0)
+            images_inserted = resume_stats.get('images_inserted', 0)
+
+            # 基础统计
+            msg = f"\n填充了{tables_filled}个简历表格，共{rows_filled}行数据（使用{resumes_used}份简历）"
+
+            # 图片统计
+            if images_inserted > 0:
+                msg += f"，插入了{images_inserted}张简历附件图片"
+
+            messages.append(msg)
 
         if not messages:
             return "文档处理完成（未发现需要处理的内容）"
