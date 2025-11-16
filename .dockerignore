@@ -71,10 +71,31 @@ Thumbs.db
 *.jpeg
 .playwright-mcp/
 
-# Data directories (if not needed for production)
-data/
+# Data directories (由docker-compose volume管理)
+ai_tender_system/data/uploads/
+ai_tender_system/data/outputs/
+ai_tender_system/data/logs/
+ai_tender_system/data/parser_debug/
+*.db
+*.sqlite
+*.sqlite3
 htmlcov/
 ProposalLLM-main/
+
+# Node.js前端（已构建）
+node_modules/
+frontend/node_modules/
+frontend/.nuxt/
+frontend/dist/
+package-lock.json
+
+# Docker相关
+Dockerfile
+Dockerfile.railway
+docker-compose*.yml
+
+# 部署文档（可选）
+DEPLOY_INSTRUCTIONS.md
 
 # Test and debug scripts
 test_*.py

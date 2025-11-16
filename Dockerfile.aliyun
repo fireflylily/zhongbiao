@@ -1,0 +1,55 @@
+# AI标书系统 - 阿里云ECS Docker镜像
+# 解决Python版本不兼容、依赖安装慢等问题
+
+FROM python:3.11-slim
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    FLASK_RUN_PORT=8110
+
+# 安装系统依赖
+# - libreoffice: Azure文档转换需要 (Word->PDF)
+# - fonts-wqy-*: 中文字体支持
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice \
+    libreoffice-writer \
+    fonts-wqy-zenhei \
+    fonts-wqy-microhei \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制requirements.txt并安装Python依赖
+# 使用清华镜像源加速下载
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    && pip install requests  # 添加healthcheck需要的requests
+
+# 复制项目代码
+COPY ai_tender_system ./ai_tender_system
+
+# 复制Vue前端构建产物（如果存在）
+COPY ai_tender_system/web/static/dist ./ai_tender_system/web/static/dist
+
+# 创建必要的数据目录
+RUN mkdir -p \
+    /app/ai_tender_system/data/uploads \
+    /app/ai_tender_system/data/outputs \
+    /app/ai_tender_system/data/logs \
+    /app/ai_tender_system/data/knowledge_base \
+    /app/ai_tender_system/data/parser_debug
+
+# 暴露端口
+EXPOSE 8110
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8110/api/health', timeout=5)" || exit 1
+
+# 启动命令
+CMD ["python", "-m", "ai_tender_system.web.app"]

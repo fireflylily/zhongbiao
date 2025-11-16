@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  ai-tender-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.aliyun
+    container_name: ai-tender-system
+    restart: unless-stopped
+    ports:
+      - "8110:8110"
+    environment:
+      # 从.env文件加载环境变量
+      - FLASK_RUN_PORT=8110
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8110
+      - DEBUG=True
+    env_file:
+      - ai_tender_system/.env
+    volumes:
+      # 持久化数据目录
+      - ./ai_tender_system/data:/app/ai_tender_system/data
+      # 如果需要修改代码实时生效，可以挂载代码目录（生产环境不建议）
+      # - ./ai_tender_system:/app/ai_tender_system
+    networks:
+      - ai-tender-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8110/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  ai-tender-network:
+    driver: bridge
