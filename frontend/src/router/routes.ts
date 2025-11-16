@@ -291,7 +291,8 @@ export const routes: RouteRecordRaw[] = [
           category: 'dev-tools',
           order: 10,
           description: '对比不同解析方法的准确率',
-          showInMenu: import.meta.env.DEV // 仅在开发环境显示
+          showInMenu: import.meta.env.DEV, // 仅在开发环境显示
+          requiresAuth: false // 调试工具不需要登录
         }
       }
     ]
