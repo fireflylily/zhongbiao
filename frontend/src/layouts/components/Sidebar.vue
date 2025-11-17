@@ -28,7 +28,7 @@
           <template v-if="groupedMenuItems[category.key] && groupedMenuItems[category.key].length > 0">
             <!-- 分组标题（非折叠时显示） -->
             <div v-if="!collapsed" class="menu-group-title">
-              <i :class="category.icon" class="group-icon"></i>
+              <i class="bi group-icon" :class="category.icon"></i>
               <span class="group-label">{{ category.label }}</span>
             </div>
 
@@ -40,7 +40,7 @@
                 :index="item.path"
               >
                 <template #title>
-                  <i v-if="item.icon" :class="item.icon" class="menu-icon"></i>
+                  <i v-if="item.icon" class="bi menu-icon" :class="item.icon"></i>
                   <span class="menu-title">{{ item.title }}</span>
                 </template>
               </el-menu-item>
@@ -48,7 +48,7 @@
               <!-- 多级菜单（子菜单） -->
               <el-sub-menu v-else :index="item.path">
                 <template #title>
-                  <i v-if="item.icon" :class="item.icon" class="menu-icon"></i>
+                  <i v-if="item.icon" class="bi menu-icon" :class="item.icon"></i>
                   <span class="menu-title">{{ item.title }}</span>
                 </template>
 
@@ -60,7 +60,7 @@
                     :index="subItem.path"
                   >
                     <template #title>
-                      <i v-if="subItem.icon" :class="subItem.icon" class="submenu-icon"></i>
+                      <i v-if="subItem.icon" class="bi submenu-icon" :class="subItem.icon"></i>
                       <span>{{ subItem.title }}</span>
                     </template>
                   </el-menu-item>
@@ -68,7 +68,7 @@
                   <!-- 三级菜单 -->
                   <el-sub-menu v-else :index="subItem.path">
                     <template #title>
-                      <i v-if="subItem.icon" :class="subItem.icon" class="submenu-icon"></i>
+                      <i v-if="subItem.icon" class="bi submenu-icon" :class="subItem.icon"></i>
                       <span>{{ subItem.title }}</span>
                     </template>
 
@@ -78,7 +78,7 @@
                       :index="thirdItem.path"
                     >
                       <template #title>
-                        <i v-if="thirdItem.icon" :class="thirdItem.icon" class="submenu-icon"></i>
+                        <i v-if="thirdItem.icon" class="bi submenu-icon" :class="thirdItem.icon"></i>
                         <span>{{ thirdItem.title }}</span>
                       </template>
                     </el-menu-item>
@@ -101,7 +101,7 @@
               :index="item.path"
             >
               <template #title>
-                <i v-if="item.icon" :class="item.icon" class="menu-icon"></i>
+                <i v-if="item.icon" class="bi menu-icon" :class="item.icon"></i>
                 <span class="menu-title">{{ item.title }}</span>
               </template>
             </el-menu-item>
@@ -109,7 +109,7 @@
             <!-- 多级菜单（子菜单） -->
             <el-sub-menu v-else :index="item.path">
               <template #title>
-                <i v-if="item.icon" :class="item.icon" class="menu-icon"></i>
+                <i v-if="item.icon" class="bi menu-icon" :class="item.icon"></i>
                 <span class="menu-title">{{ item.title }}</span>
               </template>
 
@@ -121,7 +121,7 @@
                   :index="subItem.path"
                 >
                   <template #title>
-                    <i v-if="subItem.icon" :class="subItem.icon" class="submenu-icon"></i>
+                    <i v-if="subItem.icon" class="bi submenu-icon" :class="subItem.icon"></i>
                     <span>{{ subItem.title }}</span>
                   </template>
                 </el-menu-item>
@@ -129,7 +129,7 @@
                 <!-- 三级菜单 -->
                 <el-sub-menu v-else :index="subItem.path">
                   <template #title>
-                    <i v-if="subItem.icon" :class="subItem.icon" class="submenu-icon"></i>
+                    <i v-if="subItem.icon" class="bi submenu-icon" :class="subItem.icon"></i>
                     <span>{{ subItem.title }}</span>
                   </template>
 
@@ -139,7 +139,7 @@
                     :index="thirdItem.path"
                   >
                     <template #title>
-                      <i v-if="thirdItem.icon" :class="thirdItem.icon" class="submenu-icon"></i>
+                      <i v-if="thirdItem.icon" class="bi submenu-icon" :class="thirdItem.icon"></i>
                       <span>{{ thirdItem.title }}</span>
                     </template>
                   </el-menu-item>
@@ -163,6 +163,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { generateMenuFromRoutes } from '@/router/utils'
 import type { MenuItem } from '@/types'
 
@@ -188,6 +189,7 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 
 // ==================== Computed ====================
 
@@ -201,12 +203,21 @@ const sidebarClasses = computed(() => ({
 /**
  * 菜单分组配置
  */
-const menuCategories = [
-  { key: 'workspace', label: '工作台', icon: 'bi-house-fill' },
-  { key: 'project', label: '项目管理', icon: 'bi-folder-fill' },
-  { key: 'ai-tools', label: 'AI核心工具', icon: 'bi-robot' },
-  { key: 'knowledge', label: '知识中心', icon: 'bi-book-fill' }
-]
+const menuCategories = computed(() => {
+  const categories = [
+    { key: 'workspace', label: '工作台', icon: 'bi-house-fill' },
+    { key: 'project', label: '项目管理', icon: 'bi-folder-fill' },
+    { key: 'ai-tools', label: 'AI核心工具', icon: 'bi-robot' },
+    { key: 'knowledge', label: '知识中心', icon: 'bi-book-fill' }
+  ]
+
+  // 只有admin用户才显示ABTest分类
+  if (userStore.username === 'admin') {
+    categories.push({ key: 'abtest', label: 'AB测试', icon: 'bi-bug' })
+  }
+
+  return categories
+})
 
 /**
  * 菜单项列表
@@ -221,6 +232,12 @@ const menuItems = computed((): MenuItem[] => {
   // 过滤掉不在菜单中显示的项
   return allMenus.filter((item) => {
     if (item.meta?.showInMenu === false) return false
+
+    // ABTest分类只对admin用户可见
+    if (item.meta?.category === 'abtest' && userStore.username !== 'admin') {
+      return false
+    }
+
     return true
   })
 })

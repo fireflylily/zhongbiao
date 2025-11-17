@@ -102,6 +102,9 @@ def register_hitl_routes(app):
                 )
 
                 file_path = file_metadata.file_path
+                # 修正路径：storage_service返回的是相对路径，需要补充ai_tender_system前缀
+                if not file_path.startswith('ai_tender_system/'):
+                    file_path = f"ai_tender_system/{file_path}"
                 original_filename = file.filename
                 logger.info(f"新文件已保存: {file_path}")
 

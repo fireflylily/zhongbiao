@@ -209,10 +209,24 @@ class KnowledgeBaseManager:
                 'error': str(e)
             }
 
-    def get_companies(self) -> List[Dict]:
-        """获取公司列表"""
+    def get_companies(self, created_by_user_id: int = None) -> List[Dict]:
+        """
+        获取公司列表
+
+        Args:
+            created_by_user_id: 创建者用户ID,如果指定则只返回该用户创建的公司
+
+        Returns:
+            公司列表
+        """
         try:
-            companies = self.db.get_companies()
+            # ✅ 支持按创建者过滤
+            if created_by_user_id:
+                query = "SELECT * FROM companies WHERE created_by_user_id = ? ORDER BY updated_at DESC"
+                companies = self.db.execute_query(query, (created_by_user_id,))
+                logger.info(f"获取用户 {created_by_user_id} 创建的公司,共 {len(companies)} 家")
+            else:
+                companies = self.db.get_companies()
 
             # 为每个公司添加统计信息
             for company in companies:

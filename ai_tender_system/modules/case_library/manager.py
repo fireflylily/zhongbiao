@@ -448,7 +448,14 @@ class CaseLibraryManager:
 
     def upload_attachment(self, case_id: int, file_obj, original_filename: str,
                          attachment_type: str = 'contract_order', description: str = None) -> Dict:
-        """上传案例附件"""
+        """
+        上传案例附件（支持PDF和Word自动转换为图片）
+
+        转换规则：
+        - PDF文件：自动转换每一页为图片
+        - Word文档：自动提取文档中的所有图片
+        - 图片文件：直接使用，无需转换
+        """
         try:
             from core.storage_service import storage_service
 
@@ -470,8 +477,10 @@ class CaseLibraryManager:
                 tags=[f'case_{case_id}', attachment_type]
             )
 
-            # 创建附件记录
+            # 创建附件记录（基础信息）
             file_ext = Path(original_filename).suffix.lower()
+            original_file_type = file_ext[1:].upper() if file_ext else ''
+
             attachment_data = {
                 'case_id': case_id,
                 'file_name': file_metadata.safe_name,
@@ -481,20 +490,64 @@ class CaseLibraryManager:
                 'file_size': file_metadata.file_size,
                 'attachment_type': attachment_type,
                 'attachment_description': description,
+                'original_file_type': original_file_type,  # 新增：记录原始文件类型
                 'uploaded_by': 'system',
                 'uploaded_at': datetime.now()
             }
 
+            # 🆕 步骤：如果是PDF或Word，自动转换/提取图片
+            converted_images = None
+            conversion_info = None
+
+            if file_ext in ['.pdf', '.docx', '.doc']:
+                try:
+                    from common.document_image_extractor import extract_images_from_document
+
+                    logger.info(f"检测到文档类型 {original_file_type}，开始自动转换/提取图片...")
+
+                    result = extract_images_from_document(
+                        file_path=file_metadata.file_path,
+                        base_name=f"case_{case_id}_{file_metadata.safe_name}",
+                        dpi=200
+                    )
+
+                    if result['success']:
+                        converted_images = result['images']
+                        conversion_info = result['conversion_info']
+
+                        # 保存到附件记录
+                        attachment_data['converted_images'] = json.dumps(converted_images, ensure_ascii=False)
+                        attachment_data['conversion_info'] = json.dumps(conversion_info, ensure_ascii=False)
+                        attachment_data['conversion_date'] = datetime.now()
+
+                        logger.info(f"✅ 文档转换成功: 提取/转换了 {len(converted_images)} 张图片")
+                    else:
+                        logger.warning(f"⚠️  文档转换失败: {result.get('error', '未知错误')}，将只保存原文件")
+
+                except Exception as e:
+                    logger.warning(f"⚠️  文档转换异常: {e}，将只保存原文件")
+
+            # 插入附件记录
             attachment_id = self._insert_attachment(attachment_data)
 
             if attachment_id:
                 logger.info(f"案例附件上传成功: {original_filename} (ID: {attachment_id})")
-                return {
+
+                # 构建返回结果
+                result = {
                     'success': True,
                     'attachment_id': attachment_id,
                     'file_name': file_metadata.safe_name,
                     'message': f"附件 '{original_filename}' 上传成功"
                 }
+
+                # 如果有转换结果，添加到返回信息中
+                if converted_images:
+                    result['converted_images'] = converted_images
+                    result['conversion_info'] = conversion_info
+                    result['message'] += f"，已自动提取/转换 {len(converted_images)} 张图片"
+
+                return result
             else:
                 return {
                     'success': False,

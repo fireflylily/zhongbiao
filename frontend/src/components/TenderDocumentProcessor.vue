@@ -595,25 +595,25 @@ onMounted(() => {
   .chapter-section {
 
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      display: flex;
+      gap: 10px;
 
       .stat-card {
+        flex: 1;
         background: var(--el-bg-color-page);
         border: 1px solid var(--el-border-color-lighter);
         border-radius: 8px;
-        padding: 16px;
+        padding: 10px;
         text-align: center;
 
         .stat-label {
           font-size: 12px;
           color: var(--el-text-color-secondary);
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .stat-value {
-          font-size: 24px;
+          font-size: 20px;
           font-weight: 600;
           color: var(--el-text-color-primary);
         }

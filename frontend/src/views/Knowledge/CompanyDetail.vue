@@ -159,7 +159,7 @@ const handleDataUpdate = async () => {
 
 // 返回列表
 const handleBack = () => {
-  router.push('/knowledge/company')
+  router.push('/knowledge/company-library')
 }
 
 // 生命周期

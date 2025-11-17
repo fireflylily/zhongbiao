@@ -17,57 +17,22 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import get_module_logger
 
 # 导入Word文档工具
-from .utils import WordDocumentUtils
+from .utils import WordDocumentUtils, normalize_data_keys
+
+# 导入字段识别器（复用smart_filler的字段映射）
+from .smart_filler import FieldRecognizer
 
 class TableProcessor:
     """表格处理器"""
-    
+
     def __init__(self):
         self.logger = get_module_logger("table_processor")
         # 🔧 启用DEBUG日志以诊断表格处理问题
         self.logger.setLevel(logging.DEBUG)
 
-        # 表格中的关键字段映射
-        self.table_field_mapping = {
-            '供应商名称': 'companyName',
-            '投标人名称': 'companyName',
-            '公司名称': 'companyName',
-            '响应人名称': 'companyName',  # 新增：响应人名称
-            '响应人全称': 'companyName',  # 新增：响应人全称
-            '法定代表人': 'legalRepresentative',
-            '注册资本': 'registeredCapital',
-            '成立日期': 'establishDate',
-            '统一社会信用代码': 'socialCreditCode',
-            '注册地址': 'registeredAddress',
-            '联系地址': 'address',
-            '联系人': 'contactPerson',
-            '联系电话': 'phone',
-            '电子邮箱': 'email',
-            '传真': 'fax',
-            '开户银行': 'bankName',
-            '银行账号': 'bankAccount',
-            '税号': 'taxNumber',
-            '资质等级': 'qualification',
-            '项目名称': 'projectName',
-            '项目编号': 'projectNumber',
-            '投标报价': 'bidPrice',
-            '交货期': 'deliveryTime',
-            '质保期': 'warrantyPeriod',
-            # 股权结构字段（2025-10-27添加，2025-11-09增强）
-            '实际控制人': 'actual_controller',
-            '控股股东': 'controlling_shareholder',
-            '控股股东及出资比例': 'controlling_shareholder',
-            '供应商的控股股东/投资人名称及出资比例': 'controlling_shareholder',  # 🆕 支持长字段名
-            '股东': 'shareholders_info',
-            '股东信息': 'shareholders_info',  # 支持变体
-            '供应商的非控股股东/投资人名称及出资比例': 'shareholders_info',  # 🆕 支持长字段名
-            '投资人名称及出资比例': 'shareholders_info',  # 🆕 支持简化名
-            # 管理关系字段（2025-10-28添加）
-            '管理关系单位': 'managing_unit_name',
-            '管理关系单位名称': 'managing_unit_name',  # 支持变体
-            '被管理关系单位': 'managed_unit_name',
-            '被管理关系单位名称': 'managed_unit_name'  # 支持变体
-        }
+        # 使用共享的FieldRecognizer，避免重复维护字段映射
+        self.field_recognizer = FieldRecognizer()
+        self.logger.info("表格处理器已初始化，使用共享的FieldRecognizer进行字段识别")
     
     def process_tables(self, doc: Document, company_info: Dict[str, Any], 
                        project_info: Dict[str, Any]) -> Dict[str, Any]:
@@ -87,10 +52,15 @@ class TableProcessor:
             'cells_filled': 0,
             'fields_matched': []
         }
-        
-        # 合并所有信息
-        all_info = {**company_info, **project_info}
-        
+
+        # ⭐ 新增：规范化字段名（与smart_filler保持一致）
+        self.logger.info("规范化公司信息和项目信息字段名...")
+        normalized_company_info = normalize_data_keys(company_info, logger=self.logger)
+        normalized_project_info = normalize_data_keys(project_info, logger=self.logger)
+        all_info = {**normalized_company_info, **normalized_project_info}
+
+        self.logger.debug(f"规范化后的字段: {list(all_info.keys())}")
+
         for table_idx, table in enumerate(doc.tables):
             self.logger.info(f"处理表格 #{table_idx + 1}")
             result = self._process_single_table(table, all_info)
@@ -147,8 +117,9 @@ class TableProcessor:
         if two_col_rows >= total_rows * 0.8 or three_col_rows >= total_rows * 0.8:
             # 提取第一列文本（至少有2列的行）
             first_col_texts = [row.cells[0].text.strip() for row in table.rows if len(row.cells) >= 2]
+            # 使用FieldRecognizer识别字段
             field_count = sum(1 for text in first_col_texts
-                            if any(field in text for field in self.table_field_mapping.keys()))
+                            if self.field_recognizer.recognize_field(text) is not None)
 
             self.logger.debug(f"  键值对检测: 匹配字段数={field_count}/{len(first_col_texts)}")
 
@@ -159,8 +130,9 @@ class TableProcessor:
         # 原有逻辑：检查是否为表头-数据表格
         if total_rows > 1:
             first_row_texts = [cell.text.strip() for cell in table.rows[0].cells]
+            # 使用FieldRecognizer识别字段
             field_count = sum(1 for text in first_row_texts
-                            if any(field in text for field in self.table_field_mapping.keys()))
+                            if self.field_recognizer.recognize_field(text) is not None)
             if field_count > len(table.columns) * 0.3:
                 self.logger.debug(f"  ✅ 识别为 header_data 类型")
                 return 'header_data'
@@ -217,39 +189,35 @@ class TableProcessor:
             key_cell = row.cells[0]
             value_cell = row.cells[1]  # 无论2列还是3列，第2列都是值
 
-            # 规范化字段名（移除空格等）
-            key_text = self._normalize_field_name(key_cell.text)
+            # 使用FieldRecognizer识别字段
+            field_text = key_cell.text.strip()
+            field_key = self.field_recognizer.recognize_field(field_text)
 
-            # 查找匹配的字段
-            for field_name, field_key in self.table_field_mapping.items():
-                # 规范化映射表中的字段名进行匹配
-                normalized_field = self._normalize_field_name(field_name)
-                if normalized_field in key_text or normalized_field == key_text:
-                    value = info.get(field_key, '')
+            if field_key:
+                value = info.get(field_key, '')
 
-                    # 新增：日期字段格式化
-                    if value and (field_key in ['date', 'establishDate'] or '日期' in field_name):
-                        value = self._format_date(str(value))
+                # 新增：日期字段格式化
+                if value and (field_key in ['date', 'establishDate'] or '日期' in field_text):
+                    value = self._format_date(str(value))
 
-                    # 🆕 格式化股东信息JSON
-                    if value and field_key == 'shareholders_info':
-                        value = self._format_shareholders_info(value)
+                # 🆕 格式化股东信息JSON
+                if value and field_key == 'shareholders_info':
+                    value = self._format_shareholders_info(value)
 
-                    # 🆕 格式化控股股东信息JSON
-                    if value and field_key == 'controlling_shareholder':
-                        value = self._format_shareholders_info(value)
+                # 🆕 格式化控股股东信息JSON
+                if value and field_key == 'controlling_shareholder':
+                    value = self._format_shareholders_info(value)
 
-                    # 🔧 修复：跳过空值和明确的占位符（移除"无"，因为它可能是合法的业务数据）
-                    if not value or str(value).strip() in ['/', '-', 'N/A', 'NA', '']:
-                        self.logger.debug(f"  跳过空值或占位符字段: {field_name} = '{value}'")
-                        continue
+                # 🔧 修复：跳过空值和明确的占位符
+                if not value or str(value).strip() in ['/', '-', 'N/A', 'NA', '']:
+                    self.logger.debug(f"  跳过空值或占位符字段: {field_text} = '{value}'")
+                    continue
 
-                    if value and self._should_fill_cell(value_cell):
-                        self._fill_cell(value_cell, str(value))
-                        result['cells_filled'] += 1
-                        result['fields_matched'].append(field_name)
-                        self.logger.info(f"  ✅ 表格字段填充: {field_name} = {value} (列数={len(row.cells)})")
-                        break
+                if value and self._should_fill_cell(value_cell):
+                    self._fill_cell(value_cell, str(value))
+                    result['cells_filled'] += 1
+                    result['fields_matched'].append(field_text)
+                    self.logger.info(f"  ✅ 表格字段填充: {field_text} → {field_key} = {value} (列数={len(row.cells)})")
 
         return result
     
@@ -266,35 +234,23 @@ class TableProcessor:
 
         # 分析表头
         header_row = table.rows[0]
-        column_mapping = {}
+        column_mapping = {}  # col_idx -> (field_key, field_text)
 
         for col_idx, cell in enumerate(header_row.cells):
-            # 规范化表头文本（移除空格等）
-            header_text = self._normalize_field_name(cell.text)
+            # 使用FieldRecognizer识别字段
+            header_text = cell.text.strip()
+            field_key = self.field_recognizer.recognize_field(header_text)
 
-            # 🔧 修复：使用精确匹配而不是包含匹配，避免"管理关系单位"匹配到"管理关系单位名称"
-            # 方法：先按字段名长度降序排序，优先匹配更长的字段名
-            sorted_fields = sorted(
-                self.table_field_mapping.items(),
-                key=lambda x: len(self._normalize_field_name(x[0])),
-                reverse=True  # 从长到短排序
-            )
-
-            for field_name, field_key in sorted_fields:
-                # 规范化映射表中的字段名进行匹配
-                normalized_field = self._normalize_field_name(field_name)
-                # 使用精确匹配
-                if normalized_field == header_text:
-                    column_mapping[col_idx] = field_key
-                    self.logger.debug(f"  表头列{col_idx}识别为: {field_name} -> {field_key} (精确匹配)")
-                    break
+            if field_key:
+                column_mapping[col_idx] = (field_key, header_text)
+                self.logger.debug(f"  表头列{col_idx}识别为: {header_text} -> {field_key}")
 
         self.logger.debug(f"  表头分析完成，识别到{len(column_mapping)}个字段列")
 
         # 填充数据行
         for row_idx in range(1, len(table.rows)):
             row = table.rows[row_idx]
-            for col_idx, field_key in column_mapping.items():
+            for col_idx, (field_key, field_text) in column_mapping.items():
                 if col_idx < len(row.cells):
                     value = info.get(field_key, '')
 
@@ -310,7 +266,7 @@ class TableProcessor:
                     if value and field_key == 'controlling_shareholder':
                         value = self._format_shareholders_info(value)
 
-                    # 🔧 修复：跳过空值和明确的占位符（移除"无"，因为它可能是合法的业务数据）
+                    # 🔧 修复：跳过空值和明确的占位符
                     if not value or str(value).strip() in ['/', '-', 'N/A', 'NA', '']:
                         self.logger.debug(f"  跳过空值或占位符字段: 行{row_idx}列{col_idx} {field_key} = '{value}'")
                         continue
@@ -318,13 +274,8 @@ class TableProcessor:
                     if value and self._should_fill_cell(row.cells[col_idx]):
                         self._fill_cell(row.cells[col_idx], str(value))
                         result['cells_filled'] += 1
-
-                        # 记录字段名
-                        for field_name, key in self.table_field_mapping.items():
-                            if key == field_key:
-                                result['fields_matched'].append(field_name)
-                                self.logger.info(f"  ✅ 表格数据填充: 行{row_idx}列{col_idx} {field_name} = {value}")
-                                break
+                        result['fields_matched'].append(field_text)
+                        self.logger.info(f"  ✅ 表格数据填充: 行{row_idx}列{col_idx} {field_text} → {field_key} = {value}")
 
         return result
     
@@ -342,50 +293,46 @@ class TableProcessor:
             for cell_idx, cell in enumerate(row.cells):
                 # 原始单元格文本（用于检测占位符）
                 original_cell_text = cell.text
-                # 规范化单元格文本（移除空格等，用于字段匹配）
-                cell_text = self._normalize_field_name(original_cell_text)
 
-                # 检查是否包含字段名和占位符
-                for field_name, field_key in self.table_field_mapping.items():
-                    # 规范化映射表中的字段名进行匹配
-                    normalized_field = self._normalize_field_name(field_name)
-                    if normalized_field in cell_text:
-                        self.logger.debug(f"  发现字段名 '{field_name}' 在单元格[{row_idx},{cell_idx}]: {cell_text[:30]}...")
+                # 使用FieldRecognizer识别字段
+                field_key = self.field_recognizer.recognize_field(original_cell_text.strip())
 
-                        # 检查是否有占位符（使用原始文本检测，而不是规范化后的文本）
-                        if re.search(r'[_\s]{3,}|[:：]\s*$', original_cell_text):
+                if field_key:
+                    self.logger.debug(f"  发现字段 '{original_cell_text.strip()}' → {field_key} 在单元格[{row_idx},{cell_idx}]")
+
+                    # 检查是否有占位符（使用原始文本检测）
+                    if re.search(r'[_\s]{3,}|[:：]\s*$', original_cell_text):
+                        value = info.get(field_key, '')
+
+                        # 新增：日期字段格式化
+                        if value and (field_key in ['date', 'establishDate'] or '日期' in original_cell_text):
+                            value = self._format_date(str(value))
+
+                        if value:
+                            # 替换占位符（使用原始文本）
+                            new_text = self._replace_placeholder(original_cell_text.strip(), str(value))
+                            self._update_cell_text(cell, new_text)
+                            result['cells_filled'] += 1
+                            result['fields_matched'].append(original_cell_text.strip())
+                            self.logger.info(f"  ✅ 混合表格填充（占位符）: {original_cell_text.strip()} → {field_key} = {value}")
+                            continue
+                    # 检查下一个单元格是否为空（可能是值单元格）
+                    elif cell_idx + 1 < len(row.cells):
+                        next_cell = row.cells[cell_idx + 1]
+                        if self._should_fill_cell(next_cell):
                             value = info.get(field_key, '')
 
                             # 新增：日期字段格式化
-                            if value and (field_key in ['date', 'establishDate'] or '日期' in field_name):
+                            if value and (field_key in ['date', 'establishDate'] or '日期' in original_cell_text):
                                 value = self._format_date(str(value))
 
                             if value:
-                                # 替换占位符（使用原始文本）
-                                new_text = self._replace_placeholder(original_cell_text.strip(), str(value))
-                                self._update_cell_text(cell, new_text)
+                                self._fill_cell(next_cell, str(value))
                                 result['cells_filled'] += 1
-                                result['fields_matched'].append(field_name)
-                                self.logger.info(f"  ✅ 混合表格填充（占位符）: {field_name} = {value}")
-                                break
-                        # 检查下一个单元格是否为空（可能是值单元格）
-                        elif cell_idx + 1 < len(row.cells):
-                            next_cell = row.cells[cell_idx + 1]
-                            if self._should_fill_cell(next_cell):
-                                value = info.get(field_key, '')
-
-                                # 新增：日期字段格式化
-                                if value and (field_key in ['date', 'establishDate'] or '日期' in field_name):
-                                    value = self._format_date(str(value))
-
-                                if value:
-                                    self._fill_cell(next_cell, str(value))
-                                    result['cells_filled'] += 1
-                                    result['fields_matched'].append(field_name)
-                                    self.logger.info(f"  ✅ 混合表格填充（下一单元格）: {field_name} = {value}")
-                                    break
-                            else:
-                                self.logger.debug(f"  下一单元格不为空，跳过填充")
+                                result['fields_matched'].append(original_cell_text.strip())
+                                self.logger.info(f"  ✅ 混合表格填充（下一单元格）: {original_cell_text.strip()} → {field_key} = {value}")
+                        else:
+                            self.logger.debug(f"  下一单元格不为空，跳过填充")
 
         self.logger.debug(f"  混合型表格处理完成，填充了{result['cells_filled']}个单元格")
         return result

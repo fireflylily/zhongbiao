@@ -203,11 +203,11 @@ class BusinessResponseProcessor:
             
             # 第2步：表格处理
             self.logger.info("第2步：执行表格处理")
-            # 准备项目信息（保持表格处理器兼容性）
+            # 准备项目信息（使用与all_data一致的键名）
             project_info = {
-                'name': project_name,
-                'number': tender_no,
-                'date': date_text
+                'projectName': project_name,
+                'projectNumber': tender_no,
+                'date': formatted_date  # 使用格式化后的日期，保持一致
             }
             table_stats = self.table_processor.process_tables(doc, company_info, project_info)
             

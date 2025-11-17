@@ -20,6 +20,15 @@ sys.path.insert(0, str(project_root))
 
 from common import get_module_logger, get_config, format_error_response
 from web.shared.instances import get_kb_manager
+from web.middleware.permission import (
+    require_auth,
+    require_upload_permission,
+    require_delete_permission,
+    get_current_user,
+    filter_by_permission,
+    is_owner_or_admin,
+    can_access_resource
+)
 
 # 创建logger
 logger = get_module_logger('api_companies')
@@ -36,10 +45,29 @@ kb_manager = get_kb_manager()
 # ===================
 
 @api_companies_bp.route('/companies')
+@require_auth  # ✅ 要求登录
 def list_companies():
-    """获取所有公司配置"""
+    """
+    获取公司列表
+    权限规则:
+    - 普通用户/内部员工: 只看自己创建的公司
+    - 项目经理/高级管理: 看所有公司
+    """
     try:
-        companies = kb_manager.get_companies()
+        user = get_current_user()  # ✅ 获取当前用户
+
+        # ✅ 根据角色生成过滤条件
+        filter_info = filter_by_permission(user, include_created_by=True)
+
+        # 使用知识库管理器获取公司,传入过滤条件
+        if filter_info['is_admin']:
+            # 管理员看所有公司
+            companies = kb_manager.get_companies()
+            logger.info(f"[权限] {user['role_name']} {user['username']} 查看所有公司")
+        else:
+            # 普通用户只看自己创建的
+            companies = kb_manager.get_companies(created_by_user_id=user['user_id'])
+            logger.info(f"[权限] {user['role_name']} {user['username']} 查看自己创建的公司")
 
         # 转换字段格式以保持前端兼容性，过滤无效公司ID
         result_companies = []
@@ -65,12 +93,19 @@ def list_companies():
                 'document_count': company.get('document_count', 0),
                 # 被授权人信息 - 用于项目自动填充
                 'authorized_person_name': company.get('authorized_person_name', ''),
-                'authorized_person_id': company.get('authorized_person_id', '')
+                'authorized_person_id': company.get('authorized_person_id', ''),
+                # ✅ 添加创建者信息
+                'created_by_user_id': company.get('created_by_user_id')
             })
 
         # 安全排序，处理可能的 None 值
         result_companies.sort(key=lambda x: x.get('updated_at') or '', reverse=True)
-        return jsonify({'success': True, 'data': result_companies})
+        return jsonify({
+            'success': True,
+            'data': result_companies,
+            'user_role': user['role_name'],  # ✅ 返回用户角色,方便前端显示
+            'total': len(result_companies)
+        })
 
     except Exception as e:
         logger.error(f"获取公司列表失败: {e}")
@@ -109,10 +144,20 @@ def get_company(company_id):
 
 
 @api_companies_bp.route('/companies', methods=['POST'])
+@require_auth  # ✅ 要求登录
+@require_upload_permission  # ✅ 要求上传权限
 def create_company():
-    """创建新公司"""
+    """
+    创建新公司
+    权限要求:
+    - 必须登录
+    - 必须有上传权限(内部员工及以上)
+    - 自动记录创建者
+    """
     try:
+        user = get_current_user()  # ✅ 获取当前用户
         data = request.get_json()
+
         if not data:
             return jsonify({'success': False, 'error': '请提供公司信息'}), 400
 
@@ -120,39 +165,113 @@ def create_company():
         if not company_name:
             return jsonify({'success': False, 'error': '公司名称不能为空'}), 400
 
-        # 使用知识库管理器创建公司
-        result = kb_manager.create_company(
-            company_name=company_name,
-            company_code=data.get('companyCode', None),
-            industry_type=data.get('industryType', None),
-            description=data.get('companyDescription', None)
-        )
+        # ✅ 直接使用数据库创建,记录创建者
+        import sqlite3
+        from pathlib import Path
 
-        if result['success']:
-            # 返回格式与前端兼容
-            company_data = {
-                'id': str(result['company_id']),
-                'companyName': company_name,
-                'created_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat()
-            }
+        DB_PATH = Path(__file__).parent.parent.parent / 'data' / 'knowledge_base.db'
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
 
-            logger.info(f"创建公司成功: {company_name} (ID: {result['company_id']})")
-            return jsonify({'success': True, 'company': company_data})
+        # 插入公司记录,包含created_by_user_id
+        cursor.execute("""
+            INSERT INTO companies (
+                company_name,
+                company_code,
+                industry_type,
+                description,
+                created_by_user_id,
+                created_at,
+                updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            company_name,
+            data.get('companyCode'),
+            data.get('industryType'),
+            data.get('companyDescription'),
+            user['user_id'],  # ✅ 记录创建者
+            datetime.now(),
+            datetime.now()
+        ))
+
+        company_id = cursor.lastrowid
+        conn.commit()
+
+        # 创建默认的企业信息库分类
+        default_profiles = [
+            {'type': 'basic', 'name': '基础信息', 'desc': '公司基本信息和对外资料', 'privacy': 1},
+            {'type': 'qualification', 'name': '资质证书', 'desc': '各类业务资质和认证证书', 'privacy': 2},
+            {'type': 'personnel', 'name': '人员信息', 'desc': '员工信息和人力资源资料', 'privacy': 3},
+            {'type': 'financial', 'name': '财务文档', 'desc': '财务报告和审计资料', 'privacy': 4}
+        ]
+
+        for profile in default_profiles:
+            cursor.execute("""
+                INSERT INTO company_profiles (
+                    company_id, profile_type, profile_name, description, privacy_level, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                company_id,
+                profile['type'],
+                profile['name'],
+                profile['desc'],
+                profile['privacy'],
+                datetime.now()
+            ))
+
+        conn.commit()
+        conn.close()
+
+        # 返回格式与前端兼容
+        company_data = {
+            'id': str(company_id),
+            'companyName': company_name,
+            'created_by_user_id': user['user_id'],  # ✅ 返回创建者
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+
+        logger.info(f"[权限] 用户 {user['username']}({user['role_name']}) 创建公司: {company_name} (ID: {company_id})")
+        return jsonify({'success': True, 'company': company_data})
+
+    except sqlite3.IntegrityError as e:
+        if 'UNIQUE constraint failed' in str(e):
+            return jsonify({'success': False, 'error': '公司名称已存在'}), 400
         else:
-            return jsonify({'success': False, 'error': result['error']}), 400
-
+            return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
         logger.error(f"创建公司失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @api_companies_bp.route('/companies/<company_id>', methods=['PUT'])
+@require_auth  # ✅ 要求登录
 def update_company(company_id):
-    """更新公司信息"""
+    """
+    更新公司信息
+    权限规则:
+    - 必须登录
+    - 只有创建者或管理员可以修改
+    """
     try:
+        user = get_current_user()  # ✅ 获取当前用户
+
         # 转换字符串ID为整数ID
         company_id_int = int(company_id)
+
+        # ✅ 检查公司是否存在并获取创建者信息
+        company_data = kb_manager.get_company_detail(company_id_int)
+        if not company_data:
+            return jsonify({'success': False, 'error': '公司不存在'}), 404
+
+        # ✅ 权限检查: 只有创建者或管理员可以修改
+        if not is_owner_or_admin(user, company_data.get('created_by_user_id')):
+            logger.warning(f"[权限拒绝] 用户 {user['username']} 尝试修改公司 {company_id}(创建者:{company_data.get('created_by_user_id')})")
+            return jsonify({
+                'success': False,
+                'error': '只有创建者或管理员才能修改公司信息'
+            }), 403
 
         data = request.get_json()
         if not data:
@@ -258,17 +377,40 @@ def update_company(company_id):
 
 
 @api_companies_bp.route('/companies/<company_id>', methods=['DELETE'])
+@require_auth  # ✅ 要求登录
+@require_delete_permission  # ✅ 要求删除权限
 def delete_company(company_id):
-    """删除公司"""
+    """
+    删除公司
+    权限规则:
+    - 必须登录
+    - 必须有删除权限(项目经理及以上)
+    - 只有创建者或管理员可以删除
+    """
     try:
+        user = get_current_user()  # ✅ 获取当前用户
+
         # 转换字符串ID为整数ID
         company_id_int = int(company_id)
+
+        # ✅ 检查公司是否存在并获取创建者信息
+        company_data = kb_manager.get_company_detail(company_id_int)
+        if not company_data:
+            return jsonify({'success': False, 'error': '公司不存在'}), 404
+
+        # ✅ 权限检查: 只有创建者或管理员可以删除
+        if not is_owner_or_admin(user, company_data.get('created_by_user_id')):
+            logger.warning(f"[权限拒绝] 用户 {user['username']} 尝试删除公司 {company_id}(创建者:{company_data.get('created_by_user_id')})")
+            return jsonify({
+                'success': False,
+                'error': '只有创建者或管理员才能删除公司'
+            }), 403
 
         # 使用知识库管理器删除公司
         result = kb_manager.delete_company(company_id_int)
 
         if result['success']:
-            logger.info(f"删除公司成功: {company_id}")
+            logger.info(f"[权限] 用户 {user['username']} 删除公司成功: {company_id}")
             return jsonify({'success': True, 'message': '公司删除成功'})
         else:
             if '不存在' in result['error']:

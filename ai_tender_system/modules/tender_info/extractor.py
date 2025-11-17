@@ -63,9 +63,9 @@ class TenderInfoExtractor:
             self.logger.error(f"{task_name} - 响应为空")
             return None
 
-        # 移除可能的markdown代码块标记
-        response = re.sub(r'^```json\s*', '', response.strip())
-        response = re.sub(r'\s*```$', '', response.strip())
+        # 移除可能的markdown代码块标记（允许前导空格）
+        response = re.sub(r'^\s*```json\s*', '', response.strip())
+        response = re.sub(r'\s*```\s*$', '', response.strip())
 
         # 尝试多种JSON提取策略
         json_candidates = []
@@ -100,14 +100,28 @@ class TenderInfoExtractor:
                 self.logger.debug(f"{task_name} - JSON候选解析失败: {e}")
                 continue
 
-        # 所有策略都失败
+        # 所有策略都失败 - 保存到文件以便调试
         self.logger.error(f"{task_name} - 所有JSON解析策略都失败")
-        self.logger.error(f"{task_name} - 原始响应: {response[:500]}...")  # 改为error级别，确保能看到
+        self.logger.error(f"{task_name} - 响应长度: {len(response)}字符")
+        self.logger.error(f"{task_name} - 开头50字符: {repr(response[:50])}")
+        self.logger.error(f"{task_name} - 结尾50字符: {repr(response[-50:])}")
+
+        # 保存到临时文件以便调试
+        import tempfile
+        import os
+        temp_file = tempfile.mktemp(suffix='_llm_response.txt', prefix='debug_')
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            f.write(response)
+        self.logger.error(f"{task_name} - 完整响应已保存到: {temp_file}")
+
         return None
 
     def _clean_json_string(self, json_str: str) -> str:
         """
         清理JSON字符串中的常见问题
+
+        注意：由于LLM通常返回标准格式的JSON，过度的清理反而会破坏内容
+        现在只做最基本的清理
         """
         # 移除前后空白
         json_str = json_str.strip()
@@ -116,12 +130,10 @@ class TenderInfoExtractor:
         # 简单的启发式规则：仅在看起来像属性名的地方替换
         json_str = re.sub(r"'([^']*)':", r'"\1":', json_str)
 
-        # 修复结尾缺少逗号的问题
-        json_str = re.sub(r'"\s*\n\s*"', '",\n"', json_str)
-
-        # 移除JSON中的注释（// 和 /* */ 风格）
-        json_str = re.sub(r'//.*?$', '', json_str, flags=re.MULTILINE)
-        json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
+        # ❌ 已移除以下清理规则，因为它们会破坏JSON值中的正常内容：
+        # 1. 修复逗号的正则 - 会破坏字符串值
+        # 2. 移除//注释 - 会破坏URL (https://)
+        # 3. 移除/**/注释 - 通常不需要
 
         return json_str
 

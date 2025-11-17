@@ -59,6 +59,9 @@ class CaseTableFiller:
             '甲方': 'customer_name',           # 甲方即客户名称
             '甲方单位名称': 'customer_name',  # 甲方单位名称即客户名称
             '甲方单位': 'customer_name',      # 甲方单位即客户名称
+            '用户名称': 'customer_name',      # 用户名称即客户名称
+            '用户单位': 'customer_name',      # 用户单位即客户名称
+            '使用单位': 'customer_name',      # 使用单位即客户名称
             '最终用户': 'final_customer_name',
 
             # 合同信息
@@ -85,6 +88,9 @@ class CaseTableFiller:
             '实施时间': 'contract_period',  # 组合字段
             '项目周期': 'contract_period',   # 组合字段
             '合同期限': 'contract_period',   # 组合字段
+            '年份': 'contract_year',        # 虚拟字段，从contract_start_date提取年份
+            '年度': 'contract_year',        # 年度即年份
+            '时间': 'contract_year',        # 可能表示年份
 
             # 其他信息
             '行业': 'industry',
@@ -360,7 +366,7 @@ class CaseTableFiller:
 
     def _get_field_value(self, case: Dict, field_key: str) -> Optional[str]:
         """
-        获取案例字段值(支持组合字段)
+        获取案例字段值(支持组合字段和虚拟字段)
 
         Args:
             case: 案例数据字典
@@ -369,7 +375,7 @@ class CaseTableFiller:
         Returns:
             字段值
         """
-        # 处理组合字段
+        # 处理组合字段：合同期限
         if field_key == 'contract_period':
             # 合同期限 = 开始日期 ~ 结束日期
             start_date = case.get('contract_start_date', '')
@@ -383,6 +389,20 @@ class CaseTableFiller:
                 return f"至 {end_date}"
             else:
                 return None
+
+        # 处理虚拟字段：年份（从合同签订日期提取）
+        if field_key == 'contract_year':
+            start_date = case.get('contract_start_date', '')
+            if start_date:
+                # 支持多种日期格式
+                # "2024-05-20" -> "2024"
+                # "2024年05月20日" -> "2024"
+                # "2024/05/20" -> "2024"
+                import re
+                year_match = re.match(r'^(\d{4})', str(start_date))
+                if year_match:
+                    return year_match.group(1)
+            return None
 
         # 普通字段
         value = case.get(field_key)

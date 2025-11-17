@@ -62,41 +62,42 @@
           color="#67C23A"
         />
 
-        <!-- 方法2: 旧目录定位 -->
+        <!-- 方法2: 样式识别 -->
         <MethodCard
-          title="方法2: 旧目录定位"
-          :result="results.old_toc"
-          :ground-truth="groundTruth"
-          :accuracy="accuracy?.old_toc"
-          color="#409EFF"
-        />
-
-        <!-- 方法3: 样式识别 -->
-        <MethodCard
-          title="方法3: 样式识别"
+          title="方法2: 样式识别(增强)"
           :result="results.style"
           :ground-truth="groundTruth"
           :accuracy="accuracy?.style"
+          color="#409EFF"
+        />
+
+        <!-- 方法3: 混合启发式 -->
+        <MethodCard
+          title="方法3: 混合启发式识别"
+          :result="results.hybrid"
+          :ground-truth="groundTruth"
+          :accuracy="accuracy?.hybrid"
           color="#E6A23C"
         />
 
-        <!-- 方法4: 大纲级别 -->
-        <MethodCard
-          title="方法4: 大纲级别"
-          :result="results.outline"
-          :ground-truth="groundTruth"
-          :accuracy="accuracy?.outline"
-          color="#909399"
-        />
-
-        <!-- 方法5: Azure Form Recognizer -->
+        <!-- 方法4: Azure Form Recognizer -->
         <MethodCard
           v-if="results.azure"
-          title="方法5: Azure Form Recognizer"
+          title="方法4: Azure Form Recognizer"
           :result="results.azure"
           :ground-truth="groundTruth"
           :accuracy="accuracy?.azure"
           color="#00B7C3"
+        />
+
+        <!-- 方法5: Word大纲级别识别 -->
+        <MethodCard
+          v-if="results.docx_native"
+          title="方法5: Word大纲级别识别"
+          :result="results.docx_native"
+          :ground-truth="groundTruth"
+          :accuracy="accuracy?.docx_native"
+          color="#9C27B0"
         />
 
         <!-- 人工标注卡片 -->
@@ -152,50 +153,108 @@
         </div>
       </div>
 
-      <!-- 历史记录对话框 -->
-      <el-dialog v-model="historyDialogVisible" title="历史测试记录" width="80%">
-        <el-table :data="historyList" border>
-          <el-table-column prop="filename" label="文件名" />
-          <el-table-column prop="upload_time" label="上传时间" width="180" />
-          <el-table-column label="目录" width="100">
+      <!-- 历史解析记录（页面底部） -->
+      <div class="history-section">
+        <div class="section-header">
+          <h3>📋 历史解析记录</h3>
+          <el-button @click="loadHistoryList" :icon="Upload" size="small">
+            刷新列表
+          </el-button>
+        </div>
+
+        <el-table :data="historyList" border stripe>
+          <el-table-column prop="filename" label="文件名" min-width="200" />
+          <el-table-column prop="upload_time" label="解析时间" width="180" />
+          <el-table-column label="目录检测" width="100" align="center">
             <template #default="{ row }">
-              {{ row.has_toc ? `✓ (${row.toc_items_count})` : '✗' }}
+              <el-tag :type="row.has_toc ? 'success' : 'info'" size="small">
+                {{ row.has_toc ? `✓ (${row.toc_items_count})` : '✗' }}
+              </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="识别章节数" width="300">
+
+          <!-- 各方法准确率 -->
+          <el-table-column label="语义锚点" width="100" align="center">
             <template #default="{ row }">
-              <div class="method-counts">
-                <span>语义: {{ row.semantic_chapters_count }}</span>
-                <span>旧: {{ row.old_toc_chapters_count }}</span>
-                <span>样式: {{ row.style_chapters_count }}</span>
-                <span>大纲: {{ row.outline_chapters_count }}</span>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="最佳方法" width="150">
-            <template #default="{ row }">
-              <span v-if="row.best_method">
-                {{ getMethodDisplayName(row.best_method) }}
-                <br />
-                <el-tag size="small">F1: {{ (row.best_f1_score * 100).toFixed(1) }}%</el-tag>
+              <span v-if="row.semantic_f1" :class="getScoreClass(row.semantic_f1)">
+                {{ (row.semantic_f1 * 100).toFixed(1) }}%
               </span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="样式识别" width="100" align="center">
+            <template #default="{ row }">
+              <span v-if="row.style_f1" :class="getScoreClass(row.style_f1)">
+                {{ (row.style_f1 * 100).toFixed(1) }}%
+              </span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="混合启发式" width="100" align="center">
+            <template #default="{ row }">
+              <span v-if="row.hybrid_f1" :class="getScoreClass(row.hybrid_f1)">
+                {{ (row.hybrid_f1 * 100).toFixed(1) }}%
+              </span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Azure" width="100" align="center">
+            <template #default="{ row }">
+              <span v-if="row.azure_f1" :class="getScoreClass(row.azure_f1)">
+                {{ (row.azure_f1 * 100).toFixed(1) }}%
+              </span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Word大纲" width="110" align="center">
+            <template #default="{ row }">
+              <span v-if="row.docx_native_f1" :class="getScoreClass(row.docx_native_f1)">
+                {{ (row.docx_native_f1 * 100).toFixed(1) }}%
+              </span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="最佳方法" width="150" align="center">
+            <template #default="{ row }">
+              <div v-if="row.best_method">
+                <el-tag :type="row.best_f1_score >= 0.9 ? 'success' : 'primary'" effect="dark">
+                  {{ getMethodDisplayName(row.best_method) }}
+                </el-tag>
+                <div style="font-size: 12px; margin-top: 4px; color: #606266;">
+                  F1: {{ (row.best_f1_score * 100).toFixed(1) }}%
+                </div>
+              </div>
               <span v-else class="text-muted">未标注</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="150" fixed="right">
+
+          <el-table-column label="操作" width="150" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button size="small" @click="loadTest(row.document_id)">查看</el-button>
-              <el-button size="small" type="danger" @click="handleDeleteTest(row.document_id)">删除</el-button>
+              <el-button size="small" type="primary" @click="loadTest(row.document_id)">
+                查看
+              </el-button>
+              <el-button size="small" type="danger" @click="handleDeleteTest(row.document_id)">
+                删除
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
-      </el-dialog>
+
+        <div v-if="historyList.length === 0" class="empty-state">
+          <el-empty description="暂无历史解析记录" />
+        </div>
+      </div>
     </Card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, UploadUserFile } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import { Card } from '@/components'
@@ -284,15 +343,21 @@ const handleSaveGroundTruth = async (chapters: ChapterNode[]) => {
   }
 }
 
-// 显示历史记录
-const showHistory = async () => {
+// 加载历史记录列表
+const loadHistoryList = async () => {
   try {
     const response = await parserDebugApi.getHistory({ limit: 50 })
     historyList.value = response.data.tests
-    historyDialogVisible.value = true
   } catch (error) {
+    console.error('加载历史记录失败:', error)
     ElMessage.error('加载历史记录失败')
   }
+}
+
+// 显示历史记录（保留旧函数以兼容）
+const showHistory = async () => {
+  await loadHistoryList()
+  historyDialogVisible.value = true
 }
 
 // 加载历史测试
@@ -338,10 +403,10 @@ const accuracyTableData = computed(() => {
 
   const methods = [
     { key: 'semantic', name: '语义锚点解析' },
-    { key: 'old_toc', name: '旧目录定位' },
-    { key: 'style', name: '样式识别' },
-    { key: 'outline', name: '大纲级别识别' },
-    { key: 'azure', name: 'Azure Form Recognizer' }
+    { key: 'style', name: '样式识别(增强)' },
+    { key: 'hybrid', name: '混合启发式识别' },
+    { key: 'azure', name: 'Azure Form Recognizer' },
+    { key: 'docx_native', name: 'Word大纲级别识别' }
   ]
 
   return methods
@@ -375,10 +440,10 @@ const getF1TagType = (f1: number) => {
 const getBestMethodName = () => {
   const names = {
     semantic: '语义锚点解析',
-    old_toc: '旧目录定位',
-    style: '样式识别',
-    outline: '大纲级别识别',
-    azure: 'Azure Form Recognizer'
+    style: '样式识别(增强)',
+    hybrid: '混合启发式识别',
+    azure: 'Azure Form Recognizer',
+    docx_native: 'Word大纲级别识别'
   }
   return names[accuracy.value?.best_method] || '未知'
 }
@@ -386,13 +451,18 @@ const getBestMethodName = () => {
 const getMethodDisplayName = (key: string) => {
   const names = {
     semantic: '语义锚点',
-    old_toc: '旧目录',
     style: '样式',
-    outline: '大纲',
-    azure: 'Azure'
+    hybrid: '混合启发式',
+    azure: 'Azure',
+    docx_native: 'Word大纲'
   }
   return names[key] || key
 }
+
+// 页面加载时自动加载历史记录
+onMounted(async () => {
+  await loadHistoryList()
+})
 </script>
 
 <style scoped lang="scss">
@@ -470,5 +540,27 @@ const getMethodDisplayName = (key: string) => {
 
 .text-muted {
   color: #909399;
+}
+
+.history-section {
+  margin-top: 40px;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+
+  .empty-state {
+    padding: 40px;
+    text-align: center;
+  }
 }
 </style>

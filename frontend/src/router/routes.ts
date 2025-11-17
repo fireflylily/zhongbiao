@@ -249,51 +249,76 @@ export const routes: RouteRecordRaw[] = [
         ]
       },
 
-      // ========== 开发工具 ==========
+      // ========== AB测试（仅admin可见） ==========
       {
-        path: 'demo',
-        name: 'Demo',
-        component: () => import('@/views/Demo/index.vue'),
+        path: 'abtest',
+        name: 'ABTest',
+        redirect: { name: 'ParserComparison' },
         meta: {
-          title: '工具演示',
-          icon: 'bi-tools',
-          category: 'dev-tools',
+          title: 'AB测试',
+          icon: 'bi-bug',
+          category: 'abtest',
           order: 8,
-          keepAlive: true,
-          description: '工具函数和组合式函数演示',
-          showInMenu: import.meta.env.DEV // 仅在开发环境显示
-        }
-      },
+          description: '开发调试工具（仅管理员可见）'
+        },
+        children: [
+          // 目录解析对比
+          {
+            path: 'parser-comparison',
+            name: 'ParserComparison',
+            component: () => import('@/views/Debug/ParserComparison.vue'),
+            meta: {
+              title: '目录解析对比',
+              icon: 'bi-file-earmark-diff',
+              order: 1,
+              parent: 'ABTest',
+              description: '对比不同解析方法的准确率',
+              requiresAuth: false
+            }
+          },
 
-      // ========== 编辑器测试 ==========
-      {
-        path: 'editor-test',
-        name: 'EditorTest',
-        component: () => import('@/views/EditorTest.vue'),
-        meta: {
-          title: '编辑器测试',
-          icon: 'bi-pencil-square',
-          category: 'dev-tools',
-          order: 9,
-          description: 'Umo Editor功能测试',
-          showInMenu: import.meta.env.DEV // 仅在开发环境显示
-        }
-      },
+          // 编辑器测试
+          {
+            path: 'editor-test',
+            name: 'EditorTest',
+            component: () => import('@/views/EditorTest.vue'),
+            meta: {
+              title: '编辑器测试',
+              icon: 'bi-pencil-square',
+              order: 2,
+              parent: 'ABTest',
+              description: 'Umo Editor功能测试'
+            }
+          },
 
-      // ========== 解析方法对比工具 ==========
-      {
-        path: 'parser-comparison',
-        name: 'ParserComparison',
-        component: () => import('@/views/Debug/ParserComparison.vue'),
-        meta: {
-          title: '目录解析对比',
-          icon: 'bi-file-earmark-diff',
-          category: 'dev-tools',
-          order: 10,
-          description: '对比不同解析方法的准确率',
-          showInMenu: import.meta.env.DEV, // 仅在开发环境显示
-          requiresAuth: false // 调试工具不需要登录
-        }
+          // 大纲生成对比
+          {
+            path: 'outline-comparison',
+            name: 'OutlineComparison',
+            component: () => import('@/views/ABTest/OutlineComparison.vue'),
+            meta: {
+              title: '大纲生成对比',
+              icon: 'bi-diagram-3',
+              order: 3,
+              parent: 'ABTest',
+              description: '对比不同大纲生成算法的效果'
+            }
+          },
+
+          // 用户管理
+          {
+            path: 'user-management',
+            name: 'UserManagement',
+            component: () => import('@/views/ABTest/UserManagement.vue'),
+            meta: {
+              title: '用户管理',
+              icon: 'bi-people',
+              order: 4,
+              parent: 'ABTest',
+              description: '用户和角色管理'
+            }
+          }
+        ]
       }
     ]
   },

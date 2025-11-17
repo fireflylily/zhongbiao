@@ -71,16 +71,18 @@ export interface ParseTestResult {
   document_info: DocumentInfo
   results: {
     semantic: ParseMethodResult
-    old_toc: ParseMethodResult
     style: ParseMethodResult
-    outline: ParseMethodResult
+    hybrid: ParseMethodResult
+    azure?: ParseMethodResult
+    docx_native?: ParseMethodResult
   }
   ground_truth?: ChapterNode[]
   accuracy?: {
     semantic: MethodAccuracy
-    old_toc: MethodAccuracy
     style: MethodAccuracy
-    outline: MethodAccuracy
+    hybrid?: MethodAccuracy
+    azure?: MethodAccuracy
+    docx_native?: MethodAccuracy
     best_method: string
     best_f1_score: number
   }
@@ -93,13 +95,15 @@ export interface HistoryTest {
   has_toc: boolean
   toc_items_count: number
   semantic_chapters_count: number
-  old_toc_chapters_count: number
   style_chapters_count: number
-  outline_chapters_count: number
+  hybrid_chapters_count: number
+  azure_chapters_count: number
+  docx_native_chapters_count: number
   semantic_f1?: number
-  old_toc_f1?: number
   style_f1?: number
-  outline_f1?: number
+  hybrid_f1?: number
+  azure_f1?: number
+  docx_native_f1?: number
   best_method?: string
   best_f1_score?: number
   has_ground_truth: boolean

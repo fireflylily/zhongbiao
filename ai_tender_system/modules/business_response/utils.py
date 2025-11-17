@@ -796,14 +796,83 @@ class SmartFieldDetector:
         logger.debug(f"✅ [SmartFieldDetector] 段落通过检查: 包含字段变体且有格式标识符 - '{text[:50]}...'")
         return True
 
+# =====================================
+# 8. 数据字段规范化工具 (Data Normalization)
+# =====================================
+
+def normalize_data_keys(data: Dict[str, Any], logger=None) -> Dict[str, Any]:
+    """
+    规范化数据字段名（统一命名规则）
+
+    支持两种命名风格的转换：
+    1. 驼峰命名 (fixedPhone, officeAddress) → 标准字段 (phone, address)
+    2. 下划线命名 (fixed_phone, office_address) → 标准字段 (phone, address)
+
+    用途：确保从数据库读取的数据能被smart_filler和table_processor正确识别
+
+    Args:
+        data: 原始数据字典
+        logger: 日志对象（可选）
+
+    Returns:
+        规范化后的数据字典
+    """
+    normalized = data.copy()
+
+    # 字段名映射表（旧名 → 新名）
+    key_mappings = {
+        # 驼峰命名映射
+        'fixedPhone': 'phone',
+        'mobilePhone': 'mobile',
+        'contactPhone': 'phone',
+        'registeredAddress': 'address',
+        'officeAddress': 'address',
+
+        # 下划线命名映射（数据库原始字段名）
+        'fixed_phone': 'phone',
+        'mobile_phone': 'mobile',
+        'contact_phone': 'phone',
+        'postal_code': 'postalCode',
+        'registered_address': 'address',
+        'office_address': 'address',
+        'authorized_person_id': 'authorizedPersonId',  # 被授权人身份证号
+    }
+
+    # 应用单键映射
+    for old_key, new_key in key_mappings.items():
+        if old_key in normalized and new_key not in normalized:
+            normalized[new_key] = normalized[old_key]
+            if logger:
+                logger.debug(f"键名映射: {old_key} → {new_key}")
+
+    # 多源映射（按优先级）
+    multi_source_mappings = {
+        'address': ['address', 'officeAddress', 'registeredAddress',
+                    'office_address', 'registered_address'],
+        'phone': ['phone', 'fixedPhone', 'mobilePhone',
+                  'fixed_phone', 'mobile_phone'],
+    }
+
+    for target_key, source_keys in multi_source_mappings.items():
+        if target_key not in normalized or not normalized.get(target_key):
+            for source_key in source_keys:
+                if source_key in normalized and normalized.get(source_key):
+                    normalized[target_key] = normalized[source_key]
+                    if logger:
+                        logger.debug(f"多源映射: {source_key} → {target_key}")
+                    break
+
+    return normalized
+
 # 导出主要类和函数
 __all__ = [
     'FieldMapper',
-    'PatternMatcher', 
+    'PatternMatcher',
     'FormatPreserver',
     'PlaceholderProcessor',
     'TextUtils',
     'WordDocumentUtils',
     'SmartFieldDetector',
-    'BusinessResponseConstants'
+    'BusinessResponseConstants',
+    'normalize_data_keys'  # 新增
 ]

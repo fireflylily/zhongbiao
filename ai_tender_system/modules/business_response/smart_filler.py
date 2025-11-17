@@ -28,7 +28,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import get_module_logger
 
 # 导入Word文档工具
-from .utils import WordDocumentUtils
+from .utils import WordDocumentUtils, normalize_data_keys
 
 
 class SmartDocumentFiller:
@@ -264,46 +264,17 @@ class SmartDocumentFiller:
 
     def _normalize_data_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        标准化数据键名，兼容旧格式
+        标准化数据键名，兼容旧格式（调用公共工具）
 
         将旧的字段名映射到新的标准字段名:
-        - fixedPhone -> phone
+        - fixedPhone -> phone (驼峰)
+        - fixed_phone -> phone (下划线)
         - registeredAddress -> address
-        - officeAddress -> address
+        - postal_code -> postalCode
         等等
         """
-        normalized = data.copy()
-
-        # 字段名映射表（旧名 -> 新名）
-        # 按优先级顺序：先检查高优先级的源
-        key_mappings = {
-            'fixedPhone': 'phone',
-            'mobilePhone': 'mobile',
-            'contactPhone': 'phone',
-        }
-
-        # 多源映射（按优先级）
-        multi_source_mappings = {
-            'address': ['address', 'officeAddress', 'registeredAddress'],  # 优先使用officeAddress
-            'phone': ['phone', 'fixedPhone', 'mobilePhone'],
-        }
-
-        # 应用单键映射
-        for old_key, new_key in key_mappings.items():
-            if old_key in normalized and new_key not in normalized:
-                normalized[new_key] = normalized[old_key]
-                self.logger.debug(f"键名映射: {old_key} -> {new_key}")
-
-        # 应用多源映射（找到第一个有值的源）
-        for target_key, source_keys in multi_source_mappings.items():
-            if target_key not in normalized or not normalized.get(target_key):
-                for source_key in source_keys:
-                    if source_key in normalized and normalized.get(source_key):
-                        normalized[target_key] = normalized[source_key]
-                        self.logger.debug(f"多源映射: {source_key} -> {target_key} (值: {normalized[target_key]})")
-                        break
-
-        return normalized
+        # 调用公共工具函数
+        return normalize_data_keys(data, logger=self.logger)
 
     def _print_stats(self, stats: Dict[str, Any]):
         """打印统计报告"""
@@ -359,8 +330,9 @@ class SmartDocumentFiller:
             '情况', '承诺', '声明', '说明', '注意', '备注',
             # 网址和特殊字符
             'http', 'www.', '://','满足招标','见附件',
-            # 文档材料类关键词（文档清单项）
-            '身份证', '复印件', '证明', '原件', '扫描件', '材料', '文件'
+            # 文档材料类关键词（文档清单项）- 精确化，避免过滤"身份证号"
+            '身份证复印件', '身份证扫描件', '提供身份证',  # 精确化
+            '复印件', '证明', '原件', '扫描件', '材料', '文件'
         ]
 
         # 过滤逻辑
@@ -565,8 +537,16 @@ class FieldClassifier:
             return False
 
         # 4. 检查是否包含文档材料关键词（文档清单项）
-        document_keywords = ['身份证', '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件']
-        if any(keyword in field_text for keyword in document_keywords):
+        # ⚠️ 修复：精确匹配文档材料，不要过滤"身份证号"等数据字段
+        document_keywords = [
+            '身份证复印件', '身份证扫描件', '身份证原件',  # 身份证材料（精确）
+            '提供身份证', '附身份证',  # 提交材料的表述
+            '复印件', '证明', '原件', '扫描件', '附件', '材料清单', '提供材料'
+        ]
+        # 特殊处理：如果包含"身份证号"或"身份证号码"，不过滤（这是数据字段）
+        if '身份证号' in field_text or '身份证号码' in field_text:
+            pass  # 不过滤，允许填充
+        elif any(keyword in field_text for keyword in document_keywords):
             return False
 
         # 如果 std_field 是 None（未识别字段），默认不填充（安全策略）
@@ -824,10 +804,14 @@ class PatternMatcher:
             # 过滤掉明显不是字段的内容
             skip_keywords = [
                 '如有', '如果', 'www.', 'http', '说明', '注意', '备注',
-                # 文档材料类关键词
-                '身份证', '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件'
+                # 文档材料类关键词 - 精确化，避免过滤"身份证号"
+                '身份证复印件', '身份证扫描件', '提供身份证',  # 精确化
+                '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件'
             ]
-            if any(skip in field_name for skip in skip_keywords):
+            # 特殊处理：如果包含"身份证号"，不过滤（这是数据字段）
+            if '身份证号' in field_name or '身份证号码' in field_name:
+                pass  # 不过滤
+            elif any(skip in field_name for skip in skip_keywords):
                 continue
 
             # 如果清理后字段名太短或为空，跳过
@@ -968,10 +952,14 @@ class PatternMatcher:
             # 跳过明显不是字段的内容
             skip_keywords = [
                 '本条', '时间从', '以相关', '我公司', '如有', '如果', '见附件', '满足',
-                # 文档材料类关键词
-                '身份证', '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件'
+                # 文档材料类关键词 - 精确化，避免过滤"身份证号"
+                '身份证复印件', '身份证扫描件', '提供身份证',  # 精确化
+                '复印件', '证明', '原件', '扫描件', '附件', '材料', '文件'
             ]
-            if any(skip in clean_field_name for skip in skip_keywords):
+            # 特殊处理：如果包含"身份证号"，不过滤（这是数据字段）
+            if '身份证号' in clean_field_name or '身份证号码' in clean_field_name:
+                pass  # 不过滤
+            elif any(skip in clean_field_name for skip in skip_keywords):
                 continue
 
             # 跳过清理后字段名太短的
@@ -1294,6 +1282,16 @@ class ContentFiller:
             else:
                 # 常规字段识别
                 std_field = self.field_recognizer.recognize_field(field_name)
+
+            # ✅ 新增：使用 should_fill 检查局部上下文（括号前后30字符）
+            # 避免整个段落检查导致误判
+            start_pos = max(0, match['start'] - 30)
+            end_pos = min(len(full_text), match['end'] + 30)
+            context_text = full_text[start_pos:end_pos]
+
+            if not FieldClassifier.should_fill(context_text, std_field):
+                self.logger.info(f"    跳过签字/文档字段: {context_text}")
+                continue
 
             if std_field and std_field in data:
                 value = str(data[std_field])

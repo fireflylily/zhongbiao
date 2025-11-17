@@ -393,10 +393,12 @@
       :history-files="historyFiles"
       :loading="loadingHistory"
       :show-stats="false"
+      :show-editor-open="true"
       @preview="previewFile"
       @download="downloadHistoryFile"
       @regenerate="handleRegenerate"
       @refresh="loadHistoryFiles"
+      @open-in-editor="openHistoryInEditor"
     />
 
     <!-- 文档预览对话框 -->
@@ -427,7 +429,8 @@ import {
   DocumentPreview,
   StatsCard,
   HitlFileAlert,
-  HistoryFilesPanel
+  HistoryFilesPanel,
+  RichTextEditor
 } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import {
@@ -650,6 +653,8 @@ const generateProposal = async () => {
   analysisResult.value = null
   outlineData.value = null
   generationResult.value = null
+  showEditor.value = false  // 重置编辑器显示状态
+  editorContent.value = ''   // 清空编辑器内容
 
   try {
     const formData = new FormData()
@@ -757,6 +762,11 @@ const generateWithSSE = async (formData: FormData) => {
               currentChapterNumber = data.chapter_number || ''
               chapterContents[currentChapterNumber] = ''
               streamContent.value += `\n\n## ${data.chapter_number} ${data.chapter_title}\n\n`
+
+              // 【新增】第一个章节开始时就显示编辑器，实时展示AI生成内容
+              if (!showEditor.value) {
+                showEditor.value = true
+              }
             } else if (data.event === 'content_chunk') {
               // 接收内容片段
               const chapterNum = data.chapter_number || currentChapterNumber
@@ -913,15 +923,16 @@ const handleEditorSave = async (content: string) => {
     editorSaving.value = true
 
     // 调用后端保存编辑内容
-    const response = await fetch('/api/tech-proposal/save-edited-content', {
+    const response = await fetch('/api/editor/save-html-to-word', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        file_path: generationResult.value.output_file,
-        content: content,
-        project_id: form.value.projectId
+        html_content: content,
+        project_id: form.value.projectId,
+        document_type: 'tech_proposal',
+        original_file: generationResult.value.output_file
       })
     })
 
@@ -933,11 +944,18 @@ const handleEditorSave = async (content: string) => {
       // 更新文件路径（如果有新路径）
       if (result.output_file) {
         generationResult.value.output_file = result.output_file
-        if (result.download_url) {
-          if (generationResult.value.output_files) {
-            generationResult.value.output_files.proposal = result.download_url
-          }
+        if (result.download_url && generationResult.value.output_files) {
+          generationResult.value.output_files.proposal = result.download_url
         }
+      }
+
+      // 同步到HITL
+      if (result.output_file && form.value.projectId) {
+        await syncToHitl(
+          form.value.projectId,
+          result.output_file,
+          'tech_proposal'
+        )
       }
     } else {
       throw new Error(result.error || '保存失败')
@@ -947,6 +965,85 @@ const handleEditorSave = async (content: string) => {
     throw error // 让RichTextEditor显示错误
   } finally {
     editorSaving.value = false
+  }
+}
+
+// 加载Word文档到编辑器
+const loadWordToEditor = async (filePath: string) => {
+  try {
+    editorLoading.value = true
+    editorContent.value = '<p style="color: #409EFF;">正在转换Word文档为可编辑格式...</p>'
+
+    // 调用后端API将Word转换为HTML
+    const response = await fetch('/api/editor/convert-word-to-html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_path: filePath })
+    })
+
+    const result = await response.json()
+
+    if (result.success && result.html_content) {
+      editorContent.value = result.html_content
+
+      if (editorRef.value) {
+        editorRef.value.setContent(result.html_content)
+      }
+
+      console.log('[TechProposal] Word文档已加载到编辑器')
+    } else {
+      throw new Error(result.error || '转换失败')
+    }
+  } catch (error: any) {
+    console.error('[TechProposal] 加载文档到编辑器失败:', error)
+
+    // 如果转换失败，显示基础提示
+    editorContent.value = `
+      <h1>📄 技术方案文档</h1>
+      <div style="padding: 20px; background: #FFF3E0; border-left: 4px solid #FF9800; margin: 16px 0;">
+        <p><strong>⚠️ 提示：</strong>Word文档转换失败</p>
+        <p>原因：${error.message}</p>
+        <p>您可以：</p>
+        <ul>
+          <li>直接在此编辑器中输入内容</li>
+          <li>或点击下方"预览Word"或"下载"按钮查看原始文档</li>
+        </ul>
+      </div>
+      <p>开始编辑您的内容...</p>
+    `
+
+    ElMessage.warning('Word转换HTML失败，请使用预览或下载功能')
+  } finally {
+    editorLoading.value = false
+  }
+}
+
+// 在编辑器中打开历史文件
+const openHistoryInEditor = async () => {
+  if (!currentTechFile.value?.outputFile) {
+    ElMessage.error('历史文件信息无效')
+    return
+  }
+
+  try {
+    // 显示编辑器
+    showEditor.value = true
+
+    // 加载Word文档到编辑器
+    await loadWordToEditor(currentTechFile.value.outputFile)
+
+    ElMessage.success('历史文件已加载到编辑器')
+
+    // 滚动到编辑器
+    setTimeout(() => {
+      document.querySelector('.editor-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      })
+    }, 100)
+  } catch (error: any) {
+    console.error('[TechProposal] 打开历史文件失败:', error)
+    ElMessage.error('打开历史文件失败: ' + error.message)
   }
 }
 

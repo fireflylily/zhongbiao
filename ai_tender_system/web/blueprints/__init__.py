@@ -39,14 +39,6 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"静态文件蓝图加载失败: {e}")
 
-    # 旧版页面蓝图 (兼容性保留,降低优先级)
-    try:
-        from .pages_bp import pages_bp
-        app.register_blueprint(pages_bp)
-        logger.info("旧版页面蓝图注册成功 (兼容性路径: /old/*)")
-    except ImportError as e:
-        logger.warning(f"旧版页面蓝图加载失败: {e}")
-
     # 阶段2: 核心API蓝图
     try:
         from .api_core_bp import api_core_bp
@@ -151,6 +143,21 @@ def register_all_blueprints(app: Flask, config, logger):
 
     # 阶段5: HITL任务处理蓝图
     # (待实现)
+
+    # 阶段6: ABTest用户管理模块
+    try:
+        import sys
+        from pathlib import Path
+        # 添加项目根目录到Python路径
+        project_root = Path(__file__).parent.parent.parent.parent
+        if str(project_root) not in sys.path:
+            sys.path.insert(0, str(project_root))
+
+        from abtest.blueprints.user_management_bp import user_management_bp
+        app.register_blueprint(user_management_bp, url_prefix='/abtest')
+        logger.info("ABTest用户管理蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"ABTest用户管理蓝图加载失败: {e}")
 
     # ============================================================
     # Vue前端应用蓝图 - 必须最后注册(作为catch-all路由)

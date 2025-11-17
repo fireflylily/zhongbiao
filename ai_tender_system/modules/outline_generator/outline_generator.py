@@ -194,15 +194,18 @@ class OutlineGenerator:
             if project_name:
                 outline['outline_title'] = f"{project_name} 技术方案应答大纲"
 
-            # 确保必要字段存在
-            if 'generation_time' not in outline:
-                outline['generation_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # 强制覆盖生成时间为当前实际时间（不使用LLM返回的示例时间）
+            outline['generation_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             if 'chapters' not in outline:
                 outline['chapters'] = []
 
-            if 'total_chapters' not in outline:
-                outline['total_chapters'] = len(outline.get('chapters', []))
+            # 重新计算章节数（以实际章节为准）
+            outline['total_chapters'] = len(outline.get('chapters', []))
+
+            # 重新计算预计页数（基于章节数，每章约10页）
+            chapter_count = outline['total_chapters']
+            outline['estimated_pages'] = max(30, chapter_count * 10)
 
             # 添加元数据
             outline['_metadata'] = {

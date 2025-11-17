@@ -489,18 +489,30 @@ class DocumentStructureParser:
             if sizes and bold_count >= len(paragraph.runs) / 2:
                 avg_size = sum(sizes) / len(sizes)
 
-                # 调整阈值: 更灵活的判断
-                if avg_size >= 18:  # 18pt+ → Level 1
+                # 调整阈值: 更灵活的判断 (降低阈值以提高识别率)
+                if avg_size >= 16:  # 16pt+ → Level 1 (原18pt)
                     return 1
-                elif avg_size >= 15:  # 15-17pt → Level 2
+                elif avg_size >= 13:  # 13-15pt → Level 2 (原15pt)
                     return 2
-                elif avg_size >= 12:  # 12-14pt → Level 3
+                elif avg_size >= 10:  # 10-12pt → Level 3 (原12pt)
                     return 3
 
-        # 方法5：通过编号模式判断 (辅助) - 仅保留明确的章节编号
+        # 方法5：通过编号模式判断 (增强fallback机制)
+        # 一级标题模式
         if re.match(r'^第[一二三四五六七八九十\d]+[章部分]', text):
             return 1
-        # ⚠️ 移除 "1.1 " 和 "1.1.1 " 的模式匹配，避免误判列表项
+        if re.match(r'^\d+\.\s+\S', text) and not re.match(r'^\d+\.\d+', text):  # 1. xxx (不包含1.1)
+            return 1
+
+        # 二级标题模式 (如果文本较短且有编号)
+        if re.match(r'^\d+\.\d+\s+\S', text) and not re.match(r'^\d+\.\d+\.\d+', text):
+            if len(text.strip()) <= 100:  # 长度限制
+                return 2
+
+        # 三级标题模式
+        if re.match(r'^\d+\.\d+\.\d+\s+\S', text):
+            if len(text.strip()) <= 100:
+                return 3
 
         return 0
 
@@ -740,20 +752,20 @@ class DocumentStructureParser:
         Returns:
             相似度阈值 (0.60-0.80)
         """
-        # 基础阈值根据目录项数量决定
+        # 基础阈值根据目录项数量决定（降低5%以提高容错率）
         if toc_items_count < 10:
-            base_threshold = 0.75  # 少量章节，要求更高精度
+            base_threshold = 0.70  # 少量章节，降低阈值从0.75到0.70
         elif toc_items_count < 20:
-            base_threshold = 0.70  # 中等章节数，标准精度
+            base_threshold = 0.65  # 中等章节数，降低阈值从0.70到0.65
         else:
-            base_threshold = 0.65  # 大量章节，适当放宽
+            base_threshold = 0.60  # 大量章节，降低阈值从0.65到0.60
 
         # 根据文档复杂度微调 (段落数越多，文档越复杂，可适当放宽)
         doc_complexity = min(1.0, doc_paragraph_count / 1000)  # 标准化到0-1
         adjusted_threshold = base_threshold + (doc_complexity * 0.05)
 
-        # 限制在合理范围内
-        final_threshold = min(0.80, max(0.60, adjusted_threshold))
+        # 限制在合理范围内（上限从0.80降低到0.75）
+        final_threshold = min(0.75, max(0.55, adjusted_threshold))
 
         self.logger.info(f"动态阈值计算: 目录项={toc_items_count}, 段落数={doc_paragraph_count}, "
                         f"基础阈值={base_threshold}, 调整后={final_threshold:.2f}")
@@ -762,7 +774,7 @@ class DocumentStructureParser:
 
     def _find_toc_section(self, doc: Document) -> Optional[int]:
         """
-        查找文档中的目录部分 (优化版: 扩展关键词)
+        查找文档中的目录部分 (优化版: 扩展关键词 + SDT支持)
 
         Args:
             doc: Word文档对象
@@ -778,6 +790,34 @@ class DocumentStructureParser:
             "contents", "table of contents", "catalogue", "index"
         ]
 
+        # 第零轮: 检测SDT容器中的TOC域（Word自动目录）
+        try:
+            body = doc.element.body
+            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+
+            # 查找所有SDT元素
+            sdt_elements = body.findall('.//w:sdt', namespaces=ns)
+
+            for sdt in sdt_elements:
+                # 检查是否是TOC类型的SDT
+                docpart = sdt.find('.//w:docPartObj/w:docPartGallery', namespaces=ns)
+                if docpart is not None:
+                    gallery_val = docpart.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
+                    if gallery_val == 'Table of Contents':
+                        # 找到TOC SDT,获取其中第一个段落的索引
+                        sdt_paras = sdt.findall('.//w:p', namespaces=ns)
+                        if sdt_paras:
+                            # 找到SDT中第一个段落在doc.paragraphs中的索引
+                            first_sdt_para = sdt_paras[0]
+                            for idx, para in enumerate(doc.paragraphs[:100]):
+                                if para._element == first_sdt_para:
+                                    self.logger.info(f"检测到Word TOC域（SDT容器），目录起始于段落 {idx}")
+                                    return idx
+        except Exception as e:
+            self.logger.debug(f"SDT检测失败（正常情况）: {e}")
+            pass
+
+        # 第一轮: 检测显式目录标题
         for i, para in enumerate(doc.paragraphs[:50]):  # 只检查前50段
             text = para.text.strip()
 
@@ -883,9 +923,14 @@ class DocumentStructureParser:
                 page_num = int(match.group(2))
 
                 # ⭐️ 重复检测：如果与第一项重复，说明扫描到正文了
-                if toc_items and title == toc_items[0]['title']:
-                    self.logger.info(f"检测到重复目录项（与第1项相同），目录解析结束")
-                    break
+                # 使用模糊匹配代替严格相等，以应对文本略有差异的情况
+                if toc_items:
+                    first_title = toc_items[0]['title']
+                    similarity = self.fuzzy_match_title_v2(title, first_title)
+                    if similarity >= 0.70:  # 70%以上相似度认为是重复
+                        self.logger.info(f"检测到重复目录项（与第1项相似度{similarity:.0%}），目录解析结束")
+                        self.logger.debug(f"  第1项: '{first_title}' vs 当前: '{title}'")
+                        break
 
                 # ⭐️ 数量限制检查
                 if len(toc_items) >= MAX_TOC_ITEMS:
@@ -925,9 +970,14 @@ class DocumentStructureParser:
                     title = text.strip()
 
                     # ⭐️ 重复检测：如果与第一项重复，说明扫描到正文了
-                    if toc_items and title == toc_items[0]['title']:
-                        self.logger.info(f"检测到重复目录项（与第1项相同），目录解析结束")
-                        break
+                    # 使用模糊匹配代替严格相等，以应对文本略有差异的情况
+                    if toc_items:
+                        first_title = toc_items[0]['title']
+                        similarity = self.fuzzy_match_title_v2(title, first_title)
+                        if similarity >= 0.70:  # 70%以上相似度认为是重复
+                            self.logger.info(f"检测到重复目录项（与第1项相似度{similarity:.0%}），目录解析结束")
+                            self.logger.debug(f"  第1项: '{first_title}' vs 当前: '{title}'")
+                            break
 
                     # ⭐️ 数量限制检查
                     if len(toc_items) >= MAX_TOC_ITEMS:
@@ -1444,16 +1494,9 @@ class DocumentStructureParser:
 
             if subsections:
                 chapter.children = subsections
-
-                # 递归累加所有子章节的字数
-                def sum_word_count(node):
-                    total = node.word_count
-                    for child in node.children:
-                        total += sum_word_count(child)
-                    return total
-
-                chapter.word_count = sum_word_count(chapter)
-                self.logger.info(f"  └─ 识别到 {len(subsections)} 个子章节（总字数: {chapter.word_count}）")
+                # 注意：父章节的word_count已经包含了其段落范围内的所有内容
+                # 无需再累加子章节字数，否则会导致重复计算
+                self.logger.info(f"  └─ 识别到 {len(subsections)} 个子章节（父章节字数: {chapter.word_count}）")
 
             chapters.append(chapter)
 

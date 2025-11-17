@@ -49,3 +49,4 @@ htmlcov/
 .pytest_cache/
 coverage.xml
 *.cover
+ai_tender_system/data/parser_debug/
