@@ -2,9 +2,10 @@
   <el-dialog
     v-model="dialogVisible"
     :title="dialogTitle"
-    width="80%"
+    width="90%"
     :before-close="handleClose"
     destroy-on-close
+    class="document-preview-dialog"
   >
     <div
       v-loading="loading"
@@ -21,12 +22,14 @@
         style="margin-bottom: 20px"
       />
 
-      <!-- 预览内容区域 -->
-      <div
-        ref="previewContentRef"
-        class="preview-content"
-        :style="{ display: error ? 'none' : 'block' }"
-      ></div>
+      <!-- 只读Umo Editor预览 -->
+      <div v-if="!error && previewContent" class="editor-preview-wrapper">
+        <UmoEditor
+          ref="editorRef"
+          :document="{ readOnly: true }"
+          @created="handleEditorCreated"
+        />
+      </div>
     </div>
   </el-dialog>
 </template>
@@ -34,18 +37,20 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import * as docxPreview from 'docx-preview'
+import { UmoEditor } from '@umoteam/editor'
 
 interface Props {
   modelValue: boolean
   fileUrl?: string
   fileName?: string
+  htmlContent?: string  // 支持直接传入HTML内容
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   fileUrl: '',
-  fileName: '文档预览'
+  fileName: '文档预览',
+  htmlContent: ''
 })
 
 const emit = defineEmits<{
@@ -55,7 +60,8 @@ const emit = defineEmits<{
 // 状态
 const loading = ref(false)
 const error = ref('')
-const previewContentRef = ref<HTMLElement | null>(null)
+const previewContent = ref('')
+const editorRef = ref<any>(null)
 
 // 对话框显示状态（双向绑定）
 const dialogVisible = computed({
@@ -116,6 +122,13 @@ const convertFilePathToUrl = (filePath: string): string => {
 
 // 加载文档
 const loadDocument = async () => {
+  // 优先使用 HTML 内容
+  if (props.htmlContent) {
+    console.log('[DocumentPreview] 使用HTML内容预览')
+    previewContent.value = props.htmlContent
+    return
+  }
+
   if (!props.fileUrl) {
     error.value = '文档地址不能为空'
     return
@@ -125,41 +138,23 @@ const loadDocument = async () => {
   error.value = ''
 
   try {
-    const fileUrl = convertFilePathToUrl(props.fileUrl)
     console.log('[DocumentPreview] 开始加载文档:', props.fileUrl)
-    console.log('[DocumentPreview] 转换后的URL:', fileUrl)
 
-    // 获取文档数据
-    const response = await fetch(fileUrl)
-    if (!response.ok) {
-      throw new Error(`HTTP错误: ${response.status}`)
-    }
-
-    const arrayBuffer = await response.arrayBuffer()
-    console.log('[DocumentPreview] 文档已下载，大小:', arrayBuffer.byteLength, '字节')
-
-    // 等待DOM更新
-    await nextTick()
-
-    if (!previewContentRef.value) {
-      throw new Error('预览容器未找到')
-    }
-
-    // 清空容器
-    previewContentRef.value.innerHTML = ''
-
-    // 使用docx-preview渲染文档
-    await docxPreview.renderAsync(arrayBuffer, previewContentRef.value, undefined, {
-      className: 'docx-preview',
-      inWrapper: true,
-      ignoreWidth: false,
-      ignoreHeight: false,
-      ignoreFonts: false,
-      breakPages: true,
-      ignoreLastRenderedPageBreak: true,
-      experimental: true,
-      trimXmlDeclaration: true
+    // 调用后端API将Word转换为HTML
+    const response = await fetch('/api/editor/convert-word-to-html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_path: props.fileUrl })
     })
+
+    const result = await response.json()
+
+    if (result.success && result.html_content) {
+      previewContent.value = result.html_content
+      console.log('[DocumentPreview] Word转HTML成功，长度:', result.html_content.length)
+    } else {
+      throw new Error(result.error || 'Word转HTML失败')
+    }
 
     console.log('[DocumentPreview] 文档渲染成功')
   } catch (err: any) {
@@ -168,6 +163,23 @@ const loadDocument = async () => {
     ElMessage.error('文档预览失败，请检查文件是否正确或尝试下载后查看')
   } finally {
     loading.value = false
+  }
+}
+
+// 编辑器创建完成事件
+const handleEditorCreated = () => {
+  console.log('[DocumentPreview] 编辑器已创建，设置内容...')
+
+  if (editorRef.value && previewContent.value) {
+    // 延迟设置内容，确保编辑器完全就绪
+    setTimeout(() => {
+      if (typeof editorRef.value.setContent === 'function') {
+        editorRef.value.setContent(previewContent.value)
+        console.log('[DocumentPreview] 内容已设置，长度:', previewContent.value.length)
+      } else {
+        console.error('[DocumentPreview] setContent方法不可用')
+      }
+    }, 300)
   }
 }
 
@@ -180,81 +192,38 @@ const handleClose = () => {
 watch(
   () => props.modelValue,
   async (newValue) => {
-    if (newValue && props.fileUrl) {
+    if (newValue && (props.fileUrl || props.htmlContent)) {
       // 延迟加载，确保对话框已完全打开
       await nextTick()
       loadDocument()
     } else {
       // 关闭时清空内容
       error.value = ''
-      if (previewContentRef.value) {
-        previewContentRef.value.innerHTML = ''
-      }
+      previewContent.value = ''
     }
   }
 )
 </script>
 
 <style scoped lang="scss">
+.document-preview-dialog {
+  :deep(.el-dialog__body) {
+    padding: 0;
+  }
+}
+
 .preview-container {
-  min-height: 400px;
-  max-height: 70vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 
-  .preview-content {
-    padding: 20px;
+  .editor-preview-wrapper {
+    width: 100%;
+    height: 80vh;  // 固定高度
     background: #f5f5f5;
-    border-radius: 4px;
 
-    :deep(.docx-preview) {
-      background: white;
-      padding: 40px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-      min-height: 500px;
-    }
-
-    // 统一页面宽度，防止不同尺寸的页面显示不一致
-    :deep(.docx-wrapper) {
-      max-width: 900px;
-      margin: 0 auto;
-
-      section {
-        margin: 20px auto !important;
-        max-width: 100%;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-    }
-
-    // 保留Word文档的样式
-    :deep(.docx) {
-      font-family: 'Times New Roman', serif;
-      line-height: 1.6;
-
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        margin: 1em 0;
-
-        td,
-        th {
-          border: 1px solid #ddd;
-          padding: 8px;
-        }
-      }
-
-      p {
-        margin: 0.5em 0;
-      }
-
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6 {
-        margin: 1em 0 0.5em 0;
-        font-weight: bold;
-      }
+    :deep(.umo-editor-container) {
+      height: 100% !important;
+      border: none;
     }
   }
 }

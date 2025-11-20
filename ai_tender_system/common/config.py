@@ -104,16 +104,6 @@ class Config:
 
         # 多模型配置
         self.multi_model_config = {
-            'gpt-4o-mini': {
-                'api_key': clean_env_value(os.getenv('OPENAI_API_KEY', os.getenv('DEFAULT_API_KEY', ''))),
-                'api_endpoint': clean_env_value(os.getenv('OPENAI_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions')),
-                'model_name': 'gpt-4o-mini',
-                'max_tokens': int(os.getenv('OPENAI_MAX_TOKENS', '1000')),
-                'timeout': int(os.getenv('OPENAI_TIMEOUT', '30')),
-                'provider': 'OpenAI',
-                'display_name': 'GPT-4o Mini',
-                'description': 'OpenAI GPT-4o Mini模型，快速且经济的AI助手'
-            },
             # 联通元景系列模型
             'yuanjing-deepseek-v3': {
                 'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),
@@ -175,28 +165,40 @@ class Config:
                 'display_name': '元景-DeepSeek函数调用版',
                 'description': '结构化输出能力强，适合生成规范格式的标书内容和表格'
             },
-            # 始皇API配置 - 支持内联回复功能
+            # 始皇API配置 - 所有模型共享同一个API Key和Endpoint
+            'shihuang-gpt5': {
+                'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
+                'api_endpoint': clean_env_value(os.getenv('SHIHUANG_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions')),
+                'model_name': 'gpt-5',
+                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '2000')),
+                'temperature': float(os.getenv('SHIHUANG_TEMPERATURE', '0.3')),
+                'timeout': int(os.getenv('SHIHUANG_TIMEOUT', '60')),
+                'provider': 'Shihuang',
+                'display_name': '始皇-GPT5',
+                'description': 'OpenAI最新GPT-5模型，最强推理能力，适合复杂技术方案'
+            },
+            'shihuang-claude-sonnet-45': {
+                'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
+                'api_endpoint': clean_env_value(os.getenv('SHIHUANG_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions')),
+                'model_name': 'claude-sonnet-4-20250514',
+                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '2000')),
+                'temperature': 1.0,  # Claude Sonnet 4.5 只支持默认温度1.0
+                'supports_temperature': False,  # ✅ Claude Sonnet 4.5 不支持自定义temperature参数
+                'timeout': int(os.getenv('SHIHUANG_TIMEOUT', '60')),
+                'provider': 'Shihuang',
+                'display_name': '始皇-Claude Sonnet 4.5',
+                'description': 'Anthropic Claude Sonnet 4.5，卓越的标书写作和文档生成能力（注：仅支持默认温度1.0）'
+            },
             'shihuang-gpt4o-mini': {
                 'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
-                'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
+                'api_endpoint': clean_env_value(os.getenv('SHIHUANG_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions')),
                 'model_name': 'gpt-4o-mini',
-                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '500')),
+                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '1000')),
                 'temperature': float(os.getenv('SHIHUANG_TEMPERATURE', '0.3')),
                 'timeout': int(os.getenv('SHIHUANG_TIMEOUT', '60')),
                 'provider': 'Shihuang',
-                'display_name': '始皇-GPT4o迷你版',
-                'description': '高效快速的AI模型，专业点对点应答，支持灰色底纹标记'
-            },
-            'shihuang-gpt4': {
-                'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
-                'api_endpoint': 'https://api.oaipro.com/v1/chat/completions',
-                'model_name': 'gpt-4',
-                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '800')),
-                'temperature': float(os.getenv('SHIHUANG_TEMPERATURE', '0.3')),
-                'timeout': int(os.getenv('SHIHUANG_TIMEOUT', '60')),
-                'provider': 'Shihuang',
-                'display_name': '始皇-GPT4专业版',
-                'description': '高级专业模型，适合复杂技术方案和深度内容生成'
+                'display_name': '始皇-GPT4o Mini',
+                'description': '高效快速的AI模型，适合日常应答和点对点回复'
             },
             # 向后兼容性配置 - 保持原有模型名称可用
             'unicom-yuanjing': {

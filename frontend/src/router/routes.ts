@@ -116,6 +116,20 @@ export const routes: RouteRecordRaw[] = [
         }
       },
 
+      // ========== AI核心工具 - 最终标书 ==========
+      {
+        path: 'final-tender',
+        name: 'FinalTender',
+        component: () => import('@/views/Business/FinalTender.vue'),
+        meta: {
+          title: '最终标书',
+          icon: 'bi-file-earmark-zip',
+          category: 'ai-tools',
+          order: 6,
+          description: '智能整合生成最终投标文件'
+        }
+      },
+
       // ========== AI核心工具 - 智能评审 ==========
       {
         path: 'tender-scoring',

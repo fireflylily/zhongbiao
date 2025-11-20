@@ -170,11 +170,34 @@ const userAvatar = computed(() => userStore.avatar || '')
  */
 const availableModels = computed((): AIModelOption[] => {
   return [
+    // 始皇API模型（新增）
+    {
+      value: 'shihuang-gpt5',
+      label: 'GPT5（最强推理）',
+      icon: 'bi-stars',
+      recommended: false,
+      provider: 'shihuang'
+    },
+    {
+      value: 'shihuang-claude-sonnet-45',
+      label: 'Claude Sonnet 4.5（标书专用）',
+      icon: 'bi-chat-square-text',
+      recommended: true,
+      provider: 'shihuang'
+    },
+    {
+      value: 'shihuang-gpt4o-mini',
+      label: 'GPT4o Mini（推荐-默认）',
+      icon: 'bi-robot',
+      recommended: true,
+      provider: 'shihuang'
+    },
+    // 联通元景模型（保留）
     {
       value: 'yuanjing-deepseek-v3',
       label: 'DeepSeek V3',
       icon: 'bi-stars',
-      recommended: true,
+      recommended: false,
       provider: 'unicom'
     },
     {
@@ -190,13 +213,6 @@ const availableModels = computed((): AIModelOption[] => {
       icon: 'bi-chat-dots',
       recommended: false,
       provider: 'unicom'
-    },
-    {
-      value: 'gpt-4o-mini',
-      label: 'GPT-4O Mini',
-      icon: 'bi-robot',
-      recommended: false,
-      provider: 'openai'
     }
   ]
 })
@@ -207,7 +223,7 @@ const availableModels = computed((): AIModelOption[] => {
 const selectedModel = computed({
   get: () => {
     // 从localStorage或Store获取
-    return localStorage.getItem('selectedModel') || 'yuanjing-deepseek-v3'
+    return localStorage.getItem('selectedModel') || 'shihuang-gpt4o-mini'
   },
   set: (value: string) => {
     localStorage.setItem('selectedModel', value)

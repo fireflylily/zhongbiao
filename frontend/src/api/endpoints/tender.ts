@@ -338,10 +338,36 @@ export const tenderApi = {
   // ==================== 统计数据 ====================
 
   /**
+   * 获取工作台全局统计数据
+   */
+  async getDashboardStatistics(): Promise<ApiResponse<{
+    totalProjects: number
+    inProgressProjects: number
+    wonThisMonth: number
+    pendingTasks: number
+  }>> {
+    return apiClient.get('/tender-management/dashboard-stats')
+  },
+
+  /**
    * 获取项目统计数据
    */
   async getProjectStatistics(projectId: number): Promise<ApiResponse<any>> {
     return apiClient.get(`/tender-projects/${projectId}/statistics`)
+  },
+
+  // ==================== 提示词配置 ====================
+
+  /**
+   * 获取大纲生成提示词配置
+   */
+  async getOutlineGenerationPrompts(): Promise<ApiResponse<{
+    analyze_requirements: string
+    generate_outline: string
+    generate_response_suggestions: string
+    recommend_product_docs: string
+  }>> {
+    return apiClient.get('/prompts/outline-generation')
   }
 }
 

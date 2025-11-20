@@ -225,7 +225,7 @@ class OutlineGenerator:
 
     def _normalize_chapter_numbers(self, chapters: List[Dict]) -> List[Dict]:
         """
-        规范化章节编号
+        规范化章节编号（使用中文格式）
 
         Args:
             chapters: 章节列表
@@ -233,6 +233,10 @@ class OutlineGenerator:
         Returns:
             规范化后的章节列表
         """
+        # 中文数字映射（支持1-20）
+        chinese_numbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+                          '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十']
+
         chapter_counters = [0, 0, 0]  # 1级、2级、3级计数器
 
         for chapter in chapters:
@@ -242,44 +246,74 @@ class OutlineGenerator:
                 chapter_counters[0] += 1
                 chapter_counters[1] = 0
                 chapter_counters[2] = 0
-                chapter['chapter_number'] = str(chapter_counters[0])
+                # ✅ 1级使用中文编号：一、二、三
+                if chapter_counters[0] <= len(chinese_numbers):
+                    chapter['chapter_number'] = chinese_numbers[chapter_counters[0] - 1]
+                else:
+                    chapter['chapter_number'] = str(chapter_counters[0])
 
             elif level == 2:
                 chapter_counters[1] += 1
                 chapter_counters[2] = 0
-                chapter['chapter_number'] = f"{chapter_counters[0]}.{chapter_counters[1]}"
+                # ✅ 2级使用括号中文编号：（一）、（二）、（三）
+                if chapter_counters[1] <= len(chinese_numbers):
+                    chapter['chapter_number'] = f"（{chinese_numbers[chapter_counters[1] - 1]}）"
+                else:
+                    chapter['chapter_number'] = f"（{chapter_counters[1]}）"
 
             elif level == 3:
                 chapter_counters[2] += 1
-                chapter['chapter_number'] = (
-                    f"{chapter_counters[0]}.{chapter_counters[1]}.{chapter_counters[2]}"
-                )
+                # ✅ 3级使用阿拉伯数字：1、2、3
+                chapter['chapter_number'] = str(chapter_counters[2])
 
             # 处理子章节
             if 'subsections' in chapter and chapter['subsections']:
                 chapter['subsections'] = self._normalize_subsection_numbers(
                     chapter['subsections'],
-                    chapter['chapter_number']
+                    chapter['chapter_number'],
+                    chapter_counters[0]  # 传递父章节的计数器
                 )
 
         return chapters
 
     def _normalize_subsection_numbers(
-        self, subsections: List[Dict], parent_number: str
+        self, subsections: List[Dict], parent_number: str, parent_index: int = 0
     ) -> List[Dict]:
         """
-        规范化子章节编号
+        规范化子章节编号（使用中文格式）
 
         Args:
             subsections: 子章节列表
             parent_number: 父章节编号
+            parent_index: 父章节的索引（用于判断层级）
 
         Returns:
             规范化后的子章节列表
         """
+        # 中文数字映射
+        chinese_numbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+                          '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十']
+
         for i, subsection in enumerate(subsections, start=1):
-            subsection['chapter_number'] = f"{parent_number}.{i}"
-            subsection['level'] = parent_number.count('.') + 2
+            # 判断当前子章节的层级
+            # 如果父章节是中文数字（如"一"），则子章节用（一）、（二）
+            # 如果父章节是括号中文（如"（一）"），则子章节用1、2、3
+
+            if parent_number in chinese_numbers:
+                # 父章节是1级（一、二、三），子章节用2级（一）、（二）、（三）
+                if i <= len(chinese_numbers):
+                    subsection['chapter_number'] = f"（{chinese_numbers[i - 1]}）"
+                else:
+                    subsection['chapter_number'] = f"（{i}）"
+                subsection['level'] = 2
+            elif parent_number.startswith('（') and parent_number.endswith('）'):
+                # 父章节是2级（一）、（二），子章节用3级 1、2、3
+                subsection['chapter_number'] = str(i)
+                subsection['level'] = 3
+            else:
+                # 默认逻辑（向后兼容）
+                subsection['chapter_number'] = f"{parent_number}.{i}"
+                subsection['level'] = 2
 
         return subsections
 

@@ -11,6 +11,7 @@ from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
+from docx.oxml import OxmlElement  # ✅ 添加TOC域所需的导入
 import openpyxl
 
 # 导入公共模块
@@ -56,6 +57,12 @@ class WordExporter:
 
             # 添加元信息
             self._add_metadata(doc, proposal['metadata'])
+
+            # ✅ 添加目录
+            self._add_table_of_contents(doc)
+
+            # 分页符（目录独立一页）
+            doc.add_page_break()
 
             # 添加章节内容
             for chapter in proposal['chapters']:
@@ -272,6 +279,34 @@ class WordExporter:
         doc.add_paragraph(f"生成时间: {metadata.get('generation_time', '')}")
         doc.add_paragraph(f"总章节数: {metadata.get('total_chapters', 0)}")
         doc.add_paragraph(f"预计页数: {metadata.get('estimated_pages', 0)}")
+        doc.add_paragraph()  # 空行
+
+    def _add_table_of_contents(self, doc: Document):
+        """添加目录（Table of Contents）"""
+        # 添加"目录"标题
+        heading = doc.add_heading('目录', level=1)
+        heading.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+        # 使用python-docx添加TOC域
+        # 注意：TOC域需要在Word中手动更新（右键->更新域）或使用宏自动更新
+        paragraph = doc.add_paragraph()
+        run = paragraph.add_run()
+
+        # 添加TOC域代码
+        fldChar1 = OxmlElement('w:fldChar')
+        fldChar1.set(qn('w:fldCharType'), 'begin')
+
+        instrText = OxmlElement('w:instrText')
+        instrText.set(qn('xml:space'), 'preserve')
+        instrText.text = 'TOC \\o "1-3" \\h \\z \\u'  # 显示1-3级标题
+
+        fldChar2 = OxmlElement('w:fldChar')
+        fldChar2.set(qn('w:fldCharType'), 'end')
+
+        run._r.append(fldChar1)
+        run._r.append(instrText)
+        run._r.append(fldChar2)
+
         doc.add_paragraph()  # 空行
 
     def _add_chapter(self, doc: Document, chapter: Dict):

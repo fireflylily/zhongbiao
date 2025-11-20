@@ -187,14 +187,21 @@ class LLMClient:
                     messages.append({'role': 'system', 'content': system_prompt})
                 messages.append({'role': 'user', 'content': prompt})
 
+                # 构建请求参数
+                request_params = {
+                    'model': self.azure_deployment,  # Azure使用deployment名称
+                    'messages': messages,
+                    'max_tokens': actual_max_tokens,
+                    'stream': True
+                }
+
+                # ✅ 仅在模型支持时添加temperature参数
+                supports_temp = self.model_config.get('supports_temperature', True)
+                if supports_temp:
+                    request_params['temperature'] = temperature
+
                 # 流式调用
-                stream = client.chat.completions.create(
-                    model=self.azure_deployment,  # Azure使用deployment名称
-                    messages=messages,
-                    max_tokens=actual_max_tokens,
-                    temperature=temperature,
-                    stream=True
-                )
+                stream = client.chat.completions.create(**request_params)
 
                 for chunk in stream:
                     if chunk.choices and len(chunk.choices) > 0:
@@ -222,14 +229,23 @@ class LLMClient:
                 messages.append({'role': 'system', 'content': system_prompt})
             messages.append({'role': 'user', 'content': prompt})
 
+            # 构建请求参数
+            request_params = {
+                'model': self.actual_model_name,
+                'messages': messages,
+                'max_tokens': actual_max_tokens,
+                'stream': True  # 启用流式输出
+            }
+
+            # ✅ 仅在模型支持时添加temperature参数
+            supports_temp = self.model_config.get('supports_temperature', True)
+            if supports_temp:
+                request_params['temperature'] = temperature
+            else:
+                self.logger.info(f"{purpose} - 模型 {self.model_name} 不支持自定义temperature，使用默认值")
+
             # 流式调用
-            stream = client.chat.completions.create(
-                model=self.actual_model_name,
-                messages=messages,
-                max_tokens=actual_max_tokens,
-                temperature=temperature,
-                stream=True  # 启用流式输出
-            )
+            stream = client.chat.completions.create(**request_params)
 
             # 逐个yield生成的内容
             for chunk in stream:
@@ -270,9 +286,15 @@ class LLMClient:
         data = {
             'model': self.actual_model_name,
             'messages': messages,
-            'max_completion_tokens': actual_max_tokens,
-            'temperature': temperature
+            'max_completion_tokens': actual_max_tokens
         }
+
+        # ✅ 仅在模型支持时添加temperature参数（Claude Sonnet 4.5不支持自定义温度）
+        supports_temp = self.model_config.get('supports_temperature', True)
+        if supports_temp:
+            data['temperature'] = temperature
+        else:
+            self.logger.info(f"{purpose} - 模型 {self.model_name} 不支持自定义temperature，使用默认值")
 
         return self._make_request(
             headers, data, max_retries, purpose, 'openai'
@@ -391,13 +413,20 @@ class LLMClient:
                 try:
                     self.logger.info(f"{purpose} (尝试 {attempt + 1}/{max_retries})")
 
+                    # 构建请求参数
+                    request_params = {
+                        'model': self.azure_deployment,  # Azure使用deployment名称而非model名称
+                        'messages': messages,
+                        'max_tokens': actual_max_tokens
+                    }
+
+                    # ✅ 仅在模型支持时添加temperature参数
+                    supports_temp = self.model_config.get('supports_temperature', True)
+                    if supports_temp:
+                        request_params['temperature'] = temperature
+
                     # 调用Azure API
-                    completion = client.chat.completions.create(
-                        model=self.azure_deployment,  # Azure使用deployment名称而非model名称
-                        messages=messages,
-                        max_tokens=actual_max_tokens,
-                        temperature=temperature
-                    )
+                    completion = client.chat.completions.create(**request_params)
 
                     # 提取响应内容
                     content = completion.choices[0].message.content
@@ -461,13 +490,20 @@ class LLMClient:
                     self.unicom_call_times.append(datetime.now())
                     self.logger.debug(f"当前分钟内已调用 {len(self.unicom_call_times)}/{self.UNICOM_RATE_LIMIT} 次")
 
+                    # 构建请求参数
+                    request_params = {
+                        'model': self.actual_model_name,
+                        'messages': messages,
+                        'max_tokens': actual_max_tokens
+                    }
+
+                    # ✅ 仅在模型支持时添加temperature参数
+                    supports_temp = self.model_config.get('supports_temperature', True)
+                    if supports_temp:
+                        request_params['temperature'] = temperature
+
                     # 调用API
-                    completion = client.chat.completions.create(
-                        model=self.actual_model_name,
-                        messages=messages,
-                        max_tokens=actual_max_tokens,
-                        temperature=temperature
-                    )
+                    completion = client.chat.completions.create(**request_params)
 
                     # 提取响应内容
                     content = completion.choices[0].message.content

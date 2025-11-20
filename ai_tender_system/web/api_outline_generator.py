@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 # 导入核心模块
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from common import get_module_logger, get_config
+from common import get_module_logger, get_config, get_prompt_manager
 from modules.outline_generator import (
     RequirementAnalyzer,
     OutlineGenerator,
@@ -631,7 +631,10 @@ def generate_proposal_stream_v2():
             company_id = request.form.get('companyId')
             project_name = request.form.get('projectName', '')
             project_id = request.form.get('projectId', '')
+            ai_model = request.form.get('aiModel', 'shihuang-gpt4o-mini')  # ✅ 获取AI模型参数，默认gpt4o-mini
             use_streaming_content = request.form.get('useStreamingContent', 'true').lower() == 'true'
+
+            logger.info(f"使用AI模型: {ai_model}")
 
             # 生成选项
             options = {
@@ -684,7 +687,7 @@ def generate_proposal_stream_v2():
             # 阶段1：需求分析
             yield f"data: {json.dumps({'stage': 'analysis', 'progress': 15, 'message': '🔍 正在分析技术需求文档...'}, ensure_ascii=False)}\n\n"
 
-            analyzer = RequirementAnalyzer()
+            analyzer = RequirementAnalyzer(model_name=ai_model)  # ✅ 传递AI模型参数
             analysis_result = analyzer.analyze_document(str(tender_path))
 
             yield f"data: {json.dumps({'stage': 'analysis', 'progress': 30, 'message': '✓ 需求分析完成'}, ensure_ascii=False)}\n\n"
@@ -692,7 +695,7 @@ def generate_proposal_stream_v2():
             # 阶段2：大纲生成
             yield f"data: {json.dumps({'stage': 'outline', 'progress': 35, 'message': '📝 正在生成技术方案大纲...'}, ensure_ascii=False)}\n\n"
 
-            outline_gen = OutlineGenerator()
+            outline_gen = OutlineGenerator(model_name=ai_model)  # ✅ 传递AI模型参数
             outline_data = outline_gen.generate_outline(analysis_result, project_name=output_prefix)
 
             yield f"data: {json.dumps({'stage': 'outline', 'progress': 55, 'message': '✓ 大纲生成完成'}, ensure_ascii=False)}\n\n"
@@ -712,7 +715,7 @@ def generate_proposal_stream_v2():
             # 阶段4：方案组装（流式）
             yield f"data: {json.dumps({'stage': 'assembly', 'progress': 75, 'message': '⚙️ 正在组装技术方案...'}, ensure_ascii=False)}\n\n"
 
-            assembler = ProposalAssembler()
+            assembler = ProposalAssembler(model_name=ai_model)  # ✅ 传递AI模型参数
 
             # 选择流式或非流式组装
             if use_streaming_content:
@@ -863,6 +866,49 @@ def generate_proposal_stream_v2():
             'X-Accel-Buffering': 'no'
         }
     )
+
+
+@api_outline_bp.route('/prompts/outline-generation', methods=['GET'])
+def get_outline_generation_prompts():
+    """
+    获取大纲生成提示词配置
+
+    返回:
+    {
+        "success": true,
+        "prompts": {
+            "analyze_requirements": "...",
+            "generate_outline": "...",
+            "generate_response_suggestions": "...",
+            "recommend_product_docs": "..."
+        }
+    }
+    """
+    try:
+        logger.info("获取大纲生成提示词配置")
+
+        # 获取 prompt manager
+        prompt_manager = get_prompt_manager()
+
+        # 获取所有大纲生成相关的提示词
+        prompts = {
+            'analyze_requirements': prompt_manager.get_prompt('outline_generation', 'analyze_requirements'),
+            'generate_outline': prompt_manager.get_prompt('outline_generation', 'generate_outline'),
+            'generate_response_suggestions': prompt_manager.get_prompt('outline_generation', 'generate_response_suggestions'),
+            'recommend_product_docs': prompt_manager.get_prompt('outline_generation', 'recommend_product_docs')
+        }
+
+        return jsonify({
+            'success': True,
+            'prompts': prompts
+        })
+
+    except Exception as e:
+        logger.error(f"获取提示词配置失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 # 导出蓝图

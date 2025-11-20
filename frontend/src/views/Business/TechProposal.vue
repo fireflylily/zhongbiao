@@ -95,9 +95,9 @@
           <el-col :span="12">
             <el-form-item label="AI模型">
               <el-select v-model="config.aiModel" style="width: 100%">
-                <el-option label="GPT-4O Mini（推荐）" value="gpt-4o-mini" />
-                <el-option label="GPT-4O（高质量）" value="gpt-4o" />
-                <el-option label="始皇-GPT4o迷你版" value="shihuang-gpt4o-mini" />
+                <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
+                <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
+                <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -502,7 +502,7 @@ const form = ref({
 
 const config = ref({
   outputPrefix: '技术方案',
-  aiModel: 'gpt-4o-mini',
+  aiModel: 'shihuang-gpt4o-mini',
   additionalOutputs: ['includeAnalysis', 'includeMapping', 'includeSummary'] as string[]
 })
 
@@ -651,7 +651,7 @@ const generateProposal = async () => {
   generationProgress.value = 0
   streamContent.value = ''
   analysisResult.value = null
-  outlineData.value = null
+  // outlineData.value = null  // ✅ 不清空大纲数据，保持显示
   generationResult.value = null
   showEditor.value = false  // 重置编辑器显示状态
   editorContent.value = ''   // 清空编辑器内容
@@ -674,6 +674,7 @@ const generateProposal = async () => {
     formData.append('companyId', selectedProject.value!.company_id.toString())
     formData.append('projectName', selectedProject.value!.project_name || '')
     formData.append('projectId', form.value.projectId!.toString())
+    formData.append('aiModel', config.value.aiModel)  // ✅ 添加AI模型参数
 
     // 附加输出选项
     formData.append('includeAnalysis', config.value.additionalOutputs.includes('includeAnalysis') ? 'true' : 'false')
@@ -833,15 +834,53 @@ const generateWithSSE = async (formData: FormData) => {
 
 // 更新编辑器内容（增量更新）
 const updateEditorContent = (chapterContents: Record<string, string>) => {
-  // 将所有章节内容合并为HTML
-  let htmlContent = ''
+  // ✅ 使用大纲数据按正确顺序生成HTML（如果大纲可用）
+  if (outlineData.value?.chapters) {
+    let htmlContent = ''
 
-  for (const [chapterNum, content] of Object.entries(chapterContents)) {
-    htmlContent += `<h2>${chapterNum}</h2>\n`
-    htmlContent += `<div>${content.replace(/\n/g, '<br>')}</div>\n`
+    // 递归生成章节HTML
+    const generateChapterHtml = (chapters: any[]) => {
+      for (const chapter of chapters) {
+        const chapterNum = chapter.chapter_number
+        const content = chapterContents[chapterNum] || ''
+
+        // 根据level使用不同的标题级别
+        const headingLevel = chapter.level || 1
+        htmlContent += `<h${headingLevel}>${chapterNum} ${chapter.title}</h${headingLevel}>\n`
+
+        if (content) {
+          htmlContent += `<div>${content.replace(/\n/g, '<br>')}</div>\n`
+        }
+
+        // 递归处理子章节
+        if (chapter.subsections && chapter.subsections.length > 0) {
+          generateChapterHtml(chapter.subsections)
+        }
+      }
+    }
+
+    generateChapterHtml(outlineData.value.chapters)
+    editorContent.value = htmlContent
+  } else {
+    // ✅ 回退方案：按章节编号排序（适用于大纲尚未加载时）
+    let htmlContent = ''
+
+    // 对章节编号进行排序
+    const sortedEntries = Object.entries(chapterContents).sort((a, b) => {
+      const [numA] = a
+      const [numB] = b
+
+      // 简单的字符串比较（适用于中文编号）
+      return numA.localeCompare(numB, 'zh-CN')
+    })
+
+    for (const [chapterNum, content] of sortedEntries) {
+      htmlContent += `<h2>${chapterNum}</h2>\n`
+      htmlContent += `<div>${content.replace(/\n/g, '<br>')}</div>\n`
+    }
+
+    editorContent.value = htmlContent
   }
-
-  editorContent.value = htmlContent
 }
 
 // ============================================

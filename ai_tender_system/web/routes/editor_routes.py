@@ -158,6 +158,59 @@ def save_html_to_word():
         }), 500
 
 
+@editor_bp.route('/upload-temp', methods=['POST'])
+def upload_temp_file():
+    """
+    临时文件上传接口（用于测试）
+
+    返回:
+    {
+        "success": true,
+        "file_path": "/path/to/uploaded/file.docx"
+    }
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': '没有上传文件'
+            }), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': '文件名为空'
+            }), 400
+
+        # 保存到临时目录
+        import tempfile
+        temp_dir = Path(tempfile.gettempdir()) / 'tender_uploads'
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
+        # 生成安全的文件名
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        safe_filename = secure_filename(file.filename)
+        file_path = temp_dir / f"{timestamp}_{safe_filename}"
+
+        # 保存文件
+        file.save(str(file_path))
+
+        logger.info(f"临时文件已上传: {file_path}")
+
+        return jsonify({
+            'success': True,
+            'file_path': str(file_path)
+        })
+
+    except Exception as e:
+        logger.error(f"临时文件上传失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @editor_bp.route('/health', methods=['GET'])
 def health_check():
     """

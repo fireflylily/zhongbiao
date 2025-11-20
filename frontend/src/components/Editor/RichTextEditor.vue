@@ -176,45 +176,38 @@ const needsSwitchToPageLayout = ref(false)  // 标记是否需要切换到分页
 // Umo Editor 配置选项 (v8.x)
 // 完整类型定义：UmoEditorOptions (types/index.d.ts)
 const editorOptions = computed(() => ({
-  // 字典配置（定义可用的页面尺寸等）
-  dicts: {
-    pageSizes: [
-      {
-        label: 'A4',
-        width: 21,
-        height: 29.7,
-        default: true  // 设置为默认尺寸
-      }
-    ]
+  // 工具栏配置
+  toolbar: {
+    defaultMode: 'ribbon'
   },
-  // 页面配置 (PageOption)
+  // 页面配置（使用官方文档的完整配置）
   page: {
-    layouts: ['page'],                    // 🔥 只允许分页模式（强制启用）
-    showBreakMarks: true,                 // 显示分页标记
-    size: {                               // 🔥 明确指定 A4 尺寸（必需）
-      width: 21,                          // cm
-      height: 29.7,                       // cm
-      label: 'A4'
-    },
-    defaultMargin: {                      // A4 默认边距 (cm)
+    layouts: ['page', 'web'],           // 🔥 两种布局都支持（官方默认）
+    defaultMargin: {
       left: 3.18,
       right: 3.18,
       top: 2.54,
       bottom: 2.54
     },
-    defaultOrientation: 'portrait',       // 纵向
-    defaultBackground: '#ffffff'          // 白色背景
-  },
-  // 文档配置 (DocumentOptions)
-  document: {
-    title: props.title || '商务应答文档',  // 文档标题
-    enableSpellcheck: false,              // 禁用拼写检查（中文环境）
-    enableMarkdown: false,                // 禁用 Markdown
-    readOnly: props.readonly,             // 只读模式
-    autoSave: {                           // 自动保存配置 (AutoSaveOptions)
-      enabled: false,                     // 禁用自动保存到 localStorage
-      interval: 0                         // 间隔为 0
+    defaultOrientation: 'portrait',
+    defaultBackground: '#ffffff',
+    showBreakMarks: true,
+    showLineNumber: false,
+    showToc: true,
+    watermark: {
+      type: 'compact',
+      alpha: 0.2,
+      fontColor: '#000',
+      fontSize: 16,
+      fontFamily: 'SimSun',
+      fontWeight: 'normal',
+      text: ''
     }
+  },
+  // 文档配置
+  document: {
+    enableSpellcheck: false,
+    readOnly: props.readonly
   },
   // 文件配置 (FileOptions)
   file: {
@@ -395,8 +388,14 @@ const switchToPageLayout = () => {
       console.log('[RichTextEditor] ✅ 已切换到分页模式')
       needsSwitchToPageLayout.value = false // 更新状态
 
-      // 切换后等待一下，让DOM更新
+      // 切换后手动添加CSS类（确保分页视图生效）
       setTimeout(() => {
+        const container = document.querySelector('.umo-editor-container')
+        if (container) {
+          container.classList.add('umo-page-mode')
+          container.classList.remove('umo-continuous-mode')
+          console.log('[RichTextEditor] 已添加 umo-page-mode 类')
+        }
         console.log('[RichTextEditor] 分页模式DOM应该已更新')
       }, 500)
     } else {
@@ -655,6 +654,35 @@ const setStreaming = (streaming: boolean) => {
   console.log('[RichTextEditor] 设置流式状态:', streaming)
 }
 
+// 获取底层编辑器实例
+const getEditor = () => {
+  return umoEditorRef.value?.getEditor?.()
+}
+
+// 插入原生分页符
+const insertPageBreak = () => {
+  try {
+    let editor = getEditor()
+
+    // 解包 RefImpl
+    if (editor && editor.__v_isRef) {
+      editor = editor.value
+    }
+
+    if (editor && editor.commands && editor.commands.setPageBreak) {
+      editor.commands.setPageBreak()
+      console.log('[RichTextEditor] 已插入原生分页符')
+      return true
+    } else {
+      console.warn('[RichTextEditor] setPageBreak 命令不可用')
+      return false
+    }
+  } catch (error) {
+    console.error('[RichTextEditor] 插入分页符失败:', error)
+    return false
+  }
+}
+
 // 暴露方法给父组件
 defineExpose({
   getContent,
@@ -662,7 +690,9 @@ defineExpose({
   appendContent,
   clear,
   refreshOutline,
-  setStreaming
+  setStreaming,
+  getEditor,  // 暴露底层编辑器实例
+  insertPageBreak  // 新增：插入原生分页符
 })
 
 // 清理localStorage中的Umo Editor数据

@@ -200,8 +200,8 @@ def create_app() -> Flask:
         # CSP - 内容安全策略 (支持 docx-preview 的 base64 图片)
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud https://cdn.jsdelivr.net https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
             "font-src 'self' data:; "
             "img-src 'self' data: blob: https:; "  # 添加 blob: 支持
             "media-src 'self' data: blob:; "        # 添加 media-src 支持媒体文件

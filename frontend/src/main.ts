@@ -11,7 +11,11 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 
 // Umo Editor 富文本编辑器
 import { useUmoEditor } from '@umoteam/editor'
-// 样式将在组件中按需引入
+import '@umoteam/editor/style'  // 导入 Umo Editor 样式
+
+// Umo Viewer 文档查看器
+import { useUmoViewer } from '@umoteam/viewer'
+import '@umoteam/viewer/style'  // 导入 Umo Viewer 样式
 
 import App from './App.vue'
 import router from './router'
@@ -47,13 +51,35 @@ async function initApp() {
   // Umo Editor 富文本编辑器 (v8.x)
   try {
     app.use(useUmoEditor, {
-      // v8.x 使用默认配置
-      // 图片上传和保存等功能在组件层面配置
+      // 全局配置：确保 page 扩展正确初始化
+      page: {
+        layouts: ['page', 'web'],
+        defaultMargin: {
+          left: 3.18,
+          right: 3.18,
+          top: 2.54,
+          bottom: 2.54
+        },
+        defaultOrientation: 'portrait',
+        defaultBackground: '#ffffff',
+        showBreakMarks: true
+      },
+      toolbar: {
+        defaultMode: 'ribbon'
+      }
     })
-    console.log('[App] Umo Editor v8.x 注册成功')
+    console.log('[App] Umo Editor v8.x 注册成功（含分页配置）')
   } catch (error) {
     console.error('[App] Umo Editor 注册失败:', error)
   }
+
+  // Umo Viewer 文档查看器（暂时不使用）
+  // try {
+  //   app.use(useUmoViewer, {})
+  //   console.log('[App] Umo Viewer 注册成功')
+  // } catch (error) {
+  //   console.error('[App] Umo Viewer 注册失败:', error)
+  // }
 
   // Element Plus 组件会通过 unplugin-vue-components 自动按需引入
   // 不再需要 app.use(ElementPlus)

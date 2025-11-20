@@ -67,6 +67,62 @@
         </el-row>
       </el-card>
 
+      <!-- 项目文档展示 -->
+      <el-card v-if="selectedProjectId && (showTenderFile || showTechnicalFile)" class="documents-card">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">
+              <i class="bi-folder2-open"></i>
+              项目文档
+            </span>
+          </div>
+        </template>
+
+        <el-row :gutter="16">
+          <!-- 标书文件 -->
+          <el-col v-if="showTenderFile && currentDocuments.tenderFile" :xs="24" :sm="12">
+            <div class="document-item">
+              <div class="document-header">
+                <el-icon class="document-icon" color="#409EFF"><DocumentIcon /></el-icon>
+                <span class="document-label">招标文档：</span>
+              </div>
+              <div class="document-info">
+                <el-tag type="info" size="large">{{ currentDocuments.tenderFile.name }}</el-tag>
+                <el-text size="small" type="info" style="margin-left: 8px">
+                  {{ formatFileSize(currentDocuments.tenderFile.size) }}
+                </el-text>
+              </div>
+            </div>
+          </el-col>
+
+          <!-- 技术文件 -->
+          <el-col v-if="showTechnicalFile && currentDocuments.technicalFile" :xs="24" :sm="12">
+            <div class="document-item">
+              <div class="document-header">
+                <el-icon class="document-icon" color="#67C23A"><DocumentIcon /></el-icon>
+                <span class="document-label">技术需求文档：</span>
+              </div>
+              <div class="document-info">
+                <el-tag type="success" size="large">{{ currentDocuments.technicalFile.name }}</el-tag>
+                <el-text size="small" type="info" style="margin-left: 8px">
+                  {{ formatFileSize(currentDocuments.technicalFile.size) }}
+                </el-text>
+                <el-button
+                  type="primary"
+                  size="small"
+                  plain
+                  style="margin-left: 12px"
+                  @click="previewTechnicalFile"
+                >
+                  <el-icon style="margin-right: 4px"><View /></el-icon>
+                  预览
+                </el-button>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
+      </el-card>
+
       <!-- 两组对比配置 -->
       <el-row :gutter="16" style="margin-top: 16px">
         <!-- 第一组：固定配置 -->
@@ -93,14 +149,18 @@
               <el-form-item label="提示词">
                 <el-input
                   v-model="group1Prompt"
+                  v-loading="promptLoading"
                   type="textarea"
                   :rows="12"
                   placeholder="当前使用的大纲生成提示词"
                   disabled
                 />
                 <template #extra>
-                  <el-text size="small" type="info">
-                    这是当前系统使用的提示词（只读）
+                  <el-text v-if="promptLoading" size="small" type="warning">
+                    正在从后端加载真实提示词配置...
+                  </el-text>
+                  <el-text v-else size="small" type="success">
+                    ✓ 已加载系统提示词模板。实际使用时，{analysis} 占位符会被替换为标书的具体需求分析结果，确保每个标书的大纲都是个性化的。
                   </el-text>
                 </template>
               </el-form-item>
@@ -123,12 +183,9 @@
             <el-form label-position="top">
               <el-form-item label="模型">
                 <el-select v-model="group2Model" placeholder="选择模型">
-                  <el-option label="GPT-4" value="gpt-4" />
-                  <el-option label="GPT-4o" value="gpt-4o" />
-                  <el-option label="GPT-4o-mini" value="gpt-4o-mini" />
-                  <el-option label="GPT-3.5-turbo" value="gpt-3.5-turbo" />
-                  <el-option label="Claude-3-Opus" value="claude-3-opus" />
-                  <el-option label="Claude-3-Sonnet" value="claude-3-sonnet" />
+                  <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
+                  <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
+                  <el-option label="GPT4o Mini（推荐）" value="shihuang-gpt4o-mini" />
                 </el-select>
               </el-form-item>
 
@@ -232,37 +289,60 @@
         </el-row>
       </el-card>
     </div>
+
+    <!-- 文档预览对话框 -->
+    <DocumentPreview
+      v-model="previewVisible"
+      :file-url="previewFileUrl"
+      :file-name="previewFileName"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
-  Play as PlayIcon,
+  VideoPlay as PlayIcon,
   Refresh as RefreshIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
+  Document as DocumentIcon,
+  View
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { tenderApi, companyApi } from '@/api'
+import { useProjectDocuments } from '@/composables'
+import { HitlFileAlert, DocumentPreview } from '@/components'
+
+// ==================== Composables ====================
+
+const {
+  projects: projectsFromComposable,
+  selectedProject,
+  currentDocuments,
+  loadProjects: loadProjectsFromComposable,
+  handleProjectChange: handleProjectChangeComposable
+} = useProjectDocuments()
 
 // ==================== State ====================
 
 // 项目和公司
-const projects = ref<any[]>([])
+const projects = projectsFromComposable
 const companies = ref<any[]>([])
 const selectedProjectId = ref<number | null>(null)
 const selectedCompanyId = ref<number | null>(null)
 
-// 配置组1（固定）
-const group1Prompt = ref(`你是一个专业的技术方案大纲生成助手。请根据招标文档的需求分析结果，生成一份结构化的技术方案应答大纲。
+// 文档展示状态
+const showTenderFile = ref(false)
+const showTechnicalFile = ref(false)
 
-要求：
-1. 大纲应该包含3-4级标题
-2. 每个章节应该有明确的主题和子主题
-3. 章节之间应该有逻辑关系
-4. 大纲应该全面覆盖招标文档中的技术需求
+// 文档预览状态
+const previewVisible = ref(false)
+const previewFileUrl = ref('')
+const previewFileName = ref('')
 
-请以JSON格式返回大纲结构。`)
+// 配置组1（固定 - 从后端加载）
+const group1Prompt = ref('正在加载提示词配置...')
+const promptLoading = ref(true)
 
 // 配置组2（可编辑）
 const group2Model = ref('')
@@ -285,18 +365,21 @@ const canGenerate = computed(() => {
 // ==================== Methods ====================
 
 /**
- * 加载项目列表
+ * 格式化文件大小
+ */
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '未知大小'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+/**
+ * 加载项目列表（使用 composable）
  */
 async function loadProjects() {
-  try {
-    const response = await tenderApi.getProjects()
-    if (response.success && response.data?.items) {
-      projects.value = response.data.items
-    }
-  } catch (error) {
-    console.error('加载项目列表失败:', error)
-    ElMessage.error('加载项目列表失败')
-  }
+  await loadProjectsFromComposable()
 }
 
 /**
@@ -315,13 +398,65 @@ async function loadCompanies() {
 }
 
 /**
+ * 加载提示词配置
+ */
+async function loadPrompts() {
+  promptLoading.value = true
+  try {
+    const response = await tenderApi.getOutlineGenerationPrompts()
+    console.log('提示词API响应:', response)
+    if (response.success && response.data) {
+      // 使用 generate_outline 提示词作为基准组显示
+      const promptData = response.data.prompts || response.data
+      group1Prompt.value = promptData.generate_outline || '未找到提示词配置'
+      console.log('✓ 提示词已加载，长度:', group1Prompt.value.length)
+    } else {
+      group1Prompt.value = '未找到提示词配置'
+    }
+  } catch (error) {
+    console.error('加载提示词配置失败:', error)
+    ElMessage.error('加载提示词配置失败')
+    group1Prompt.value = '加载失败，请刷新页面重试'
+  } finally {
+    promptLoading.value = false
+  }
+}
+
+/**
  * 项目切换事件
  */
-function handleProjectChange(projectId: number | null) {
+async function handleProjectChange(projectId: number | null) {
+  // 重置文档展示状态
+  showTenderFile.value = false
+  showTechnicalFile.value = false
+
   if (!projectId) {
     selectedCompanyId.value = null
+    await handleProjectChangeComposable(null)
     return
   }
+
+  // 使用 composable 加载项目文档
+  await handleProjectChangeComposable(projectId, {
+    onClear: () => {
+      // 清空状态
+      showTenderFile.value = false
+      showTechnicalFile.value = false
+    },
+    onDocumentsLoaded: (docs) => {
+      // 如果有标书文件，显示它
+      if (docs.tenderFile) {
+        showTenderFile.value = true
+        console.log('✅ 标书文件已加载:', docs.tenderFile.name)
+      }
+
+      // 如果有技术文件，显示它
+      if (docs.technicalFile) {
+        showTechnicalFile.value = true
+        console.log('✅ 技术文件已加载:', docs.technicalFile.name)
+      }
+    }
+  })
 
   // 自动选择项目关联的公司
   const project = projects.value.find(p => p.id === projectId)
@@ -378,11 +513,26 @@ function handleReset() {
   group2Time.value = ''
 }
 
+/**
+ * 预览技术文件
+ */
+function previewTechnicalFile() {
+  if (!currentDocuments.value.technicalFile) {
+    ElMessage.warning('技术文件不存在')
+    return
+  }
+
+  previewFileUrl.value = currentDocuments.value.technicalFile.url
+  previewFileName.value = currentDocuments.value.technicalFile.name
+  previewVisible.value = true
+}
+
 // ==================== Lifecycle ====================
 
 onMounted(() => {
   loadProjects()
   loadCompanies()
+  loadPrompts()  // 加载提示词配置
 })
 </script>
 
@@ -456,7 +606,8 @@ onMounted(() => {
 
 .selection-card,
 .config-card,
-.result-card {
+.result-card,
+.documents-card {
   margin-bottom: 16px;
 
   :deep(.el-card__header) {
@@ -466,6 +617,54 @@ onMounted(() => {
 
   :deep(.el-card__body) {
     padding: 20px;
+  }
+}
+
+// ==================== 文档展示样式 ====================
+
+.documents-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #f8f9fb 100%);
+  border: 1px solid var(--border-light, #e5e7eb);
+
+  .document-item {
+    padding: 16px;
+    background: var(--bg-white, #ffffff);
+    border-radius: var(--border-radius-md, 8px);
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
+      transform: translateY(-2px);
+    }
+
+    .document-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+
+      .document-icon {
+        font-size: 20px;
+      }
+
+      .document-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary, #1f2937);
+      }
+    }
+
+    .document-info {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .el-tag {
+        font-size: 13px;
+      }
+    }
   }
 }
 

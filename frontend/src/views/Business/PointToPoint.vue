@@ -117,10 +117,9 @@
           <el-col :span="12" v-if="config.responseMode === 'ai'">
             <el-form-item label="AI模型">
               <el-select v-model="config.aiModel" style="width: 100%">
-                <el-option label="始皇-GPT4o迷你版（快速高效）" value="shihuang-gpt4o-mini" />
-                <el-option label="始皇-GPT4专业版（深度分析）" value="shihuang-gpt4" />
-                <el-option label="GPT-4O Mini（推荐）" value="gpt-4o-mini" />
-                <el-option label="GPT-4O（高质量）" value="gpt-4o" />
+                <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
+                <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
+                <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
               </el-select>
             </el-form-item>
           </el-col>

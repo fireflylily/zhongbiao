@@ -244,21 +244,19 @@ async function loadStatistics(): Promise<void> {
   loadingStats.value = true
 
   try {
-    // 模拟API调用 - 实际应该调用 tenderApi.getStatistics()
-    // const response = await tenderApi.getStatistics()
+    const response = await tenderApi.getDashboardStatistics()
 
-    // 临时模拟数据
-    setTimeout(() => {
+    if (response.success && response.data) {
       statistics.value = {
-        totalProjects: 156,
-        inProgressProjects: 23,
-        wonThisMonth: 8,
-        pendingTasks: 12
+        totalProjects: response.data.totalProjects,
+        inProgressProjects: response.data.inProgressProjects,
+        wonThisMonth: response.data.wonThisMonth,
+        pendingTasks: response.data.pendingTasks
       }
-      loadingStats.value = false
-    }, 500)
+    }
   } catch (err: any) {
     showError('加载统计数据失败: ' + err.message)
+  } finally {
     loadingStats.value = false
   }
 }

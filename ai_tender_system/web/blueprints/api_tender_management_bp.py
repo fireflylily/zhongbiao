@@ -252,6 +252,83 @@ def get_tender_management_list():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@api_tender_management_bp.route('/dashboard-stats', methods=['GET'])
+def get_dashboard_statistics():
+    """
+    获取工作台全局统计数据
+
+    Returns:
+        {
+            "success": true,
+            "data": {
+                "totalProjects": 156,
+                "inProgressProjects": 23,
+                "wonThisMonth": 8,
+                "pendingTasks": 12
+            }
+        }
+    """
+    try:
+        db = get_knowledge_base_db()
+
+        # 1. 总项目数
+        total_projects_query = """
+            SELECT COUNT(*) as count FROM tender_projects
+        """
+        total_result = db.execute_query(total_projects_query, fetch_one=True)
+        total_projects = total_result['count'] if total_result else 0
+
+        # 2. 进行中的项目数 (状态为 pending 或 running)
+        in_progress_query = """
+            SELECT COUNT(DISTINCT p.project_id) as count
+            FROM tender_projects p
+            LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
+            WHERE t.overall_status IN ('pending', 'running')
+               OR p.hitl_overall_status IN ('pending', 'in_progress')
+        """
+        in_progress_result = db.execute_query(in_progress_query, fetch_one=True)
+        in_progress_projects = in_progress_result['count'] if in_progress_result else 0
+
+        # 3. 本月中标数 (暂时用已完成项目数代替，后续可以添加中标状态字段)
+        from datetime import datetime
+        current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
+
+        won_this_month_query = """
+            SELECT COUNT(*) as count
+            FROM tender_projects
+            WHERE status = 'won'
+              AND updated_at >= ?
+        """
+        won_result = db.execute_query(won_this_month_query, (current_month_start,), fetch_one=True)
+        won_this_month = won_result['count'] if won_result else 0
+
+        # 4. 待处理任务数 (需要人工干预的HITL任务)
+        pending_tasks_query = """
+            SELECT COUNT(*) as count
+            FROM tender_projects
+            WHERE hitl_overall_status = 'pending'
+               OR (hitl_overall_status = 'in_progress'
+                   AND (step1_status = 'pending' OR step2_status = 'pending' OR step3_status = 'pending'))
+        """
+        pending_result = db.execute_query(pending_tasks_query, fetch_one=True)
+        pending_tasks = pending_result['count'] if pending_result else 0
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'totalProjects': total_projects,
+                'inProgressProjects': in_progress_projects,
+                'wonThisMonth': won_this_month,
+                'pendingTasks': pending_tasks
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取工作台统计数据失败: {e}")
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @api_tender_management_bp.route('/stats/<int:project_id>', methods=['GET'])
 def get_tender_project_stats(project_id):
     """

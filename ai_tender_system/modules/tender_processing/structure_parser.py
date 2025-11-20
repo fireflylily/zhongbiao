@@ -210,9 +210,15 @@ class DocumentStructureParser:
                     chapters = self._parse_chapters_from_doc(doc)
                     chapters = self._locate_chapter_content(doc, chapters)
             else:
-                # 无目录：使用标题样式识别
-                self.logger.info("未检测到目录，使用标题样式识别方案")
-                chapters = self._parse_chapters_from_doc(doc)
+                # 无目录：优先使用方法五（大纲级别识别）
+                self.logger.info("未检测到目录，使用方法五（大纲级别识别）")
+                chapters = self._parse_chapters_by_outline_level(doc)
+
+                # 如果识别章节太少，回退到标题样式识别
+                if len(chapters) < 3:
+                    self.logger.warning(f"方法五识别效果不佳（只找到{len(chapters)}个章节），回退到标题样式识别")
+                    chapters = self._parse_chapters_from_doc(doc)
+
                 chapters = self._locate_chapter_content(doc, chapters)
 
             # 2. 构建层级树
@@ -418,6 +424,82 @@ class DocumentStructureParser:
                     f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
                 )
 
+        return chapters
+
+    def _parse_chapters_by_outline_level(self, doc: Document) -> List[ChapterNode]:
+        """
+        方法五：基于Word大纲级别（outlineLevel）识别章节
+
+        这是最纯粹的方法，只依赖Word文档的官方大纲级别元数据，
+        不使用样式名、字体大小等启发式方法。
+
+        Args:
+            doc: python-docx Document 对象
+
+        Returns:
+            章节列表（扁平结构，未构建树）
+        """
+        chapters = []
+        chapter_counter = 0
+
+        self.logger.info("使用方法五：大纲级别识别")
+
+        for para_idx, paragraph in enumerate(doc.paragraphs):
+            title = paragraph.text.strip()
+
+            # 跳过空段落
+            if not title:
+                continue
+
+            # 检查段落的大纲级别属性
+            level = 0
+            try:
+                pPr = paragraph._element.pPr
+                if pPr is not None:
+                    outlineLvl = pPr.outlineLvl
+                    if outlineLvl is not None:
+                        outline_level_val = int(outlineLvl.val)
+                        # Word大纲级别：0=一级, 1=二级, 2=三级
+                        if outline_level_val <= 2:
+                            level = outline_level_val + 1  # 转换为1-3
+            except (AttributeError, TypeError):
+                pass  # 没有大纲级别，跳过
+
+            # 只处理有大纲级别的段落
+            if level > 0:
+                # 过滤标题页内容
+                if self._is_title_page_content(para_idx, title, len(doc.paragraphs)):
+                    self.logger.debug(f"跳过标题页内容: 段落{para_idx} '{title}'")
+                    continue
+
+                # 判断是否匹配白/黑名单
+                auto_selected = self._matches_whitelist(title)
+                skip_recommended = self._matches_blacklist(title)
+
+                if skip_recommended:
+                    auto_selected = False
+
+                chapter = ChapterNode(
+                    id=f"ch_{chapter_counter}",
+                    level=level,
+                    title=title,
+                    para_start_idx=para_idx,
+                    para_end_idx=None,  # 稍后计算
+                    word_count=0,       # 稍后计算
+                    preview_text="",    # 稍后提取
+                    auto_selected=auto_selected,
+                    skip_recommended=skip_recommended
+                )
+
+                chapters.append(chapter)
+                chapter_counter += 1
+
+                self.logger.debug(
+                    f"找到章节 [大纲Level{level}]: {title} "
+                    f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+                )
+
+        self.logger.info(f"方法五识别完成：找到 {len(chapters)} 个章节")
         return chapters
 
     def _get_heading_level(self, paragraph) -> int:
@@ -1978,10 +2060,18 @@ class DocumentStructureParser:
             result = self.parse_document_structure(doc_path)
             chapters = self._flatten_chapters(result["chapters"])
 
+            # ⭐ 关键修复：过滤掉父章节已被选中的子章节，避免重复导出
+            filtered_chapter_ids = self._filter_redundant_chapters(chapter_ids)
+            if len(filtered_chapter_ids) < len(chapter_ids):
+                removed_count = len(chapter_ids) - len(filtered_chapter_ids)
+                self.logger.info(f"去重完成：移除了 {removed_count} 个冗余子章节")
+                self.logger.info(f"  原始章节列表: {chapter_ids}")
+                self.logger.info(f"  去重后章节列表: {filtered_chapter_ids}")
+
             # 按ID查找目标章节并按原文档顺序排序
             target_chapters = []
             for ch in chapters:
-                if ch["id"] in chapter_ids:
+                if ch["id"] in filtered_chapter_ids:
                     target_chapters.append(ch)
 
             if not target_chapters:
@@ -2064,6 +2154,40 @@ class DocumentStructureParser:
 
         traverse(chapter_dicts)
         return flat
+
+    def _filter_redundant_chapters(self, chapter_ids: List[str]) -> List[str]:
+        """
+        过滤掉父章节已被选中的子章节，避免重复导出
+
+        例如：如果同时选择了 ch_3 和 ch_3_2，则只保留 ch_3
+
+        Args:
+            chapter_ids: 原始章节ID列表
+
+        Returns:
+            去重后的章节ID列表
+        """
+        filtered_ids = []
+
+        for chapter_id in chapter_ids:
+            # 检查是否有父章节已在列表中
+            has_parent_selected = False
+
+            # 分析章节ID的层级结构（ch_3_2_1 -> ["ch_3", "ch_3_2", "ch_3_2_1"]）
+            parts = chapter_id.split('_')
+            for i in range(1, len(parts)):
+                # 构建可能的父章节ID
+                parent_id = '_'.join(parts[:i+1])
+                if parent_id != chapter_id and parent_id in chapter_ids:
+                    has_parent_selected = True
+                    self.logger.debug(f"跳过子章节 {chapter_id}，因为父章节 {parent_id} 已被选中")
+                    break
+
+            # 如果没有父章节被选中，保留该章节
+            if not has_parent_selected:
+                filtered_ids.append(chapter_id)
+
+        return filtered_ids
 
     # ========================================
     # 新增：基于语义锚点的解析方法

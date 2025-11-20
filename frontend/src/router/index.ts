@@ -41,7 +41,8 @@ const scrollBehavior: RouterScrollBehavior = (to, from, savedPosition) => {
  */
 export const router = createRouter({
   // 使用Hash模式（不需要服务器配置，适合静态部署）
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  // ✅ Hash路由的base必须是根路径，不能使用/static/dist/
+  history: createWebHashHistory('/'),
 
   // 路由配置
   routes,
@@ -69,7 +70,7 @@ export default router
  */
 export function resetRouter(): void {
   const newRouter = createRouter({
-    history: createWebHashHistory(import.meta.env.BASE_URL),
+    history: createWebHashHistory('/'),  // ✅ 同步修复
     routes
   })
 
