@@ -248,9 +248,10 @@ class Config:
         }
         
         # Web配置
+        # 标准端口：8110（与Nginx、Docker配置统一）
         self.web_config = {
             'host': os.getenv('WEB_HOST', '0.0.0.0'),
-            'port': int(os.getenv('WEB_PORT', '8082')),
+            'port': int(os.getenv('WEB_PORT', '8110')),  # ✅ 统一为8110
             'debug': os.getenv('DEBUG', 'True').lower() == 'true',
             'secret_key': os.getenv('SECRET_KEY', 'ai-tender-system-2025')
         }
