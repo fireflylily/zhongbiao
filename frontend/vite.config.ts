@@ -90,35 +90,11 @@ export default defineConfig({
 
           return 'assets/[name]-[hash][extname]'
         },
-        // 🚀 手动代码分割 - 将大型依赖库分离成独立chunk
+        // 🚀 简化代码分割 - 避免循环依赖
         manualChunks: (id) => {
-          // Vue核心库
-          if (id.includes('node_modules/vue') || id.includes('node_modules/@vue')) {
-            return 'vendor-vue'
-          }
-          // Element Plus UI库
-          if (id.includes('node_modules/element-plus')) {
-            return 'vendor-element-plus'
-          }
-          // 编辑器相关（可能很大）
-          if (id.includes('node_modules/@umoteam') || id.includes('node_modules/tinymce')) {
-            return 'vendor-editor'
-          }
-          // 图表库
-          if (id.includes('node_modules/echarts')) {
-            return 'vendor-echarts'
-          }
-          // Axios和HTTP相关
-          if (id.includes('node_modules/axios')) {
-            return 'vendor-axios'
-          }
-          // dayjs日期库
-          if (id.includes('node_modules/dayjs')) {
-            return 'vendor-dayjs'
-          }
-          // 其他node_modules库统一打包
+          // 所有node_modules统一打包为一个vendor文件
           if (id.includes('node_modules')) {
-            return 'vendor-other'
+            return 'vendor'
           }
         }
       }

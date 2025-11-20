@@ -51,24 +51,12 @@ async function initApp() {
   // Umo Editor 富文本编辑器 (v8.x)
   try {
     app.use(useUmoEditor, {
-      // 全局配置：确保 page 扩展正确初始化
-      page: {
-        layouts: ['page', 'web'],
-        defaultMargin: {
-          left: 3.18,
-          right: 3.18,
-          top: 2.54,
-          bottom: 2.54
-        },
-        defaultOrientation: 'portrait',
-        defaultBackground: '#ffffff',
-        showBreakMarks: true
-      },
+      // 简化配置，避免循环依赖
       toolbar: {
         defaultMode: 'ribbon'
       }
     })
-    console.log('[App] Umo Editor v8.x 注册成功（含分页配置）')
+    console.log('[App] Umo Editor v8.x 注册成功')
   } catch (error) {
     console.error('[App] Umo Editor 注册失败:', error)
   }
