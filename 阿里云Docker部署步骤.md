@@ -1,5 +1,7 @@
 # 阿里云Docker部署 - 最简步骤
 
+> **服务器系统**: 阿里云 Linux (Alinux) - 使用 `yum` 包管理器
+
 ## 📋 一、首次部署（3步完成）
 
 ### 1. 登录服务器
@@ -8,13 +10,35 @@ ssh lvhe@8.140.21.235
 cd /var/www/ai-tender-system
 ```
 
-### 2. 安装Docker（如果未安装）
+### 2. 确认Docker环境（通常已预装）
 ```bash
-curl -fsSL https://get.docker.com | sh
-sudo apt install docker-compose -y
+# 检查Docker版本
+docker --version
+# 输出: Docker version 26.1.3, build b72abbb
+
+# 检查docker-compose版本
+docker-compose --version
+# 输出: Docker Compose version v2.20.0
+
+# 启动并启用Docker服务
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# 将用户加入docker组（避免每次使用sudo）
 sudo usermod -aG docker $USER
 ```
-**然后重新登录SSH**
+
+**如果 docker-compose 未安装**，使用以下命令：
+```bash
+# 阿里云Linux使用yum安装pip3
+sudo yum install -y python3-pip
+sudo pip3 install docker-compose
+
+# 验证安装
+docker-compose --version
+```
+
+**然后重新登录SSH使配置生效**
 
 ### 3. 一键部署
 ```bash
@@ -56,13 +80,19 @@ curl http://localhost:8110/api/health
 
 ### 问题1: docker-compose命令不存在
 ```bash
-sudo apt install docker-compose -y
+# 阿里云Linux使用yum（不是apt）
+sudo yum install -y python3-pip
+sudo pip3 install docker-compose
 ```
 
-### 问题2: 权限拒绝
+### 问题2: 权限拒绝 (permission denied)
 ```bash
+# 将用户加入docker组
 sudo usermod -aG docker $USER
-# 重新登录SSH
+
+# 退出并重新登录SSH
+exit
+ssh lvhe@8.140.21.235
 ```
 
 ### 问题3: 端口被占用
@@ -104,5 +134,18 @@ python -m ai_tender_system.web.app
 
 ---
 
-**最后更新**: 2025-11-16
+## 💻 服务器环境信息
+
+- **服务器IP**: 8.140.21.235
+- **操作系统**: 阿里云 Linux (Alinux)
+- **包管理器**: yum (不是apt)
+- **Docker版本**: 26.1.3
+- **Docker Compose**: v2.20.0
+- **Python**: 3.x (系统自带)
+- **应用端口**: 8110
+
+---
+
+**最后更新**: 2025-11-20
 **问题反馈**: lvhe
+**服务器**: 阿里云ECS (Alinux系统)
