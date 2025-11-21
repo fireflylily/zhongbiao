@@ -823,6 +823,122 @@ class DocumentStructureParser:
         # 截取指定长度
         return sample_text[:sample_size]
 
+    def _calculate_paragraph_contract_score(self, doc: Document, para_idx: int, window_size: int = 20) -> float:
+        """
+        计算段落周围的合同密度分数（滑动窗口）
+
+        用于在识别章节时快速判断该段落是否位于合同区域内
+
+        Args:
+            doc: Word文档对象
+            para_idx: 段落索引
+            window_size: 窗口大小（检查前后N个段落，默认20）
+
+        Returns:
+            合同密度分数 (0.0-1.0)
+        """
+        # 计算窗口范围（前后各一半）
+        half_window = window_size // 2
+        start_idx = max(0, para_idx - half_window)
+        end_idx = min(len(doc.paragraphs), para_idx + half_window + 1)
+
+        # 提取窗口内的文本
+        window_text = ""
+        for i in range(start_idx, end_idx):
+            para_text = doc.paragraphs[i].text.strip()
+            if para_text:
+                window_text += para_text + "\n"
+
+        # 使用现有的合同密度计算方法
+        density = self._calculate_contract_density(window_text)
+
+        return density
+
+    def _detect_contract_cluster_in_chapter(self, doc: Document, start_idx: int, end_idx: int) -> Optional[Dict]:
+        """
+        检测章节内的合同段落聚集区（精确定位起始位置）
+
+        策略：
+        1. 用50段滑动窗口扫描整个章节
+        2. 找到第一个合同密度>20%的区域
+        3. 从该区域向前精确定位聚集区起点（找到第一个包含合同特征的段落）
+
+        Args:
+            doc: Word文档对象
+            start_idx: 章节起始段落索引
+            end_idx: 章节结束段落索引
+
+        Returns:
+            如果发现聚集区：{'start': int, 'end': int, 'density': float}
+            否则返回 None
+        """
+        if end_idx - start_idx < 50:
+            # 章节太短，不需要检测
+            return None
+
+        window_size = 50  # 窗口大小：50个段落
+        density_threshold = 0.2  # 密度阈值：20%
+        step_size = 10  # 滑动步长：每次移动10段
+
+        # 滑动窗口扫描
+        for i in range(start_idx, end_idx - window_size, step_size):
+            window_end = min(i + window_size, end_idx)
+
+            # 提取窗口内文本
+            window_text = ""
+            for j in range(i, window_end):
+                if j < len(doc.paragraphs):
+                    para_text = doc.paragraphs[j].text.strip()
+                    if para_text:
+                        window_text += para_text + "\n"
+
+            # 计算合同密度
+            density = self._calculate_contract_density(window_text)
+
+            if density > density_threshold:
+                # 找到高密度区域，向前精确定位起点
+                cluster_start = i
+
+                # 向前查找第一个包含强合同特征的段落
+                strong_contract_keywords = ['甲方', '乙方', '本合同', '合同的组成', '合同组成']
+
+                for j in range(i, start_idx - 1, -1):  # 向前查找
+                    if j < len(doc.paragraphs):
+                        para_text = doc.paragraphs[j].text.strip()
+                        if any(kw in para_text for kw in strong_contract_keywords):
+                            cluster_start = j
+                        else:
+                            # 找到不含合同特征的段落，停止
+                            break
+
+                # 确定聚集区结束位置（向后扫描，找到密度降低的位置）
+                cluster_end = end_idx
+                for j in range(window_end, end_idx, 10):
+                    check_end = min(j + 50, end_idx)
+                    check_text = "\n".join(
+                        doc.paragraphs[k].text.strip()
+                        for k in range(j, check_end)
+                        if k < len(doc.paragraphs) and doc.paragraphs[k].text.strip()
+                    )
+                    check_density = self._calculate_contract_density(check_text)
+
+                    if check_density < density_threshold:
+                        cluster_end = j - 1
+                        break
+
+                self.logger.info(
+                    f"检测到合同聚集区: 段落{cluster_start}-{cluster_end} "
+                    f"(章节范围:{start_idx}-{end_idx}, 合同密度:{density:.1%})"
+                )
+
+                return {
+                    'start': cluster_start,
+                    'end': cluster_end,
+                    'density': density
+                }
+
+        return None
+
     def _calculate_dynamic_threshold(self, toc_items_count: int, doc_paragraph_count: int) -> float:
         """
         根据文档特征动态计算相似度阈值
@@ -1608,6 +1724,9 @@ class DocumentStructureParser:
 
         total_paras = len(doc.paragraphs)
 
+        # 🆕 用于收集需要插入的合同章节
+        contract_chapters_to_insert = []
+
         for i, chapter in enumerate(chapters_sorted):
             # 确定章节结束位置（下一个同级或更高级标题的前一个段落）
             next_start = total_paras  # 默认到文档末尾
@@ -1652,6 +1771,97 @@ class DocumentStructureParser:
                         self.logger.debug(
                             f"  ✓ 合同章节已标记: '{chapter.title}' - {reason}"
                         )
+
+            # 🆕 新增：检测章节内是否有合同聚集区（用于拆分章节）
+            contract_cluster = self._detect_contract_cluster_in_chapter(
+                doc, chapter.para_start_idx, chapter.para_end_idx
+            )
+
+            if contract_cluster:
+                cluster_start = contract_cluster['start']
+                cluster_end = contract_cluster['end']
+                density = contract_cluster['density']
+
+                # 确保聚集区起点在章节内且有足够的前置内容
+                min_content_length = 1000  # 前半部分至少1000字
+
+                if cluster_start > chapter.para_start_idx + 5:  # 至少跳过5个段落
+                    # 计算前半部分的字数
+                    front_content = "\n".join(
+                        doc.paragraphs[j].text.strip()
+                        for j in range(chapter.para_start_idx + 1, cluster_start)
+                        if j < len(doc.paragraphs)
+                    )
+                    front_word_count = len(front_content.replace(' ', '').replace('\n', ''))
+
+                    if front_word_count >= min_content_length:
+                        self.logger.warning(
+                            f"⚠️ 章节将被拆分: '{chapter.title}' "
+                            f"→ 正常部分({chapter.para_start_idx}-{cluster_start-1}, {front_word_count}字) "
+                            f"+ 合同部分({cluster_start}-{cluster_end}, 密度{density:.1%})"
+                        )
+
+                        # 截断当前章节（只保留合同之前的部分）
+                        original_end = chapter.para_end_idx
+                        chapter.para_end_idx = cluster_start - 1
+
+                        # 重新计算缩短后的章节内容
+                        content_text, preview_text = self._extract_chapter_content_with_tables(
+                            doc, chapter.para_start_idx, chapter.para_end_idx
+                        )
+                        chapter.word_count = len(content_text.replace(' ', '').replace('\n', ''))
+                        chapter.preview_text = preview_text
+
+                        # 🆕 创建合同章节（标记为待插入）
+                        contract_chapter = ChapterNode(
+                            id=f"ch_{i}_contract",  # 临时ID，后续会重新分配
+                            level=chapter.level,  # 与原章节同级
+                            title="[检测到的合同条款-需人工确认]",
+                            para_start_idx=cluster_start,
+                            para_end_idx=original_end,
+                            word_count=0,
+                            preview_text="",
+                            auto_selected=False,
+                            skip_recommended=True  # 标记为推荐跳过
+                        )
+
+                        # 计算合同章节内容
+                        contract_content, contract_preview = self._extract_chapter_content_with_tables(
+                            doc, contract_chapter.para_start_idx, contract_chapter.para_end_idx
+                        )
+                        contract_chapter.word_count = len(contract_content.replace(' ', '').replace('\n', ''))
+                        contract_chapter.preview_text = contract_preview
+
+                        # 添加到待插入列表（记录插入位置）
+                        contract_chapters_to_insert.append((i + 1, contract_chapter))
+
+                        self.logger.info(
+                            f"✂️ 章节拆分完成: "
+                            f"正常部分({chapter.para_start_idx}-{chapter.para_end_idx}, {chapter.word_count}字) "
+                            f"+ 合同部分({contract_chapter.para_start_idx}-{contract_chapter.para_end_idx}, {contract_chapter.word_count}字)"
+                        )
+                    else:
+                        self.logger.info(
+                            f"跳过拆分: '{chapter.title}' 前半部分内容不足({front_word_count}字 < {min_content_length}字)"
+                        )
+                else:
+                    self.logger.info(
+                        f"跳过拆分: '{chapter.title}' 合同聚集区起点太靠前(段落{cluster_start})"
+                    )
+
+        # 🆕 插入所有检测到的合同章节
+        if contract_chapters_to_insert:
+            # 按插入位置倒序插入（避免索引偏移）
+            for insert_pos, contract_chapter in reversed(contract_chapters_to_insert):
+                chapters_sorted.insert(insert_pos, contract_chapter)
+
+            self.logger.info(f"已插入 {len(contract_chapters_to_insert)} 个合同章节")
+
+            # 🆕 重新分配章节ID，确保ID连续
+            for idx, ch in enumerate(chapters_sorted):
+                ch.id = f"ch_{idx}"
+
+            self.logger.info(f"章节ID已重新分配，当前共 {len(chapters_sorted)} 个章节")
 
         return chapters_sorted
 
