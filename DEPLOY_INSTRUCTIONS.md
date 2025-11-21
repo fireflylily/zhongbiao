@@ -1,142 +1,38 @@
 # 🚀 阿里云服务器部署指南
 
-> **推荐部署方式**: 使用Docker（见下方Docker部署章节）
-> - ✅ 解决Python版本不兼容问题
-> - ✅ 依赖安装稳定快速
-> - ✅ 日常更新仅需30秒
-> - ✅ 环境完全一致
+> **当前部署方式**: 传统部署 (Supervisor + Nginx + Gunicorn)
+> - ✅ 阿里云环境已完全配置好
+> - ✅ Python版本问题已解决
+> - ✅ 所有依赖已安装完成
+> - ✅ 部署流程稳定可靠
+
+> **注意**: Docker配置文件(Dockerfile、docker-compose.yml)保留用于Railway等其他平台部署,**阿里云不需要使用Docker**
 
 ---
 
-## 📋 部署方式选择
+## 📋 部署架构说明
 
-| 特性 | Docker部署 ⭐推荐 | 传统部署 |
-|------|-----------------|---------|
-| Python版本 | ✅ 3.11统一 | ❌ 3.6不兼容 |
-| 依赖安装 | ✅ 2分钟 | ❌ 10-15分钟 |
-| 日常更新 | ✅ 30秒 | ❌ 5分钟 |
-| 环境一致性 | ✅ 完全一致 | ❌ 容易出问题 |
-| 回滚速度 | ✅ 10秒 | ❌ 5分钟 |
-| 学习成本 | 🟡 需要了解Docker | ✅ 无 |
+### 当前生产环境 (阿里云)
+
+```
+用户请求 (80端口)
+    ↓
+Nginx 反向代理
+    ↓
+Gunicorn + Flask (8110端口)
+    ↓
+Supervisor 进程管理
+```
+
+**优势**:
+- ✅ 无需Docker,减少复杂度
+- ✅ Supervisor自动重启,稳定可靠
+- ✅ Nginx静态资源缓存优化
+- ✅ 部署流程简单快速
 
 ---
 
-## 🐳 方式一：Docker部署（推荐）
-
-### 优势
-1. **解决Python版本问题** - 阿里云Python 3.6 → Docker Python 3.11
-2. **依赖安装快速稳定** - 使用清华镜像源，首次5分钟，后续秒级
-3. **环境完全隔离** - 不影响系统原有环境
-4. **一键部署更新** - 简化运维流程
-
-### 前置要求
-
-检查Docker是否安装：
-```bash
-docker --version
-docker-compose --version
-```
-
-如果未安装：
-```bash
-# 安装Docker
-curl -fsSL https://get.docker.com | sh
-
-# 安装docker-compose
-sudo apt install docker-compose
-
-# 将当前用户加入docker组（避免每次sudo）
-sudo usermod -aG docker $USER
-# 重新登录生效
-```
-
-### 首次部署步骤
-
-```bash
-# 1. SSH登录服务器
-ssh lvhe@8.140.21.235
-
-# 2. 进入项目目录
-cd /var/www/ai-tender-system
-
-# 3. 拉取最新代码（包含Docker配置）
-git pull origin master
-
-# 4. 确认环境变量已配置
-cat ai_tender_system/.env | grep AZURE
-
-# 5. 一键部署（首次约10分钟）
-./scripts/docker-deploy.sh
-```
-
-### 日常更新（30秒）
-
-```bash
-cd /var/www/ai-tender-system
-./scripts/docker-update.sh
-```
-
-### 常用命令
-
-```bash
-# 查看服务状态
-docker-compose ps
-
-# 查看实时日志
-docker-compose logs -f
-
-# 重启服务
-docker-compose restart
-
-# 停止服务
-docker-compose down
-
-# 进入容器调试
-docker-compose exec ai-tender-web bash
-```
-
-### Docker部署故障排查
-
-#### 问题1: docker-compose: command not found
-```bash
-sudo apt update
-sudo apt install docker-compose
-```
-
-#### 问题2: 权限拒绝 (Permission denied)
-```bash
-sudo usermod -aG docker $USER
-# 重新登录SSH
-```
-
-#### 问题3: 服务无法启动
-```bash
-# 查看详细日志
-docker-compose logs
-
-# 检查端口占用
-sudo lsof -ti:8110 | xargs kill -9
-
-# 重新部署
-docker-compose down
-./scripts/docker-deploy.sh
-```
-
-#### 问题4: 健康检查失败
-```bash
-# 进入容器检查
-docker-compose exec ai-tender-web bash
-python -m ai_tender_system.web.app
-
-# 检查环境变量
-docker-compose exec ai-tender-web env | grep AZURE
-```
-
----
-
-## 🔧 方式二：传统部署（不推荐，仅作备份）
-
-> ⚠️ 注意：阿里云默认Python 3.6无法运行，需要先升级Python或手动降级依赖版本
+## 🚀 阿里云部署流程 (推荐)
 
 ### 本次更新内容
 
@@ -156,14 +52,14 @@ docker-compose exec ai-tender-web env | grep AZURE
 - huangjf (智慧足迹公司,内部员工)
 - lvhe (智慧足迹公司,内部员工)
 
-### ✅ 4. Docker化部署支持
-- 添加Dockerfile.aliyun和docker-compose.yml
-- 提供一键部署和更新脚本
-- 解决Python版本和依赖问题
+### ✅ 4. 环境配置优化
+- 修复main.py路径配置问题
+- 优化Supervisor进程管理
+- 所有依赖已正确安装
 
 ---
 
-## 🔧 阿里云部署步骤
+## 📝 阿里云部署步骤
 
 ### 第一步: SSH登录服务器
 
@@ -235,15 +131,17 @@ sudo systemctl restart nginx
 
 ### 第六步: 检查Flask后端
 
-确保Flask应用正在运行:
+确保Flask应用正在运行(通过Supervisor管理):
 
 ```bash
-# 检查8110端口
-sudo lsof -ti:8110
+# 检查Supervisor状态
+sudo supervisorctl status ai-tender-system
 
-# 如果没有输出,启动Flask
-cd /var/www/ai-tender-system
-FLASK_RUN_PORT=8110 python3 -m ai_tender_system.web.app &
+# 如果未运行,重启服务
+sudo supervisorctl restart ai-tender-system
+
+# 查看应用日志
+sudo supervisorctl tail -f ai-tender-system stdout
 ```
 
 ### 第七步: 验证部署
@@ -313,17 +211,24 @@ sudo chmod -R 755 /var/www/ai-tender-system/ai_tender_system/web/static/dist/
 
 ### 问题2: 502 Bad Gateway
 
-**原因**: Flask后端未运行
+**原因**: Flask后端未运行或Supervisor异常
 
 **检查**:
 ```bash
+# 检查Supervisor状态
+sudo supervisorctl status ai-tender-system
+
+# 检查端口监听
 sudo lsof -ti:8110
 ```
 
 **修复**:
 ```bash
-cd /var/www/ai-tender-system
-FLASK_RUN_PORT=8110 python3 -m ai_tender_system.web.app &
+# 重启应用
+sudo supervisorctl restart ai-tender-system
+
+# 查看错误日志
+sudo supervisorctl tail ai-tender-system stderr
 ```
 
 ### 问题3: API请求失败
@@ -546,6 +451,35 @@ sudo systemctl start fail2ban
 
 ---
 
+## 🐳 附录: Docker配置说明
+
+项目中保留了Docker相关配置文件,但**阿里云不使用Docker部署**。这些文件的用途:
+
+### Docker文件列表
+
+| 文件 | 用途 |
+|------|------|
+| `Dockerfile` | Railway等PaaS平台部署 |
+| `Dockerfile.aliyun` | 历史配置,已废弃 |
+| `docker-compose.yml` | 本地开发环境(可选) |
+| `scripts/docker-deploy.sh` | 历史脚本,已废弃 |
+| `scripts/docker-update.sh` | 历史脚本,已废弃 |
+
+### 为什么阿里云不用Docker?
+
+1. ✅ **环境已配置好** - Python、依赖、Nginx等已完全设置
+2. ✅ **Supervisor更简单** - 进程管理稳定可靠
+3. ✅ **性能更好** - 无容器开销
+4. ✅ **运维更方便** - 直接访问文件系统和日志
+
+### 其他平台使用Docker
+
+如需在Railway、Heroku等平台部署,参考:
+- Railway: 使用 `Dockerfile`
+- 本地开发: 使用 `docker-compose.yml`
+
+---
+
 **部署完成后访问**: `http://8.140.21.235`
-**最后更新**: 2025-11-16
+**最后更新**: 2025-11-21
 **维护者**: lvhe

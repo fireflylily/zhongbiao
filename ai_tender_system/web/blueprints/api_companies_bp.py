@@ -112,6 +112,48 @@ def list_companies():
         return jsonify({'error': str(e)}), 500
 
 
+@api_companies_bp.route('/companies/list')
+def list_companies_simple():
+    """
+    获取公司简单列表 - 用于下拉框等场景
+    返回格式兼容 ABTest 用户管理模块
+    不需要认证,因为这是内部使用的接口
+    """
+    try:
+        # 获取所有公司
+        companies = kb_manager.get_companies()
+
+        # 转换为简单格式
+        result_companies = []
+        for company in companies:
+            company_id = company.get('company_id')
+            # 跳过无效的公司ID
+            if company_id is None:
+                continue
+
+            result_companies.append({
+                'company_id': company_id,
+                'company_name': company.get('company_name', '未命名公司')
+            })
+
+        # 按名称排序
+        result_companies.sort(key=lambda x: x.get('company_name', ''))
+
+        logger.info(f"获取公司简单列表成功，共 {len(result_companies)} 个公司")
+        return jsonify({
+            'code': 0,  # ABTest模块期望的返回格式
+            'message': '获取成功',
+            'data': result_companies
+        })
+
+    except Exception as e:
+        logger.error(f"获取公司简单列表失败: {e}")
+        return jsonify({
+            'code': -1,
+            'message': f'获取公司列表失败: {str(e)}'
+        }), 500
+
+
 @api_companies_bp.route('/companies/<company_id>')
 def get_company(company_id):
     """获取指定公司的详细信息"""
