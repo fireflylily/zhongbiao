@@ -18,6 +18,7 @@ from docx.oxml import CT_Tbl, CT_P
 from difflib import SequenceMatcher
 
 from common import get_module_logger
+from common.utils import resolve_file_path
 
 logger = get_module_logger("structure_parser")
 
@@ -182,8 +183,15 @@ class DocumentStructureParser:
                 self.logger.error(f".doc 文件不支持: {doc_path}")
                 raise ValueError(error_message)
 
+            # 使用智能路径解析（兼容本地和生产环境）
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            self.logger.info(f"文档路径解析成功: {doc_path} -> {doc_path_abs}")
+
             # 打开文档
-            doc = Document(doc_path)
+            doc = Document(str(doc_path_abs))
 
             # 1. 尝试检测目录
             toc_idx = self._find_toc_section(doc)
