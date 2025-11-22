@@ -252,7 +252,7 @@ def to_absolute_path(relative_path: Union[str, Path], base_path: Optional[Path] 
     base = base_path or get_project_root()
     return base / relative_path
 
-def resolve_file_path(file_path: Union[str, Path]) -> Optional[Path]:
+def resolve_file_path(file_path: Union[str, Path], logger=None) -> Optional[Path]:
     """
     智能解析文件路径（自动处理相对路径和绝对路径）
 
@@ -263,6 +263,7 @@ def resolve_file_path(file_path: Union[str, Path]) -> Optional[Path]:
 
     Args:
         file_path: 原始文件路径（可能是相对路径或绝对路径）
+        logger: 可选的日志记录器，用于输出详细诊断信息
 
     Returns:
         解析后的绝对路径Path对象，如果无法解析返回None
@@ -274,37 +275,65 @@ def resolve_file_path(file_path: Union[str, Path]) -> Optional[Path]:
         输入: /Users/.../xxx.jpg (绝对路径)
         输出: /Users/.../xxx.jpg
     """
-    if not file_path:
+    try:
+        if not file_path:
+            if logger:
+                logger.warning("resolve_file_path: 输入路径为空")
+            return None
+
+        path_obj = Path(file_path)
+        project_root = get_project_root()
+
+        if logger:
+            logger.info(f"resolve_file_path: 输入路径={file_path}, 项目根={project_root}")
+
+        # 情况1: 已经是绝对路径且存在
+        if path_obj.is_absolute():
+            exists = path_obj.exists()
+            if logger:
+                logger.info(f"resolve_file_path: 绝对路径检测 - 存在={exists}, 路径={path_obj}")
+            return path_obj if exists else None
+
+        # 情况2: 相对路径，尝试多种解析方式
+        # 2.1 直接从项目根解析: ai_tender_system/data/...
+        resolved = project_root / file_path
+        if logger:
+            logger.debug(f"resolve_file_path: 尝试路径1={resolved}, 存在={resolved.exists()}")
+        if resolved.exists():
+            if logger:
+                logger.info(f"resolve_file_path: ✅ 成功解析(方式1)={resolved}")
+            return resolved
+
+        # 2.2 添加 ai_tender_system 前缀: data/... -> ai_tender_system/data/...
+        if not str(file_path).startswith('ai_tender_system/'):
+            resolved = project_root / 'ai_tender_system' / file_path
+            if logger:
+                logger.debug(f"resolve_file_path: 尝试路径2={resolved}, 存在={resolved.exists()}")
+            if resolved.exists():
+                if logger:
+                    logger.info(f"resolve_file_path: ✅ 成功解析(方式2)={resolved}")
+                return resolved
+
+        # 2.3 去除 ai_tender_system 前缀（如果有）
+        file_path_str = str(file_path)
+        if file_path_str.startswith('ai_tender_system/'):
+            resolved = project_root / file_path_str[len('ai_tender_system/'):]
+            if logger:
+                logger.debug(f"resolve_file_path: 尝试路径3={resolved}, 存在={resolved.exists()}")
+            if resolved.exists():
+                if logger:
+                    logger.info(f"resolve_file_path: ✅ 成功解析(方式3)={resolved}")
+                return resolved
+
+        # 无法解析
+        if logger:
+            logger.error(f"resolve_file_path: ❌ 所有解析方式均失败 - 输入={file_path}, 项目根={project_root}")
         return None
 
-    path_obj = Path(file_path)
-    project_root = get_project_root()
-
-    # 情况1: 已经是绝对路径且存在
-    if path_obj.is_absolute():
-        return path_obj if path_obj.exists() else None
-
-    # 情况2: 相对路径，尝试多种解析方式
-    # 2.1 直接从项目根解析: ai_tender_system/data/...
-    resolved = project_root / file_path
-    if resolved.exists():
-        return resolved
-
-    # 2.2 添加 ai_tender_system 前缀: data/... -> ai_tender_system/data/...
-    if not str(file_path).startswith('ai_tender_system/'):
-        resolved = project_root / 'ai_tender_system' / file_path
-        if resolved.exists():
-            return resolved
-
-    # 2.3 去除 ai_tender_system 前缀（如果有）
-    file_path_str = str(file_path)
-    if file_path_str.startswith('ai_tender_system/'):
-        resolved = project_root / file_path_str[len('ai_tender_system/'):]
-        if resolved.exists():
-            return resolved
-
-    # 无法解析
-    return None
+    except Exception as e:
+        if logger:
+            logger.exception(f"resolve_file_path: 发生异常 - 输入={file_path}, 错误={e}")
+        return None
 
 if __name__ == "__main__":
     # 测试工具函数

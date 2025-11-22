@@ -1882,12 +1882,16 @@ def register_hitl_routes(app):
             doc_path = step1_data.get('file_path')
 
             # 使用智能路径解析（兼容阿里云/本地/Docker等多种环境）
-            resolved_path = resolve_file_path(doc_path)
+            logger.info(f"=== 路径解析调试信息(extract-basic-info) ===")
+            logger.info(f"原始路径: {doc_path}")
+            resolved_path = resolve_file_path(doc_path, logger=logger)
             if not resolved_path:
                 logger.error(f"文档路径解析失败: {doc_path}")
-                return jsonify({'success': False, 'error': '文档不存在'}), 404
+                return jsonify({'success': False, 'error': f'文档路径解析失败: {doc_path}'}), 404
 
             doc_path = str(resolved_path)  # 转为字符串供extractor使用
+            logger.info(f"解析后路径: {doc_path}")
+            logger.info(f"=== 路径解析调试信息结束 ===")
 
             # 创建提取器 - 使用指定的模型
             config = get_config()
@@ -2063,12 +2067,16 @@ def register_hitl_routes(app):
             doc_path = step1_data.get('file_path')
 
             # 使用智能路径解析（兼容阿里云/本地/Docker等多种环境）
-            resolved_path = resolve_file_path(doc_path)
+            logger.info(f"=== 路径解析调试信息(extract-qualifications) ===")
+            logger.info(f"原始路径: {doc_path}")
+            resolved_path = resolve_file_path(doc_path, logger=logger)
             if not resolved_path:
                 logger.error(f"文档路径解析失败: {doc_path}")
-                return jsonify({'success': False, 'error': '文档不存在'}), 404
+                return jsonify({'success': False, 'error': f'文档路径解析失败: {doc_path}'}), 404
 
             doc_path = str(resolved_path)  # 转为字符串供extractor使用
+            logger.info(f"解析后路径: {doc_path}")
+            logger.info(f"=== 路径解析调试信息结束 ===")
 
             # 创建提取器 - 使用指定的模型
             config = get_config()
