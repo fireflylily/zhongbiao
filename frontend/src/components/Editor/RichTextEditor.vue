@@ -56,7 +56,7 @@
     <!-- 编辑器主体 -->
     <div class="editor-body">
       <!-- 左侧目录 -->
-      <div v-show="!outlineCollapsed" class="outline-sidebar">
+      <div v-if="showOutline && !outlineCollapsed" class="outline-sidebar">
         <div class="outline-header">
           <h4>📑 目录</h4>
           <el-button
@@ -99,7 +99,7 @@
       </div>
 
       <!-- 展开按钮（折叠后显示） -->
-      <div v-if="outlineCollapsed" class="outline-toggle" @click="outlineCollapsed = false">
+      <div v-if="showOutline && outlineCollapsed" class="outline-toggle" @click="outlineCollapsed = false">
         <el-icon><DArrowRight /></el-icon>
         <span class="toggle-text">展开目录</span>
       </div>
@@ -144,6 +144,7 @@ interface Props {
   height?: number | string
   readonly?: boolean
   streaming?: boolean
+  showOutline?: boolean
 }
 
 interface Emits {
@@ -158,7 +159,8 @@ const props = withDefaults(defineProps<Props>(), {
   title: '文档编辑',
   height: 600,
   readonly: false,
-  streaming: false
+  streaming: false,
+  showOutline: true
 })
 
 const emit = defineEmits<Emits>()
@@ -193,7 +195,7 @@ const editorOptions = computed(() => ({
     defaultBackground: '#ffffff',
     showBreakMarks: true,
     showLineNumber: false,
-    showToc: true,
+    showToc: false,
     watermark: {
       type: 'compact',
       alpha: 0.2,
@@ -526,6 +528,9 @@ const debouncedRefreshOutline = () => {
 
 const refreshOutline = async () => {
   if (!umoEditorRef.value) return
+
+  // 如果不显示大纲，跳过刷新
+  if (!props.showOutline) return
 
   refreshingOutline.value = true
 
@@ -945,6 +950,15 @@ onBeforeUnmount(() => {
         .el-icon {
           font-size: 16px;
         }
+      }
+
+      // 【修复】强制隐藏Umo Editor内置的目录/大纲面板（避免与我们自己的目录重复）
+      :deep(.umo-toc-panel),
+      :deep(.umo-outline-panel),
+      :deep(.umo-toc-sidebar),
+      :deep([class*="toc-panel"]),
+      :deep([class*="outline-panel"]) {
+        display: none !important;
       }
     }
   }

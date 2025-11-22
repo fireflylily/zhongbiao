@@ -1,11 +1,11 @@
 import { d as defineComponent, r as ref, D as watch, e as createElementBlock, o as openBlock, f as createVNode, h as unref, w as withCtx, q as ElForm, ak as ElRow, ai as ElCol, s as ElFormItem, y as ElInput, b9 as ElDatePicker, Y as ElSelect, W as ElOption, aA as ElInputNumber, g as ElButton, p as createTextVNode, ad as ElIcon, ba as select_default, c as computed, k as createBlock, n as createBaseVNode, ah as resolveDynamicComponent, t as toDisplayString, l as createCommentVNode, X as ElTag, bb as files_default, ae as document_default, aE as download_default, bc as delete_default, F as Fragment, V as renderList, aB as ElText, aF as upload_default, U as normalizeClass, as as ElCard, S as onMounted, bd as plus_default, j as ElDialog, b3 as folder_default, be as credit_card_default, bf as user_default, bg as document_checked_default, am as ElTableColumn, x as ElRadio, al as ElTable, ar as ElEmpty, bh as tickets_default, u as useRoute, M as useRouter, ax as ElTabPane, b6 as office_building_default, bi as medal_default, bj as wallet_default, aw as ElTabs } from "./vendor-MtO928VE.js";
-import { L as Loading } from "./Loading-D6Ei-uTU.js";
+import { L as Loading } from "./Loading-75jVWA4c.js";
 /* empty css                                                                           */
 /* empty css                                                                         */
 import { a as useNotification, _ as _export_sfc } from "./index.js";
 import { c as companyApi } from "./company-z4Xg082l.js";
-import { C as Card } from "./Card-CPf5jQx8.js";
-import { D as DocumentUploader } from "./DocumentUploader-BFiqpCwu.js";
+import { C as Card } from "./Card-jLaN2c6R.js";
+import { D as DocumentUploader } from "./DocumentUploader-D4BCHi8H.js";
 import "./imageCompressor-DC3BCfPz.js";
 const _hoisted_1$5 = { class: "basic-info-tab" };
 const _sfc_main$5 = /* @__PURE__ */ defineComponent({
@@ -1338,8 +1338,9 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
             emit("update");
           }
         } catch (err) {
-          console.error("保存被授权人信息失败:", err);
-          error("保存失败", err instanceof Error ? err.message : "未知错误");
+          console.error("保存被授权人信息失败:", JSON.stringify(err, null, 2));
+          const errorMessage = (err == null ? void 0 : err.message) || (err instanceof Error ? err.message : "未知错误");
+          error("保存失败", errorMessage);
         } finally {
           saving.value = false;
         }
@@ -1364,8 +1365,8 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
             throw new Error(response.error || "上传失败");
           }
         } catch (err) {
-          console.error("上传附件失败:", err);
-          const errorMsg = err instanceof Error ? err.message : "未知错误";
+          console.error("上传附件失败:", JSON.stringify(err, null, 2));
+          const errorMsg = (err == null ? void 0 : err.message) || (err instanceof Error ? err.message : "未知错误");
           error("上传失败", errorMsg);
           onError(err);
         }
@@ -1385,8 +1386,9 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
         loadAttachments();
         emit("update");
       } catch (err) {
-        console.error("删除附件失败:", err);
-        error("删除失败", err instanceof Error ? err.message : "未知错误");
+        console.error("删除附件失败:", JSON.stringify(err, null, 2));
+        const errorMsg = (err == null ? void 0 : err.message) || (err instanceof Error ? err.message : "未知错误");
+        error("删除失败", errorMsg);
       }
     };
     const loadAttachments = async () => {
@@ -1402,7 +1404,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
           };
         }
       } catch (err) {
-        console.error("加载附件失败:", err);
+        console.error("加载附件失败:", JSON.stringify(err, null, 2));
       }
     };
     onMounted(() => {
@@ -1932,7 +1934,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const PersonnelTab = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-0b3ffc62"]]);
+const PersonnelTab = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-cd34349a"]]);
 const _hoisted_1$1 = { class: "financial-tab" };
 const _hoisted_2$1 = { class: "shareholders-section" };
 const _hoisted_3$1 = { class: "section-header" };

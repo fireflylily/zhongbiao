@@ -1,10 +1,10 @@
 import { d as defineComponent, r as ref, D as watch, S as onMounted, e as createElementBlock, o as openBlock, f as createVNode, as as ElCard, w as withCtx, q as ElForm, ak as ElRow, ai as ElCol, s as ElFormItem, Y as ElSelect, F as Fragment, V as renderList, k as createBlock, W as ElOption, y as ElInput, v as ElRadioGroup, x as ElRadio, p as createTextVNode, b9 as ElDatePicker, a6 as ElDivider, g as ElButton, n as createBaseVNode, h as unref, ad as ElIcon, ah as resolveDynamicComponent, X as ElTag, t as toDisplayString, l as createCommentVNode, aE as download_default, bc as delete_default, aF as upload_default, j as ElDialog, at as ElUpload, aR as upload_filled_default, bb as files_default, bm as picture_default, bh as tickets_default, ba as select_default, ae as document_default, u as useRoute, M as useRouter } from "./vendor-MtO928VE.js";
-import { L as Loading } from "./Loading-D6Ei-uTU.js";
+import { L as Loading } from "./Loading-75jVWA4c.js";
 /* empty css                                                                           */
 /* empty css                                                                         */
 import { a as useNotification, _ as _export_sfc } from "./index.js";
 import { a as formatFileSize, f as formatDate, k as knowledgeApi } from "./formatters-DrGE7noj.js";
-import { E as Empty } from "./Empty-CMm3i0ir.js";
+import { E as Empty } from "./Empty-B61dCWeQ.js";
 import { s as smartCompressImage } from "./imageCompressor-DC3BCfPz.js";
 import { c as companyApi } from "./company-z4Xg082l.js";
 const _hoisted_1$1 = { class: "case-basic-info-tab" };

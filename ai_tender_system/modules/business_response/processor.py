@@ -482,7 +482,7 @@ class BusinessResponseProcessor:
                 'deliveryTime', 'warrantyPeriod'
             ],
             'image_fields': [
-                'seal_path', 'license_path', 'qualification_paths'
+                'license_path', 'qualification_paths'
             ]
         }
 

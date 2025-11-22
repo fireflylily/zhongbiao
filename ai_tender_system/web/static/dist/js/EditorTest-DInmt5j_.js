@@ -1,7 +1,7 @@
 import { d as defineComponent, r as ref, e as createElementBlock, o as openBlock, f as createVNode, k as createBlock, l as createCommentVNode, w as withCtx, aw as ElTabs, ax as ElTabPane, m as ElAlert, p as createTextVNode, at as ElUpload, n as createBaseVNode, ad as ElIcon, h as unref, aR as upload_filled_default, g as ElButton, as as ElCard, t as toDisplayString, A as ElMessage } from "./vendor-MtO928VE.js";
 /* empty css                                                                           */
 /* empty css                                                                         */
-import { R as RichTextEditor } from "./RichTextEditor-Bq9eh2QZ.js";
+import { R as RichTextEditor } from "./RichTextEditor-Clg90zh2.js";
 import { _ as _export_sfc } from "./index.js";
 const _hoisted_1 = { class: "editor-test-page" };
 const _hoisted_2 = { style: { "white-space": "pre-wrap", "font-size": "12px" } };

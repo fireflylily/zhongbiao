@@ -25,7 +25,6 @@ logger = get_module_logger("image_config_builder")
 # 定义基础证件类型（需要特殊处理）
 BASIC_CREDENTIALS = {
     'business_license',    # 营业执照
-    'company_seal',        # 公章
     'legal_id_front',      # 法人身份证正面
     'legal_id_back',       # 法人身份证反面
     'auth_id_front',       # 授权人身份证正面
@@ -64,7 +63,6 @@ def build_image_config(company_quals: List[Dict[str, Any]],
         image_config: 图片配置字典
             {
                 'license_path': '/path/to/营业执照.jpg',
-                'seal_path': '/path/to/公章.png',
                 'legal_id': {
                     'front': '/path/to/legal_front.jpg',
                     'back': '/path/to/legal_back.jpg'
@@ -169,12 +167,7 @@ def build_image_config(company_quals: List[Dict[str, Any]],
             image_config['license_path'] = file_path
             logger.info(f"  ✅ 营业执照: {file_path}")
 
-        # === 2. 公章 ===
-        elif qual_key == 'company_seal':
-            image_config['seal_path'] = file_path
-            logger.info(f"  ✅ 公章: {file_path}")
-
-        # === 3. 法人身份证 ===
+        # === 2. 法人身份证 ===
         elif qual_key == 'legal_id_front':
             if 'legal_id' not in image_config:
                 image_config['legal_id'] = {}
@@ -225,7 +218,6 @@ def build_image_config(company_quals: List[Dict[str, Any]],
     logger.info(f"  - 配置项数量: {len(image_config)} 个")
     logger.info(f"  - 资质证书数量: {len(qualification_paths)} 个")
     logger.info(f"  - 营业执照: {'✅' if 'license_path' in image_config else '❌'}")
-    logger.info(f"  - 公章: {'✅' if 'seal_path' in image_config else '❌'}")
     logger.info(f"  - 法人身份证: {'✅' if 'legal_id' in image_config else '❌'}")
     logger.info(f"  - 授权人身份证: {'✅' if 'auth_id' in image_config else '❌'}")
 

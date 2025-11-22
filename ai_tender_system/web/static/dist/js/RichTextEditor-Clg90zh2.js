@@ -1,11 +1,14 @@
-import { d as defineComponent, r as ref, c as computed, D as watch, S as onMounted, T as onBeforeUnmount, e as createElementBlock, o as openBlock, U as normalizeClass, n as createBaseVNode, k as createBlock, t as toDisplayString, X as ElTag, w as withCtx, f as createVNode, p as createTextVNode, h as unref, ap as loading_default, ad as ElIcon, aS as full_screen_default, g as ElButton, aD as view_default, aE as download_default, aa as withDirectives, l as createCommentVNode, ab as vShow, aT as refresh_default, F as Fragment, V as renderList, ar as ElEmpty, aU as d_arrow_left_default, aV as d_arrow_right_default, aN as mergeProps, aI as mC, aK as nextTick, A as ElMessage } from "./vendor-MtO928VE.js";
+import { d as defineComponent, r as ref, c as computed, D as watch, S as onMounted, T as onBeforeUnmount, e as createElementBlock, o as openBlock, U as normalizeClass, n as createBaseVNode, k as createBlock, t as toDisplayString, X as ElTag, w as withCtx, f as createVNode, p as createTextVNode, h as unref, ap as loading_default, ad as ElIcon, aS as full_screen_default, g as ElButton, aD as view_default, aE as download_default, l as createCommentVNode, aT as refresh_default, F as Fragment, V as renderList, ar as ElEmpty, aU as d_arrow_left_default, aV as d_arrow_right_default, aN as mergeProps, aI as mC, aK as nextTick, A as ElMessage } from "./vendor-MtO928VE.js";
 /* empty css                                                                           */
 import { _ as _export_sfc } from "./index.js";
 const _hoisted_1 = { class: "editor-header" };
 const _hoisted_2 = { class: "header-left" };
 const _hoisted_3 = { class: "header-actions" };
 const _hoisted_4 = { class: "editor-body" };
-const _hoisted_5 = { class: "outline-sidebar" };
+const _hoisted_5 = {
+  key: 0,
+  class: "outline-sidebar"
+};
 const _hoisted_6 = { class: "outline-header" };
 const _hoisted_7 = { class: "outline-list" };
 const _hoisted_8 = ["onClick"];
@@ -23,7 +26,8 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     title: { default: "文档编辑" },
     height: { default: 600 },
     readonly: { type: Boolean, default: false },
-    streaming: { type: Boolean, default: false }
+    streaming: { type: Boolean, default: false },
+    showOutline: { type: Boolean, default: true }
   },
   emits: ["update:modelValue", "save", "preview", "export", "ready"],
   setup(__props, { expose: __expose, emit: __emit }) {
@@ -56,7 +60,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
         defaultBackground: "#ffffff",
         showBreakMarks: true,
         showLineNumber: false,
-        showToc: true,
+        showToc: false,
         watermark: {
           type: "compact",
           alpha: 0.2,
@@ -268,6 +272,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     };
     const refreshOutline = async () => {
       if (!umoEditorRef.value) return;
+      if (!props.showOutline) return;
       refreshingOutline.value = true;
       try {
         if (typeof umoEditorRef.value.getTableOfContents === "function") {
@@ -550,7 +555,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
           ])
         ]),
         createBaseVNode("div", _hoisted_4, [
-          withDirectives(createBaseVNode("div", _hoisted_5, [
+          __props.showOutline && !outlineCollapsed.value ? (openBlock(), createElementBlock("div", _hoisted_5, [
             createBaseVNode("div", _hoisted_6, [
               _cache[10] || (_cache[10] = createBaseVNode("h4", null, "📑 目录", -1)),
               createVNode(_component_el_button, {
@@ -604,11 +609,9 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
                 _: 1
               })
             ])
-          ], 512), [
-            [vShow, !outlineCollapsed.value]
-          ]),
-          outlineCollapsed.value ? (openBlock(), createElementBlock("div", {
-            key: 0,
+          ])) : createCommentVNode("", true),
+          __props.showOutline && outlineCollapsed.value ? (openBlock(), createElementBlock("div", {
+            key: 1,
             class: "outline-toggle",
             onClick: _cache[3] || (_cache[3] = ($event) => outlineCollapsed.value = false)
           }, [
@@ -643,7 +646,7 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const RichTextEditor = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-a3e1a96e"]]);
+const RichTextEditor = /* @__PURE__ */ _export_sfc(_sfc_main, [["__scopeId", "data-v-347c6fc4"]]);
 export {
   RichTextEditor as R
 };

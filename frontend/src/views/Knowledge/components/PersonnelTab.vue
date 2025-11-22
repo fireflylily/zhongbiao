@@ -309,9 +309,10 @@ const handleSave = async () => {
         success('保存成功', '被授权人信息已更新')
         emit('update')
       }
-    } catch (err) {
-      console.error('保存被授权人信息失败:', err)
-      error('保存失败', err instanceof Error ? err.message : '未知错误')
+    } catch (err: any) {
+      console.error('保存被授权人信息失败:', JSON.stringify(err, null, 2))
+      const errorMessage = err?.message || (err instanceof Error ? err.message : '未知错误')
+      error('保存失败', errorMessage)
     } finally {
       saving.value = false
     }
@@ -339,9 +340,9 @@ const createUploadHandler = (qualKey: string) => {
       } else {
         throw new Error(response.error || '上传失败')
       }
-    } catch (err) {
-      console.error('上传附件失败:', err)
-      const errorMsg = err instanceof Error ? err.message : '未知错误'
+    } catch (err: any) {
+      console.error('上传附件失败:', JSON.stringify(err, null, 2))
+      const errorMsg = err?.message || (err instanceof Error ? err.message : '未知错误')
       error('上传失败', errorMsg)
       onError(err as Error)
     }
@@ -366,9 +367,10 @@ const deleteAttachment = async (type: string) => {
     success('删除成功', '附件已删除')
     loadAttachments()
     emit('update')
-  } catch (err) {
-    console.error('删除附件失败:', err)
-    error('删除失败', err instanceof Error ? err.message : '未知错误')
+  } catch (err: any) {
+    console.error('删除附件失败:', JSON.stringify(err, null, 2))
+    const errorMsg = err?.message || (err instanceof Error ? err.message : '未知错误')
+    error('删除失败', errorMsg)
   }
 }
 
@@ -385,8 +387,8 @@ const loadAttachments = async () => {
         social_security: data.social_security ? { name: data.social_security.original_filename } : null
       }
     }
-  } catch (err) {
-    console.error('加载附件失败:', err)
+  } catch (err: any) {
+    console.error('加载附件失败:', JSON.stringify(err, null, 2))
   }
 }
 

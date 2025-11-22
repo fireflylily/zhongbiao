@@ -56,7 +56,6 @@ class ImageHandler:
         # 默认图片尺寸（英寸）
         self.default_sizes = {
             'license': (6, 0),    # 营业执照：宽6英寸（约15.24厘米）
-            'seal': (2.5, 0),     # 公章：宽2.5英寸（约6.35厘米）
             'qualification': (6, 0),  # 资质证书：宽6英寸（约15.24厘米）
             'authorization': (6, 0),   # 授权书：宽6英寸（约15.24厘米）
             'certificate': (6, 0),      # 其他证书：宽6英寸（约15.24厘米）
@@ -101,7 +100,6 @@ class ImageHandler:
             doc: Word文档对象
             image_config: 图片配置信息，包含所有资质
                 {
-                    'seal_path': '公章图片路径',
                     'license_path': '营业执照路径',
                     'qualification_paths': ['资质证书路径列表'],
                     'qualification_details': [  # 资质详细信息
@@ -148,14 +146,6 @@ class ImageHandler:
                 stats['images_types'].append('营业执照')
             else:
                 stats['errors'].append('营业执照插入失败')
-
-        # 插入公章
-        if image_config.get('seal_path'):
-            if self._insert_seal(doc, image_config['seal_path'], insert_points.get('seal')):
-                stats['images_inserted'] += 1
-                stats['images_types'].append('公章')
-            else:
-                stats['errors'].append('公章插入失败')
 
         # 插入资质证书（使用详细信息进行精确插入，并追踪统计）
         qualification_details = image_config.get('qualification_details', [])
@@ -428,20 +418,7 @@ class ImageHandler:
                     })
                     self.logger.info(f"🔍 营业执照候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
 
-            # ===== 2. 公章识别 =====
-            if "公章" in text or "印章" in text:
-                category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
-                if category != 'exclude':
-                    candidates.setdefault('seal', []).append({
-                        'type': 'paragraph',
-                        'index': para_idx,
-                        'paragraph': paragraph,
-                        'category': category,
-                        'text': text[:60]
-                    })
-                    self.logger.info(f"🔍 公章候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
-
-            # ===== 3. 身份证识别（支持组合判断）=====
+            # ===== 2. 身份证识别（支持组合判断）=====
             if "身份证" in text:
                 category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
                 if category != 'exclude':
@@ -705,43 +682,6 @@ class ImageHandler:
             self.logger.error(f"查找段落后表格失败: {e}")
             return None
 
-    def _insert_seal(self, doc: Document, image_path: str, insert_point: Optional[Dict]) -> bool:
-        """插入公章"""
-        try:
-            # 解析路径（支持相对路径）
-            resolved_path = self._resolve_file_path(image_path)
-            if not os.path.exists(resolved_path):
-                self.logger.error(f"公章图片不存在: {image_path} (resolved: {resolved_path})")
-                return False
-            image_path = resolved_path  # 使用解析后的路径
-
-            if insert_point and insert_point['type'] == 'paragraph':
-                # 在找到的段落位置插入
-                target_para = insert_point['paragraph']
-
-                # 不需要分页符，公章通常内嵌在文档中
-                # 插入图片（居中）
-                img_para = self._insert_paragraph_after(target_para)
-                img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = img_para.add_run()
-                run.add_picture(image_path, width=Inches(self.default_sizes['seal'][0]))
-
-                self.logger.info(f"✅ 成功在指定位置插入公章: {image_path}")
-                return True
-            else:
-                # 降级：添加到文档末尾
-                paragraph = doc.add_paragraph()
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = paragraph.add_run()
-                run.add_picture(image_path, width=Inches(self.default_sizes['seal'][0]))
-
-                self.logger.info(f"✅ 在文档末尾插入公章: {image_path}")
-                return True
-
-        except Exception as e:
-            self.logger.error(f"❌ 插入公章失败: {e}")
-            return False
-
     def _insert_license(self, doc: Document, image_path: str, insert_point: Optional[Dict]) -> bool:
         """插入营业执照"""
         try:
@@ -979,61 +919,111 @@ class ImageHandler:
                     # 模式2：创建新表格
                     self.logger.info(f"段落后没有表格，将创建新表格")
 
-                    # 插入分页符
-                    page_break_para = self._insert_paragraph_after(target_para)
-                    page_break_para.add_run().add_break()
+                    # 【修复】先验证图片文件，避免后续失败
+                    try:
+                        from PIL import Image
+                        # 验证正面图片
+                        img_front = Image.open(front_path)
+                        front_size = img_front.size
+                        self.logger.info(f"  验证正面图片: {Path(front_path).name}, 尺寸={front_size}")
+                        img_front.close()
 
-                    # 插入标题
-                    title = self._insert_paragraph_after(page_break_para)
-                    title.text = f"{id_type}身份证"
-                    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    if title.runs:
-                        title.runs[0].font.bold = True
+                        # 验证反面图片
+                        img_back = Image.open(back_path)
+                        back_size = img_back.size
+                        self.logger.info(f"  验证反面图片: {Path(back_path).name}, 尺寸={back_size}")
+                        img_back.close()
+                    except Exception as e:
+                        self.logger.error(f"❌ 图片验证失败: {e}")
+                        self.logger.error(f"  正面图片: {front_path}, 存在={os.path.exists(front_path)}")
+                        self.logger.error(f"  反面图片: {back_path}, 存在={os.path.exists(back_path)}")
+                        return False
 
-                    # 创建表格（1行2列，用于并排显示正反面）
-                    from lxml.etree import QName
-                    from docx.table import Table
+                    # 【修复】使用简化的表格创建逻辑（避免复杂DOM操作）
+                    try:
+                        # 插入分页符
+                        page_break_para = self._insert_paragraph_after(target_para)
+                        page_break_para.add_run().add_break()
+                        self.logger.info(f"  ✓ 已插入分页符")
 
-                    # 在title后插入一个段落作为表格占位符
-                    table_placeholder = self._insert_paragraph_after(title)
+                        # 插入标题
+                        title = self._insert_paragraph_after(page_break_para)
+                        title.text = f"{id_type}身份证"
+                        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        if title.runs:
+                            title.runs[0].font.bold = True
+                        self.logger.info(f"  ✓ 已插入标题: {id_type}身份证")
 
-                    # 使用文档的add_table方法创建表格
-                    temp_table = doc.add_table(rows=2, cols=2)
+                        # 【关键修复】使用最简单可靠的方法：在文档末尾创建表格，然后移动到正确位置
+                        # 这种方法避免了复杂的DOM操作，更加稳定
+                        from docx.table import Table
+                        from docx.oxml import OxmlElement
 
-                    # 移动表格到正确位置
-                    table_element = temp_table._element
-                    table_placeholder._element.addprevious(table_element)
-                    table_placeholder._element.getparent().remove(table_placeholder._element)
+                        # 【修复】确保文档有section（节），python-docx创建表格需要section信息
+                        if len(doc.sections) == 0:
+                            self.logger.warning(f"  ⚠️ 文档缺少section定义，正在添加默认section")
+                            doc.add_section()
+                            self.logger.info(f"  ✓ 已添加默认section")
 
-                    # 创建Table对象
-                    table = Table(table_element, doc)
-                    table.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        # 方法1：直接在title后添加表格（最简单）
+                        # 先创建一个临时段落
+                        temp_para = self._insert_paragraph_after(title)
 
-                    # 第一行：标签
-                    table.rows[0].cells[0].text = "正面"
-                    table.rows[0].cells[1].text = "反面"
-                    for cell in table.rows[0].cells:
-                        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        if cell.paragraphs[0].runs:
-                            cell.paragraphs[0].runs[0].font.bold = True
+                        # 在文档末尾创建表格
+                        table = doc.add_table(rows=2, cols=2)
+                        table.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-                    # 第二行：图片
-                    front_cell = table.rows[1].cells[0]
-                    front_cell.text = ""
-                    front_para = front_cell.paragraphs[0]
-                    front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    front_run = front_para.add_run()
-                    front_run.add_picture(front_path, width=Cm(id_width_cm))
+                        # 将表格移动到临时段落的位置
+                        table._element.getparent().remove(table._element)
+                        temp_para._element.addprevious(table._element)
 
-                    back_cell = table.rows[1].cells[1]
-                    back_cell.text = ""
-                    back_para = back_cell.paragraphs[0]
-                    back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    back_run = back_para.add_run()
-                    back_run.add_picture(back_path, width=Cm(id_width_cm))
+                        # 删除临时段落
+                        temp_para._element.getparent().remove(temp_para._element)
 
-                    self.logger.info(f"✅ 成功在指定位置插入{id_type}身份证（新建表格）: 正面={front_path}, 反面={back_path}")
-                    return True
+                        self.logger.info(f"  ✓ 已创建表格 (2行x2列)")
+
+                        # 第一行：标签
+                        table.rows[0].cells[0].text = "正面"
+                        table.rows[0].cells[1].text = "反面"
+                        for cell in table.rows[0].cells:
+                            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            if cell.paragraphs[0].runs:
+                                cell.paragraphs[0].runs[0].font.bold = True
+                        self.logger.info(f"  ✓ 已设置表格标题行")
+
+                        # 第二行：图片
+                        self.logger.info(f"  开始插入图片...")
+
+                        # 插入正面图片
+                        front_cell = table.rows[1].cells[0]
+                        front_cell.text = ""
+                        front_para = front_cell.paragraphs[0]
+                        front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        front_run = front_para.add_run()
+                        front_run.add_picture(front_path, width=Cm(id_width_cm))
+                        self.logger.info(f"  ✓ 正面图片已插入: {Path(front_path).name}")
+
+                        # 插入反面图片
+                        back_cell = table.rows[1].cells[1]
+                        back_cell.text = ""
+                        back_para = back_cell.paragraphs[0]
+                        back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        back_run = back_para.add_run()
+                        back_run.add_picture(back_path, width=Cm(id_width_cm))
+                        self.logger.info(f"  ✓ 反面图片已插入: {Path(back_path).name}")
+
+                        self.logger.info(f"✅ 成功在指定位置插入{id_type}身份证（新建表格）")
+                        return True
+
+                    except Exception as table_error:
+                        self.logger.error(f"❌ 创建表格或插入图片失败: {table_error}")
+                        self.logger.error(f"  错误类型: {type(table_error).__name__}")
+                        import traceback
+                        self.logger.error(f"  完整堆栈:\n{traceback.format_exc()}")
+
+                        # 【TODO】理想情况下应该回滚已插入的标题和分页符，但由于复杂性暂时保留
+                        # 至少在日志中清晰标记失败
+                        return False
 
             elif insert_point and insert_point['type'] == 'table_cell':
                 # 【修复】处理表格单元格类型的插入点
@@ -1052,42 +1042,89 @@ class ImageHandler:
 
             else:
                 # 降级：添加到文档末尾
-                doc.add_page_break()
+                self.logger.info(f"未找到插入点，将在文档末尾创建{id_type}身份证")
 
-                title = doc.add_paragraph(f"{id_type}身份证")
-                title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                if title.runs:
-                    title.runs[0].font.bold = True
+                # 【修复】先验证图片文件
+                try:
+                    from PIL import Image
+                    # 验证正面图片
+                    img_front = Image.open(front_path)
+                    front_size = img_front.size
+                    self.logger.info(f"  验证正面图片: {Path(front_path).name}, 尺寸={front_size}")
+                    img_front.close()
 
-                # 创建表格（2行2列）
-                table = doc.add_table(rows=2, cols=2)
-                table.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    # 验证反面图片
+                    img_back = Image.open(back_path)
+                    back_size = img_back.size
+                    self.logger.info(f"  验证反面图片: {Path(back_path).name}, 尺寸={back_size}")
+                    img_back.close()
+                except Exception as e:
+                    self.logger.error(f"❌ 图片验证失败: {e}")
+                    self.logger.error(f"  正面图片: {front_path}, 存在={os.path.exists(front_path)}")
+                    self.logger.error(f"  反面图片: {back_path}, 存在={os.path.exists(back_path)}")
+                    return False
 
-                # 第一行：标签
-                table.rows[0].cells[0].text = "正面"
-                table.rows[0].cells[1].text = "反面"
-                for cell in table.rows[0].cells:
-                    cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    if cell.paragraphs[0].runs:
-                        cell.paragraphs[0].runs[0].font.bold = True
+                # 【修复】添加详细的步骤日志
+                try:
+                    doc.add_page_break()
+                    self.logger.info(f"  ✓ 已添加分页符")
 
-                # 第二行：图片
-                front_cell = table.rows[1].cells[0]
-                front_cell.text = ""
-                front_para = front_cell.paragraphs[0]
-                front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                front_run = front_para.add_run()
-                front_run.add_picture(front_path, width=Cm(id_width_cm))
+                    title = doc.add_paragraph(f"{id_type}身份证")
+                    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    if title.runs:
+                        title.runs[0].font.bold = True
+                    self.logger.info(f"  ✓ 已添加标题: {id_type}身份证")
 
-                back_cell = table.rows[1].cells[1]
-                back_cell.text = ""
-                back_para = back_cell.paragraphs[0]
-                back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                back_run = back_para.add_run()
-                back_run.add_picture(back_path, width=Cm(id_width_cm))
+                    # 【修复】确保文档有section（节），python-docx创建表格需要section信息
+                    if len(doc.sections) == 0:
+                        self.logger.warning(f"  ⚠️ 文档缺少section定义，正在添加默认section")
+                        doc.add_section()
+                        self.logger.info(f"  ✓ 已添加默认section")
 
-                self.logger.info(f"✅ 在文档末尾插入{id_type}身份证（并排）: 正面={front_path}, 反面={back_path}")
-                return True
+                    # 创建表格（2行2列）
+                    table = doc.add_table(rows=2, cols=2)
+                    table.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    self.logger.info(f"  ✓ 已创建表格 (2行x2列)")
+
+                    # 第一行：标签
+                    table.rows[0].cells[0].text = "正面"
+                    table.rows[0].cells[1].text = "反面"
+                    for cell in table.rows[0].cells:
+                        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        if cell.paragraphs[0].runs:
+                            cell.paragraphs[0].runs[0].font.bold = True
+                    self.logger.info(f"  ✓ 已设置表格标题行")
+
+                    # 第二行：图片
+                    self.logger.info(f"  开始插入图片...")
+
+                    # 插入正面图片
+                    front_cell = table.rows[1].cells[0]
+                    front_cell.text = ""
+                    front_para = front_cell.paragraphs[0]
+                    front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    front_run = front_para.add_run()
+                    front_run.add_picture(front_path, width=Cm(id_width_cm))
+                    self.logger.info(f"  ✓ 正面图片已插入: {Path(front_path).name}")
+
+                    # 插入反面图片
+                    back_cell = table.rows[1].cells[1]
+                    back_cell.text = ""
+                    back_para = back_cell.paragraphs[0]
+                    back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    back_run = back_para.add_run()
+                    back_run.add_picture(back_path, width=Cm(id_width_cm))
+                    self.logger.info(f"  ✓ 反面图片已插入: {Path(back_path).name}")
+
+                    self.logger.info(f"✅ 在文档末尾插入{id_type}身份证成功")
+                    return True
+
+                except Exception as fallback_error:
+                    self.logger.error(f"❌ 在文档末尾插入身份证失败: {fallback_error}")
+                    self.logger.error(f"  错误类型: {type(fallback_error).__name__}")
+                    import traceback
+                    self.logger.error(f"  完整堆栈:\n{traceback.format_exc()}")
+                    return False
 
         except Exception as e:
             self.logger.error(f"❌ 插入{id_type}身份证失败: {e}")
