@@ -973,7 +973,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@import "@/assets/styles/variables.scss";
 
 .business-response {
   padding: 20px;

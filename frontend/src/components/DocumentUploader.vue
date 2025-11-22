@@ -264,7 +264,6 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-@import "@/assets/styles/variables.scss";
 
 .document-uploader {
   :deep(.el-upload) {

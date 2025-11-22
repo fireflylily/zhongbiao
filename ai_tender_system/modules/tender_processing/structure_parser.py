@@ -2274,6 +2274,13 @@ class DocumentStructureParser:
         from copy import deepcopy
 
         try:
+            # 使用智能路径解析（兼容多种环境）
+            resolved_path = resolve_file_path(doc_path)
+            if not resolved_path:
+                return {"success": False, "error": f"文档路径解析失败: {doc_path}"}
+
+            doc_path = str(resolved_path)  # 使用解析后的绝对路径
+
             # 解析文档结构
             result = self.parse_document_structure(doc_path)
             chapters = self._flatten_chapters(result["chapters"])

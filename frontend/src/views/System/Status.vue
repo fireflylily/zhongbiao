@@ -309,7 +309,6 @@ const getLogLevelType = (level: string) => {
 </script>
 
 <style scoped lang="scss">
-@import "@/assets/styles/variables.scss";
 
 .system-status {
   padding: 20px;

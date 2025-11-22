@@ -361,8 +361,7 @@ export const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       title: '系统状态',
       icon: 'bi-hdd',
-      showInMenu: false,
-      permission: 'admin:view'
+      showInMenu: false
     }
   },
 

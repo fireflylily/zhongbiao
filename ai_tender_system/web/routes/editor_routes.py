@@ -16,7 +16,7 @@ from werkzeug.utils import secure_filename
 # 导入转换器
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from common import get_module_logger, get_config
+from common import get_module_logger, get_config, resolve_file_path
 from common.document_converter import DocumentConverter
 
 # 创建蓝图
@@ -53,13 +53,16 @@ def convert_word_to_html():
                 'error': '缺少file_path参数'
             }), 400
 
-        # 检查文件是否存在
-        if not os.path.exists(file_path):
-            logger.error(f"文件不存在: {file_path}")
+        # 使用智能路径解析（兼容多种环境）
+        resolved_path = resolve_file_path(file_path)
+        if not resolved_path:
+            logger.error(f"文件路径解析失败: {file_path}")
             return jsonify({
                 'success': False,
                 'error': f'文件不存在: {file_path}'
             }), 404
+
+        file_path = str(resolved_path)  # 使用解析后的绝对路径
 
         # 转换
         converter = DocumentConverter(config)

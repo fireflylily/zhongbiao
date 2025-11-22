@@ -156,7 +156,6 @@ const handleDownload = () => {
 </script>
 
 <style scoped lang="scss">
-@import "@/assets/styles/variables.scss";
 
 .sse-stream-viewer {
   display: flex;

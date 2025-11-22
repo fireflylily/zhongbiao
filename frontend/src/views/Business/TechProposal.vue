@@ -1120,7 +1120,6 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
-@import "@/assets/styles/variables.scss";
 
 .tech-proposal {
   padding: 20px;

@@ -23,7 +23,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from common import (
     get_config, get_module_logger,
     TenderInfoExtractionError, APIError, FileProcessingError,
-    get_prompt_manager
+    get_prompt_manager, resolve_file_path
 )
 from common.llm_client import create_llm_client
 from common.database import get_knowledge_base_db
@@ -1326,9 +1326,13 @@ class TenderInfoExtractor:
             step1_data = json.loads(project_data['step1_data'])
             doc_path = step1_data.get('file_path')
 
-            if not doc_path or not Path(doc_path).exists():
-                self.logger.warning(f"文档路径无效: {doc_path}")
+            # 使用智能路径解析（兼容多种环境）
+            resolved_path = resolve_file_path(doc_path)
+            if not resolved_path:
+                self.logger.warning(f"文档路径解析失败: {doc_path}")
                 return None
+
+            doc_path = str(resolved_path)
 
             # 5. 提取章节文本
             from docx import Document
@@ -1415,9 +1419,11 @@ class TenderInfoExtractor:
                             step1_data = json.loads(project_data['step1_data'])
                             doc_path = step1_data.get('file_path')
 
-                            if doc_path and Path(doc_path).exists():
+                            # 使用智能路径解析（兼容多种环境）
+                            resolved_path = resolve_file_path(doc_path)
+                            if resolved_path:
                                 from docx import Document
-                                doc = Document(doc_path)
+                                doc = Document(str(resolved_path))
 
                                 # 提取前50段（通常包含公告和项目基本信息）
                                 first_paras = [p.text for p in doc.paragraphs[:50]]
@@ -1425,7 +1431,7 @@ class TenderInfoExtractor:
 
                                 self.logger.info(f"✅ 直接读取文档前50段，文本长度: {len(text_for_extraction)} 字符")
                             else:
-                                raise TenderInfoExtractionError("文档路径无效")
+                                raise TenderInfoExtractionError(f"文档路径解析失败: {doc_path}")
                         else:
                             raise TenderInfoExtractionError("无法获取文档路径")
 

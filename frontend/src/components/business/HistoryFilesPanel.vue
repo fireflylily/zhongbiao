@@ -160,7 +160,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { View, Download, RefreshRight, Document, Edit } from '@element-plus/icons-vue'
-import { StatsCard } from '@/components'
+import StatsCard from './StatsCard.vue'  // 直接导入，避免循环依赖
 import { formatFileSize, formatDate } from '@/utils/format'
 import type { StatItem } from './StatsCard.vue'
 

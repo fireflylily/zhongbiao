@@ -8,7 +8,7 @@ import type { Router, RouteLocationNormalized, NavigationGuardNext } from 'vue-r
 import { useUserStore } from '@/stores/user'
 import { useSettingsStore } from '@/stores/settings'
 import { useNotification } from '@/composables/useNotification'
-import { getPageTitle, hasRoutePermission, handleLegacyHashRoute } from './utils'
+import { getPageTitle, handleLegacyHashRoute } from './utils'
 
 /**
  * 设置路由守卫
@@ -21,7 +21,7 @@ export function setupRouterGuards(router: Router): void {
 }
 
 /**
- * 全局前置守卫
+ * 全局前置守卫（简化版 - 只保留登录检查）
  */
 function setupBeforeEachGuard(router: Router): void {
   router.beforeEach(async (to, from, next) => {
@@ -33,16 +33,9 @@ function setupBeforeEachGuard(router: Router): void {
       return
     }
 
-    // 鉴权检查
+    // 鉴权检查（只检查登录状态）
     const authResult = await checkAuthentication(to, from, next)
     if (!authResult) {
-      stopProgress()
-      return
-    }
-
-    // 权限检查
-    const permissionResult = checkPermission(to, next)
-    if (!permissionResult) {
       stopProgress()
       return
     }
@@ -217,42 +210,9 @@ async function checkAuthentication(
 }
 
 /**
- * 权限检查
- * @returns true表示通过，false表示已处理
+ * 权限检查（已移除 - 简化权限系统）
+ * 现在只需要登录即可访问所有页面
  */
-function checkPermission(to: RouteLocationNormalized, next: NavigationGuardNext): boolean {
-  const userStore = useUserStore()
-
-  // 如果路由不需要权限，直接通过
-  if (!to.meta.permission) {
-    return true
-  }
-
-  // 获取用户权限列表
-  const userPermissions = userStore.permissions
-
-  // 检查是否有权限
-  const hasPermission = hasRoutePermission(to, userPermissions)
-
-  if (!hasPermission) {
-    console.warn(`[Router] 无权限访问: ${to.path}`, {
-      required: to.meta.permission,
-      userPermissions
-    })
-
-    const { error } = useNotification()
-    error('您没有权限访问此页面')
-
-    next({
-      name: 'Forbidden',
-      replace: true
-    })
-
-    return false
-  }
-
-  return true
-}
 
 /**
  * 设置页面标题

@@ -445,7 +445,6 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@import "@/assets/styles/variables.scss";
 
 .tender-scoring {
   padding: 20px;

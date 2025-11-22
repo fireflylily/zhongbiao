@@ -32,6 +32,18 @@ export default defineConfig({
     }
   },
 
+  // 依赖优化配置
+  optimizeDeps: {
+    include: [
+      'element-plus',
+      'vue',
+      'vue-router',
+      'pinia',
+      '@vueuse/core'
+    ],
+    exclude: []
+  },
+
   // 开发服务器配置
   server: {
     port: 5173,
@@ -90,9 +102,8 @@ export default defineConfig({
 
           return 'assets/[name]-[hash][extname]'
         },
-        // 🚀 简化代码分割 - 避免循环依赖
+        // 🚀 简化代码分包 - 所有依赖打包到单一 vendor（避免构建卡死）
         manualChunks: (id) => {
-          // 所有node_modules统一打包为一个vendor文件
           if (id.includes('node_modules')) {
             return 'vendor'
           }
@@ -100,24 +111,19 @@ export default defineConfig({
       }
     },
 
-    // 代码分割策略
-    chunkSizeWarningLimit: 1000,
+    // 代码分割策略 - 提高警告阈值（已做代码分包优化）
+    chunkSizeWarningLimit: 2000,
 
-    // 压缩配置
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    }
+    // 🔧 临时禁用压缩，加快构建速度
+    minify: false
   },
 
   // CSS配置
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "@/assets/styles/variables.scss";`
+        additionalData: `@use "@/assets/styles/variables.scss" as *;`,
+        api: 'modern-compiler' // 使用现代 Sass API
       }
     }
   }

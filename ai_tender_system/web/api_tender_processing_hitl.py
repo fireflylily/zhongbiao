@@ -14,7 +14,7 @@ from datetime import datetime
 from flask import request, jsonify, send_file, render_template
 from pathlib import Path
 
-from common import get_module_logger
+from common import get_module_logger, resolve_file_path
 from common.database import get_knowledge_base_db
 
 # 导入结构解析器
@@ -1881,8 +1881,13 @@ def register_hitl_routes(app):
             step1_data = json.loads(hitl_task['step1_data'])
             doc_path = step1_data.get('file_path')
 
-            if not doc_path or not Path(doc_path).exists():
+            # 使用智能路径解析（兼容阿里云/本地/Docker等多种环境）
+            resolved_path = resolve_file_path(doc_path)
+            if not resolved_path:
+                logger.error(f"文档路径解析失败: {doc_path}")
                 return jsonify({'success': False, 'error': '文档不存在'}), 404
+
+            doc_path = str(resolved_path)  # 转为字符串供extractor使用
 
             # 创建提取器 - 使用指定的模型
             config = get_config()
@@ -2057,8 +2062,13 @@ def register_hitl_routes(app):
             step1_data = json.loads(hitl_task['step1_data'])
             doc_path = step1_data.get('file_path')
 
-            if not doc_path or not Path(doc_path).exists():
+            # 使用智能路径解析（兼容阿里云/本地/Docker等多种环境）
+            resolved_path = resolve_file_path(doc_path)
+            if not resolved_path:
+                logger.error(f"文档路径解析失败: {doc_path}")
                 return jsonify({'success': False, 'error': '文档不存在'}), 404
+
+            doc_path = str(resolved_path)  # 转为字符串供extractor使用
 
             # 创建提取器 - 使用指定的模型
             config = get_config()
