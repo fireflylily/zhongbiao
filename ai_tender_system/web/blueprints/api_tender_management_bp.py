@@ -82,7 +82,7 @@ def get_tender_management_list():
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN (SELECT project_id, step1_status, step2_status, step3_status, step1_data, hitl_overall_status as overall_status, hitl_current_step as current_step FROM tender_projects) h ON h.project_id = p.project_id
+            LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
             WHERE {where_clause}
         """
 
@@ -126,7 +126,7 @@ def get_tender_management_list():
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN (SELECT project_id, step1_status, step2_status, step3_status, step1_data, hitl_overall_status as overall_status, hitl_current_step as current_step FROM tender_projects) h ON h.project_id = p.project_id
+            LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
             WHERE {where_clause}
             ORDER BY p.updated_at DESC, p.created_at DESC
             LIMIT ? OFFSET ?
@@ -283,8 +283,9 @@ def get_dashboard_statistics():
             SELECT COUNT(DISTINCT p.project_id) as count
             FROM tender_projects p
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
+            LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
             WHERE t.overall_status IN ('pending', 'running')
-               OR p.hitl_overall_status IN ('pending', 'in_progress')
+               OR h.overall_status IN ('pending', 'in_progress')
         """
         in_progress_result = db.execute_query(in_progress_query, fetch_one=True)
         in_progress_projects = in_progress_result['count'] if in_progress_result else 0
@@ -305,10 +306,11 @@ def get_dashboard_statistics():
         # 4. 待处理任务数 (需要人工干预的HITL任务)
         pending_tasks_query = """
             SELECT COUNT(*) as count
-            FROM tender_projects
-            WHERE hitl_overall_status = 'pending'
-               OR (hitl_overall_status = 'in_progress'
-                   AND (step1_status = 'pending' OR step2_status = 'pending' OR step3_status = 'pending'))
+            FROM tender_projects p
+            LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
+            WHERE h.overall_status = 'pending'
+               OR (h.overall_status = 'in_progress'
+                   AND (h.step1_status = 'pending' OR h.step2_status = 'pending' OR h.step3_status = 'pending'))
         """
         pending_result = db.execute_query(pending_tasks_query, fetch_one=True)
         pending_tasks = pending_result['count'] if pending_result else 0
@@ -367,7 +369,7 @@ def get_tender_project_stats(project_id):
             FROM tender_projects p
             LEFT JOIN companies c ON p.company_id = c.company_id
             LEFT JOIN tender_processing_tasks t ON p.project_id = t.project_id
-            LEFT JOIN (SELECT project_id, step1_status, step2_status, step3_status, step1_data, hitl_overall_status as overall_status, hitl_current_step as current_step FROM tender_projects) h ON h.project_id = p.project_id
+            LEFT JOIN tender_hitl_tasks h ON p.project_id = h.project_id
             WHERE p.project_id = ?
         """
 

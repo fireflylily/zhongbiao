@@ -90,10 +90,26 @@ export default defineConfig({
 
           return 'assets/[name]-[hash][extname]'
         },
-        // 🚀 简化代码分割 - 避免循环依赖
+        // 🚀 优化代码分割 - 将超大依赖单独打包
         manualChunks: (id) => {
-          // 所有node_modules统一打包为一个vendor文件
           if (id.includes('node_modules')) {
+            // 将超大依赖单独打包，避免阻塞主包
+            if (id.includes('onnxruntime-web')) {
+              return 'onnxruntime'
+            }
+            if (id.includes('@umoteam')) {
+              return 'umo-editor'
+            }
+            if (id.includes('element-plus')) {
+              return 'element-plus'
+            }
+            if (id.includes('echarts')) {
+              return 'echarts'
+            }
+            if (id.includes('mermaid')) {
+              return 'mermaid'
+            }
+            // 其他依赖打包到vendor
             return 'vendor'
           }
         }
@@ -101,16 +117,13 @@ export default defineConfig({
     },
 
     // 代码分割策略
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
 
-    // 压缩配置
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    }
+    // 压缩配置 - 使用esbuild替代terser，速度快10倍以上
+    minify: 'esbuild',
+
+    // 禁用source map以加快构建
+    sourcemap: false
   },
 
   // CSS配置

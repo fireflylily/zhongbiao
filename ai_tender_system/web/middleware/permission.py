@@ -267,6 +267,59 @@ def is_owner_or_admin(user: Dict[str, Any], resource_creator_id: int) -> bool:
     return user.get('user_id') == resource_creator_id
 
 
+def can_access_company(user: Dict[str, Any], company: Dict[str, Any], access_type: str = 'read') -> bool:
+    """
+    统一的公司访问权限判断（支持读写分离）
+
+    Args:
+        user: 用户信息字典
+        company: 公司信息字典
+        access_type: 访问类型 'read'|'write'|'delete'
+
+    Returns:
+        bool: True表示有权限访问
+
+    权限规则:
+        查看权限 (read):
+            - 管理员: 所有公司
+            - security_level=2 (public): 所有人
+            - security_level=1 (company): 本公司员工
+            - security_level=0 (private): 仅创建者
+
+        修改权限 (write):
+            - 管理员 或 创建者
+
+        删除权限 (delete):
+            - 管理员 或 创建者
+    """
+    # 1. 管理员拥有所有权限
+    if user.get('role_name') in ['高级管理', '项目经理']:
+        return True
+
+    # 2. 读权限判断
+    if access_type == 'read':
+        # 公开公司 (security_level=2)
+        if company.get('security_level', 1) == 2:
+            return True
+
+        # 公司内部可见 (security_level=1)
+        if company.get('security_level', 1) == 1:
+            if user.get('company_id') == company.get('company_id'):
+                return True
+
+        # 私有 (security_level=0) 或创建者
+        if user.get('user_id') == company.get('created_by_user_id'):
+            return True
+
+        return False
+
+    # 3. 写权限和删除权限：只有创建者或管理员
+    elif access_type in ['write', 'delete']:
+        return is_owner_or_admin(user, company.get('created_by_user_id'))
+
+    return False
+
+
 def filter_by_permission(user: Dict[str, Any], include_created_by: bool = True) -> Dict[str, Any]:
     """
     根据用户权限生成数据过滤条件
@@ -360,6 +413,7 @@ __all__ = [
     'require_privacy_level',
     'can_access_resource',
     'is_owner_or_admin',
+    'can_access_company',
     'filter_by_permission',
     'require_upload_permission',
     'require_delete_permission',

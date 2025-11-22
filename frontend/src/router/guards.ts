@@ -150,8 +150,23 @@ async function checkAuthentication(
 ): Promise<boolean> {
   const userStore = useUserStore()
 
-  // 如果页面不需要登录，直接通过
-  if (to.meta.requiresAuth === false) {
+  // 检查路由的 requiresAuth 设置
+  // 优先检查子路由（当前路由）的设置，如果明确设置则使用该值
+  // 否则向上查找父路由的设置
+  const matched = to.matched
+  let requiresAuth: boolean | undefined = undefined
+
+  // 从子路由到父路由遍历，子路由的设置优先级更高
+  for (let i = matched.length - 1; i >= 0; i--) {
+    const record = matched[i]
+    if (record.meta.requiresAuth !== undefined) {
+      requiresAuth = record.meta.requiresAuth as boolean
+      break
+    }
+  }
+
+  // 如果明确设置为 false 或未设置（默认不需要登录），直接通过
+  if (requiresAuth === false || requiresAuth === undefined) {
     return true
   }
 

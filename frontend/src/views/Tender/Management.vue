@@ -18,7 +18,12 @@
             </el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="company_name" label="公司名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="company_name" label="公司名称" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.company_name">{{ row.company_name }}</span>
+            <el-text v-else type="info" size="small">未关联公司</el-text>
+          </template>
+        </el-table-column>
         <el-table-column prop="authorized_person_name" label="被授权人" width="100" />
 
         <!-- 文档生成状态列 -->
@@ -236,21 +241,23 @@ const handleDelete = async (row: any) => {
 const handleCreate = async () => {
   creating.value = true
   try {
-    // 获取公司列表，使用第一个公司作为默认值
+    // 获取公司列表（如果有公司，可以默认使用第一个；如果没有，创建时不关联公司）
     const companiesResponse = await companyApi.getCompanies()
     const companies = companiesResponse.data || []
 
-    if (companies.length === 0) {
-      error('无法创建项目：请先添加公司信息')
-      return
+    // 创建空白项目
+    // 如果有公司列表，使用第一个公司ID；否则不传company_id（后端会设置为NULL）
+    const projectData: any = {
+      project_name: '新项目',
+      project_number: `PRJ-${Date.now()}`
     }
 
-    // 创建空白项目
-    const response = await tenderApi.createProject({
-      project_name: '新项目',
-      project_number: `PRJ-${Date.now()}`,
-      company_id: companies[0].company_id
-    })
+    // 只有当公司列表不为空时才设置 company_id
+    if (companies.length > 0) {
+      projectData.company_id = companies[0].company_id
+    }
+
+    const response = await tenderApi.createProject(projectData)
 
     // 后端返回格式: { success: true, project_id: xxx, message: '' }
     // apiClient.post已经返回response.data，所以response就是后端的响应体

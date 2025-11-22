@@ -41,6 +41,7 @@ export const routes: RouteRecordRaw[] = [
           category: 'workspace',
           order: 1,
           affix: true,
+          requiresAuth: false,
           description: '项目总览和快捷入口'
         }
       },

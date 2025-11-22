@@ -156,16 +156,30 @@ def create_tender_project():
         project_name = data.get('project_name')
         project_number = data.get('project_number')
 
-        if company_id and project_name:
-            check_query = """
-                SELECT project_id FROM tender_projects
-                WHERE company_id = ? AND project_name = ?
-            """
-            check_params = [company_id, project_name]
+        if project_name:
+            # 根据是否有 company_id 使用不同的唯一性检查逻辑
+            if company_id:
+                # 有公司ID：检查 company_id + project_name + project_number 的组合
+                check_query = """
+                    SELECT project_id FROM tender_projects
+                    WHERE company_id = ? AND project_name = ?
+                """
+                check_params = [company_id, project_name]
 
-            if project_number:
-                check_query += " AND project_number = ?"
-                check_params.append(project_number)
+                if project_number:
+                    check_query += " AND project_number = ?"
+                    check_params.append(project_number)
+            else:
+                # 无公司ID：检查 project_name + project_number 的组合（仅在未关联公司的项目中）
+                check_query = """
+                    SELECT project_id FROM tender_projects
+                    WHERE company_id IS NULL AND project_name = ?
+                """
+                check_params = [project_name]
+
+                if project_number:
+                    check_query += " AND project_number = ?"
+                    check_params.append(project_number)
 
             existing = kb_manager.db.execute_query(check_query, check_params, fetch_one=True)
 
@@ -395,19 +409,35 @@ def update_tender_project(project_id):
                 check_project_name = data.get('project_name', current['project_name'])
                 check_project_number = data.get('project_number', current['project_number'])
 
-                # 检查是否与其他项目冲突（排除当前项目本身）
-                check_query = """
-                    SELECT project_id, project_name FROM tender_projects
-                    WHERE company_id = ?
-                      AND project_name = ?
-                      AND project_number = ?
-                      AND project_id != ?
-                """
-                conflict = kb_manager.db.execute_query(
-                    check_query,
-                    [check_company_id, check_project_name, check_project_number, project_id],
-                    fetch_one=True
-                )
+                # 根据是否有 company_id 使用不同的唯一性检查逻辑
+                if check_company_id:
+                    # 有公司ID：检查是否与其他项目冲突（排除当前项目本身）
+                    check_query = """
+                        SELECT project_id, project_name FROM tender_projects
+                        WHERE company_id = ?
+                          AND project_name = ?
+                          AND project_number = ?
+                          AND project_id != ?
+                    """
+                    conflict = kb_manager.db.execute_query(
+                        check_query,
+                        [check_company_id, check_project_name, check_project_number, project_id],
+                        fetch_one=True
+                    )
+                else:
+                    # 无公司ID：检查未关联公司的项目中是否有重复
+                    check_query = """
+                        SELECT project_id, project_name FROM tender_projects
+                        WHERE company_id IS NULL
+                          AND project_name = ?
+                          AND project_number = ?
+                          AND project_id != ?
+                    """
+                    conflict = kb_manager.db.execute_query(
+                        check_query,
+                        [check_project_name, check_project_number, project_id],
+                        fetch_one=True
+                    )
 
                 if conflict:
                     logger.warning(f"项目更新失败：与项目ID {conflict['project_id']} 重复")
