@@ -124,21 +124,21 @@
   margin-bottom: 16px;
   padding-bottom: 8px;
   border-bottom: 2px solid #e4e7ed;
-}.personnel-tab .mt-4[data-v-cd34349a] {
+}.personnel-tab .mt-4[data-v-bc10a0da] {
   margin-top: 20px;
 }
-.personnel-tab .attachments-grid[data-v-cd34349a] {
+.personnel-tab .attachments-grid[data-v-bc10a0da] {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
 }
-.personnel-tab .attachments-grid .attachment-item[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item[data-v-bc10a0da] {
   border: 1px solid #e4e7ed;
   border-radius: 8px;
   padding: 16px;
   background: #fafafa;
 }
-.personnel-tab .attachments-grid .attachment-item .attachment-header[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item .attachment-header[data-v-bc10a0da] {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -146,11 +146,11 @@
   font-weight: 500;
   color: #303133;
 }
-.personnel-tab .attachments-grid .attachment-item .attachment-header .icon[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item .attachment-header .icon[data-v-bc10a0da] {
   font-size: 20px;
   color: #409eff;
 }
-.personnel-tab .attachments-grid .attachment-item .file-info[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item .file-info[data-v-bc10a0da] {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -159,12 +159,12 @@
   border-radius: 4px;
   margin-bottom: 12px;
 }
-.personnel-tab .attachments-grid .attachment-item .file-info .file-icon[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item .file-info .file-icon[data-v-bc10a0da] {
   font-size: 18px;
   color: #606266;
   flex-shrink: 0;
 }
-.personnel-tab .attachments-grid .attachment-item .file-info .file-name[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item .file-info .file-name[data-v-bc10a0da] {
   flex: 1;
   font-size: 13px;
   color: #303133;
@@ -172,11 +172,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.personnel-tab .attachments-grid .attachment-item .file-info .file-actions[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item .file-info .file-actions[data-v-bc10a0da] {
   display: flex;
   gap: 4px;
 }
-.personnel-tab .attachments-grid .attachment-item .no-file[data-v-cd34349a] {
+.personnel-tab .attachments-grid .attachment-item .no-file[data-v-bc10a0da] {
   padding: 12px;
   text-align: center;
   color: #909399;

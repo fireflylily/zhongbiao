@@ -1293,8 +1293,8 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
       authorized_person_title: ""
     });
     const attachments = ref({
-      id_card_front: null,
-      id_card_back: null,
+      auth_id_front: null,
+      auth_id_back: null,
       manager_resume: null,
       social_security: null
     });
@@ -1397,8 +1397,8 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
         if (response.success && response.data) {
           const data = response.data;
           attachments.value = {
-            id_card_front: data.id_card_front ? { name: data.id_card_front.original_filename } : null,
-            id_card_back: data.id_card_back ? { name: data.id_card_back.original_filename } : null,
+            auth_id_front: data.auth_id_front ? { name: data.auth_id_front.original_filename } : null,
+            auth_id_back: data.auth_id_back ? { name: data.auth_id_back.original_filename } : null,
             manager_resume: data.manager_resume ? { name: data.manager_resume.original_filename } : null,
             social_security: data.social_security ? { name: data.social_security.original_filename } : null
           };
@@ -1625,20 +1625,20 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
                   }),
                   _cache[15] || (_cache[15] = createBaseVNode("span", { class: "title" }, "被授权人身份证（正面）", -1))
                 ]),
-                attachments.value.id_card_front ? (openBlock(), createElementBlock("div", _hoisted_5$1, [
+                attachments.value.auth_id_front ? (openBlock(), createElementBlock("div", _hoisted_5$1, [
                   createVNode(_component_el_icon, { class: "file-icon" }, {
                     default: withCtx(() => [
                       createVNode(unref(document_default))
                     ]),
                     _: 1
                   }),
-                  createBaseVNode("span", _hoisted_6$1, toDisplayString(attachments.value.id_card_front.name), 1),
+                  createBaseVNode("span", _hoisted_6$1, toDisplayString(attachments.value.auth_id_front.name), 1),
                   createBaseVNode("div", _hoisted_7$1, [
                     createVNode(_component_el_button, {
                       text: "",
                       type: "primary",
                       size: "small",
-                      onClick: _cache[6] || (_cache[6] = ($event) => downloadAttachment("id_card_front"))
+                      onClick: _cache[6] || (_cache[6] = ($event) => downloadAttachment("auth_id_front"))
                     }, {
                       default: withCtx(() => [
                         createVNode(_component_el_icon, null, {
@@ -1654,7 +1654,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
                       text: "",
                       type: "danger",
                       size: "small",
-                      onClick: _cache[7] || (_cache[7] = ($event) => deleteAttachment("id_card_front"))
+                      onClick: _cache[7] || (_cache[7] = ($event) => deleteAttachment("auth_id_front"))
                     }, {
                       default: withCtx(() => [
                         createVNode(_component_el_icon, null, {
@@ -1671,7 +1671,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
                 createVNode(unref(DocumentUploader), {
                   accept: ".jpg,.jpeg,.png,.pdf",
                   "show-file-list": false,
-                  "http-request": createUploadHandler("id_card_front"),
+                  "http-request": createUploadHandler("auth_id_front"),
                   "auto-compress-image": true,
                   "image-type": "id_card",
                   "max-size": 10
@@ -1703,20 +1703,20 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
                   }),
                   _cache[17] || (_cache[17] = createBaseVNode("span", { class: "title" }, "被授权人身份证（反面）", -1))
                 ]),
-                attachments.value.id_card_back ? (openBlock(), createElementBlock("div", _hoisted_11, [
+                attachments.value.auth_id_back ? (openBlock(), createElementBlock("div", _hoisted_11, [
                   createVNode(_component_el_icon, { class: "file-icon" }, {
                     default: withCtx(() => [
                       createVNode(unref(document_default))
                     ]),
                     _: 1
                   }),
-                  createBaseVNode("span", _hoisted_12, toDisplayString(attachments.value.id_card_back.name), 1),
+                  createBaseVNode("span", _hoisted_12, toDisplayString(attachments.value.auth_id_back.name), 1),
                   createBaseVNode("div", _hoisted_13, [
                     createVNode(_component_el_button, {
                       text: "",
                       type: "primary",
                       size: "small",
-                      onClick: _cache[8] || (_cache[8] = ($event) => downloadAttachment("id_card_back"))
+                      onClick: _cache[8] || (_cache[8] = ($event) => downloadAttachment("auth_id_back"))
                     }, {
                       default: withCtx(() => [
                         createVNode(_component_el_icon, null, {
@@ -1732,7 +1732,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
                       text: "",
                       type: "danger",
                       size: "small",
-                      onClick: _cache[9] || (_cache[9] = ($event) => deleteAttachment("id_card_back"))
+                      onClick: _cache[9] || (_cache[9] = ($event) => deleteAttachment("auth_id_back"))
                     }, {
                       default: withCtx(() => [
                         createVNode(_component_el_icon, null, {
@@ -1749,7 +1749,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
                 createVNode(unref(DocumentUploader), {
                   accept: ".jpg,.jpeg,.png,.pdf",
                   "show-file-list": false,
-                  "http-request": createUploadHandler("id_card_back"),
+                  "http-request": createUploadHandler("auth_id_back"),
                   "auto-compress-image": true,
                   "image-type": "id_card",
                   "max-size": 10
@@ -1934,7 +1934,7 @@ const _sfc_main$2 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const PersonnelTab = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-cd34349a"]]);
+const PersonnelTab = /* @__PURE__ */ _export_sfc(_sfc_main$2, [["__scopeId", "data-v-bc10a0da"]]);
 const _hoisted_1$1 = { class: "financial-tab" };
 const _hoisted_2$1 = { class: "shareholders-section" };
 const _hoisted_3$1 = { class: "section-header" };
