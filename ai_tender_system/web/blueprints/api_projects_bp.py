@@ -26,6 +26,9 @@ from web.shared.instances import get_kb_manager
 # 导入公共组件
 from common import get_module_logger
 
+# 导入权限检查
+from web.middleware.permission import require_auth, get_current_user, is_admin, is_owner_or_admin
+
 # 创建蓝图
 api_projects_bp = Blueprint('api_projects', __name__, url_prefix='/api')
 
@@ -41,9 +44,18 @@ kb_manager = get_kb_manager()
 # ===================
 
 @api_projects_bp.route('/tender-projects', methods=['GET'])
+@require_auth
 def get_tender_projects():
-    """获取招标项目列表"""
+    """
+    获取招标项目列表
+    权限规则：
+    - 普通用户：只能查看自己创建的项目
+    - 管理员：可以查看所有项目
+    """
     try:
+        # 获取当前用户
+        user = get_current_user()
+
         # 获取分页参数
         page = int(request.args.get('page', 1))
         page_size = int(request.args.get('page_size', 20))
@@ -60,6 +72,11 @@ def get_tender_projects():
             WHERE 1=1
         """
         params = []
+
+        # 权限过滤：普通用户只能看到自己创建的项目
+        if not is_admin(user):
+            query += " AND p.created_by_user_id = ?"
+            params.append(user['user_id'])
 
         if company_id:
             query += " AND p.company_id = ?"
@@ -145,9 +162,15 @@ def get_tender_projects():
 
 
 @api_projects_bp.route('/tender-projects', methods=['POST'])
+@require_auth
 def create_tender_project():
-    """创建新招标项目"""
+    """
+    创建新招标项目
+    权限规则：所有登录用户都可以创建项目
+    """
     try:
+        # 获取当前用户
+        user = get_current_user()
         import json
         data = request.get_json()
 
@@ -193,8 +216,8 @@ def create_tender_project():
                 bidding_method, bidding_location, bidding_time,
                 tender_document_path, original_filename,
                 company_id, qualifications_data, scoring_data,
-                status, created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                status, created_by, created_by_user_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         params = [
@@ -211,7 +234,8 @@ def create_tender_project():
             qualifications_json,
             scoring_json,
             'draft',
-            'system'
+            user['username'],  # created_by
+            user['user_id']    # created_by_user_id - 记录创建者ID
         ]
 
         project_id = kb_manager.db.execute_query(query, params)
@@ -266,9 +290,15 @@ def _build_chapter_tree(chapters_flat):
 
 
 @api_projects_bp.route('/tender-projects/<int:project_id>', methods=['GET'])
+@require_auth
 def get_tender_project(project_id):
-    """获取单个项目详情（包含HITL任务数据）"""
+    """
+    获取单个项目详情
+    权限规则：创建者或管理员可以查看
+    """
     try:
+        # 获取当前用户
+        user = get_current_user()
         # 查询项目数据（HITL数据已合并到项目表）
         query = """
             SELECT
@@ -282,6 +312,13 @@ def get_tender_project(project_id):
 
         if projects and len(projects) > 0:
             project_data = projects[0]
+
+            # 权限检查：只有创建者或管理员可以查看
+            if not is_owner_or_admin(user, project_data.get('created_by_user_id')):
+                return jsonify({
+                    'success': False,
+                    'message': '您没有权限查看此项目'
+                }), 403
 
             # 解析 JSON 字段（step1_data, step2_data, step3_data, qualifications_data, scoring_data）
             import json
@@ -376,9 +413,32 @@ def get_tender_project(project_id):
 
 
 @api_projects_bp.route('/tender-projects/<int:project_id>', methods=['PUT'])
+@require_auth
 def update_tender_project(project_id):
-    """更新招标项目（只更新提供的字段，避免覆盖未提供的字段）"""
+    """
+    更新招标项目
+    权限规则：创建者或管理员可以更新
+    """
     try:
+        # 获取当前用户
+        user = get_current_user()
+
+        # 检查项目是否存在并获取创建者
+        check_query = "SELECT created_by_user_id FROM tender_projects WHERE project_id = ?"
+        project = kb_manager.db.execute_query(check_query, [project_id], fetch_one=True)
+
+        if not project:
+            return jsonify({
+                'success': False,
+                'message': '项目不存在'
+            }), 404
+
+        # 权限检查：只有创建者或管理员可以更新
+        if not is_owner_or_admin(user, project.get('created_by_user_id')):
+            return jsonify({
+                'success': False,
+                'message': '您没有权限修改此项目'
+            }), 403
         import json
         data = request.get_json()
 
@@ -516,20 +576,20 @@ def update_tender_project(project_id):
 
 
 @api_projects_bp.route('/tender-projects/<int:project_id>', methods=['DELETE'])
+@require_auth
 def delete_tender_project(project_id):
     """
     删除招标项目（级联删除相关数据）
-
-    删除顺序：
-    1. 删除项目相关的HITL任务
-    2. 删除项目相关的文件存储记录
-    3. 删除项目本身
+    权限规则：创建者或管理员可以删除
     """
     try:
         import os
 
-        # 1. 检查项目是否存在
-        check_query = "SELECT project_id, tender_document_path FROM tender_projects WHERE project_id = ?"
+        # 获取当前用户
+        user = get_current_user()
+
+        # 1. 检查项目是否存在并获取创建者
+        check_query = "SELECT project_id, tender_document_path, created_by_user_id FROM tender_projects WHERE project_id = ?"
         project = kb_manager.db.execute_query(check_query, [project_id], fetch_one=True)
 
         if not project:
@@ -537,6 +597,13 @@ def delete_tender_project(project_id):
                 'success': False,
                 'message': f'项目 ID {project_id} 不存在'
             }), 404
+
+        # 权限检查：只有创建者或管理员可以删除
+        if not is_owner_or_admin(user, project.get('created_by_user_id')):
+            return jsonify({
+                'success': False,
+                'message': '您没有权限删除此项目'
+            }), 403
 
         # 2. HITL数据现已合并到tender_projects表中，无需单独删除
         #    将在删除项目时一并删除

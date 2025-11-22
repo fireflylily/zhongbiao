@@ -22,12 +22,9 @@ from common import get_module_logger, get_config, format_error_response
 from web.shared.instances import get_kb_manager
 from web.middleware.permission import (
     require_auth,
-    require_upload_permission,
-    require_delete_permission,
     get_current_user,
-    filter_by_permission,
-    is_owner_or_admin,
-    can_access_resource
+    is_admin,
+    is_owner_or_admin
 )
 
 # 创建logger
@@ -45,29 +42,18 @@ kb_manager = get_kb_manager()
 # ===================
 
 @api_companies_bp.route('/companies')
-@require_auth  # ✅ 要求登录
+@require_auth
 def list_companies():
     """
     获取公司列表
-    权限规则:
-    - 普通用户/内部员工: 只看自己创建的公司
-    - 项目经理/高级管理: 看所有公司
+    简化权限规则：所有登录用户都可以查看所有公司
     """
     try:
-        user = get_current_user()  # ✅ 获取当前用户
+        user = get_current_user()
 
-        # ✅ 根据角色生成过滤条件
-        filter_info = filter_by_permission(user, include_created_by=True)
-
-        # 使用知识库管理器获取公司,传入过滤条件
-        if filter_info['is_admin']:
-            # 管理员看所有公司
-            companies = kb_manager.get_companies()
-            logger.info(f"[权限] {user['role_name']} {user['username']} 查看所有公司")
-        else:
-            # 普通用户只看自己创建的
-            companies = kb_manager.get_companies(created_by_user_id=user['user_id'])
-            logger.info(f"[权限] {user['role_name']} {user['username']} 查看自己创建的公司")
+        # 获取所有公司（不再区分权限）
+        companies = kb_manager.get_companies()
+        logger.info(f"用户 {user['username']} 查看公司列表")
 
         # 转换字段格式以保持前端兼容性，过滤无效公司ID
         result_companies = []
@@ -186,18 +172,14 @@ def get_company(company_id):
 
 
 @api_companies_bp.route('/companies', methods=['POST'])
-@require_auth  # ✅ 要求登录
-@require_upload_permission  # ✅ 要求上传权限
+@require_auth
 def create_company():
     """
     创建新公司
-    权限要求:
-    - 必须登录
-    - 必须有上传权限(内部员工及以上)
-    - 自动记录创建者
+    简化权限规则：所有登录用户都可以创建公司
     """
     try:
-        user = get_current_user()  # ✅ 获取当前用户
+        user = get_current_user()
         data = request.get_json()
 
         if not data:
@@ -288,32 +270,22 @@ def create_company():
 
 
 @api_companies_bp.route('/companies/<company_id>', methods=['PUT'])
-@require_auth  # ✅ 要求登录
+@require_auth
 def update_company(company_id):
     """
     更新公司信息
-    权限规则:
-    - 必须登录
-    - 只有创建者或管理员可以修改
+    简化权限规则：所有登录用户都可以更新公司（去除创建者限制）
     """
     try:
-        user = get_current_user()  # ✅ 获取当前用户
+        user = get_current_user()
 
         # 转换字符串ID为整数ID
         company_id_int = int(company_id)
 
-        # ✅ 检查公司是否存在并获取创建者信息
+        # 检查公司是否存在
         company_data = kb_manager.get_company_detail(company_id_int)
         if not company_data:
             return jsonify({'success': False, 'error': '公司不存在'}), 404
-
-        # ✅ 权限检查: 只有创建者或管理员可以修改
-        if not is_owner_or_admin(user, company_data.get('created_by_user_id')):
-            logger.warning(f"[权限拒绝] 用户 {user['username']} 尝试修改公司 {company_id}(创建者:{company_data.get('created_by_user_id')})")
-            return jsonify({
-                'success': False,
-                'error': '只有创建者或管理员才能修改公司信息'
-            }), 403
 
         data = request.get_json()
         if not data:
@@ -419,34 +391,22 @@ def update_company(company_id):
 
 
 @api_companies_bp.route('/companies/<company_id>', methods=['DELETE'])
-@require_auth  # ✅ 要求登录
-@require_delete_permission  # ✅ 要求删除权限
+@require_auth
 def delete_company(company_id):
     """
     删除公司
-    权限规则:
-    - 必须登录
-    - 必须有删除权限(项目经理及以上)
-    - 只有创建者或管理员可以删除
+    简化权限规则：所有登录用户都可以删除公司（去除创建者限制）
     """
     try:
-        user = get_current_user()  # ✅ 获取当前用户
+        user = get_current_user()
 
         # 转换字符串ID为整数ID
         company_id_int = int(company_id)
 
-        # ✅ 检查公司是否存在并获取创建者信息
+        # 检查公司是否存在
         company_data = kb_manager.get_company_detail(company_id_int)
         if not company_data:
             return jsonify({'success': False, 'error': '公司不存在'}), 404
-
-        # ✅ 权限检查: 只有创建者或管理员可以删除
-        if not is_owner_or_admin(user, company_data.get('created_by_user_id')):
-            logger.warning(f"[权限拒绝] 用户 {user['username']} 尝试删除公司 {company_id}(创建者:{company_data.get('created_by_user_id')})")
-            return jsonify({
-                'success': False,
-                'error': '只有创建者或管理员才能删除公司'
-            }), 403
 
         # 使用知识库管理器删除公司
         result = kb_manager.delete_company(company_id_int)
