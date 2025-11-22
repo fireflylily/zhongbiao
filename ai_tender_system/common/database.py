@@ -1013,8 +1013,23 @@ class KnowledgeBaseDB:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
 
-                # 对于多文件资质，直接插入新记录
-                # 不再检查是否存在，因为同一个qualification_key可以有多个文件
+                # 查询资质类型定义，判断是否允许多文件
+                cursor.execute("""
+                    SELECT allow_multiple_files FROM qualification_types
+                    WHERE type_key = ?
+                """, (qualification_key,))
+                type_info = cursor.fetchone()
+
+                # 如果资质类型定义存在且不允许多文件，则删除旧记录
+                if type_info and not type_info['allow_multiple_files']:
+                    # 单文件资质：先删除同一公司同一资质类型的旧记录
+                    cursor.execute("""
+                        DELETE FROM company_qualifications
+                        WHERE company_id = ? AND qualification_key = ?
+                    """, (company_id, qualification_key))
+                    logger.info(f"单文件资质 {qualification_key}：已删除 {cursor.rowcount} 条旧记录")
+
+                # 插入新记录（单文件或多文件都执行）
                 cursor.execute("""
                     INSERT INTO company_qualifications (
                         company_id, qualification_key, qualification_name,
