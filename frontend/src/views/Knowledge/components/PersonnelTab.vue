@@ -78,14 +78,14 @@
             <el-icon class="icon"><CreditCard /></el-icon>
             <span class="title">被授权人身份证（正面）</span>
           </div>
-          <div v-if="attachments.id_card_front" class="file-info">
+          <div v-if="attachments.auth_id_front" class="file-info">
             <el-icon class="file-icon"><Document /></el-icon>
-            <span class="file-name">{{ attachments.id_card_front.name }}</span>
+            <span class="file-name">{{ attachments.auth_id_front.name }}</span>
             <div class="file-actions">
-              <el-button text type="primary" size="small" @click="downloadAttachment('id_card_front')">
+              <el-button text type="primary" size="small" @click="downloadAttachment('auth_id_front')">
                 <el-icon><Download /></el-icon>
               </el-button>
-              <el-button text type="danger" size="small" @click="deleteAttachment('id_card_front')">
+              <el-button text type="danger" size="small" @click="deleteAttachment('auth_id_front')">
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
@@ -94,7 +94,7 @@
           <DocumentUploader
             accept=".jpg,.jpeg,.png,.pdf"
             :show-file-list="false"
-            :http-request="createUploadHandler('id_card_front')"
+            :http-request="createUploadHandler('auth_id_front')"
             :auto-compress-image="true"
             :image-type="'id_card'"
             :max-size="10"
@@ -114,14 +114,14 @@
             <el-icon class="icon"><CreditCard /></el-icon>
             <span class="title">被授权人身份证（反面）</span>
           </div>
-          <div v-if="attachments.id_card_back" class="file-info">
+          <div v-if="attachments.auth_id_back" class="file-info">
             <el-icon class="file-icon"><Document /></el-icon>
-            <span class="file-name">{{ attachments.id_card_back.name }}</span>
+            <span class="file-name">{{ attachments.auth_id_back.name }}</span>
             <div class="file-actions">
-              <el-button text type="primary" size="small" @click="downloadAttachment('id_card_back')">
+              <el-button text type="primary" size="small" @click="downloadAttachment('auth_id_back')">
                 <el-icon><Download /></el-icon>
               </el-button>
-              <el-button text type="danger" size="small" @click="deleteAttachment('id_card_back')">
+              <el-button text type="danger" size="small" @click="deleteAttachment('auth_id_back')">
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
@@ -130,7 +130,7 @@
           <DocumentUploader
             accept=".jpg,.jpeg,.png,.pdf"
             :show-file-list="false"
-            :http-request="createUploadHandler('id_card_back')"
+            :http-request="createUploadHandler('auth_id_back')"
             :auto-compress-image="true"
             :image-type="'id_card'"
             :max-size="10"
@@ -256,8 +256,8 @@ const formData = ref({
 })
 
 const attachments = ref<Record<string, any>>({
-  id_card_front: null,
-  id_card_back: null,
+  auth_id_front: null,
+  auth_id_back: null,
   manager_resume: null,
   social_security: null
 })
@@ -381,8 +381,8 @@ const loadAttachments = async () => {
     if (response.success && response.data) {
       const data = response.data
       attachments.value = {
-        id_card_front: data.id_card_front ? { name: data.id_card_front.original_filename } : null,
-        id_card_back: data.id_card_back ? { name: data.id_card_back.original_filename } : null,
+        auth_id_front: data.auth_id_front ? { name: data.auth_id_front.original_filename } : null,
+        auth_id_back: data.auth_id_back ? { name: data.auth_id_back.original_filename } : null,
         manager_resume: data.manager_resume ? { name: data.manager_resume.original_filename } : null,
         social_security: data.social_security ? { name: data.social_security.original_filename } : null
       }

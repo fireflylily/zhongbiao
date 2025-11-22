@@ -140,7 +140,14 @@ class KnowledgeBaseManager:
                 # 管理关系字段
                 'managing_unit_name': 'managing_unit_name',
                 'managed_unit_name': 'managed_unit_name',
-                # 被授权人信息字段
+                # 被授权人信息字段（驼峰命名）
+                'authorizedPersonName': 'authorized_person_name',
+                'authorizedPersonId': 'authorized_person_id',
+                'authorizedPersonGender': 'authorized_person_gender',
+                'authorizedPersonPosition': 'authorized_person_position',
+                'authorizedPersonTitle': 'authorized_person_title',
+                'authorizedPersonAge': 'authorized_person_age',
+                # 被授权人信息字段（蛇形命名，兼容性）
                 'authorized_person_name': 'authorized_person_name',
                 'authorized_person_id': 'authorized_person_id',
                 'authorized_person_gender': 'authorized_person_gender',

@@ -27,8 +27,8 @@ BASIC_CREDENTIALS = {
     'business_license',    # 营业执照
     'legal_id_front',      # 法人身份证正面
     'legal_id_back',       # 法人身份证反面
-    'auth_id_front',       # 授权人身份证正面
-    'auth_id_back',        # 授权人身份证反面
+    'auth_id_front',       # 被授权人身份证正面
+    'auth_id_back',        # 被授权人身份证反面
     'id_card_front',       # 身份证正面（PersonnelTab使用）
     'id_card_back'         # 身份证反面（PersonnelTab使用）
 }
@@ -180,18 +180,18 @@ def build_image_config(company_quals: List[Dict[str, Any]],
             image_config['legal_id']['back'] = file_path
             logger.info(f"  ✅ 法人身份证反面: {file_path}")
 
-        # === 4. 授权代表身份证（支持多种字段名） ===
+        # === 4. 被授权人身份证（支持多种字段名） ===
         elif qual_key in ['auth_id_front', 'id_card_front']:
             if 'auth_id' not in image_config:
                 image_config['auth_id'] = {}
             image_config['auth_id']['front'] = file_path
-            logger.info(f"  ✅ 授权代表身份证正面: {file_path}")
+            logger.info(f"  ✅ 被授权人身份证正面: {file_path}")
 
         elif qual_key in ['auth_id_back', 'id_card_back']:
             if 'auth_id' not in image_config:
                 image_config['auth_id'] = {}
             image_config['auth_id']['back'] = file_path
-            logger.info(f"  ✅ 授权代表身份证反面: {file_path}")
+            logger.info(f"  ✅ 被授权人身份证反面: {file_path}")
 
         # === 5. 所有其他资质（ISO、CMMI、信用证明、等保等） ===
         elif qual_key not in BASIC_CREDENTIALS:
@@ -219,7 +219,7 @@ def build_image_config(company_quals: List[Dict[str, Any]],
     logger.info(f"  - 资质证书数量: {len(qualification_paths)} 个")
     logger.info(f"  - 营业执照: {'✅' if 'license_path' in image_config else '❌'}")
     logger.info(f"  - 法人身份证: {'✅' if 'legal_id' in image_config else '❌'}")
-    logger.info(f"  - 授权人身份证: {'✅' if 'auth_id' in image_config else '❌'}")
+    logger.info(f"  - 被授权人身份证: {'✅' if 'auth_id' in image_config else '❌'}")
 
     return (image_config, qualification_details)
 
