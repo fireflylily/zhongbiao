@@ -34,13 +34,14 @@ class CaseTableFiller:
 
         # 案例表格的标识字段(表头关键字)
         self.case_table_headers = {
-            '项目名称', '案例名称', '案例标题',
-            '客户名称', '购买方', '甲方',
-            '合同金额', '项目金额', '合同价格',
-            '合同类型', '项目类型',
-            '实施时间', '项目周期', '合同期限',
+            '项目名称', '案例名称', '案例标题', '合同名称',
+            '客户名称', '购买方', '甲方', '用户单位', '用户名称',
+            '合同金额', '项目金额', '合同价格', '金额',
+            '合同类型', '项目类型', '产品名称',
+            '实施时间', '项目周期', '合同期限', '合同签约时间', '签约时间',
             '行业', '所属行业',
-            '项目规模', '合同编号', '案例编号'
+            '项目规模', '合同编号', '案例编号', '序号',
+            '联系人', '联系方式', '用户联系人'
         }
 
         # 字段映射表:表头文字 -> 数据库字段名
@@ -49,9 +50,11 @@ class CaseTableFiller:
             '项目名称': 'case_title',
             '案例名称': 'case_title',
             '案例标题': 'case_title',
+            '合同名称': 'contract_name',
             '案例编号': 'case_number',
             '项目编号': 'case_number',
             '合同编号': 'case_number',
+            '序号': 'case_number',  # 新增：序号字段
 
             # 客户信息
             '客户名称': 'customer_name',
@@ -65,20 +68,25 @@ class CaseTableFiller:
             '最终用户': 'final_customer_name',
 
             # 合同信息
-            '合同名称': 'contract_name',
             '合同内容': 'contract_name',  # 新增:用合同名称代替合同内容
             '项目内容': 'contract_name',  # 新增
             '合同类型': 'contract_type',
             '项目类型': 'contract_type',
+            '产品名称': 'contract_name',  # 新增：产品名称映射到合同名称
+            '产品名称、数量': 'contract_name',  # 新增：组合列（产品名称+数量）
             '合同金额': 'contract_amount',
             '项目金额': 'contract_amount',
             '合同价格': 'contract_amount',
+            '金额': 'contract_amount',    # 新增：金额字段
+            '金额（元）': 'contract_amount',  # 新增：带单位的金额
             '数量': 'contract_amount',  # 新增:用合同金额代替数量
             '合同数量': 'contract_amount',  # 新增
 
             # 时间信息
             '合同签订时间': 'contract_start_date',  # 新增:用开始时间代替签订时间
             '签订时间': 'contract_start_date',      # 新增
+            '合同签约时间': 'contract_start_date',  # 新增：签约时间
+            '签约时间': 'contract_start_date',      # 新增
             '合同开始时间': 'contract_start_date',
             '合同开始日期': 'contract_start_date',
             '项目开始时间': 'contract_start_date',
@@ -103,7 +111,10 @@ class CaseTableFiller:
 
             # 联系信息
             '联系人': 'party_a_contact_name',
+            '用户联系人': 'party_a_contact_name',  # 新增：用户联系人
+            '用户联系人及联系方式': 'party_a_contact_combined',  # 新增：组合字段（联系人+电话）
             '联系电话': 'party_a_contact_phone',
+            '联系方式': 'party_a_contact_phone',  # 新增：联系方式
             '联系邮箱': 'party_a_contact_email'
         }
 
@@ -387,6 +398,21 @@ class CaseTableFiller:
                 return f"{start_date} 起"
             elif end_date:
                 return f"至 {end_date}"
+            else:
+                return None
+
+        # 处理组合字段：用户联系人及联系方式
+        if field_key == 'party_a_contact_combined':
+            # 用户联系人及联系方式 = 联系人 + 电话
+            contact_name = case.get('party_a_contact_name', '')
+            contact_phone = case.get('party_a_contact_phone', '')
+
+            if contact_name and contact_phone:
+                return f"{contact_name} {contact_phone}"
+            elif contact_name:
+                return contact_name
+            elif contact_phone:
+                return contact_phone
             else:
                 return None
 

@@ -228,13 +228,15 @@ class DocumentScanner:
 
         # 定义分类优先级（数字越大越优先）
         category_priority = {
-            'strong_attach': 100,  # 强附件标记
-            'weak_attach': 80,     # 弱附件标记
-            'neutral': 50,         # 中性位置
-            'chapter': 30,         # 章节标题
-            'toc': 10,             # 目录
-            'reference': 5,        # 正文引用
-            'exclude': -999,       # 不应该出现在候选中
+            'strong_attach': 100,        # 强附件标记（最优）
+            'weak_attach': 80,           # 弱附件标记
+            'neutral': 50,               # 中性位置
+            'chapter': 30,               # 章节标题
+            'toc': 10,                   # 目录
+            'reference': 5,              # 正文引用
+            'requirement_clause': -10,   # 招标要求条款（可用但不推荐）
+            'header_noise': -50,         # 文档标题噪音（基本不用）
+            'exclude': -999,             # 绝对排除（页眉页脚、附件清单标题）
         }
 
         insert_points = {}
@@ -282,9 +284,14 @@ class DocumentScanner:
                     f"☑️ {img_type}: 找到可用位置 [{best_category}] "
                     f"'{best_candidate['text']}' (共{len(candidate_list)}个候选)"
                 )
+            elif best_priority >= 0:
+                self.logger.warning(
+                    f"⚠️ {img_type}: 找到次优位置 [{best_category}] "
+                    f"'{best_candidate['text']}' (共{len(candidate_list)}个候选)"
+                )
             else:
                 self.logger.warning(
-                    f"⚠️ {img_type}: 仅找到低质量位置 [{best_category}] "
+                    f"🔻 {img_type}: 仅找到低质量位置 [{best_category}] (评分:{best_priority}) "
                     f"'{best_candidate['text']}' (共{len(candidate_list)}个候选)"
                 )
 
@@ -298,13 +305,15 @@ class DocumentScanner:
         段落分类（符合人的判断逻辑）
 
         分类优先级（从高到低）：
-        1. exclude       - 绝对排除（招标要求、页眉页脚、附件清单）
-        2. strong_attach - 强附件标记（编号附件、附件标题）
-        3. weak_attach   - 弱附件标记（说明性文字、"后附"）
-        4. neutral       - 中性位置（普通段落）
-        5. chapter       - 章节标题（不理想但可接受）
-        6. toc           - 目录（很不理想）
-        7. reference     - 正文引用（最不理想）
+        1. strong_attach      - 强附件标记（编号附件、附件标题） 100分
+        2. weak_attach        - 弱附件标记（说明性文字、"后附"） 80分
+        3. neutral            - 中性位置（普通段落） 50分
+        4. chapter            - 章节标题（不理想但可接受） 30分
+        5. toc                - 目录（很不理想） 10分
+        6. reference          - 正文引用（最不理想） 5分
+        7. requirement_clause - 招标要求条款（可用但不推荐） -10分
+        8. header_noise       - 文档标题噪音（基本不用） -50分
+        9. exclude            - 绝对排除（页眉页脚、附件清单标题） -999分
 
         Args:
             text: 段落文本
@@ -317,32 +326,13 @@ class DocumentScanner:
         """
         import re
 
-        # ========== 1. exclude（绝对排除）==========
+        # ========== 1. exclude（绝对排除 - 仅保留技术性禁区）==========
 
-        # 招标文件的要求条款
-        if any(pattern in text for pattern in [
-            "须在响应文件中提供",
-            "应在投标文件中提供",
-        ]):
-            return 'exclude'
-
-        if ("如响应方" in text or "如投标人" in text) and "须" in text:
-            return 'exclude'
-
-        if any(pattern in text for pattern in [
-            "投标人须提供", "响应方须提供",
-            "投标人需提供", "响应方需提供",
-        ]):
-            return 'exclude'
-
-        # 页眉页脚（通过样式名或位置判断）
+        # 页眉页脚（技术禁区）
         if style_name and ('Header' in style_name or 'Footer' in style_name):
             return 'exclude'
 
-        if len(text) < 10 and para_idx < 3:  # 文档开头的极短文本
-            return 'exclude'
-
-        # 附件清单标题（不是插入点）
+        # 附件清单标题（语义禁区）
         if "附件清单" in text or "附件目录" in text:
             return 'exclude'
 
@@ -403,6 +393,31 @@ class DocumentScanner:
         ]) and len(text) > 30:  # 较长的句子
             return 'reference'
 
-        # ========== 7. neutral（中性位置）==========
+        # ========== 7. requirement_clause（招标要求条款 -10分）==========
+        # 📌 从exclude降级为负分评分项
+
+        # 招标文件的要求条款
+        if any(pattern in text for pattern in [
+            "须在响应文件中提供",
+            "应在投标文件中提供",
+            "投标人须提供", "响应方须提供",
+            "投标人需提供", "响应方需提供",
+        ]):
+            return 'requirement_clause'
+
+        if ("如响应方" in text or "如投标人" in text) and "须" in text:
+            return 'requirement_clause'
+
+        # ========== 8. header_noise（文档标题噪音 -50分）==========
+
+        # 文档开头的极短文本
+        if len(text) < 10 and para_idx < 3:
+            # 如果是关键词标题，正常评分
+            if any(kw in text for kw in ['营业执照', '身份证', '授权书', '资质', '证书']):
+                return 'neutral'
+            else:
+                return 'header_noise'
+
+        # ========== 9. neutral（中性位置 - 默认）==========
 
         return 'neutral'
