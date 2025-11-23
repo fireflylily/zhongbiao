@@ -506,17 +506,18 @@ class WordDocumentUtils:
         return full_text, runs, char_to_run_map
     
     @staticmethod
-    def apply_replacement_to_runs(runs, char_to_run_map, match, replacement_text, logger=None):
+    def apply_replacement_to_runs(runs, char_to_run_map, match, replacement_text, logger=None, clean_format=True):
         """
         将替换应用到涉及的Run中，保持格式
-        
+
         Args:
             runs: Run对象列表
             char_to_run_map: 字符到Run的映射
             match: 匹配字典，包含start、end、text
             replacement_text: 替换文本
             logger: 日志对象
-            
+            clean_format: 是否清理格式（移除下划线/删除线/高亮/背景色），默认True
+
         Returns:
             bool: 是否替换成功
         """
@@ -549,7 +550,7 @@ class WordDocumentUtils:
 
             run = runs[run_idx]
             run_start_in_full = run_char_offsets[run_idx]
-            
+
             # 计算这个Run中需要替换的部分
             replace_start_in_run = max(0, start_pos - run_start_in_full)
             replace_end_in_run = min(len(run.text), end_pos - run_start_in_full)
@@ -572,6 +573,22 @@ class WordDocumentUtils:
                 new_run_text = ""
 
             run.text = new_run_text
+
+            # 🆕 格式清理：移除占位符格式，保留基本样式
+            if clean_format and new_run_text:  # 只清理有内容的Run
+                try:
+                    # 移除下划线、删除线、高亮、背景色
+                    run.font.underline = None
+                    run.font.strike = None
+                    if hasattr(run.font, 'highlight_color'):
+                        run.font.highlight_color = None
+                    # 保留：字体名称、大小、粗体、斜体、颜色
+                    if logger:
+                        logger.debug(f"  清理Run {run_idx}格式：移除下划线/删除线/高亮")
+                except Exception as e:
+                    if logger:
+                        logger.debug(f"  清理Run {run_idx}格式时出现异常（可忽略）: {e}")
+
             if logger:
                 logger.debug(f"Run {run_idx}: '{old_run_text}' -> '{new_run_text}'")
 

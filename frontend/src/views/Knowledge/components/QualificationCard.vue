@@ -111,6 +111,15 @@
           </template>
         </DocumentUploader>
         <el-button
+          v-if="hasCreditQueryUrl"
+          type="success"
+          size="small"
+          @click="openQueryWebsite"
+        >
+          <el-icon><Link /></el-icon>
+          打开查询网站
+        </el-button>
+        <el-button
           v-if="isCustom"
           type="danger"
           size="small"
@@ -132,7 +141,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Document, Upload, Download, Delete, Files } from '@element-plus/icons-vue'
+import { Document, Upload, Download, Delete, Files, Link } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
 import { DocumentUploader } from '@/components'
@@ -143,6 +152,7 @@ const props = defineProps<{
   fileInfo?: any
   isCustom?: boolean
   onUpload?: (file: File) => Promise<void>
+  companyName?: string  // 新增: 公司名称,用于打开查询网站
 }>()
 
 // Emits
@@ -266,6 +276,31 @@ const formatDate = (dateStr: string) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// 信用资质查询网站配置
+const creditQueryUrls: Record<string, string> = {
+  'dishonest_executor': 'https://zxgk.court.gov.cn/shixin/',  // 失信被执行人
+  'tax_violation_check': 'https://www.creditchina.gov.cn/zhuanxiangchaxun/zhongdashuishouweifaanjian/',  // 重大税收违法失信主体
+  'gov_procurement_creditchina': 'https://www.creditchina.gov.cn/zhuanxiangchaxun/zhengfucaigouyanzhongweifashixinmingdan/',  // 政府采购严重违法失信行为
+  'creditchina_blacklist': 'https://www.creditchina.gov.cn/xinxigongshi/shixinheimingdan/',  // 严重失信主体
+  'creditchina_credit_report': 'https://www.creditchina.gov.cn/xybgxzzn/',  // 信用报告
+  'enterprise_credit_report': 'https://www.gsxt.gov.cn/',  // 国家企业信用信息公示系统
+  'gov_procurement_ccgp': 'http://www.ccgp.gov.cn/search/cr/'  // 政府采购严重违法失信行为信息记录(政府采购网)
+}
+
+// 判断是否为信用资质(有查询网站)
+const hasCreditQueryUrl = computed(() => {
+  return props.qualification.key in creditQueryUrls
+})
+
+// 打开查询网站
+const openQueryWebsite = () => {
+  const url = creditQueryUrls[props.qualification.key]
+  if (url) {
+    window.open(url, '_blank')
+    ElMessage.success('已在新窗口打开查询网站,请手动查询后截图上传')
+  }
 }
 </script>
 

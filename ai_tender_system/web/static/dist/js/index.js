@@ -1,8 +1,8 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/Login-BcDiUiTp.js","js/vendor-MtO928VE.js","css/vendor-DTen-cWt.css","css/Login-BrnYA_tN.css","js/MainLayout-Dw7IXQGF.js","js/DocumentPreview-9ke4Yi2d.js","css/DocumentPreview-Cxu5QVdc.css","js/project-X4Kuz_iO.js","js/tender-DvsgeLWX.js","css/MainLayout-OsCsUsD3.css","js/Dashboard-iKB3uXRq.js","js/Loading-75jVWA4c.js","css/HistoryFilesPanel-D_lsDzv2.css","js/Empty-B61dCWeQ.js","js/Card-jLaN2c6R.js","js/IconButton-CDqBOgvk.js","css/Dashboard-dE2PG4C7.css","js/Management-Cqexj3sf.js","js/company-z4Xg082l.js","css/Management-BqLBzwk3.css","js/ManagementDetail-DsgfcbUN.js","js/PageHeader-BhFuSmcR.js","css/ManagementDetail-slmDqOXk.css","js/Response-DN0xz7Ky.js","js/DocumentUploader-D4BCHi8H.js","js/imageCompressor-DC3BCfPz.js","js/RichTextEditor-Clg90zh2.js","js/helpers-DDPNk1Cr.js","js/useProjectDocuments-CobiuthK.js","css/Response-q-DKWsBz.css","js/PointToPoint-DL8sw0ol.js","js/SSEStreamViewer-ChA9d39N.js","css/PointToPoint-DduZzVIK.css","js/TechProposal-Bvl5fedL.js","css/TechProposal-CNNPElhd.css","js/FinalTender-BJVM3H-L.js","css/FinalTender-DLWyttS0.css","js/Scoring-CgHVuMbK.js","css/Scoring-BetcfblH.css","js/CompanyLibrary-rCiDsY13.js","css/CompanyLibrary-Cy000kxb.css","js/CompanyDetail-_KHtFw4z.js","css/CompanyDetail-CCX8Jpe3.css","js/CaseLibrary-DBfT_lCL.js","js/formatters-DrGE7noj.js","css/CaseLibrary-7KBVzdqc.css","js/CaseDetail-8Oix65bu.js","css/CaseDetail-Bo6Omcks.css","js/DocumentLibrary-B0c5eMui.js","css/DocumentLibrary-DiDHUMCx.css","js/ResumeLibrary-CDN_ZiGm.js","js/validators-CS_37Iha.js","css/ResumeLibrary-iMhSTnm5.css","js/ResumeDetail-DiYFpFxZ.js","css/ResumeDetail-C4J8e6NP.css","js/ParserComparison-DKqAZe9I.js","css/ParserComparison-BxEx9boQ.css","js/EditorTest-DInmt5j_.js","css/EditorTest-CWNntlaA.css","js/OutlineComparison-CvyBQ4J9.js","css/OutlineComparison-DDvMfcQE.css","js/UserManagement-BIrKEt36.js","css/UserManagement-C4FmEDdk.css","js/Processing-CUUkmJsg.js","css/Processing-CerGZiGH.css","js/Status-C1LcZmGa.js","css/Status-CaoQTMXp.css","js/Help-CDanGMQe.js","css/Help-DWLT3G60.css","js/Forbidden-BsFtRqrc.js","css/Forbidden-BAxWUymE.css","js/NotFound-D5cNlsL6.js","css/NotFound-p6GR2JiB.css","js/ServerError-Du7H2IIt.js","css/ServerError-DeuD4iax.css"])))=>i.map(i=>d[i]);
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["js/Login-CvmSHKqS.js","js/vendor-_9UVkM6-.js","css/vendor-DTen-cWt.css","css/Login-BrnYA_tN.css","js/MainLayout-CG9b37yb.js","js/DocumentPreview-kARaYjYY.js","css/DocumentPreview-Cxu5QVdc.css","js/project-COt-HjGx.js","js/tender-DvsgeLWX.js","css/MainLayout-OsCsUsD3.css","js/Dashboard-CjBfxrwm.js","js/Loading-dPNGnJM7.js","css/HistoryFilesPanel-CRltv9Rf.css","js/Empty-Cafyq6jd.js","js/Card-C-BxBgcH.js","js/IconButton-B3ZrvrSl.js","css/Dashboard-dE2PG4C7.css","js/Management-CqdQUdzd.js","js/company-z4Xg082l.js","css/Management-BqLBzwk3.css","js/ManagementDetail-p6mKfHkJ.js","js/PageHeader-C0KfWJQh.js","css/ManagementDetail-slmDqOXk.css","js/Response-DWKCighb.js","js/DocumentUploader-CiJusq1W.js","js/imageCompressor-DC3BCfPz.js","js/RichTextEditor-BdV_xjtJ.js","js/helpers-C4z6dIGd.js","js/useProjectDocuments-B_jI2A2b.js","css/Response-q-DKWsBz.css","js/PointToPoint-BrmnHKwP.js","js/SSEStreamViewer-BGjYVwCw.js","css/PointToPoint-DduZzVIK.css","js/TechProposal-DyztfPeZ.js","css/TechProposal-CNNPElhd.css","js/FinalTender-B_UBOhZ5.js","css/FinalTender-DLWyttS0.css","js/Scoring-BxAi9pf2.js","css/Scoring-BetcfblH.css","js/CompanyLibrary-BnklkSF3.js","css/CompanyLibrary-Cy000kxb.css","js/CompanyDetail-BKxzswqs.js","css/CompanyDetail-D1ohSMD-.css","js/CaseLibrary-BJq2J7JL.js","js/formatters-DrGE7noj.js","css/CaseLibrary-7KBVzdqc.css","js/CaseDetail-DAsIrDhY.js","css/CaseDetail-Bo6Omcks.css","js/DocumentLibrary-DOM3--87.js","css/DocumentLibrary-DiDHUMCx.css","js/ResumeLibrary-XiAHwFnq.js","js/validators-CS_37Iha.js","css/ResumeLibrary-iMhSTnm5.css","js/ResumeDetail-CviSU4Kq.js","css/ResumeDetail-C4J8e6NP.css","js/ParserComparison-3suezHx3.js","css/ParserComparison-BxEx9boQ.css","js/EditorTest-DUo5nq1r.js","css/EditorTest-CWNntlaA.css","js/OutlineComparison-Cqp930pI.js","css/OutlineComparison-DDvMfcQE.css","js/UserManagement-Db2LaCQd.js","css/UserManagement-C4FmEDdk.css","js/Processing-B25Pmm5r.js","css/Processing-CerGZiGH.css","js/Status-ifs4qgkz.js","css/Status-CaoQTMXp.css","js/Help-YialaWSO.js","css/Help-DWLT3G60.css","js/Forbidden-DXqDjKyV.js","css/Forbidden-BAxWUymE.css","js/NotFound-B8LeWFcy.js","css/NotFound-p6GR2JiB.css","js/ServerError-ta2amXmi.js","css/ServerError-DeuD4iax.css"])))=>i.map(i=>d[i]);
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-import { a as axios, d as defineComponent, u as useRoute, r as ref, b as reactive, c as computed, e as createElementBlock, o as openBlock, f as createVNode, E as ElTooltip, w as withCtx, g as ElButton, h as unref, i as edit_pen_default, j as ElDialog, k as createBlock, l as createCommentVNode, m as ElAlert, n as createBaseVNode, p as createTextVNode, t as toDisplayString, q as ElForm, s as ElFormItem, v as ElRadioGroup, x as ElRadio, y as ElInput, z as ElMessageBox, A as ElMessage, B as resolveComponent, F as Fragment, _ as __vitePreload, C as defineStore, D as watch, G as createPinia, H as ElNotification, I as createRouter, J as createWebHashHistory, K as createApp, L as B$e } from "./vendor-MtO928VE.js";
+import { a as axios, d as defineComponent, u as useRoute, r as ref, b as reactive, c as computed, e as createElementBlock, o as openBlock, f as createVNode, E as ElTooltip, w as withCtx, g as ElButton, h as unref, i as edit_pen_default, j as ElDialog, k as createBlock, l as createCommentVNode, m as ElAlert, n as createBaseVNode, p as createTextVNode, t as toDisplayString, q as ElForm, s as ElFormItem, v as ElRadioGroup, x as ElRadio, y as ElInput, z as ElMessageBox, A as ElMessage, B as resolveComponent, F as Fragment, _ as __vitePreload, C as defineStore, D as watch, G as createPinia, H as ElNotification, I as createRouter, J as createWebHashHistory, K as createApp, L as B$e } from "./vendor-_9UVkM6-.js";
 (function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) {
@@ -653,7 +653,7 @@ const routes = [
   {
     path: "/login",
     name: "Login",
-    component: () => __vitePreload(() => import("./Login-BcDiUiTp.js"), true ? __vite__mapDeps([0,1,2,3]) : void 0),
+    component: () => __vitePreload(() => import("./Login-CvmSHKqS.js"), true ? __vite__mapDeps([0,1,2,3]) : void 0),
     meta: {
       requiresAuth: false,
       title: "登录",
@@ -664,7 +664,7 @@ const routes = [
   // ==================== 主布局路由 ====================
   {
     path: "/",
-    component: () => __vitePreload(() => import("./MainLayout-Dw7IXQGF.js"), true ? __vite__mapDeps([4,1,2,5,6,7,8,9]) : void 0),
+    component: () => __vitePreload(() => import("./MainLayout-CG9b37yb.js"), true ? __vite__mapDeps([4,1,2,5,6,7,8,9]) : void 0),
     meta: { requiresAuth: true },
     redirect: { name: "Home" },
     children: [
@@ -672,7 +672,7 @@ const routes = [
       {
         path: "",
         name: "Home",
-        component: () => __vitePreload(() => import("./Dashboard-iKB3uXRq.js"), true ? __vite__mapDeps([10,1,2,7,8,11,12,13,14,15,16,6]) : void 0),
+        component: () => __vitePreload(() => import("./Dashboard-CjBfxrwm.js"), true ? __vite__mapDeps([10,1,2,7,8,11,12,13,14,15,16,6]) : void 0),
         meta: {
           title: "工作台",
           icon: "bi-house",
@@ -686,7 +686,7 @@ const routes = [
       {
         path: "tender-management",
         name: "TenderManagement",
-        component: () => __vitePreload(() => import("./Management-Cqexj3sf.js"), true ? __vite__mapDeps([17,1,2,11,12,13,14,15,8,18,19,6]) : void 0),
+        component: () => __vitePreload(() => import("./Management-CqdQUdzd.js"), true ? __vite__mapDeps([17,1,2,11,12,13,14,15,8,18,19,6]) : void 0),
         meta: {
           title: "投标管理",
           icon: "bi-file-earmark-text",
@@ -700,7 +700,7 @@ const routes = [
       {
         path: "tender-management/:id",
         name: "TenderManagementDetail",
-        component: () => __vitePreload(() => import("./ManagementDetail-DsgfcbUN.js"), true ? __vite__mapDeps([20,1,2,11,12,21,5,6,8,18,7,22]) : void 0),
+        component: () => __vitePreload(() => import("./ManagementDetail-p6mKfHkJ.js"), true ? __vite__mapDeps([20,1,2,11,12,21,5,6,8,18,7,22]) : void 0),
         meta: {
           title: "项目详情",
           icon: "bi-file-earmark-text",
@@ -714,7 +714,7 @@ const routes = [
       {
         path: "business-response",
         name: "BusinessResponse",
-        component: () => __vitePreload(() => import("./Response-DN0xz7Ky.js"), true ? __vite__mapDeps([23,1,2,24,25,12,5,6,26,27,8,18,7,28,29]) : void 0),
+        component: () => __vitePreload(() => import("./Response-DWKCighb.js"), true ? __vite__mapDeps([23,1,2,24,25,12,5,6,26,27,8,18,7,28,29]) : void 0),
         meta: {
           title: "商务应答",
           icon: "bi-briefcase",
@@ -726,7 +726,7 @@ const routes = [
       {
         path: "point-to-point",
         name: "PointToPoint",
-        component: () => __vitePreload(() => import("./PointToPoint-DL8sw0ol.js"), true ? __vite__mapDeps([30,1,2,31,12,24,25,5,6,26,27,8,28,7,32]) : void 0),
+        component: () => __vitePreload(() => import("./PointToPoint-BrmnHKwP.js"), true ? __vite__mapDeps([30,1,2,31,12,24,25,5,6,26,27,8,28,7,32]) : void 0),
         meta: {
           title: "点对点应答",
           icon: "bi-arrow-left-right",
@@ -739,7 +739,7 @@ const routes = [
       {
         path: "tech-proposal",
         name: "TechProposal",
-        component: () => __vitePreload(() => import("./TechProposal-Bvl5fedL.js"), true ? __vite__mapDeps([33,1,2,31,12,24,25,5,6,26,27,8,28,7,34]) : void 0),
+        component: () => __vitePreload(() => import("./TechProposal-DyztfPeZ.js"), true ? __vite__mapDeps([33,1,2,31,12,24,25,5,6,26,27,8,28,7,34]) : void 0),
         meta: {
           title: "技术方案",
           icon: "bi-file-code",
@@ -752,7 +752,7 @@ const routes = [
       {
         path: "final-tender",
         name: "FinalTender",
-        component: () => __vitePreload(() => import("./FinalTender-BJVM3H-L.js"), true ? __vite__mapDeps([35,1,2,11,12,21,28,8,7,36,6]) : void 0),
+        component: () => __vitePreload(() => import("./FinalTender-B_UBOhZ5.js"), true ? __vite__mapDeps([35,1,2,11,12,21,28,8,7,36,6]) : void 0),
         meta: {
           title: "最终标书",
           icon: "bi-file-earmark-zip",
@@ -765,7 +765,7 @@ const routes = [
       {
         path: "tender-scoring",
         name: "TenderScoring",
-        component: () => __vitePreload(() => import("./Scoring-CgHVuMbK.js"), true ? __vite__mapDeps([37,1,2,31,12,8,38,6]) : void 0),
+        component: () => __vitePreload(() => import("./Scoring-BxAi9pf2.js"), true ? __vite__mapDeps([37,1,2,31,12,8,38,6]) : void 0),
         meta: {
           title: "标书评分",
           icon: "bi-star",
@@ -790,7 +790,7 @@ const routes = [
           {
             path: "company-library",
             name: "CompanyLibrary",
-            component: () => __vitePreload(() => import("./CompanyLibrary-rCiDsY13.js"), true ? __vite__mapDeps([39,1,2,11,12,13,14,18,40,6]) : void 0),
+            component: () => __vitePreload(() => import("./CompanyLibrary-BnklkSF3.js"), true ? __vite__mapDeps([39,1,2,11,12,13,14,18,40,6]) : void 0),
             meta: {
               title: "企业库",
               icon: "bi-building",
@@ -804,7 +804,7 @@ const routes = [
           {
             path: "company/:id",
             name: "CompanyDetail",
-            component: () => __vitePreload(() => import("./CompanyDetail-_KHtFw4z.js"), true ? __vite__mapDeps([41,1,2,11,12,18,14,24,25,42,6]) : void 0),
+            component: () => __vitePreload(() => import("./CompanyDetail-BKxzswqs.js"), true ? __vite__mapDeps([41,1,2,11,12,18,14,24,25,42,6]) : void 0),
             meta: {
               title: "企业详情",
               icon: "bi-building",
@@ -818,7 +818,7 @@ const routes = [
           {
             path: "case-library",
             name: "CaseLibrary",
-            component: () => __vitePreload(() => import("./CaseLibrary-DBfT_lCL.js"), true ? __vite__mapDeps([43,1,2,11,12,13,14,44,18,45,6]) : void 0),
+            component: () => __vitePreload(() => import("./CaseLibrary-BJq2J7JL.js"), true ? __vite__mapDeps([43,1,2,11,12,13,14,44,18,45,6]) : void 0),
             meta: {
               title: "案例库",
               icon: "bi-archive",
@@ -832,7 +832,7 @@ const routes = [
           {
             path: "case/:id",
             name: "CaseDetail",
-            component: () => __vitePreload(() => import("./CaseDetail-8Oix65bu.js"), true ? __vite__mapDeps([46,1,2,11,12,44,13,25,18,47,6]) : void 0),
+            component: () => __vitePreload(() => import("./CaseDetail-DAsIrDhY.js"), true ? __vite__mapDeps([46,1,2,11,12,44,13,25,18,47,6]) : void 0),
             meta: {
               title: "案例详情",
               icon: "bi-archive",
@@ -846,7 +846,7 @@ const routes = [
           {
             path: "document-library",
             name: "DocumentLibrary",
-            component: () => __vitePreload(() => import("./DocumentLibrary-B0c5eMui.js"), true ? __vite__mapDeps([48,1,2,13,12,14,49,6]) : void 0),
+            component: () => __vitePreload(() => import("./DocumentLibrary-DOM3--87.js"), true ? __vite__mapDeps([48,1,2,13,12,14,49,6]) : void 0),
             meta: {
               title: "文档库",
               icon: "bi-folder",
@@ -860,7 +860,7 @@ const routes = [
           {
             path: "resume-library",
             name: "ResumeLibrary",
-            component: () => __vitePreload(() => import("./ResumeLibrary-CDN_ZiGm.js"), true ? __vite__mapDeps([50,1,2,11,12,13,14,44,51,52,6]) : void 0),
+            component: () => __vitePreload(() => import("./ResumeLibrary-XiAHwFnq.js"), true ? __vite__mapDeps([50,1,2,11,12,13,14,44,51,52,6]) : void 0),
             meta: {
               title: "简历库",
               icon: "bi-person-badge",
@@ -874,7 +874,7 @@ const routes = [
           {
             path: "resume/:id",
             name: "ResumeDetail",
-            component: () => __vitePreload(() => import("./ResumeDetail-DiYFpFxZ.js"), true ? __vite__mapDeps([53,1,2,11,12,44,51,13,25,54,6]) : void 0),
+            component: () => __vitePreload(() => import("./ResumeDetail-CviSU4Kq.js"), true ? __vite__mapDeps([53,1,2,11,12,44,51,13,25,54,6]) : void 0),
             meta: {
               title: "简历详情",
               icon: "bi-person-badge",
@@ -903,7 +903,7 @@ const routes = [
           {
             path: "parser-comparison",
             name: "ParserComparison",
-            component: () => __vitePreload(() => import("./ParserComparison-DKqAZe9I.js"), true ? __vite__mapDeps([55,1,2,14,12,56,6]) : void 0),
+            component: () => __vitePreload(() => import("./ParserComparison-3suezHx3.js"), true ? __vite__mapDeps([55,1,2,14,12,56,6]) : void 0),
             meta: {
               title: "目录解析对比",
               icon: "bi-file-earmark-diff",
@@ -917,7 +917,7 @@ const routes = [
           {
             path: "editor-test",
             name: "EditorTest",
-            component: () => __vitePreload(() => import("./EditorTest-DInmt5j_.js"), true ? __vite__mapDeps([57,1,2,26,12,58,6]) : void 0),
+            component: () => __vitePreload(() => import("./EditorTest-DUo5nq1r.js"), true ? __vite__mapDeps([57,1,2,26,12,58,6]) : void 0),
             meta: {
               title: "编辑器测试",
               icon: "bi-pencil-square",
@@ -930,7 +930,7 @@ const routes = [
           {
             path: "outline-comparison",
             name: "OutlineComparison",
-            component: () => __vitePreload(() => import("./OutlineComparison-CvyBQ4J9.js"), true ? __vite__mapDeps([59,1,2,28,8,7,5,6,18,60,12]) : void 0),
+            component: () => __vitePreload(() => import("./OutlineComparison-Cqp930pI.js"), true ? __vite__mapDeps([59,1,2,28,8,7,5,6,18,60,12]) : void 0),
             meta: {
               title: "大纲生成对比",
               icon: "bi-diagram-3",
@@ -943,7 +943,7 @@ const routes = [
           {
             path: "user-management",
             name: "UserManagement",
-            component: () => __vitePreload(() => import("./UserManagement-BIrKEt36.js"), true ? __vite__mapDeps([61,1,2,62]) : void 0),
+            component: () => __vitePreload(() => import("./UserManagement-Db2LaCQd.js"), true ? __vite__mapDeps([61,1,2,62]) : void 0),
             meta: {
               title: "用户管理",
               icon: "bi-people",
@@ -960,7 +960,7 @@ const routes = [
   {
     path: "/tender-processing/:projectId?",
     name: "TenderProcessing",
-    component: () => __vitePreload(() => import("./Processing-CUUkmJsg.js"), true ? __vite__mapDeps([63,1,2,13,12,14,64,6]) : void 0),
+    component: () => __vitePreload(() => import("./Processing-B25Pmm5r.js"), true ? __vite__mapDeps([63,1,2,13,12,14,64,6]) : void 0),
     meta: {
       requiresAuth: true,
       title: "投标处理",
@@ -974,7 +974,7 @@ const routes = [
   {
     path: "/system-status",
     name: "SystemStatus",
-    component: () => __vitePreload(() => import("./Status-C1LcZmGa.js"), true ? __vite__mapDeps([65,1,2,66]) : void 0),
+    component: () => __vitePreload(() => import("./Status-ifs4qgkz.js"), true ? __vite__mapDeps([65,1,2,66]) : void 0),
     meta: {
       requiresAuth: true,
       title: "系统状态",
@@ -985,7 +985,7 @@ const routes = [
   {
     path: "/help",
     name: "Help",
-    component: () => __vitePreload(() => import("./Help-CDanGMQe.js"), true ? __vite__mapDeps([67,1,2,13,12,14,68,6]) : void 0),
+    component: () => __vitePreload(() => import("./Help-YialaWSO.js"), true ? __vite__mapDeps([67,1,2,13,12,14,68,6]) : void 0),
     meta: {
       requiresAuth: false,
       title: "帮助中心",
@@ -997,7 +997,7 @@ const routes = [
   {
     path: "/403",
     name: "Forbidden",
-    component: () => __vitePreload(() => import("./Forbidden-BsFtRqrc.js"), true ? __vite__mapDeps([69,1,2,70]) : void 0),
+    component: () => __vitePreload(() => import("./Forbidden-DXqDjKyV.js"), true ? __vite__mapDeps([69,1,2,70]) : void 0),
     meta: {
       requiresAuth: false,
       title: "403 - 无权限访问",
@@ -1008,7 +1008,7 @@ const routes = [
   {
     path: "/404",
     name: "NotFound",
-    component: () => __vitePreload(() => import("./NotFound-D5cNlsL6.js"), true ? __vite__mapDeps([71,1,2,72]) : void 0),
+    component: () => __vitePreload(() => import("./NotFound-B8LeWFcy.js"), true ? __vite__mapDeps([71,1,2,72]) : void 0),
     meta: {
       requiresAuth: false,
       title: "404 - 页面未找到",
@@ -1019,7 +1019,7 @@ const routes = [
   {
     path: "/500",
     name: "ServerError",
-    component: () => __vitePreload(() => import("./ServerError-Du7H2IIt.js"), true ? __vite__mapDeps([73,1,2,74]) : void 0),
+    component: () => __vitePreload(() => import("./ServerError-ta2amXmi.js"), true ? __vite__mapDeps([73,1,2,74]) : void 0),
     meta: {
       requiresAuth: false,
       title: "500 - 服务器错误",

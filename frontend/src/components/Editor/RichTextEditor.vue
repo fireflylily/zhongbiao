@@ -145,6 +145,8 @@ interface Props {
   readonly?: boolean
   streaming?: boolean
   showOutline?: boolean
+  companyId?: number        // 公司ID（用于AI助手）
+  projectName?: string      // 项目名称（用于AI助手）
 }
 
 interface Emits {
@@ -246,6 +248,89 @@ const editorOptions = computed(() => ({
     }
     // 使用 base64，无需从服务器删除
     return true
+  },
+
+  // 【新增】AI 助手配置
+  ai: {
+    assistant: {
+      enabled: true,  // 启用 AI 助手
+
+      // 自定义指令列表（标书专用）
+      commands: [
+        // 标书专用指令
+        {
+          label: { en_US: 'Auto Fill', zh_CN: '智能填写' },
+          value: { en_US: 'auto_fill', zh_CN: 'auto_fill' }
+        },
+        {
+          label: { en_US: 'Generate Table', zh_CN: '生成表格' },
+          value: { en_US: 'generate_table', zh_CN: 'generate_table' }
+        },
+        // 保留通用指令
+        {
+          label: { en_US: 'Rewrite', zh_CN: '重写' },
+          value: { en_US: 'rewrite', zh_CN: 'rewrite' }
+        },
+        {
+          label: { en_US: 'Expansion', zh_CN: '扩写' },
+          value: { en_US: 'expand', zh_CN: 'expand' }
+        },
+        {
+          label: { en_US: 'Summarize', zh_CN: '总结' },
+          value: { en_US: 'summarize', zh_CN: 'summarize' }
+        },
+        {
+          label: { en_US: 'Polish', zh_CN: '润色' },
+          value: { en_US: 'polish', zh_CN: 'polish' }
+        },
+        {
+          label: { en_US: 'Translate', zh_CN: '翻译' },
+          value: { en_US: 'translate', zh_CN: 'translate' }
+        }
+      ],
+
+      // AI 消息处理回调（核心方法）
+      onMessage: async (payload: any, content: string) => {
+        console.log('[AI Assistant] 收到请求:', payload)
+
+        try {
+          const { command, lang, input, output } = payload
+
+          // 调用后端 AI API
+          const response = await fetch('/api/editor/ai-assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              command,           // AI 操作类型（如：rewrite, expand, summarize）
+              input,             // 用户选中的文本
+              output,            // 输出格式（HTML）
+              lang,              // 语言设置
+              company_id: props.companyId || 1,      // 当前公司ID
+              project_name: props.projectName || ''  // 当前项目名称
+            })
+          })
+
+          if (!response.ok) {
+            throw new Error('AI 请求失败')
+          }
+
+          const result = await response.json()
+
+          if (result.success) {
+            console.log('[AI Assistant] 生成成功:', result.content.substring(0, 100))
+            return result.content  // 返回 AI 生成的内容（HTML格式）
+          } else {
+            ElMessage.error(result.error || 'AI 生成失败')
+            return input  // 失败时返回原始内容
+          }
+
+        } catch (error: any) {
+          console.error('[AI Assistant] 错误:', error)
+          ElMessage.error('AI 助手调用失败: ' + error.message)
+          return payload.input  // 出错时返回原始内容
+        }
+      }
+    }
   }
 }))
 

@@ -40,11 +40,12 @@ class DocumentUtils:
             self.logger.warning(f"无法解析文件路径: {file_path}")
             return file_path
 
-    def insert_paragraph_after(self, target_para):
+    def insert_paragraph_after(self, target_para, clean_format=True):
         """在目标段落后插入新段落
 
         Args:
             target_para: 目标段落对象
+            clean_format: 是否清理新段落格式（移除下划线/删除线/高亮），默认True
 
         Returns:
             新创建的段落对象
@@ -59,6 +60,19 @@ class DocumentUtils:
             # 将新创建的 XML 元素包装为 Paragraph 对象并返回
             parent = target_para._parent
             new_paragraph = Paragraph(new_p_element, parent)
+
+            # 🆕 格式清理：清理新段落的格式污染
+            if clean_format:
+                try:
+                    # 清理段落中所有Run的格式
+                    for run in new_paragraph.runs:
+                        run.font.underline = None
+                        run.font.strike = None
+                        if hasattr(run.font, 'highlight_color'):
+                            run.font.highlight_color = None
+                    self.logger.debug("清理新段落格式：移除下划线/删除线/高亮")
+                except Exception as e:
+                    self.logger.debug(f"清理新段落格式时出现异常（可忽略）: {e}")
 
             return new_paragraph
 

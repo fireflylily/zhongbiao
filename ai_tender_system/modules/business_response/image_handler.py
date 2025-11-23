@@ -174,22 +174,7 @@ class ImageHandler:
                 'page_num': 1
             })
 
-        # 2. 法人身份证
-        legal_id = image_config.get('legal_id')
-        if legal_id and isinstance(legal_id, dict):
-            front = legal_id.get('front')
-            back = legal_id.get('back')
-            if front and back:
-                resources.append({
-                    'type': 'id_card',
-                    'key': 'legal_id',
-                    'front': front,
-                    'back': back,
-                    'title': '法定代表人身份证',
-                    'id_type': '法定代表人'
-                })
-
-        # 3. 被授权人身份证
+        # 2. 被授权人身份证
         auth_id = image_config.get('auth_id')
         if auth_id and isinstance(auth_id, dict):
             front = auth_id.get('front')
@@ -202,6 +187,21 @@ class ImageHandler:
                     'back': back,
                     'title': '被授权人身份证',
                     'id_type': '被授权人'
+                })
+
+        # 3. 法人身份证
+        legal_id = image_config.get('legal_id')
+        if legal_id and isinstance(legal_id, dict):
+            front = legal_id.get('front')
+            back = legal_id.get('back')
+            if front and back:
+                resources.append({
+                    'type': 'id_card',
+                    'key': 'legal_id',
+                    'front': front,
+                    'back': back,
+                    'title': '法定代表人身份证',
+                    'id_type': '法定代表人'
                 })
 
         # 4. 资质证书（分组处理多页PDF）

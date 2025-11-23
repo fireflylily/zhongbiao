@@ -22,6 +22,7 @@
               <QualificationCard
                 :qualification="qual"
                 :file-info="qualificationFiles[qual.key]"
+                :company-name="companyData?.company_name"
                 :on-upload="createUploadHandler(qual.key)"
                 @download="handleDownload"
                 @delete="handleDelete"
@@ -126,12 +127,10 @@ const categories = [
 
 // 标准资质类型（19种）
 const standardQualifications = [
-  // 基本证件 (5项)
+  // 基本证件 (3项)
   { key: 'business_license', name: '营业执照', icon: 'Document', category: 'basic', required: true },
   { key: 'legal_id_front', name: '法人身份证(正面)', icon: 'CreditCard', category: 'basic', required: true },
   { key: 'legal_id_back', name: '法人身份证(反面)', icon: 'CreditCard', category: 'basic', required: true },
-  { key: 'bank_account_permit', name: '银行开户许可证', icon: 'CreditCard', category: 'basic' },
-  { key: 'tax_registration', name: '税务登记证', icon: 'DocumentChecked', category: 'basic' },
 
   // ISO认证 (4项)
   { key: 'iso9001', name: 'ISO 9001质量管理体系认证', icon: 'Medal', category: 'iso' },
@@ -139,10 +138,13 @@ const standardQualifications = [
   { key: 'iso27001', name: 'ISO 27001信息安全管理体系认证', icon: 'Lock', category: 'iso' },
   { key: 'iso20000', name: 'ISO 20000 IT服务管理体系认证', icon: 'Monitor', category: 'iso' },
 
-  // 信用资质 (4项)
+  // 信用资质 (7项)
   { key: 'dishonest_executor', name: '失信被执行人名单（信用中国）', icon: 'WarningFilled', category: 'credit' },
-  { key: 'tax_violation_check', name: '重大税收违法案件当事人名单（信用中国）', icon: 'WarningFilled', category: 'credit' },
-  { key: 'gov_procurement_creditchina', name: '政府采购严重违法失信（信用中国）', icon: 'Flag', category: 'credit' },
+  { key: 'tax_violation_check', name: '重大税收违法失信主体（信用中国）', icon: 'WarningFilled', category: 'credit' },
+  { key: 'gov_procurement_creditchina', name: '政府采购严重违法失信行为（信用中国）', icon: 'Flag', category: 'credit' },
+  { key: 'creditchina_blacklist', name: '严重失信主体（信用中国）', icon: 'WarnTriangleFilled', category: 'credit' },
+  { key: 'creditchina_credit_report', name: '信用报告（信用中国）', icon: 'DocumentChecked', category: 'credit' },
+  { key: 'enterprise_credit_report', name: '国家企业信用信息公示系统信息报告', icon: 'Tickets', category: 'credit' },
   { key: 'gov_procurement_ccgp', name: '政府采购严重违法失信行为信息记录（政府采购网）', icon: 'CircleCheck', category: 'credit' },
 
   // 行业资质 (6项)
