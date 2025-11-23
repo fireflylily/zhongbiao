@@ -13,10 +13,27 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# 检测系统类型和Nginx配置目录
+if [ -d "/etc/nginx/sites-available" ]; then
+    # Ubuntu/Debian系统
+    NGINX_CONF_TARGET="/etc/nginx/sites-available/ai-tender"
+    NGINX_CONF_ENABLED="/etc/nginx/sites-enabled/ai-tender"
+    SYSTEM_TYPE="ubuntu"
+    echo "ℹ️  检测到Ubuntu/Debian系统"
+elif [ -d "/etc/nginx/conf.d" ]; then
+    # CentOS/RHEL系统
+    NGINX_CONF_TARGET="/etc/nginx/conf.d/ai-tender.conf"
+    NGINX_CONF_ENABLED=""
+    SYSTEM_TYPE="centos"
+    echo "ℹ️  检测到CentOS/RHEL系统"
+else
+    echo "❌ 无法确定Nginx配置目录"
+    echo "   请手动检查 /etc/nginx/ 目录结构"
+    exit 1
+fi
+
 # 配置文件路径
 NGINX_CONF_SOURCE="./nginx/ai-tender.conf"
-NGINX_CONF_TARGET="/etc/nginx/sites-available/ai-tender"
-NGINX_CONF_ENABLED="/etc/nginx/sites-enabled/ai-tender"
 
 # 1. 检查源配置文件是否存在
 if [ ! -f "$NGINX_CONF_SOURCE" ]; then
@@ -38,13 +55,17 @@ echo "[2/5] 复制新配置文件..."
 cp "$NGINX_CONF_SOURCE" "$NGINX_CONF_TARGET"
 echo "✅ 配置文件已复制"
 
-# 3. 创建软链接（如果不存在）
-echo "[3/5] 创建软链接..."
-if [ ! -L "$NGINX_CONF_ENABLED" ]; then
-    ln -s "$NGINX_CONF_TARGET" "$NGINX_CONF_ENABLED"
-    echo "✅ 软链接已创建"
+# 3. 创建软链接（如果是Ubuntu/Debian系统）
+echo "[3/5] 配置启用..."
+if [ "$SYSTEM_TYPE" = "ubuntu" ]; then
+    if [ ! -L "$NGINX_CONF_ENABLED" ]; then
+        ln -s "$NGINX_CONF_TARGET" "$NGINX_CONF_ENABLED"
+        echo "✅ 软链接已创建"
+    else
+        echo "ℹ️  软链接已存在"
+    fi
 else
-    echo "ℹ️  软链接已存在"
+    echo "ℹ️  CentOS系统，配置文件直接在conf.d目录，无需软链接"
 fi
 
 # 4. 测试Nginx配置
