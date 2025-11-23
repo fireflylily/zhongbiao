@@ -216,9 +216,9 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     };
     const handleFileChange = (uploadFile) => {
       if (uploadFile.raw) {
-        const maxSize = 20 * 1024 * 1024;
+        const maxSize = 100 * 1024 * 1024;
         if (uploadFile.raw.size > maxSize) {
-          error("文件过大", "文件大小不能超过20MB");
+          error("文件过大", "文件大小不能超过100MB");
           uploadFileList.value = [];
           uploadForm.value.file = null;
           return;
@@ -972,7 +972,7 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
                       drag: ""
                     }, {
                       tip: withCtx(() => [..._cache[30] || (_cache[30] = [
-                        createBaseVNode("div", { class: "el-upload__tip" }, " 支持PDF、DOC、DOCX、JPG、PNG格式，文件大小不超过20MB ", -1)
+                        createBaseVNode("div", { class: "el-upload__tip" }, " 支持PDF、DOC、DOCX、JPG、PNG格式，文件大小不超过100MB ", -1)
                       ])]),
                       default: withCtx(() => [
                         createVNode(_component_el_icon, { class: "el-icon--upload" }, {
@@ -1001,7 +1001,7 @@ const _sfc_main$1 = /* @__PURE__ */ defineComponent({
     };
   }
 });
-const CaseBasicInfoTab = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-e9280fb1"]]);
+const CaseBasicInfoTab = /* @__PURE__ */ _export_sfc(_sfc_main$1, [["__scopeId", "data-v-6f8e3b6e"]]);
 const _hoisted_1 = { class: "case-detail" };
 const _hoisted_2 = { class: "detail-header" };
 const _hoisted_3 = { class: "header-title" };
