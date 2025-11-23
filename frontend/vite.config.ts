@@ -114,8 +114,14 @@ export default defineConfig({
     // 代码分割策略 - 提高警告阈值（已做代码分包优化）
     chunkSizeWarningLimit: 2000,
 
-    // 🔧 临时禁用压缩，加快构建速度
-    minify: false
+    // 🚀 生产环境启用压缩（减少70%文件大小，加快首页加载）
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,  // 移除console.log
+        drop_debugger: true
+      }
+    }
   },
 
   // CSS配置
