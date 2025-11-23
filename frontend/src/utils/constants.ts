@@ -92,9 +92,9 @@ export const FILE_TYPES = {
  */
 export const FILE_SIZE_LIMIT = {
   IMAGE: 10 * 1024 * 1024, // 10MB
-  DOCUMENT: 50 * 1024 * 1024, // 50MB
+  DOCUMENT: 100 * 1024 * 1024, // 100MB (提升至100MB,支持大型PDF文档如审计报告)
   ATTACHMENT: 100 * 1024 * 1024, // 100MB
-  DEFAULT: 20 * 1024 * 1024 // 20MB
+  DEFAULT: 50 * 1024 * 1024 // 50MB (从20MB提升至50MB)
 } as const
 
 /**

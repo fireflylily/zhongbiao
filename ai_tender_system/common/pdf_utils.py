@@ -57,7 +57,8 @@ class PDFConverter:
     def convert_to_images(self,
                          pdf_path: str,
                          output_dir: Optional[str] = None,
-                         custom_prefix: Optional[str] = None) -> Dict[str, Any]:
+                         custom_prefix: Optional[str] = None,
+                         page_list: Optional[List[int]] = None) -> Dict[str, Any]:
         """
         将PDF转换为图片
 
@@ -65,6 +66,8 @@ class PDFConverter:
             pdf_path: PDF文件路径
             output_dir: 输出目录，如果不提供则创建临时目录
             custom_prefix: 自定义文件名前缀
+            page_list: 要转换的页码列表（从1开始），如 [1,2,5,6]
+                      如果为None，则转换全部页面
 
         Returns:
             转换结果字典：
@@ -80,7 +83,9 @@ class PDFConverter:
                     },
                     ...
                 ],
-                'total_pages': int,    # 总页数
+                'total_pages': int,    # 转换的页数
+                'source_total_pages': int,  # 原PDF总页数
+                'is_partial': bool,    # 是否为部分转换
                 'output_dir': str,     # 输出目录
                 'error': str          # 错误信息(如果有)
             }
@@ -148,13 +153,24 @@ class PDFConverter:
 
                     self.logger.info("尝试使用PyMuPDF转换...")
                     doc = fitz.open(pdf_path)
+                    source_total_pages = len(doc)
 
                     # 转换为PIL Image对象列表
                     images = []
-                    page_range = [0] if self.config.first_page_only else range(len(doc))
 
-                    for page_num in page_range:
-                        page = doc[page_num]
+                    # 确定要转换的页面范围
+                    if self.config.first_page_only:
+                        page_range = [0]
+                    elif page_list:
+                        # 【新增】使用指定的页码列表（转换为0-based索引）
+                        page_range = [p - 1 for p in page_list if 1 <= p <= source_total_pages]
+                        self.logger.info(f"转换指定页码: {page_list} (共{len(page_range)}页)")
+                    else:
+                        # 转换全部页面
+                        page_range = range(len(doc))
+
+                    for page_index in page_range:
+                        page = doc[page_index]
                         # 使用指定的DPI渲染
                         mat = fitz.Matrix(self.config.dpi / 72, self.config.dpi / 72)
                         pix = page.get_pixmap(matrix=mat)
@@ -163,11 +179,14 @@ class PDFConverter:
                         img_data = pix.tobytes("png")
                         from io import BytesIO
                         pil_image = Image.open(BytesIO(img_data))
-                        images.append(pil_image)
+                        images.append((page_index + 1, pil_image))  # 保存原始页码
 
                     doc.close()
                     conversion_method = 'pymupdf'
-                    self.logger.info(f"✅ PyMuPDF转换成功，共{len(images)}页")
+                    is_partial = bool(page_list)  # 是否为部分转换
+                    self.logger.info(f"✅ PyMuPDF转换成功，共{len(images)}页 (原PDF {source_total_pages}页)")
+                    if is_partial:
+                        self.logger.info(f"   部分转换：从{source_total_pages}页中选择了{len(images)}个关键页")
 
                 except ImportError as import_error:
                     self.logger.error(f"缺少必要的库: {import_error}")
@@ -192,8 +211,18 @@ class PDFConverter:
             result_images = []
             prefix = custom_prefix or self.config.page_prefix
 
-            for i, image in enumerate(images, 1):
-                self.logger.debug(f"处理第{i}页，原始尺寸: {image.width}x{image.height}")
+            # 检查images是否包含页码信息（PyMuPDF返回元组）
+            has_page_nums = images and isinstance(images[0], tuple)
+
+            for i, img_data in enumerate(images, 1):
+                # 提取图片对象和原始页码
+                if has_page_nums:
+                    original_page_num, image = img_data
+                else:
+                    original_page_num = i
+                    image = img_data
+
+                self.logger.debug(f"处理第{i}页（原始页码{original_page_num}），原始尺寸: {image.width}x{image.height}")
 
                 # 优化图片尺寸
                 optimized_image = self._optimize_image(image)
@@ -219,11 +248,20 @@ class PDFConverter:
 
                 # 记录图片信息
                 result_images.append({
-                    'page_num': i,
+                    'page_num': original_page_num,  # 使用原始页码
                     'file_path': str(image_path),
                     'width': optimized_image.width,
                     'height': optimized_image.height
                 })
+
+            # 获取源PDF总页数
+            try:
+                import fitz
+                doc = fitz.open(pdf_path)
+                source_total_pages = len(doc)
+                doc.close()
+            except:
+                source_total_pages = len(result_images)
 
             # 构建结果
             result = {
@@ -231,6 +269,8 @@ class PDFConverter:
                 'original_pdf': pdf_path,
                 'images': result_images,
                 'total_pages': len(result_images),
+                'source_total_pages': source_total_pages,  # 【新增】原PDF总页数
+                'is_partial': bool(page_list),  # 【新增】是否为部分转换
                 'output_dir': str(output_dir),
                 'conversion_method': conversion_method  # 记录使用的转换方法
             }

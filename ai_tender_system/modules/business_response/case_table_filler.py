@@ -430,6 +430,18 @@ class CaseTableFiller:
                     return year_match.group(1)
             return None
 
+        # 🆕 特殊处理：contract_name 为空时回退到 case_title
+        # 原因：数据库中大部分案例只填写了case_title，contract_name为空
+        # 根据schema设计，case_title等同于contract_name
+        if field_key == 'contract_name':
+            value = case.get('contract_name')
+            if not value or (isinstance(value, str) and value.strip() == ''):
+                # 回退到case_title
+                value = case.get('case_title')
+                if value:
+                    self.logger.debug(f"contract_name为空，回退到case_title: {value}")
+            return value if value else None
+
         # 普通字段
         value = case.get(field_key)
 

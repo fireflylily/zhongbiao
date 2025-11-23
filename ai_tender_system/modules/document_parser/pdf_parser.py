@@ -444,3 +444,108 @@ class PDFParser:
                             self.logger.debug(f"已插入第{page_num + 1}页的OCR内容 ({len(ocr_text)}字符)")
 
         return '\n'.join(merged_lines)
+
+    def identify_audit_report_key_pages(self, pdf_path: str, max_pages: int = 20) -> List[int]:
+        """
+        智能识别审计报告中的关键页
+
+        关键页包括：
+        1. 封面（第1页）
+        2. 审计报告正文页（审计意见、审计基础等）
+        3. 主要财务报表（资产负债表、利润表、现金流量表、所有者权益变动表）
+        4. 会计师签字页
+
+        Args:
+            pdf_path: PDF文件路径
+            max_pages: 最多提取的关键页数（防止误判）
+
+        Returns:
+            关键页码列表（从1开始），如 [1, 2, 5, 6, 7, 8, 9, 10]
+        """
+        try:
+            doc = fitz.open(pdf_path)
+            key_pages = set()
+
+            # 封面（必选）
+            key_pages.add(1)
+
+            # 定义关键内容标识词（优先级排序）
+            critical_keywords = [
+                # 审计报告核心部分（最重要）
+                '审计报告',
+                '审计意见',
+                '保留意见',
+                '无保留意见',
+                '否定意见',
+                '无法表示意见',
+                '形成审计意见的基础',
+                '管理层.*责任',
+                '注册会计师.*责任',
+
+                # 主要财务报表（重要）
+                '资产负债表',
+                '利润表',
+                '现金流量表',
+                '所有者权益变动表',
+                '合并资产负债表',
+                '合并利润表',
+
+                # 签字页（重要）
+                '会计师事务所',
+                '注册会计师.*签字',
+                '中国注册会计师',
+            ]
+
+            # 次要关键词（补充）
+            secondary_keywords = [
+                '财务报表附注',
+                '主要会计政策',
+                '重要会计估计',
+                '或有事项',
+                '承诺事项',
+            ]
+
+            # 扫描每一页
+            for page_num in range(min(len(doc), 50)):  # 只扫描前50页
+                page = doc[page_num]
+                text = page.get_text()
+
+                if not text.strip():
+                    continue
+
+                # 检查是否包含关键内容
+                page_score = 0
+                matched_keywords = []
+
+                for keyword in critical_keywords:
+                    if re.search(keyword, text, re.IGNORECASE):
+                        page_score += 10
+                        matched_keywords.append(keyword)
+
+                for keyword in secondary_keywords:
+                    if re.search(keyword, text, re.IGNORECASE):
+                        page_score += 2
+                        matched_keywords.append(keyword)
+
+                # 如果得分足够高，标记为关键页
+                if page_score >= 10:
+                    key_pages.add(page_num + 1)
+                    self.logger.debug(f"关键页: 第{page_num + 1}页 (得分:{page_score}, 关键词:{matched_keywords[:3]})")
+
+                # 限制最多提取的页数
+                if len(key_pages) >= max_pages:
+                    self.logger.info(f"已达到最大关键页数 {max_pages}，停止扫描")
+                    break
+
+            doc.close()
+
+            # 排序并返回
+            result = sorted(list(key_pages))
+            self.logger.info(f"✅ 识别出 {len(result)} 个关键页: {result}")
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"识别审计报告关键页失败: {e}")
+            # 降级策略：返回前10页
+            return list(range(1, 11))

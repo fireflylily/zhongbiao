@@ -268,7 +268,7 @@
             </div>
             <template #tip>
               <div class="el-upload__tip">
-                支持PDF、DOC、DOCX、JPG、PNG格式，文件大小不超过20MB
+                支持PDF、DOC、DOCX、JPG、PNG格式，文件大小不超过100MB
               </div>
             </template>
           </el-upload>
@@ -508,10 +508,10 @@ const loadAttachments = async () => {
 // 文件选择
 const handleFileChange = (uploadFile: UploadFile) => {
   if (uploadFile.raw) {
-    // 验证文件大小（20MB限制）
-    const maxSize = 20 * 1024 * 1024
+    // 验证文件大小（100MB限制,支持大型审计报告等PDF文档）
+    const maxSize = 100 * 1024 * 1024
     if (uploadFile.raw.size > maxSize) {
-      error('文件过大', '文件大小不能超过20MB')
+      error('文件过大', '文件大小不能超过100MB')
       uploadFileList.value = []
       uploadForm.value.file = null
       return

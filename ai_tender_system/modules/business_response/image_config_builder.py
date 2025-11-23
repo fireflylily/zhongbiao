@@ -9,8 +9,11 @@
 - 处理资质证书（ISO、CMMI、信用证明等）
 - 处理营业执照、公章
 - 支持多种命名规范（兼容性）
+- 智能筛选审计报告（年份、版本）
 """
 
+import re
+import json
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 
@@ -32,6 +35,227 @@ BASIC_CREDENTIALS = {
     'id_card_front',       # 身份证正面（PersonnelTab使用）
     'id_card_back'         # 身份证反面（PersonnelTab使用）
 }
+
+
+# ==================== 审计报告智能筛选辅助函数 ====================
+
+def _parse_years_requirement(requirement_text: str) -> int:
+    """
+    从项目要求中解析需要几年的审计报告
+
+    Args:
+        requirement_text: 项目要求描述文本
+
+    Returns:
+        需要的年份数（1-3），默认1
+
+    Examples:
+        "近三年审计报告" -> 3
+        "近两年财务审计报告" -> 2
+        "审计报告" -> 1
+    """
+    if not requirement_text:
+        return 1
+
+    # 定义年份模式（优先级从高到低）
+    year_patterns = [
+        (r'近[三3]年', 3),
+        (r'近[二2两]年', 2),
+        (r'近[一1]年', 1),
+        (r'最近[三3]年', 3),
+        (r'最近[二2两]年', 2),
+        (r'最近[一1]年', 1),
+        (r'[三3]年.*审计', 3),
+        (r'[二2两]年.*审计', 2),
+    ]
+
+    for pattern, years in year_patterns:
+        if re.search(pattern, requirement_text):
+            logger.info(f"📅 识别年份要求: {years}年 (关键词: {pattern})")
+            return years
+
+    # 默认返回1年
+    return 1
+
+
+def _parse_fulltext_requirement(requirement_text: str) -> bool:
+    """
+    识别是否明确要求完整版审计报告
+
+    Args:
+        requirement_text: 项目要求描述文本
+
+    Returns:
+        True: 需要完整版  False: 默认关键页
+
+    Examples:
+        "完整的审计报告" -> True
+        "审计报告全文" -> True
+        "审计报告" -> False
+    """
+    if not requirement_text:
+        return False
+
+    # 完整版关键词
+    fulltext_keywords = [
+        '完整',
+        '全文',
+        '完整版',
+        '完整的审计报告',
+        '审计报告全文',
+        '完整审计',
+        '全本',
+    ]
+
+    for keyword in fulltext_keywords:
+        if keyword in requirement_text:
+            logger.info(f"📋 识别完整版要求: 关键词 '{keyword}'")
+            return True
+
+    return False
+
+
+def _filter_audit_reports_by_year(
+    all_audit_reports: List[Dict[str, Any]],
+    required_years: int = 1,
+    need_full_version: bool = False
+) -> List[Dict[str, Any]]:
+    """
+    根据年份要求筛选审计报告
+
+    Args:
+        all_audit_reports: 所有审计报告列表
+        required_years: 需要的年份数（1-3）
+        need_full_version: 是否需要完整版
+
+    Returns:
+        筛选后的审计报告列表（按年份降序）
+    """
+    if not all_audit_reports:
+        return []
+
+    # 1. 按年份分组（使用 file_version 字段）
+    year_groups = {}
+    for audit in all_audit_reports:
+        year = audit.get('file_version')
+        if year:
+            try:
+                year = int(year)
+                if year not in year_groups:
+                    year_groups[year] = []
+                year_groups[year].append(audit)
+            except (ValueError, TypeError):
+                logger.warning(f"无效的年份值: {year}, 文件: {audit.get('original_filename')}")
+                continue
+
+    if not year_groups:
+        logger.warning("所有审计报告都缺少有效的 file_version 字段")
+        # 降级策略：按上传时间排序取最新的
+        sorted_audits = sorted(all_audit_reports,
+                              key=lambda x: x.get('upload_time', ''),
+                              reverse=True)
+        return sorted_audits[:required_years]
+
+    # 2. 按年份降序排序
+    sorted_years = sorted(year_groups.keys(), reverse=True)
+
+    logger.info(f"📊 审计报告年份分布: {dict((y, len(year_groups[y])) for y in sorted_years)}")
+
+    # 3. 取最新的N年
+    selected_years = sorted_years[:required_years]
+    logger.info(f"✅ 选择年份: {selected_years} (共{required_years}年)")
+
+    # 4. 为每个年份选择最佳版本
+    selected_audits = []
+    for year in selected_years:
+        audits_this_year = year_groups[year]
+
+        if len(audits_this_year) == 1:
+            # 只有一个版本，直接使用
+            selected_audits.append(audits_this_year[0])
+            logger.info(f"  {year}年: 使用唯一版本 {audits_this_year[0]['original_filename']}")
+        else:
+            # 多个版本，选择最佳的
+            best = _select_best_audit_version(audits_this_year, need_full_version)
+            selected_audits.append(best)
+            logger.info(f"  {year}年: 从{len(audits_this_year)}个版本中选择 {best['original_filename']}")
+
+    return selected_audits
+
+
+def _select_best_audit_version(
+    audits_same_year: List[Dict[str, Any]],
+    need_full_version: bool = False
+) -> Dict[str, Any]:
+    """
+    为同一年份选择最佳审计报告版本
+
+    选择策略：
+    1. 如果需要完整版：完整版 > 关键页版
+    2. 如果默认（关键页）：关键页版 > 完整版
+    3. 同优先级：已转换PDF > 未转换PDF
+    4. 同优先级：file_sequence 小的优先
+
+    Args:
+        audits_same_year: 同一年份的所有审计报告
+        need_full_version: 是否需要完整版
+
+    Returns:
+        最佳版本的审计报告
+    """
+    if len(audits_same_year) == 1:
+        return audits_same_year[0]
+
+    # 为每个版本打分
+    scored_audits = []
+
+    for audit in audits_same_year:
+        score = 0
+        filename = audit.get('original_filename', '').lower()
+        file_size = audit.get('file_size', 0)
+        converted = audit.get('converted_images')
+        sequence = audit.get('file_sequence', 999)
+
+        # 1. 判断版本类型
+        is_key_pages = any(kw in filename for kw in ['关键页', '摘要', '精简', 'key', 'summary'])
+        is_full = any(kw in filename for kw in ['完整', '全文', 'full', 'complete'])
+
+        # 如果文件名没有明确标注，通过文件大小推断
+        if not is_key_pages and not is_full:
+            if file_size < 5 * 1024 * 1024:  # < 5MB
+                is_key_pages = True
+            elif file_size > 10 * 1024 * 1024:  # > 10MB
+                is_full = True
+
+        # 2. 根据项目要求打分
+        if need_full_version:
+            # 需要完整版
+            if is_full:
+                score += 100
+            elif is_key_pages:
+                score += 50  # 关键页也可用，但完整版更好
+        else:
+            # 默认：关键页优先（节省空间）
+            if is_key_pages:
+                score += 100
+            elif is_full:
+                score += 50  # 完整版也可用，但关键页更好
+
+        # 3. 已转换PDF加分（可以直接插入）
+        if converted:
+            score += 30
+
+        # 4. file_sequence 小的加分（主文件）
+        score -= sequence
+
+        scored_audits.append((score, audit))
+        logger.debug(f"    评分: {score} - {filename}")
+
+    # 返回得分最高的
+    best_score, best_audit = max(scored_audits, key=lambda x: x[0])
+    logger.info(f"    最佳版本 (得分{best_score}): {best_audit['original_filename']}")
+
+    return best_audit
 
 
 def build_image_config(company_quals: List[Dict[str, Any]],
@@ -106,10 +330,18 @@ def build_image_config(company_quals: List[Dict[str, Any]],
             if qual_key and insert_hint:
                 insert_hint_map[qual_key] = insert_hint
 
+    # 【新增】收集所有审计报告，稍后统一筛选
+    audit_reports = []
+
     # 遍历所有资质，分类处理
     for qual in company_quals:
         qual_key = qual.get('qualification_key')
         file_path = qual.get('file_path')
+
+        # 【新增】审计报告单独收集，稍后统一筛选
+        if qual_key == 'audit_report':
+            audit_reports.append(qual)
+            continue  # 跳过正常处理流程
 
         # 检查是否有PDF转换后的图片（优先使用转换后的图片）
         converted_images = qual.get('converted_images')
@@ -207,6 +439,64 @@ def build_image_config(company_quals: List[Dict[str, Any]],
             qualification_details.append(qualification_detail)
 
             logger.info(f"  ✅ 资质证书 ({qual_key}): {file_path}")
+
+    # 【新增】统一处理审计报告（循环结束后）
+    if audit_reports:
+        logger.info(f"\n📊 开始处理审计报告，共收集到 {len(audit_reports)} 份")
+
+        # 1. 解析项目要求
+        audit_requirement = insert_hint_map.get('audit_report', '')
+        required_years = _parse_years_requirement(audit_requirement)
+        need_full_version = _parse_fulltext_requirement(audit_requirement)
+
+        logger.info(f"📋 项目要求: {required_years}年审计报告, 完整版={'是' if need_full_version else '否'}")
+
+        # 2. 筛选审计报告（按年份、版本）
+        selected_audits = _filter_audit_reports_by_year(
+            audit_reports,
+            required_years=required_years,
+            need_full_version=need_full_version
+        )
+
+        logger.info(f"✅ 筛选完成，最终选择 {len(selected_audits)} 份审计报告")
+
+        # 3. 处理筛选后的审计报告（复用现有逻辑）
+        for audit in selected_audits:
+            year = audit.get('file_version', '未知')
+            audit_file_path = audit.get('file_path')
+            converted_images = audit.get('converted_images')
+
+            # 处理PDF转换
+            if converted_images:
+                try:
+                    images = json.loads(converted_images)
+                    if images and len(images) > 0:
+                        logger.info(f"  📄 {year}年审计报告: {len(images)}页已转换")
+
+                        # 为每一页创建配置项
+                        for img_data in images:
+                            page_num = img_data.get('page_num', 1)
+                            page_path = img_data.get('file_path')
+
+                            qualification_paths.append(page_path)
+
+                            qualification_detail = {
+                                'qual_key': 'audit_report',
+                                'file_path': page_path,
+                                'original_filename': audit.get('original_filename', ''),
+                                'insert_hint': insert_hint_map.get('audit_report', ''),
+                                'page_num': page_num,
+                                'is_multi_page': len(images) > 1,
+                                'audit_year': year  # 【新增】标记年份
+                            }
+                            qualification_details.append(qualification_detail)
+
+                        logger.info(f"  ✅ {year}年审计报告 ({audit['original_filename']}): {len(images)}页")
+                except Exception as e:
+                    logger.warning(f"  ⚠️ 解析{year}年审计报告converted_images失败: {e}")
+            else:
+                # 未转换的PDF，记录警告
+                logger.warning(f"  ⚠️ {year}年审计报告未转换，无法插入: {audit['original_filename']}")
 
     # 添加资质证书列表到配置
     if qualification_paths:

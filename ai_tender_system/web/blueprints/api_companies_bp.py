@@ -549,13 +549,35 @@ def upload_company_qualifications(company_id):
                         if PDFDetector.is_pdf(saved_path):
                             logger.info(f"检测到PDF文件: {file.filename}，准备转换为图片")
 
+                            # 【新增】审计报告特殊处理：只转换关键页
+                            page_list = None  # 默认转换全部页面
+
+                            if qual_key == 'audit_report':
+                                try:
+                                    # 导入关键页识别函数
+                                    from modules.document_parser.pdf_parser import PDFParser
+                                    parser = PDFParser()
+
+                                    # 智能识别关键页
+                                    key_pages = parser.identify_audit_report_key_pages(saved_path, max_pages=20)
+
+                                    if key_pages:
+                                        page_list = key_pages
+                                        logger.info(f"✅ 审计报告关键页识别成功: {len(key_pages)}页 - {key_pages}")
+                                    else:
+                                        logger.warning("未识别到审计报告关键页，将转换全部页面")
+
+                                except Exception as e:
+                                    logger.warning(f"审计报告关键页识别失败，将转换全部页面: {e}")
+
                             # 获取配置好的PDF转换器
                             converter = get_pdf_converter(qual_key)
 
-                            # 转换PDF为图片
+                            # 转换PDF为图片（传入page_list参数）
                             conversion_result = converter.convert_to_images(
                                 saved_path,
-                                custom_prefix=qual_key
+                                custom_prefix=qual_key,
+                                page_list=page_list  # 【新增】指定页码列表
                             )
 
                             if conversion_result['success']:
