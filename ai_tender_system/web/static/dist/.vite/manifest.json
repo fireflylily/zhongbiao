@@ -1604,7 +1604,7 @@
     ]
   },
   "src/views/Knowledge/CompanyDetail.vue": {
-    "file": "js/CompanyDetail-C05b7rTB.js",
+    "file": "js/CompanyDetail-KwIRfX5s.js",
     "name": "CompanyDetail",
     "src": "src/views/Knowledge/CompanyDetail.vue",
     "isDynamicEntry": true,
@@ -1622,12 +1622,12 @@
       "_el-text-DOdw10g0.js",
       "_DocumentUploader-B0qxrTqs.js",
       "_strings-CWsqWnJP.js",
+      "_index-oqRCX8uh.js",
       "_index-CwMlfsED.js",
       "_index-DrfNVuW0.js",
       "_index-Dt_5eAk0.js",
       "_raf-B6jWGkGX.js",
       "_toNumber-CoSJzAwT.js",
-      "_index-oqRCX8uh.js",
       "_index-DmX2rFrE.js",
       "__baseIteratee-zS_3b1Hu.js",
       "_advancedFormat-0BnjaUXB.js",
@@ -1640,7 +1640,7 @@
       "_index-CLdA0MiM.js"
     ],
     "css": [
-      "css/CompanyDetail-D98_9T0q.css",
+      "css/CompanyDetail-D00lXo6U.css",
       "css/HistoryFilesPanel-B64TYQdA.css",
       "css/el-tag-CJf-tCiu.css",
       "css/DocumentPreview-Yv551sYx.css",

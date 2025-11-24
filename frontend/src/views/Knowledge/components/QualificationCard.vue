@@ -90,6 +90,12 @@
       <el-text type="info" size="small">未上传文件</el-text>
     </div>
 
+    <!-- 上传进度显示 -->
+    <div v-if="uploading" class="upload-progress">
+      <el-progress :percentage="uploadProgress" :stroke-width="6" />
+      <el-text type="info" size="small">上传中... {{ uploadProgress }}%</el-text>
+    </div>
+
     <!-- 操作按钮 -->
     <div class="card-footer">
       <div class="upload-section">
@@ -104,9 +110,9 @@
           :image-type="imageType"
         >
           <template #trigger>
-            <el-button type="primary" size="small">
+            <el-button type="primary" size="small" :loading="uploading" :disabled="uploading">
               <el-icon><Upload /></el-icon>
-              {{ qualification.allowMultiple ? '批量上传' : '上传文件' }}
+              {{ uploading ? '上传中...' : (qualification.allowMultiple ? '批量上传' : '上传文件') }}
             </el-button>
           </template>
         </DocumentUploader>
@@ -132,7 +138,7 @@
       <!-- PDF转换提示 -->
       <div class="upload-tips">
         <el-text type="info" size="small">
-          支持JPG、PNG、PDF格式 <span class="pdf-tip">（PDF将自动转换为图片）</span>
+          支持JPG、PNG、PDF格式，最大100MB <span class="pdf-tip">（PDF将自动转换为图片，大文件请耐心等待）</span>
         </el-text>
       </div>
     </div>
@@ -165,6 +171,10 @@ const emit = defineEmits<{
 
 // Refs
 const uploaderRef = ref()
+
+// 上传状态
+const uploading = ref(false)
+const uploadProgress = ref(0)
 
 // 计算属性
 const hasFile = computed(() => {
@@ -224,6 +234,21 @@ const handleCustomUpload = async (options: UploadRequestOptions) => {
   const { file, onSuccess, onError } = options
 
   try {
+    // 显示上传状态
+    uploading.value = true
+    uploadProgress.value = 0
+
+    // 显示上传提示
+    const fileSize = (file.size / 1024 / 1024).toFixed(1)
+    ElMessage.info(`正在上传 ${file.name} (${fileSize}MB)，请耐心等待...`)
+
+    // 模拟进度更新（实际进度由服务器返回）
+    const progressInterval = setInterval(() => {
+      if (uploadProgress.value < 90) {
+        uploadProgress.value += 5
+      }
+    }, 500)
+
     // 如果提供了 onUpload 属性，调用它
     if (props.onUpload) {
       await props.onUpload(file as File)
@@ -232,11 +257,19 @@ const handleCustomUpload = async (options: UploadRequestOptions) => {
       emit('upload', file as File)
     }
 
+    // 清除进度定时器
+    clearInterval(progressInterval)
+    uploadProgress.value = 100
+
     // 调用成功回调
     onSuccess({ success: true })
   } catch (error: any) {
     // 调用错误回调
     onError(error)
+  } finally {
+    // 重置上传状态
+    uploading.value = false
+    uploadProgress.value = 0
   }
 }
 
@@ -420,6 +453,24 @@ const openQueryWebsite = () => {
     background: #f5f7fa;
     border-radius: 4px;
     margin: 12px 0;
+  }
+
+  .upload-progress {
+    margin: 12px 0;
+    padding: 12px;
+    background: #e6f7ff;
+    border-radius: 4px;
+    border-left: 3px solid #1890ff;
+
+    :deep(.el-progress) {
+      margin-bottom: 8px;
+    }
+
+    .el-text {
+      display: block;
+      text-align: center;
+      font-weight: 500;
+    }
   }
 
   .card-footer {
