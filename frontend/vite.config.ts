@@ -102,10 +102,31 @@ export default defineConfig({
 
           return 'assets/[name]-[hash][extname]'
         },
-        // 🚀 简化代码分包 - 所有依赖打包到单一 vendor（避免构建卡死）
+        // 🚀 代码分割优化 - 拆分大型依赖库，按需加载
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            return 'vendor'
+            // Umo Editor单独分包（登录页不需要，延迟加载）
+            if (id.includes('@umoteam')) {
+              return 'umo-editor'  // ~3MB
+            }
+
+            // Element Plus单独分包（部分组件登录页需要）
+            if (id.includes('element-plus')) {
+              return 'element-plus'  // ~2MB
+            }
+
+            // Vue核心库（登录页必需）
+            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) {
+              return 'vue-core'  // ~500KB
+            }
+
+            // 工具库（axios、dayjs等）
+            if (id.includes('axios') || id.includes('dayjs')) {
+              return 'utils'  // ~500KB
+            }
+
+            // 其他依赖
+            return 'vendor'  // ~5MB
           }
         }
       }
