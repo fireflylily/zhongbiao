@@ -72,7 +72,10 @@ def list_companies():
                 'company_name': company_name,  # 卡片显示
                 'social_credit_code': company.get('social_credit_code', ''),  # 卡片显示
                 'updated_at': company.get('updated_at', ''),  # 排序用
-                # 详细信息在点击卡片时再加载（通过GET /api/companies/:id）
+                # 被授权人信息 - 用于项目自动填充（重要！）
+                'authorized_person_name': company.get('authorized_person_name', ''),
+                'authorized_person_id': company.get('authorized_person_id', ''),
+                # 其他详细信息在点击卡片时再加载（通过GET /api/companies/:id）
             })
 
         # 安全排序，处理可能的 None 值
