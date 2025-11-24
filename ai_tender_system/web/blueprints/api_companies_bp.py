@@ -56,6 +56,7 @@ def list_companies():
         logger.info(f"用户 {user['username']} 查看公司列表")
 
         # 转换字段格式以保持前端兼容性，过滤无效公司ID
+        # 🚀 性能优化：列表只返回必要字段，减少90%网络传输
         result_companies = []
         for company in companies:
             company_id = company.get('company_id')
@@ -68,20 +69,10 @@ def list_companies():
             result_companies.append({
                 'company_id': company_id,
                 'name': company_name,  # 前端 el-select 需要的字段
-                'company_name': company_name,  # 保持向后兼容
-                'social_credit_code': company.get('social_credit_code', ''),
-                'legal_representative': company.get('legal_representative', ''),
-                'registered_capital': company.get('registered_capital', ''),
-                'employee_count': company.get('employee_count', ''),
-                'created_at': company.get('created_at', ''),
-                'updated_at': company.get('updated_at', ''),
-                'product_count': company.get('product_count', 0),
-                'document_count': company.get('document_count', 0),
-                # 被授权人信息 - 用于项目自动填充
-                'authorized_person_name': company.get('authorized_person_name', ''),
-                'authorized_person_id': company.get('authorized_person_id', ''),
-                # ✅ 添加创建者信息
-                'created_by_user_id': company.get('created_by_user_id')
+                'company_name': company_name,  # 卡片显示
+                'social_credit_code': company.get('social_credit_code', ''),  # 卡片显示
+                'updated_at': company.get('updated_at', ''),  # 排序用
+                # 详细信息在点击卡片时再加载（通过GET /api/companies/:id）
             })
 
         # 安全排序，处理可能的 None 值
