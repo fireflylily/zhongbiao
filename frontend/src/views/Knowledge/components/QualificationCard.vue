@@ -99,7 +99,7 @@
           :multiple="qualification.allowMultiple"
           :show-file-list="false"
           :http-request="handleCustomUpload"
-          :max-size="20"
+          :max-size="100"
           :auto-compress-image="true"
           :image-type="imageType"
         >

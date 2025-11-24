@@ -96,16 +96,32 @@ QUALIFICATION_MAPPING = {
         'display_title': '重大税收违法案件当事人名单（信用中国网站截图）'
     },
     'gov_procurement_creditchina': {
-        'keywords': ['信用中国', 'creditchina.gov.cn', '政府采购严重违法失信'],
+        'keywords': ['信用中国网站', 'creditchina.gov.cn', 'www.creditchina.gov.cn'],
         'priority': 'high',
         'category': '信用证明',
         'display_title': '政府采购严重违法失信行为记录（信用中国网站截图）'
     },
     'gov_procurement_ccgp': {
-        'keywords': ['中国政府采购网', 'ccgp.gov.cn', '政府采购严重违法失信行为信息记录'],
+        'keywords': ['中国政府采购网', 'ccgp.gov.cn', 'www.ccgp.gov.cn',
+                     '政府采购严重违法失信行为信息记录',
+                     '政府采购严重违法失信行为记录名单',
+                     '政府采购严重违法失信'],
         'priority': 'high',
         'category': '信用证明',
         'display_title': '政府采购严重违法失信行为信息记录（中国政府采购网截图）'
+    },
+    'creditchina_report': {
+        'keywords': ['信用报告', '信用中国信用报告', '信用中国查询报告', '企业信用报告'],
+        'priority': 'medium',
+        'category': '信用证明',
+        'display_title': '信用报告（信用中国）'
+    },
+    'enterprise_credit_report': {
+        'keywords': ['国家企业信用信息公示系统', '企业信用信息公示', '公示系统信息报告',
+                     '企业公示信息', '工商公示信息'],
+        'priority': 'medium',
+        'category': '信用证明',
+        'display_title': '国家企业信用信息公示系统信息报告'
     },
     'level_protection': {
         'keywords': ['等保三级', '等级保护三级', '信息安全等级保护', '等保',

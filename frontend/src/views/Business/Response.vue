@@ -118,7 +118,7 @@
               :http-request="handleTemplateUpload"
               accept=".doc,.docx"
               :limit="1"
-              :max-size="20"
+              :max-size="100"
               drag
               tip-text="必须上传商务应答模板，用于生成应答文档"
               @success="handleTemplateUploadSuccess"

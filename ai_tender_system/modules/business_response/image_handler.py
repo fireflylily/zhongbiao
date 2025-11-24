@@ -42,6 +42,8 @@ class ImageHandler:
             'tax_violation_check': (6, 0),             # 税收违法查询截图：宽6英寸
             'gov_procurement_creditchina': (6, 0),     # 信用中国政采查询截图：宽6英寸
             'gov_procurement_ccgp': (6, 0),            # 政府采购网查询截图：宽6英寸
+            'creditchina_report': (6, 0),              # 信用报告（信用中国）：宽6英寸
+            'enterprise_credit_report': (6, 0),        # 国家企业信用信息公示系统信息报告：宽6英寸
             'audit_report': (6, 0)                     # 审计报告：宽6英寸
         }
 
