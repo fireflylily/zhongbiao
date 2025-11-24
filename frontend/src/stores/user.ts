@@ -25,8 +25,6 @@ export const useUserStore = defineStore('user', () => {
 
   const isLoggedIn = computed(() => !!currentUser.value && !!token.value)
 
-  const hasToken = computed(() => !!token.value)
-
   const userId = computed(() => currentUser.value?.id || null)
 
   const username = computed(() => currentUser.value?.username || '')
@@ -316,7 +314,6 @@ export const useUserStore = defineStore('user', () => {
 
     // Getters
     isLoggedIn,
-    hasToken,
     userId,
     username,
     userEmail,

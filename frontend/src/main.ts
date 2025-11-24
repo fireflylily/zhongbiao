@@ -2,21 +2,20 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import axios from 'axios'
 
-// Element Plus 样式 - 只引入必要的基础样式（组件样式由unplugin自动按需引入）
-// import 'element-plus/dist/index.css'  // 删除完整CSS，减少800KB
-import 'element-plus/theme-chalk/base.css'  // 基础样式（必需）
-import 'element-plus/theme-chalk/dark/css-vars.css'  // 暗色主题变量
+// Element Plus 样式（自动按需引入组件）
+import 'element-plus/dist/index.css'
+import 'element-plus/theme-chalk/dark/css-vars.css'
 
 // Bootstrap Icons 图标库
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
-// Umo Editor 富文本编辑器 - 移至组件内按需导入（优化首屏加载）
-// import { useUmoEditor } from '@umoteam/editor'
-// import '@umoteam/editor/style'
+// Umo Editor 富文本编辑器
+import { useUmoEditor } from '@umoteam/editor'
+import '@umoteam/editor/style'  // 导入 Umo Editor 样式
 
-// Umo Viewer 文档查看器 - 暂不使用
-// import { useUmoViewer } from '@umoteam/viewer'
-// import '@umoteam/viewer/style'
+// Umo Viewer 文档查看器
+import { useUmoViewer } from '@umoteam/viewer'
+import '@umoteam/viewer/style'  // 导入 Umo Viewer 样式
 
 import App from './App.vue'
 import router from './router'
@@ -49,9 +48,26 @@ async function initApp() {
   // 路由
   app.use(router)
 
-  // Umo Editor 富文本编辑器 - 已改为组件内按需导入，减少首屏加载3MB
-  // 每个使用RichTextEditor的页面会自动加载Umo Editor
-  // 登录页不需要，因此不加载，优化首屏速度
+  // Umo Editor 富文本编辑器 (v8.x)
+  try {
+    app.use(useUmoEditor, {
+      // 简化配置，避免循环依赖
+      toolbar: {
+        defaultMode: 'ribbon'
+      }
+    })
+    console.log('[App] Umo Editor v8.x 注册成功')
+  } catch (error) {
+    console.error('[App] Umo Editor 注册失败:', error)
+  }
+
+  // Umo Viewer 文档查看器（暂时不使用）
+  // try {
+  //   app.use(useUmoViewer, {})
+  //   console.log('[App] Umo Viewer 注册成功')
+  // } catch (error) {
+  //   console.error('[App] Umo Viewer 注册失败:', error)
+  // }
 
   // Element Plus 组件会通过 unplugin-vue-components 自动按需引入
   // 不再需要 app.use(ElementPlus)
