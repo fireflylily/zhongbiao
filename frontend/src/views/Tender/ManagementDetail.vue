@@ -1333,6 +1333,26 @@ const handleProcessSuccess = async (type: 'response' | 'technical') => {
   // 重新加载项目详情以获取最新的step1_data和章节信息
   await loadProjectDetail()
 
+  // 🆕 自动执行AI提取（仅在首次上传时，避免覆盖已编辑的数据）
+  const isFirstTimeUpload = !projectDetail.value?.tenderer && !projectDetail.value?.qualifications_data
+
+  if (isFirstTimeUpload) {
+    ElMessage.info('开始自动执行AI提取...')
+
+    try {
+      // 1. 自动执行AI提取基本信息
+      await handleExtractBasicInfo()
+
+      // 2. 自动执行AI提取资格要求
+      await handleExtractQualifications()
+
+      ElMessage.success('AI自动提取完成！请检查提取结果')
+    } catch (error) {
+      console.error('自动AI提取失败:', error)
+      ElMessage.warning('自动AI提取失败，请手动点击按钮重试')
+    }
+  }
+
   if (type === 'response') {
     // 保存应答文件成功，自动切换到商务应答Tab
     ElMessage.success('应答文件已保存，可以开始商务应答处理')

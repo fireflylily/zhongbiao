@@ -44,8 +44,7 @@ class DocumentScanner:
             ],
             'dishonest_executor': ['失信被执行人', '失信被执行人名单'],
             'tax_violation_check': ['重大税收违法', '税收违法案件当事人名单'],
-            'gov_procurement_creditchina': ['政府采购严重违法失信', '政府采购信用记录'],
-            'gov_procurement_ccgp': ['政府采购严重违法失信行为信息记录', '政府采购网查询'],
+            # 注意：gov_procurement_creditchina 和 gov_procurement_ccgp 使用特殊AND逻辑处理，见下方扫描代码
             'audit_report': ['审计报告', '财务审计报告', '年度审计报告', '会计师事务所出具']
         }
 
@@ -151,8 +150,37 @@ class DocumentScanner:
                     })
                     self.logger.info(f"🔍 授权书候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
 
-            # ===== 5. 查找具体资质类型（ISO9001, CMMI等）=====
+            # ===== 5. 特殊处理：政府采购资质（使用AND逻辑）=====
+            if "政府采购严重违法失信" in text:
+                category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
+                if category != 'exclude':
+                    # 判断是信用中国还是政府采购网
+                    if "信用中国" in text or "creditchina" in text.lower():
+                        candidates.setdefault('gov_procurement_creditchina', []).append({
+                            'type': 'paragraph',
+                            'index': para_idx,
+                            'paragraph': paragraph,
+                            'category': category,
+                            'text': text[:60]
+                        })
+                        self.logger.info(f"🔍 政府采购-信用中国候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+
+                    if "政府采购网" in text or "ccgp" in text.lower():
+                        candidates.setdefault('gov_procurement_ccgp', []).append({
+                            'type': 'paragraph',
+                            'index': para_idx,
+                            'paragraph': paragraph,
+                            'category': category,
+                            'text': text[:60]
+                        })
+                        self.logger.info(f"🔍 政府采购-政采网候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+
+            # ===== 6. 查找具体资质类型（ISO9001, CMMI等）=====
             for qual_key, qual_info in QUALIFICATION_MAPPING.items():
+                # 跳过已特殊处理的政府采购资质
+                if qual_key in ['gov_procurement_creditchina', 'gov_procurement_ccgp']:
+                    continue
+
                 keywords = qual_info.get('keywords', [])
                 if any(keyword in text for keyword in keywords):
                     category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)

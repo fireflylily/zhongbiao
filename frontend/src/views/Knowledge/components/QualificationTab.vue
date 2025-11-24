@@ -147,14 +147,15 @@ const standardQualifications = [
   { key: 'enterprise_credit_report', name: '国家企业信用信息公示系统信息报告', icon: 'Tickets', category: 'credit' },
   { key: 'gov_procurement_ccgp', name: '政府采购严重违法失信行为信息记录（政府采购网）', icon: 'CircleCheck', category: 'credit' },
 
-  // 行业资质 (6项)
+  // 行业资质 (7项)
   { key: 'basic_telecom_permit', name: '基础电信业务许可证', icon: 'PhoneFilled', category: 'industry' },
   { key: 'value_added_telecom_permit', name: '增值电信业务许可证', icon: 'PhoneFilled', category: 'industry' },
   { key: 'software_copyright', name: '软件著作权登记证书', icon: 'Document', category: 'industry', allowMultiple: true },
   { key: 'patent_certificate', name: '专利证书', icon: 'TrophyBase', category: 'industry', allowMultiple: true },
   { key: 'high_tech', name: '高新技术企业证书', icon: 'Star', category: 'industry' },
   { key: 'software_enterprise', name: '软件企业认定证书', icon: 'Monitor', category: 'industry' },
-  { key: 'cmmi', name: 'CMMI成熟度等级证书', icon: 'Trophy', category: 'industry' }
+  { key: 'cmmi', name: 'CMMI成熟度等级证书', icon: 'Trophy', category: 'industry' },
+  { key: 'level_protection', name: '等保三级认证', icon: 'Lock', category: 'industry' }
 ]
 
 // 根据分类获取资质列表

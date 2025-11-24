@@ -43,15 +43,17 @@ QUALIFICATION_MAPPING = {
         'priority': 'high',
         'category': '软件能力'
     },
-    'itss': {
-        'keywords': ['ITSS', 'itss', 'IT运维服务能力成熟度', '信息技术服务标准'],
+    'high_tech': {
+        'keywords': ['高新技术企业', '高新技术企业证书', '高新企业认定', '高新技术企业认定'],
         'priority': 'medium',
-        'category': 'IT运维'
+        'category': '行业资质',
+        'display_title': '高新技术企业证书'
     },
-    'safety_production': {
-        'keywords': ['安全生产许可证', '安全生产标准化', '安全生产'],
+    'software_enterprise': {
+        'keywords': ['软件企业', '软件企业认定', '软件企业证书', '软件企业认定证书'],
         'priority': 'medium',
-        'category': '安全生产'
+        'category': '行业资质',
+        'display_title': '软件企业认定证书'
     },
     'software_copyright': {
         'keywords': ['软件著作权', '计算机软件著作权', '软著'],
@@ -66,11 +68,6 @@ QUALIFICATION_MAPPING = {
     'business_license': {
         'keywords': ['营业执照', '营业执照副本', '工商营业执照'],
         'priority': 'high',
-        'category': '基本资质'
-    },
-    'company_seal': {
-        'keywords': ['公章', '企业公章', '印章'],
-        'priority': 'medium',
         'category': '基本资质'
     },
     'basic_telecom_permit': {
@@ -101,6 +98,12 @@ QUALIFICATION_MAPPING = {
         'category': '信用证明',
         'display_title': '政府采购严重违法失信行为记录（信用中国网站截图）'
     },
+    'creditchina_blacklist': {
+        'keywords': ['严重失信主体', '严重失信名单', '失信黑名单', '黑名单'],
+        'priority': 'high',
+        'category': '信用证明',
+        'display_title': '严重失信主体（信用中国）'
+    },
     'gov_procurement_ccgp': {
         'keywords': ['中国政府采购网', 'ccgp.gov.cn', 'www.ccgp.gov.cn',
                      '政府采购严重违法失信行为信息记录',
@@ -110,7 +113,7 @@ QUALIFICATION_MAPPING = {
         'category': '信用证明',
         'display_title': '政府采购严重违法失信行为信息记录（中国政府采购网截图）'
     },
-    'creditchina_report': {
+    'creditchina_credit_report': {
         'keywords': ['信用报告', '信用中国信用报告', '信用中国查询报告', '企业信用报告'],
         'priority': 'medium',
         'category': '信用证明',
@@ -136,6 +139,12 @@ QUALIFICATION_MAPPING = {
         'priority': 'medium',
         'category': '财务文件',
         'display_title': '审计报告'
+    },
+    'taxpayer_certificate': {
+        'keywords': ['纳税人资格', '纳税人证明', '一般纳税人', '纳税资格证明', '纳税人资格证书'],
+        'priority': 'low',
+        'category': '财务文件',
+        'display_title': '纳税人资格证明'
     }
 }
 

@@ -338,31 +338,10 @@ class ImageHandler:
                 return True
 
             else:
-                # 降级：添加到文档末尾
+                # 没找到占位符 → 跳过不填充（由步骤5处理项目要求的资质）
                 if is_first_page:
-                    doc.add_page_break()
-
-                    title = doc.add_paragraph(title_text)
-                    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    if title.runs:
-                        title.runs[0].font.bold = True
-
-                    self._last_insert_para = title
-                    log_msg = f"✅ 在文档末尾插入 {qual_key} 标题: {title_text}"
-                else:
-                    log_msg = f"✅ 继续在文档末尾插入 {qual_key} 第{page_num}页"
-
-                # 插入图片
-                paragraph = doc.add_paragraph()
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = paragraph.add_run()
-                run.add_picture(image_path, width=Inches(width_inches))
-
-                # 更新插入位置
-                self._last_insert_para = paragraph
-
-                self.logger.info(log_msg)
-                return True
+                    self.logger.info(f"ℹ️  {qual_key} 未找到模板占位符，跳过填充（如项目要求会在步骤5追加）")
+                return False
 
         except Exception as e:
             self.logger.error(f"❌ 插入{resource.get('key')}失败: {e}")
