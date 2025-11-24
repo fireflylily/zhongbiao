@@ -150,18 +150,27 @@ def process_business_response():
             tender_no = db_project_number
             logger.info(f"使用数据库项目编号: {tender_no}")
 
-        # 智能日期处理：优先使用用户填写的日期，其次使用项目截止日期
-        if not date_text or date_text.strip() == '':
-            if db_deadline:
-                # 使用项目截止日期（格式化为YYYY-MM-DD）
-                if isinstance(db_deadline, str):
-                    date_text = db_deadline.split()[0]  # 提取日期部分（去掉时间）
-                else:
-                    date_text = str(db_deadline).split()[0]
-                logger.info(f"用户未填写日期，使用项目截止日期: {date_text}")
+        # 统一日期格式处理：移除时分，只保留到日
+        import re
+
+        if date_text and date_text.strip():
+            # 用户传入了日期，格式化：移除"XX时XX分"或实际的时分部分
+            # 支持格式：2025年11月24日XX时XX分、2025年11月24日 12:30、2025-11-24 12:30
+            date_text = re.sub(r'XX时XX分.*$', '', date_text).strip()  # 移除"XX时XX分"占位符
+            date_text = re.sub(r'\s+\d{1,2}:\d{2}.*$', '', date_text).strip()  # 移除实际时间（空格+时:分）
+            logger.info(f"格式化日期（移除时分）: {date_text}")
+        elif db_deadline:
+            # 使用项目截止日期（格式化为只包含日期）
+            if isinstance(db_deadline, str):
+                # 移除时分部分
+                date_text = re.sub(r'XX时XX分.*$', '', db_deadline).strip()
+                date_text = re.sub(r'\s+\d{1,2}:\d{2}.*$', '', date_text).strip()
             else:
-                logger.info("用户未填写日期且无项目截止日期，date字段将不填充")
-                # 注意：这里不设置当前日期，而是保持为空，让后端填充器跳过
+                date_text = str(db_deadline).split()[0]
+            logger.info(f"使用数据库截止日期（已格式化）: {date_text}")
+        else:
+            logger.info("未提供日期且无项目截止日期，date字段将不填充")
+            # 注意：这里不设置当前日期，而是保持为空，让后端填充器跳过
 
         # 从数据库加载所有资质（模板驱动）
         image_config, required_quals = build_image_config_from_db(company_id_int, project_name, kb_manager)
