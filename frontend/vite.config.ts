@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, splitVendorChunkPlugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -9,6 +9,8 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 export default defineConfig({
   plugins: [
     vue(),
+    // Vite 官方 vendor 分包插件（自动处理循环依赖）
+    splitVendorChunkPlugin(),
     // Element Plus 按需引入
     AutoImport({
       resolvers: [ElementPlusResolver()],
@@ -102,11 +104,11 @@ export default defineConfig({
 
           return 'assets/[name]-[hash][extname]'
         },
-        // 🚀 简化代码分包 - 所有依赖打包到单一 vendor（避免构建卡死）
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            return 'vendor'
-          }
+        // 🚀 使用对象形式的 manualChunks（避免循环依赖）
+        // splitVendorChunkPlugin 已自动处理 node_modules 分离
+        // 这里只需额外拆分超大编辑器
+        manualChunks: {
+          'editor': ['@umoteam/editor', '@umoteam/viewer']
         }
       }
     },

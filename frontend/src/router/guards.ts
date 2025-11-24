@@ -150,15 +150,27 @@ async function checkAuthentication(
 
   // 检查是否已登录
   if (!userStore.isLoggedIn) {
-    // 尝试从localStorage恢复登录状态
+    // 先静默尝试从localStorage恢复登录状态
     userStore.restoreFromStorage()
 
-    // 如果仍然未登录
-    if (!userStore.isLoggedIn) {
-      console.warn(`[Router] 未登录，重定向到登录页: ${to.path}`)
+    // 如果有token，静默验证其有效性
+    if (userStore.hasToken) {
+      try {
+        const isValid = await userStore.verifyToken()
 
-      const { warning } = useNotification()
-      warning('请先登录')
+        if (isValid) {
+          // 静默恢复成功，直接放行
+          console.log('[Router] 静默恢复登录状态成功')
+          return true
+        }
+      } catch (error) {
+        console.error('[Router] 静默Token验证失败:', error)
+      }
+    }
+
+    // 确认无法恢复，静默重定向到登录页
+    if (!userStore.isLoggedIn) {
+      console.log(`[Router] 未登录，静默重定向到登录页: ${to.path}`)
 
       next({
         name: 'Login',
@@ -175,10 +187,7 @@ async function checkAuthentication(
     const isValid = await userStore.verifyToken()
 
     if (!isValid) {
-      console.warn('[Router] Token失效，重定向到登录页')
-
-      const { warning } = useNotification()
-      warning('登录已过期，请重新登录')
+      console.log('[Router] Token失效，静默重定向到登录页')
 
       // 清除登录状态
       await userStore.logout()
@@ -194,7 +203,7 @@ async function checkAuthentication(
   } catch (error) {
     console.error('[Router] Token验证失败:', error)
 
-    // Token验证失败，跳转到登录页
+    // Token验证失败，静默跳转到登录页
     await userStore.logout()
 
     next({
