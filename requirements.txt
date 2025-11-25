@@ -12,6 +12,7 @@ gunicorn==21.2.0           # 生产环境WSGI服务器
 
 # 文档解析相关
 PyMuPDF>=1.23.0           # PDF解析
+Pillow>=10.0.0            # 图片处理 (PyMuPDF转换PDF时需要)
 python-docx>=0.8.11       # Word文档解析
 mammoth>=1.0.0            # Word转HTML (保留格式)
 pdfplumber>=0.9.0         # PDF表格提取

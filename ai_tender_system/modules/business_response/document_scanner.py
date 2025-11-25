@@ -194,7 +194,7 @@ class DocumentScanner:
                         })
                         matched_kw = next((kw for kw in keywords if kw in text), keywords[0])
                         self.logger.info(f"🔍 {qual_key}候选: 段落#{para_idx}, 类别={category}, 关键词='{matched_kw}'")
-                    break  # 找到后停止
+                    # 修复：删除break，允许一个标题匹配多个资质（如"基础电信业务经营许可证及增值电信业务经营许可证"）
 
         # ===== 扫描表格中的身份证插入点（特殊处理）=====
         self.logger.info(f"📋 开始扫描表格（共{len(doc.tables)}个表格）")

@@ -539,6 +539,13 @@ def upload_company_qualifications(company_id):
                     if result.get('file_path'):
                         saved_path = result['file_path']
 
+                        # 修复：将相对路径转换为绝对路径
+                        saved_path_obj = Path(saved_path)
+                        if not saved_path_obj.is_absolute():
+                            project_root = Path(__file__).parent.parent.parent
+                            saved_path = str(project_root / saved_path)
+                            logger.debug(f"转换为绝对路径: {saved_path}")
+
                         # 检测是否为PDF
                         if PDFDetector.is_pdf(saved_path):
                             logger.info(f"检测到PDF文件: {file.filename}，准备转换为图片")

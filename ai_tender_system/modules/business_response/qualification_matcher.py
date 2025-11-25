@@ -26,22 +26,26 @@ QUALIFICATION_MAPPING = {
     'iso9001': {
         'keywords': ['ISO9001', 'ISO 9001', 'iso9001', '质量管理体系', '质量体系认证', 'GB/T19001'],
         'priority': 'high',
-        'category': '质量管理'
+        'category': '质量管理',
+        'display_title': 'ISO9001质量管理体系认证证书'
     },
     'iso20000': {
         'keywords': ['ISO20000', 'ISO 20000', 'iso20000', 'IT服务管理体系', 'ITSM', 'GB/T20000'],
         'priority': 'medium',
-        'category': 'IT服务'
+        'category': 'IT服务',
+        'display_title': 'ISO20000信息技术服务管理体系认证证书'
     },
     'iso27001': {
         'keywords': ['ISO27001', 'ISO 27001', 'iso27001', '信息安全管理体系', 'ISMS', 'GB/T22080'],
         'priority': 'high',
-        'category': '信息安全'
+        'category': '信息安全',
+        'display_title': 'ISO27001信息安全管理体系认证证书'
     },
     'cmmi': {
         'keywords': ['CMMI', 'cmmi', '软件能力成熟度', '软件成熟度', '能力成熟度模型'],
         'priority': 'high',
-        'category': '软件能力'
+        'category': '软件能力',
+        'display_title': 'CMMI能力成熟度模型认证证书'
     },
     'high_tech': {
         'keywords': ['高新技术企业', '高新技术企业证书', '高新企业认定', '高新技术企业认定'],
@@ -58,27 +62,32 @@ QUALIFICATION_MAPPING = {
     'software_copyright': {
         'keywords': ['软件著作权', '计算机软件著作权', '软著'],
         'priority': 'low',
-        'category': '知识产权'
+        'category': '知识产权',
+        'display_title': '计算机软件著作权登记证书'
     },
     'patent_certificate': {
         'keywords': ['专利证书', '发明专利', '实用新型专利', '外观设计专利'],
         'priority': 'low',
-        'category': '知识产权'
+        'category': '知识产权',
+        'display_title': '专利证书'
     },
     'business_license': {
         'keywords': ['营业执照', '营业执照副本', '工商营业执照'],
         'priority': 'high',
-        'category': '基本资质'
+        'category': '基本资质',
+        'display_title': '营业执照'
     },
     'basic_telecom_permit': {
         'keywords': ['基础电信业务许可证', '基础电信业务经营许可证', '电信业务经营许可证'],
         'priority': 'high',
-        'category': '电信资质'
+        'category': '电信资质',
+        'display_title': '基础电信业务经营许可证'
     },
     'value_added_telecom_permit': {
         'keywords': ['增值电信业务许可证', '增值电信业务经营许可证', 'ICP许可证', 'ISP许可证', 'IDC许可证'],
         'priority': 'high',
-        'category': '电信资质'
+        'category': '电信资质',
+        'display_title': '增值电信业务经营许可证'
     },
     'dishonest_executor': {
         'keywords': ['失信被执行人', '失信被执行人名单'],
@@ -131,7 +140,8 @@ QUALIFICATION_MAPPING = {
                      '三级等保', '等级保护备案', '等级保护', '网络安全等级保护',
                      '等保测评', '等保认证'],
         'priority': 'high',
-        'category': '信息安全'
+        'category': '信息安全',
+        'display_title': '信息安全等级保护三级认证'
     },
     'audit_report': {
         'keywords': ['审计报告', '财务审计报告', '年度审计报告', '会计师事务所出具的审计报告',
