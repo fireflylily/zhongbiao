@@ -7,56 +7,76 @@
 ```
 deployment/
 ├── nginx/
-│   └── ai-tender.conf      # Nginx配置文件
-├── update_nginx.sh         # Nginx配置更新脚本
-└── README.md               # 本文件
+│   └── ai-tender.conf.template  # Nginx配置模板
+├── update_nginx.sh              # Nginx配置更新脚本（已废弃）
+└── README.md                    # 本文件
 ```
+
+## ⚠️ 重要说明
+
+**当前生产环境配置不在Git仓库中！**
+
+- 📁 **生产配置位置**: `/etc/nginx/conf.d/ai-tender-system.conf`（服务器上）
+- 📄 **Git仓库模板**: `deployment/nginx/ai-tender.conf.template`（仅供参考）
+- ✅ **安全性**: `git pull` 不会影响生产配置
 
 ## 使用说明
 
-### 在阿里云服务器上更新Nginx配置
+### 方案1: 首次部署到新服务器（使用模板）
 
-#### 方法1: 使用自动化脚本（推荐）
+如果在新服务器上首次部署，可以使用模板：
 
 ```bash
-# 1. SSH连接到阿里云服务器
-ssh root@8.140.21.235
+# 1. SSH连接到服务器
+ssh root@YOUR_SERVER_IP
 
 # 2. 进入项目目录
-cd /var/www/zhongbiao
+cd /var/www/ai-tender-system
 
-# 3. 拉取最新配置
-git pull origin master
+# 3. 复制模板并修改
+cp deployment/nginx/ai-tender.conf.template /tmp/ai-tender-system.conf
 
-# 4. 运行更新脚本
-cd deployment
-sudo ./update_nginx.sh
-```
+# 4. 编辑配置文件，修改所有标记 TODO 的地方
+nano /tmp/ai-tender-system.conf
 
-脚本会自动：
-- ✅ 备份当前配置
-- ✅ 复制新配置
-- ✅ 测试配置正确性
-- ✅ 重启Nginx服务
-- ✅ 验证服务状态
+# 需要修改的配置项：
+# - server_name: 改为您的IP或域名
+# - proxy_pass: 确认Flask应用端口（默认8110）
+# - alias 路径: 改为实际项目路径（默认 /var/www/ai-tender-system）
 
-#### 方法2: 手动配置
+# 5. 复制到nginx配置目录
+sudo cp /tmp/ai-tender-system.conf /etc/nginx/conf.d/
 
-```bash
-# 1. 复制配置文件
-sudo cp deployment/nginx/ai-tender.conf /etc/nginx/sites-available/ai-tender
-
-# 2. 创建软链接（如果不存在）
-sudo ln -s /etc/nginx/sites-available/ai-tender /etc/nginx/sites-enabled/
-
-# 3. 测试配置
+# 6. 测试配置
 sudo nginx -t
 
-# 4. 重启Nginx
-sudo systemctl restart nginx
+# 7. 重启Nginx
+sudo systemctl reload nginx
 
-# 5. 检查状态
+# 8. 检查状态
 sudo systemctl status nginx
+```
+
+### 方案2: 更新现有服务器配置（推荐）
+
+**如果服务器已经在运行，直接修改生产配置：**
+
+```bash
+# 1. SSH连接到服务器
+ssh root@YOUR_SERVER_IP
+
+# 2. 备份当前配置
+sudo cp /etc/nginx/conf.d/ai-tender-system.conf \
+        /etc/nginx/conf.d/ai-tender-system.conf.backup.$(date +%Y%m%d_%H%M%S)
+
+# 3. 编辑生产配置
+sudo nano /etc/nginx/conf.d/ai-tender-system.conf
+
+# 4. 测试配置
+sudo nginx -t
+
+# 5. 重启Nginx
+sudo systemctl reload nginx
 ```
 
 ## 关键配置说明

@@ -1,10 +1,19 @@
 # 🚀 阿里云服务器部署指南
 
+> **服务器信息** (最后更新: 2025-11-25)
+> - 🌐 **公网IP**: 60.205.130.182
+> - 🔗 **域名**: toubiao.succtech.com (HTTPS)
+> - 📁 **项目路径**: /var/www/ai-tender-system
+> - 🐍 **Python版本**: 3.11.13 (venv)
+> - 🗄️ **数据库**: SQLite (knowledge_base.db)
+> - 🔐 **SSL证书**: Let's Encrypt (已配置)
+
 > **当前部署方式**: 传统部署 (Supervisor + Nginx + Gunicorn)
 > - ✅ 阿里云环境已完全配置好
 > - ✅ Python版本问题已解决
 > - ✅ 所有依赖已安装完成
 > - ✅ 部署流程稳定可靠
+> - ✅ HTTPS域名访问已启用
 
 > **注意**: Docker配置文件(Dockerfile、docker-compose.yml)保留用于Railway等其他平台部署,**阿里云不需要使用Docker**
 
@@ -15,11 +24,11 @@
 ### 当前生产环境 (阿里云)
 
 ```
-用户请求 (80端口)
+用户请求 (HTTP:80 / HTTPS:443)
     ↓
 Nginx 反向代理
     ↓
-Gunicorn + Flask (8110端口)
+Gunicorn + Flask (127.0.0.1:8110)
     ↓
 Supervisor 进程管理
 ```
@@ -28,7 +37,49 @@ Supervisor 进程管理
 - ✅ 无需Docker,减少复杂度
 - ✅ Supervisor自动重启,稳定可靠
 - ✅ Nginx静态资源缓存优化
+- ✅ HTTPS加密传输,安全可靠
 - ✅ 部署流程简单快速
+
+---
+
+## ⚡ 快速参考
+
+### 重启服务
+
+```bash
+# 重启应用
+sudo supervisorctl restart ai-tender-system
+
+# 重启 Nginx
+sudo systemctl reload nginx
+
+# 查看服务状态
+sudo supervisorctl status
+sudo systemctl status nginx
+```
+
+### 查看日志
+
+```bash
+# 应用日志
+tail -f /var/www/ai-tender-system/logs/supervisor-stdout.log
+
+# Nginx 错误日志
+tail -f /var/log/nginx/ai-tender-system-error.log
+
+# Nginx 访问日志
+tail -f /var/log/nginx/ai-tender-system-access.log
+```
+
+### 更新代码
+
+```bash
+cd /var/www/ai-tender-system
+git pull origin master
+sudo supervisorctl restart ai-tender-system
+```
+
+**注意**: Git 仓库中的 nginx 配置文件是模板，实际使用的配置文件在 `/etc/nginx/conf.d/`，不会被 `git pull` 影响。
 
 ---
 
@@ -64,7 +115,8 @@ Supervisor 进程管理
 ### 第一步: SSH登录服务器
 
 ```bash
-ssh lvhe@8.140.21.235
+ssh root@60.205.130.182
+# 密码: BJsdtc@20250912#
 ```
 
 ### 第二步: 进入项目目录并拉取代码
@@ -73,6 +125,8 @@ ssh lvhe@8.140.21.235
 cd /var/www/ai-tender-system
 git pull origin master
 ```
+
+**注意**: 由于硬盘直接迁移，代码和数据已在服务器上，只需拉取最新更新即可。
 
 你应该看到:
 
@@ -149,7 +203,8 @@ sudo supervisorctl tail -f ai-tender-system stdout
 在浏览器访问:
 
 ```
-http://8.140.21.235
+https://toubiao.succtech.com (推荐，HTTPS加密)
+http://60.205.130.182 (备用，IP访问)
 ```
 
 应该能看到Vue前端应用! 🎉
@@ -160,35 +215,36 @@ http://8.140.21.235
 
 部署完成后,可以通过以下地址访问:
 
-### 主应用
+### 主应用（推荐）
 
 | URL | 说明 |
 |-----|------|
-| `http://8.140.21.235` | **Vue前端首页** (推荐,通过Nginx) |
-| `http://8.140.21.235:8110/#/` | Vue前端首页 (直接访问Flask) |
+| `https://toubiao.succtech.com` | **HTTPS域名访问** (推荐，安全加密) |
+| `http://toubiao.succtech.com` | HTTP访问 (自动跳转到HTTPS) |
+| `http://60.205.130.182` | **IP访问** (无HTTPS，仅HTTP) |
 
 ### 功能页面
 
 | URL | 说明 |
 |-----|------|
-| `http://8.140.21.235/#/parser-comparison` | 目录解析对比工具 |
-| `http://8.140.21.235/#/tender-management` | 投标管理 |
-| `http://8.140.21.235/#/knowledge` | 知识中心 |
-| `http://8.140.21.235/api/health` | API健康检查 |
-| `http://8.140.21.235/health` | Nginx健康检查 |
+| `https://toubiao.succtech.com/#/parser-comparison` | 目录解析对比工具 |
+| `https://toubiao.succtech.com/#/tender-management` | 投标管理 |
+| `https://toubiao.succtech.com/#/knowledge` | 知识中心 |
+| `https://toubiao.succtech.com/api/health` | API健康检查 |
+| `https://toubiao.succtech.com/health` | Nginx健康检查 |
 
 ### 兼容方式
 
 | URL | 说明 |
 |-----|------|
-| `http://8.140.21.235/static/dist/index.html` | 直接访问静态文件 |
-| `http://8.140.21.235:8110` | Flask旧版前端 (如果需要) |
+| `http://60.205.130.182/static/dist/index.html` | IP直接访问静态文件 |
+| `http://127.0.0.1:8110` | 本地访问Flask后端 (仅服务器内部) |
 
 ---
 
 ## 🔍 故障排查
 
-### 问题1: 访问 http://8.140.21.235 仍然403
+### 问题1: 访问 http://60.205.130.182 仍然403
 
 **检查**:
 ```bash
@@ -480,6 +536,40 @@ sudo systemctl start fail2ban
 
 ---
 
-**部署完成后访问**: `http://8.140.21.235`
-**最后更新**: 2025-11-21
+---
+
+## 🎉 部署完成总结
+
+### ✅ 当前服务器状态（2025-11-25）
+
+**服务器配置**：
+- 公网IP: 60.205.130.182
+- 域名: toubiao.succtech.com
+- 操作系统: Alibaba Cloud Linux 3
+- Python: 3.11.13 (虚拟环境)
+- 数据库: SQLite
+
+**运行服务**：
+- ✅ Supervisor: 管理应用进程（开机自启）
+- ✅ Nginx: Web服务器和反向代理（开机自启）
+- ✅ Flask应用: 运行在 127.0.0.1:8110
+- ✅ SSL证书: Let's Encrypt（已配置）
+
+**配置文件位置**：
+- Nginx: `/etc/nginx/conf.d/ai-tender-system.conf`
+- Supervisor: `/etc/supervisord.d/ai-tender-system.ini`
+- 环境变量: `/var/www/ai-tender-system/.env`
+- 数据库: `/var/www/ai-tender-system/ai_tender_system/data/knowledge_base.db`
+
+**访问地址**：
+- 主域名（推荐）: https://toubiao.succtech.com
+- 备用IP: http://60.205.130.182
+
+**部署说明**：
+- 硬盘直接从旧服务器(8.140.21.235)迁移
+- 代码、数据库、上传文件均完整保留
+- 只需更新nginx配置中的IP地址即可
+
+**最后更新**: 2025-11-25
 **维护者**: lvhe
+**部署方式**: Supervisor + Nginx + Gunicorn（传统部署）
