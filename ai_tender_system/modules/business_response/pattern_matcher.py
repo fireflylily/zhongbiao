@@ -275,9 +275,10 @@ class PatternMatcher:
                     if FieldClassifier.is_format_marker(content_without_placeholder):
                         # 是格式标记（如"（盖章）"），不是内容，应该继续处理
                         pass
-                    # 如果内容以冒号结尾，说明是下一个字段名（如"邮政编码："），不算已填写
-                    elif content_without_placeholder.endswith(('：', ':')):
-                        # 这是横向多字段格式，继续处理当前字段
+                    # 检查是否包含"字段名：值"格式（说明混入了其他字段）
+                    elif re.search(r'[\u4e00-\u9fa5]+[：:]', content_without_placeholder):
+                        # 包含其他字段（如"货币单位：人民币元"），不是当前字段的内容
+                        # 判定为未填充，继续处理
                         pass
                     else:
                         # 可能是真正的内容，但需要进一步检查
