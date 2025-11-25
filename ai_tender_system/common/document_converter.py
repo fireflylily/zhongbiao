@@ -111,6 +111,10 @@ class DocumentConverter:
             # mammoth会丢失numbering.xml中定义的自动编号，需要手动添加回去
             html_content = self._restore_numbering_to_html(docx_path, html_content)
 
+            # 🖼️ 修复：保留Word中的图片尺寸到HTML
+            # mammoth转换时可能丢失图片的width/height属性
+            html_content = self._apply_image_sizes_to_html(docx_path, html_content)
+
             # 直接返回HTML内容（Umo Editor 会自己处理样式）
             html_with_style = html_content
 
@@ -317,6 +321,124 @@ class DocumentConverter:
 
         except Exception as e:
             print(f"[DocumentConverter] ❌ 编号恢复失败: {e}")
+            import traceback
+            traceback.print_exc()
+            # 失败时返回原内容，不影响整体转换
+            return html_content
+
+    def _apply_image_sizes_to_html(self, docx_path: str, html_content: str) -> str:
+        """
+        从Word文档中提取图片尺寸，并应用到HTML的img标签
+
+        mammoth转换时会丢失图片的width/height属性，
+        这个函数从Word文档中读取图片实际尺寸，并添加到HTML中
+
+        Args:
+            docx_path: Word文档路径
+            html_content: 已转换的HTML内容
+
+        Returns:
+            添加了图片尺寸的HTML内容
+        """
+        try:
+            if not PYTHON_DOCX_AVAILABLE or not BS4_AVAILABLE:
+                print("[DocumentConverter] 依赖库缺失，跳过图片尺寸处理")
+                return html_content
+
+            from docx.oxml.ns import qn
+
+            # 读取Word文档
+            doc = Document(docx_path)
+
+            # 提取所有图片的尺寸（按顺序）
+            image_sizes = []
+
+            print(f"[DocumentConverter] 开始提取Word文档中的图片尺寸...")
+
+            # 遍历所有段落和表格，查找图片
+            def extract_images_from_runs(runs):
+                """从runs中提取图片尺寸"""
+                for run in runs:
+                    # 检查run中是否有图片（inline shape）
+                    run_element = run._element
+                    drawings = run_element.findall(qn('w:drawing'))
+
+                    for drawing in drawings:
+                        # 查找inline（内联图片）
+                        inline = drawing.find(qn('wp:inline'))
+                        if inline is not None:
+                            # 获取extent（尺寸信息）
+                            extent = inline.find(qn('wp:extent'))
+                            if extent is not None:
+                                # EMU单位（English Metric Units）
+                                cx_emu = int(extent.get('cx', 0))  # 宽度
+                                cy_emu = int(extent.get('cy', 0))  # 高度
+
+                                # 转换为像素（96 DPI标准）
+                                # 1英寸 = 914400 EMU = 96像素
+                                # 所以：像素 = EMU / 9525
+                                width_px = int(cx_emu / 9525)
+                                height_px = int(cy_emu / 9525)
+
+                                # 转换为厘米（用于日志）
+                                width_cm = cx_emu / 360000
+
+                                image_sizes.append({
+                                    'width_px': width_px,
+                                    'height_px': height_px,
+                                    'width_cm': width_cm
+                                })
+
+                                print(f"[DocumentConverter] 图片 {len(image_sizes)}: {width_px}px x {height_px}px ({width_cm:.2f}cm)")
+
+            # 从段落中提取图片
+            for para in doc.paragraphs:
+                extract_images_from_runs(para.runs)
+
+            # 从表格中提取图片
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for para in cell.paragraphs:
+                            extract_images_from_runs(para.runs)
+
+            print(f"[DocumentConverter] 共找到 {len(image_sizes)} 张图片")
+
+            # 如果没有找到图片，直接返回
+            if not image_sizes:
+                return html_content
+
+            # 解析HTML并添加尺寸属性
+            soup = BeautifulSoup(html_content, 'html.parser')
+            img_tags = soup.find_all('img')
+
+            print(f"[DocumentConverter] HTML中找到 {len(img_tags)} 个<img>标签")
+
+            # 按顺序为每个img标签添加尺寸
+            for idx, img in enumerate(img_tags):
+                if idx < len(image_sizes):
+                    size_info = image_sizes[idx]
+                    width_px = size_info['width_px']
+                    height_px = size_info['height_px']
+
+                    # 添加style属性（保留原有的style）
+                    existing_style = img.get('style', '')
+                    if existing_style and not existing_style.endswith(';'):
+                        existing_style += ';'
+
+                    new_style = f"{existing_style}width: {width_px}px; height: {height_px}px;"
+                    img['style'] = new_style
+
+                    print(f"[DocumentConverter] ✓ 为图片 {idx+1} 添加尺寸: {width_px}px x {height_px}px")
+
+            # 转换回HTML字符串
+            html_content = str(soup)
+            print(f"[DocumentConverter] ✅ 图片尺寸应用完成")
+
+            return html_content
+
+        except Exception as e:
+            print(f"[DocumentConverter] ❌ 图片尺寸处理失败: {e}")
             import traceback
             traceback.print_exc()
             # 失败时返回原内容，不影响整体转换
