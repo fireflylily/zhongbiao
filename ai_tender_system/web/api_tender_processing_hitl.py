@@ -1903,11 +1903,24 @@ def register_hitl_routes(app):
             # 提取基本信息 - 使用章节识别方法
             basic_info = extractor.extract_basic_info(project_id=project_id)
 
-            logger.info(f"基本信息提取成功: {project_id}")
+            # 🔧 字段名映射：将数据库列名映射为前端期望的字段名
+            # 保持向后兼容，同时提供两套字段名
+            response_data = {
+                **basic_info,  # 保留原始字段名
+                # 添加前端期望的字段名别名
+                'tender_party': basic_info.get('tenderer'),
+                'tender_agent': basic_info.get('agency'),
+                'tender_method': basic_info.get('bidding_method'),
+                'tender_location': basic_info.get('bidding_location'),
+                'tender_deadline': basic_info.get('bidding_time'),
+                # budget_amount 已经在basic_info中，无需额外映射
+            }
+
+            logger.info(f"基本信息提取成功: {project_id}, tenderer={basic_info.get('tenderer')}")
 
             return jsonify({
                 'success': True,
-                'data': basic_info
+                'data': response_data
             })
 
         except Exception as e:

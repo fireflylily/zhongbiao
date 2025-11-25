@@ -51,6 +51,19 @@ except ImportError:
     pass
 
 
+@api_core_bp.route('/csrf-token', methods=['GET'])
+def get_csrf_token():
+    """
+    获取CSRF token（兼容性端点）
+
+    注意: 当前系统已禁用CSRF保护（内部系统），此端点返回空token以保持前端兼容性
+
+    Returns:
+        JSON响应 {"csrf_token": ""}
+    """
+    return jsonify({'csrf_token': ''})
+
+
 @api_core_bp.route('/health')
 def health_check():
     """

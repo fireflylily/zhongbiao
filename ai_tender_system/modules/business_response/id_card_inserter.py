@@ -6,9 +6,9 @@
 
 import os
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 from docx import Document
-from docx.shared import Cm
+from docx.shared import Cm, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from PIL import Image
 
@@ -21,9 +21,10 @@ from .document_utils import DocumentUtils
 class IdCardInserter:
     """身份证插入器 - 处理身份证正反面表格插入"""
 
-    def __init__(self, utils: DocumentUtils):
+    def __init__(self, utils: DocumentUtils, default_sizes: Dict[str, Tuple[float, float]]):
         self.logger = get_module_logger("id_card_inserter")
         self.utils = utils
+        self.default_sizes = default_sizes  # 图片尺寸配置（英寸）
 
     def insert_id_card(self, doc: Document, front_path: str, back_path: str,
                        insert_point: Optional[Dict], id_type: str) -> bool:
@@ -68,8 +69,14 @@ class IdCardInserter:
             front_path = front_path_resolved
             back_path = back_path_resolved
 
-            # 使用7厘米宽度
-            id_width_cm = 7
+            # 根据身份证类型从配置中获取宽度
+            # '法定代表人' 或 '法人' → 'legal_id'
+            # '被授权人' → 'auth_id'
+            size_key = 'legal_id' if ('法定代表人' in id_type or '法人' in id_type) else 'auth_id'
+            id_width_inches = self.default_sizes.get(size_key, (2.165, 0))[0]
+            id_width_cm = id_width_inches * 2.54  # 转换为厘米
+
+            self.logger.info(f"身份证图片尺寸配置: {id_type} → {size_key} = {id_width_inches}英寸 ({id_width_cm:.2f}厘米)")
 
             if insert_point and insert_point['type'] == 'paragraph':
                 # 在找到的段落位置插入
@@ -456,8 +463,77 @@ class IdCardInserter:
                         back_row_idx = row_idx
                         self.logger.info(f"✅ 识别到反面标题行: 第{row_idx}行 ('{cell_text}')")
 
+                # 【新增】特殊处理：如果只有一行且包含"身份证"和"正、反面"等关键词
+                # 说明这是一个提示性表格，需要动态添加行来插入图片
+                if num_rows == 1 and front_row_idx is None and back_row_idx is not None:
+                    cell_text = table.rows[0].cells[0].text.strip()
+                    # 检查是否是"正、反面"这种组合形式的提示
+                    if any(kw in cell_text for kw in ['身份证', '复印件']) and '正' in cell_text and '反' in cell_text:
+                        self.logger.info(f"📝 检测到提示性表格（1行1列），将添加新行用于插入图片")
+                        self.logger.info(f"   表格内容: '{cell_text}'")
+
+                        # 添加两行：一行用于"正面"，一行用于"反面"
+                        try:
+                            # 添加正面标题行
+                            front_title_row = table.add_row()
+                            front_title_row.cells[0].text = "正面（人像面）"
+                            front_title_row.cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            if front_title_row.cells[0].paragraphs[0].runs:
+                                front_title_row.cells[0].paragraphs[0].runs[0].font.bold = True
+
+                            # 添加正面图片行
+                            front_img_row = table.add_row()
+
+                            # 添加反面标题行
+                            back_title_row = table.add_row()
+                            back_title_row.cells[0].text = "反面（国徽面）"
+                            back_title_row.cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            if back_title_row.cells[0].paragraphs[0].runs:
+                                back_title_row.cells[0].paragraphs[0].runs[0].font.bold = True
+
+                            # 添加反面图片行
+                            back_img_row = table.add_row()
+
+                            # 更新行数
+                            num_rows = len(table.rows)
+                            self.logger.info(f"✅ 已添加4行（标题+图片×2），表格现有{num_rows}行")
+
+                            # 插入正面图片（第2行，索引1）
+                            front_cell = table.rows[2].cells[0]
+                            front_cell.text = ""
+                            front_para = front_cell.paragraphs[0] if front_cell.paragraphs else front_cell.add_paragraph()
+                            front_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            front_run = front_para.add_run()
+                            front_run.add_picture(front_path, width=Cm(id_width_cm))
+                            self.logger.info(f"✅ 已插入正面图片到第2行")
+
+                            # 插入反面图片（第4行，索引3）
+                            back_cell = table.rows[4].cells[0]
+                            back_cell.text = ""
+                            back_para = back_cell.paragraphs[0] if back_cell.paragraphs else back_cell.add_paragraph()
+                            back_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            back_run = back_para.add_run()
+                            back_run.add_picture(back_path, width=Cm(id_width_cm))
+                            self.logger.info(f"✅ 已插入反面图片到第4行")
+
+                            self.logger.info(f"✅ 已将{id_type}身份证插入到现有表格（1列垂直模式，动态添加行）")
+                            return True
+
+                        except Exception as e:
+                            self.logger.error(f"❌ 动态添加行并插入图片失败: {e}")
+                            import traceback
+                            self.logger.error(traceback.format_exc())
+                            return False
+
+                # 【原有逻辑】如果表格已有足够的行结构，使用原有逻辑
                 # 【修复】增强错误处理：插入正面图片（在"人像面"标题的下一行）
-                if front_row_idx is not None and front_row_idx + 1 < num_rows:
+                if front_row_idx is not None:
+                    # 检查下一行是否存在，不存在则添加
+                    if front_row_idx + 1 >= num_rows:
+                        self.logger.info(f"📝 正面标题行后无图片行，添加新行")
+                        table.add_row()
+                        num_rows = len(table.rows)
+
                     try:
                         front_cell = table.rows[front_row_idx + 1].cells[0]
                         front_cell.text = ""  # 清空现有文本
@@ -479,7 +555,13 @@ class IdCardInserter:
                     self.logger.warning(f"⚠️ 未找到正面插入位置 (front_row_idx={front_row_idx}, num_rows={num_rows})")
 
                 # 【修复】增强错误处理：插入反面图片（在"国徽面"标题的下一行）
-                if back_row_idx is not None and back_row_idx + 1 < num_rows:
+                if back_row_idx is not None:
+                    # 检查下一行是否存在，不存在则添加
+                    if back_row_idx + 1 >= num_rows:
+                        self.logger.info(f"📝 反面标题行后无图片行，添加新行")
+                        table.add_row()
+                        num_rows = len(table.rows)
+
                     try:
                         back_cell = table.rows[back_row_idx + 1].cells[0]
                         back_cell.text = ""  # 清空现有文本

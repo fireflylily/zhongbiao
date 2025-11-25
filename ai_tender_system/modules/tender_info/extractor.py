@@ -1334,10 +1334,33 @@ class TenderInfoExtractor:
 
             doc_path = str(resolved_path)
 
-            # 5. 提取章节文本
+            # 5. 提取章节文本和表格
             from docx import Document
             doc = Document(doc_path)
             paragraphs = [p.text for p in doc.paragraphs]
+
+            # ⭐️ 新增：先提取前10个表格（避免重复提取）
+            all_tables_text = []
+            for table_idx, table in enumerate(doc.tables):
+                if table_idx >= 10:  # 只提取前10个表格
+                    break
+
+                table_text_parts = []
+                for row in table.rows:
+                    row_text = []
+                    for cell in row.cells:
+                        cell_text = cell.text.strip()
+                        if cell_text:
+                            row_text.append(cell_text)
+                    if row_text:
+                        table_text_parts.append(" | ".join(row_text))
+
+                if table_text_parts:
+                    table_text = "\n".join(table_text_parts)
+                    all_tables_text.append(f"\n[表格{table_idx + 1}]\n{table_text}")
+                    self.logger.debug(f"  提取到表格 #{table_idx + 1}，行数: {len(table_text_parts)}")
+
+            self.logger.info(f"共提取 {len(all_tables_text)} 个表格")
 
             chapter_texts = []
             total_chars = 0
@@ -1347,7 +1370,7 @@ class TenderInfoExtractor:
                 start_idx = chapter['para_start_idx']
                 end_idx = chapter['para_end_idx'] or len(paragraphs)
 
-                # 提取章节文本
+                # 提取章节段落文本
                 chapter_content = "\n".join(paragraphs[start_idx:end_idx])
 
                 # 检查是否超过限制
@@ -1358,6 +1381,14 @@ class TenderInfoExtractor:
                 chapter_texts.append(f"【{chapter['title']}】\n{chapter_content}")
                 total_chars += len(chapter_content)
                 self.logger.info(f"提取章节: {chapter['title']} ({len(chapter_content)} 字符)")
+
+            # ⭐️ 在所有章节后统一添加表格内容（避免重复）
+            if all_tables_text:
+                tables_merged = "\n\n".join(all_tables_text)
+                if total_chars + len(tables_merged) <= MAX_CHARS:
+                    chapter_texts.append(f"【提取的表格内容】\n{tables_merged}")
+                    total_chars += len(tables_merged)
+                    self.logger.info(f"添加表格内容: {len(tables_merged)} 字符")
 
             # 6. 合并文本
             merged_text = "\n\n".join(chapter_texts)
@@ -1451,10 +1482,16 @@ class TenderInfoExtractor:
             # 使用提取的文本生成提示词
             prompt = prompt_template.format(text=text_for_extraction)
 
+            # 🔍 调试日志：检查提示词和文档内容
+            self.logger.info(f"📤 发送给LLM的提示词长度: {len(prompt)} 字符")
+            self.logger.info(f"📤 提取的文档内容长度: {len(text_for_extraction)} 字符")
+            self.logger.debug(f"📤 提取的文档内容前300字符:\n{text_for_extraction[:300]}")
+            self.logger.debug(f"📤 完整提示词前800字符:\n{prompt[:800]}")
+
             response = self.llm_callback(prompt, "基本信息提取")
 
             # 添加详细日志记录LLM原始响应
-            self.logger.info(f"LLM原始响应（前500字符）: {response[:500]}")
+            self.logger.info(f"📥 LLM原始响应（前500字符）: {response[:500]}")
 
             # 解析JSON响应
             basic_info = self._safe_json_parse(response, "基本信息提取")
@@ -1508,6 +1545,7 @@ class TenderInfoExtractor:
                     "bidding_location": None,
                     "bidding_time": None,
                     "winner_count": None,
+                    "budget_amount": None,
                     "tenderer_contact_person": None,
                     "tenderer_contact_method": None,
                     "agency_contact_person": None,

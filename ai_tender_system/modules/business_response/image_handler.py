@@ -36,8 +36,8 @@ class ImageHandler:
             'qualification': (6, 0),  # 资质证书：宽6英寸（约15.24厘米）
             'authorization': (6, 0),   # 授权书：宽6英寸（约15.24厘米）
             'certificate': (6, 0),      # 其他证书：宽6英寸（约15.24厘米）
-            'legal_id': (4.5, 0),  # 法人身份证：宽4.5英寸（约11.43厘米）
-            'auth_id': (4.5, 0),    # 被授权人身份证：宽4.5英寸（约11.43厘米）
+            'legal_id': (2.165, 0),  # 法人身份证：宽2.165英寸（5.5厘米）
+            'auth_id': (2.165, 0),    # 被授权人身份证：宽2.165英寸（5.5厘米）
             'dishonest_executor': (6, 0),              # 失信被执行人查询截图：宽6英寸
             'tax_violation_check': (6, 0),             # 税收违法查询截图：宽6英寸
             'gov_procurement_creditchina': (6, 0),     # 信用中国政采查询截图：宽6英寸
@@ -50,7 +50,7 @@ class ImageHandler:
         # 组合各模块
         self.utils = DocumentUtils()
         self.scanner = DocumentScanner()
-        self.id_card_inserter = IdCardInserter(self.utils)
+        self.id_card_inserter = IdCardInserter(self.utils, self.default_sizes)
         self.validator = QualificationValidator(self.utils, self.default_sizes)
 
     def insert_images(self, doc: Document, image_config: Dict[str, Any],

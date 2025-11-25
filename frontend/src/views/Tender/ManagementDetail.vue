@@ -34,6 +34,7 @@
         :project-detail="projectDetail"
         @success="handleProcessSuccess"
         @refresh="loadProjectDetail"
+        @parse-complete="handleParseComplete"
         @preview="handlePreview"
       />
 
@@ -1328,30 +1329,53 @@ const handleStartProposal = async () => {
   })
 }
 
-// 处理文档处理成功事件
-const handleProcessSuccess = async (type: 'response' | 'technical') => {
-  // 重新加载项目详情以获取最新的step1_data和章节信息
+// 🆕 处理文档解析完成事件（自动AI提取）
+const handleParseComplete = async () => {
+  console.log('🎯 [ManagementDetail] handleParseComplete 被调用')
+
+  // 等待项目详情加载完成
   await loadProjectDetail()
 
   // 🆕 自动执行AI提取（仅在首次上传时，避免覆盖已编辑的数据）
   const isFirstTimeUpload = !projectDetail.value?.tenderer && !projectDetail.value?.qualifications_data
 
+  console.log('🎯 [ManagementDetail] 检查是否首次上传:', {
+    tenderer: projectDetail.value?.tenderer,
+    qualifications_data: projectDetail.value?.qualifications_data,
+    isFirstTimeUpload
+  })
+
   if (isFirstTimeUpload) {
+    console.log('🎯 [ManagementDetail] 满足条件，开始自动AI提取')
     ElMessage.info('开始自动执行AI提取...')
 
     try {
       // 1. 自动执行AI提取基本信息
+      console.log('🎯 [ManagementDetail] 1. 执行 handleExtractBasicInfo')
       await handleExtractBasicInfo()
 
-      // 2. 自动执行AI提取资格要求
+      // 2. 🆕 自动保存基本信息（调用现有的保存方法）
+      console.log('🎯 [ManagementDetail] 2. 自动保存基本信息')
+      await handleSave()
+
+      // 3. 自动执行AI提取资格要求
+      console.log('🎯 [ManagementDetail] 3. 执行 handleExtractQualifications')
       await handleExtractQualifications()
 
-      ElMessage.success('AI自动提取完成！请检查提取结果')
+      ElMessage.success('AI自动提取完成！')
     } catch (error) {
       console.error('自动AI提取失败:', error)
       ElMessage.warning('自动AI提取失败，请手动点击按钮重试')
     }
+  } else {
+    console.log('🎯 [ManagementDetail] 不满足条件，跳过自动AI提取')
   }
+}
+
+// 处理文档处理成功事件（保存应答文件/技术需求）
+const handleProcessSuccess = async (type: 'response' | 'technical') => {
+  // 重新加载项目详情以获取最新的step1_data和章节信息
+  await loadProjectDetail()
 
   if (type === 'response') {
     // 保存应答文件成功，自动切换到商务应答Tab
@@ -1384,6 +1408,22 @@ const handleExtractBasicInfo = async () => {
       console.log('project_name:', info.project_name)
       console.log('project_number:', info.project_number)
 
+      // 辅助函数：解析预算金额（将 "X万元" 或 "100万元" 转为数字）
+      const parseBudgetAmount = (value: any): number | null => {
+        if (!value) return null
+        const str = String(value)
+        // 提取数字部分（支持小数）
+        const numMatch = str.match(/[\d.]+/)
+        if (!numMatch) return null
+        const num = parseFloat(numMatch[0])
+        if (isNaN(num)) return null
+        // 如果包含"万"，乘以10000
+        if (str.includes('万')) {
+          return num * 10000
+        }
+        return num
+      }
+
       // 使用Object.assign批量更新reactive对象，确保触发响应式更新
       Object.assign(formData, {
         name: info.project_name || formData.name,
@@ -1393,6 +1433,7 @@ const handleExtractBasicInfo = async () => {
         bidding_method: info.tender_method || formData.bidding_method,
         bidding_location: info.tender_location || formData.bidding_location,
         bidding_time: info.tender_deadline || formData.bidding_time,
+        budget_amount: parseBudgetAmount(info.budget_amount) || formData.budget_amount,
         tenderer_contact_person: info.tenderer_contact_person || formData.tenderer_contact_person,
         tenderer_contact_method: info.tenderer_contact_method || formData.tenderer_contact_method,
         agency_contact_person: info.agency_contact_person || formData.agency_contact_person,
@@ -1409,6 +1450,7 @@ const handleExtractBasicInfo = async () => {
           bidding_method: info.tender_method || projectDetail.value.bidding_method,
           bidding_location: info.tender_location || projectDetail.value.bidding_location,
           bidding_time: info.tender_deadline || projectDetail.value.bidding_time,
+          budget_amount: info.budget_amount ? parseFloat(String(info.budget_amount).replace(/[^\d.]/g, '') || '0') : projectDetail.value.budget_amount,
           tenderer_contact_person: info.tenderer_contact_person || projectDetail.value.tenderer_contact_person,
           tenderer_contact_method: info.tenderer_contact_method || projectDetail.value.tenderer_contact_method,
           agency_contact_person: info.agency_contact_person || projectDetail.value.agency_contact_person,

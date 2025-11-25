@@ -202,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import ChapterTree from './ChapterTree.vue'
@@ -233,6 +233,7 @@ const emit = defineEmits<{
   success: [type: 'response' | 'technical']
   refresh: []
   preview: [fileUrl: string, fileName: string]
+  parseComplete: [] // 🆕 文档解析完成事件
 }>()
 
 // 状态
@@ -276,12 +277,56 @@ const hasExistingDocument = computed(() => {
   return existingDocumentInfo.value !== null
 })
 
-// 文件上传处理
-const handleFileChange = (file: UploadFile) => {
-  if (file.raw) {
-    uploadedFile.value = file.raw
-    fileList.value = [file]
+// 🆕 文件验证函数
+const validateFile = (file: File): { valid: boolean; error?: string } => {
+  // 检查文件格式
+  const fileName = file.name.toLowerCase()
+  if (!fileName.endsWith('.docx')) {
+    return {
+      valid: false,
+      error: '仅支持 .docx 格式的文件，请先将 .doc 文件另存为 .docx 格式'
+    }
   }
+
+  // 检查文件大小（50MB = 50 * 1024 * 1024 bytes）
+  const maxSize = 50 * 1024 * 1024
+  if (file.size > maxSize) {
+    return {
+      valid: false,
+      error: `文件大小不能超过 50MB，当前文件大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+    }
+  }
+
+  return { valid: true }
+}
+
+// 文件上传处理（🆕 自动解析）
+const handleFileChange = async (file: UploadFile) => {
+  if (!file.raw) return
+
+  // 验证文件
+  const validation = validateFile(file.raw)
+  if (!validation.valid) {
+    ElMessage.error(validation.error || '文件验证失败')
+    // 清空文件选择
+    uploadedFile.value = null
+    fileList.value = []
+    return
+  }
+
+  // 设置已选择的文件
+  uploadedFile.value = file.raw
+  fileList.value = [file]
+
+  // 🆕 自动触发解析（延迟500ms让用户看到文件已选择）
+  ElMessage.info({
+    message: '文件已选择，正在自动解析...',
+    duration: 2000
+  })
+
+  setTimeout(() => {
+    handleParse()
+  }, 500)
 }
 
 const handleFileRemove = () => {
@@ -329,6 +374,12 @@ const handleParse = async () => {
       chapters.value = (response as any).chapters || []
 
       ElMessage.success('文档解析成功，请选择章节')
+
+      // 🆕 emit parseComplete 事件，触发父组件执行自动AI提取
+      console.log('🎯 [TenderDocumentProcessor] 文档解析成功，emit parseComplete 事件')
+      emit('parseComplete')
+      // 同时 emit refresh 事件，重新加载项目详情
+      emit('refresh')
     } else {
       throw new Error((response as any).message || (response as any).error || '解析失败')
     }
@@ -537,15 +588,10 @@ const initializeExistingData = () => {
   }
 }
 
-// 监听projectDetail变化
+// 监听projectDetail变化（immediate: true 确保组件挂载时立即执行）
 watch(() => props.projectDetail, () => {
   initializeExistingData()
 }, { immediate: true })
-
-// 组件挂载时初始化
-onMounted(() => {
-  initializeExistingData()
-})
 </script>
 
 <style scoped lang="scss">
@@ -589,6 +635,47 @@ onMounted(() => {
     :deep(.el-upload-dragger) {
       width: 100%;
       padding: 20px 16px; // 从30px 20px减小到20px 16px
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      // 🆕 悬停效果 - 更明显的视觉反馈
+      &:hover {
+        border-color: var(--el-color-primary);
+        background-color: var(--el-color-primary-light-9);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+
+        .el-upload__text {
+          color: var(--el-color-primary);
+        }
+
+        .bi-cloud-upload {
+          transform: scale(1.1);
+          transition: transform 0.3s ease;
+        }
+      }
+
+      // 🆕 点击效果
+      &:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+      }
+    }
+
+    // 增强文本提示的可见性
+    :deep(.el-upload__text) {
+      transition: color 0.3s ease;
+
+      em {
+        color: var(--el-color-primary);
+        font-weight: 600;
+        text-decoration: underline;
+      }
+    }
+
+    // 图标动画
+    :deep(.bi-cloud-upload) {
+      transition: transform 0.3s ease, color 0.3s ease;
     }
   }
 

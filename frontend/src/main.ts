@@ -24,21 +24,47 @@ import router from './router'
 import './assets/styles/global.scss'
 import './assets/styles/editor.scss'
 
-// 初始化CSRF Token
+// 全局错误处理 - 捕获外部插件引起的错误
+window.addEventListener('error', (event) => {
+  // 忽略外部脚本（浏览器插件）的错误
+  const filename = event.filename || ''
+  const message = event.message || ''
+
+  if (
+    filename.includes('extension://') ||
+    filename.includes('evmAsk') ||
+    filename.includes('chrome-extension://') ||
+    message.includes('ethereum') ||
+    message.includes('Cannot redefine property')
+  ) {
+    console.warn('[Global] 已忽略外部插件错误:', message)
+    event.preventDefault()
+    return true
+  }
+}, true)
+
+// 初始化CSRF Token（后台异步执行，不阻塞应用启动）
 async function initCsrfToken() {
   try {
     // 调用后端API获取CSRF token并设置到cookie
-    await axios.get('/api/csrf-token', { withCredentials: true })
+    // 添加10秒超时避免无限等待
+    await axios.get('/api/csrf-token', {
+      withCredentials: true,
+      timeout: 10000
+    })
     console.log('[CSRF] Token initialized successfully')
   } catch (error) {
-    console.error('[CSRF] Failed to initialize token:', error)
+    console.warn('[CSRF] Failed to initialize token (app will continue):', error)
   }
 }
 
 // 初始化应用
 async function initApp() {
-  // 先获取CSRF token
-  await initCsrfToken()
+  // CSRF token 初始化不再阻塞应用启动
+  // 在后台异步执行，失败也不影响应用加载
+  initCsrfToken().catch(err => {
+    console.warn('[App] CSRF token init failed, but app continues:', err)
+  })
 
   const app = createApp(App)
 
