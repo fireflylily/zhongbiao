@@ -49,8 +49,7 @@ def get_tender_projects():
     """
     获取招标项目列表
     权限规则：
-    - 普通用户：只能查看自己创建的项目
-    - 管理员：可以查看所有项目
+    - 所有用户（包括admin）：只能查看自己创建的项目
     """
     try:
         # 获取当前用户
@@ -73,10 +72,9 @@ def get_tender_projects():
         """
         params = []
 
-        # 权限过滤：普通用户只能看到自己创建的项目
-        if not is_admin(user):
-            query += " AND p.created_by_user_id = ?"
-            params.append(user['user_id'])
+        # 权限过滤：所有用户（包括admin）只能看到自己创建的项目
+        query += " AND p.created_by_user_id = ?"
+        params.append(user['user_id'])
 
         if company_id:
             query += " AND p.company_id = ?"
@@ -294,7 +292,7 @@ def _build_chapter_tree(chapters_flat):
 def get_tender_project(project_id):
     """
     获取单个项目详情
-    权限规则：创建者或管理员可以查看
+    权限规则：只有创建者可以查看
     """
     try:
         # 获取当前用户
@@ -313,8 +311,8 @@ def get_tender_project(project_id):
         if projects and len(projects) > 0:
             project_data = projects[0]
 
-            # 权限检查：只有创建者或管理员可以查看
-            if not is_owner_or_admin(user, project_data.get('created_by_user_id')):
+            # 权限检查：只有创建者可以查看
+            if user['user_id'] != project_data.get('created_by_user_id'):
                 return jsonify({
                     'success': False,
                     'message': '您没有权限查看此项目'
@@ -417,7 +415,7 @@ def get_tender_project(project_id):
 def update_tender_project(project_id):
     """
     更新招标项目
-    权限规则：创建者或管理员可以更新
+    权限规则：只有创建者可以更新
     """
     try:
         # 获取当前用户
@@ -433,8 +431,8 @@ def update_tender_project(project_id):
                 'message': '项目不存在'
             }), 404
 
-        # 权限检查：只有创建者或管理员可以更新
-        if not is_owner_or_admin(user, project.get('created_by_user_id')):
+        # 权限检查：只有创建者可以更新
+        if user['user_id'] != project.get('created_by_user_id'):
             return jsonify({
                 'success': False,
                 'message': '您没有权限修改此项目'
@@ -580,7 +578,7 @@ def update_tender_project(project_id):
 def delete_tender_project(project_id):
     """
     删除招标项目（级联删除相关数据）
-    权限规则：创建者或管理员可以删除
+    权限规则：只有创建者可以删除
     """
     try:
         import os
@@ -598,8 +596,8 @@ def delete_tender_project(project_id):
                 'message': f'项目 ID {project_id} 不存在'
             }), 404
 
-        # 权限检查：只有创建者或管理员可以删除
-        if not is_owner_or_admin(user, project.get('created_by_user_id')):
+        # 权限检查：只有创建者可以删除
+        if user['user_id'] != project.get('created_by_user_id'):
             return jsonify({
                 'success': False,
                 'message': '您没有权限删除此项目'
