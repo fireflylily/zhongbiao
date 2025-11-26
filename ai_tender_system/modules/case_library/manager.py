@@ -253,9 +253,17 @@ class CaseLibraryManager:
             where_clause = " AND ".join(conditions) if conditions else "1=1"
 
             query = f"""
-                SELECT * FROM case_studies
+                SELECT
+                    cs.*,
+                    (SELECT COUNT(*) FROM case_attachments ca
+                     WHERE ca.case_id = cs.case_id
+                     AND ca.converted_images IS NOT NULL) as has_images_count
+                FROM case_studies cs
                 WHERE {where_clause}
-                ORDER BY created_at DESC
+                ORDER BY
+                    CASE WHEN cs.product_category = '风控产品' THEN 0 ELSE 1 END,
+                    has_images_count DESC,
+                    cs.created_at DESC
             """
 
             cases = self.db.execute_query(query, tuple(params))

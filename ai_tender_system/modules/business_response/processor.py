@@ -51,6 +51,10 @@ class BusinessResponseProcessor:
         self.table_processor = TableProcessor()
         self.image_handler = ImageHandler()
 
+        # 🆕 初始化文档扫描器（用于识别格式自拟的案例要求）
+        from .document_scanner import DocumentScanner
+        self.scanner = DocumentScanner()
+
         # 初始化内联回复处理器（使用指定的模型或默认始皇API）
         self.model_name = model_name or "shihuang-gpt4o-mini"
         self.inline_processor = InlineReplyProcessor(model_name=self.model_name)
@@ -71,6 +75,16 @@ class BusinessResponseProcessor:
         except Exception as e:
             self.logger.warning(f"案例库/简历库填充器初始化失败: {e}")
             self.case_resume_available = False
+
+        # 🆕 初始化案例表格生成器（用于处理"格式自拟"的案例要求）
+        try:
+            from .case_table_generator import CaseTableGenerator
+            self.case_table_generator = CaseTableGenerator()
+            self.case_table_generator_available = True
+            self.logger.info("案例表格生成器初始化完成")
+        except Exception as e:
+            self.logger.warning(f"案例表格生成器初始化失败: {e}")
+            self.case_table_generator_available = False
 
         self.logger.info(f"商务应答处理器初始化完成，内联回复模型: {self.model_name}")
 
@@ -216,6 +230,15 @@ class BusinessResponseProcessor:
             if image_config and any(image_config.values()):
                 self.logger.info("第3步：执行图片插入")
                 image_stats = self.image_handler.insert_images(doc, image_config, required_quals)
+
+            # 🆕 第3.5步：处理格式自拟的案例要求（生成案例表格）
+            if self.case_table_generator_available:
+                self.logger.info("第3.5步：处理格式自拟的案例要求")
+                company_id = company_info.get('company_id')
+                if company_id:
+                    self._process_format_free_cases(doc, company_id)
+                else:
+                    self.logger.warning("  ⚠️ 缺少company_id，跳过格式自拟案例处理")
 
             # 第4步：案例表格填充（如果可用）
             case_stats = {}
@@ -485,6 +508,61 @@ class BusinessResponseProcessor:
                 'license_path', 'qualification_paths'
             ]
         }
+
+
+    def _process_format_free_cases(self, doc: Document, company_id: int):
+        """
+        处理"格式自拟"的业绩案例要求（第3.5步）
+
+        工作流程：
+        1. 扫描识别"格式自拟"的案例要求
+        2. 智能去重：检查附近是否已有案例表格
+        3. 在要求位置生成标准案例表格
+        4. 后续由 CaseTableFiller 统一填充（第4步）
+
+        设计理念：
+        - 生成在前（第3.5步），填充在后（第4步）
+        - 完全复用现有的 CaseTableFiller 逻辑
+        - 生成的表格符合 CaseTableFiller 的识别规则
+
+        Args:
+            doc: Word文档对象
+            company_id: 公司ID
+        """
+        try:
+            # 1. 扫描识别"格式自拟"的案例要求
+            case_requirements = self.scanner.scan_case_requirements(doc)
+
+            if not case_requirements:
+                self.logger.info("  未发现格式自拟的案例要求，跳过")
+                return
+
+            self.logger.info(f"  识别到 {len(case_requirements)} 处格式自拟的案例要求")
+
+            # 2. 为每个要求生成表格
+            for idx, req in enumerate(case_requirements):
+                self.logger.info(f"  处理第 {idx+1} 处: {req['text'][:60]}")
+
+                insert_para = req['paragraph']
+
+                # 生成标准案例表格（5行数据行）
+                table = self.case_table_generator.generate_case_table(
+                    doc,
+                    insert_after_para=insert_para,
+                    num_rows=5  # 可根据项目要求调整
+                )
+
+                if table:
+                    self.logger.info(f"  ✅ 已生成案例表格")
+                else:
+                    self.logger.warning(f"  ⚠️ 生成案例表格失败")
+
+            self.logger.info(f"✅ 格式自拟案例处理完成，共生成 {len(case_requirements)} 个表格")
+
+        except Exception as e:
+            self.logger.error(f"处理格式自拟案例失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
 
 
 # 保持向后兼容性

@@ -21,6 +21,31 @@
           {{ isFullscreen ? '退出全屏' : '全屏编辑' }}
         </el-button>
 
+        <!-- 标书工具下拉菜单 -->
+        <el-dropdown @command="handleTenderToolCommand" trigger="click">
+          <el-button type="warning" size="small">
+            <el-icon><MagicStick /></el-icon>
+            标书工具
+            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="commitment_general">
+                📝 生成资格承诺书
+              </el-dropdown-item>
+              <el-dropdown-item command="commitment_no_violation">
+                📋 生成无违法记录声明
+              </el-dropdown-item>
+              <el-dropdown-item command="commitment_confidential">
+                🔒 生成保密承诺书
+              </el-dropdown-item>
+              <el-dropdown-item divided command="auto_fill">
+                ✨ 智能填写
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
         <el-button
           type="primary"
           @click="emit('preview')"
@@ -112,6 +137,35 @@
           <span>AI 正在生成内容，请稍候...</span>
         </div>
 
+        <!-- 智能提示气泡 -->
+        <transition name="el-fade-in">
+          <div v-if="showSmartHint" class="smart-hint-bubble">
+            <el-alert
+              type="info"
+              :closable="true"
+              @close="showSmartHint = false"
+            >
+              <template #title>
+                <div class="hint-title">
+                  <el-icon><MagicStick /></el-icon>
+                  <span>💡 检测到承诺书要求</span>
+                </div>
+              </template>
+              <div class="hint-content">
+                <p>系统识别到您输入的内容包含"格式自拟"等承诺书关键词</p>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="generateFromHint"
+                  :loading="generatingFromHint"
+                >
+                  一键生成承诺书
+                </el-button>
+              </div>
+            </el-alert>
+          </div>
+        </transition>
+
         <!-- Umo Editor组件 -->
         <UmoEditor
           ref="umoEditorRef"
@@ -126,7 +180,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Loading,
   View,
@@ -134,7 +188,9 @@ import {
   Refresh,
   DArrowLeft,
   DArrowRight,
-  FullScreen
+  FullScreen,
+  MagicStick,
+  ArrowDown
 } from '@element-plus/icons-vue'
 import { UmoEditor } from '@umoteam/editor'
 
@@ -340,6 +396,12 @@ const outlineCollapsed = ref(false)
 const activeHeadingId = ref('')
 const refreshingOutline = ref(false)
 
+// 智能提示相关
+const showSmartHint = ref(false)
+const generatingFromHint = ref(false)
+const detectedContent = ref('')
+let detectionTimer: number | null = null
+
 // 编辑器高度
 const editorHeight = computed(() => {
   if (isFullscreen.value) {
@@ -512,6 +574,18 @@ const handleContentChange = () => {
 
       // 防抖更新目录
       debouncedRefreshOutline()
+
+      // 防抖检测承诺书关键词
+      if (detectionTimer) clearTimeout(detectionTimer)
+      detectionTimer = window.setTimeout(() => {
+        // 提取纯文本（去除HTML标签）
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = html
+        const plainText = tempDiv.textContent || tempDiv.innerText || ''
+
+        // 检测关键词
+        detectCommitmentRequirement(plainText)
+      }, 1000) // 1秒防抖
     } else {
       console.log('[RichTextEditor] ⚠️ 内容未变化，不更新isDirty')
     }
@@ -705,6 +779,183 @@ const toggleFullscreen = () => {
   }
 }
 
+// ===== 标书工具相关方法 =====
+
+/**
+ * 处理标书工具下拉菜单命令
+ */
+const handleTenderToolCommand = async (command: string) => {
+  console.log('[TenderTools] 执行命令:', command)
+
+  try {
+    // 获取当前选中的文本
+    const editor = getEditor()
+    let selectedText = ''
+
+    if (editor && editor.state) {
+      const { from, to } = editor.state.selection
+      selectedText = editor.state.doc.textBetween(from, to, ' ')
+    }
+
+    // 如果没有选中文本，提示用户
+    if (!selectedText.trim()) {
+      // 弹出对话框让用户输入或粘贴招标要求
+      const result = await ElMessageBox.prompt(
+        '请粘贴或输入招标文件中的承诺书要求（包含"格式自拟"等关键信息）',
+        '生成承诺书',
+        {
+          confirmButtonText: '生成',
+          cancelButtonText: '取消',
+          inputType: 'textarea',
+          inputPlaceholder: '例如：格式自拟，必须包含以下内容：\n具有独立承担民事责任的能力...'
+        }
+      )
+      selectedText = result.value
+    }
+
+    if (!selectedText.trim()) {
+      ElMessage.warning('请输入承诺书要求内容')
+      return
+    }
+
+    // 调用 AI 生成
+    await callAIAssistant(command, selectedText)
+
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('[TenderTools] 执行失败:', error)
+      ElMessage.error('操作失败: ' + error.message)
+    }
+  }
+}
+
+/**
+ * 从智能提示生成承诺书
+ */
+const generateFromHint = async () => {
+  if (!detectedContent.value) {
+    ElMessage.warning('未检测到有效内容')
+    return
+  }
+
+  generatingFromHint.value = true
+  showSmartHint.value = false
+
+  try {
+    // 根据检测到的内容类型选择命令
+    let command = 'commitment_general'
+
+    if (detectedContent.value.includes('违法记录') || detectedContent.value.includes('三年内')) {
+      command = 'commitment_no_violation'
+    } else if (detectedContent.value.includes('保密') || detectedContent.value.includes('第三方')) {
+      command = 'commitment_confidential'
+    }
+
+    await callAIAssistant(command, detectedContent.value)
+
+  } catch (error: any) {
+    console.error('[SmartHint] 生成失败:', error)
+    ElMessage.error('生成失败: ' + error.message)
+  } finally {
+    generatingFromHint.value = false
+  }
+}
+
+/**
+ * 检测承诺书关键词
+ */
+const detectCommitmentRequirement = (text: string) => {
+  // 关键词模式（使用正则表达式）
+  const patterns = [
+    /格式自拟.*承诺/i,
+    /书面声明.*格式自拟/i,
+    /承诺函.*格式自拟/i,
+    /三年内.*重大违法记录/i,
+    /保密.*承诺/i,
+    /格式自拟.*必须包含/i
+  ]
+
+  // 检查最近输入的内容（最后200字符）
+  const recentText = text.slice(-200)
+
+  for (const pattern of patterns) {
+    if (pattern.test(recentText)) {
+      console.log('[SmartHint] 检测到承诺书关键词')
+      detectedContent.value = recentText
+      showSmartHint.value = true
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * 统一的 AI 助手调用方法
+ */
+const callAIAssistant = async (command: string, inputText: string) => {
+  if (!inputText.trim()) {
+    ElMessage.warning('请选中或输入要处理的文本')
+    return
+  }
+
+  // 设置流式状态（使用正确的编辑器ref）
+  if (umoEditorRef.value && typeof umoEditorRef.value.setReadOnly === 'function') {
+    umoEditorRef.value.setReadOnly(true)
+  }
+
+  try {
+    console.log('[AIAssistant] 调用AI助手:', command, '输入长度:', inputText.length)
+
+    // 调用后端 AI API
+    const response = await fetch('/api/editor/ai-assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        command,
+        input: inputText,
+        output: 'html',
+        lang: 'zh-CN',
+        company_id: props.companyId || 1,
+        project_name: props.projectName || ''
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('AI 请求失败')
+    }
+
+    const result = await response.json()
+
+    if (result.success) {
+      console.log('[AIAssistant] 生成成功，长度:', result.content.length)
+
+      // 将生成的内容插入编辑器
+      if (umoEditorRef.value) {
+        const currentContent = umoEditorRef.value.getHTML()
+        const newContent = currentContent + '\n' + result.content
+        umoEditorRef.value.setContent(newContent)
+
+        // 标记为已修改
+        isDirty.value = true
+
+        ElMessage.success('承诺书已生成！')
+      }
+    } else {
+      throw new Error(result.error || 'AI 生成失败')
+    }
+
+  } catch (error: any) {
+    console.error('[AIAssistant] 调用失败:', error)
+    ElMessage.error('AI 助手调用失败: ' + error.message)
+  } finally {
+    // 恢复编辑器状态（使用正确的编辑器ref）
+    if (umoEditorRef.value && typeof umoEditorRef.value.setReadOnly === 'function') {
+      umoEditorRef.value.setReadOnly(props.readonly || props.streaming)
+    }
+  }
+}
+
 // 清空内容
 const clear = () => {
   content.value = ''
@@ -844,6 +1095,11 @@ onBeforeUnmount(() => {
     clearTimeout(refreshTimer)
   }
 
+  // 清理检测定时器
+  if (detectionTimer) {
+    clearTimeout(detectionTimer)
+  }
+
   // 恢复localStorage
   restoreLocalStorage()
 
@@ -868,8 +1124,14 @@ onBeforeUnmount(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 9999;
+    z-index: 2000;
     border-radius: 0;
+  }
+
+  // 全屏模式下确保头部按钮可点击
+  &.fullscreen .editor-header {
+    position: relative;
+    z-index: 2001;
   }
 
   &.streaming {
@@ -1034,6 +1296,50 @@ onBeforeUnmount(() => {
 
         .el-icon {
           font-size: 16px;
+        }
+      }
+
+      // 智能提示气泡样式
+      .smart-hint-bubble {
+        position: absolute;
+        top: 60px;
+        right: 12px;
+        max-width: 400px;
+        z-index: 1000;
+        animation: slideInRight 0.3s ease-out;
+
+        :deep(.el-alert) {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .hint-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .hint-content {
+          margin-top: 8px;
+
+          p {
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            color: var(--el-text-color-regular);
+          }
+        }
+      }
+
+      // 气泡动画
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
         }
       }
 

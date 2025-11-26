@@ -828,7 +828,7 @@ const previewDocument = () => {
 }
 
 // 下载文档（使用公用函数）
-const downloadDocument = () => {
+const downloadDocument = async () => {
   if (!generationResult.value) {
     ElMessage.warning('暂无文档可下载')
     return
@@ -839,12 +839,12 @@ const downloadDocument = () => {
     const filename = `商务应答-${selectedProject.value?.project_name || '文档'}-${Date.now()}.docx`
 
     // 使用公用下载函数
-    downloadFile(url, filename)
+    await downloadFile(url, filename)
 
     ElMessage.success('Word文档下载成功')
-  } catch (error) {
+  } catch (error: any) {
     console.error('下载失败:', error)
-    ElMessage.error('文档下载失败，请重试')
+    ElMessage.error(error.message || '文档下载失败，请重试')
   }
 }
 

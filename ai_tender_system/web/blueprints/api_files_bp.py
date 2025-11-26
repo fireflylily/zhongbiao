@@ -85,13 +85,13 @@ def upload_file():
         return jsonify(format_error_response(e))
 
 
-@api_files_bp.route('/download/<filename>')
+@api_files_bp.route('/download/<path:filename>')
 def download_file(filename):
     """
     文件下载API
 
     Args:
-        filename: 要下载的文件名
+        filename: 要下载的文件名（支持URL编码的中文文件名）
 
     Returns:
         文件内容（attachment形式）
@@ -100,18 +100,49 @@ def download_file(filename):
         404: 文件不存在
     """
     try:
+        import urllib.parse
+
+        # URL解码文件名（处理中文字符）
+        decoded_filename = urllib.parse.unquote(filename)
+        logger.info(f"请求下载文件: {decoded_filename}")
+
         output_dir = config.get_path('output')
-        file_path = output_dir / filename
+        file_path = output_dir / decoded_filename
 
         if not file_path.exists():
-            raise FileNotFoundError(f"文件不存在: {filename}")
+            logger.error(f"文件不存在: {file_path}")
+            raise FileNotFoundError(f"文件不存在: {decoded_filename}")
 
-        logger.info(f"文件下载: {filename}")
-        return send_file(str(file_path), as_attachment=True)
+        # 确定MIME类型
+        import mimetypes
+        mimetype = mimetypes.guess_type(str(file_path))[0]
+        if not mimetype:
+            # 默认Word文档类型
+            if decoded_filename.endswith('.docx'):
+                mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            elif decoded_filename.endswith('.doc'):
+                mimetype = 'application/msword'
+            else:
+                mimetype = 'application/octet-stream'
 
+        logger.info(f"文件下载: {decoded_filename}, 大小: {file_path.stat().st_size} bytes")
+
+        # 使用download_name参数设置下载文件名（Flask 2.0+）
+        return send_file(
+            str(file_path),
+            as_attachment=True,
+            download_name=decoded_filename,
+            mimetype=mimetype
+        )
+
+    except FileNotFoundError as e:
+        logger.error(f"文件不存在: {e}")
+        return jsonify(format_error_response(e)), 404
     except Exception as e:
         logger.error(f"文件下载失败: {e}")
-        return jsonify(format_error_response(e))
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify(format_error_response(e)), 500
 
 
 @api_files_bp.route('/serve/<path:filepath>')

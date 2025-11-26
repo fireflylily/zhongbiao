@@ -66,10 +66,16 @@ CREATE TABLE IF NOT EXISTS case_attachments (
     file_path VARCHAR(500) NOT NULL,
     file_type VARCHAR(20),  -- pdf/doc/docx/jpg/png
     file_size INTEGER,
+    original_file_type VARCHAR(20),  -- 原始文件类型（上传时的类型）
 
     -- 附件类型
     attachment_type VARCHAR(50),  -- contract:合同 acceptance:验收证明 testimony:客户证明 photo:项目照片 other:其他
     attachment_description TEXT,  -- 附件说明
+
+    -- PDF/Word转图片支持
+    converted_images TEXT,  -- 转换后的图片列表（JSON格式）[{"file_path": "...", "page_num": 1}, ...]
+    conversion_info TEXT,  -- 转换信息（JSON格式）{"total_pages": 3, "dpi": 200, ...}
+    conversion_date TIMESTAMP,  -- 转换时间
 
     -- 时间戳
     uploaded_by VARCHAR(100),

@@ -604,7 +604,7 @@ class ResumeTableFiller:
 
                 # 插入标题(第一页或单页)
                 if title_text:
-                    title_para = self.image_handler._insert_paragraph_after(last_insert_para)
+                    title_para = self.image_handler.utils.insert_paragraph_after(last_insert_para)
                     title_para.text = title_text
                     title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     if title_para.runs:
@@ -613,7 +613,7 @@ class ResumeTableFiller:
                     self.logger.debug(f"      插入标题: {title_text}")
 
                 # 插入图片
-                img_para = self.image_handler._insert_paragraph_after(last_insert_para)
+                img_para = self.image_handler.utils.insert_paragraph_after(last_insert_para)
                 img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = img_para.add_run()
                 run.add_picture(file_path, width=Inches(6))  # 6英寸(与资质证书一致)

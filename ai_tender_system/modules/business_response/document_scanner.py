@@ -449,3 +449,287 @@ class DocumentScanner:
         # ========== 9. neutral（中性位置 - 默认）==========
 
         return 'neutral'
+
+    # ==================== 🆕 案例表格处理相关方法 ====================
+
+    def scan_case_requirements(self, doc: Document) -> list:
+        """
+        扫描文档中"格式自拟"的业绩案例要求
+
+        功能：
+        1. 识别包含"案例"+"格式自拟"关键词的段落
+        2. 智能去重：检查附近是否已有案例表格
+        3. 返回需要生成表格的位置列表
+
+        识别规则：
+        - 案例关键词：业绩案例、资格案例、项目案例、项目经验等
+        - 格式自拟关键词：格式自拟、自拟格式、自行编制、格式不限等
+
+        智能去重：
+        - 检查段落后10个段落范围内是否已有案例表格
+        - 如果有表格，跳过（避免重复生成）
+        - 如果无表格，标记为需要生成
+
+        Args:
+            doc: Word文档对象
+
+        Returns:
+            案例要求位置列表
+            [
+                {
+                    'type': 'paragraph',
+                    'paragraph': paragraph对象,
+                    'index': 段落索引,
+                    'text': '八、资格案例（加盖公章）',
+                    'requirement_text': '格式自拟',
+                    'insert_position': 'after'
+                },
+                ...
+            ]
+        """
+        case_requirements = []
+
+        # 案例相关关键词
+        case_keywords = [
+            '业绩案例', '资格案例', '项目案例', '类似案例',
+            '业绩', '项目经验', '同类项目', '以往项目',
+            '项目实施经验', '完成的项目', '项目业绩'
+        ]
+
+        # "格式自拟"指示词
+        format_free_keywords = [
+            '格式自拟', '自拟格式', '自行编制',
+            '自行设计', '格式不限', '自定义格式',
+            '格式由投标人自定', '按投标人格式', '自行提供格式'
+        ]
+
+        self.logger.info(f"📋 开始扫描格式自拟的案例要求...")
+
+        for para_idx, paragraph in enumerate(doc.paragraphs):
+            text = paragraph.text.strip()
+            if not text:
+                continue
+
+            # 检查是否包含案例关键词
+            has_case_keyword = any(kw in text for kw in case_keywords)
+
+            # 检查是否包含"格式自拟"指示
+            has_format_free = any(kw in text for kw in format_free_keywords)
+
+            if has_case_keyword:
+                # 情况1：当前段落同时包含案例+格式自拟
+                if has_format_free:
+                    # 智能去重：检查附近是否已有案例表格
+                    nearby_has_case_table = self._check_nearby_case_table(
+                        doc, para_idx, search_range=10
+                    )
+
+                    if nearby_has_case_table:
+                        self.logger.info(
+                            f"⏭️  段落#{para_idx}附近已有案例表格，跳过生成: '{text[:60]}'"
+                        )
+                        continue
+
+                    # 需要生成表格
+                    case_requirements.append({
+                        'type': 'paragraph',
+                        'paragraph': paragraph,
+                        'index': para_idx,
+                        'text': text,
+                        'requirement_text': '格式自拟',
+                        'insert_position': 'after',
+                        'reason': '当前段落包含案例+格式自拟'
+                    })
+                    self.logger.info(
+                        f"🔍 识别到需要生成案例表格: 段落#{para_idx}, '{text[:60]}'"
+                    )
+
+                # 情况2：下一段落包含"格式自拟"（标题和内容分段的情况）
+                elif para_idx + 1 < len(doc.paragraphs):
+                    next_para = doc.paragraphs[para_idx + 1]
+                    next_text = next_para.text.strip()
+                    if any(kw in next_text for kw in format_free_keywords):
+                        # 智能去重
+                        nearby_has_case_table = self._check_nearby_case_table(
+                            doc, para_idx + 1, search_range=10
+                        )
+
+                        if nearby_has_case_table:
+                            self.logger.info(
+                                f"⏭️  段落#{para_idx}附近已有案例表格，跳过生成: '{text[:60]}'"
+                            )
+                            continue
+
+                        # 使用下一段落作为插入点
+                        case_requirements.append({
+                            'type': 'paragraph',
+                            'paragraph': next_para,
+                            'index': para_idx + 1,
+                            'text': text,
+                            'requirement_text': next_text,
+                            'insert_position': 'after',
+                            'reason': '案例标题在当前段，格式说明在下一段'
+                        })
+                        self.logger.info(
+                            f"🔍 识别到需要生成案例表格: 段落#{para_idx}, '{text[:60]}' "
+                            f"(格式说明在下一段)"
+                        )
+
+        self.logger.info(f"📊 扫描完成: 识别到 {len(case_requirements)} 处需要生成案例表格的位置")
+        return case_requirements
+
+    def _check_nearby_case_table(self, doc: Document, para_idx: int,
+                                 search_range: int = 10) -> bool:
+        """
+        检查指定段落附近是否已有案例表格
+
+        检测范围：
+        - 向后搜索N个段落（默认10个）
+        - 如果遇到新的章节标题，停止搜索
+
+        检测方法：
+        - 遍历文档中的所有表格
+        - 检查表格位置是否在搜索范围内
+        - 使用CaseTableFiller的识别逻辑判断是否为案例表格
+
+        Args:
+            doc: Word文档对象
+            para_idx: 起始段落索引
+            search_range: 向后搜索的段落数量
+
+        Returns:
+            True: 附近有案例表格
+            False: 附近无案例表格
+        """
+        # 计算搜索范围的结束段落索引
+        end_idx = min(para_idx + search_range, len(doc.paragraphs))
+
+        # 获取搜索范围内的段落元素
+        search_paragraphs = []
+        for i in range(para_idx, end_idx):
+            if i >= len(doc.paragraphs):
+                break
+
+            para = doc.paragraphs[i]
+
+            # 如果遇到新的章节标题，停止搜索
+            if self._is_chapter_title(para.text):
+                self.logger.debug(f"  遇到新章节，停止搜索: {para.text[:30]}")
+                break
+
+            search_paragraphs.append(para._element)
+
+        if not search_paragraphs:
+            return False
+
+        # 遍历文档中的所有表格
+        for table in doc.tables:
+            table_element = table._element
+
+            # 检查表格是否在搜索范围内
+            if self._is_table_in_range(table_element, search_paragraphs):
+                # 使用CaseTableFiller的识别逻辑
+                # 临时导入，避免循环依赖
+                try:
+                    from .case_table_filler import CaseTableFiller
+                    temp_filler = CaseTableFiller(None)  # 临时创建，只用于识别
+
+                    if temp_filler._is_case_table(table):
+                        self.logger.debug(f"  ✅ 在搜索范围内找到案例表格")
+                        return True
+                except ImportError:
+                    self.logger.warning("  ⚠️ 无法导入CaseTableFiller，跳过表格检测")
+                    return False
+
+        self.logger.debug(f"  ❌ 搜索范围内未找到案例表格")
+        return False
+
+    def _is_table_in_range(self, table_element, paragraph_elements: list) -> bool:
+        """
+        检查表格是否在段落范围内
+
+        通过遍历父元素的子元素，检查表格是否出现在段落之后
+
+        Args:
+            table_element: 表格元素
+            paragraph_elements: 段落元素列表
+
+        Returns:
+            True: 表格在范围内
+            False: 表格不在范围内
+        """
+        if not paragraph_elements:
+            return False
+
+        # 获取第一个段落的父元素（通常是body或section）
+        parent = paragraph_elements[0].getparent()
+        if parent is None:
+            return False
+
+        # 标记是否进入搜索范围
+        in_range = False
+
+        for child in parent:
+            # 如果遇到起始段落，开始搜索
+            if child == paragraph_elements[0]:
+                in_range = True
+                continue
+
+            # 如果在范围内且遇到表格，检查是否是目标表格
+            if in_range and child.tag.endswith('}tbl'):
+                if child == table_element:
+                    return True
+
+            # 如果遇到最后一个搜索段落之后的段落，停止
+            if in_range and child in paragraph_elements:
+                # 还在范围内，继续
+                continue
+            elif in_range and child not in paragraph_elements:
+                # 检查是否已经超出范围
+                # （超出最后一个段落）
+                found_last = False
+                for para_elem in paragraph_elements:
+                    if child.getprevious() == para_elem:
+                        found_last = True
+                        break
+                if found_last:
+                    # 已经超出范围
+                    break
+
+        return False
+
+    def _is_chapter_title(self, text: str) -> bool:
+        """
+        判断是否为章节标题
+
+        常见章节标题特征：
+        - 一、二、三、...
+        - 第一章、第二章、...
+        - 1.、2.、3.、...
+
+        Args:
+            text: 段落文本
+
+        Returns:
+            True: 是章节标题
+            False: 不是章节标题
+        """
+        import re
+
+        text = text.strip()
+        if not text:
+            return False
+
+        patterns = [
+            r'^[一二三四五六七八九十]+[、．.]',  # 一、 二、
+            r'^第[一二三四五六七八九十]+章',      # 第一章
+            r'^第[一二三四五六七八九十]+节',      # 第一节
+            r'^\d+[、．.]',                        # 1、 2、
+            r'^\d+\.\d+',                          # 1.1 2.3
+        ]
+
+        for pattern in patterns:
+            if re.match(pattern, text):
+                return True
+
+        return False

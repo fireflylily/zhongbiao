@@ -340,19 +340,13 @@ class TenderInfoExtractor:
                 'itss', 'IT服务标准', '信息技术服务'
             ],
 
-            # 行业资质类
-            'telecom_license': [
-                '基础电信业务许可证', '基础电信业务经营许可证', '基础电信许可证',
-                '增值电信业务许可证', '增值电信业务经营许可证', '增值电信许可证',
-                'ICP许可证', 'ICP经营许可证', 'ISP许可证', 'IDC许可证',
-                '电信业务许可证', '电信经营许可证', '电信业务经营许可'
-            ],
-            'value_added_telecom_license': [
+            # 行业资质类（统一使用 _permit 后缀，与数据库和其他模块保持一致）
+            'value_added_telecom_permit': [
                 '增值电信业务许可证', '增值电信业务经营许可证', '增值电信许可证',
                 'ICP许可证', 'ICP经营许可证', 'ISP许可证', 'IDC许可证', 'CDN许可证',
                 '增值电信', 'ICP', 'IDC', 'ISP', 'CDN'
             ],
-            'basic_telecom_license': [
+            'basic_telecom_permit': [
                 '基础电信业务许可证', '基础电信业务经营许可证', '基础电信许可证',
                 '电信业务经营许可证', '基础电信'
             ],

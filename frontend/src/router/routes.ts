@@ -263,6 +263,19 @@ export const routes: RouteRecordRaw[] = [
         ]
       },
 
+      // ========== 系统设置 ==========
+      {
+        path: 'settings',
+        name: 'UserSettings',
+        component: () => import('@/views/System/UserSettings.vue'),
+        meta: {
+          title: '用户设置',
+          icon: 'bi-gear',
+          showInMenu: false,
+          description: '修改密码和个人信息'
+        }
+      },
+
       // ========== AB测试（仅admin可见） ==========
       {
         path: 'abtest',

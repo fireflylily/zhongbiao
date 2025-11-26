@@ -98,7 +98,7 @@
                 </el-form>
 
                 <!-- 查看模式 -->
-                <el-descriptions v-else :column="2" border size="large">
+                <el-descriptions v-else :column="2" border>
                   <el-descriptions-item label="项目名称" :span="2">
                     <strong>{{ projectDetail.name }}</strong>
                   </el-descriptions-item>
@@ -207,7 +207,7 @@
                 </el-form>
 
                 <!-- 查看模式 -->
-                <el-descriptions v-else :column="2" border size="large">
+                <el-descriptions v-else :column="2" border>
                   <el-descriptions-item label="招标单位">
                     {{ projectDetail.tenderer || '-' }}
                   </el-descriptions-item>
@@ -478,71 +478,7 @@
             </div>
           </el-tab-pane>
 
-          <!-- ==================== Tab 4: 文档与章节 ==================== -->
-          <el-tab-pane name="documents">
-            <template #label>
-              <span class="tab-label">
-                <i class="bi bi-files"></i> 文档与章节
-                <el-badge
-                  v-if="projectDocuments.length > 0 || parsedChapters.length > 0"
-                  :value="projectDocuments.length"
-                  type="success"
-                />
-              </span>
-            </template>
-
-            <div class="tab-content">
-              <!-- 文档列表 -->
-              <section class="info-section">
-                <div class="section-header">
-                  <h3><i class="bi bi-file-earmark-text"></i> 项目文档</h3>
-                  <el-tag v-if="projectDocuments.length > 0" type="success" size="small">
-                    共 {{ projectDocuments.length }} 个文件
-                  </el-tag>
-                </div>
-
-                <div v-if="projectDocuments.length > 0" class="documents-grid">
-                  <FileCard
-                    v-for="doc in projectDocuments"
-                    :key="doc.id"
-                    :file-url="doc.file_url || doc.file_path"
-                    :file-name="doc.original_filename"
-                    :file-size="doc.file_size"
-                    :upload-time="doc.uploaded_at"
-                    :show-actions="true"
-                    @preview="handlePreview"
-                  />
-                </div>
-                <el-empty v-else description="暂无文档" :image-size="80">
-                  <template #extra>
-                    <el-text type="info" size="small">
-                      请在页面顶部上传招标文档
-                    </el-text>
-                  </template>
-                </el-empty>
-              </section>
-
-              <el-divider v-if="parsedChapters.length > 0" />
-
-              <!-- 已识别章节 -->
-              <section v-if="parsedChapters.length > 0" class="info-section">
-                <div class="section-header">
-                  <h3><i class="bi bi-list-nested"></i> 已识别章节</h3>
-                  <el-tag type="success" size="small">
-                    共 {{ totalParsedChapters }} 个章节
-                  </el-tag>
-                </div>
-
-                <ChapterTree
-                  :chapters="parsedChapters"
-                  :show-checkbox="false"
-                  :show-search="true"
-                />
-              </section>
-            </div>
-          </el-tab-pane>
-
-          <!-- ==================== Tab 5: 技术需求 ==================== -->
+          <!-- ==================== Tab 4: 技术需求 ==================== -->
           <el-tab-pane name="technical">
             <template #label>
               <span class="tab-label">
@@ -655,6 +591,82 @@
                   请先上传招标文件并进行 AI 解析
                 </el-text>
               </div>
+            </div>
+          </el-tab-pane>
+
+          <!-- ==================== Tab 5: 文档与章节 ==================== -->
+          <el-tab-pane name="documents">
+            <template #label>
+              <span class="tab-label">
+                <i class="bi bi-files"></i> 文档与章节
+                <el-badge
+                  v-if="projectDocuments.length > 0 || parsedChapters.length > 0"
+                  :value="projectDocuments.length"
+                  type="success"
+                />
+              </span>
+            </template>
+
+            <div class="tab-content">
+              <!-- 文档列表 -->
+              <section class="info-section">
+                <div class="section-header">
+                  <h3><i class="bi bi-file-earmark-text"></i> 项目文档</h3>
+                  <el-tag v-if="projectDocuments.length > 0" type="success" size="small">
+                    共 {{ projectDocuments.length }} 个文件
+                  </el-tag>
+                </div>
+
+                <div v-if="projectDocuments.length > 0" class="documents-grid">
+                  <FileCard
+                    v-for="doc in projectDocuments"
+                    :key="doc.id"
+                    :file-url="doc.file_url || doc.file_path"
+                    :file-name="doc.original_filename"
+                    :file-size="doc.file_size"
+                    :upload-time="doc.uploaded_at"
+                    :show-actions="true"
+                    @preview="handlePreview"
+                  />
+                </div>
+                <el-empty v-else description="暂无文档" :image-size="80">
+                  <template #extra>
+                    <el-text type="info" size="small">
+                      请在页面顶部上传招标文档
+                    </el-text>
+                  </template>
+                </el-empty>
+              </section>
+
+              <!-- 操作按钮 -->
+              <div class="action-area">
+                <el-button
+                  type="primary"
+                  size="large"
+                  @click="handleGoToFinalTender"
+                >
+                  <i class="bi bi-file-earmark-zip"></i>
+                  合成最终标书
+                </el-button>
+              </div>
+
+              <el-divider v-if="parsedChapters.length > 0" />
+
+              <!-- 已识别章节 -->
+              <section v-if="parsedChapters.length > 0" class="info-section">
+                <div class="section-header">
+                  <h3><i class="bi bi-list-nested"></i> 已识别章节</h3>
+                  <el-tag type="success" size="small">
+                    共 {{ totalParsedChapters }} 个章节
+                  </el-tag>
+                </div>
+
+                <ChapterTree
+                  :chapters="parsedChapters"
+                  :show-checkbox="false"
+                  :show-search="true"
+                />
+              </section>
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -812,6 +824,7 @@ const qualificationNameMapping: Record<string, string> = {
   'auth_id_front': '被授权人身份证正面',
   'auth_id_back': '被授权人身份证反面',
   'authorization_letter': '法人授权委托书',
+  'bank_permit': '开户许可证',
 
   // 认证证书类
   'iso9001': 'ISO9001质量管理体系认证',
@@ -820,15 +833,17 @@ const qualificationNameMapping: Record<string, string> = {
   'cmmi': 'CMMI能力成熟度认证',
   'itss': 'ITSS信息技术服务标准认证',
 
-  // 行业资质类
-  'telecom_license': '电信业务许可证',
-  'value_added_telecom_license': '增值电信业务许可证',
-  'basic_telecom_license': '基础电信业务许可证',
+  // 行业资质类（统一使用 _permit 后缀）
+  'value_added_telecom_permit': '增值电信业务许可证',
+  'basic_telecom_permit': '基础电信业务许可证',
   'level_protection': '等级保护认证',
   'software_copyright': '软件著作权',
   'patent_certificate': '专利证书',
-  'audit_report': '财务要求',
+  'safety_production': '安全生产许可证',
   'project_performance': '项目业绩要求',
+
+  // 财务资质类
+  'audit_report': '财务审计报告',
 
   // 社保和信用资质类
   'social_security': '社会保险证明',
@@ -855,24 +870,116 @@ const getQualificationDisplayName = (nameOrKey: string): string => {
 
 // 资格要求数据转换辅助函数
 const convertQualificationsData = (rawData: Record<string, any>) => {
+  console.log('🔍 [convertQualificationsData] 原始数据:', rawData)
+  console.log('🔍 [convertQualificationsData] 数据条目数:', Object.keys(rawData).length)
+
   const certifications: any[] = []
   const performance: any[] = []
   const personnel: any[] = []
   let financial: any = null
 
-  // 定义分类映射
-  const certKeywords = ['ISO', '认证', '资质', '许可证', '证书', '等保', '著作权', '专利', '信用']
-  const perfKeywords = ['业绩', '项目', '案例', '合同']
-  const personnelKeywords = ['人员', '项目经理', '技术负责人', '工程师']
-  const financialKeywords = ['财务', '资本', '资产', '审计', '银行', '注册资金', '营业额']
+  // 定义分类映射（关键词匹配作为兜底）
+  const certKeywords = ['ISO', '认证', '资质', '许可证', '证书', '等保', '著作权', '专利', '信用', 'license', 'certificate']
+  const perfKeywords = ['业绩', '项目', '案例', '合同', 'performance', 'project']
+  const personnelKeywords = ['人员', '项目经理', '技术负责人', '工程师', 'personnel', 'staff']
+  const financialKeywords = ['财务', '资本', '资产', '审计', '银行', '注册资金', '营业额', 'audit', 'financial']
+
+  // 🆕 第一步：识别并合并正反面资质
+  const mergedData: Record<string, any> = {}
+  const processedKeys = new Set<string>()
 
   Object.entries(rawData).forEach(([key, value]: [string, any]) => {
-    const isRequired = value.constraint_type === 'mandatory'
-    const detail = value.detail || ''
-    const summary = value.summary || key
+    // 如果已经被处理过（作为配对的一部分），跳过
+    if (processedKeys.has(key)) return
 
-    // 分类到对应类别
-    if (financialKeywords.some(kw => key.includes(kw))) {
+    // 检查是否是正面资质（_front 或名称包含"正面"）
+    const isFront = key.endsWith('_front') || key.includes('_id_front')
+    const isBack = key.endsWith('_back') || key.includes('_id_back')
+
+    if (isFront) {
+      // 查找对应的反面
+      const backKey = key.replace('_front', '_back')
+      const backValue = rawData[backKey]
+
+      if (backValue) {
+        // 找到配对，合并
+        const baseName = value.qualification_name || key
+        const mergedName = baseName.replace('正面', '').replace('反面', '').trim()
+        const frontDetail = value.tender_description || ''
+        const backDetail = backValue.tender_description || ''
+
+        // 合并描述
+        let mergedDescription = frontDetail
+        if (backDetail && backDetail !== frontDetail) {
+          mergedDescription = `${frontDetail}\n${backDetail}`
+        }
+        // 添加提示
+        if (mergedDescription) {
+          mergedDescription = `【需提供正反面】\n${mergedDescription}`
+        } else {
+          mergedDescription = '需提供正反面'
+        }
+
+        // 创建合并后的资质
+        mergedData[key.replace('_front', '')] = {
+          ...value,
+          qualification_name: mergedName,
+          tender_description: mergedDescription,
+          required_by_tender: value.required_by_tender || backValue.required_by_tender,
+          is_merged: true,
+          original_keys: [key, backKey]
+        }
+
+        processedKeys.add(key)
+        processedKeys.add(backKey)
+        console.log('🔗 [convertQualificationsData] 合并正反面:', mergedName)
+      } else {
+        // 没有配对的反面，保持原样
+        mergedData[key] = value
+        processedKeys.add(key)
+      }
+    } else if (isBack) {
+      // 查找对应的正面
+      const frontKey = key.replace('_back', '_front')
+      const frontValue = rawData[frontKey]
+
+      if (!frontValue) {
+        // 没有配对的正面，保持原样（但这种情况应该很少）
+        mergedData[key] = value
+        processedKeys.add(key)
+      }
+      // 如果有配对的正面，会在处理正面时一起处理
+    } else {
+      // 不是正反面资质，保持原样
+      mergedData[key] = value
+      processedKeys.add(key)
+    }
+  })
+
+  console.log('✅ [convertQualificationsData] 合并后数据条目数:', Object.keys(mergedData).length)
+
+  // 🆕 第二步：分类合并后的数据
+  Object.entries(mergedData).forEach(([key, value]: [string, any]) => {
+    console.log('🔍 [convertQualificationsData] 处理条目:', key, value)
+
+    // 修复字段映射问题 - 兼容数字和布尔值
+    const isRequired = value.required_by_tender == 1 || value.required_by_tender === true || value.constraint_type === 'mandatory'
+    const detail = value.tender_description || value.detail || ''
+    const summary = value.qualification_name || value.summary || key
+    const category = value.category || ''
+
+    console.log('🔍 [convertQualificationsData] 字段解析:', {
+      key,
+      isRequired,
+      summary,
+      category,
+      detailLength: detail.length,
+      required_by_tender_raw: value.required_by_tender,
+      required_by_tender_type: typeof value.required_by_tender
+    })
+
+    // 优先使用后端的category字段进行分类
+    if (category === '财务要求' || category.includes('财务') || financialKeywords.some(kw => key.includes(kw) || category.includes(kw))) {
       // 财务要求 - 合并到financial对象
       if (!financial) {
         financial = {
@@ -880,33 +987,27 @@ const convertQualificationsData = (rawData: Record<string, any>) => {
         }
       }
       financial.description.push(`${summary}: ${detail}`)
-    } else if (perfKeywords.some(kw => key.includes(kw))) {
+    } else if (category === '业绩要求' || perfKeywords.some(kw => key.includes(kw) || category.includes(kw))) {
       // 业绩要求
       performance.push({
         description: summary,
         detail,
         required: isRequired
       })
-    } else if (personnelKeywords.some(kw => key.includes(kw))) {
+    } else if (category.includes('人员') || personnelKeywords.some(kw => key.includes(kw) || category.includes(kw))) {
       // 人员配置
       personnel.push({
         position: summary,
         detail,
         required: isRequired
       })
-    } else if (certKeywords.some(kw => key.includes(kw))) {
-      // 资质证书
-      certifications.push({
-        name: summary,
-        note: detail,
-        required: isRequired
-      })
     } else {
-      // 默认归类到资质证书
+      // 其他都归类到资质证书（包括基础资质、认证证书等）
       certifications.push({
         name: summary,
         note: detail,
-        required: isRequired
+        required: isRequired,
+        category  // 保留原始分类信息
       })
     }
   })
@@ -916,12 +1017,21 @@ const convertQualificationsData = (rawData: Record<string, any>) => {
     financial.description = financial.description.join('；')
   }
 
-  return {
+  const result = {
     certifications,
     performance,
     personnel,
     financial
   }
+
+  console.log('✅ [convertQualificationsData] 转换结果:', {
+    certifications: result.certifications.length,
+    performance: result.performance.length,
+    personnel: result.personnel.length,
+    hasFinancial: !!result.financial
+  })
+
+  return result
 }
 
 // 资格要求数据（从 qualifications_data 读取并转换）
@@ -1329,6 +1439,18 @@ const handleStartProposal = async () => {
   })
 }
 
+// 跳转到最终文档
+const handleGoToFinalTender = async () => {
+  if (!projectDetail.value) return
+
+  // 将当前项目保存到 Pinia Store，以便最终文档页面可以读取
+  projectStore.setCurrentProject(projectDetail.value)
+
+  await router.push({
+    name: 'FinalTender'
+  })
+}
+
 // 🆕 处理文档解析完成事件（自动AI提取）
 const handleParseComplete = async () => {
   console.log('🎯 [ManagementDetail] handleParseComplete 被调用')
@@ -1562,7 +1684,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .tender-management-detail {
-  padding: 20px;
+  padding: 16px;
 
   .tabs-card {
     :deep(.el-card__body) {
@@ -1571,12 +1693,12 @@ onMounted(() => {
 
     .detail-tabs {
       :deep(.el-tabs__header) {
-        padding: 0 20px;
+        padding: 0 16px;
         margin-bottom: 0;
       }
 
       :deep(.el-tabs__content) {
-        padding: 30px 20px;
+        padding: 20px 16px;
       }
 
       .tab-label {
@@ -1585,7 +1707,7 @@ onMounted(() => {
         gap: 6px;
 
         i {
-          font-size: 16px;
+          font-size: 15px;
         }
       }
     }
@@ -1594,12 +1716,12 @@ onMounted(() => {
   .tab-content {
     // 统一所有 el-descriptions 的标签列宽度
     :deep(.el-descriptions__label) {
-      width: 150px !important;
-      min-width: 150px;
+      width: 140px !important;
+      min-width: 140px;
     }
 
     .info-section {
-      margin-bottom: 30px;
+      margin-bottom: 20px;
 
       &:last-child {
         margin-bottom: 0;
@@ -1608,40 +1730,40 @@ onMounted(() => {
       .section-header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
+        gap: 10px;
+        margin-bottom: 12px;
 
         h3 {
           margin: 0;
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 600;
           color: var(--el-text-color-primary);
 
           i {
-            margin-right: 8px;
+            margin-right: 6px;
             color: var(--el-color-primary);
           }
         }
       }
 
       .description-box {
-        padding: 20px;
+        padding: 16px;
         background: var(--el-fill-color-light);
-        border-radius: 8px;
+        border-radius: 6px;
         border: 1px solid var(--el-border-color-lighter);
-        line-height: 1.8;
+        line-height: 1.7;
         white-space: pre-wrap;
       }
 
       // 编辑表单样式
       .edit-form {
-        padding: 20px;
+        padding: 16px;
         background: var(--el-fill-color-lighter);
-        border-radius: 8px;
+        border-radius: 6px;
         border: 1px solid var(--el-border-color-lighter);
 
         :deep(.el-form-item) {
-          margin-bottom: 18px;
+          margin-bottom: 16px;
         }
 
         :deep(.el-input__inner),
@@ -1652,7 +1774,7 @@ onMounted(() => {
     }
 
     .file-section {
-      margin-bottom: 30px;
+      margin-bottom: 20px;
 
       &:last-of-type {
         margin-bottom: 0;
@@ -1661,17 +1783,17 @@ onMounted(() => {
       .section-header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
+        gap: 10px;
+        margin-bottom: 12px;
 
         h3 {
           margin: 0;
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 600;
           color: var(--el-text-color-primary);
 
           i {
-            margin-right: 8px;
+            margin-right: 6px;
             color: var(--el-color-primary);
           }
         }
@@ -1680,27 +1802,27 @@ onMounted(() => {
 
     .documents-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
     }
 
     .requirements-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
 
       .requirement-item {
         :deep(.el-card__body) {
-          padding: 16px;
+          padding: 14px;
         }
 
         .requirement-content {
           display: flex;
           align-items: flex-start;
-          gap: 16px;
+          gap: 12px;
 
           .requirement-icon {
-            font-size: 32px;
+            font-size: 28px;
             color: var(--el-color-primary);
           }
 
@@ -1708,14 +1830,14 @@ onMounted(() => {
             flex: 1;
 
             h4 {
-              margin: 0 0 8px 0;
-              font-size: 15px;
+              margin: 0 0 6px 0;
+              font-size: 14px;
               font-weight: 600;
               color: var(--el-text-color-primary);
             }
 
             p {
-              margin: 4px 0;
+              margin: 3px 0;
               font-size: 13px;
               color: var(--el-text-color-secondary);
             }
@@ -1732,9 +1854,9 @@ onMounted(() => {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      margin-top: 40px;
-      padding-top: 30px;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 20px;
       border-top: 1px solid var(--el-border-color-lighter);
     }
   }
@@ -1743,7 +1865,7 @@ onMounted(() => {
   .amount {
     font-weight: 600;
     color: var(--el-color-danger);
-    font-size: 15px;
+    font-size: 14px;
   }
 
   // 截止日期样式
@@ -1754,7 +1876,7 @@ onMounted(() => {
     color: var(--el-color-warning);
 
     i {
-      font-size: 14px;
+      font-size: 13px;
     }
   }
 }

@@ -176,22 +176,32 @@ def get_tender_management_list():
                 tech_proposal_status = '进行中'
                 tech_proposal_progress = 50
 
-            # 计算最后融合情况
+            # 🆕 检查最后融合情况 - 从 tender_processing_tasks 的 options 字段中检查是否有 merged_document_path
             fusion_status = '未开始'
             fusion_progress = 0
-            all_completed = (business_response_progress == 100 and
-                           tech_response_progress == 100 and
-                           tech_proposal_progress == 100)
-            if all_completed:
-                fusion_status = '已完成'
-                fusion_progress = 100
-            elif any([business_response_progress > 0,
-                     tech_response_progress > 0,
-                     tech_proposal_progress > 0]):
-                fusion_status = '进行中'
-                fusion_progress = (business_response_progress +
-                                 tech_response_progress +
-                                 tech_proposal_progress) / 3
+            final_merge_file = None
+
+            # 查询该项目的处理任务options，检查是否已生成最终融合文档
+            task_data = db.execute_query(
+                "SELECT options FROM tender_processing_tasks WHERE project_id = ? ORDER BY created_at DESC LIMIT 1",
+                (row['project_id'],),
+                fetch_one=True
+            )
+
+            if task_data and task_data.get('options'):
+                try:
+                    task_options = json.loads(task_data['options'])
+                    if task_options.get('merged_document_path'):
+                        # 有最终融合文档路径，说明已完成融合
+                        fusion_status = '已完成'
+                        fusion_progress = 100
+                        final_merge_file = {
+                            'file_path': task_options.get('merged_document_path'),
+                            'file_size': task_options.get('file_size'),
+                            'stats': task_options.get('stats')
+                        }
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
             # 提取文件路径信息
             business_response_file = step1_data.get('business_response_file', {})
@@ -229,7 +239,10 @@ def get_tender_management_list():
                 },
                 'fusion': {
                     'status': fusion_status,
-                    'progress': round(fusion_progress, 1)
+                    'progress': round(fusion_progress, 1),
+                    'file_path': final_merge_file.get('file_path') if final_merge_file else None,
+                    'file_size': final_merge_file.get('file_size') if final_merge_file else None,
+                    'stats': final_merge_file.get('stats') if final_merge_file else None
                 },
                 'created_at': row['project_created_at'],
                 'updated_at': row['project_updated_at']

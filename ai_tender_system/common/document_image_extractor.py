@@ -86,7 +86,15 @@ class DocumentImageExtractor:
             image_count = 0
 
             # 方法1：通过文档关系提取（推荐）
-            for rel_id, rel in doc.part.rels.items():
+            # ✅ 对rel_id排序，确保按rId数字顺序提取（rId6, rId7, rId8...）
+            import re
+            sorted_rel_ids = sorted(
+                doc.part.rels.keys(),
+                key=lambda x: int(re.search(r'\d+', x).group()) if re.search(r'\d+', x) else 999
+            )
+
+            for rel_id in sorted_rel_ids:
+                rel = doc.part.rels[rel_id]
                 if "image" in rel.target_ref.lower():
                     try:
                         # 获取图片数据

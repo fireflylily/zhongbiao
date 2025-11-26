@@ -1,0 +1,10 @@
+{
+  "module": "tender_info",
+  "description": "招标信息提取模块的提示词配置",
+  "version": "1.0.0",
+  "updated_at": "2025-10-01",
+  "prompts": {
+    "extract_basic_info": "请从以下招标文档中提取基本信息，以JSON格式返回：\n\n文档内容：\n{text}\n\n请提取以下信息：\n1. project_name: 项目名称\n   - 通常出现在文档标题、首页、或\"项目名称：\"字段后\n   - 格式通常为：\"XX公司/单位 + 年份（可选）+ 具体项目描述 + 项目/采购\"\n   - 示例：\"哈银消金2025年-2027年运营商数据采购项目\"、\"中国联通手机信息核验类外部数据服务采购项目\"\n   - 注意：避免提取描述性语句，如\"技术规范中所述项目\"、\"本项目的相关服务\"等\n   - 长度通常不超过100个字符\n   - 如果找不到明确的项目名称，返回null\n\n2. project_number: 项目编号\n3. tenderer: 招标人（也可能标注为"采购人"、"采购人名称"、"采购单位"或"甲方"）\n4. agency: 招标代理机构\n5. bidding_method: 采购方式（也可能标注为"采购方法"、"采购类型"、"招标方式"）\n6. bidding_location: 开标地点（也可能标注为"采购人地址"、"响应文件递交地点"、"投标地点"、"开标场所"、"地点"）\n7. bidding_time: 开标时间（也可能标注为"首次响应文件递交截止时间"、"投标截止时间"、"截止时间"、"开标日期"）\n8. winner_count: 中标人数量（也可能标注为"成交供应商数量"、"中标人数"、"成交人数"）\n9. budget_amount: 采购预算（也可能标注为"预算金额"、"采购预算"、"最高响应限价"、"控制价"、"投标限价"）\n10. tenderer_contact_person: 招标方联系人（从招标人或采购单位相关信息中提取）\n11. tenderer_contact_method: 招标方联系电话（固定电话或手机号码）\n12. agency_contact_person: 代理机构联系人（从招标代理机构相关信息中提取）\n13. agency_contact_method: 代理机构联系电话（固定电话或手机号码）\n\n请严格按照JSON格式返回，例如：\n{{\n  \"project_name\": \"XX公司2025年数据采购项目\",\n  \"project_number\": \"项目编号\",\n  \"tenderer\": \"招标人\",\n  \"agency\": \"代理机构\",\n  \"bidding_method\": \"公开招标\",\n  \"bidding_location\": \"北京市海淀区XX大厦\",\n  \"bidding_time\": \"2025年11月25日18点\",\n  \"winner_count\": \"2名\",\n  \"budget_amount\": \"100万元\",\n  \"tenderer_contact_person\": \"张三\",\n  \"tenderer_contact_method\": \"010-12345678\",\n  \"agency_contact_person\": \"李四\",\n  \"agency_contact_method\": \"010-87654321\"\n}}",
+    "extract_technical_scoring": "请从以下招标文档中提取技术评分标准，以JSON格式返回：\n\n文档内容：\n{text}\n\n请找出所有技术评分项目，并为每个项目提取以下信息：\n1. 评分项目名称\n2. 分值/权重\n3. 评分标准/要求描述\n4. 来源位置\n\n请按以下JSON格式返回：\n{{\n  \"total_score\": \"技术评分总分\",\n  \"extraction_summary\": \"提取摘要\",\n  \"items_count\": \"评分项目数量\",\n  \"item_1_name\": \"第一个评分项名称\",\n  \"item_1_weight\": \"第一个评分项分值\",\n  \"item_1_criteria\": \"第一个评分项标准描述\",\n  \"item_1_source\": \"第一个评分项来源\",\n  \"item_2_name\": \"第二个评分项名称\",\n  \"item_2_weight\": \"第二个评分项分值\",\n  ...\n}}"
+  }
+}

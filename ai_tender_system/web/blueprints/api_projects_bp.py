@@ -122,12 +122,28 @@ def get_tender_projects():
                             # 点对点应答文件
                             if 'technical_point_to_point_file' in step1_data:
                                 project['point_to_point_file'] = step1_data['technical_point_to_point_file']
-
-                            # 最终融合文件
-                            if 'final_merge_file' in step1_data:
-                                project['final_merge_file'] = step1_data['final_merge_file']
                     except (json.JSONDecodeError, TypeError) as e:
                         logger.warning(f"解析项目 {project.get('project_id')} 的 step1_data 失败: {e}")
+
+                # 🆕 检查最终融合文档 - 从 tender_processing_tasks 的 options 字段中查询
+                try:
+                    task_data = kb_manager.db.execute_query(
+                        "SELECT options FROM tender_processing_tasks WHERE project_id = ? ORDER BY created_at DESC LIMIT 1",
+                        (project.get('id'),),  # 使用映射后的id字段
+                        fetch_one=True
+                    )
+
+                    if task_data and task_data.get('options'):
+                        task_options = json.loads(task_data['options'])
+                        if task_options.get('merged_document_path'):
+                            # 找到最终融合文档
+                            project['final_merge_file'] = {
+                                'file_path': task_options.get('merged_document_path'),
+                                'file_size': task_options.get('file_size'),
+                                'stats': task_options.get('stats')
+                            }
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"检查项目 {project.get('id')} 的最终融合文档失败: {e}")
 
         # 返回符合前端期望的格式
         return jsonify({

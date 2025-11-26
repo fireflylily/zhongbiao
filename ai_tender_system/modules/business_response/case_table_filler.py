@@ -118,14 +118,14 @@ class CaseTableFiller:
             '联系邮箱': 'party_a_contact_email'
         }
 
-    def fill_case_tables(self, doc: Document, company_id: int, max_cases: int = 10) -> Dict[str, Any]:
+    def fill_case_tables(self, doc: Document, company_id: int, max_cases: int = 3) -> Dict[str, Any]:
         """
         识别并填充文档中的所有案例表格
 
         Args:
             doc: Word文档对象
             company_id: 公司ID
-            max_cases: 最多填充的案例数量(默认10个)
+            max_cases: 最多填充的案例数量(默认3个)
 
         Returns:
             填充统计信息
@@ -257,6 +257,9 @@ class CaseTableFiller:
                         import json
                         try:
                             images = json.loads(converted_images)
+                            # 打印解析后的page_num顺序
+                            page_nums = [img.get('page_num') for img in images]
+                            self.logger.info(f"      附件ID={att['attachment_id']} 包含{len(images)}张图片，page_num顺序: {page_nums}")
                             # 多页PDF: 添加所有页
                             for img_data in images:
                                 case['image_attachments'].append({
@@ -315,6 +318,10 @@ class CaseTableFiller:
 
         # 从第2行开始填充(第1行是表头)
         filled_count = 0
+
+        # 🆕 查找序号列的索引（用于自动填充序号）
+        serial_col_idx = self._find_serial_number_column(table)
+
         for idx, case in enumerate(cases):
             row_idx = idx + 1  # 跳过表头
 
@@ -324,6 +331,11 @@ class CaseTableFiller:
                 break
 
             row = table.rows[row_idx]
+
+            # 🆕 自动填充序号列
+            if serial_col_idx is not None and serial_col_idx < len(row.cells):
+                self._fill_cell(row.cells[serial_col_idx], str(idx + 1))
+                self.logger.debug(f"    填充序号: {idx + 1}")
 
             # 填充当前行
             for col_idx, field_key in column_mapping.items():
@@ -537,11 +549,18 @@ class CaseTableFiller:
 
             # 按附件顺序插入图片
             for img_att in image_attachments:
+                # 打印准备插入的图片信息
+                img_filename = Path(img_att['file_path']).name
+                self.logger.info(f"      [DEBUG] 准备插入: page_num={img_att.get('page_num')}, file={img_filename}")
+
                 file_path = resolve_file_path(img_att['file_path'])
 
                 if not file_path or not os.path.exists(file_path):
                     self.logger.warning(f"      图片文件不存在: {img_att['file_path']}")
                     continue
+
+                # 转换Path对象为字符串（add_picture需要字符串路径）
+                file_path = str(file_path)
 
                 # 生成标题
                 att_desc = img_att.get('description') or \
@@ -561,7 +580,7 @@ class CaseTableFiller:
 
                 # 插入标题(第一页或单页)
                 if title_text:
-                    title_para = self.image_handler._insert_paragraph_after(last_insert_para)
+                    title_para = self.image_handler.utils.insert_paragraph_after(last_insert_para)
                     title_para.text = title_text
                     title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     if title_para.runs:
@@ -570,7 +589,7 @@ class CaseTableFiller:
                     self.logger.debug(f"      插入标题: {title_text}")
 
                 # 插入图片
-                img_para = self.image_handler._insert_paragraph_after(last_insert_para)
+                img_para = self.image_handler.utils.insert_paragraph_after(last_insert_para)
                 img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = img_para.add_run()
                 run.add_picture(file_path, width=Inches(6))  # 6英寸(与资质证书一致)
@@ -669,3 +688,31 @@ class CaseTableFiller:
             'other': '其他附件'
         }
         return type_map.get(attachment_type, '附件')
+
+    def _find_serial_number_column(self, table: Table) -> Optional[int]:
+        """
+        查找序号列的索引
+
+        识别序号列的关键词：序号、编号、No、No.、#
+
+        Args:
+            table: Word表格对象
+
+        Returns:
+            序号列的索引，如果未找到返回None
+        """
+        if not table.rows:
+            return None
+
+        header_row = table.rows[0]
+        for col_idx, cell in enumerate(header_row.cells):
+            header_text = cell.text.strip()
+            clean_header = re.sub(r'[\s()（）]', '', header_text)
+
+            # 序号列关键词（不区分大小写）
+            serial_keywords = ['序号', '编号', 'No', 'NO', 'no', '#']
+            if any(kw in clean_header for kw in serial_keywords):
+                self.logger.debug(f"  找到序号列: 第{col_idx}列 ({header_text})")
+                return col_idx
+
+        return None

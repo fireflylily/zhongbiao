@@ -300,7 +300,7 @@ async function handleCommand(command: string): Promise<void> {
       break
 
     case 'settings':
-      router.push({ name: 'Settings' })
+      router.push({ name: 'UserSettings' })
       break
 
     case 'logout':

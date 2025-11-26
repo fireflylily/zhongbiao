@@ -18,7 +18,7 @@
             </el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="company_name" label="公司名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="tenderer" label="招标人" min-width="180" show-overflow-tooltip />
         <el-table-column prop="authorized_person_name" label="被授权人" width="100" />
 
         <!-- 文档生成状态列 -->
@@ -169,41 +169,27 @@ const loadProjects = async () => {
 
 // 判断是否有商务应答文档
 const hasBusinessResponse = (project: any): boolean => {
-  // 检查是否有商务应答相关文件或数据
-  // 可以根据以下字段判断：
-  // - project.business_response_file
-  // - project.business_response_status
-  // - 或者查询 file_storage 表中 business_type='business_response' 的文件
-  return project.business_response_file || project.business_response_status === 'completed'
+  // 后端返回的数据结构：project.business_response.status 和 project.business_response.file_path
+  return project.business_response?.status === '已完成' || !!project.business_response?.file_path
 }
 
 // 判断是否有技术点对点文档
 const hasPointToPoint = (project: any): boolean => {
-  // 检查是否有技术点对点应答文件
-  // 可以根据以下字段判断：
-  // - project.point_to_point_file
-  // - project.point_to_point_status
-  return project.point_to_point_file || project.point_to_point_status === 'completed'
+  // 后端返回的数据结构：project.tech_response.status 和 project.tech_response.file_path
+  return project.tech_response?.status === '已完成' || !!project.tech_response?.file_path
 }
 
 // 判断是否有技术方案文档
 const hasTechProposal = (project: any): boolean => {
-  // 检查是否有技术方案文件
-  // 可以根据以下字段判断：
-  // - project.tech_proposal_file
-  // - project.tech_proposal_status
-  // - project.technical_data (JSON字段，可能包含方案数据)
-  return project.tech_proposal_file || project.tech_proposal_status === 'completed' || !!project.technical_data
+  // 后端返回的数据结构：project.tech_proposal.status 和 project.tech_proposal.file_path
+  return project.tech_proposal?.status === '已完成' || !!project.tech_proposal?.file_path
 }
 
 // 判断是否有最后融合文档
 const hasFinalMerge = (project: any): boolean => {
-  // 检查是否完成了最终文档融合
-  // 可以根据以下字段判断：
-  // - project.final_merge_file
-  // - project.merge_status
-  // - project.status === 'completed' (完成状态可能意味着已融合)
-  return project.final_merge_file || project.merge_status === 'completed'
+  // 后端返回的数据结构：project.fusion.status 和 project.fusion.file_path
+  // 只有当 fusion.file_path 存在时才认为已融合
+  return project.fusion?.status === '已完成' || !!project.fusion?.file_path
 }
 
 const handleView = (row: any) => {

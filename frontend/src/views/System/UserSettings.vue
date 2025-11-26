@@ -1,179 +1,147 @@
 <template>
   <div class="user-settings-page">
-    <div class="container py-4">
-      <PageHeader title="用户设置" icon="bi-gear" />
+    <PageHeader title="用户设置" icon="bi-gear" />
 
-      <!-- 设置面板 -->
-      <div class="row mt-4">
-        <div class="col-md-3">
-          <!-- 左侧导航 -->
-          <div class="card">
-            <div class="list-group list-group-flush">
-              <a
-                href="#"
-                :class="['list-group-item', 'list-group-item-action', { active: activeTab === 'password' }]"
-                @click.prevent="activeTab = 'password'"
-              >
-                <i class="bi bi-key me-2"></i>
+    <div class="settings-container">
+      <el-card class="settings-card">
+        <el-tabs v-model="activeTab" class="settings-tabs">
+          <!-- 修改密码标签页 -->
+          <el-tab-pane label="修改密码" name="password">
+            <template #label>
+              <span class="tab-label">
+                <el-icon><Lock /></el-icon>
                 修改密码
-              </a>
-              <a
-                href="#"
-                :class="['list-group-item', 'list-group-item-action', { active: activeTab === 'profile' }]"
-                @click.prevent="activeTab = 'profile'"
-              >
-                <i class="bi bi-person me-2"></i>
-                基本信息
-              </a>
-            </div>
-          </div>
-        </div>
+              </span>
+            </template>
 
-        <div class="col-md-9">
-          <!-- 修改密码 -->
-          <div v-if="activeTab === 'password'" class="card">
-            <div class="card-header">
-              <h5 class="mb-0">
-                <i class="bi bi-key me-2"></i>
-                修改密码
-              </h5>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="handleChangePassword">
-                <!-- 旧密码 -->
-                <div class="mb-3">
-                  <label for="oldPassword" class="form-label">当前密码 <span class="text-danger">*</span></label>
-                  <div class="input-group">
-                    <input
-                      id="oldPassword"
-                      v-model="passwordForm.oldPassword"
-                      :type="showOldPassword ? 'text' : 'password'"
-                      class="form-control"
-                      :class="{ 'is-invalid': errors.oldPassword }"
-                      placeholder="请输入当前密码"
-                      required
-                    />
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      @click="showOldPassword = !showOldPassword"
-                    >
-                      <i :class="showOldPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-                    </button>
-                    <div v-if="errors.oldPassword" class="invalid-feedback">
-                      {{ errors.oldPassword }}
-                    </div>
-                  </div>
-                </div>
+            <el-form
+              ref="passwordFormRef"
+              :model="passwordForm"
+              :rules="passwordRules"
+              label-width="120px"
+              class="password-form"
+            >
+              <el-form-item label="当前密码" prop="oldPassword">
+                <el-input
+                  v-model="passwordForm.oldPassword"
+                  type="password"
+                  placeholder="请输入当前密码"
+                  show-password
+                  clearable
+                >
+                  <template #prefix>
+                    <el-icon><Lock /></el-icon>
+                  </template>
+                </el-input>
+              </el-form-item>
 
-                <!-- 新密码 -->
-                <div class="mb-3">
-                  <label for="newPassword" class="form-label">新密码 <span class="text-danger">*</span></label>
-                  <div class="input-group">
-                    <input
-                      id="newPassword"
-                      v-model="passwordForm.newPassword"
-                      :type="showNewPassword ? 'text' : 'password'"
-                      class="form-control"
-                      :class="{ 'is-invalid': errors.newPassword }"
-                      placeholder="请输入新密码（至少6个字符）"
-                      required
-                    />
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      @click="showNewPassword = !showNewPassword"
-                    >
-                      <i :class="showNewPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-                    </button>
-                    <div v-if="errors.newPassword" class="invalid-feedback">
-                      {{ errors.newPassword }}
-                    </div>
-                  </div>
-                  <small class="form-text text-muted">密码长度至少为6个字符</small>
-                </div>
+              <el-form-item label="新密码" prop="newPassword">
+                <el-input
+                  v-model="passwordForm.newPassword"
+                  type="password"
+                  placeholder="请输入新密码（至少6个字符）"
+                  show-password
+                  clearable
+                >
+                  <template #prefix>
+                    <el-icon><Lock /></el-icon>
+                  </template>
+                </el-input>
+                <template #extra>
+                  <el-text type="info" size="small">密码长度至少为6个字符</el-text>
+                </template>
+              </el-form-item>
 
-                <!-- 确认新密码 -->
-                <div class="mb-3">
-                  <label for="confirmPassword" class="form-label">确认新密码 <span class="text-danger">*</span></label>
-                  <div class="input-group">
-                    <input
-                      id="confirmPassword"
-                      v-model="passwordForm.confirmPassword"
-                      :type="showConfirmPassword ? 'text' : 'password'"
-                      class="form-control"
-                      :class="{ 'is-invalid': errors.confirmPassword }"
-                      placeholder="请再次输入新密码"
-                      required
-                    />
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      @click="showConfirmPassword = !showConfirmPassword"
-                    >
-                      <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-                    </button>
-                    <div v-if="errors.confirmPassword" class="invalid-feedback">
-                      {{ errors.confirmPassword }}
-                    </div>
-                  </div>
-                </div>
+              <el-form-item label="确认新密码" prop="confirmPassword">
+                <el-input
+                  v-model="passwordForm.confirmPassword"
+                  type="password"
+                  placeholder="请再次输入新密码"
+                  show-password
+                  clearable
+                >
+                  <template #prefix>
+                    <el-icon><Lock /></el-icon>
+                  </template>
+                </el-input>
+              </el-form-item>
 
-                <!-- 提交按钮 -->
-                <div class="d-flex justify-content-end gap-2">
-                  <button
-                    type="button"
-                    class="btn btn-secondary"
-                    @click="resetPasswordForm"
-                  >
-                    <i class="bi bi-x-circle me-1"></i>
-                    重置
-                  </button>
-                  <button
-                    type="submit"
-                    class="btn btn-primary"
-                    :disabled="loading"
-                  >
-                    <span v-if="loading" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                    <i v-else class="bi bi-check-circle me-1"></i>
+              <el-form-item>
+                <el-space>
+                  <el-button type="primary" :loading="loading" @click="handleChangePassword">
+                    <el-icon><Check /></el-icon>
                     确认修改
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+                  </el-button>
+                  <el-button @click="resetPasswordForm">
+                    <el-icon><RefreshLeft /></el-icon>
+                    重置
+                  </el-button>
+                </el-space>
+              </el-form-item>
+            </el-form>
 
-          <!-- 基本信息 -->
-          <div v-if="activeTab === 'profile'" class="card">
-            <div class="card-header">
-              <h5 class="mb-0">
-                <i class="bi bi-person me-2"></i>
+            <el-alert
+              title="温馨提示"
+              type="warning"
+              :closable="false"
+              show-icon
+              class="mt-4"
+            >
+              <ul class="tips-list">
+                <li>修改密码后需要重新登录</li>
+                <li>请妥善保管您的密码，不要告诉他人</li>
+                <li>建议定期更换密码，提高账号安全性</li>
+              </ul>
+            </el-alert>
+          </el-tab-pane>
+
+          <!-- 基本信息标签页 -->
+          <el-tab-pane label="基本信息" name="profile">
+            <template #label>
+              <span class="tab-label">
+                <el-icon><User /></el-icon>
                 基本信息
-              </h5>
-            </div>
-            <div class="card-body">
-              <div class="row mb-3">
-                <label class="col-sm-3 col-form-label">用户名</label>
-                <div class="col-sm-9">
-                  <input type="text" readonly class="form-control-plaintext" :value="userStore.user?.username || '-'" />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-sm-3 col-form-label">邮箱</label>
-                <div class="col-sm-9">
-                  <input type="text" readonly class="form-control-plaintext" :value="userStore.user?.email || '-'" />
-                </div>
-              </div>
-              <div class="row mb-3">
-                <label class="col-sm-3 col-form-label">角色</label>
-                <div class="col-sm-9">
-                  <input type="text" readonly class="form-control-plaintext" :value="userStore.user?.role || '-'" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              </span>
+            </template>
+
+            <el-form label-width="120px" class="profile-form">
+              <el-form-item label="用户名">
+                <el-input
+                  :model-value="userStore.currentUser?.username || '-'"
+                  readonly
+                  disabled
+                >
+                  <template #prefix>
+                    <el-icon><User /></el-icon>
+                  </template>
+                </el-input>
+              </el-form-item>
+
+              <el-form-item label="邮箱">
+                <el-input
+                  :model-value="userStore.currentUser?.email || '-'"
+                  readonly
+                  disabled
+                >
+                  <template #prefix>
+                    <el-icon><Message /></el-icon>
+                  </template>
+                </el-input>
+              </el-form-item>
+
+              <el-form-item label="角色">
+                <el-tag :type="getRoleType(userStore.currentUser?.role)" size="large">
+                  {{ userStore.currentUser?.role || '-' }}
+                </el-tag>
+              </el-form-item>
+
+              <el-form-item label="用户ID">
+                <el-text>{{ userStore.currentUser?.id || '-' }}</el-text>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+        </el-tabs>
+      </el-card>
     </div>
   </div>
 </template>
@@ -182,7 +150,8 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { showToast } from '@/utils/toast'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Lock, Check, RefreshLeft, User, Message } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { authApi } from '@/api/endpoints/auth'
 
@@ -192,20 +161,11 @@ const userStore = useUserStore()
 // 当前激活的标签页
 const activeTab = ref('password')
 
+// 表单引用
+const passwordFormRef = ref<FormInstance>()
+
 // 密码表单
 const passwordForm = reactive({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
-
-// 显示/隐藏密码
-const showOldPassword = ref(false)
-const showNewPassword = ref(false)
-const showConfirmPassword = ref(false)
-
-// 表单错误
-const errors = reactive({
   oldPassword: '',
   newPassword: '',
   confirmPassword: ''
@@ -214,73 +174,59 @@ const errors = reactive({
 // 加载状态
 const loading = ref(false)
 
+// 表单验证规则
+const passwordRules: FormRules = {
+  oldPassword: [
+    { required: true, message: '请输入当前密码', trigger: 'blur' }
+  ],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '密码长度至少为6个字符', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value && value === passwordForm.oldPassword) {
+          callback(new Error('新密码不能与当前密码相同'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认新密码', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== passwordForm.newPassword) {
+          callback(new Error('两次输入的密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
 /**
  * 重置密码表单
  */
 function resetPasswordForm() {
+  passwordFormRef.value?.resetFields()
   passwordForm.oldPassword = ''
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''
-  errors.oldPassword = ''
-  errors.newPassword = ''
-  errors.confirmPassword = ''
-  showOldPassword.value = false
-  showNewPassword.value = false
-  showConfirmPassword.value = false
-}
-
-/**
- * 验证表单
- */
-function validateForm(): boolean {
-  // 清空错误
-  errors.oldPassword = ''
-  errors.newPassword = ''
-  errors.confirmPassword = ''
-
-  let isValid = true
-
-  // 验证旧密码
-  if (!passwordForm.oldPassword) {
-    errors.oldPassword = '请输入当前密码'
-    isValid = false
-  }
-
-  // 验证新密码
-  if (!passwordForm.newPassword) {
-    errors.newPassword = '请输入新密码'
-    isValid = false
-  } else if (passwordForm.newPassword.length < 6) {
-    errors.newPassword = '新密码长度至少为6个字符'
-    isValid = false
-  }
-
-  // 验证确认密码
-  if (!passwordForm.confirmPassword) {
-    errors.confirmPassword = '请确认新密码'
-    isValid = false
-  } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    errors.confirmPassword = '两次输入的密码不一致'
-    isValid = false
-  }
-
-  // 验证新旧密码不同
-  if (passwordForm.oldPassword && passwordForm.newPassword && passwordForm.oldPassword === passwordForm.newPassword) {
-    errors.newPassword = '新密码不能与当前密码相同'
-    isValid = false
-  }
-
-  return isValid
 }
 
 /**
  * 处理修改密码
  */
 async function handleChangePassword() {
+  if (!passwordFormRef.value) return
+
   // 验证表单
-  if (!validateForm()) {
-    return
-  }
+  const valid = await passwordFormRef.value.validate().catch(() => false)
+  if (!valid) return
 
   loading.value = true
 
@@ -292,7 +238,7 @@ async function handleChangePassword() {
     })
 
     if (response.success) {
-      showToast.success('密码修改成功，请重新登录')
+      ElMessage.success('密码修改成功，请重新登录')
 
       // 清空表单
       resetPasswordForm()
@@ -303,75 +249,144 @@ async function handleChangePassword() {
         router.push('/login')
       }, 2000)
     } else {
-      showToast.error(response.message || '修改密码失败')
+      ElMessage.error(response.message || '修改密码失败')
     }
   } catch (error: any) {
     console.error('修改密码失败:', error)
 
     // 处理特定错误
     if (error.response?.status === 401) {
-      if (error.response.data?.message) {
-        errors.oldPassword = error.response.data.message
-      } else {
-        errors.oldPassword = '当前密码错误'
-      }
+      ElMessage.error(error.response.data?.message || '当前密码错误')
     } else {
-      showToast.error(error.response?.data?.message || '修改密码失败，请稍后重试')
+      ElMessage.error(error.response?.data?.message || '修改密码失败，请稍后重试')
     }
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * 获取角色标签类型
+ */
+function getRoleType(role?: string) {
+  const roleMap: Record<string, any> = {
+    '管理员': 'danger',
+    '高级管理': 'danger',
+    '项目经理': 'warning',
+    '内部员工': 'success',
+    '普通用户': 'info'
+  }
+  return roleMap[role || ''] || 'info'
 }
 </script>
 
 <style scoped lang="scss">
 .user-settings-page {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #f5f7fa;
+  padding: 20px;
+}
 
-  .list-group-item {
-    border-left: 3px solid transparent;
-    transition: all 0.2s;
+.settings-container {
+  max-width: 800px;
+  margin: 20px auto 0;
+}
 
-    &:hover {
-      background-color: #f8f9fa;
+.settings-card {
+  :deep(.el-card__body) {
+    padding: 0;
+  }
+}
+
+.settings-tabs {
+  :deep(.el-tabs__header) {
+    margin: 0;
+    padding: 0 20px;
+    background: #fff;
+    border-bottom: 1px solid #e4e7ed;
+  }
+
+  :deep(.el-tabs__content) {
+    padding: 30px 20px;
+  }
+
+  .tab-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+
+    .el-icon {
+      font-size: 16px;
     }
+  }
+}
 
-    &.active {
-      border-left-color: #0d6efd;
-      background-color: #e7f1ff;
-      color: #0d6efd;
-    }
+.password-form,
+.profile-form {
+  max-width: 500px;
 
-    i {
-      width: 20px;
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+  }
+
+  :deep(.el-input) {
+    width: 100%;
+  }
+}
+
+.tips-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #909399;
+  font-size: 13px;
+  line-height: 1.8;
+
+  li {
+    margin: 4px 0;
+  }
+}
+
+.mt-4 {
+  margin-top: 24px;
+}
+
+// 响应式适配
+@media (max-width: 768px) {
+  .user-settings-page {
+    padding: 12px;
+  }
+
+  .settings-container {
+    margin-top: 12px;
+  }
+
+  .password-form,
+  .profile-form {
+    max-width: 100%;
+
+    :deep(.el-form-item__label) {
+      width: 100px !important;
+      font-size: 13px;
     }
   }
 
-  .card {
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    border: none;
-  }
+  .settings-tabs {
+    :deep(.el-tabs__header) {
+      padding: 0 12px;
+    }
 
-  .card-header {
-    background-color: #fff;
-    border-bottom: 2px solid #f0f0f0;
-  }
+    :deep(.el-tabs__content) {
+      padding: 20px 12px;
+    }
 
-  .input-group {
-    .btn-outline-secondary {
-      border-color: #ced4da;
+    .tab-label {
+      font-size: 13px;
 
-      &:hover {
-        background-color: #e9ecef;
-        border-color: #ced4da;
-        color: #495057;
+      .el-icon {
+        font-size: 14px;
       }
     }
-  }
-
-  .form-control-plaintext {
-    color: #495057;
   }
 }
 </style>

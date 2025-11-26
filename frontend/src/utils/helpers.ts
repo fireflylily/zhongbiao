@@ -461,17 +461,56 @@ export function randomString(length: number = 16): string {
  * @param blob Blob对象或URL
  * @param filename 文件名
  */
-export function downloadFile(blob: Blob | string, filename: string): void {
-  const url = typeof blob === 'string' ? blob : URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-
+export async function downloadFile(blob: Blob | string, filename: string): Promise<void> {
+  // 如果是 Blob 对象，直接下载
   if (typeof blob !== 'string') {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
     URL.revokeObjectURL(url)
+    return
+  }
+
+  // 如果是 URL，先检查响应类型
+  try {
+    const response = await fetch(blob)
+
+    if (!response.ok) {
+      // HTTP 错误（404, 500等）
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        // 后端返回了JSON错误
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.message || '文件下载失败')
+      }
+      throw new Error(`文件下载失败: HTTP ${response.status}`)
+    }
+
+    // 检查响应类型，确保不是HTML或JSON
+    const contentType = response.headers.get('content-type')
+    if (contentType && (contentType.includes('text/html') || contentType.includes('application/json'))) {
+      throw new Error('服务器返回了错误页面，而不是文件')
+    }
+
+    // 获取文件 Blob
+    const fileBlob = await response.blob()
+
+    // 创建下载链接
+    const url = URL.createObjectURL(fileBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (error: any) {
+    console.error('下载文件失败:', error)
+    throw error
   }
 }
 

@@ -11,14 +11,14 @@
 
 <template>
   <div class="page-header" :class="{ 'page-header--ghost': ghost }">
-    <!-- 返回区域 -->
-    <div v-if="showBack" class="page-header-back" @click="handleBack">
-      <i class="bi bi-arrow-left back-icon"></i>
-      <span class="back-text">{{ backText }}</span>
-    </div>
-
     <!-- 主要内容 -->
     <div class="page-header-main">
+      <!-- 返回按钮（整合到主要内容中） -->
+      <div v-if="showBack" class="page-header-back" @click="handleBack">
+        <i class="bi bi-arrow-left back-icon"></i>
+        <span class="back-text">{{ backText }}</span>
+      </div>
+
       <!-- 左侧：标题区域 -->
       <div class="page-header-heading">
         <!-- 标题 -->
@@ -123,8 +123,8 @@ function handleBack(): void {
 <style scoped lang="scss">
 .page-header {
   background: var(--bg-white, #ffffff);
-  padding: 20px 24px;
-  margin-bottom: 16px;
+  padding: 12px 20px;
+  margin-bottom: 12px;
   border-radius: var(--border-radius-md, 8px);
 
   &.page-header--ghost {
@@ -134,18 +134,27 @@ function handleBack(): void {
   }
 }
 
+// ==================== 主要内容 ====================
+
+.page-header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 // ==================== 返回按钮 ====================
 
 .page-header-back {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 6px 12px;
+  gap: 6px;
+  padding: 4px 10px;
   border-radius: var(--border-radius-md, 8px);
   cursor: pointer;
   transition: all 0.3s;
   user-select: none;
+  flex-shrink: 0;
 
   &:hover {
     background: var(--bg-hover, #f3f4f6);
@@ -157,7 +166,7 @@ function handleBack(): void {
   }
 
   .back-icon {
-    font-size: 18px;
+    font-size: 16px;
     transition: transform 0.3s;
   }
 
@@ -165,15 +174,6 @@ function handleBack(): void {
     font-size: 14px;
     font-weight: 500;
   }
-}
-
-// ==================== 主要内容 ====================
-
-.page-header-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
 }
 
 // ==================== 标题区域 ====================
@@ -186,40 +186,40 @@ function handleBack(): void {
 .heading-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .title-text {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-primary, #333);
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .heading-tags {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .heading-description {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .description-text {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary, #6c757d);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .heading-extra {
-  margin-top: 12px;
-  font-size: 14px;
+  margin-top: 8px;
+  font-size: 13px;
   color: var(--text-secondary, #6c757d);
 }
 
@@ -227,9 +227,10 @@ function handleBack(): void {
 
 .page-header-actions {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 
   :deep(.el-button) {
     margin: 0;
@@ -239,8 +240,8 @@ function handleBack(): void {
 // ==================== 底部内容 ====================
 
 .page-header-footer {
-  margin-top: 20px;
-  padding-top: 20px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-light, #e5e7eb);
 }
 
@@ -248,25 +249,26 @@ function handleBack(): void {
 
 @media (max-width: 768px) {
   .page-header {
-    padding: 16px;
-    margin-bottom: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
   }
 
   .page-header-main {
     flex-direction: column;
-    gap: 16px;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .page-header-back {
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 
   .title-text {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .description-text {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .page-header-actions {
@@ -275,8 +277,8 @@ function handleBack(): void {
   }
 
   .page-header-footer {
-    margin-top: 16px;
-    padding-top: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
   }
 }
 </style>
