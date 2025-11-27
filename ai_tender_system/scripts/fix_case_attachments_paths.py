@@ -10,12 +10,15 @@ from pathlib import Path
 from datetime import datetime
 
 # 添加项目路径
-project_root = Path(__file__).parent / 'ai_tender_system'
-sys.path.insert(0, str(project_root.parent))
+# __file__ = /path/to/ai_tender_system/scripts/fix_case_attachments_paths.py
+# parent = /path/to/ai_tender_system/scripts
+# parent.parent = /path/to/ai_tender_system
+project_root = Path(__file__).parent.parent  # ai_tender_system 目录
+sys.path.insert(0, str(project_root))
 
-from ai_tender_system.common.database import get_knowledge_base_db
-from ai_tender_system.common.logger import get_module_logger
-from ai_tender_system.common.document_image_extractor import extract_images_from_document
+from common.database import get_knowledge_base_db
+from common.logger import get_module_logger
+from common.document_image_extractor import extract_images_from_document
 
 logger = get_module_logger("fix_paths")
 
