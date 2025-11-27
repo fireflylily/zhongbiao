@@ -63,11 +63,12 @@ export const useUserStore = defineStore('user', () => {
         return true
       }
 
+      // 登录失败，抛出异常而不是返回 false
       error.value = response.message || '登录失败'
-      return false
+      throw new Error(error.value)
     } catch (err: any) {
       error.value = err.message || '登录失败'
-      return false
+      throw err  // 重新抛出异常
     } finally {
       loading.value = false
     }

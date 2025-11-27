@@ -8,7 +8,7 @@
 import sys
 import sqlite3
 from pathlib import Path
-from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for
+from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for, current_app
 from flask_wtf.csrf import CSRFProtect
 
 # 添加项目根目录到Python路径
@@ -146,8 +146,17 @@ def login():
 
         # 查询数据库验证用户
         try:
+            logger.info(f"开始处理用户 {username} 的登录请求")
+
+            # 检查数据库文件是否存在
+            if not DB_PATH.exists():
+                logger.error(f"数据库文件不存在: {DB_PATH}")
+                return jsonify({'success': False, 'message': '系统配置错误，请联系管理员'}), 500
+
+            logger.info(f"数据库路径: {DB_PATH}")
             conn = get_db_connection()
             cursor = conn.cursor()
+            logger.info("数据库连接成功")
 
             # 查询用户及其角色信息（包括密码）
             cursor.execute("""
@@ -173,6 +182,7 @@ def login():
 
             user_row = cursor.fetchone()
             conn.close()
+            logger.info(f"数据库查询完成，找到用户: {user_row is not None}")
 
             # 检查用户是否存在
             if not user_row:
@@ -180,6 +190,7 @@ def login():
                 return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
 
             user = dict(user_row)
+            logger.info(f"用户信息: user_id={user['user_id']}, role={user['role_name']}")
 
             # 验证密码（使用bcrypt）
             if not verify_password(password, user.get('password', '')):
@@ -187,13 +198,19 @@ def login():
                 return jsonify({'success': False, 'message': '用户名或密码错误'}), 401
 
             # 保存完整的session信息
-            session['logged_in'] = True
-            session['user_id'] = user['user_id']
-            session['username'] = user['username']
-            session['role_id'] = user['role_id']
-            session['role_name'] = user['role_name']
-            session['privacy_level_access'] = user['privacy_level_access']
-            session['company_id'] = user['company_id']
+            logger.info("开始保存session信息")
+            try:
+                session['logged_in'] = True
+                session['user_id'] = user['user_id']
+                session['username'] = user['username']
+                session['role_id'] = user['role_id']
+                session['role_name'] = user['role_name']
+                session['privacy_level_access'] = user['privacy_level_access']
+                session['company_id'] = user['company_id']
+                logger.info("session信息保存成功")
+            except Exception as session_error:
+                logger.error(f"保存session失败: {session_error}")
+                raise
 
             # 更新最后登录时间
             try:
@@ -236,8 +253,15 @@ def login():
             })
 
         except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
             logger.error(f"登录过程发生错误: {e}")
-            return jsonify({'success': False, 'message': '登录失败,请稍后重试'}), 500
+            logger.error(f"详细错误信息:\n{error_detail}")
+            return jsonify({
+                'success': False,
+                'message': '登录失败,请稍后重试',
+                'error': str(e) if current_app.debug else None  # 开发环境返回详细错误
+            }), 500
 
     # GET请求: 重定向到Vue应用（Vue Router会处理登录和仪表板路由）
     return redirect(url_for('vue_app.serve_vue_app'))
