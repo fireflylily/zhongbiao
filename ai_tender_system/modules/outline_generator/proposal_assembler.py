@@ -798,22 +798,23 @@ class ProposalAssembler:
         analysis: Dict[str, Any]
     ) -> Optional[str]:
         """
-        使用AI生成章节内容
+        使用AI生成章节内容（带降级策略）
 
         Args:
             chapter: 章节信息
             analysis: 需求分析结果
 
         Returns:
-            生成的章节内容，失败返回None
+            生成的章节内容，失败返回模板内容
         """
-        try:
-            chapter_title = chapter.get('title', '')
-            chapter_desc = chapter.get('description', '')
-            content_hints = chapter.get('content_hints', [])
-            response_tips = chapter.get('response_tips', [])
+        chapter_title = chapter.get('title', '')
+        chapter_desc = chapter.get('description', '')
+        content_hints = chapter.get('content_hints', [])
+        response_tips = chapter.get('response_tips', [])
 
-            # 构建提示词
+        # 策略1: 完整提示词生成（重试2次）
+        try:
+            # 构建完整提示词
             prompt = f"""请为技术方案的以下章节生成详细内容：
 
 章节标题: {chapter_title}
@@ -848,13 +849,36 @@ class ProposalAssembler:
             if response and response.strip():
                 self.logger.info(f"章节'{chapter_title}'AI内容生成成功，长度: {len(response)}")
                 return response.strip()
-            else:
-                self.logger.warning(f"章节'{chapter_title}'AI内容生成为空")
-                return None
 
         except Exception as e:
-            self.logger.error(f"AI生成章节内容失败: {e}")
-            return None
+            self.logger.warning(f"策略1(完整生成)失败: {e}，尝试策略2(简化生成)")
+
+        # 策略2: 简化提示词生成（重试1次）
+        try:
+            simplified_prompt = f"""为"{chapter_title}"生成800字技术方案内容。
+
+要点: {', '.join(content_hints[:3])}
+
+要求: 专业、清晰、中文"""
+
+            response = self.llm_client.call(
+                prompt=simplified_prompt,
+                temperature=0.7,
+                max_tokens=1500,
+                max_retries=1,
+                purpose=f"章节内容简化生成: {chapter_title}"
+            )
+
+            if response and response.strip():
+                self.logger.info(f"章节'{chapter_title}'简化生成成功")
+                return response.strip()
+
+        except Exception as e:
+            self.logger.warning(f"策略2(简化生成)失败: {e}，使用策略3(模板内容)")
+
+        # 策略3: 返回模板内容（兜底）
+        self.logger.error(f"章节'{chapter_title}'所有生成策略失败，使用模板内容")
+        return self._generate_template_content(chapter)
 
     def generate_chapter_content_stream(
         self,
@@ -862,7 +886,7 @@ class ProposalAssembler:
         analysis: Dict[str, Any]
     ) -> Generator[str, None, None]:
         """
-        使用AI流式生成章节内容（Generator版本）
+        使用AI流式生成章节内容（Generator版本，带降级策略）
 
         Args:
             chapter: 章节信息
@@ -871,13 +895,14 @@ class ProposalAssembler:
         Yields:
             str: 生成的文本片段
         """
-        try:
-            chapter_title = chapter.get('title', '')
-            chapter_desc = chapter.get('description', '')
-            content_hints = chapter.get('content_hints', [])
-            response_tips = chapter.get('response_tips', [])
+        chapter_title = chapter.get('title', '')
+        chapter_desc = chapter.get('description', '')
+        content_hints = chapter.get('content_hints', [])
+        response_tips = chapter.get('response_tips', [])
 
-            # 构建提示词（与非流式版本相同）
+        # 策略1: 流式生成（超时120秒）
+        try:
+            # 构建完整提示词
             prompt = f"""请为技术方案的以下章节生成详细内容：
 
 章节标题: {chapter_title}
@@ -899,20 +924,79 @@ class ProposalAssembler:
 
 请生成该章节的详细内容:"""
 
-            # 流式调用LLM
+            # 流式调用LLM（带超时）
             self.logger.info(f"为章节'{chapter_title}'流式生成AI内容...")
 
             for chunk in self.llm_client.call_stream(
                 prompt=prompt,
                 temperature=0.7,
                 max_tokens=2000,
+                timeout=120,  # 120秒超时
                 purpose=f"章节内容流式生成: {chapter_title}"
             ):
                 yield chunk
 
             self.logger.info(f"章节'{chapter_title}'流式生成完成")
+            return  # 成功则直接返回
 
         except Exception as e:
-            self.logger.error(f"AI流式生成章节内容失败: {e}")
-            # 生成失败时yield错误信息
-            yield f"\n\n[生成失败: {str(e)}]\n\n"
+            self.logger.warning(f"策略1(流式生成)失败: {e}，尝试策略2(非流式生成)")
+
+        # 策略2: 非流式生成（超时60秒）
+        try:
+            self.logger.info(f"章节'{chapter_title}'使用非流式生成...")
+
+            # 简化提示词
+            simplified_prompt = f"""为"{chapter_title}"生成800字技术方案内容。
+
+要点: {', '.join(content_hints[:3])}
+
+要求: 专业、清晰、中文"""
+
+            response = self.llm_client.call(
+                prompt=simplified_prompt,
+                temperature=0.7,
+                max_tokens=1500,
+                max_retries=1,
+                purpose=f"章节内容非流式生成: {chapter_title}"
+            )
+
+            if response and response.strip():
+                self.logger.info(f"章节'{chapter_title}'非流式生成成功")
+                yield response.strip()
+                return
+
+        except Exception as e:
+            self.logger.warning(f"策略2(非流式生成)失败: {e}，使用策略3(模板内容)")
+
+        # 策略3: 模板内容（兜底）
+        self.logger.error(f"章节'{chapter_title}'所有生成策略失败，使用模板内容")
+        template_content = self._generate_template_content(chapter)
+        yield template_content
+
+    def _generate_template_content(self, chapter: Dict[str, Any]) -> str:
+        """
+        生成模板内容（降级策略的兜底方案）
+
+        Args:
+            chapter: 章节信息
+
+        Returns:
+            模板内容
+        """
+        chapter_title = chapter.get('title', '')
+        chapter_desc = chapter.get('description', '')
+        content_hints = chapter.get('content_hints', [])
+
+        template = f"""【本章节内容生成超时，请根据以下要点手动补充】
+
+本章节说明：{chapter_desc}
+
+需要包含的要点：
+"""
+        for i, hint in enumerate(content_hints, 1):
+            template += f"\n{i}. {hint}"
+
+        template += "\n\n【请在此处补充详细内容】"
+
+        return template

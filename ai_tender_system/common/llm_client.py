@@ -143,7 +143,8 @@ class LLMClient:
                    system_prompt: Optional[str] = None,
                    temperature: float = 0.7,
                    max_tokens: Optional[int] = None,
-                   purpose: str = "LLM流式调用") -> Generator[str, None, None]:
+                   purpose: str = "LLM流式调用",
+                   timeout: int = 120) -> Generator[str, None, None]:
         """
         流式LLM调用接口（使用Generator返回）
 
@@ -153,6 +154,7 @@ class LLMClient:
             temperature: 温度参数
             max_tokens: 最大生成token数
             purpose: 调用目的（用于日志）
+            timeout: 超时时间（秒），默认120秒
 
         Yields:
             str: 生成的文本片段
@@ -162,7 +164,7 @@ class LLMClient:
         """
         actual_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
 
-        self.logger.info(f"{purpose} - 使用流式生成")
+        self.logger.info(f"{purpose} - 使用流式生成，超时设置: {timeout}秒")
 
         # 目前仅支持OpenAI兼容格式的流式调用
         if self.model_name.startswith('unicom') or self.model_name.startswith('yuanjing'):
@@ -175,11 +177,13 @@ class LLMClient:
         # Azure OpenAI的流式调用
         if self.model_name.startswith('azure'):
             try:
+                import httpx
                 from openai import AzureOpenAI
                 client = AzureOpenAI(
                     api_key=self.api_key,
                     azure_endpoint=self.azure_endpoint,
-                    api_version=self.api_version
+                    api_version=self.api_version,
+                    timeout=httpx.Timeout(timeout, connect=10.0)  # 添加超时保护
                 )
 
                 messages = []
@@ -219,9 +223,11 @@ class LLMClient:
 
         # 使用OpenAI SDK的流式调用
         try:
+            import httpx
             client = OpenAI(
                 api_key=self.api_key,
-                base_url=self.base_url
+                base_url=self.base_url,
+                timeout=httpx.Timeout(timeout, connect=10.0)  # 添加超时保护
             )
 
             messages = []
@@ -256,6 +262,10 @@ class LLMClient:
 
             self.logger.info(f"{purpose} - 流式生成完成")
 
+        except httpx.TimeoutException as e:
+            error_msg = f"流式调用超时({timeout}秒): {str(e)}"
+            self.logger.error(error_msg)
+            raise APIError(error_msg)
         except Exception as e:
             error_msg = f"流式调用失败: {str(e)}"
             self.logger.error(error_msg)

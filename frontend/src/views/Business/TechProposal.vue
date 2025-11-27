@@ -832,13 +832,13 @@ const generateWithSSE = async (formData: FormData) => {
   }
 }
 
-// 更新编辑器内容（增量更新）
+// 更新编辑器内容（增量更新）- 包含大纲指导信息
 const updateEditorContent = (chapterContents: Record<string, string>) => {
   // ✅ 使用大纲数据按正确顺序生成HTML（如果大纲可用）
   if (outlineData.value?.chapters) {
     let htmlContent = ''
 
-    // 递归生成章节HTML
+    // 递归生成章节HTML（包含大纲指导信息）
     const generateChapterHtml = (chapters: any[]) => {
       for (const chapter of chapters) {
         const chapterNum = chapter.chapter_number
@@ -848,8 +848,51 @@ const updateEditorContent = (chapterContents: Record<string, string>) => {
         const headingLevel = chapter.level || 1
         htmlContent += `<h${headingLevel}>${chapterNum} ${chapter.title}</h${headingLevel}>\n`
 
+        // ✅ 显示章节说明
+        if (chapter.description) {
+          htmlContent += `<div style="padding: 12px; background: #E8F4FD; border-left: 4px solid #409EFF; margin: 12px 0;">
+            <strong>【本章说明】</strong> ${chapter.description}
+          </div>\n`
+        }
+
+        // ✅ 显示应答策略
+        if (chapter.response_strategy) {
+          htmlContent += `<div style="padding: 12px; background: #F0F9FF; border-left: 4px solid #67C23A; margin: 12px 0;">
+            <strong>【应答策略】</strong> ${chapter.response_strategy}
+          </div>\n`
+        }
+
+        // ✅ 显示内容提示
+        if (chapter.content_hints && chapter.content_hints.length > 0) {
+          htmlContent += `<div style="padding: 12px; background: #FFF7E6; border-left: 4px solid #E6A23C; margin: 12px 0;">
+            <strong>【内容提示】</strong>
+            <ul style="margin: 8px 0; padding-left: 24px;">
+              ${chapter.content_hints.map((hint: string) => `<li>${hint}</li>`).join('')}
+            </ul>
+          </div>\n`
+        }
+
+        // ✅ 显示应答建议
+        if (chapter.response_tips && chapter.response_tips.length > 0) {
+          htmlContent += `<div style="padding: 12px; background: #FEF0F0; border-left: 4px solid #F56C6C; margin: 12px 0;">
+            <strong>【应答建议】</strong>
+            <ul style="margin: 8px 0; padding-left: 24px;">
+              ${chapter.response_tips.map((tip: string) => `<li>${tip}</li>`).join('')}
+            </ul>
+          </div>\n`
+        }
+
+        // ✅ 显示AI生成的内容
         if (content) {
-          htmlContent += `<div>${content.replace(/\n/g, '<br>')}</div>\n`
+          htmlContent += `<div style="padding: 12px; background: #F0FFF4; border-left: 4px solid #52C41A; margin: 12px 0;">
+            <strong style="color: #52C41A;">【AI生成内容】</strong>
+          </div>\n`
+          htmlContent += `<div style="line-height: 1.8; margin: 12px 0;">${content.replace(/\n/g, '<br>')}</div>\n`
+        } else if (chapterNum in chapterContents) {
+          // 正在生成中但内容为空，显示占位符
+          htmlContent += `<div style="padding: 12px; background: #F5F5F5; border: 1px dashed #D9D9D9; margin: 12px 0; color: #999;">
+            <em>正在生成内容...</em>
+          </div>\n`
         }
 
         // 递归处理子章节
@@ -876,7 +919,9 @@ const updateEditorContent = (chapterContents: Record<string, string>) => {
 
     for (const [chapterNum, content] of sortedEntries) {
       htmlContent += `<h2>${chapterNum}</h2>\n`
-      htmlContent += `<div>${content.replace(/\n/g, '<br>')}</div>\n`
+      if (content) {
+        htmlContent += `<div style="line-height: 1.8;">${content.replace(/\n/g, '<br>')}</div>\n`
+      }
     }
 
     editorContent.value = htmlContent

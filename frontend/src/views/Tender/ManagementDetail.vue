@@ -586,10 +586,26 @@
                     {{ technicalProposalFileInfo ? '重新生成' : '开始' }}技术方案编写
                   </el-button>
                 </el-space>
-                <el-text v-if="!technicalFileInfo" type="warning" size="small">
-                  <i class="bi bi-exclamation-triangle"></i>
-                  请先上传招标文件并进行 AI 解析
-                </el-text>
+                <el-alert
+                  v-if="!technicalFileInfo"
+                  type="warning"
+                  :closable="false"
+                  class="mt-3"
+                >
+                  <template #title>
+                    <div style="font-size: 13px;">
+                      <i class="bi bi-info-circle-fill me-2"></i>
+                      <strong>操作提示：</strong>需要先保存技术需求文件
+                    </div>
+                  </template>
+                  <div style="font-size: 12px; line-height: 1.6; margin-top: 8px;">
+                    请按以下步骤操作：<br>
+                    1. 在页面顶部上传招标文档并解析<br>
+                    2. 选择技术相关的章节<br>
+                    3. 点击"<strong>另存为技术需求</strong>"按钮<br>
+                    4. 保存成功后，本按钮将自动启用
+                  </div>
+                </el-alert>
               </div>
             </div>
           </el-tab-pane>
