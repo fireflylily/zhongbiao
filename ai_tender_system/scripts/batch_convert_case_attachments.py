@@ -65,9 +65,14 @@ def batch_convert_attachments(dry_run=False):
 
         logger.info(f"\n[{idx+1}/{len(attachments)}] 处理: {original_filename} (ID: {attachment_id})")
 
-        # 检查文件是否存在
-        if not Path(file_path).exists():
-            logger.warning(f"  ⚠️ 文件不存在，跳过: {file_path}")
+        # 检查文件是否存在（确保使用绝对路径）
+        file_path_obj = Path(file_path)
+        if not file_path_obj.is_absolute():
+            # 如果是相对路径，转换为绝对路径
+            file_path_obj = project_root / file_path
+
+        if not file_path_obj.exists():
+            logger.warning(f"  ⚠️ 文件不存在，跳过: {file_path_obj}")
             skip_count += 1
             continue
 
@@ -75,8 +80,8 @@ def batch_convert_attachments(dry_run=False):
             # 提取/转换图片
             logger.info(f"  开始提取图片...")
             result = extract_images_from_document(
-                file_path=file_path,
-                base_name=f"case_{att['case_id']}_{Path(file_path).stem}",
+                file_path=str(file_path_obj),
+                base_name=f"case_{att['case_id']}_{file_path_obj.stem}",
                 dpi=200
             )
 
