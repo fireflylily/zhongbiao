@@ -169,27 +169,26 @@ const loadProjects = async () => {
 
 // 判断是否有商务应答文档
 const hasBusinessResponse = (project: any): boolean => {
-  // 后端返回的数据结构：project.business_response.status 和 project.business_response.file_path
-  return project.business_response?.status === '已完成' || !!project.business_response?.file_path
+  // 检查是否有商务应答相关文件或数据
+  return !!project.business_response_file || project.business_response_status === 'completed'
 }
 
 // 判断是否有技术点对点文档
 const hasPointToPoint = (project: any): boolean => {
-  // 后端返回的数据结构：project.tech_response.status 和 project.tech_response.file_path
-  return project.tech_response?.status === '已完成' || !!project.tech_response?.file_path
+  // 检查是否有技术点对点应答文件
+  return !!project.point_to_point_file || project.point_to_point_status === 'completed'
 }
 
 // 判断是否有技术方案文档
 const hasTechProposal = (project: any): boolean => {
-  // 后端返回的数据结构：project.tech_proposal.status 和 project.tech_proposal.file_path
-  return project.tech_proposal?.status === '已完成' || !!project.tech_proposal?.file_path
+  // 检查是否有技术方案文件
+  return !!project.tech_proposal_file || project.tech_proposal_status === 'completed' || !!project.technical_data
 }
 
 // 判断是否有最后融合文档
 const hasFinalMerge = (project: any): boolean => {
-  // 后端返回的数据结构：project.fusion.status 和 project.fusion.file_path
-  // 只有当 fusion.file_path 存在时才认为已融合
-  return project.fusion?.status === '已完成' || !!project.fusion?.file_path
+  // 检查是否完成了最终文档融合
+  return !!project.final_merge_file || project.merge_status === 'completed'
 }
 
 const handleView = (row: any) => {
