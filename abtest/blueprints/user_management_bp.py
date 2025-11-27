@@ -8,6 +8,13 @@ import sqlite3
 from datetime import datetime
 import os
 
+# 导入bcrypt用于密码加密
+try:
+    import bcrypt
+except ImportError:
+    bcrypt = None
+    print("警告: bcrypt未安装，密码将不会加密")
+
 user_management_bp = Blueprint('user_management', __name__,
                               template_folder='../templates')
 
@@ -21,6 +28,25 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def hash_password(plain_password: str) -> str:
+    """加密密码
+
+    Args:
+        plain_password: 明文密码
+
+    Returns:
+        str: 加密后的密码哈希
+    """
+    if bcrypt:
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(plain_password.encode('utf-8'), salt)
+        return hashed.decode('utf-8')
+    else:
+        # 备用方式：不加密（不推荐用于生产环境）
+        print("警告: bcrypt未安装，密码未加密")
+        return plain_password
 
 
 # ==================== 前端页面路由 ====================
@@ -234,11 +260,15 @@ def create_user():
                     'message': '公司不存在'
                 }), 400
 
+        # 生成默认密码：{username}123
+        default_password = f'{username}123'
+        hashed_password = hash_password(default_password)
+
         # 插入用户
         cursor.execute("""
-            INSERT INTO users (username, email, role_id, company_id, is_active, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (username, email, role_id, company_id, is_active, datetime.now()))
+            INSERT INTO users (username, email, role_id, company_id, is_active, password, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (username, email, role_id, company_id, is_active, hashed_password, datetime.now()))
 
         user_id = cursor.lastrowid
         conn.commit()
@@ -266,8 +296,9 @@ def create_user():
 
         return jsonify({
             'code': 0,
-            'message': '用户创建成功',
-            'data': user
+            'message': f'用户创建成功，默认密码为: {default_password}',
+            'data': user,
+            'default_password': default_password  # 返回默认密码供管理员告知用户
         }), 201
 
     except Exception as e:

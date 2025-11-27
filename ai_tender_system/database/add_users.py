@@ -10,9 +10,26 @@ import sqlite3
 import logging
 from pathlib import Path
 
+# 导入bcrypt用于密码加密
+try:
+    import bcrypt
+except ImportError:
+    print("正在安装bcrypt...")
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "bcrypt"])
+    import bcrypt
+
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+def hash_password(plain_password: str) -> str:
+    """使用bcrypt加密密码"""
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(plain_password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 
 def add_users_to_company():
@@ -82,21 +99,26 @@ def add_users_to_company():
                     logger.warning(f"用户 {user['username']} 已存在 (user_id={existing[0]}), 跳过")
                     continue
 
+                # 生成默认密码并加密
+                default_password = f"{user['username']}123"
+                hashed_password = hash_password(default_password)
+
                 # 插入新用户
                 cursor.execute("""
-                    INSERT INTO users (username, email, role_id, company_id, is_active)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO users (username, email, role_id, company_id, is_active, password)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """, (
                     user['username'],
                     user['email'],
                     user['role_id'],
                     user['company_id'],
-                    user['is_active']
+                    user['is_active'],
+                    hashed_password
                 ))
 
                 user_id = cursor.lastrowid
                 success_count += 1
-                logger.info(f"✓ 成功添加用户: {user['username']} (user_id={user_id}, email={user['email']})")
+                logger.info(f"✓ 成功添加用户: {user['username']} (user_id={user_id}, email={user['email']}, 默认密码={default_password})")
 
             except sqlite3.IntegrityError as e:
                 logger.error(f"✗ 添加用户 {user['username']} 失败: {e}")
@@ -105,6 +127,8 @@ def add_users_to_company():
         # 提交事务
         conn.commit()
         logger.info(f"\n总共成功添加 {success_count} 个用户")
+        logger.info("\n📌 默认密码规则: {用户名}123")
+        logger.info("⚠️  建议用户首次登录后立即修改密码！")
 
         # 显示所有智慧足迹公司的用户
         logger.info("\n=== 智慧足迹公司的所有用户 ===")
