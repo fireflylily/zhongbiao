@@ -149,12 +149,19 @@ class CaseTableFiller:
 
         self.logger.info(f"从案例库查询到 {len(cases)} 个案例")
 
-        # 遍历文档中的所有表格
+        # 遍历文档中的所有表格（添加唯一性约束）
+        case_table_found = False  # 标记是否已找到案例表格
+
         for table_idx, table in enumerate(doc.tables):
+            # 如果已找到案例表格，停止遍历
+            if case_table_found:
+                self.logger.info(f"已找到案例表格，停止遍历剩余 {len(doc.tables) - table_idx} 个表格")
+                break
+
             self.logger.debug(f"检查表格 #{table_idx + 1}")
 
-            # 识别是否为案例表格
-            if self._is_case_table(table):
+            # 识别是否为案例表格（传入doc参数用于上下文检查）
+            if self._is_case_table(table, doc):
                 self.logger.info(f"识别到案例表格 #{table_idx + 1}")
 
                 # 填充案例数据
@@ -174,6 +181,9 @@ class CaseTableFiller:
                         stats['images_inserted'] += images_count
                     else:
                         self.logger.debug("  未提供image_handler,跳过图片插入")
+
+                    # 标记已找到案例表格
+                    case_table_found = True
                 else:
                     stats['skipped_tables'] += 1
                     self.logger.warning(f"  ⚠️  表格识别为案例表格,但填充失败")
@@ -184,12 +194,19 @@ class CaseTableFiller:
 
         return stats
 
-    def _is_case_table(self, table: Table) -> bool:
+    def _is_case_table(self, table: Table, doc: Document) -> bool:
         """
-        识别是否为案例表格(通过表头关键字)
+        识别是否为案例表格（四步验证法）
+
+        验证步骤：
+        1. 排除检查：排除报价表、诉讼表等明显的非案例表格
+        2. 上下文检查：检查表格前置段落是否包含案例关键字
+        3. 表头匹配：匹配案例关键字（阈值≥3个）
+        4. 核心字段验证：必须包含"合同名称"或"项目名称"
 
         Args:
             table: Word表格对象
+            doc: Word文档对象（用于查找前置段落）
 
         Returns:
             是否为案例表格
@@ -201,27 +218,74 @@ class CaseTableFiller:
         header_row = table.rows[0]
         header_texts = [cell.text.strip() for cell in header_row.cells]
 
-        # 匹配案例表格特征字段(至少包含2个关键字段)
+        # ========== Step 1: 排除检查 ==========
+        # 报价表特征关键字
+        price_keywords = ['单价', '税率', '含税', '报价', '计费方式', '不含税', '税额', '总价', '投标报价', '价格表', '报价表', '清单']
+        price_matched = 0
+        for header_text in header_texts:
+            clean_header = re.sub(r'[\s()（）]', '', header_text)
+            if any(kw in clean_header for kw in price_keywords):
+                price_matched += 1
+                self.logger.debug(f"    发现报价表关键字: {clean_header}")
+
+        if price_matched >= 2:
+            self.logger.info(f"    ❌ 排除：识别为报价表（匹配{price_matched}个报价关键字）")
+            return False
+
+        # 诉讼表特征关键字
+        lawsuit_keywords = ['诉讼', '纠纷', '胜诉', '败诉', '争议', '仲裁']
+        if any(any(kw in header_text for kw in lawsuit_keywords) for header_text in header_texts):
+            self.logger.info(f"    ❌ 排除：识别为诉讼表（包含诉讼关键字）")
+            return False
+
+        # 偏离表特征关键字
+        deviation_keywords = ['偏离说明', '响应文件', '采购文件']
+        deviation_matched = sum(1 for header_text in header_texts
+                               if any(kw in header_text for kw in deviation_keywords))
+        if deviation_matched >= 2:
+            self.logger.info(f"    ❌ 排除：识别为偏离表")
+            return False
+
+        # ========== Step 2: 上下文检查 ==========
+        preceding_paras = self._find_preceding_paragraphs(doc, table)
+        case_context_keywords = ['案例', '业绩', '项目经验', '类似项目', '同类项目', '项目实施']
+        has_case_context = any(any(kw in para for kw in case_context_keywords)
+                              for para in preceding_paras)
+
+        if not has_case_context:
+            self.logger.debug(f"    ❌ 无案例上下文：前置段落未包含案例关键字")
+            return False
+
+        self.logger.debug(f"    ✅ 通过上下文检查：前置段落包含案例关键字")
+
+        # ========== Step 3: 表头匹配（提高阈值到≥3） ==========
         matched = 0
         for header_text in header_texts:
-            # 移除空格和括号等干扰字符
             clean_header = re.sub(r'[\s()（）]', '', header_text)
-
             for keyword in self.case_table_headers:
                 if keyword in clean_header:
                     matched += 1
-                    self.logger.debug(f"    匹配到案例表格关键字: {keyword} (表头: {header_text})")
+                    self.logger.debug(f"    匹配到案例关键字: {keyword} (表头: {header_text})")
                     break
 
-        # 至少匹配2个关键字段才认为是案例表格
-        is_case_table = matched >= 2
+        if matched < 3:
+            self.logger.debug(f"    ❌ 关键字不足：仅匹配{matched}个（需要≥3个）")
+            return False
 
-        if is_case_table:
-            self.logger.debug(f"    ✅ 识别为案例表格(匹配 {matched} 个关键字段)")
-        else:
-            self.logger.debug(f"    ❌ 非案例表格(仅匹配 {matched} 个关键字段)")
+        self.logger.debug(f"    ✅ 通过表头匹配：匹配{matched}个关键字")
 
-        return is_case_table
+        # ========== Step 4: 核心字段验证 ==========
+        core_fields = ['合同名称', '项目名称', '案例名称']
+        has_core_field = any(any(cf in header_text for cf in core_fields)
+                            for header_text in header_texts)
+
+        if not has_core_field:
+            self.logger.debug(f"    ❌ 缺少核心字段：未包含'合同名称'或'项目名称'")
+            return False
+
+        # 全部检查通过
+        self.logger.info(f"    ✅ 识别为案例表格（匹配{matched}个关键字，通过全部验证）")
+        return True
 
     def _query_cases(self, company_id: int, limit: int = 10) -> List[Dict]:
         """
@@ -716,3 +780,65 @@ class CaseTableFiller:
                 return col_idx
 
         return None
+
+    def _find_preceding_paragraphs(self, doc: Document, table: Table, max_lookback: int = 10) -> List[str]:
+        """
+        查找表格前的段落文本（用于上下文检查）
+
+        Args:
+            doc: Word文档对象
+            table: 表格对象
+            max_lookback: 最多向前查找的段落数量（默认10个）
+
+        Returns:
+            前置段落文本列表（最多max_lookback个）
+        """
+        try:
+            # 获取所有段落
+            all_paragraphs = doc.paragraphs
+            if not all_paragraphs:
+                return []
+
+            # 获取表格元素
+            table_element = table._element
+
+            # 找到表格在文档中的大致位置
+            # 通过遍历段落，找到紧邻表格前的段落
+            table_para_idx = None
+            for idx, para in enumerate(all_paragraphs):
+                # 检查段落后面是否紧跟表格
+                next_sibling = para._element.getnext()
+                if next_sibling is not None and next_sibling == table_element:
+                    table_para_idx = idx
+                    break
+
+            if table_para_idx is None:
+                # 降级方案：遍历表格前的所有兄弟元素
+                self.logger.debug("    未找到表格位置，使用降级方案")
+                preceding_paras = []
+                current = table_element.getprevious()
+                count = 0
+                while current is not None and count < max_lookback:
+                    if current.tag.endswith('}p'):  # 段落元素
+                        # 提取文本
+                        para_text = ''.join(current.itertext()).strip()
+                        if para_text:
+                            preceding_paras.insert(0, para_text)
+                            count += 1
+                    current = current.getprevious()
+                return preceding_paras
+
+            # 提取前N个段落的文本
+            start_idx = max(0, table_para_idx - max_lookback + 1)
+            preceding_paras = []
+            for para in all_paragraphs[start_idx:table_para_idx + 1]:
+                text = para.text.strip()
+                if text:  # 过滤空段落
+                    preceding_paras.append(text)
+
+            self.logger.debug(f"    找到表格前{len(preceding_paras)}个段落")
+            return preceding_paras
+
+        except Exception as e:
+            self.logger.warning(f"查找前置段落失败: {e}")
+            return []
