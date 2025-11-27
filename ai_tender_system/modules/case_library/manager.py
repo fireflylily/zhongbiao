@@ -513,8 +513,14 @@ class CaseLibraryManager:
 
                     logger.info(f"检测到文档类型 {original_file_type}，开始自动转换/提取图片...")
 
+                    # 确保使用绝对路径
+                    absolute_file_path = Path(file_metadata.file_path)
+                    if not absolute_file_path.is_absolute():
+                        # 如果是相对路径，转换为绝对路径（相对于项目根目录）
+                        absolute_file_path = project_root / file_metadata.file_path
+
                     result = extract_images_from_document(
-                        file_path=file_metadata.file_path,
+                        file_path=str(absolute_file_path),
                         base_name=f"case_{case_id}_{file_metadata.safe_name}",
                         dpi=200
                     )
