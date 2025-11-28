@@ -31,7 +31,8 @@ class WordExporter:
     def export_proposal(
         self,
         proposal: Dict[str, Any],
-        output_path: str
+        output_path: str,
+        show_guidance: bool = False
     ) -> str:
         """
         导出技术方案为Word文档
@@ -39,12 +40,13 @@ class WordExporter:
         Args:
             proposal: 方案数据
             output_path: 输出文件路径
+            show_guidance: 是否显示大纲指导信息（默认False，简洁模式）
 
         Returns:
             生成的文件路径
         """
         try:
-            self.logger.info(f"开始导出技术方案到: {output_path}")
+            self.logger.info(f"开始导出技术方案到: {output_path}，指导信息: {'显示' if show_guidance else '隐藏'}")
 
             # 创建Word文档
             doc = Document()
@@ -66,7 +68,7 @@ class WordExporter:
 
             # 添加章节内容
             for chapter in proposal['chapters']:
-                self._add_chapter(doc, chapter)
+                self._add_chapter(doc, chapter, show_guidance=show_guidance)
 
             # 保存文档
             doc.save(output_path)
@@ -309,8 +311,15 @@ class WordExporter:
 
         doc.add_paragraph()  # 空行
 
-    def _add_chapter(self, doc: Document, chapter: Dict):
-        """添加章节"""
+    def _add_chapter(self, doc: Document, chapter: Dict, show_guidance: bool = False):
+        """
+        添加章节
+
+        Args:
+            doc: Word文档对象
+            chapter: 章节数据
+            show_guidance: 是否显示大纲指导信息（默认False）
+        """
         level = chapter.get('level', 1)
         chapter_num = chapter.get('chapter_number', '')
         title = chapter.get('title', '')
@@ -318,62 +327,65 @@ class WordExporter:
         # 添加章节标题
         doc.add_heading(f"{chapter_num} {title}", level=level)
 
-        # 添加章节描述
-        if chapter.get('description'):
-            doc.add_paragraph(f"【本章说明】{chapter['description']}")
+        # ✅ 可选：显示大纲指导信息（默认不显示，交付文档更简洁）
+        if show_guidance:
+            # 添加章节描述
+            if chapter.get('description'):
+                doc.add_paragraph(f"【本章说明】{chapter['description']}")
 
-        # 添加应答策略
-        if chapter.get('response_strategy'):
-            p = doc.add_paragraph()
-            p.add_run("【应答策略】").bold = True
-            p.add_run(chapter['response_strategy'])
+            # 添加应答策略
+            if chapter.get('response_strategy'):
+                p = doc.add_paragraph()
+                p.add_run("【应答策略】").bold = True
+                p.add_run(chapter['response_strategy'])
 
-        # 添加内容提示
-        if chapter.get('content_hints'):
-            p = doc.add_paragraph()
-            p.add_run("【内容提示】").bold = True
-            for hint in chapter['content_hints']:
-                doc.add_paragraph(hint, style='List Bullet')
+            # 添加内容提示
+            if chapter.get('content_hints'):
+                p = doc.add_paragraph()
+                p.add_run("【内容提示】").bold = True
+                for hint in chapter['content_hints']:
+                    doc.add_paragraph(hint, style='List Bullet')
 
-        # 添加应答建议
-        if chapter.get('response_tips'):
-            p = doc.add_paragraph()
-            p.add_run("【应答建议】").bold = True
-            p.add_run().font.color.rgb = RGBColor(0, 112, 192)  # 蓝色
-            for tip in chapter['response_tips']:
-                doc.add_paragraph(tip, style='List Bullet')
+            # 添加应答建议
+            if chapter.get('response_tips'):
+                p = doc.add_paragraph()
+                p.add_run("【应答建议】").bold = True
+                p.add_run().font.color.rgb = RGBColor(0, 112, 192)  # 蓝色
+                for tip in chapter['response_tips']:
+                    doc.add_paragraph(tip, style='List Bullet')
 
-        # 添加建议引用文档
-        if chapter.get('suggested_references'):
-            p = doc.add_paragraph()
-            p.add_run("【建议引用文档】").bold = True
-            for ref in chapter['suggested_references']:
-                doc_name = ref.get('doc_name', '')
-                reason = ref.get('reason', '')
-                doc.add_paragraph(f"• {doc_name} - {reason}")
+            # 添加建议引用文档
+            if chapter.get('suggested_references'):
+                p = doc.add_paragraph()
+                p.add_run("【建议引用文档】").bold = True
+                for ref in chapter['suggested_references']:
+                    doc_name = ref.get('doc_name', '')
+                    reason = ref.get('reason', '')
+                    doc.add_paragraph(f"• {doc_name} - {reason}")
 
-        # 添加证明材料清单
-        if chapter.get('evidence_needed'):
-            p = doc.add_paragraph()
-            p.add_run("【需提供证明材料】").bold = True
-            p.add_run().font.color.rgb = RGBColor(255, 0, 0)  # 红色
-            for evidence in chapter['evidence_needed']:
-                doc.add_paragraph(f"• {evidence}")
+            # 添加证明材料清单
+            if chapter.get('evidence_needed'):
+                p = doc.add_paragraph()
+                p.add_run("【需提供证明材料】").bold = True
+                p.add_run().font.color.rgb = RGBColor(255, 0, 0)  # 红色
+                for evidence in chapter['evidence_needed']:
+                    doc.add_paragraph(f"• {evidence}")
 
-        # 添加AI生成的章节内容
-        if chapter.get('ai_generated_content'):
-            doc.add_paragraph()  # 空行分隔
+            # 分隔线
+            doc.add_paragraph()
             p = doc.add_paragraph()
             p.add_run("【AI生成内容】").bold = True
             p.add_run().font.color.rgb = RGBColor(0, 176, 80)  # 绿色标注
 
+        # 添加AI生成的章节内容（总是显示）
+        if chapter.get('ai_generated_content'):
             # ✅ 解析AI生成的Markdown格式内容并转换为Word格式
             ai_content = chapter['ai_generated_content']
             self._add_markdown_content(doc, ai_content)
 
         # 添加子章节
         for subsection in chapter.get('subsections', []):
-            self._add_chapter(doc, subsection)
+            self._add_chapter(doc, subsection, show_guidance=show_guidance)
 
         # 章节结束后添加空行
         doc.add_paragraph()
