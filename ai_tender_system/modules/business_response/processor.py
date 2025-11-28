@@ -280,7 +280,11 @@ class BusinessResponseProcessor:
                     'case_tables_filled': case_stats.get('tables_filled', 0) if case_stats else 0,
                     'case_rows_filled': case_stats.get('rows_filled', 0) if case_stats else 0,
                     'resume_tables_filled': resume_stats.get('tables_filled', 0) if resume_stats else 0,
-                    'resume_rows_filled': resume_stats.get('rows_filled', 0) if resume_stats else 0
+                    'resume_rows_filled': resume_stats.get('rows_filled', 0) if resume_stats else 0,
+                    # 🆕 添加资质详细列表（用于前端展示）
+                    'qualifications_details': image_stats.get('filled_qualifications', []) if image_stats else [],
+                    'missing_qualifications': image_stats.get('missing_qualifications', []) if image_stats else [],
+                    'case_details': case_stats.get('cases_used_details', []) if case_stats else []
                 },
                 'message': self._generate_summary_message(info_stats, table_stats, image_stats, required_quals, case_stats, resume_stats)
             }

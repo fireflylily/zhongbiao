@@ -262,6 +262,60 @@
           :stats="generationResult.stats"
         />
 
+        <!-- 资质处理详情 -->
+        <div v-if="generationResult.stats?.qualifications_details?.length > 0" class="qualifications-details-section">
+          <h4>📋 资质处理详情</h4>
+          <el-table :data="generationResult.stats.qualifications_details" border stripe style="margin-top: 16px">
+            <el-table-column type="index" label="#" width="60" align="center" />
+            <el-table-column prop="display_title" label="资质名称" min-width="200">
+              <template #default="{ row }">
+                <div>
+                  <strong>{{ row.display_title }}</strong>
+                  <el-tag v-if="row.resource_type === 'id_card'" type="info" size="small" style="margin-left: 8px">
+                    身份证
+                  </el-tag>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="qual_name" label="类别" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag :type="getQualCategoryType(row.qual_name)" size="small">
+                  {{ row.qual_name }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="total_pages" label="图片数" width="100" align="center">
+              <template #default="{ row }">
+                <el-text type="primary" size="large">
+                  <strong>{{ row.total_pages }}</strong> {{ row.resource_type === 'id_card' ? '面' : '页' }}
+                </el-text>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="80" align="center">
+              <template #default>
+                <el-icon color="#67c23a" :size="20"><SuccessFilled /></el-icon>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 缺失资质提示 -->
+          <el-alert
+            v-if="generationResult.stats?.missing_qualifications?.length > 0"
+            type="warning"
+            :closable="false"
+            style="margin-top: 16px"
+          >
+            <template #title>
+              以下资质模板有占位符但未上传文件
+            </template>
+            <ul style="margin: 8px 0 0 20px; padding: 0;">
+              <li v-for="(missing, idx) in generationResult.stats.missing_qualifications" :key="idx">
+                {{ missing.qual_name || missing.qual_key }}
+              </li>
+            </ul>
+          </el-alert>
+        </div>
+
         <!-- 文件信息 -->
         <div class="file-info-section">
           <h4>生成文件</h4>
@@ -294,7 +348,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
-import { Download, RefreshRight, Document, View, Upload, Edit } from '@element-plus/icons-vue'
+import { Download, RefreshRight, Document, View, Upload, Edit, SuccessFilled } from '@element-plus/icons-vue'
 import { DocumentUploader, SSEStreamViewer, DocumentPreview, StatsCard, HitlFileAlert, RichTextEditor, HistoryFilesPanel } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import { businessLegacyApi } from '@/api/endpoints/business'
@@ -888,6 +942,29 @@ const getFileName = (path: string | undefined) => {
   return parts[parts.length - 1] || '-'
 }
 
+/**
+ * 根据资质类别返回标签颜色类型
+ * @param category 资质类别名称
+ * @returns Element Plus标签类型
+ */
+const getQualCategoryType = (category: string): string => {
+  const typeMap: Record<string, string> = {
+    '基本资质': 'danger',
+    '信用证明': 'success',
+    '身份证明': 'primary',
+    '财务文件': 'warning',
+    '信息安全': 'info',
+    '电信资质': 'warning',
+    'IT服务': 'info',
+    '质量管理': 'success',
+    '软件能力': 'info',
+    '行业资质': 'warning',
+    '知识产权': ''
+  }
+
+  return typeMap[category] || ''
+}
+
 // 在编辑器中打开历史文件
 const openHistoryInEditor = async () => {
   if (!generationResult.value?.outputFile) {
@@ -1051,7 +1128,8 @@ onMounted(async () => {
   }
 
   .result-content {
-    .file-info-section {
+    .file-info-section,
+    .qualifications-details-section {
       margin-bottom: 24px;
 
       h4 {
@@ -1063,6 +1141,15 @@ onMounted(async () => {
 
       :deep(.el-descriptions__label) {
         font-weight: 600;
+      }
+    }
+
+    .qualifications-details-section {
+      :deep(.el-table) {
+        th {
+          background-color: var(--el-fill-color-light);
+          font-weight: 600;
+        }
       }
     }
   }

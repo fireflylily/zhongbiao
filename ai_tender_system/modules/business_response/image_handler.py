@@ -377,18 +377,32 @@ class ImageHandler:
                     page_num = resource.get('page_num', 1)
                     stats['images_types'].append(f"{resource_key}_p{page_num}" if page_num > 1 else resource_key)
 
-                    # 只在第一页记录到 filled_qualifications
-                    if resource.get('is_first_page', True) and resource_key != 'license':
+                    # 记录到 filled_qualifications（包括营业执照）
+                    if resource.get('is_first_page', True):
                         from .qualification_matcher import QUALIFICATION_MAPPING
-                        qual_name = QUALIFICATION_MAPPING.get(resource_key, {}).get('category', resource_key)
+
+                        # 获取显示信息
+                        if resource_key == 'license':
+                            display_title = '营业执照副本'
+                            category = '基本资质'
+                        elif resource_key in QUALIFICATION_MAPPING:
+                            qual_info = QUALIFICATION_MAPPING[resource_key]
+                            display_title = qual_info.get('display_title', resource.get('title', resource_key))
+                            category = qual_info.get('category', '其他资质')
+                        else:
+                            display_title = resource.get('title', resource_key)
+                            category = '其他资质'
+
+                        total_pages = resource.get('total_pages', 1)
                         stats['filled_qualifications'].append({
                             'qual_key': resource_key,
-                            'qual_name': qual_name,
+                            'qual_name': category,
+                            'display_title': display_title,
                             'file_path': resource.get('path'),
-                            'total_pages': resource.get('total_pages', 1)
+                            'total_pages': total_pages,
+                            'resource_type': 'document'  # 文档类资质
                         })
-                        total_pages = resource.get('total_pages', 1)
-                        self.logger.info(f"✅ 填充资质: {resource_key} ({qual_name}), {total_pages}页")
+                        self.logger.info(f"✅ 填充资质: {resource_key} ({category}), {total_pages}页")
                 else:
                     page_num = resource.get('page_num', 1)
                     stats['errors'].append(f"{resource_key}_p{page_num}插入失败" if page_num > 1 else f"{resource_key}插入失败")
@@ -404,6 +418,16 @@ class ImageHandler:
                 if success:
                     stats['images_inserted'] += 2  # 正反两面
                     stats['images_types'].append(f"{id_type}身份证")
+
+                    # 添加身份证到详细列表
+                    stats['filled_qualifications'].append({
+                        'qual_key': resource_key,
+                        'qual_name': '身份证明',
+                        'display_title': f'{id_type}身份证（正反面）',
+                        'file_path': f"{front_path}, {back_path}",
+                        'total_pages': 2,
+                        'resource_type': 'id_card'  # 身份证类资质
+                    })
                 else:
                     stats['errors'].append(f"{id_type}身份证插入失败")
 

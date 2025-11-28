@@ -344,6 +344,20 @@ export const routes: RouteRecordRaw[] = [
               parent: 'ABTest',
               description: '用户和角色管理'
             }
+          },
+
+          // 自动化测试
+          {
+            path: 'automated-test',
+            name: 'AutomatedTest',
+            component: () => import('@/views/ABTest/AutomatedTest.vue'),
+            meta: {
+              title: '自动化测试',
+              icon: 'bi-play-circle',
+              order: 5,
+              parent: 'ABTest',
+              description: '运行自动化测试并查看覆盖率报告'
+            }
           }
         ]
       }

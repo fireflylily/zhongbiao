@@ -150,21 +150,34 @@ class DocumentScanner:
                     })
                     self.logger.info(f"🔍 授权书候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
 
-            # ===== 5. 特殊处理：政府采购资质（使用AND逻辑）=====
+            # ===== 5. 特殊处理：政府采购资质（使用优先级判断）=====
+            #
+            # 【重要】两种不同的资质类型（必须正确区分）：
+            # 1. gov_procurement_creditchina: 在"信用中国"网站查询政府采购违法记录
+            # 2. gov_procurement_ccgp: 在"中国政府采购网"查询政府采购违法记录
+            #
+            # 【测试案例A - 同时提到两个网站】：
+            # 文本："响应方在'信用中国'网站...的信用报告及'中国政府采购网'...的政府采购严重违法失信行为信息记录"
+            # 预期结果：
+            #   - creditchina_credit_report（信用报告） ← 对应"信用中国"
+            #   - gov_procurement_ccgp（政府采购网查询） ← 对应"政府采购网"
+            #   - 不应该识别为 gov_procurement_creditchina ❌
+            #
+            # 【测试案例B - 只提信用中国】：
+            # 文本："未被列入'信用中国'网站失信被执行人、重大税收违法、政府采购严重违法失信记录名单"
+            # 预期结果：
+            #   - dishonest_executor（失信被执行人）
+            #   - tax_violation_check（税收违法）
+            #   - gov_procurement_creditchina（信用中国的政府采购查询） ✅
+            #
+            # 【识别逻辑】：
+            # 优先级1：明确提到"政府采购网"或"ccgp" → gov_procurement_ccgp
+            # 优先级2：只提到"信用中国"（且没有政府采购网） → gov_procurement_creditchina
+            #
             if "政府采购严重违法失信" in text:
                 category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
                 if category != 'exclude':
-                    # 判断是信用中国还是政府采购网
-                    if "信用中国" in text or "creditchina" in text.lower():
-                        candidates.setdefault('gov_procurement_creditchina', []).append({
-                            'type': 'paragraph',
-                            'index': para_idx,
-                            'paragraph': paragraph,
-                            'category': category,
-                            'text': text[:60]
-                        })
-                        self.logger.info(f"🔍 政府采购-信用中国候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
-
+                    # 优先级1：明确提到"政府采购网" → 识别为政府采购网查询
                     if "政府采购网" in text or "ccgp" in text.lower():
                         candidates.setdefault('gov_procurement_ccgp', []).append({
                             'type': 'paragraph',
@@ -174,6 +187,17 @@ class DocumentScanner:
                             'text': text[:60]
                         })
                         self.logger.info(f"🔍 政府采购-政采网候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+
+                    # 优先级2：只提到"信用中国"（没有政府采购网）→ 识别为信用中国查询
+                    elif "信用中国" in text or "creditchina" in text.lower():
+                        candidates.setdefault('gov_procurement_creditchina', []).append({
+                            'type': 'paragraph',
+                            'index': para_idx,
+                            'paragraph': paragraph,
+                            'category': category,
+                            'text': text[:60]
+                        })
+                        self.logger.info(f"🔍 政府采购-信用中国候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
 
             # ===== 6. 查找具体资质类型（ISO9001, CMMI等）=====
             for qual_key, qual_info in QUALIFICATION_MAPPING.items():

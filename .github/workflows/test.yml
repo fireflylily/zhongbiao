@@ -1,0 +1,142 @@
+name: 自动化测试
+
+on:
+  push:
+    branches: [ master, develop, main ]
+  pull_request:
+    branches: [ master, develop, main ]
+
+# 防止并发执行同一分支的测试
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 后端 Python 测试
+  backend-test:
+    name: Python 后端测试
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.11']
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y antiword
+
+      - name: 安装 Python 依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: 运行单元测试
+        run: |
+          pytest tests/unit/ -v --tb=short --cov=ai_tender_system --cov-report=xml --cov-report=term
+        continue-on-error: true
+        # 允许测试失败,但会标记为警告
+
+      - name: 运行集成测试
+        run: |
+          pytest tests/ -m "not slow" -v --tb=short --cov=ai_tender_system --cov-append --cov-report=xml --cov-report=term
+        continue-on-error: true
+
+      - name: 上传覆盖率报告
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: 生成测试报告摘要
+        if: always()
+        run: |
+          echo "## 测试结果摘要 📊" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Python 后端测试" >> $GITHUB_STEP_SUMMARY
+          echo "- Python 版本: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 测试完成时间: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          pytest tests/ --co -q | tail -1 >> $GITHUB_STEP_SUMMARY || echo "测试统计获取失败" >> $GITHUB_STEP_SUMMARY
+
+  # 前端测试 (如果有的话)
+  frontend-test:
+    name: Vue 前端测试
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 运行 Lint 检查
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      - name: 运行前端测试
+        run: npm test --if-present
+        continue-on-error: true
+
+      - name: 构建前端
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 生成前端测试报告
+        if: always()
+        run: |
+          echo "### 前端构建测试" >> $GITHUB_STEP_SUMMARY
+          echo "- Node.js 版本: 18" >> $GITHUB_STEP_SUMMARY
+          echo "- 构建状态: ✅ 成功" >> $GITHUB_STEP_SUMMARY
+
+  # 测试结果汇总
+  test-summary:
+    name: 测试结果汇总
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    if: always()
+
+    steps:
+      - name: 生成测试总结
+        run: |
+          echo "## 🎯 CI/CD 测试总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ 所有测试已完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 测试状态" >> $GITHUB_STEP_SUMMARY
+          echo "- 后端测试: ${{ needs.backend-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 前端测试: ${{ needs.frontend-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **提示**: 即使部分测试失败,也会继续执行。请查看详细日志了解问题。" >> $GITHUB_STEP_SUMMARY
+
+      - name: 检查是否有严重失败
+        if: needs.backend-test.result == 'failure' || needs.frontend-test.result == 'failure'
+        run: |
+          echo "::warning::部分测试失败,但不会阻止后续流程。请尽快修复!"

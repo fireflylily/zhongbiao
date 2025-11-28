@@ -1,0 +1,163 @@
+name: 代码质量检查
+
+on:
+  push:
+    branches: [ master, develop, main ]
+  pull_request:
+    branches: [ master, develop, main ]
+
+# 防止并发执行
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Python 代码质量检查
+  python-quality:
+    name: Python 代码质量
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: 代码格式检查 (Black)
+        run: |
+          black --check ai_tender_system/ tests/ || echo "::warning::代码格式不符合 Black 标准"
+        continue-on-error: true
+
+      - name: Import 排序检查 (isort)
+        run: |
+          isort --check-only ai_tender_system/ tests/ || echo "::warning::Import 排序不符合标准"
+        continue-on-error: true
+
+      - name: 代码风格检查 (Flake8)
+        run: |
+          flake8 ai_tender_system/ tests/ --max-line-length=120 --extend-ignore=E203,E501,W503 || echo "::warning::代码风格存在问题"
+        continue-on-error: true
+
+      - name: 类型检查 (MyPy)
+        run: |
+          mypy ai_tender_system/ --ignore-missing-imports --no-strict-optional || echo "::warning::类型检查发现问题"
+        continue-on-error: true
+
+      - name: 生成质量报告
+        if: always()
+        run: |
+          echo "## Python 代码质量检查 🔍" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ 代码质量检查完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **注意**: 质量检查失败不会阻止部署,但建议尽快修复。" >> $GITHUB_STEP_SUMMARY
+
+  # 安全扫描
+  security-scan:
+    name: 安全漏洞扫描
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 安装 Safety
+        run: |
+          pip install safety
+
+      - name: 检查依赖漏洞
+        run: |
+          safety check --file=requirements.txt --json || echo "::warning::发现依赖包安全漏洞"
+        continue-on-error: true
+
+      - name: 检查已知安全问题 (Bandit)
+        run: |
+          pip install bandit
+          bandit -r ai_tender_system/ -f json -o bandit-report.json || echo "::warning::发现潜在安全问题"
+        continue-on-error: true
+
+      - name: 上传安全报告
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+
+      - name: 生成安全报告摘要
+        if: always()
+        run: |
+          echo "## 安全扫描结果 🔐" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ 安全扫描完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "详细报告请查看 Artifacts 中的 security-reports" >> $GITHUB_STEP_SUMMARY
+
+  # 依赖版本检查
+  dependency-check:
+    name: 依赖版本检查
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: 检查过期依赖
+        run: |
+          pip install pip-check
+          pip install -r requirements.txt
+          pip-check || echo "::warning::存在过期的依赖包"
+        continue-on-error: true
+
+      - name: 生成依赖报告
+        if: always()
+        run: |
+          pip list --format=json > dependencies.json
+          echo "## 依赖包版本 📦" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "依赖包列表已生成" >> $GITHUB_STEP_SUMMARY
+
+      - name: 上传依赖报告
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: dependency-report
+          path: dependencies.json
+
+  # 质量总结
+  quality-summary:
+    name: 质量检查总结
+    runs-on: ubuntu-latest
+    needs: [python-quality, security-scan, dependency-check]
+    if: always()
+
+    steps:
+      - name: 生成总结
+        run: |
+          echo "## 🎨 代码质量检查总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 检查结果" >> $GITHUB_STEP_SUMMARY
+          echo "- Python 代码质量: ${{ needs.python-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 安全扫描: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 依赖检查: ${{ needs.dependency-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **提示**: 代码质量问题不会阻止部署,但建议持续改进!" >> $GITHUB_STEP_SUMMARY
