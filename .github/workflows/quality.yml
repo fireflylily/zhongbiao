@@ -91,7 +91,7 @@ jobs:
         continue-on-error: true
 
       - name: 上传安全报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: security-reports
@@ -137,7 +137,7 @@ jobs:
           echo "依赖包列表已生成" >> $GITHUB_STEP_SUMMARY
 
       - name: 上传依赖报告
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: dependency-report

@@ -48,7 +48,7 @@ jobs:
       - name: Run critical tests
         run: |
           echo "运行关键测试..."
-          pytest tests/test_common_database.py::TestKnowledgeBaseDB -v --tb=short
+          pytest tests/test_common_database.py -v --tb=short --maxfail=5
         # 关键测试必须通过
 
       - name: Test Summary
@@ -87,7 +87,7 @@ jobs:
           NODE_ENV: production
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist/
@@ -112,7 +112,7 @@ jobs:
           fetch-depth: 0  # 获取完整历史，用于回滚
 
       - name: Download frontend build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: ai_tender_system/web/static/dist/
