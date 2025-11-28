@@ -367,12 +367,9 @@ class WordExporter:
             p.add_run("【AI生成内容】").bold = True
             p.add_run().font.color.rgb = RGBColor(0, 176, 80)  # 绿色标注
 
-            # 添加AI生成的段落（处理换行）
+            # ✅ 解析AI生成的Markdown格式内容并转换为Word格式
             ai_content = chapter['ai_generated_content']
-            paragraphs = ai_content.split('\n\n')
-            for para in paragraphs:
-                if para.strip():
-                    doc.add_paragraph(para.strip())
+            self._add_markdown_content(doc, ai_content)
 
         # 添加子章节
         for subsection in chapter.get('subsections', []):
@@ -380,3 +377,83 @@ class WordExporter:
 
         # 章节结束后添加空行
         doc.add_paragraph()
+
+    def _add_markdown_content(self, doc: Document, markdown_text: str):
+        """
+        将Markdown格式文本转换为Word格式并添加到文档
+
+        Args:
+            doc: Word文档对象
+            markdown_text: Markdown格式的文本
+        """
+        import re
+
+        lines = markdown_text.split('\n')
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # 处理标题：### 三级标题 → Heading 3
+            if line.startswith('### '):
+                title_text = line[4:].strip()
+                doc.add_heading(title_text, level=3)
+            # 处理标题：## 二级标题 → Heading 2
+            elif line.startswith('## '):
+                title_text = line[3:].strip()
+                doc.add_heading(title_text, level=2)
+            # 处理有序列表：1. 内容
+            elif re.match(r'^\d+\.\s', line):
+                # 移除数字和点号
+                text = re.sub(r'^\d+\.\s+', '', line)
+                # 处理加粗标记
+                text = self._process_inline_markdown(text)
+                # 添加为列表项
+                p = doc.add_paragraph(style='List Number')
+                self._add_formatted_text(p, text)
+            # 处理无序列表：- 内容 或 * 内容
+            elif line.startswith('- ') or line.startswith('* '):
+                text = line[2:].strip()
+                text = self._process_inline_markdown(text)
+                p = doc.add_paragraph(style='List Bullet')
+                self._add_formatted_text(p, text)
+            # 普通段落
+            else:
+                text = self._process_inline_markdown(line)
+                p = doc.add_paragraph()
+                self._add_formatted_text(p, text)
+
+    def _process_inline_markdown(self, text: str) -> str:
+        """处理行内Markdown标记（暂时保留标记，由_add_formatted_text处理）"""
+        return text
+
+    def _add_formatted_text(self, paragraph, text: str):
+        """
+        添加格式化文本到段落（处理加粗等格式）
+
+        Args:
+            paragraph: Word段落对象
+            text: 包含Markdown标记的文本
+        """
+        import re
+
+        # 正则匹配 **加粗文本**
+        pattern = r'\*\*(.+?)\*\*'
+
+        last_end = 0
+        for match in re.finditer(pattern, text):
+            # 添加普通文本
+            if match.start() > last_end:
+                paragraph.add_run(text[last_end:match.start()])
+
+            # 添加加粗文本
+            bold_text = match.group(1)
+            run = paragraph.add_run(bold_text)
+            run.bold = True
+
+            last_end = match.end()
+
+        # 添加剩余文本
+        if last_end < len(text):
+            paragraph.add_run(text[last_end:])

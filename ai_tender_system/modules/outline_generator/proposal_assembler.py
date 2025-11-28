@@ -856,7 +856,7 @@ class ProposalAssembler:
 
 核心要点：{hints_text}
 
-要求：专业、清晰、突出技术优势、中文"""
+要求：专业、清晰、突出技术优势、中文、纯文本格式（不使用Markdown标记如##、**等）"""
 
             # 调用LLM
             self.logger.info(f"为章节'{chapter_title}'生成AI内容（精简模式）...")
@@ -929,11 +929,11 @@ class ProposalAssembler:
 
 核心要点：{hints_text}
 
-要求：专业、清晰、突出技术优势、中文"""
+要求：专业、清晰、突出技术优势、中文、纯文本格式（不使用Markdown标记如##、**等）"""
 
         # 策略1: 流式生成（超时120秒）
         try:
-            self.logger.info(f"为章节'{chapter_title}'流式生成AI内容（精简模式）...")
+            self.logger.info(f"为章节'{chapter_title}'流式生成AI内容（精简+纯文本模式）...")
 
             for chunk in self.llm_client.call_stream(
                 prompt=prompt,
