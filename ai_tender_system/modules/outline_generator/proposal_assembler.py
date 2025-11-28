@@ -157,106 +157,140 @@ class ProposalAssembler:
 
             # 如果没有产品文档匹配，使用流式AI生成
             if total_matched_docs == 0:
-                self.logger.info(f"无产品文档匹配，开始流式生成 {len(chapters)} 个章节...")
+                self.logger.info(f"无产品文档匹配，开始并发流式生成 {len(chapters)} 个章节...")
 
-                for i, chapter in enumerate(chapters, 1):
-                    chapter_title = chapter.get('title', f'第{i}章')
-                    chapter_num = chapter.get('chapter_number', str(i))
-
-                    # 推送章节开始事件
-                    yield {
-                        'type': 'chapter_start',
-                        'chapter_number': chapter_num,
-                        'chapter_title': chapter_title,
-                        'total_chapters': len(chapters),
-                        'current_index': i
+                # ✅ 并发生成所有主章节（不包括子章节）
+                with ThreadPoolExecutor(max_workers=3) as executor:
+                    # 提交所有章节生成任务
+                    future_to_chapter = {
+                        executor.submit(self._generate_chapter_stream_safe, ch, analysis): ch
+                        for ch in chapters
                     }
 
-                    # 流式生成章节内容
-                    chapter_content = []
-                    for content_chunk in self.generate_chapter_content_stream(chapter, analysis):
-                        chapter_content.append(content_chunk)
-                        # 推送内容片段
-                        yield {
-                            'type': 'content_chunk',
-                            'chapter_number': chapter_num,
-                            'chunk': content_chunk
-                        }
+                    # 按完成顺序处理结果（谁先完成先处理谁）
+                    completed_chapters = {}
+                    for future in as_completed(future_to_chapter, timeout=None):
+                        original_chapter = future_to_chapter[future]
 
-                    # 组装章节数据
-                    assembled_chapter = {
-                        'chapter_number': chapter_num,
-                        'level': chapter.get('level', 1),
-                        'title': chapter_title,
-                        'description': chapter.get('description', ''),
-                        'response_strategy': chapter.get('response_strategy', ''),
-                        'content_hints': chapter.get('content_hints', []),
-                        'response_tips': chapter.get('response_tips', []),
-                        'suggested_references': chapter.get('suggested_references', []),
-                        'evidence_needed': chapter.get('evidence_needed', []),
-                        'ai_generated_content': ''.join(chapter_content),
-                        'subsections': []
-                    }
+                        try:
+                            # ✅ 单章节120秒超时保护
+                            chapter_num, chapter_title, content = future.result(timeout=130)
 
-                    # 处理子章节（流式生成）
-                    if 'subsections' in chapter and chapter['subsections']:
-                        self.logger.info(f"开始流式生成 {len(chapter['subsections'])} 个子章节...")
-
-                        for j, subsection in enumerate(chapter['subsections'], 1):
-                            subsection_title = subsection.get('title', f'子章节{j}')
-                            subsection_num = subsection.get('chapter_number', f"{chapter_num}.{j}")
-
-                            # 推送子章节开始事件
+                            # 推送章节开始事件
                             yield {
-                                'type': 'subsection_start',
+                                'type': 'chapter_start',
                                 'chapter_number': chapter_num,
-                                'subsection_number': subsection_num,
-                                'subsection_title': subsection_title
+                                'chapter_title': chapter_title
                             }
 
-                            # 流式生成子章节内容
-                            subsection_content = []
-                            for content_chunk in self.generate_chapter_content_stream(subsection, analysis):
-                                subsection_content.append(content_chunk)
-                                # 推送子章节内容片段
+                            # 推送内容（一次性推送）
+                            yield {
+                                'type': 'content_chunk',
+                                'chapter_number': chapter_num,
+                                'chunk': content
+                            }
+
+                            # 推送章节完成事件
+                            yield {
+                                'type': 'chapter_end',
+                                'chapter_number': chapter_num,
+                                'chapter_title': chapter_title
+                            }
+
+                            # 保存结果
+                            completed_chapters[chapter_num] = (original_chapter, content)
+
+                        except TimeoutError as e:
+                            # 超时降级
+                            chapter_title = original_chapter.get('title', '')
+                            chapter_num = original_chapter.get('chapter_number', '')
+                            self.logger.error(f"章节'{chapter_title}'生成超时(130秒)，使用模板")
+
+                            template = self._generate_template_content(original_chapter)
+                            completed_chapters[chapter_num] = (original_chapter, template)
+
+                            yield {
+                                'type': 'chapter_timeout',
+                                'chapter_number': chapter_num,
+                                'chapter_title': chapter_title,
+                                'message': f'章节超时，已使用模板'
+                            }
+                        except Exception as e:
+                            chapter_title = original_chapter.get('title', '')
+                            self.logger.error(f"章节'{chapter_title}'生成失败: {e}")
+
+                # ✅ 按原始顺序组装章节（保持文档结构）
+                for chapter in chapters:
+                    chapter_num = chapter.get('chapter_number', '')
+
+                    if chapter_num in completed_chapters:
+                        original_chapter, content = completed_chapters[chapter_num]
+
+                        assembled_chapter = {
+                            'chapter_number': chapter_num,
+                            'level': chapter.get('level', 1),
+                            'title': chapter.get('title', ''),
+                            'description': chapter.get('description', ''),
+                            'response_strategy': chapter.get('response_strategy', ''),
+                            'content_hints': chapter.get('content_hints', []),
+                            'response_tips': chapter.get('response_tips', []),
+                            'suggested_references': chapter.get('suggested_references', []),
+                            'evidence_needed': chapter.get('evidence_needed', []),
+                            'ai_generated_content': content,
+                            'subsections': []
+                        }
+
+                        # 处理子章节（串行，因为子章节通常较少）
+                        if 'subsections' in chapter and chapter['subsections']:
+                            self.logger.info(f"开始生成 {len(chapter['subsections'])} 个子章节...")
+
+                            for subsection in chapter['subsections']:
+                                subsection_num = subsection.get('chapter_number', '')
+                                subsection_title = subsection.get('title', '')
+
+                                # 推送子章节开始
+                                yield {
+                                    'type': 'subsection_start',
+                                    'chapter_number': chapter_num,
+                                    'subsection_number': subsection_num,
+                                    'subsection_title': subsection_title
+                                }
+
+                                # 生成子章节
+                                _, _, sub_content = self._generate_chapter_stream_safe(subsection, analysis)
+
+                                # 推送内容
                                 yield {
                                     'type': 'content_chunk',
                                     'chapter_number': subsection_num,
-                                    'chunk': content_chunk
+                                    'chunk': sub_content
                                 }
 
-                            # 组装子章节
-                            assembled_subsection = {
-                                'chapter_number': subsection_num,
-                                'level': subsection.get('level', 2),
-                                'title': subsection_title,
-                                'description': subsection.get('description', ''),
-                                'response_strategy': subsection.get('response_strategy', ''),
-                                'content_hints': subsection.get('content_hints', []),
-                                'response_tips': subsection.get('response_tips', []),
-                                'suggested_references': subsection.get('suggested_references', []),
-                                'evidence_needed': subsection.get('evidence_needed', []),
-                                'ai_generated_content': ''.join(subsection_content)
-                            }
+                                # 组装子章节
+                                assembled_subsection = {
+                                    'chapter_number': subsection_num,
+                                    'level': subsection.get('level', 2),
+                                    'title': subsection_title,
+                                    'description': subsection.get('description', ''),
+                                    'response_strategy': subsection.get('response_strategy', ''),
+                                    'content_hints': subsection.get('content_hints', []),
+                                    'response_tips': subsection.get('response_tips', []),
+                                    'suggested_references': subsection.get('suggested_references', []),
+                                    'evidence_needed': subsection.get('evidence_needed', []),
+                                    'ai_generated_content': sub_content
+                                }
 
-                            assembled_chapter['subsections'].append(assembled_subsection)
+                                assembled_chapter['subsections'].append(assembled_subsection)
 
-                            # 推送子章节完成事件
-                            yield {
-                                'type': 'subsection_end',
-                                'chapter_number': chapter_num,
-                                'subsection_number': subsection_num,
-                                'subsection_title': subsection_title
-                            }
+                                # 推送子章节完成
+                                yield {
+                                    'type': 'subsection_end',
+                                    'chapter_number': chapter_num,
+                                    'subsection_number': subsection_num,
+                                    'subsection_title': subsection_title
+                                }
 
-                    proposal['chapters'].append(assembled_chapter)
-
-                    # 推送章节完成事件
-                    yield {
-                        'type': 'chapter_end',
-                        'chapter_number': chapter_num,
-                        'chapter_title': chapter_title
-                    }
+                        proposal['chapters'].append(assembled_chapter)
             else:
                 # 有匹配文档时，使用非流式方法
                 proposal['chapters'] = self._assemble_chapters(chapters, analysis, matched_docs)
@@ -812,36 +846,24 @@ class ProposalAssembler:
         content_hints = chapter.get('content_hints', [])
         response_tips = chapter.get('response_tips', [])
 
-        # 策略1: 完整提示词生成（重试2次）
+        # 策略1: 精简提示词生成（重试2次）
         try:
-            # 构建完整提示词
-            prompt = f"""请为技术方案的以下章节生成详细内容：
+            # ✅ 精简提示词：只保留核心要点
+            core_hints = content_hints[:3] if content_hints else []
+            hints_text = '、'.join(core_hints) if core_hints else chapter_desc
 
-章节标题: {chapter_title}
-章节说明: {chapter_desc}
+            prompt = f"""为"{chapter_title}"生成800字专业技术方案。
 
-内容要点:
-{chr(10).join(['- ' + hint for hint in content_hints])}
+核心要点：{hints_text}
 
-应答建议:
-{chr(10).join(['- ' + tip for tip in response_tips])}
-
-要求:
-1. 内容要专业、详实，符合技术方案的标准
-2. 突出技术先进性和可行性
-3. 语言简洁明了，逻辑清晰
-4. 字数控制在800-1500字
-5. 使用中文撰写
-6. 直接输出章节内容，不要包含标题
-
-请生成该章节的详细内容:"""
+要求：专业、清晰、突出技术优势、中文"""
 
             # 调用LLM
-            self.logger.info(f"为章节'{chapter_title}'生成AI内容...")
+            self.logger.info(f"为章节'{chapter_title}'生成AI内容（精简模式）...")
             response = self.llm_client.call(
                 prompt=prompt,
                 temperature=0.7,
-                max_tokens=2000,
+                max_tokens=1500,  # 从2000降到1500
                 max_retries=2,
                 purpose=f"章节内容生成: {chapter_title}"
             )
@@ -886,7 +908,7 @@ class ProposalAssembler:
         analysis: Dict[str, Any]
     ) -> Generator[str, None, None]:
         """
-        使用AI流式生成章节内容（Generator版本，带降级策略）
+        使用AI流式生成章节内容（Generator版本，带降级策略和精简提示词）
 
         Args:
             chapter: 章节信息
@@ -898,63 +920,42 @@ class ProposalAssembler:
         chapter_title = chapter.get('title', '')
         chapter_desc = chapter.get('description', '')
         content_hints = chapter.get('content_hints', [])
-        response_tips = chapter.get('response_tips', [])
+
+        # ✅ 统一使用精简提示词
+        core_hints = content_hints[:3] if content_hints else []
+        hints_text = '、'.join(core_hints) if core_hints else chapter_desc
+
+        prompt = f"""为"{chapter_title}"生成800字专业技术方案。
+
+核心要点：{hints_text}
+
+要求：专业、清晰、突出技术优势、中文"""
 
         # 策略1: 流式生成（超时120秒）
         try:
-            # 构建完整提示词
-            prompt = f"""请为技术方案的以下章节生成详细内容：
-
-章节标题: {chapter_title}
-章节说明: {chapter_desc}
-
-内容要点:
-{chr(10).join(['- ' + hint for hint in content_hints])}
-
-应答建议:
-{chr(10).join(['- ' + tip for tip in response_tips])}
-
-要求:
-1. 内容要专业、详实，符合技术方案的标准
-2. 突出技术先进性和可行性
-3. 语言简洁明了，逻辑清晰
-4. 字数控制在800-1500字
-5. 使用中文撰写
-6. 直接输出章节内容，不要包含标题
-
-请生成该章节的详细内容:"""
-
-            # 流式调用LLM（带超时）
-            self.logger.info(f"为章节'{chapter_title}'流式生成AI内容...")
+            self.logger.info(f"为章节'{chapter_title}'流式生成AI内容（精简模式）...")
 
             for chunk in self.llm_client.call_stream(
                 prompt=prompt,
                 temperature=0.7,
-                max_tokens=2000,
-                timeout=120,  # 120秒超时
+                max_tokens=1500,  # 降到1500
+                timeout=120,
                 purpose=f"章节内容流式生成: {chapter_title}"
             ):
                 yield chunk
 
             self.logger.info(f"章节'{chapter_title}'流式生成完成")
-            return  # 成功则直接返回
+            return
 
         except Exception as e:
             self.logger.warning(f"策略1(流式生成)失败: {e}，尝试策略2(非流式生成)")
 
-        # 策略2: 非流式生成（超时60秒）
+        # 策略2: 非流式生成
         try:
             self.logger.info(f"章节'{chapter_title}'使用非流式生成...")
 
-            # 简化提示词
-            simplified_prompt = f"""为"{chapter_title}"生成800字技术方案内容。
-
-要点: {', '.join(content_hints[:3])}
-
-要求: 专业、清晰、中文"""
-
             response = self.llm_client.call(
-                prompt=simplified_prompt,
+                prompt=prompt,  # 使用相同的精简提示词
                 temperature=0.7,
                 max_tokens=1500,
                 max_retries=1,
@@ -973,6 +974,40 @@ class ProposalAssembler:
         self.logger.error(f"章节'{chapter_title}'所有生成策略失败，使用模板内容")
         template_content = self._generate_template_content(chapter)
         yield template_content
+
+    def _generate_chapter_stream_safe(
+        self,
+        chapter: Dict[str, Any],
+        analysis: Dict[str, Any]
+    ) -> Tuple[str, str, str]:
+        """
+        安全地生成单个章节（用于并发调用）
+        将Generator转为完整字符串，带超时保护
+
+        Args:
+            chapter: 章节信息
+            analysis: 需求分析结果
+
+        Returns:
+            (chapter_number, chapter_title, content)
+        """
+        try:
+            chapter_num = chapter.get('chapter_number', '')
+            chapter_title = chapter.get('title', '')
+
+            # 收集流式生成的内容
+            content_parts = []
+            for chunk in self.generate_chapter_content_stream(chapter, analysis):
+                content_parts.append(chunk)
+
+            content = ''.join(content_parts)
+            return (chapter_num, chapter_title, content)
+
+        except Exception as e:
+            self.logger.error(f"章节'{chapter.get('title')}'生成失败: {e}")
+            # 返回模板内容
+            template = self._generate_template_content(chapter)
+            return (chapter.get('chapter_number', ''), chapter.get('title', ''), template)
 
     def _generate_template_content(self, chapter: Dict[str, Any]) -> str:
         """
