@@ -48,8 +48,8 @@ jobs:
       - name: Run critical tests
         run: |
           echo "运行关键测试..."
-          pytest tests/test_common_database.py -v --tb=short --maxfail=5
-        # 关键测试必须通过
+          pytest tests/unit/common/ -v --tb=short --maxfail=5
+        # 关键单元测试必须通过（无外部依赖）
 
       - name: Test Summary
         if: always()
