@@ -1395,12 +1395,13 @@
     ]
   },
   "src/views/Business/Response.vue": {
-    "file": "js/Response-QfhKRgtb.js",
+    "file": "js/Response-CTZTj2CD.js",
     "name": "Response",
     "src": "src/views/Business/Response.vue",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
+      "_el-text--mOnm-pe.js",
       "_el-select-Bw7Pegjc.js",
       "_editor-CW41Mq4b.js",
       "_DocumentUploader-Dsg1ajmn.js",
@@ -1413,9 +1414,10 @@
       "_useProjectDocuments-DSeiu0Z1.js",
       "_index-Jb4BHfA3.js",
       "_index-BjikXUqk.js",
+      "_index-Fgx7eeaB.js",
+      "_strings-CI1rj266.js",
       "_index-CdDG5CTk.js",
       "_index-DlKNcsVH.js",
-      "_strings-CI1rj266.js",
       "_index-BxFhwaSO.js",
       "_toNumber-BQm7RcjZ.js",
       "__baseIteratee-CQMEzKuW.js",
@@ -1428,7 +1430,6 @@
       "_index-CqpIP0RU.js",
       "_index-Bksm3dTX.js",
       "_index-CiL5Ucqq.js",
-      "_index-Fgx7eeaB.js",
       "_flatMap-BD_qzh05.js",
       "_map-Be3_7zp7.js",
       "__baseEach-BSLja2hJ.js",
@@ -1436,21 +1437,21 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/Response-oOcRs2by.css",
+      "css/Response-BD4-MW2A.css",
       "css/HistoryFilesPanel-Bb4wCMm9.css",
       "css/el-descriptions-item-DPqPz_nA.css",
       "css/el-link-B58a4a3I.css",
+      "css/el-checkbox-DIj50LEB.css",
+      "css/el-scrollbar-BWxh-h6K.css",
       "css/el-tag-DljBBxJR.css",
       "css/el-card-CSdhzOsS.css",
-      "css/el-scrollbar-BWxh-h6K.css",
       "css/el-tabs-DscyrLag.css",
       "css/DocumentPreview-D7JSFyWn.css",
-      "css/el-loading-C5IeuJ3V.css",
-      "css/el-checkbox-DIj50LEB.css"
+      "css/el-loading-C5IeuJ3V.css"
     ]
   },
   "src/views/Business/TechProposal.vue": {
-    "file": "js/TechProposal-DFn-1MMj.js",
+    "file": "js/TechProposal-DZb5zLtL.js",
     "name": "TechProposal",
     "src": "src/views/Business/TechProposal.vue",
     "isDynamicEntry": true,
@@ -1494,7 +1495,7 @@
       "_project-MZH6Q0oi.js"
     ],
     "css": [
-      "css/TechProposal-CYKLCTmj.css",
+      "css/TechProposal-BqzNwG4J.css",
       "css/el-checkbox-DIj50LEB.css",
       "css/HistoryFilesPanel-Bb4wCMm9.css",
       "css/el-tag-DljBBxJR.css",

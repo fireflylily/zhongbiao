@@ -280,6 +280,7 @@
         ref="editorRef"
         v-model="editorContent"
         title="技术方案文档"
+        :height="'calc(100vh - 250px)'"
         :loading="editorLoading"
         :saving="editorSaving"
         @save="handleEditorSave"
@@ -846,7 +847,9 @@ const updateEditorContent = (chapterContents: Record<string, string>) => {
 
         // 根据level使用不同的标题级别
         const headingLevel = chapter.level || 1
-        htmlContent += `<h${headingLevel}>${chapterNum} ${chapter.title}</h${headingLevel}>\n`
+        const chapterId = `ch-${chapterNum.replace(/\./g, '-')}`
+        // ✅ 添加id属性，完整显示章节号和标题
+        htmlContent += `<h${headingLevel} id="${chapterId}">${chapterNum} ${chapter.title}</h${headingLevel}>\n`
 
         // ✅ 显示章节说明
         if (chapter.description) {
