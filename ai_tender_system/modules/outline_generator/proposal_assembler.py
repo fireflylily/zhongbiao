@@ -226,16 +226,17 @@ class ProposalAssembler:
                     if chapter_num in completed_chapters:
                         original_chapter, content = completed_chapters[chapter_num]
 
+                        # ✅ 修复：使用original_chapter（并发生成时的章节对象）确保数据一致性
                         assembled_chapter = {
                             'chapter_number': chapter_num,
-                            'level': chapter.get('level', 1),
-                            'title': chapter.get('title', ''),
-                            'description': chapter.get('description', ''),
-                            'response_strategy': chapter.get('response_strategy', ''),
-                            'content_hints': chapter.get('content_hints', []),
-                            'response_tips': chapter.get('response_tips', []),
-                            'suggested_references': chapter.get('suggested_references', []),
-                            'evidence_needed': chapter.get('evidence_needed', []),
+                            'level': original_chapter.get('level', 1),
+                            'title': original_chapter.get('title', ''),
+                            'description': original_chapter.get('description', ''),
+                            'response_strategy': original_chapter.get('response_strategy', ''),
+                            'content_hints': original_chapter.get('content_hints', []),
+                            'response_tips': original_chapter.get('response_tips', []),
+                            'suggested_references': original_chapter.get('suggested_references', []),
+                            'evidence_needed': original_chapter.get('evidence_needed', []),
                             'ai_generated_content': content,
                             'subsections': []
                         }

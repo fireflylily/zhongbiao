@@ -694,15 +694,33 @@ const refreshOutline = async () => {
   refreshingOutline.value = true
 
   try {
-    // 使用Umo Editor的官方API getTableOfContents
-    if (typeof umoEditorRef.value.getTableOfContents === 'function') {
-      const toc = umoEditorRef.value.getTableOfContents()
-      outline.value = toc || []
-      console.log('[RichTextEditor] 目录更新:', outline.value.length, '项', toc)
-    } else {
-      console.warn('[RichTextEditor] getTableOfContents方法不可用')
+    // ✅ 使用自定义HTML解析（更可靠，提取完整标题）
+    const html = umoEditorRef.value.getHTML()
+
+    if (!html || html === '<p></p>') {
       outline.value = []
+      return
     }
+
+    // 创建临时DOM解析HTML
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+
+    // 查找所有标题（h1-h6）
+    const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6')
+
+    outline.value = Array.from(headings).map((heading, index) => ({
+      id: heading.id || `heading-${index}`,
+      level: parseInt(heading.tagName[1]),  // h1 → 1, h2 → 2
+      textContent: heading.textContent.trim(),  // ✅ 完整文本！
+      dom: null  // scrollToHeading会用id查找DOM
+    }))
+
+    console.log('[RichTextEditor] 目录提取完成:', outline.value.length, '项')
+    outline.value.forEach((item, i) => {
+      console.log(`  ${i + 1}. [H${item.level}] ${item.textContent.substring(0, 50)}`)
+    })
+
   } catch (error) {
     console.error('[RichTextEditor] 获取目录失败:', error)
     outline.value = []
