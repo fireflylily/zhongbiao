@@ -35,12 +35,15 @@ ai_tender_system/data/output/
 fix_*.py
 temp_*.py
 
-# Ignore test files (optional, you may want to keep some)
-test_*.py
-debug_*.py
-*_test.py
-quick_test.py
-final_integration_test.py
+# Ignore temporary test files in project root (但保留tests目录下的正式测试文件)
+/test_*.py
+/debug_*.py
+/*_test.py
+/quick_test.py
+/final_integration_test.py
+/test_qualification_detection.py
+/test_audit_filter.py
+/diagnose_*.py
 
 # Ignore test coverage reports
 htmlcov/
