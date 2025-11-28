@@ -22,11 +22,11 @@ def temp_dir():
 
 @pytest.fixture(scope="function")
 def temp_db(temp_dir):
-    """创建临时SQLite数据库"""
+    """创建临时SQLite数据库路径"""
     db_path = temp_dir / "test.db"
-    conn = sqlite3.connect(str(db_path))
-    yield conn
-    conn.close()
+    # 返回数据库文件路径，而不是连接对象
+    # 让测试代码自己创建KnowledgeBaseDB实例
+    yield str(db_path)
 
 
 @pytest.fixture
@@ -93,3 +93,56 @@ def sample_company_data():
         'registered_capital': '5000万元',
         'legal_representative': '张三'
     }
+
+
+@pytest.fixture
+def sample_company_info():
+    """示例公司信息（用于测试）"""
+    return {
+        'company_name': '测试科技有限公司',
+        'employee_count': 150,
+        'certifications': ['ISO9001', 'ISO27001', '信息系统集成资质']
+    }
+
+
+@pytest.fixture
+def mock_llm_response():
+    """Mock的LLM API响应"""
+    return {
+        'choices': [{
+            'message': {
+                'content': '这是AI生成的测试响应内容'
+            }
+        }],
+        'model': 'gpt-4o-mini',
+        'usage': {
+            'prompt_tokens': 100,
+            'completion_tokens': 50,
+            'total_tokens': 150
+        }
+    }
+
+
+@pytest.fixture
+def sample_pdf_file(temp_dir):
+    """创建示例PDF文件"""
+    # 创建一个空的PDF文件用于测试
+    pdf_path = temp_dir / "test.pdf"
+    # 写入最小的PDF文件内容
+    pdf_path.write_bytes(b'%PDF-1.4\n%%EOF\n')
+    return pdf_path
+
+
+@pytest.fixture
+def app():
+    """Flask应用实例（用于测试）"""
+    from ai_tender_system.web.app import create_app
+    app = create_app()
+    app.config['TESTING'] = True
+    return app
+
+
+@pytest.fixture
+def client(app):
+    """Flask测试客户端"""
+    return app.test_client()
