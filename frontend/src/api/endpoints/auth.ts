@@ -20,7 +20,7 @@ export const authApi = {
       token?: string
     }>
   > {
-    const response = await apiClient.post('/auth/login', data)
+    const response = await apiClient.post('/api/auth/login', data)
 
     // 如果返回token，保存到localStorage
     if (response.data?.token) {
