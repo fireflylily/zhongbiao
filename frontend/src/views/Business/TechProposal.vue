@@ -281,7 +281,7 @@
         ref="editorRef"
         v-model="editorContent"
         title="技术方案文档"
-        :height="'calc(100vh - 250px)'"
+        :height="1000"
         :loading="editorLoading"
         :saving="editorSaving"
         @save="handleEditorSave"
@@ -725,6 +725,15 @@ const generateWithSSE = async (formData: FormData) => {
   const chapterContents: Record<string, string> = {}
   let currentChapterNumber = ''
 
+  // 防抖定时器（减少编辑器更新频率，避免闪烁）
+  let editorUpdateTimer: ReturnType<typeof setTimeout> | null = null
+  const debouncedUpdateEditor = () => {
+    if (editorUpdateTimer) clearTimeout(editorUpdateTimer)
+    editorUpdateTimer = setTimeout(() => {
+      updateEditorContent(chapterContents)
+    }, 500) // 500ms防抖
+  }
+
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
@@ -775,11 +784,13 @@ const generateWithSSE = async (formData: FormData) => {
               const chapterNum = data.chapter_number || currentChapterNumber
               if (chapterNum) {
                 chapterContents[chapterNum] = (chapterContents[chapterNum] || '') + (data.content || '')
-                // 更新编辑器内容（增量更新）
-                updateEditorContent(chapterContents)
+                // 使用防抖更新编辑器（避免频繁全量替换导致闪烁）
+                debouncedUpdateEditor()
               }
             } else if (data.event === 'chapter_end') {
-              // 章节完成
+              // 章节完成 - 强制立即更新一次编辑器（确保完整性）
+              if (editorUpdateTimer) clearTimeout(editorUpdateTimer)
+              updateEditorContent(chapterContents)
               streamContent.value += `\n✓ ${data.chapter_title || '章节'} 生成完成\n`
             }
           }
