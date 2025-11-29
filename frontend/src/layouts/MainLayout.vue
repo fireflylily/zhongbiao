@@ -290,7 +290,7 @@ watch(
 // ==================== 面包屑容器 ====================
 
 .breadcrumb-container {
-  padding: 12px 24px;
+  padding: 8px 24px;
   background: var(--bg-white, #ffffff);
   border-bottom: 1px solid var(--border-light, #e5e7eb);
 }
@@ -310,15 +310,21 @@ watch(
   overflow-x: hidden;
 
   &.page-content--padding {
-    padding: 20px;
+    padding: 16px 20px;
   }
 
   &.page-content--with-tabs {
-    // 有标签页时减少顶部padding
+    // 有标签页时减少顶部padding,避免与tabs叠加
+    &.page-content--padding {
+      padding-top: 8px;
+    }
   }
 
   &.page-content--with-breadcrumb {
-    // 有面包屑时减少顶部padding
+    // 有面包屑时减少顶部padding,避免与breadcrumb叠加
+    &.page-content--padding {
+      padding-top: 8px;
+    }
   }
 }
 
@@ -423,7 +429,7 @@ watch(
   }
 
   .breadcrumb-container {
-    padding: 8px 16px;
+    padding: 6px 16px;
   }
 }
 

@@ -2,12 +2,6 @@
   <div class="tech-proposal">
     <!-- Step 1: 项目选择 -->
     <el-card class="project-section" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>Step 1: 选择项目</span>
-        </div>
-      </template>
-
       <el-form :model="form" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -42,20 +36,27 @@
     </el-card>
 
     <!-- Step 2: 文件上传和配置 -->
-    <el-card v-if="form.projectId" class="upload-section" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>Step 2: 上传技术需求文档</span>
-          <el-button
-            v-if="currentDocuments.technicalFile && !useHitlFile"
-            type="primary"
-            size="small"
-            @click="loadFromHITL(currentDocuments, 'technicalFile')"
-          >
-            使用技术需求文件
-          </el-button>
-        </div>
-      </template>
+    <el-card class="upload-section" shadow="never">
+      <!-- 使用技术文件提示 -->
+      <el-alert
+        v-if="currentDocuments.technicalFile && !useHitlFile"
+        type="success"
+        :closable="false"
+        style="margin-bottom: 16px"
+      >
+        <template #default>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>💡 检测到该项目已有技术需求文件，可直接使用</span>
+            <el-button
+              type="primary"
+              size="small"
+              @click="loadFromHITL(currentDocuments, 'technicalFile')"
+            >
+              使用技术需求文件
+            </el-button>
+          </div>
+        </template>
+      </el-alert>
 
       <!-- HITL文件Alert -->
       <HitlFileAlert
@@ -1170,7 +1171,7 @@ onMounted(async () => {
 <style scoped lang="scss">
 
 .tech-proposal {
-  padding: 20px;
+  // 移除padding，避免与page-content的padding叠加
   display: flex;
   flex-direction: column;
   gap: 20px;

@@ -2,12 +2,6 @@
   <div class="business-response">
     <!-- 项目选择 -->
     <el-card class="project-section" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>Step 1: 选择项目</span>
-        </div>
-      </template>
-
       <!-- 提示信息 -->
       <el-alert type="info" :closable="false" style="margin-bottom: 16px">
         <template #default>
@@ -91,12 +85,6 @@
 
     <!-- 文档上传 -->
     <el-card class="upload-section" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>Step 2: 上传相关文档</span>
-        </div>
-      </template>
-
       <el-row :gutter="20">
         <!-- 商务应答模板 -->
         <el-col :span="12">
@@ -1052,7 +1040,7 @@ onMounted(async () => {
 <style scoped lang="scss">
 
 .business-response {
-  padding: 20px;
+  // 移除padding，避免与page-content的padding叠加
   display: flex;
   flex-direction: column;
   gap: 20px;

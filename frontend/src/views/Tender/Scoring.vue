@@ -447,7 +447,7 @@ onMounted(() => {
 <style scoped lang="scss">
 
 .tender-scoring {
-  padding: 20px;
+  // 不设置padding,使用page-content的默认padding即可
   display: flex;
   flex-direction: column;
   gap: 20px;

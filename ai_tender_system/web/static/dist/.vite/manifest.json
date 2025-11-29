@@ -1192,7 +1192,7 @@
     ]
   },
   "src/layouts/MainLayout.vue": {
-    "file": "js/MainLayout-KFtofJxv.js",
+    "file": "js/MainLayout-C8Df1oPW.js",
     "name": "MainLayout",
     "src": "src/layouts/MainLayout.vue",
     "isDynamicEntry": true,
@@ -1213,7 +1213,7 @@
       "_tender-ZYcn_VXM.js"
     ],
     "css": [
-      "css/MainLayout-D3WJ6X2Y.css",
+      "css/MainLayout-B8SdLuD4.css",
       "css/DocumentPreview-D7JSFyWn.css",
       "css/el-scrollbar-BWxh-h6K.css",
       "css/el-tag-DljBBxJR.css",
@@ -1221,7 +1221,7 @@
     ]
   },
   "src/views/ABTest/AutomatedTest.vue": {
-    "file": "js/AutomatedTest-BO1Wb9jt.js",
+    "file": "js/AutomatedTest-D0eRx2gk.js",
     "name": "AutomatedTest",
     "src": "src/views/ABTest/AutomatedTest.vue",
     "isDynamicEntry": true,
@@ -1248,7 +1248,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/AutomatedTest-PLpq6WCD.css",
+      "css/AutomatedTest-CPzyi3uM.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-tag-DljBBxJR.css",
       "css/el-scrollbar-BWxh-h6K.css",
@@ -1316,7 +1316,7 @@
     ]
   },
   "src/views/Business/FinalTender.vue": {
-    "file": "js/FinalTender-DglJclbK.js",
+    "file": "js/FinalTender-CAtkPxm5.js",
     "name": "FinalTender",
     "src": "src/views/Business/FinalTender.vue",
     "isDynamicEntry": true,
@@ -1341,7 +1341,7 @@
       "_tender-ZYcn_VXM.js"
     ],
     "css": [
-      "css/FinalTender-CAfwj_kF.css",
+      "css/FinalTender-Brf1H1Wm.css",
       "css/el-card-CSdhzOsS.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-tag-DljBBxJR.css",
@@ -1355,7 +1355,7 @@
     ]
   },
   "src/views/Business/PointToPoint.vue": {
-    "file": "js/PointToPoint-M_oj7pzs.js",
+    "file": "js/PointToPoint-Dnlj8Zr2.js",
     "name": "PointToPoint",
     "src": "src/views/Business/PointToPoint.vue",
     "isDynamicEntry": true,
@@ -1397,7 +1397,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/PointToPoint-CSt6Rd2x.css",
+      "css/PointToPoint-MSDwYT87.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
@@ -1411,7 +1411,7 @@
     ]
   },
   "src/views/Business/Response.vue": {
-    "file": "js/Response-DPQ0cJO_.js",
+    "file": "js/Response-XEoSscsB.js",
     "name": "Response",
     "src": "src/views/Business/Response.vue",
     "isDynamicEntry": true,
@@ -1453,7 +1453,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/Response-BD4-MW2A.css",
+      "css/Response-Dx35Jztv.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
       "css/el-link-B58a4a3I.css",
@@ -1467,7 +1467,7 @@
     ]
   },
   "src/views/Business/TechProposal.vue": {
-    "file": "js/TechProposal-BPQUm8wx.js",
+    "file": "js/TechProposal-0ajo8AUk.js",
     "name": "TechProposal",
     "src": "src/views/Business/TechProposal.vue",
     "isDynamicEntry": true,
@@ -1511,7 +1511,7 @@
       "_project-BV8XA5yV.js"
     ],
     "css": [
-      "css/TechProposal-BqzNwG4J.css",
+      "css/TechProposal-CQDjcTv1.css",
       "css/el-checkbox-DIj50LEB.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-tag-DljBBxJR.css",
@@ -1640,7 +1640,7 @@
     ]
   },
   "src/views/Home/Dashboard.vue": {
-    "file": "js/Dashboard-OwIdcpTK.js",
+    "file": "js/Dashboard-JTN4ohFq.js",
     "name": "Dashboard",
     "src": "src/views/Home/Dashboard.vue",
     "isDynamicEntry": true,
@@ -1671,7 +1671,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/Dashboard-DWQ9ZF9m.css",
+      "css/Dashboard-CwqV06Gt.css",
       "css/el-tag-DljBBxJR.css",
       "css/el-scrollbar-BWxh-h6K.css",
       "css/el-descriptions-item-DPqPz_nA.css",
@@ -1727,7 +1727,7 @@
     ]
   },
   "src/views/Knowledge/CaseLibrary.vue": {
-    "file": "js/CaseLibrary-Ck2ui5MC.js",
+    "file": "js/CaseLibrary-DDH8o8yV.js",
     "name": "CaseLibrary",
     "src": "src/views/Knowledge/CaseLibrary.vue",
     "isDynamicEntry": true,
@@ -1754,7 +1754,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/CaseLibrary-D7uxqcDz.css",
+      "css/CaseLibrary-pRh3MTqj.css",
       "css/el-descriptions-item-DPqPz_nA.css",
       "css/el-checkbox-DIj50LEB.css",
       "css/el-scrollbar-BWxh-h6K.css",
@@ -1819,7 +1819,7 @@
     ]
   },
   "src/views/Knowledge/CompanyLibrary.vue": {
-    "file": "js/CompanyLibrary-B6pUmRUN.js",
+    "file": "js/CompanyLibrary-CKQZhRG_.js",
     "name": "CompanyLibrary",
     "src": "src/views/Knowledge/CompanyLibrary.vue",
     "isDynamicEntry": true,
@@ -1845,7 +1845,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/CompanyLibrary-CgZmVZcL.css",
+      "css/CompanyLibrary-LUuUbdxN.css",
       "css/el-descriptions-item-DPqPz_nA.css",
       "css/el-checkbox-DIj50LEB.css",
       "css/el-scrollbar-BWxh-h6K.css",
@@ -1859,7 +1859,7 @@
     ]
   },
   "src/views/Knowledge/DocumentLibrary.vue": {
-    "file": "js/DocumentLibrary-BQXHWylX.js",
+    "file": "js/DocumentLibrary-BJUdYbL0.js",
     "name": "DocumentLibrary",
     "src": "src/views/Knowledge/DocumentLibrary.vue",
     "isDynamicEntry": true,
@@ -1870,7 +1870,6 @@
       "_editor-CZjPbfOV.js"
     ],
     "css": [
-      "css/DocumentLibrary-RUyYXmpT.css",
       "css/el-descriptions-item-DPqPz_nA.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-tag-DljBBxJR.css",
@@ -1928,7 +1927,7 @@
     ]
   },
   "src/views/Knowledge/ResumeLibrary.vue": {
-    "file": "js/ResumeLibrary-DHoUPihf.js",
+    "file": "js/ResumeLibrary-Bngy8JL9.js",
     "name": "ResumeLibrary",
     "src": "src/views/Knowledge/ResumeLibrary.vue",
     "isDynamicEntry": true,
@@ -1961,7 +1960,7 @@
       "_cloneDeep-syPWYH98.js"
     ],
     "css": [
-      "css/ResumeLibrary-DWgHM5Fv.css",
+      "css/ResumeLibrary-CM06VK4K.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
       "css/el-checkbox-DIj50LEB.css",
@@ -2074,7 +2073,7 @@
     ]
   },
   "src/views/Tender/Management.vue": {
-    "file": "js/Management-CQSV9D_P.js",
+    "file": "js/Management-rmY-3wJ3.js",
     "name": "Management",
     "src": "src/views/Tender/Management.vue",
     "isDynamicEntry": true,
@@ -2103,7 +2102,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/Management-DODqX7Me.css",
+      "css/Management-CeDtx3w3.css",
       "css/el-tag-DljBBxJR.css",
       "css/el-scrollbar-BWxh-h6K.css",
       "css/el-descriptions-item-DPqPz_nA.css",
@@ -2194,7 +2193,7 @@
     ]
   },
   "src/views/Tender/Scoring.vue": {
-    "file": "js/Scoring-CXzwOSeR.js",
+    "file": "js/Scoring-noxMQW8d.js",
     "name": "Scoring",
     "src": "src/views/Tender/Scoring.vue",
     "isDynamicEntry": true,
@@ -2220,7 +2219,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/Scoring-Cd8V3IVR.css",
+      "css/Scoring-BzD4MdCQ.css",
       "css/el-tag-DljBBxJR.css",
       "css/el-descriptions-item-DPqPz_nA.css",
       "css/el-checkbox-DIj50LEB.css",
@@ -2234,7 +2233,7 @@
     ]
   },
   "src/views/TestingDashboard.vue": {
-    "file": "js/TestingDashboard-N_UMPr1W.js",
+    "file": "js/TestingDashboard-B0ojJT4j.js",
     "name": "TestingDashboard",
     "src": "src/views/TestingDashboard.vue",
     "isDynamicEntry": true,
@@ -2261,7 +2260,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/TestingDashboard-BjeEnv9P.css",
+      "css/TestingDashboard-CLyhYznE.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-tag-DljBBxJR.css",
       "css/el-scrollbar-BWxh-h6K.css",

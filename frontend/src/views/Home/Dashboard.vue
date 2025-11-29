@@ -420,9 +420,8 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .dashboard-page {
-  padding: var(--spacing-lg, 24px);
+  // 不设置padding,使用page-content的默认padding即可
   background: var(--bg-light, #f8f9fa);
-  min-height: 100vh;
 }
 
 // ==================== KPI卡片 ====================

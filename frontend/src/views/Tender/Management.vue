@@ -282,9 +282,8 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .tender-management {
-  padding: var(--spacing-lg, 24px);
+  // 不设置padding,使用page-content的默认padding即可
   background: var(--bg-light, #f8f9fa);
-  min-height: 100vh;
 }
 
 // ==================== 分页 ====================

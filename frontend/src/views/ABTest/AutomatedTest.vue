@@ -589,7 +589,7 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .automated-test {
-  padding: 20px;
+  // 不设置padding,使用page-content的默认padding即可
 }
 
 // ==================== 快速信息卡片 ====================
