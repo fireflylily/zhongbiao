@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-"""
+# -*- coding: utf-8 -*-
 认证蓝图
 处理用户登录、登出和会话管理
 """
@@ -8,6 +8,7 @@ import sys
 import sqlite3
 from pathlib import Path
 from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for, current_app
+from flask_wtf.csrf import CSRFProtect
 
 # 添加项目根目录到Python路径
 project_root = Path(__file__).parent.parent.parent
@@ -25,7 +26,11 @@ except ImportError:
     logger.warning("bcrypt未安装，将使用备用密码验证方式")
 
 # 创建蓝图
+# CSRFProtect will be applied at app level, but we need to exempt login route
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+
+# 创建CSRF保护实例（用于装饰器）
+csrf = CSRFProtect()
 
 # 日志记录器
 logger = get_module_logger("web.auth")
@@ -103,6 +108,7 @@ def index():
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@csrf.exempt
 def login():
     """
     登录页面和登录处理
@@ -397,7 +403,7 @@ def verify_token_route():
 
         # 如果session中有完整信息,直接返回
         if user_id:
-            logger.info(f"Session验证成功，用户: {username}")
+            logger.debug(f"Session验证成功，用户: {username}")
             return jsonify({
                 'success': True,
                 'data': {
