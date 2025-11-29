@@ -26,8 +26,8 @@
         <template v-for="category in menuCategories" :key="category.key">
           <!-- 只显示有菜单项的分组 -->
           <template v-if="groupedMenuItems[category.key] && groupedMenuItems[category.key].length > 0">
-            <!-- 分组标题（非折叠时显示） -->
-            <div v-if="!collapsed" class="menu-group-title">
+            <!-- 分组标题（非折叠时显示，且分组有多个菜单项） -->
+            <div v-if="!collapsed && groupedMenuItems[category.key].length > 1" class="menu-group-title">
               <i class="bi group-icon" :class="category.icon"></i>
               <span class="group-label">{{ category.label }}</span>
             </div>

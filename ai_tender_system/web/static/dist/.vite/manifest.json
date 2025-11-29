@@ -1192,7 +1192,7 @@
     ]
   },
   "src/layouts/MainLayout.vue": {
-    "file": "js/MainLayout-C8Df1oPW.js",
+    "file": "js/MainLayout-Bpof8qo_.js",
     "name": "MainLayout",
     "src": "src/layouts/MainLayout.vue",
     "isDynamicEntry": true,
@@ -1213,7 +1213,7 @@
       "_tender-ZYcn_VXM.js"
     ],
     "css": [
-      "css/MainLayout-B8SdLuD4.css",
+      "css/MainLayout-v-caorgm.css",
       "css/DocumentPreview-D7JSFyWn.css",
       "css/el-scrollbar-BWxh-h6K.css",
       "css/el-tag-DljBBxJR.css",
@@ -1467,7 +1467,7 @@
     ]
   },
   "src/views/Business/TechProposal.vue": {
-    "file": "js/TechProposal-0ajo8AUk.js",
+    "file": "js/TechProposal-DiaIP-Nh.js",
     "name": "TechProposal",
     "src": "src/views/Business/TechProposal.vue",
     "isDynamicEntry": true,
@@ -1511,7 +1511,7 @@
       "_project-BV8XA5yV.js"
     ],
     "css": [
-      "css/TechProposal-CQDjcTv1.css",
+      "css/TechProposal-0TjtQ2g5.css",
       "css/el-checkbox-DIj50LEB.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-tag-DljBBxJR.css",
