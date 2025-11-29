@@ -87,8 +87,8 @@
               </el-sub-menu>
             </template>
 
-            <!-- 分组分隔线 -->
-            <el-divider v-if="!collapsed" class="menu-group-divider" />
+            <!-- 分组分隔线（只在多项分组时显示） -->
+            <el-divider v-if="!collapsed && groupedMenuItems[category.key].length > 1" class="menu-group-divider" />
           </template>
         </template>
 
