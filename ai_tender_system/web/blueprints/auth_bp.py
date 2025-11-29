@@ -90,8 +90,7 @@ def hash_password(plain_password: str) -> str:
         return plain_password
 
 
-@auth_bp.route('/')
-def index():
+@auth_bp.route('/')def index():
     """
     主页 - 检查登录状态并重定向
 
@@ -104,8 +103,7 @@ def index():
     return redirect(url_for('auth.login'))
 
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
-def login():
+@auth_bp.route('/login', methods=['GET', 'POST'])def login():
     """
     登录页面和登录处理
 
@@ -281,8 +279,7 @@ def login():
     return redirect(url_for('vue_app.serve_vue_app'))
 
 
-@auth_bp.route('/logout', methods=['POST'])
-def logout():
+@auth_bp.route('/logout', methods=['POST'])def logout():
     """
     退出登录（API版本）
 
@@ -294,8 +291,7 @@ def logout():
     return jsonify({'success': True, 'message': '退出登录成功'})
 
 
-@auth_bp.route('/verify-token', methods=['GET'])
-def verify_token_route():
+@auth_bp.route('/verify-token', methods=['GET'])def verify_token_route():
     """
     验证token有效性
 
@@ -442,8 +438,7 @@ def verify_token_route():
     })
 
 
-@auth_bp.route('/refresh-token', methods=['POST'])
-def refresh_token():
+@auth_bp.route('/refresh-token', methods=['POST'])def refresh_token():
     """
     刷新token
 
@@ -566,8 +561,7 @@ def refresh_token():
         }), 401
 
 
-@auth_bp.route('/change-password', methods=['POST'])
-def change_password():
+@auth_bp.route('/change-password', methods=['POST'])def change_password():
     """
     修改当前用户密码
 
