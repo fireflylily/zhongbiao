@@ -15,7 +15,8 @@ from flask_wtf.csrf import CSRFProtect
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from common import get_module_logger
+from common import get_module_logger, get_config
+from common.jwt_utils import generate_jwt_token, verify_jwt_token, TokenExpiredError, TokenInvalidError
 
 # 导入bcrypt用于密码验证
 try:
@@ -228,6 +229,24 @@ def login():
 
             logger.info(f"用户 {username} (ID:{user['user_id']}, 角色:{user['role_name']}) 登录成功")
 
+            # 生成 JWT token
+            config = get_config()
+            secret_key = config.get_web_config()['secret_key']
+
+            # Token payload（用户信息）
+            token_payload = {
+                'user_id': user['user_id'],
+                'username': user['username'],
+                'role_id': user['role_id'],
+                'role_name': user['role_name'],
+                'company_id': user['company_id'],
+                'privacy_level_access': user['privacy_level_access']
+            }
+
+            # 生成24小时有效的 JWT token
+            token = generate_jwt_token(token_payload, secret_key, expires_in=86400)
+            logger.info(f"为用户 {username} 生成JWT token成功")
+
             # 返回用户信息和token（前端期望的格式）
             return jsonify({
                 'success': True,
@@ -248,7 +267,7 @@ def login():
                             'privacy_level_access': user['privacy_level_access']
                         }
                     },
-                    'token': 'fake-jwt-token-for-development'  # TODO: 生成真实JWT token
+                    'token': token  # ✅ 真实 JWT token
                 }
             })
 
@@ -281,20 +300,111 @@ def logout():
 
 
 @auth_bp.route('/verify-token', methods=['GET'])
-def verify_token():
+def verify_token_route():
     """
     验证token有效性
+
+    优先级:
+    1. 检查 Authorization header 中的 JWT token
+    2. 兼容旧的 Session 方式
 
     Returns:
         JSON响应 {"success": true, "data": {"valid": true, "user": {...}}}
     """
-    # 检查session中是否有登录信息
+    # 获取配置
+    config = get_config()
+    secret_key = config.get_web_config()['secret_key']
+
+    # 1. 优先检查 Authorization header（JWT token）
+    auth_header = request.headers.get('Authorization')
+
+    if auth_header and auth_header.startswith('Bearer '):
+        token = auth_header.split(' ')[1]
+
+        try:
+            # 验证 JWT token
+            payload = verify_jwt_token(token, secret_key)
+            user_id = payload.get('user_id')
+
+            # 从数据库查询用户信息（确保用户仍然存在且活跃）
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT
+                        u.user_id,
+                        u.username,
+                        u.email,
+                        u.role_id,
+                        u.company_id,
+                        u.is_active,
+                        r.role_name,
+                        r.privacy_level_access,
+                        r.can_upload,
+                        r.can_delete,
+                        r.can_modify_privacy,
+                        r.can_manage_users
+                    FROM users u
+                    LEFT JOIN user_roles r ON u.role_id = r.role_id
+                    WHERE u.user_id = ? AND u.is_active = 1
+                """, (user_id,))
+
+                user_row = cursor.fetchone()
+                conn.close()
+
+                if user_row:
+                    user = dict(user_row)
+                    logger.debug(f"JWT验证成功，用户: {user['username']}")
+
+                    return jsonify({
+                        'success': True,
+                        'data': {
+                            'valid': True,
+                            'user': {
+                                'id': user['user_id'],
+                                'username': user['username'],
+                                'email': user['email'] or '',
+                                'role': user['role_name'],
+                                'role_id': user['role_id'],
+                                'company_id': user['company_id'],
+                                'permissions': {
+                                    'can_upload': bool(user['can_upload']),
+                                    'can_delete': bool(user['can_delete']),
+                                    'can_modify_privacy': bool(user['can_modify_privacy']),
+                                    'can_manage_users': bool(user['can_manage_users']),
+                                    'privacy_level_access': user['privacy_level_access']
+                                }
+                            }
+                        }
+                    })
+                else:
+                    logger.warning(f"JWT中的用户 {user_id} 不存在或已禁用")
+
+            except Exception as db_error:
+                logger.error(f"查询用户信息失败: {db_error}")
+
+        except TokenExpiredError:
+            logger.info("JWT token已过期")
+            return jsonify({
+                'success': True,
+                'data': {
+                    'valid': False,
+                    'reason': 'token_expired'
+                }
+            })
+
+        except (TokenInvalidError, Exception) as e:
+            logger.warning(f"JWT验证失败: {e}")
+            # JWT验证失败，继续尝试Session方式
+
+    # 2. 兼容旧的 Session 方式（向后兼容）
     if 'logged_in' in session and session.get('logged_in'):
         user_id = session.get('user_id')
         username = session.get('username', '')
 
         # 如果session中有完整信息,直接返回
         if user_id:
+            logger.debug(f"Session验证成功，用户: {username}")
             return jsonify({
                 'success': True,
                 'data': {
@@ -326,13 +436,139 @@ def verify_token():
                     }
                 }
             })
-    else:
+
+    # 3. 都失败，返回未授权
+    logger.debug("JWT和Session验证都失败")
+    return jsonify({
+        'success': True,
+        'data': {
+            'valid': False
+        }
+    })
+
+
+@auth_bp.route('/refresh-token', methods=['POST'])
+def refresh_token():
+    """
+    刷新token
+
+    请求头必须包含有效的 JWT token，返回新的 token
+
+    Returns:
+        JSON响应 {"success": true, "data": {"token": "...", "user": {...}}}
+    """
+    # 获取配置
+    config = get_config()
+    secret_key = config.get_web_config()['secret_key']
+
+    # 检查 Authorization header
+    auth_header = request.headers.get('Authorization')
+
+    if not auth_header or not auth_header.startswith('Bearer '):
         return jsonify({
-            'success': True,
-            'data': {
-                'valid': False
+            'success': False,
+            'message': '缺少有效的Authorization header'
+        }), 401
+
+    old_token = auth_header.split(' ')[1]
+
+    try:
+        # 验证旧 token
+        payload = verify_jwt_token(old_token, secret_key)
+        user_id = payload.get('user_id')
+
+        # 从数据库查询最新用户信息
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT
+                    u.user_id,
+                    u.username,
+                    u.email,
+                    u.role_id,
+                    u.company_id,
+                    u.is_active,
+                    r.role_name,
+                    r.privacy_level_access,
+                    r.can_upload,
+                    r.can_delete,
+                    r.can_modify_privacy,
+                    r.can_manage_users
+                FROM users u
+                LEFT JOIN user_roles r ON u.role_id = r.role_id
+                WHERE u.user_id = ? AND u.is_active = 1
+            """, (user_id,))
+
+            user_row = cursor.fetchone()
+            conn.close()
+
+            if not user_row:
+                logger.warning(f"刷新token失败：用户 {user_id} 不存在或已禁用")
+                return jsonify({
+                    'success': False,
+                    'message': '用户不存在或已被禁用'
+                }), 401
+
+            user = dict(user_row)
+
+            # 生成新的 token
+            token_payload = {
+                'user_id': user['user_id'],
+                'username': user['username'],
+                'role_id': user['role_id'],
+                'role_name': user['role_name'],
+                'company_id': user['company_id'],
+                'privacy_level_access': user['privacy_level_access']
             }
-        })
+
+            # 生成24小时有效的新 JWT token
+            new_token = generate_jwt_token(token_payload, secret_key, expires_in=86400)
+            logger.info(f"为用户 {user['username']} 刷新JWT token成功")
+
+            return jsonify({
+                'success': True,
+                'message': 'Token刷新成功',
+                'data': {
+                    'token': new_token,
+                    'user': {
+                        'id': user['user_id'],
+                        'username': user['username'],
+                        'email': user['email'] or '',
+                        'role': user['role_name'],
+                        'role_id': user['role_id'],
+                        'company_id': user['company_id'],
+                        'permissions': {
+                            'can_upload': bool(user['can_upload']),
+                            'can_delete': bool(user['can_delete']),
+                            'can_modify_privacy': bool(user['can_modify_privacy']),
+                            'can_manage_users': bool(user['can_manage_users']),
+                            'privacy_level_access': user['privacy_level_access']
+                        }
+                    }
+                }
+            })
+
+        except Exception as db_error:
+            logger.error(f"刷新token时查询用户信息失败: {db_error}")
+            return jsonify({
+                'success': False,
+                'message': '服务器错误，请稍后重试'
+            }), 500
+
+    except TokenExpiredError:
+        logger.info("刷新token失败：旧token已过期")
+        return jsonify({
+            'success': False,
+            'message': 'Token已过期，请重新登录'
+        }), 401
+
+    except (TokenInvalidError, Exception) as e:
+        logger.warning(f"刷新token失败：{e}")
+        return jsonify({
+            'success': False,
+            'message': 'Token无效'
+        }), 401
 
 
 @auth_bp.route('/change-password', methods=['POST'])

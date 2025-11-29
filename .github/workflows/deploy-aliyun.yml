@@ -39,10 +39,12 @@ jobs:
           pip install -r requirements-prod.txt
           pip install -r requirements-dev.txt
 
-      - name: Run unit tests
+      - name: Run unit tests with HTML report
         run: |
           echo "开始运行单元测试..."
-          pytest tests/unit/ -v --tb=short --maxfail=10
+          pytest tests/unit/ -v --tb=short --maxfail=10 \
+            --html=test-report.html --self-contained-html \
+            --cov=ai_tender_system --cov-report=html --cov-report=term
         continue-on-error: true
         # 允许测试部分失败,但会警告
 
@@ -52,12 +54,27 @@ jobs:
           pytest tests/unit/common/ -v --tb=short --maxfail=5
         # 关键单元测试必须通过（无外部依赖）
 
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            test-report.html
+            htmlcov/
+          retention-days: 30
+
       - name: Test Summary
         if: always()
         run: |
           echo "## 测试结果 ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "测试已完成,继续部署流程" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 查看详细报告" >> $GITHUB_STEP_SUMMARY
+          echo "- 下载 Artifacts 中的 test-report 查看完整测试报告" >> $GITHUB_STEP_SUMMARY
+          echo "- test-report.html: 测试用例详情" >> $GITHUB_STEP_SUMMARY
+          echo "- htmlcov/index.html: 代码覆盖率报告" >> $GITHUB_STEP_SUMMARY
 
   # 第2步: 构建前端
   build-frontend:

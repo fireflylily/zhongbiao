@@ -1,0 +1,257 @@
+"""
+示例测试文件
+
+展示如何编写测试用例
+"""
+
+import pytest
+
+
+# ============================================================================
+# 基础测试示例
+# ============================================================================
+
+def test_basic_assertion():
+    """最简单的测试 - 断言"""
+    assert 1 + 1 == 2
+    assert "hello".upper() == "HELLO"
+
+
+def test_with_multiple_assertions():
+    """多个断言的测试"""
+    data = [1, 2, 3, 4, 5]
+
+    assert len(data) == 5
+    assert sum(data) == 15
+    assert max(data) == 5
+    assert min(data) == 1
+
+
+# ============================================================================
+# 使用 Fixtures 的测试
+# ============================================================================
+
+def test_with_fixture(sample_tender_text):
+    """使用 fixture 提供测试数据"""
+    # 修正：使用fixture实际包含的内容
+    assert "政府信息化" in sample_tender_text  # ✅ fixture里确实有这个
+    assert "2025-001" in sample_tender_text     # ✅ fixture里有招标编号
+    assert "营业执照" in sample_tender_text      # ✅ fixture里有资质要求
+
+
+def test_company_info_fixture(sample_company_info):
+    """测试公司信息 fixture"""
+    assert sample_company_info["company_name"] == "测试科技有限公司"
+    assert sample_company_info["employee_count"] == 150
+    assert "ISO9001" in sample_company_info["certifications"]
+
+
+# ============================================================================
+# 异常测试
+# ============================================================================
+
+def test_exception_handling():
+    """测试异常处理"""
+    with pytest.raises(ZeroDivisionError):
+        result = 1 / 0
+
+    with pytest.raises(ValueError, match="invalid literal"):
+        int("not a number")
+
+
+def test_exception_message():
+    """测试异常消息"""
+    with pytest.raises(KeyError) as exc_info:
+        data = {}
+        _ = data["missing_key"]
+
+    assert "missing_key" in str(exc_info.value)
+
+
+# ============================================================================
+# 参数化测试
+# ============================================================================
+
+@pytest.mark.parametrize("input_value,expected", [
+    (1, 2),
+    (2, 4),
+    (3, 6),
+    (10, 20),
+])
+def test_double_value(input_value, expected):
+    """参数化测试 - 多组测试数据"""
+    assert input_value * 2 == expected
+
+
+@pytest.mark.parametrize("text,keyword,should_contain", [
+    ("智慧城市建设项目", "智慧城市", True),
+    ("技术方案设计", "商务应答", False),
+    ("AI标书系统", "AI", True),
+])
+def test_text_contains_keyword(text, keyword, should_contain):
+    """参数化测试 - 文本包含关键词"""
+    assert (keyword in text) == should_contain
+
+
+# ============================================================================
+# 标记测试
+# ============================================================================
+
+@pytest.mark.unit
+def test_unit_marked():
+    """标记为单元测试"""
+    assert True
+
+
+@pytest.mark.slow
+def test_slow_operation():
+    """标记为慢速测试（可以使用 pytest -m "not slow" 跳过）"""
+    import time
+    time.sleep(0.1)
+    assert True
+
+
+@pytest.mark.skip(reason="功能尚未实现")
+def test_upcoming_feature():
+    """跳过的测试"""
+    assert False  # 这不会执行
+
+
+@pytest.mark.skipif(
+    not hasattr(pytest, "some_module"),
+    reason="需要特定模块"
+)
+def test_conditional_skip():
+    """条件跳过测试"""
+    assert True
+
+
+# ============================================================================
+# Mock 测试示例
+# ============================================================================
+
+def test_with_mock(mocker):
+    """使用 pytest-mock 进行 Mock"""
+    # Mock 一个函数
+    mock_func = mocker.Mock(return_value=42)
+
+    result = mock_func()
+    assert result == 42
+
+    # 验证调用
+    mock_func.assert_called_once()
+
+
+def test_mock_llm_response(mock_llm_response):
+    """测试 Mock 的 AI 响应"""
+    assert "choices" in mock_llm_response
+    assert mock_llm_response["choices"][0]["message"]["content"]
+
+
+# ============================================================================
+# 临时文件测试
+# ============================================================================
+
+def test_with_temp_dir(temp_dir):
+    """使用临时目录"""
+    # 创建测试文件
+    test_file = temp_dir / "test.txt"
+    test_file.write_text("Hello, Testing!")
+
+    # 验证
+    assert test_file.exists()
+    assert test_file.read_text() == "Hello, Testing!"
+
+
+def test_sample_pdf(sample_pdf_file):
+    """测试示例 PDF 文件"""
+    assert sample_pdf_file.exists()
+    assert sample_pdf_file.suffix == ".pdf"
+
+
+# ============================================================================
+# Flask 应用测试示例
+# ============================================================================
+
+def test_flask_app(app):
+    """测试 Flask 应用对象"""
+    assert app is not None
+    assert app.config["TESTING"] is True
+
+
+def test_flask_client(client):
+    """测试 Flask 客户端"""
+    # 测试 GET 请求
+    response = client.get('/')
+    assert response.status_code in [200, 302, 404]  # 可能重定向到登录页
+
+
+# ============================================================================
+# 测试类（组织相关测试）
+# ============================================================================
+
+class TestCalculations:
+    """测试类 - 组织相关的测试"""
+
+    def test_addition(self):
+        """加法测试"""
+        assert 2 + 2 == 4
+
+    def test_subtraction(self):
+        """减法测试"""
+        assert 5 - 3 == 2
+
+    def test_multiplication(self):
+        """乘法测试"""
+        assert 3 * 4 == 12
+
+    def test_division(self):
+        """除法测试"""
+        assert 10 / 2 == 5
+
+
+class TestStringOperations:
+    """字符串操作测试"""
+
+    @pytest.fixture
+    def sample_string(self):
+        """类级别的 fixture"""
+        return "AI标书系统"
+
+    def test_upper(self, sample_string):
+        """测试转大写"""
+        assert sample_string.upper() == "AI标书系统"
+
+    def test_contains(self, sample_string):
+        """测试包含"""
+        assert "AI" in sample_string
+        assert "标书" in sample_string
+
+    def test_length(self, sample_string):
+        """测试长度"""
+        assert len(sample_string) == 6
+
+
+# ============================================================================
+# Setup/Teardown 示例
+# ============================================================================
+
+class TestWithSetup:
+    """带 setup/teardown 的测试类"""
+
+    def setup_method(self):
+        """每个测试方法前执行"""
+        self.data = [1, 2, 3]
+
+    def teardown_method(self):
+        """每个测试方法后执行"""
+        self.data = None
+
+    def test_data_exists(self):
+        """测试数据存在"""
+        assert self.data is not None
+        assert len(self.data) == 3
+
+    def test_data_sum(self):
+        """测试数据求和"""
+        assert sum(self.data) == 6

@@ -141,6 +141,14 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"自动化测试运行器API蓝图加载失败: {e}")
 
+    # 测试状态管理
+    try:
+        from .api_testing_bp import api_testing_bp
+        app.register_blueprint(api_testing_bp)
+        logger.info("测试状态管理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"测试状态管理API蓝图加载失败: {e}")
+
     # 浏览器自动化API蓝图
     try:
         from .api_browser_automation_bp import api_browser_automation_bp

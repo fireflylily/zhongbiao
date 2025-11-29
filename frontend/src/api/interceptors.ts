@@ -184,7 +184,8 @@ function setupResponseInterceptor(instance: AxiosInstance, maxRetries: number = 
         // 特殊状态码处理
         switch (error.response.status) {
           case 401:
-            apiError.message = '未授权，请重新登录'
+            // 优先使用后端返回的具体错误信息
+            apiError.message = data?.message || '未授权，请重新登录'
             // 可以在这里触发登出逻辑
             // window.location.href = '/login'
             break

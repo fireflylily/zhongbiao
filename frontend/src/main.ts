@@ -19,6 +19,7 @@ import '@umoteam/viewer/style'  // 导入 Umo Viewer 样式
 
 import App from './App.vue'
 import router from './router'
+import { authApi } from './api'
 
 // 全局样式
 import './assets/styles/global.scss'
@@ -65,6 +66,14 @@ async function initApp() {
   initCsrfToken().catch(err => {
     console.warn('[App] CSRF token init failed, but app continues:', err)
   })
+
+  // ✅ 恢复认证状态（从 localStorage 恢复 token）
+  try {
+    authApi.restoreAuth()
+    console.log('[Auth] Token restored from localStorage')
+  } catch (error) {
+    console.warn('[Auth] Failed to restore auth:', error)
+  }
 
   const app = createApp(App)
 

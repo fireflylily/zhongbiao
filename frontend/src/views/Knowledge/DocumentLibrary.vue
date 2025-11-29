@@ -12,6 +12,6 @@ import { Card, Empty } from '@/components'
 
 <style scoped lang="scss">
 .document-library {
-  padding: 20px;
+  // 移除padding，避免与page-content的padding叠加
 }
 </style>

@@ -404,7 +404,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .company-library {
-  padding: 20px;
+  // 移除padding，避免与page-content的padding叠加
 }
 
 .stats-bar {

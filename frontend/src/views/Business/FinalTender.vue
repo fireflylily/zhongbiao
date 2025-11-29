@@ -217,7 +217,7 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .final-tender-page {
-  padding: 20px;
+  // 移除padding，避免与page-content的padding叠加
 
   .project-selector-card {
     margin-bottom: 20px;

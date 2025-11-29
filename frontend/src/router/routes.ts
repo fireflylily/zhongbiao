@@ -346,17 +346,32 @@ export const routes: RouteRecordRaw[] = [
             }
           },
 
-          // 自动化测试
+          // 自动化测试 - 旧版（保留兼容）
           {
             path: 'automated-test',
             name: 'AutomatedTest',
             component: () => import('@/views/ABTest/AutomatedTest.vue'),
             meta: {
-              title: '自动化测试',
+              title: '自动化测试(旧)',
               icon: 'bi-play-circle',
               order: 5,
               parent: 'ABTest',
-              description: '运行自动化测试并查看覆盖率报告'
+              showInMenu: false,  // 隐藏旧版
+              description: '运行自动化测试并查看覆盖率报告(旧版)'
+            }
+          },
+
+          // 测试监控仪表板 - 新版
+          {
+            path: 'testing-dashboard',
+            name: 'TestingDashboard',
+            component: () => import('@/views/TestingDashboard.vue'),
+            meta: {
+              title: '测试监控',
+              icon: 'bi-clipboard-check',
+              order: 5,
+              parent: 'ABTest',
+              description: '查看测试状态、代码覆盖率和测试报告'
             }
           }
         ]

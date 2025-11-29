@@ -10,6 +10,17 @@ import { useSettingsStore } from '@/stores/settings'
 import { useNotification } from '@/composables/useNotification'
 import { getPageTitle, handleLegacyHashRoute } from './utils'
 
+// Token验证缓存（5分钟有效）
+let tokenValidationCache: {
+  lastValidated: number | null
+  isValid: boolean
+} = {
+  lastValidated: null,
+  isValid: false
+}
+
+const TOKEN_VALIDATION_CACHE_DURATION = 5 * 60 * 1000 // 5分钟
+
 /**
  * 设置路由守卫
  * @param router - Router实例
@@ -182,15 +193,34 @@ async function checkAuthentication(
     }
   }
 
-  // 验证Token是否有效
+  // ✅ 优化：使用缓存减少Token验证频率（5分钟内不重复验证）
+  const now = Date.now()
+  const cacheValid =
+    tokenValidationCache.lastValidated !== null &&
+    now - tokenValidationCache.lastValidated < TOKEN_VALIDATION_CACHE_DURATION &&
+    tokenValidationCache.isValid
+
+  if (cacheValid) {
+    // 使用缓存结果，跳过API调用
+    console.log('[Router] 使用缓存的Token验证结果（5分钟内）')
+    return true
+  }
+
+  // 验证Token是否有效（调用API）
   try {
     const isValid = await userStore.verifyToken()
+
+    // 更新缓存
+    tokenValidationCache.lastValidated = now
+    tokenValidationCache.isValid = isValid
 
     if (!isValid) {
       console.log('[Router] Token失效，静默重定向到登录页')
 
-      // 清除登录状态
+      // 清除登录状态和缓存
       await userStore.logout()
+      tokenValidationCache.lastValidated = null
+      tokenValidationCache.isValid = false
 
       next({
         name: 'Login',
@@ -202,6 +232,10 @@ async function checkAuthentication(
     }
   } catch (error) {
     console.error('[Router] Token验证失败:', error)
+
+    // Token验证失败，清除缓存
+    tokenValidationCache.lastValidated = null
+    tokenValidationCache.isValid = false
 
     // Token验证失败，静默跳转到登录页
     await userStore.logout()
