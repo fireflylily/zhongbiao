@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
 认证蓝图
 处理用户登录、登出和会话管理
 """
