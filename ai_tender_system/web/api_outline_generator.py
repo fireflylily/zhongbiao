@@ -700,6 +700,14 @@ def generate_proposal_stream_v2():
 
             yield f"data: {json.dumps({'stage': 'outline', 'progress': 55, 'message': '✓ 大纲生成完成'}, ensure_ascii=False)}\n\n"
 
+            # 发送完整的大纲数据供前端展示（与V1接口保持一致）
+            try:
+                outline_data_serializable = json.loads(json.dumps(outline_data, ensure_ascii=False, default=str))
+                yield f"data: {json.dumps({'stage': 'outline_completed', 'outline_data': outline_data_serializable}, ensure_ascii=False)}\n\n"
+            except Exception as e:
+                logger.warning(f"无法序列化大纲数据: {e}, 跳过前端展示")
+                # 继续执行，不影响后续流程
+
             # 阶段3：产品文档匹配
             yield f"data: {json.dumps({'stage': 'matching', 'progress': 60, 'message': '🔗 正在匹配产品文档...'}, ensure_ascii=False)}\n\n"
 
