@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
+# -*- coding: utf-8 -*-"""
 认证蓝图
 处理用户登录、登出和会话管理
 """
@@ -9,6 +8,100 @@ import sys
 import sqlite3
 from pathlib import Path
 from flask import Blueprint, request, jsonify, render_template, session, redirect, url_for, current_app
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from common import get_module_logger, get_config
+from common.jwt_utils import generate_jwt_token, verify_jwt_token, TokenExpiredError, TokenInvalidError
+
+# 导入bcrypt用于密码验证
+try:
+    import bcrypt
+except ImportError:
+    bcrypt = None
+    logger = get_module_logger("web.auth")
+    logger.warning("bcrypt未安装，将使用备用密码验证方式")
+
+# 创建蓝图
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+
+# 日志记录器
+logger = get_module_logger("web.auth")
+
+# 数据库路径
+DB_PATH = Path(__file__).parent.parent.parent / 'data' / 'knowledge_base.db'
+
+
+def get_db_connection():
+    """获取数据库连接"""
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """验证密码是否匹配
+
+    Args:
+        plain_password: 明文密码
+        hashed_password: 加密的密码哈希
+
+    Returns:
+        bool: 密码是否匹配
+    """
+    if not hashed_password:
+        return False
+
+    if bcrypt:
+        try:
+            return bcrypt.checkpw(
+                plain_password.encode('utf-8'),
+                hashed_password.encode('utf-8')
+            )
+        except Exception as e:
+            logger.error(f"密码验证失败: {e}")
+            return False
+    else:
+        # 备用方式：简单比较（不推荐用于生产环境）
+        logger.warning("使用不安全的密码验证方式")
+        return plain_password == hashed_password
+
+
+def hash_password(plain_password: str) -> str:
+    """加密密码
+
+    Args:
+        plain_password: 明文密码
+
+    Returns:
+        str: 加密后的密码哈希
+    """
+    if bcrypt:
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(plain_password.encode('utf-8'), salt)
+        return hashed.decode('utf-8')
+    else:
+        # 备用方式：不加密（不推荐用于生产环境）
+        logger.warning("bcrypt未安装，密码未加密")
+        return plain_password
+
+
+@auth_bp.route('/')
+def index():
+    """
+    主页 - 检查登录状态并重定向
+
+    逻辑:
+    - 已登录: 重定向到仪表板
+    - 未登录: 重定向到登录页
+    """
+    if 'logged_in' in session:
+        return redirect(url_for('vue_app.serve_vue_app'))
+    return redirect(url_for('auth.login'))
+
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """
@@ -304,7 +397,7 @@ def verify_token_route():
 
         # 如果session中有完整信息,直接返回
         if user_id:
-            logger.debug(f"Session验证成功，用户: {username}")
+            logger.info(f"Session验证成功，用户: {username}")
             return jsonify({
                 'success': True,
                 'data': {
