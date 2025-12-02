@@ -83,20 +83,21 @@ class DocumentScanner:
 
             # ===== 1. 营业执照识别 =====
             if "营业执照" in text:
-                category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
+                category, bonus = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
                 if category != 'exclude':
                     candidates.setdefault('license', []).append({
                         'type': 'paragraph',
                         'index': para_idx,
                         'paragraph': paragraph,
                         'category': category,
+                        'bonus_score': bonus,
                         'text': text[:60]
                     })
-                    self.logger.info(f"🔍 营业执照候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+                    self.logger.info(f"🔍 营业执照候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
 
             # ===== 2. 身份证识别（支持组合判断）=====
             if "身份证" in text:
-                category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
+                category, bonus = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
                 if category != 'exclude':
                     # 判断是哪种身份证
                     has_legal = any(kw in text for kw in ["法定代表人", "法人", "法人代表"])
@@ -109,9 +110,10 @@ class DocumentScanner:
                             'index': para_idx,
                             'paragraph': paragraph,
                             'category': category,
+                            'bonus_score': bonus,
                             'text': text[:60]
                         })
-                        self.logger.info(f"🔍 法人身份证候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+                        self.logger.info(f"🔍 法人身份证候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
 
                     # 被授权人身份证
                     if has_auth:
@@ -120,9 +122,10 @@ class DocumentScanner:
                             'index': para_idx,
                             'paragraph': paragraph,
                             'category': category,
+                            'bonus_score': bonus,
                             'text': text[:60]
                         })
-                        self.logger.info(f"🔍 被授权人身份证候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+                        self.logger.info(f"🔍 被授权人身份证候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
 
                     # 如果两者都没有，可能是通用身份证要求（两者都需要）
                     if not has_legal and not has_auth:
@@ -133,22 +136,24 @@ class DocumentScanner:
                                 'index': para_idx,
                                 'paragraph': paragraph,
                                 'category': category,
+                                'bonus_score': bonus,
                                 'text': text[:60]
                             })
-                        self.logger.info(f"🔍 通用身份证候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+                        self.logger.info(f"🔍 通用身份证候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
 
             # ===== 4. 授权书识别 =====
             if "授权" in text and ("授权书" in text or "授权委托书" in text):
-                category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
+                category, bonus = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
                 if category != 'exclude':
                     candidates.setdefault('authorization', []).append({
                         'type': 'paragraph',
                         'index': para_idx,
                         'paragraph': paragraph,
                         'category': category,
+                        'bonus_score': bonus,
                         'text': text[:60]
                     })
-                    self.logger.info(f"🔍 授权书候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+                    self.logger.info(f"🔍 授权书候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
 
             # ===== 5. 特殊处理：政府采购资质（使用优先级判断）=====
             #
@@ -175,7 +180,7 @@ class DocumentScanner:
             # 优先级2：只提到"信用中国"（且没有政府采购网） → gov_procurement_creditchina
             #
             if "政府采购严重违法失信" in text:
-                category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
+                category, bonus = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
                 if category != 'exclude':
                     # 优先级1：明确提到"政府采购网" → 识别为政府采购网查询
                     if "政府采购网" in text or "ccgp" in text.lower():
@@ -184,9 +189,10 @@ class DocumentScanner:
                             'index': para_idx,
                             'paragraph': paragraph,
                             'category': category,
+                            'bonus_score': bonus,
                             'text': text[:60]
                         })
-                        self.logger.info(f"🔍 政府采购-政采网候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+                        self.logger.info(f"🔍 政府采购-政采网候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
 
                     # 优先级2：只提到"信用中国"（没有政府采购网）→ 识别为信用中国查询
                     elif "信用中国" in text or "creditchina" in text.lower():
@@ -195,9 +201,10 @@ class DocumentScanner:
                             'index': para_idx,
                             'paragraph': paragraph,
                             'category': category,
+                            'bonus_score': bonus,
                             'text': text[:60]
                         })
-                        self.logger.info(f"🔍 政府采购-信用中国候选: 段落#{para_idx}, 类别={category}, 文本='{text[:60]}'")
+                        self.logger.info(f"🔍 政府采购-信用中国候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
 
             # ===== 6. 查找具体资质类型（ISO9001, CMMI等）=====
             for qual_key, qual_info in QUALIFICATION_MAPPING.items():
@@ -207,18 +214,28 @@ class DocumentScanner:
 
                 keywords = qual_info.get('keywords', [])
                 if any(keyword in text for keyword in keywords):
-                    category = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
+                    category, bonus = self._classify_paragraph(text, para_idx, total_paragraphs, style_name)
                     if category != 'exclude':
                         candidates.setdefault(qual_key, []).append({
                             'type': 'paragraph',
                             'index': para_idx,
                             'paragraph': paragraph,
                             'category': category,
+                            'bonus_score': bonus,
                             'text': text[:60]
                         })
                         matched_kw = next((kw for kw in keywords if kw in text), keywords[0])
-                        self.logger.info(f"🔍 {qual_key}候选: 段落#{para_idx}, 类别={category}, 关键词='{matched_kw}'")
+                        self.logger.info(f"🔍 {qual_key}候选: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 关键词='{matched_kw}'")
                     # 修复：删除break，允许一个标题匹配多个资质（如"基础电信业务经营许可证及增值电信业务经营许可证"）
+
+        # ===== 扫描文本框中的插入点（特殊处理）=====
+        self.logger.info(f"📦 开始扫描文本框...")
+        textbox_candidates = self._scan_textboxes(doc)
+
+        # 将文本框候选合并到candidates字典
+        for img_type, textbox_list in textbox_candidates.items():
+            for textbox_candidate in textbox_list:
+                candidates.setdefault(img_type, []).append(textbox_candidate)
 
         # ===== 扫描表格中的身份证插入点（特殊处理）=====
         self.logger.info(f"📋 开始扫描表格（共{len(doc.tables)}个表格）")
@@ -248,6 +265,7 @@ class DocumentScanner:
                                     'table_index': table_idx,
                                     'cell': cell,
                                     'category': 'strong_attach',  # 表格特征明确，设为强附件
+                                    'bonus_score': 0,  # 表格候选不额外加分
                                     'text': cell_text[:60]
                                 })
                                 self.logger.info(f"🔍 法人身份证表格: 表格#{table_idx}, 文本='{cell_text[:60]}'")
@@ -259,6 +277,7 @@ class DocumentScanner:
                                     'table_index': table_idx,
                                     'cell': cell,
                                     'category': 'strong_attach',
+                                    'bonus_score': 0,  # 表格候选不额外加分
                                     'text': cell_text[:60]
                                 })
                                 self.logger.info(f"🔍 被授权人身份证表格: 表格#{table_idx}, 文本='{cell_text[:60]}'")
@@ -271,6 +290,7 @@ class DocumentScanner:
                                         'table_index': table_idx,
                                         'cell': cell,
                                         'category': 'strong_attach',
+                                        'bonus_score': 0,  # 表格候选不额外加分
                                         'text': cell_text[:60]
                                     })
                                 self.logger.info(f"🔍 通用身份证表格: 表格#{table_idx}, 文本='{cell_text[:60]}'")
@@ -299,15 +319,17 @@ class DocumentScanner:
                 continue
 
             # 按优先级选择最佳候选
-            # 排序规则：1. 类别优先级（高优先） 2. 文本简短（简短优先） 3. 位置靠后（靠后优先）
+            # 排序规则：1. 总分（类别+奖励） 2. 文本简短（简短优先） 3. 位置靠后（靠后优先）
             best_candidate = max(candidate_list, key=lambda x: (
-                category_priority.get(x['category'], 0),  # 先按类别优先级
+                category_priority.get(x['category'], 0) + x.get('bonus_score', 0),  # 总分 = 基础分 + 奖励分
                 -len(x['text']),                          # 文本越短越好（负号实现）
                 x.get('index', 0)                         # 位置越靠后越好
             ))
 
             best_category = best_candidate['category']
             best_priority = category_priority.get(best_category, 0)
+            best_bonus = best_candidate.get('bonus_score', 0)
+            total_score = best_priority + best_bonus
 
             # 构建插入点信息
             insert_point = {
@@ -325,25 +347,28 @@ class DocumentScanner:
 
             insert_points[img_type] = insert_point
 
-            # 友好的日志输出（根据质量级别）
-            if best_priority >= 80:
+            # 友好的日志输出（根据总分级别 - 包含奖励分）
+            # 显示格式: [category+bonus] 总分=xxx
+            score_display = f"[{best_category}+{best_bonus}] 总分={total_score}" if best_bonus > 0 else f"[{best_category}] 总分={total_score}"
+
+            if total_score >= 80:
                 self.logger.info(
-                    f"✅ {img_type}: 找到优质位置 [{best_category}] "
+                    f"✅ {img_type}: 找到优质位置 {score_display} "
                     f"'{best_candidate['text']}' (共{len(candidate_list)}个候选)"
                 )
-            elif best_priority >= 30:
+            elif total_score >= 30:
                 self.logger.info(
-                    f"☑️ {img_type}: 找到可用位置 [{best_category}] "
+                    f"☑️ {img_type}: 找到可用位置 {score_display} "
                     f"'{best_candidate['text']}' (共{len(candidate_list)}个候选)"
                 )
-            elif best_priority >= 0:
+            elif total_score >= 0:
                 self.logger.warning(
-                    f"⚠️ {img_type}: 找到次优位置 [{best_category}] "
+                    f"⚠️ {img_type}: 找到次优位置 {score_display} "
                     f"'{best_candidate['text']}' (共{len(candidate_list)}个候选)"
                 )
             else:
                 self.logger.warning(
-                    f"🔻 {img_type}: 仅找到低质量位置 [{best_category}] (评分:{best_priority}) "
+                    f"🔻 {img_type}: 仅找到低质量位置 {score_display} "
                     f"'{best_candidate['text']}' (共{len(candidate_list)}个候选)"
                 )
 
@@ -352,9 +377,9 @@ class DocumentScanner:
         return insert_points
 
     def _classify_paragraph(self, text: str, para_idx: int, total_paras: int,
-                           style_name: str = '') -> str:
+                           style_name: str = ''):
         """
-        段落分类（符合人的判断逻辑）
+        段落分类（符合人的判断逻辑）+ 质量评分
 
         分类优先级（从高到低）：
         1. strong_attach      - 强附件标记（编号附件、附件标题） 100分
@@ -367,6 +392,12 @@ class DocumentScanner:
         8. header_noise       - 文档标题噪音（基本不用） -50分
         9. exclude            - 绝对排除（页眉页脚、附件清单标题） -999分
 
+        质量评分（bonus_score，0-50分）：
+        - 身份证专业术语（国徽面、人像面）：+20分
+        - 插入指示词（扫描件、复印件）：+10分
+        - 操作指引（需同时提供）：+5分
+        - 格式说明句式（如提供...）：+5分
+
         Args:
             text: 段落文本
             para_idx: 段落索引
@@ -374,7 +405,9 @@ class DocumentScanner:
             style_name: Word样式名（可选）
 
         Returns:
-            分类字符串
+            (category: str, bonus_score: int) 元组
+            - category: 分类字符串
+            - bonus_score: 质量奖励分（0-50分）
         """
         import re
 
@@ -382,21 +415,48 @@ class DocumentScanner:
 
         # 页眉页脚（技术禁区）
         if style_name and ('Header' in style_name or 'Footer' in style_name):
-            return 'exclude'
+            return ('exclude', 0)
 
         # 附件清单标题（语义禁区）
         if "附件清单" in text or "附件目录" in text:
-            return 'exclude'
+            return ('exclude', 0)
 
         # ========== 2. strong_attach（强附件标记）==========
 
         # 编号附件（最强信号）- "5-1 营业执照"
         if re.match(r'^\d+[-.]?\d*\s+', text):
-            return 'strong_attach'
+            return ('strong_attach', 0)
 
         # 附件标题 - "附件：营业执照"、"附：营业执照"
-        if (text.startswith("附件") or text.startswith("附：")) and len(text) < 50:
-            return 'strong_attach'
+        if text.startswith("附件") or text.startswith("附："):
+            # 短文本（<50字符）直接识别为强附件
+            if len(text) < 50:
+                return ('strong_attach', 0)
+
+            # 长文本 - 需要智能判断 + 质量评分
+            elif any(kw in text for kw in ['身份证', '营业执照', '资质', '证书', '许可证', '授权书', '合同', '报告']):
+                bonus_score = 0
+
+                # 🌟 质量加分1：身份证专业术语（+20分）
+                id_card_terms = ['国徽面', '人像面', '正、反面', '正反面', '头像面']
+                if any(term in text for term in id_card_terms):
+                    bonus_score += 20
+
+                # 🌟 质量加分2：明确的插入指示词（+10分）
+                insert_indicators = ['扫描件', '复印件', '影印件', '照片', '彩色扫描件']
+                if any(indicator in text for indicator in insert_indicators):
+                    bonus_score += 10
+
+                # 🌟 质量加分3：操作指引性语言（+5分）
+                instruction_patterns = ['需同时提供', '需提供', '应提供', '须提供', '请提供']
+                if any(pattern in text for pattern in instruction_patterns):
+                    bonus_score += 5
+
+                # 🌟 质量加分4：格式说明句式（+5分）
+                if '(如提供' in text or '（如提供' in text:
+                    bonus_score += 5
+
+                return ('strong_attach', bonus_score)
 
         # ========== 3. weak_attach（弱附件标记）==========
 
@@ -404,11 +464,11 @@ class DocumentScanner:
         if any(pattern in text for pattern in [
             "后附", "如下", "见下", "以下为", "如下所示", "见后"
         ]) and len(text) < 50:
-            return 'weak_attach'
+            return ('weak_attach', 0)
 
         # 包含"附件"但较长（可能是附件说明）
         if "附件" in text and 20 < len(text) < 80:
-            return 'weak_attach'
+            return ('weak_attach', 0)
 
         # ========== 4. chapter（章节标题）==========
 
@@ -423,8 +483,8 @@ class DocumentScanner:
             # 特殊情况：小节标题且简短，可能是插入点
             # 如 "5.1 营业执照副本"
             if re.match(r'^\d+\.\d+', text) and len(text) < 30:
-                return 'weak_attach'  # 升级为弱附件
-            return 'chapter'
+                return ('weak_attach', 0)  # 升级为弱附件
+            return ('chapter', 0)
 
         # ========== 5. toc（目录）==========
 
@@ -434,7 +494,7 @@ class DocumentScanner:
             para_idx < total_paras * 0.05,  # 文档前5%
             "TOC" in style_name,  # Word目录样式
         ]):
-            return 'toc'
+            return ('toc', 0)
 
         # ========== 6. reference（正文引用）==========
 
@@ -443,7 +503,7 @@ class DocumentScanner:
             "根据", "依据", "按照", "参照",
             "记载", "所示", "显示", "颁发的",
         ]) and len(text) > 30:  # 较长的句子
-            return 'reference'
+            return ('reference', 0)
 
         # ========== 7. requirement_clause（招标要求条款 -10分）==========
         # 📌 从exclude降级为负分评分项
@@ -455,10 +515,10 @@ class DocumentScanner:
             "投标人须提供", "响应方须提供",
             "投标人需提供", "响应方需提供",
         ]):
-            return 'requirement_clause'
+            return ('requirement_clause', 0)
 
         if ("如响应方" in text or "如投标人" in text) and "须" in text:
-            return 'requirement_clause'
+            return ('requirement_clause', 0)
 
         # ========== 8. header_noise（文档标题噪音 -50分）==========
 
@@ -466,13 +526,48 @@ class DocumentScanner:
         if len(text) < 10 and para_idx < 3:
             # 如果是关键词标题，正常评分
             if any(kw in text for kw in ['营业执照', '身份证', '授权书', '资质', '证书']):
-                return 'neutral'
+                return ('neutral', 0)
             else:
-                return 'header_noise'
+                return ('header_noise', 0)
 
-        # ========== 9. neutral（中性位置 - 默认）==========
+        # ========== 9. 通用质量检测（检测强插入信号）==========
+        # 🌟 新增：不仅检测"附："开头，还要检测其他强信号
 
-        return 'neutral'
+        # 检测"粘贴处"等最强插入信号
+        strong_insert_markers = ['粘贴处', '粘贴页', '贴在此处', '贴于此处', '张贴处']
+        has_strong_marker = any(marker in text for marker in strong_insert_markers)
+
+        # 检测插入指示词
+        insert_indicators = ['扫描件', '复印件', '影印件', '照片', '彩色扫描件']
+        has_insert_indicator = any(indicator in text for indicator in insert_indicators)
+
+        # 检测资质关键词
+        qual_keywords = ['身份证', '营业执照', '资质', '证书', '许可证', '授权书', '合同', '报告']
+        has_qual_keyword = any(kw in text for kw in qual_keywords)
+
+        # 如果包含强插入信号，提升为strong_attach并计算奖励分
+        if has_strong_marker and has_qual_keyword:
+            bonus_score = 0
+
+            # 🎯 "粘贴处"是最强、最明确的位置信号 +30分（提高权重！）
+            # 理由：这是直接的空间标记，明确告诉你"在这里贴"，无需任何推断
+            if has_strong_marker:
+                bonus_score += 30
+
+            # 插入指示词 +10分
+            if has_insert_indicator:
+                bonus_score += 10
+
+            # 身份证专业术语 +20分
+            id_card_terms = ['国徽面', '人像面', '正、反面', '正反面', '头像面']
+            if any(term in text for term in id_card_terms):
+                bonus_score += 20
+
+            return ('strong_attach', bonus_score)
+
+        # ========== 10. neutral（中性位置 - 默认）==========
+
+        return ('neutral', 0)
 
     # ==================== 🆕 案例表格处理相关方法 ====================
 
@@ -757,3 +852,129 @@ class DocumentScanner:
                 return True
 
         return False
+
+    def _scan_textboxes(self, doc: Document) -> Dict[str, list]:
+        """
+        扫描文档中的文本框，查找插入点
+
+        文本框通常用于占位符，如"法定代表人身份证扫描件粘贴处"
+        这些文本框是非常明确的插入位置指示
+
+        Args:
+            doc: Word文档对象
+
+        Returns:
+            候选位置字典：{img_type: [candidate_dict, ...]}
+        """
+        from docx.oxml.ns import qn
+
+        candidates = {}
+        textbox_count = 0
+
+        # 遍历所有段落，查找包含文本框的段落
+        for para_idx, paragraph in enumerate(doc.paragraphs):
+            para_elem = paragraph._element
+
+            # 查找文本框 (w:txbxContent)
+            textboxes = para_elem.findall('.//w:txbxContent', namespaces={
+                'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+            })
+
+            if not textboxes:
+                continue
+
+            # 提取文本框内容
+            for tb_idx, textbox in enumerate(textboxes):
+                # 提取文本框中的所有文本
+                tb_text_elements = textbox.findall('.//w:t', namespaces={
+                    'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+                })
+                text = ''.join([t.text for t in tb_text_elements if t.text])
+                text = text.strip()
+
+                if not text:
+                    continue
+
+                textbox_count += 1
+
+                # 使用质量评分系统评估文本框
+                category, bonus = self._classify_paragraph(text, para_idx, len(doc.paragraphs), '')
+
+                # 文本框通常是明确的插入位置，如果分类不是exclude，应该考虑
+                if category == 'exclude':
+                    continue
+
+                # 识别文本框类型
+                # ===== 1. 身份证识别 =====
+                if "身份证" in text:
+                    # 判断是哪种身份证
+                    has_legal = any(kw in text for kw in ["法定代表人", "法人", "法人代表"])
+                    has_auth = any(kw in text for kw in ["授权", "被授权", "代理人", "委托"])
+
+                    # 法人身份证
+                    if has_legal:
+                        candidates.setdefault('legal_id', []).append({
+                            'type': 'textbox',
+                            'index': para_idx,
+                            'paragraph': paragraph,
+                            'category': category,
+                            'bonus_score': bonus,
+                            'text': text[:60]
+                        })
+                        self.logger.info(f"🔍 法人身份证文本框: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
+
+                    # 被授权人身份证
+                    if has_auth:
+                        candidates.setdefault('auth_id', []).append({
+                            'type': 'textbox',
+                            'index': para_idx,
+                            'paragraph': paragraph,
+                            'category': category,
+                            'bonus_score': bonus,
+                            'text': text[:60]
+                        })
+                        self.logger.info(f"🔍 被授权人身份证文本框: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
+
+                    # 通用身份证
+                    if not has_legal and not has_auth:
+                        for id_type in ['legal_id', 'auth_id']:
+                            candidates.setdefault(id_type, []).append({
+                                'type': 'textbox',
+                                'index': para_idx,
+                                'paragraph': paragraph,
+                                'category': category,
+                                'bonus_score': bonus,
+                                'text': text[:60]
+                            })
+                        self.logger.info(f"🔍 通用身份证文本框: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
+
+                # ===== 2. 营业执照识别 =====
+                elif "营业执照" in text:
+                    candidates.setdefault('license', []).append({
+                        'type': 'textbox',
+                        'index': para_idx,
+                        'paragraph': paragraph,
+                        'category': category,
+                        'bonus_score': bonus,
+                        'text': text[:60]
+                    })
+                    self.logger.info(f"🔍 营业执照文本框: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
+
+                # ===== 3. 授权书识别 =====
+                elif "授权" in text and ("授权书" in text or "授权委托书" in text):
+                    candidates.setdefault('authorization', []).append({
+                        'type': 'textbox',
+                        'index': para_idx,
+                        'paragraph': paragraph,
+                        'category': category,
+                        'bonus_score': bonus,
+                        'text': text[:60]
+                    })
+                    self.logger.info(f"🔍 授权书文本框: 段落#{para_idx}, 类别={category}, 奖励分={bonus}, 文本='{text[:60]}'")
+
+        if textbox_count > 0:
+            self.logger.info(f"📦 文本框扫描完成: 找到 {textbox_count} 个文本框")
+        else:
+            self.logger.info(f"📦 文本框扫描完成: 未找到文本框")
+
+        return candidates
