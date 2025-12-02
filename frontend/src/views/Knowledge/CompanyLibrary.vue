@@ -68,6 +68,12 @@
               重置
             </el-button>
           </el-form-item>
+          <el-form-item style="margin-left: auto;">
+            <el-button type="primary" @click="handleCreate">
+              <el-icon><Plus /></el-icon>
+              新建企业
+            </el-button>
+          </el-form-item>
         </el-form>
       </div>
 
@@ -121,53 +127,6 @@
       </el-table>
     </Card>
 
-    <!-- 新建企业对话框 -->
-    <el-dialog
-      v-model="createDialogVisible"
-      title="新建企业"
-      width="500px"
-      @close="handleDialogClose"
-    >
-      <el-form
-        ref="createFormRef"
-        :model="createForm"
-        :rules="createFormRules"
-        label-width="120px"
-      >
-        <el-form-item label="企业名称" prop="companyName">
-          <el-input v-model="createForm.companyName" placeholder="请输入企业名称" />
-        </el-form-item>
-        <el-form-item label="企业代码" prop="companyCode">
-          <el-input v-model="createForm.companyCode" placeholder="请输入企业代码（可选）" />
-        </el-form-item>
-        <el-form-item label="行业类型" prop="industryType">
-          <el-select v-model="createForm.industryType" placeholder="请选择行业类型" style="width: 100%">
-            <el-option label="科技" value="technology" />
-            <el-option label="制造业" value="manufacturing" />
-            <el-option label="金融" value="finance" />
-            <el-option label="教育" value="education" />
-            <el-option label="医疗" value="healthcare" />
-            <el-option label="零售" value="retail" />
-            <el-option label="建筑" value="construction" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="企业简介" prop="companyDescription">
-          <el-input
-            v-model="createForm.companyDescription"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入企业简介（可选）"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="handleConfirmCreate">
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -177,8 +136,7 @@ import { useRouter } from 'vue-router'
 import { Card, Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
-import { OfficeBuilding, Filter, Search, RefreshLeft } from '@element-plus/icons-vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import { OfficeBuilding, Filter, Search, RefreshLeft, Plus } from '@element-plus/icons-vue'
 
 // Router
 const router = useRouter()
@@ -194,23 +152,6 @@ const filters = ref({
   industry: ''
 })
 
-// 新建企业相关
-const createDialogVisible = ref(false)
-const creating = ref(false)
-const createFormRef = ref<FormInstance>()
-const createForm = ref({
-  companyName: '',
-  companyCode: '',
-  industryType: '',
-  companyDescription: ''
-})
-
-const createFormRules: FormRules = {
-  companyName: [
-    { required: true, message: '请输入企业名称', trigger: 'blur' },
-    { min: 2, max: 100, message: '企业名称长度在 2 到 100 个字符', trigger: 'blur' }
-  ]
-}
 
 // 标准资质类型总数（与后端保持一致）
 const STANDARD_QUALIFICATION_TOTAL = 17
@@ -318,51 +259,9 @@ const getProgressColor = (percentage: number) => {
   return '#67c23a'
 }
 
-// 新建企业
+// 新建企业 - 直接跳转到企业详情页
 const handleCreate = () => {
-  createDialogVisible.value = true
-}
-
-// 确认创建企业
-const handleConfirmCreate = async () => {
-  if (!createFormRef.value) return
-
-  await createFormRef.value.validate(async (valid) => {
-    if (!valid) return
-
-    creating.value = true
-    try {
-      const response = await companyApi.createCompany({
-        name: createForm.value.companyName,
-        code: createForm.value.companyCode || undefined,
-        description: createForm.value.companyDescription || undefined
-      })
-
-      if (response.success) {
-        success('创建成功', '企业创建成功')
-        createDialogVisible.value = false
-
-        // 重新加载列表
-        await loadCompanies()
-      }
-    } catch (err) {
-      console.error('创建企业失败:', err)
-      error('创建失败', err instanceof Error ? err.message : '未知错误')
-    } finally {
-      creating.value = false
-    }
-  })
-}
-
-// 关闭对话框
-const handleDialogClose = () => {
-  createForm.value = {
-    companyName: '',
-    companyCode: '',
-    industryType: '',
-    companyDescription: ''
-  }
-  createFormRef.value?.resetFields()
+  router.push('/knowledge/company/new')
 }
 
 // 查看详情
