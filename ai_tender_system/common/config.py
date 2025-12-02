@@ -257,6 +257,16 @@ class Config:
             'secret_key': os.getenv('SECRET_KEY', 'ai-tender-system-2025')
         }
         
+        # 企业征信API配置
+        self.enterprise_credit_config = {
+            'ENTERPRISE_CREDIT_BASE_URL': clean_env_value(os.getenv('ENTERPRISE_CREDIT_BASE_URL', '')),
+            'ENTERPRISE_CREDIT_CUST_USER_ID': clean_env_value(os.getenv('ENTERPRISE_CREDIT_CUST_USER_ID', '')),
+            'ENTERPRISE_CREDIT_API_KEY': clean_env_value(os.getenv('ENTERPRISE_CREDIT_API_KEY', '')),
+            'ENTERPRISE_CREDIT_ENCRYPT_KEY': clean_env_value(os.getenv('ENTERPRISE_CREDIT_ENCRYPT_KEY', '')),
+            'ENTERPRISE_CREDIT_ENCRYPT_IV': clean_env_value(os.getenv('ENTERPRISE_CREDIT_ENCRYPT_IV', '')),
+            'ENTERPRISE_CREDIT_ENCRYPT_METHOD': clean_env_value(os.getenv('ENTERPRISE_CREDIT_ENCRYPT_METHOD', 'aes'))
+        }
+
         # 文件上传配置
         self.upload_config = {
             'max_file_size': 100 * 1024 * 1024,  # 100MB
@@ -304,6 +314,19 @@ class Config:
     def get_all_model_configs(self) -> Dict[str, Dict[str, Any]]:
         """获取所有模型配置"""
         return self.multi_model_config.copy()
+
+    def get_enterprise_credit_config(self) -> Dict[str, Any]:
+        """获取企业征信API配置"""
+        return self.enterprise_credit_config.copy()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """获取配置项（支持字典式访问）"""
+        if hasattr(self, key):
+            return getattr(self, key)
+        # 尝试从enterprise_credit_config中获取
+        if key in self.enterprise_credit_config:
+            return self.enterprise_credit_config[key]
+        return default
 
     def get_default_api_key(self) -> str:
         """获取默认API密钥"""

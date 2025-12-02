@@ -1127,6 +1127,50 @@ class KnowledgeBaseDB:
             return False
 
     # =========================
+    # 删除相关方法（级联清理）
+    # =========================
+
+    def delete_document_library(self, library_id: int) -> bool:
+        """删除文档库记录"""
+        try:
+            query = "DELETE FROM document_libraries WHERE library_id = ?"
+            self.execute_query(query, (library_id,))
+            return True
+        except Exception as e:
+            logger.error(f"删除文档库失败: {e}")
+            return False
+
+    def delete_product(self, product_id: int) -> bool:
+        """删除产品记录"""
+        try:
+            query = "DELETE FROM products WHERE product_id = ?"
+            self.execute_query(query, (product_id,))
+            return True
+        except Exception as e:
+            logger.error(f"删除产品失败: {e}")
+            return False
+
+    def delete_company_profile(self, profile_id: int) -> bool:
+        """删除企业信息库分类记录"""
+        try:
+            query = "DELETE FROM company_profiles WHERE profile_id = ?"
+            self.execute_query(query, (profile_id,))
+            return True
+        except Exception as e:
+            logger.error(f"删除企业信息库分类失败: {e}")
+            return False
+
+    def delete_company(self, company_id: int) -> bool:
+        """删除公司记录"""
+        try:
+            query = "DELETE FROM companies WHERE company_id = ?"
+            self.execute_query(query, (company_id,))
+            return True
+        except Exception as e:
+            logger.error(f"删除公司失败: {e}")
+            return False
+
+    # =========================
     # 标书智能处理系统相关方法
     # =========================
 
