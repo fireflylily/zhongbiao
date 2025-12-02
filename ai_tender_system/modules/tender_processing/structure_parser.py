@@ -197,21 +197,21 @@ class DocumentStructureParser:
             toc_idx = self._find_toc_section(doc)
 
             if toc_idx is not None:
-                # 有目录：优先使用语义锚点解析
-                self.logger.info("检测到目录，使用语义锚点解析方案")
+                # 有目录：优先使用精确匹配解析（方法1）
+                self.logger.info("检测到目录，使用精确匹配解析方案")
                 toc_items, toc_end_idx = self._parse_toc_items(doc, toc_idx)
 
                 if toc_items and len(toc_items) > 0:
                     # 提取目录标题列表（作为语义目标）
                     toc_targets = [item['title'] for item in toc_items]
 
-                    # 使用新的语义锚点解析方法
-                    chapters = self._parse_chapters_by_semantic_anchors(doc, toc_targets, toc_end_idx)
+                    # 优先使用方法1：精确匹配（速度快、准确率高）
+                    chapters = self._locate_chapters_by_toc(doc, toc_items, toc_end_idx)
 
-                    # 如果语义解析失败（识别的章节太少），回退到旧方法
+                    # 如果精确匹配失败（识别的章节太少），回退到语义锚点方法
                     if len(chapters) < len(toc_items) * 0.5:  # 至少识别50%的目录项
-                        self.logger.warning(f"语义解析效果不佳（识别{len(chapters)}/{len(toc_items)}），回退到旧的目录定位方案")
-                        chapters = self._locate_chapters_by_toc(doc, toc_items, toc_end_idx)
+                        self.logger.warning(f"精确匹配效果不佳（识别{len(chapters)}/{len(toc_items)}），回退到语义锚点解析方案")
+                        chapters = self._parse_chapters_by_semantic_anchors(doc, toc_targets, toc_end_idx)
                 else:
                     # 目录解析失败，回退到标题样式识别
                     self.logger.warning("目录解析失败，回退到标题样式识别方案")
@@ -1104,7 +1104,7 @@ class DocumentStructureParser:
         toc_end_idx = toc_start_idx  # 目录结束位置
 
         # ⭐️ 目录项数量限制（避免扫描过远）
-        MAX_TOC_ITEMS = 20
+        MAX_TOC_ITEMS = 100
 
         for i in range(toc_start_idx + 1, min(toc_start_idx + 100, len(doc.paragraphs))):
             para = doc.paragraphs[i]
