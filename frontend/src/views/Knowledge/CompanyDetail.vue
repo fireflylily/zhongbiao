@@ -4,8 +4,8 @@
     <div class="detail-header">
       <el-button @click="handleBack" icon="ArrowLeft">返回列表</el-button>
       <div class="header-title">
-        <h2>{{ companyData.company_name || '企业详情' }}</h2>
-        <el-tag v-if="companyData.industry_type" type="info">
+        <h2>{{ isNewMode ? '新建企业' : (companyData.company_name || '企业详情') }}</h2>
+        <el-tag v-if="!isNewMode && companyData.industry_type" type="info">
           {{ getIndustryLabel(companyData.industry_type) }}
         </el-tag>
       </div>
@@ -29,7 +29,9 @@
           <BasicInfoTab
             :company-id="companyId"
             :company-data="companyData"
+            :is-new-mode="isNewMode"
             @update="handleDataUpdate"
+            @created="handleCompanyCreated"
           />
         </el-tab-pane>
 
@@ -108,6 +110,7 @@ const loading = ref(false)
 const activeTab = ref('basic')
 const companyId = ref<number>(0)
 const companyData = ref<any>({})
+const isNewMode = ref(false) // 是否为新建模式
 
 // 行业类型映射
 const industryMap: Record<string, string> = {
@@ -157,6 +160,17 @@ const handleDataUpdate = async () => {
   await loadCompanyData()
 }
 
+// 企业创建成功处理
+const handleCompanyCreated = (newCompanyId: number) => {
+  // 切换到编辑模式并加载新创建的企业数据
+  isNewMode.value = false
+  companyId.value = newCompanyId
+  // 更新路由，但不触发导航
+  router.replace(`/knowledge/company/${newCompanyId}`)
+  // 加载企业数据
+  loadCompanyData()
+}
+
 // 返回列表
 const handleBack = () => {
   router.push('/knowledge/company-library')
@@ -166,7 +180,13 @@ const handleBack = () => {
 onMounted(() => {
   // 从路由获取企业ID
   const id = route.params.id
-  if (id) {
+
+  if (id === 'new') {
+    // 新建模式
+    isNewMode.value = true
+    companyId.value = 0
+  } else if (id) {
+    // 编辑模式
     companyId.value = parseInt(id as string, 10)
     if (isNaN(companyId.value)) {
       error('参数错误', '无效的企业ID')

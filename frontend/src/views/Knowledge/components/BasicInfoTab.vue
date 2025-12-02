@@ -144,7 +144,7 @@
             <el-form-item>
               <el-button type="primary" :loading="saving" @click="handleSave">
                 <el-icon><Select /></el-icon>
-                保存基础信息
+                {{ isNewMode ? '创建企业' : '保存基础信息' }}
               </el-button>
             </el-form-item>
           </el-col>
@@ -155,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Card } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
@@ -166,15 +166,20 @@ import type { FormInstance, FormRules } from 'element-plus'
 const props = defineProps<{
   companyId: number
   companyData: any
+  isNewMode?: boolean
 }>()
 
 // Emits
 const emit = defineEmits<{
   (e: 'update'): void
+  (e: 'created', companyId: number): void
 }>()
 
 // Hooks
 const { success, error } = useNotification()
+
+// 计算属性
+const isNewMode = computed(() => props.isNewMode || false)
 
 // 状态
 const formRef = ref<FormInstance>()
@@ -248,32 +253,51 @@ const handleSave = async () => {
 
     saving.value = true
     try {
-      const response = await companyApi.updateCompany(props.companyId, {
-        companyName: formData.value.company_name,
-        establishDate: formData.value.establish_date,
-        legalRepresentative: formData.value.legal_representative,
-        legalRepresentativePosition: formData.value.legal_representative_position,
-        legalRepresentativeGender: formData.value.legal_representative_gender,
-        legalRepresentativeAge: formData.value.legal_representative_age,
-        socialCreditCode: formData.value.social_credit_code,
-        registeredCapital: formData.value.registered_capital,
-        companyType: formData.value.company_type,
-        registeredAddress: formData.value.registered_address,
-        fixedPhone: formData.value.fixed_phone,
-        fax: formData.value.fax,
-        postalCode: formData.value.postal_code,
-        email: formData.value.email,
-        businessScope: formData.value.business_scope,
-        companyDescription: formData.value.description
-      })
+      if (isNewMode.value) {
+        // 新建模式 - 调用创建API
+        const response = await companyApi.createCompany({
+          companyName: formData.value.company_name,
+          // 其他字段根据API要求传递
+          registeredAddress: formData.value.registered_address,
+          fixedPhone: formData.value.fixed_phone,
+          email: formData.value.email,
+          companyDescription: formData.value.description
+        })
 
-      if (response.success) {
-        success('保存成功', '基础信息已更新')
-        emit('update')
+        if (response.success && response.data) {
+          success('创建成功', '企业创建成功')
+          // 触发created事件，传递新创建的企业ID
+          emit('created', response.data.company_id)
+        }
+      } else {
+        // 编辑模式 - 调用更新API
+        const response = await companyApi.updateCompany(props.companyId, {
+          companyName: formData.value.company_name,
+          establishDate: formData.value.establish_date,
+          legalRepresentative: formData.value.legal_representative,
+          legalRepresentativePosition: formData.value.legal_representative_position,
+          legalRepresentativeGender: formData.value.legal_representative_gender,
+          legalRepresentativeAge: formData.value.legal_representative_age,
+          socialCreditCode: formData.value.social_credit_code,
+          registeredCapital: formData.value.registered_capital,
+          companyType: formData.value.company_type,
+          registeredAddress: formData.value.registered_address,
+          fixedPhone: formData.value.fixed_phone,
+          fax: formData.value.fax,
+          postalCode: formData.value.postal_code,
+          email: formData.value.email,
+          businessScope: formData.value.business_scope,
+          companyDescription: formData.value.description
+        })
+
+        if (response.success) {
+          success('保存成功', '基础信息已更新')
+          emit('update')
+        }
       }
     } catch (err) {
-      console.error('保存基础信息失败:', err)
-      error('保存失败', err instanceof Error ? err.message : '未知错误')
+      console.error(isNewMode.value ? '创建企业失败:' : '保存基础信息失败:', err)
+      error(isNewMode.value ? '创建失败' : '保存失败', err instanceof Error ? err.message : '未知错误')
     } finally {
       saving.value = false
     }

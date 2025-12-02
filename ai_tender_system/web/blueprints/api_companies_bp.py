@@ -183,81 +183,36 @@ def create_company():
         if not company_name:
             return jsonify({'success': False, 'error': '公司名称不能为空'}), 400
 
-        # ✅ 直接使用数据库创建,记录创建者
-        import sqlite3
-        from pathlib import Path
+        # ✅ 使用Manager模式创建公司（与案例库和修改企业保持一致）
+        result = kb_manager.create_company(
+            company_name=company_name,
+            company_code=data.get('companyCode'),
+            industry_type=data.get('industryType'),
+            description=data.get('companyDescription')
+        )
 
-        DB_PATH = Path(__file__).parent.parent.parent / 'data' / 'knowledge_base.db'
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        # 检查创建是否成功
+        if not result.get('success'):
+            return jsonify({'success': False, 'error': result.get('error', '创建公司失败')}), 400
 
-        # 插入公司记录,包含created_by_user_id
-        cursor.execute("""
-            INSERT INTO companies (
-                company_name,
-                company_code,
-                industry_type,
-                description,
-                created_by_user_id,
-                created_at,
-                updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            company_name,
-            data.get('companyCode'),
-            data.get('industryType'),
-            data.get('companyDescription'),
-            user['user_id'],  # ✅ 记录创建者
-            datetime.now(),
-            datetime.now()
-        ))
+        company_id = result.get('company_id')
 
-        company_id = cursor.lastrowid
-        conn.commit()
+        # 获取创建后的公司详情
+        company_data = kb_manager.get_company_detail(company_id)
 
-        # 创建默认的企业信息库分类
-        default_profiles = [
-            {'type': 'basic', 'name': '基础信息', 'desc': '公司基本信息和对外资料', 'privacy': 1},
-            {'type': 'qualification', 'name': '资质证书', 'desc': '各类业务资质和认证证书', 'privacy': 2},
-            {'type': 'personnel', 'name': '人员信息', 'desc': '员工信息和人力资源资料', 'privacy': 3},
-            {'type': 'financial', 'name': '财务文档', 'desc': '财务报告和审计资料', 'privacy': 4}
-        ]
-
-        for profile in default_profiles:
-            cursor.execute("""
-                INSERT INTO company_profiles (
-                    company_id, profile_type, profile_name, description, privacy_level, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                company_id,
-                profile['type'],
-                profile['name'],
-                profile['desc'],
-                profile['privacy'],
-                datetime.now()
-            ))
-
-        conn.commit()
-        conn.close()
+        if not company_data:
+            return jsonify({'success': False, 'error': '创建公司后无法获取详情'}), 500
 
         # 返回格式与前端兼容
-        company_data = {
-            'id': str(company_id),
-            'companyName': company_name,
-            'created_by_user_id': user['user_id'],  # ✅ 返回创建者
-            'created_at': datetime.now().isoformat(),
-            'updated_at': datetime.now().isoformat()
+        result_data = {
+            'company_id': company_id,
+            'company_name': company_data.get('company_name', company_name),
+            'created_at': company_data.get('created_at', datetime.now().isoformat()),
+            'updated_at': company_data.get('updated_at', datetime.now().isoformat())
         }
 
         logger.info(f"[权限] 用户 {user['username']}({user['role_name']}) 创建公司: {company_name} (ID: {company_id})")
-        return jsonify({'success': True, 'company': company_data})
-
-    except sqlite3.IntegrityError as e:
-        if 'UNIQUE constraint failed' in str(e):
-            return jsonify({'success': False, 'error': '公司名称已存在'}), 400
-        else:
-            return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': True, 'data': result_data})
     except Exception as e:
         logger.error(f"创建公司失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
