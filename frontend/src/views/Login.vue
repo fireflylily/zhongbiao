@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useNotification } from '@/composables'
@@ -123,6 +123,27 @@ const rules: FormRules = {
   ]
 }
 
+// ==================== Lifecycle ====================
+
+/**
+ * 组件挂载时恢复记住的用户名和密码
+ */
+onMounted(() => {
+  try {
+    const savedUsername = localStorage.getItem('remembered_username')
+    const savedPassword = localStorage.getItem('remembered_password')
+    const savedRemember = localStorage.getItem('remember_me')
+
+    if (savedRemember === 'true' && savedUsername && savedPassword) {
+      loginForm.username = savedUsername
+      loginForm.password = savedPassword
+      loginForm.remember = true
+    }
+  } catch (err) {
+    console.error('恢复记住的密码失败:', err)
+  }
+})
+
 // ==================== Methods ====================
 
 /**
@@ -142,6 +163,19 @@ async function handleLogin(): Promise<void> {
       username: loginForm.username,
       password: loginForm.password
     })
+
+    // 处理"记住我"功能
+    if (loginForm.remember) {
+      // 保存用户名和密码
+      localStorage.setItem('remembered_username', loginForm.username)
+      localStorage.setItem('remembered_password', loginForm.password)
+      localStorage.setItem('remember_me', 'true')
+    } else {
+      // 清除保存的用户名和密码
+      localStorage.removeItem('remembered_username')
+      localStorage.removeItem('remembered_password')
+      localStorage.removeItem('remember_me')
+    }
 
     success('登录成功')
 
