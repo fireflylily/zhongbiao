@@ -120,7 +120,8 @@ export function uploadDocument(file: File) {
   return apiClient.post<ParseTestResult>('/parser-debug/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
-    }
+    },
+    timeout: 300000 // 5分钟超时（解析大文档可能需要几分钟）
   })
 }
 

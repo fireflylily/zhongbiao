@@ -772,13 +772,14 @@ def upload_document():
 
         # 保存文件
         document_id = str(uuid.uuid4())
-        filename = secure_filename(file.filename)
+        original_filename = file.filename  # 保留原始文件名（包含中文）用于显示
 
         config = get_config()
         upload_dir = config.get_path('data') / 'parser_debug'
         upload_dir.mkdir(parents=True, exist_ok=True)
 
-        file_path = upload_dir / f"{document_id}_{filename}"
+        # 物理文件直接用UUID.docx命名，避免文件名冲突和特殊字符问题
+        file_path = upload_dir / f"{document_id}.docx"
         file.save(str(file_path))
 
         logger.info(f"文件已保存: {file_path}")
@@ -788,7 +789,7 @@ def upload_document():
         document_info = debugger.get_document_info()
         results = debugger.run_all_methods()
 
-        # 保存到数据库
+        # 保存到数据库（使用原始文件名，用于显示）
         db = get_knowledge_base_db()
         db.execute_query("""
             INSERT INTO parser_debug_tests (
@@ -800,7 +801,7 @@ def upload_document():
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             document_id,
-            filename,
+            original_filename,  # 存储原始文件名（包含中文），用于显示
             str(file_path),
             document_info['total_paragraphs'],
             document_info['has_toc'],

@@ -163,7 +163,15 @@
         </div>
 
         <el-table :data="historyList" border stripe>
-          <el-table-column prop="filename" label="文件名" min-width="200" />
+          <el-table-column label="文件名" min-width="200">
+            <template #default="{ row }">
+              <span v-if="isValidFilename(row.filename)">{{ row.filename }}</span>
+              <span v-else class="text-muted">
+                <el-icon><WarningFilled /></el-icon>
+                (文件名已损坏)
+              </span>
+            </template>
+          </el-table-column>
           <el-table-column prop="upload_time" label="解析时间" width="180" />
           <el-table-column label="目录检测" width="100" align="center">
             <template #default="{ row }">
@@ -255,8 +263,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox, UploadUserFile } from 'element-plus'
-import { Upload } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox, UploadUserFile, ElIcon } from 'element-plus'
+import { Upload, WarningFilled } from '@element-plus/icons-vue'
 import { Card } from '@/components'
 import { parserDebugApi, type ParseTestResult, type ChapterNode, type HistoryTest } from '@/api/parser-debug'
 import MethodCard from './components/MethodCard.vue'
@@ -333,8 +341,8 @@ const handleSaveGroundTruth = async (chapters: ChapterNode[]) => {
       'user'
     )
 
-    if (response.data.success) {
-      accuracy.value = response.data.accuracy
+    if (response.success) {
+      accuracy.value = response.accuracy
       ElMessage.success('标注已保存，准确率已计算')
     }
   } catch (error: any) {
@@ -347,7 +355,7 @@ const handleSaveGroundTruth = async (chapters: ChapterNode[]) => {
 const loadHistoryList = async () => {
   try {
     const response = await parserDebugApi.getHistory({ limit: 50 })
-    historyList.value = response.data.tests
+    historyList.value = response.tests
   } catch (error) {
     console.error('加载历史记录失败:', error)
     ElMessage.error('加载历史记录失败')
@@ -365,12 +373,12 @@ const loadTest = async (documentId: string) => {
   try {
     const response = await parserDebugApi.getTestResult(documentId)
 
-    if (response.data.success) {
-      currentDocumentId.value = response.data.document_id
-      documentInfo.value = response.data.document_info
-      results.value = response.data.results
-      groundTruth.value = response.data.ground_truth || null
-      accuracy.value = response.data.accuracy || null
+    if (response.success) {
+      currentDocumentId.value = response.document_id
+      documentInfo.value = response.document_info
+      results.value = response.results
+      groundTruth.value = response.ground_truth || null
+      accuracy.value = response.accuracy || null
 
       historyDialogVisible.value = false
       ElMessage.success('测试结果已加载')
@@ -457,6 +465,15 @@ const getMethodDisplayName = (key: string) => {
     docx_native: 'Word大纲'
   }
   return names[key] || key
+}
+
+// 检查文件名是否有效（不是损坏的文件名）
+const isValidFilename = (filename: string) => {
+  // 如果文件名只是扩展名或者过短，认为是损坏的
+  if (!filename || filename.length < 3) return false
+  if (filename === 'docx' || filename === '.docx') return false
+  if (filename.startsWith('-.') || filename.startsWith('--')) return false
+  return true
 }
 
 // 页面加载时自动加载历史记录
