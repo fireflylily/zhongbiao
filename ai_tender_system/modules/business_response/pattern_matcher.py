@@ -186,6 +186,11 @@ class PatternMatcher:
             # Step 2: 常规字段识别流程
             field_name = text_inside_bracket.strip()
 
+            # 🆕 过滤掉纯格式标记（如"盖章"、"签字"、"公章"等）
+            # 这些不是字段名，不应该被识别为待填充字段
+            if FieldClassifier.is_format_marker(f"（{field_name}）"):
+                continue
+
             # 过滤掉组合字段（已在combo中处理）
             if '、' in field_name or '，' in field_name:
                 continue
@@ -427,17 +432,18 @@ class PatternMatcher:
         """
         匹配日期格式：
         - ____年____月____日 (下划线占位符)
-        - XXXX年X月X日 (字母X占位符)
+        - XXXX年X月X日 (字母X占位符，大小写均可，支持空格)
+        - XX年 XX月XX日 (2个X，支持空格)
         - 日期：____年____月____日
         - 日期：XXXX年X月X日
         """
         patterns = [
             # 带"日期："前缀的模式
             r'日期\s*[:：]?\s*[_\s]*年[_\s]*月[_\s]*日',  # 日期：____年____月____日
-            r'日期\s*[:：]?\s*[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # 日期：XXXX年X月X日
+            r'日期\s*[:：]?\s*[Xx]{1,4}\s*年\s*[Xx]{1,2}\s*月\s*[Xx]{1,2}\s*日',  # 日期：XXXX年X月X日 (支持空格和小写)
             # 不带前缀的模式
             r'[_\s]+年[_\s]+月[_\s]+日',  # ____年____月____日（多个占位符）
-            r'[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # XXXX年X月X日
+            r'[Xx]{1,4}\s*年\s*[Xx]{1,2}\s*月\s*[Xx]{1,2}\s*日',  # XXXX年X月X日 或 XX年 XX月XX日 (支持空格和小写)
         ]
 
         matches = []

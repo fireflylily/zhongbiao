@@ -156,7 +156,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
-import { tenderApi } from '@/api'
+import { tenderApi, companyApi } from '@/api'
 import { useNotification } from '@/composables'
 import { Card, Loading, Empty, IconButton } from '@/components'
 import type { Project } from '@/types'
@@ -301,15 +301,46 @@ async function refreshProjects(): Promise<void> {
 /**
  * 处理快捷操作
  */
-function handleQuickAction(action: any): void {
-  router.push(action.route)
+async function handleQuickAction(action: any): Promise<void> {
+  if (action.name === 'start-tender') {
+    await handleCreateProject()
+  } else {
+    router.push(action.route)
+  }
 }
 
 /**
- * 创建项目
+ * 创建新项目并跳转
  */
-function handleCreateProject(): void {
-  router.push('/tender-management')
+async function handleCreateProject(): Promise<void> {
+  try {
+    // 获取公司列表，使用第一个公司作为默认值
+    const companiesResponse = await companyApi.getCompanies()
+    const companies = companiesResponse.data || []
+
+    if (companies.length === 0) {
+      showError('无法创建项目：请先添加公司信息')
+      return
+    }
+
+    // 创建空白项目
+    const response = await tenderApi.createProject({
+      project_name: '新项目',
+      project_number: `PRJ-${Date.now()}`,
+      company_id: companies[0].company_id
+    })
+
+    const projectId = (response as any).project_id
+    success('创建成功')
+
+    // 跳转到项目详情页
+    router.push({
+      name: 'TenderManagementDetail',
+      params: { id: projectId }
+    })
+  } catch (err: any) {
+    showError('创建项目失败: ' + err.message)
+  }
 }
 
 /**

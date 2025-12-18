@@ -1,0 +1,100 @@
+{
+  "description": "智能测试映射配置 - 根据修改的文件自动选择相关测试",
+  "version": "1.0",
+  "last_updated": "2025-12-02",
+
+  "file_to_tests": {
+    "ai_tender_system/modules/business_response/field_recognizer.py": [
+      "tests/unit/modules/test_business_response_text_filling.py::test_company_name_aliases",
+      "tests/unit/modules/test_business_response_text_filling.py::test_address_field_recognition",
+      "tests/unit/modules/test_business_response_text_filling.py::test_legal_representative_recognition",
+      "tests/unit/modules/test_business_response_text_filling.py::test_signature_field_skip_logic"
+    ],
+
+    "ai_tender_system/modules/business_response/content_filler.py": [
+      "tests/unit/modules/test_business_response_text_filling.py::test_date_formatting",
+      "tests/unit/modules/test_business_response_text_filling.py::test_bracket_field_filling",
+      "tests/unit/modules/test_business_response_text_filling.py::test_combo_field_recognition",
+      "tests/unit/modules/test_content_filler_extended.py",
+      "tests/integration/business_response/test_text_filling_integration.py"
+    ],
+
+    "ai_tender_system/modules/business_response/processor.py": [
+      "tests/unit/modules/test_business_response_text_filling.py",
+      "tests/integration/business_response/test_processor_integration.py",
+      "tests/integration/business_response/test_text_filling_integration.py"
+    ],
+
+    "ai_tender_system/modules/business_response/image_handler.py": [
+      "tests/unit/modules/test_image_handler.py",
+      "tests/unit/modules/test_image_config_builder.py",
+      "tests/integration/business_response/test_processor_integration.py"
+    ],
+
+    "ai_tender_system/modules/business_response/document_scanner.py": [
+      "tests/unit/modules/test_document_scanner.py",
+      "tests/unit/modules/test_content_filler_extended.py",
+      "tests/integration/business_response/test_text_filling_integration.py"
+    ],
+
+    "ai_tender_system/modules/business_response/field_classifier.py": [
+      "tests/unit/modules/test_business_response_text_filling.py::test_signature_field_skip_logic"
+    ],
+
+    "ai_tender_system/modules/business_response/id_card_inserter.py": [
+      "tests/unit/modules/test_id_card_inserter.py"
+    ]
+  },
+
+  "core_tests": {
+    "description": "核心测试 - 必须始终通过",
+    "tests": [
+      "tests/unit/modules/test_business_response_text_filling.py::test_signature_field_skip_logic",
+      "tests/unit/modules/test_business_response_text_filling.py::test_date_formatting",
+      "tests/unit/modules/test_business_response_text_filling.py::test_company_name_aliases"
+    ]
+  },
+
+  "test_suites": {
+    "quick": {
+      "description": "快速测试套件 - 1-2分钟",
+      "tests": [
+        "tests/unit/modules/test_business_response_text_filling.py"
+      ]
+    },
+
+    "business_response": {
+      "description": "商务应答完整测试 - 3-5分钟",
+      "tests": [
+        "tests/unit/modules/test_business_response_text_filling.py",
+        "tests/unit/modules/test_content_filler_extended.py",
+        "tests/unit/modules/test_document_scanner.py",
+        "tests/unit/modules/test_image_handler.py",
+        "tests/integration/business_response/"
+      ]
+    },
+
+    "full": {
+      "description": "完整测试套件 - 10-15分钟",
+      "tests": [
+        "tests/"
+      ]
+    }
+  },
+
+  "coverage_thresholds": {
+    "ai_tender_system/modules/business_response/field_recognizer.py": 86,
+    "ai_tender_system/modules/business_response/field_classifier.py": 62,
+    "ai_tender_system/modules/business_response/constants.py": 100,
+    "ai_tender_system/modules/business_response/processor.py": 25,
+    "ai_tender_system/modules/business_response/content_filler.py": 10,
+    "ai_tender_system/modules/business_response/image_handler.py": 10
+  },
+
+  "critical_files": [
+    "ai_tender_system/modules/business_response/field_recognizer.py",
+    "ai_tender_system/modules/business_response/content_filler.py",
+    "ai_tender_system/modules/business_response/processor.py",
+    "ai_tender_system/modules/business_response/field_classifier.py"
+  ]
+}

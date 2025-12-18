@@ -54,6 +54,38 @@ export interface QuickInfo {
   test_dir: string
 }
 
+export interface TestItem {
+  id: string
+  name: string
+  file: string
+  full_path: string
+  importance?: string
+  is_directory?: boolean
+}
+
+export interface TestSuite {
+  name: string
+  description: string
+  tests: TestItem[]
+}
+
+export interface Checklist {
+  core_tests: {
+    name: string
+    description: string
+    tests: TestItem[]
+  }
+  test_suites: {
+    [key: string]: TestSuite
+  }
+}
+
+export interface TestStatus {
+  available: boolean
+  status: 'unknown' | 'passed' | 'failed'
+  last_run: string | null
+}
+
 /**
  * 测试运行器 API
  */
@@ -104,5 +136,46 @@ export const testRunnerApi = {
    */
   getQuickInfo() {
     return apiClient.get<{ success: boolean; info: QuickInfo }>('/test/quick-info')
+  },
+
+  /**
+   * 获取测试清单
+   */
+  getChecklist() {
+    return apiClient.get<{
+      success: boolean
+      checklist: Checklist
+      total_core_tests: number
+      total_suites: number
+    }>('/testing/checklist')
+  },
+
+  /**
+   * 获取测试清单状态
+   */
+  getChecklistStatus() {
+    return apiClient.get<{
+      success: boolean
+      test_status: Record<string, TestStatus>
+      total_tests: number
+      available_tests: number
+      last_run_time: string | null
+    }>('/testing/checklist/status')
+  },
+
+  /**
+   * 运行单个测试
+   */
+  runSingleTest(testPath: string) {
+    return apiClient.post<{
+      success: boolean
+      test_path: string
+      passed: boolean
+      failed: boolean
+      output: string
+      return_code: number
+    }>('/testing/run-single', {
+      test_path: testPath
+    })
   }
 }

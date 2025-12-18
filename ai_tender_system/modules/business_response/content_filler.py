@@ -110,13 +110,20 @@ class ContentFiller:
                 # 常规字段识别
                 std_field = self.field_recognizer.recognize_field(field_name)
 
+            # 🔍 调试日志：输出字段识别结果
+            self.logger.info(f"  [fill_bracket_field] field_name='{field_name}', std_field='{std_field}'")
+
             # ✅ 新增：使用 should_fill 检查局部上下文（括号前后30字符）
             # 避免整个段落检查导致误判
             start_pos = max(0, match['start'] - 30)
             end_pos = min(len(full_text), match['end'] + 30)
             context_text = full_text[start_pos:end_pos]
 
-            if not FieldClassifier.should_fill(context_text, std_field):
+            # 🔍 调试日志：输出 should_fill 的输入和输出
+            should_fill_result = FieldClassifier.should_fill(context_text, std_field)
+            self.logger.info(f"  [fill_bracket_field] should_fill(context='{context_text}', std_field='{std_field}') = {should_fill_result}")
+
+            if not should_fill_result:
                 self.logger.info(f"    跳过签字/文档字段: {context_text}")
                 continue
 

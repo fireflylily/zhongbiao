@@ -1,0 +1,98 @@
+name: 严格测试模式（核心功能保护）
+
+on:
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'ai_tender_system/modules/business_response/**'
+      - 'tests/**'
+
+# 防止并发执行
+concurrency:
+  group: test-strict-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    name: 核心功能回归测试
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y antiword
+
+      - name: 安装 Python 依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-prod.txt
+          pip install -r requirements-dev.txt
+
+      - name: 🔒 运行核心回归测试（严格模式）
+        run: |
+          echo "=========================================="
+          echo "🔍 运行核心功能回归测试"
+          echo "=========================================="
+
+          # 运行核心测试，任何失败都会导致CI失败
+          pytest \
+            tests/unit/modules/test_business_response_text_filling.py::test_signature_field_skip_logic \
+            tests/unit/modules/test_business_response_text_filling.py::test_date_formatting \
+            tests/unit/modules/test_business_response_text_filling.py::test_company_name_aliases \
+            tests/unit/modules/test_business_response_text_filling.py::test_address_field_recognition \
+            tests/unit/modules/test_business_response_text_filling.py::test_legal_representative_recognition \
+            -v --tb=short
+        # 注意：没有 continue-on-error，测试失败会阻止PR合并
+
+      - name: 运行所有商务应答测试
+        run: |
+          pytest tests/unit/modules/test_business_response_text_filling.py -v --tb=short
+
+      - name: 检查覆盖率不下降
+        run: |
+          pytest tests/unit/modules/test_business_response_text_filling.py \
+            --cov=ai_tender_system.modules.business_response \
+            --cov-report=term-missing \
+            --cov-fail-under=15
+
+      - name: 生成测试报告
+        if: always()
+        run: |
+          echo "## 🔒 核心功能回归测试结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 测试保护的功能" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ 签字/盖章字段判断逻辑" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ 日期格式化（5种格式）" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ 公司名称别名识别（7种）" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ 地址字段识别（7种）" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ 法人代表字段识别（10种）" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 测试结果" >> $GITHUB_STEP_SUMMARY
+          if [ $? -eq 0 ]; then
+            echo "✅ 所有核心功能正常" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ 检测到核心功能被破坏！" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 评论PR（如果测试失败）
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **核心功能回归测试失败！**\n\n此PR修改了关键模块，但核心测试未通过。\n\n请查看测试日志，修复问题后再提交。\n\n测试报告：[查看详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})'
+            })

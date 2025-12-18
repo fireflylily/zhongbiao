@@ -104,6 +104,40 @@
           </el-col>
         </el-row>
 
+        <el-form-item label="方案模式">
+          <el-radio-group v-model="config.proposalMode">
+            <el-radio value="basic">
+              基础方案
+              <el-tooltip placement="top">
+                <template #content>
+                  <div style="max-width: 300px;">
+                    快速生成通用技术方案<br/>
+                    • 适合时间紧急的项目<br/>
+                    • 生成速度快<br/>
+                    • 使用通用技术描述
+                  </div>
+                </template>
+                <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </el-radio>
+            <el-radio value="advanced">
+              进阶方案（推荐）
+              <el-tooltip placement="top">
+                <template #content>
+                  <div style="max-width: 300px;">
+                    生成业务定制化方案<br/>
+                    • 紧扣招标需求和业务场景<br/>
+                    • 突出数据优势和实力证明<br/>
+                    • 语言专业、具有说服力<br/>
+                    • 适合竞争激烈的重要项目
+                  </div>
+                </template>
+                <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </el-radio>
+          </el-radio-group>
+        </el-form-item>
+
         <el-form-item label="附加输出">
           <el-checkbox-group v-model="config.additionalOutputs">
             <el-checkbox label="includeAnalysis">需求分析报告</el-checkbox>
@@ -423,7 +457,8 @@ import {
   Upload,
   Promotion,
   Folder,
-  Document
+  Document,
+  QuestionFilled
 } from '@element-plus/icons-vue'
 import {
   DocumentUploader,
@@ -482,7 +517,10 @@ const downloadHistoryFile = async (file: any) => {
       return
     }
 
-    const filename = file.filename || file.downloadUrl.split('/').pop() || '技术方案.docx'
+    // 从URL中提取文件名，去除查询参数
+    let filename = file.filename || file.downloadUrl.split('/').pop() || '技术方案.docx'
+    // 去除URL查询参数（例如 ?download=true）
+    filename = filename.split('?')[0]
 
     // 使用公用下载函数
     downloadFile(file.downloadUrl, filename)
@@ -505,6 +543,7 @@ const form = ref({
 const config = ref({
   outputPrefix: '技术方案',
   aiModel: 'shihuang-gpt4o-mini',
+  proposalMode: 'basic' as 'basic' | 'advanced',  // 默认基础模式
   additionalOutputs: ['includeAnalysis', 'includeMapping', 'includeSummary'] as string[]
 })
 
@@ -677,6 +716,7 @@ const generateProposal = async () => {
     formData.append('projectName', selectedProject.value!.project_name || '')
     formData.append('projectId', form.value.projectId!.toString())
     formData.append('aiModel', config.value.aiModel)  // ✅ 添加AI模型参数
+    formData.append('proposalMode', config.value.proposalMode)  // ✅ 添加方案模式参数
 
     // 附加输出选项
     formData.append('includeAnalysis', config.value.additionalOutputs.includes('includeAnalysis') ? 'true' : 'false')
@@ -958,7 +998,10 @@ const downloadDocument = (fileType: string) => {
   }
 
   const url = generationResult.value.output_files[fileType]
-  const filename = url.split('/').pop() || `技术方案_${fileType}.docx`
+  // 从URL中提取文件名，去除查询参数
+  let filename = url.split('/').pop() || `技术方案_${fileType}.docx`
+  // 去除URL查询参数（例如 ?download=true）
+  filename = filename.split('?')[0]
 
   // 使用公用下载函数
   downloadFile(url, filename)
@@ -1205,10 +1248,22 @@ onMounted(async () => {
   .generation-output,
   .analysis-section,
   .outline-section,
-  .result-section {
+  .result-section,
+  .editor-section {
     :deep(.el-card__header) {
       padding: 16px 20px;
       background: var(--el-fill-color-light);
+    }
+  }
+
+  .editor-section {
+    height: 1050px;       // 固定卡片高度（包含header）
+    overflow: hidden;     // 防止溢出
+
+    :deep(.el-card__body) {
+      padding: 0;
+      height: 1000px;     // 内容区域1000px（编辑器高度）
+      overflow: hidden;   // 防止溢出
     }
   }
 

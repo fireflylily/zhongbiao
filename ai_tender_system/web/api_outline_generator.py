@@ -633,8 +633,9 @@ def generate_proposal_stream_v2():
             project_id = request.form.get('projectId', '')
             ai_model = request.form.get('aiModel', 'shihuang-gpt4o-mini')  # ✅ 获取AI模型参数，默认gpt4o-mini
             use_streaming_content = request.form.get('useStreamingContent', 'true').lower() == 'true'
+            proposal_mode = request.form.get('proposalMode', 'basic')  # ✅ 获取方案模式参数，默认basic
 
-            logger.info(f"使用AI模型: {ai_model}")
+            logger.info(f"使用AI模型: {ai_model}, 方案模式: {proposal_mode}")
 
             # 生成选项
             options = {
@@ -730,7 +731,7 @@ def generate_proposal_stream_v2():
                 logger.info("使用流式内容生成模式")
                 proposal = None
 
-                for event in assembler.assemble_proposal_stream(outline_data, analysis_result, matched_docs, options):
+                for event in assembler.assemble_proposal_stream(outline_data, analysis_result, matched_docs, options, proposal_mode):
                     event_type = event.get('type')
 
                     if event_type == 'chapter_start':
@@ -777,7 +778,7 @@ def generate_proposal_stream_v2():
                 yield f"data: {json.dumps({'stage': 'assembly', 'progress': 85, 'message': '✓ 方案组装完成（流式）'}, ensure_ascii=False)}\n\n"
             else:
                 # 使用非流式组装（原有逻辑）
-                proposal = assembler.assemble_proposal(outline_data, analysis_result, matched_docs, options)
+                proposal = assembler.assemble_proposal(outline_data, analysis_result, matched_docs, options, proposal_mode)
                 yield f"data: {json.dumps({'stage': 'assembly', 'progress': 85, 'message': '✓ 方案组装完成'}, ensure_ascii=False)}\n\n"
 
             # 导出文件

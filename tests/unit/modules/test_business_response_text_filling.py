@@ -14,14 +14,48 @@
 
 作者：AI Tender System
 日期：2025-11-28
+更新：2025-12-02 - 改为从JSON文件加载测试数据
 """
 
+import json
 import pytest
+from pathlib import Path
 from unittest.mock import Mock, MagicMock
 from docx.text.paragraph import Paragraph
 
 from ai_tender_system.modules.business_response.content_filler import ContentFiller
 from ai_tender_system.modules.business_response.field_recognizer import FieldRecognizer
+
+
+# ============================================================================
+# 测试数据加载
+# ============================================================================
+
+TEST_DATA_FILE = Path(__file__).parent.parent.parent / "data" / "business_response_test_cases.json"
+
+def load_test_data():
+    """加载JSON测试数据"""
+    with open(TEST_DATA_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def get_test_cases(suite_name, *fields):
+    """
+    从JSON中提取指定测试套件的测试用例
+
+    Args:
+        suite_name: 测试套件名称
+        *fields: 要提取的字段名
+
+    Returns:
+        list: 测试用例列表，每个元素是一个元组
+    """
+    data = load_test_data()
+    cases = data['test_suites'][suite_name]['test_cases']
+
+    if not fields:
+        return cases
+
+    return [tuple(case.get(field) for field in fields) for case in cases]
 
 
 @pytest.fixture
@@ -38,34 +72,19 @@ def content_filler(logger):
 
 @pytest.fixture
 def sample_company_data():
-    """测试用的公司数据（使用驼峰命名匹配实际代码）"""
-    return {
-        'companyName': '北京测试科技有限公司',
-        'address': '北京市海淀区中关村大街1号',
-        'legalRepresentative': '张三',
-        'representativeName': '李四',
-        'phone': '010-12345678',
-        'email': 'test@example.com',
-        'date': '2025-11-28',
-        'registeredCapital': '1000万元'
-    }
+    """测试用的公司数据（从JSON加载）"""
+    data = load_test_data()
+    return data['sample_data']['data']
 
 
 # ============================================================================
-# 测试1：供应商名称的多种别名识别和填充
+# 测试1：供应商名称的多种别名识别和填充（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("field_alias,expected_standard_field", [
-    # 测试用例：(文档中的字段名, 应该识别为的标准字段 - 驼峰命名)
-    ("供应商", "companyName"),
-    ("供应商名称", "companyName"),
-    ("供应商全称", "companyName"),
-    ("公司名称", "companyName"),
-    ("单位名称", "companyName"),
-    ("应答人名称", "companyName"),  # ⚠️ 特殊：应答人名称也映射到公司名
-    ("企业名称", "companyName"),
-])
+@pytest.mark.parametrize("field_alias,expected_standard_field",
+    get_test_cases('field_recognition_company', 'field_alias', 'expected_standard_field')
+)
 def test_company_name_aliases(field_alias, expected_standard_field):
     """测试供应商名称的所有别名都能正确识别
 
@@ -84,20 +103,14 @@ def test_company_name_aliases(field_alias, expected_standard_field):
 
 
 # ============================================================================
-# 测试2：地址字段的多种别名
+# 测试2：地址字段的多种别名（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("field_alias", [
-    "地址",
-    "注册地址",
-    "办公地址",
-    "联系地址",
-    "通讯地址",
-    "供应商地址",
-    "公司地址"
-])
-def test_address_field_recognition(field_alias):
+@pytest.mark.parametrize("field_alias,expected_field",
+    get_test_cases('field_recognition_address', 'field_alias', 'expected_standard_field')
+)
+def test_address_field_recognition(field_alias, expected_field):
     """测试地址字段的所有别名
 
     场景：招标文件中地址字段可能有多种叫法
@@ -105,29 +118,18 @@ def test_address_field_recognition(field_alias):
     recognizer = FieldRecognizer()
     standard_field = recognizer.recognize_field(field_alias)
 
-    assert standard_field == "address", \
-        f"'{field_alias}'应该识别为'address'字段"
+    assert standard_field == expected_field, \
+        f"'{field_alias}'应该识别为'{expected_field}'字段"
 
 
 # ============================================================================
-# 测试3：法人代表字段
+# 测试3：法人代表字段（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("field_alias,expected_field", [
-    # 法定代表人相关
-    ("法定代表人", "legalRepresentative"),
-    ("法人", "legalRepresentative"),
-    ("法人代表", "legalRepresentative"),
-    # 被授权人相关 - 注意这些映射到 representativeName
-    ("供应商被授权人姓名", "representativeName"),
-    ("被授权人姓名", "representativeName"),
-    ("授权人姓名", "representativeName"),
-    ("供应商代表", "representativeName"),
-    ("供应商代表姓名", "representativeName"),
-    ("代表姓名", "representativeName"),
-    ("代表人", "representativeName")
-])
+@pytest.mark.parametrize("field_alias,expected_field",
+    get_test_cases('field_recognition_legal_person', 'field_alias', 'expected_standard_field')
+)
 def test_legal_representative_recognition(field_alias, expected_field):
     """测试法人代表和被授权人字段的多种别名"""
     recognizer = FieldRecognizer()
@@ -138,18 +140,13 @@ def test_legal_representative_recognition(field_alias, expected_field):
 
 
 # ============================================================================
-# 测试4：括号字段填充
+# 测试4：括号字段填充（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("bracket_text,field_name,expected_value", [
-    # (原始括号文本, 字段名, 期望填充的值)
-    ("(供应商名称)", "供应商名称", "北京测试科技有限公司"),
-    ("（公司名称）", "公司名称", "北京测试科技有限公司"),
-    ("[单位名称]", "单位名称", "北京测试科技有限公司"),
-    ("(地址)", "地址", "北京市海淀区中关村大街1号"),
-    ("（法定代表人）", "法定代表人", "张三"),
-])
+@pytest.mark.parametrize("bracket_text,field_name,expected_value",
+    get_test_cases('bracket_field_filling', 'bracket_text', 'field_name', 'expected_value')
+)
 def test_bracket_field_filling(content_filler, sample_company_data,
                                 bracket_text, field_name, expected_value):
     """测试括号字段的填充
@@ -185,27 +182,13 @@ def test_bracket_field_filling(content_filler, sample_company_data,
 
 
 # ============================================================================
-# 测试5：组合字段填充
+# 测试5：组合字段填充（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("combo_text,fields,std_fields,expected_values", [
-    # (组合字段文本, [字段名列表], [标准字段列表], [期望值列表])
-    ("(公司名称、地址)",
-     ["公司名称", "地址"],
-     ["companyName", "address"],
-     ["北京测试科技有限公司", "北京市海淀区中关村大街1号"]),
-
-    ("（单位名称、法定代表人）",
-     ["单位名称", "法定代表人"],
-     ["companyName", "legalRepresentative"],
-     ["北京测试科技有限公司", "张三"]),
-
-    ("[供应商、联系电话]",
-     ["供应商", "联系电话"],
-     ["companyName", "phone"],
-     ["北京测试科技有限公司", "010-12345678"]),
-])
+@pytest.mark.parametrize("combo_text,fields,std_fields,expected_values",
+    get_test_cases('combo_field_recognition', 'combo_text', 'fields', 'expected_standard_fields', 'expected_values')
+)
 def test_combo_field_recognition(combo_text, fields, std_fields, expected_values,
                                   sample_company_data):
     """测试组合字段的识别和填充
@@ -238,18 +221,13 @@ def test_combo_field_recognition(combo_text, fields, std_fields, expected_values
 
 
 # ============================================================================
-# 测试6：日期格式化
+# 测试6：日期格式化（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("input_date,expected_format", [
-    # (输入的日期格式, 期望的中文格式)
-    ("2025-11-28", "2025年11月28日"),
-    ("2025/11/28", "2025年11月28日"),
-    ("2025.11.28", "2025年11月28日"),
-    ("2025年11月28日", "2025年11月28日"),  # 已经是中文格式
-    ("2025年11月28日下午14:30", "2025年11月28日"),  # 去掉时间部分
-])
+@pytest.mark.parametrize("input_date,expected_format",
+    get_test_cases('date_formatting', 'input_date', 'expected_format')
+)
 def test_date_formatting(content_filler, input_date, expected_format):
     """测试日期格式化
 
@@ -265,18 +243,13 @@ def test_date_formatting(content_filler, input_date, expected_format):
 
 
 # ============================================================================
-# 测试7：签字字段跳过逻辑
+# 测试7：签字字段跳过逻辑（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("field_text,should_skip", [
-    # (字段文本, 是否应该跳过填充)
-    ("法定代表人（签字）", True),   # 个人签字，跳过
-    ("供应商名称（盖章）", False),  # 单位盖章，填充
-    ("单位名称（盖章）", False),    # 单位盖章，填充
-    ("法定代表人", False),          # 无标记，填充
-    ("投标人（签字或盖章）", False), # ⚠️ 修正：投标人是单位，即使有签字也填充
-])
+@pytest.mark.parametrize("field_text,should_skip",
+    get_test_cases('signature_field_skip_logic', 'field_text', 'should_skip')
+)
 def test_signature_field_skip_logic(field_text, should_skip):
     """测试签字字段的跳过逻辑
 
@@ -373,16 +346,13 @@ def test_complete_text_filling_scenario(sample_company_data):
 
 
 # ============================================================================
-# 测试10：特殊字段（你提到的场景）
+# 测试10：真实场景字段映射（从JSON加载）
 # ============================================================================
 
 @pytest.mark.unit
-@pytest.mark.parametrize("document_field,data_field,test_value", [
-    # 你提到的实际场景 - 使用驼峰命名
-    ("供应商名称", "companyName", "某某科技有限公司"),
-    ("应答人名称", "companyName", "某某科技有限公司"),  # ⚠️ 映射到同一字段
-    ("投标人名称", "companyName", "某某科技有限公司"),
-])
+@pytest.mark.parametrize("document_field,data_field,test_value",
+    get_test_cases('real_world_scenarios', 'document_field', 'expected_data_field', 'test_value')
+)
 def test_real_world_scenarios(document_field, data_field, test_value):
     """测试真实场景中的字段映射
 

@@ -115,7 +115,8 @@ class ProposalAssembler:
         outline: Dict[str, Any],
         analysis: Dict[str, Any],
         matched_docs: Dict[str, List[Dict]],
-        options: Optional[Dict[str, bool]] = None
+        options: Optional[Dict[str, bool]] = None,
+        proposal_mode: str = 'basic'
     ) -> Generator[Dict[str, Any], None, None]:
         """
         流式组装技术方案（Generator版本）
@@ -126,6 +127,7 @@ class ProposalAssembler:
             analysis: 需求分析结果
             matched_docs: 匹配的产品文档
             options: 生成选项
+            proposal_mode: 方案模式，'basic'或'advanced'
 
         Yields:
             Dict: 包含章节信息和内容的字典
@@ -175,7 +177,7 @@ class ProposalAssembler:
 
                     # 流式生成章节内容
                     chapter_content = []
-                    for content_chunk in self.generate_chapter_content_stream(chapter, analysis):
+                    for content_chunk in self.generate_chapter_content_stream(chapter, analysis, proposal_mode):
                         chapter_content.append(content_chunk)
                         # 推送内容片段
                         yield {
@@ -217,7 +219,7 @@ class ProposalAssembler:
 
                             # 流式生成子章节内容
                             subsection_content = []
-                            for content_chunk in self.generate_chapter_content_stream(subsection, analysis):
+                            for content_chunk in self.generate_chapter_content_stream(subsection, analysis, proposal_mode):
                                 subsection_content.append(content_chunk)
                                 # 推送子章节内容片段
                                 yield {
@@ -796,14 +798,16 @@ class ProposalAssembler:
     def _generate_chapter_content_with_ai(
         self,
         chapter: Dict[str, Any],
-        analysis: Dict[str, Any]
+        analysis: Dict[str, Any],
+        proposal_mode: str = 'basic'
     ) -> Optional[str]:
         """
-        使用AI生成章节内容（带降级策略）
+        使用AI生成章节内容（带降级策略和双模式支持）
 
         Args:
             chapter: 章节信息
             analysis: 需求分析结果
+            proposal_mode: 方案模式，'basic'或'advanced'
 
         Returns:
             生成的章节内容，失败返回模板内容
@@ -813,20 +817,17 @@ class ProposalAssembler:
         content_hints = chapter.get('content_hints', [])
         response_tips = chapter.get('response_tips', [])
 
-        # 策略1: 精简提示词生成（重试2次）
+        # 策略1: 根据模式选择提示词生成（重试2次）
         try:
-            # ✅ 精简提示词：只保留核心要点
-            core_hints = content_hints[:3] if content_hints else []
-            hints_text = '、'.join(core_hints) if core_hints else chapter_desc
-
-            prompt = f"""为"{chapter_title}"生成800字专业技术方案。
-
-核心要点：{hints_text}
-
-要求：专业、清晰、突出技术优势、中文、纯文本格式（不使用Markdown标记如##、**等）"""
+            # 根据模式构建提示词
+            if proposal_mode == 'advanced':
+                prompt = self._build_advanced_prompt(chapter, analysis)
+            else:
+                prompt = self._build_basic_prompt(chapter, analysis)
 
             # 调用LLM
-            self.logger.info(f"为章节'{chapter_title}'生成AI内容（精简模式）...")
+            mode_label = "进阶模式" if proposal_mode == 'advanced' else "基础模式"
+            self.logger.info(f"为章节'{chapter_title}'生成AI内容（{mode_label}）...")
             response = self.llm_client.call(
                 prompt=prompt,
                 temperature=0.7,
@@ -872,35 +873,32 @@ class ProposalAssembler:
     def generate_chapter_content_stream(
         self,
         chapter: Dict[str, Any],
-        analysis: Dict[str, Any]
+        analysis: Dict[str, Any],
+        proposal_mode: str = 'basic'
     ) -> Generator[str, None, None]:
         """
-        使用AI流式生成章节内容（Generator版本，带降级策略和精简提示词）
+        使用AI流式生成章节内容（Generator版本，带降级策略和双模式支持）
 
         Args:
             chapter: 章节信息
             analysis: 需求分析结果
+            proposal_mode: 方案模式，'basic'或'advanced'
 
         Yields:
             str: 生成的文本片段
         """
         chapter_title = chapter.get('title', '')
-        chapter_desc = chapter.get('description', '')
-        content_hints = chapter.get('content_hints', [])
 
-        # ✅ 统一使用精简提示词
-        core_hints = content_hints[:3] if content_hints else []
-        hints_text = '、'.join(core_hints) if core_hints else chapter_desc
-
-        prompt = f"""为"{chapter_title}"生成800字专业技术方案。
-
-核心要点：{hints_text}
-
-要求：专业、清晰、突出技术优势、中文、纯文本格式（不使用Markdown标记如##、**等）"""
+        # 根据模式构建提示词
+        if proposal_mode == 'advanced':
+            prompt = self._build_advanced_prompt(chapter, analysis)
+        else:
+            prompt = self._build_basic_prompt(chapter, analysis)
 
         # 策略1: 流式生成（超时120秒）
         try:
-            self.logger.info(f"为章节'{chapter_title}'流式生成AI内容（精简+纯文本模式）...")
+            mode_label = "进阶模式" if proposal_mode == 'advanced' else "基础模式"
+            self.logger.info(f"为章节'{chapter_title}'流式生成AI内容（{mode_label}）...")
 
             for chunk in self.llm_client.call_stream(
                 prompt=prompt,
@@ -975,6 +973,142 @@ class ProposalAssembler:
             # 返回模板内容
             template = self._generate_template_content(chapter)
             return (chapter.get('chapter_number', ''), chapter.get('title', ''), template)
+
+    def _build_basic_prompt(self, chapter: Dict[str, Any], analysis: Dict[str, Any]) -> str:
+        """
+        构建基础模式提示词（快速生成，通用描述）
+
+        Args:
+            chapter: 章节信息
+            analysis: 需求分析结果
+
+        Returns:
+            提示词字符串
+        """
+        chapter_title = chapter.get('title', '')
+        chapter_desc = chapter.get('description', '')
+        content_hints = chapter.get('content_hints', [])
+
+        # 精简提示词：只保留核心要点
+        core_hints = content_hints[:3] if content_hints else []
+        hints_text = '、'.join(core_hints) if core_hints else chapter_desc
+
+        prompt = f"""为"{chapter_title}"生成800字专业技术方案。
+
+核心要点：{hints_text}
+
+要求：
+1. 专业、清晰、突出技术优势
+2. 使用中文
+3. 输出纯文本段落，适合直接放入Word文档
+4. 不要使用任何Markdown标记（如 ##、**、*、-、1.等）
+5. 如需列举要点，使用"（1）、（2）"或"第一、第二"等中文表述
+6. 如需强调，使用括号或引号，不使用**加粗**"""
+
+        return prompt
+
+    def _build_advanced_prompt(self, chapter: Dict[str, Any], analysis: Dict[str, Any]) -> str:
+        """
+        构建进阶模式提示词（业务定制化，紧扣需求）
+
+        Args:
+            chapter: 章节信息
+            analysis: 需求分析结果
+
+        Returns:
+            提示词字符串
+        """
+        chapter_title = chapter.get('title', '')
+        chapter_desc = chapter.get('description', '')
+        content_hints = chapter.get('content_hints', [])
+        response_tips = chapter.get('response_tips', [])
+
+        # 提取项目背景和业务上下文
+        project_context = self._extract_project_context(analysis)
+
+        # 格式化核心要点
+        hints_list = '\n'.join([f"  - {hint}" for hint in content_hints[:5]]) if content_hints else f"  - {chapter_desc}"
+
+        # 格式化应答技巧
+        tips_text = ""
+        if response_tips:
+            tips_text = "\n\n【应答技巧】\n" + '\n'.join([f"  - {tip}" for tip in response_tips[:3]])
+
+        prompt = f"""为"{chapter_title}"撰写800字技术方案应答内容。
+
+【核心要点】
+{hints_list}
+{tips_text}
+
+【项目背景】
+{project_context}
+
+【撰写要求】
+1. **业务针对性**: 紧扣招标项目的具体场景和需求，避免通用技术描述
+2. **能力证明**: 优先使用量化数据（用户数、数据量、集群规模、覆盖范围等）展示实力
+3. **具体可落地**: 说明具体的交付内容、技术参数、服务方式、更新频率
+4. **语言风格**:
+   - 用肯定陈述："我方具备..."、"已实现..."而非"我们将..."
+   - 用数据说话："X亿用户、Y个节点、Z%覆盖率"而非"大规模、高性能"
+   - 突出行业经验："在XX行业多年应用经验"
+5. **内容结构**:
+   - 第一段: 直接呼应该章节对应的招标需求或业务场景
+   - 中间段落: 分(1)、(2)、(3)列举具体解决方案或能力证明
+   - 最后段落: 简要说明达成效果或竞争优势
+6. **格式规范**:
+   - 使用纯文本格式，不使用Markdown标记（##、**、*、-等）
+   - 列举时使用"(1)"、"(2)"或"第一、"、"第二、"
+   - 强调时使用【】或""，不使用**加粗**"""
+
+        return prompt
+
+    def _extract_project_context(self, analysis: Dict[str, Any]) -> str:
+        """
+        从需求分析中提取项目背景和业务上下文
+
+        Args:
+            analysis: 需求分析结果
+
+        Returns:
+            项目背景描述字符串
+        """
+        context_parts = []
+
+        # 提取项目名称
+        project_title = analysis.get('project_title', '')
+        if project_title:
+            context_parts.append(f"项目名称: {project_title}")
+
+        # 提取项目概述
+        summary = analysis.get('document_summary', {})
+        project_overview = summary.get('project_overview', '')
+        if project_overview:
+            context_parts.append(f"项目概述: {project_overview}")
+
+        # 提取核心目标（从第一个需求类别中）
+        categories = analysis.get('requirement_categories', [])
+        if categories:
+            first_category = categories[0]
+            category_name = first_category.get('category', '')
+            key_points = first_category.get('key_points', [])
+            if category_name and key_points:
+                main_goal = key_points[0] if key_points else category_name
+                context_parts.append(f"核心目标: {main_goal}")
+
+        # 提取关键技术要求（mandatory requirements）
+        key_requirements = []
+        for category in categories[:2]:  # 取前2个类别
+            points = category.get('key_points', [])
+            key_requirements.extend(points[:2])  # 每个类别取2个要点
+        if key_requirements:
+            req_text = '、'.join(key_requirements[:3])  # 最多3个要求
+            context_parts.append(f"关键需求: {req_text}")
+
+        # 组合上下文
+        if context_parts:
+            return '\n'.join(context_parts)
+        else:
+            return "技术方案项目（需求分析信息不足）"
 
     def _generate_template_content(self, chapter: Dict[str, Any]) -> str:
         """

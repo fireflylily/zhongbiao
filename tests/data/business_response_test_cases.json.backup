@@ -1,0 +1,1467 @@
+{
+  "version": "2.0",
+  "last_updated": "2025-12-02",
+  "description": "商务应答文字填充功能测试用例数据",
+  "test_suites": {
+    "field_recognition_company": {
+      "description": "公司名称字段识别测试",
+      "test_cases": [
+        {
+          "id": "company_001",
+          "field_alias": "供应商",
+          "expected_standard_field": "companyName",
+          "note": "基础别名",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "company_002",
+          "field_alias": "供应商名称",
+          "expected_standard_field": "companyName",
+          "note": "常见变体",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "company_003",
+          "field_alias": "供应商全称",
+          "expected_standard_field": "companyName",
+          "note": "完整名称",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "company_004",
+          "field_alias": "公司名称",
+          "expected_standard_field": "companyName",
+          "note": "标准名称",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "company_005",
+          "field_alias": "单位名称",
+          "expected_standard_field": "companyName",
+          "note": "单位称呼",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "company_006",
+          "field_alias": "应答人名称",
+          "expected_standard_field": "companyName",
+          "note": "特殊映射-应答人即公司",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "company_007",
+          "field_alias": "企业名称",
+          "expected_standard_field": "companyName",
+          "note": "企业称呼",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "company_name_001_auto",
+          "field_alias": "盖单位公章",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 85,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_002_auto",
+          "field_alias": "投标人名称",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 101,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_003_auto",
+          "field_alias": "所有成员单位名称",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 130,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_004_auto",
+          "field_alias": "某成员单位名称",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 131,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_005_auto",
+          "field_alias": "投标人须知前附表明确应由联合体各成员分别签署的除外",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 132,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_006_auto",
+          "field_alias": "投标人单位名称",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 162,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_007_auto",
+          "field_alias": "投标人法定代表人/负责人姓名",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 187,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_008_auto",
+          "field_alias": "含单位或者个人",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 331,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_009_auto",
+          "field_alias": "以下简称投标人",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 353,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_010_auto",
+          "field_alias": "“本单位人员”",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 481,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_011_auto",
+          "field_alias": "响应方名称、地址",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "50",
+            "template_file": "第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/50/第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "paragraph_index": 4,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_013_auto",
+          "field_alias": "投标人全称",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 3,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_014_auto",
+          "field_alias": "或单位负责人",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 80,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_016_auto",
+          "field_alias": "法定代表人（或单位负责人）姓名、职务",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 83,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_018_auto",
+          "field_alias": "投标人授权代表",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 87,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_019_auto",
+          "field_alias": "投标人须提供以下承诺",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 154,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_020_auto",
+          "field_alias": "投标人没有优于承诺，可不提供",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 194,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_021_auto",
+          "field_alias": "国际单位制和国家选定的其他计量单位",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "39",
+            "template_file": "第一部分  采购邀请_第二部分  响应方须知_应答模板_20251122_154947.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/39/第一部分  采购邀请_第二部分  响应方须知_应答模板_20251122_154947.docx",
+            "paragraph_index": 94,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_022_auto",
+          "field_alias": "适用于响应方为非原厂和非原著作权人的情形",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "39",
+            "template_file": "第一部分  采购邀请_第二部分  响应方须知_应答模板_20251122_154947.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/39/第一部分  采购邀请_第二部分  响应方须知_应答模板_20251122_154947.docx",
+            "paragraph_index": 117,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_023_auto",
+          "field_alias": "盖单位章",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "37",
+            "template_file": "第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/37/第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "paragraph_index": 37,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_024_auto",
+          "field_alias": "投标单位的名称",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "37",
+            "template_file": "第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/37/第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "paragraph_index": 45,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_025_auto",
+          "field_alias": "供应商名称、地址",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "34",
+            "template_file": "第四章响应文件格式_应答模板_20251110_141306.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/34/第四章响应文件格式_应答模板_20251110_141306.docx",
+            "paragraph_index": 5,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_026_auto",
+          "field_alias": "列入黑名单企业自动丧失中标/成交资格及签约资格",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "34",
+            "template_file": "第四章响应文件格式_应答模板_20251110_141306.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/34/第四章响应文件格式_应答模板_20251110_141306.docx",
+            "paragraph_index": 103,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_027_auto",
+          "field_alias": "限非上市公司",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "34",
+            "template_file": "第四章响应文件格式_应答模板_20251110_141306.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/34/第四章响应文件格式_应答模板_20251110_141306.docx",
+            "paragraph_index": 106,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_028_auto",
+          "field_alias": "被授权人近3个月在本公司（含分公司",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 66,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_029_auto",
+          "field_alias": "必须体现缴费单位名称、缴费个人姓名、社会保障号码（至少保留社会保障号码后6位",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 66,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_030_auto",
+          "field_alias": "事业单位提供",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 67,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_031_auto",
+          "field_alias": "供应商提供承诺函",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 68,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_032_auto",
+          "field_alias": "须近一年在本公司（含分公司",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 69,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "company_name_034_auto",
+          "field_alias": "含分公司",
+          "expected_standard_field": "companyName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 138,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        }
+      ]
+    },
+    "field_recognition_address": {
+      "description": "地址字段识别测试",
+      "test_cases": [
+        {
+          "id": "address_001",
+          "field_alias": "地址",
+          "expected_standard_field": "address",
+          "note": "基础名称",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "address_002",
+          "field_alias": "注册地址",
+          "expected_standard_field": "address",
+          "note": "注册地址",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "address_003",
+          "field_alias": "办公地址",
+          "expected_standard_field": "address",
+          "note": "办公地址",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "address_004",
+          "field_alias": "联系地址",
+          "expected_standard_field": "address",
+          "note": "联系地址",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "address_005",
+          "field_alias": "通讯地址",
+          "expected_standard_field": "address",
+          "note": "通讯地址",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "address_006",
+          "field_alias": "供应商地址",
+          "expected_standard_field": "address",
+          "note": "供应商地址",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "address_007",
+          "field_alias": "公司地址",
+          "expected_standard_field": "address",
+          "note": "公司地址",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        }
+      ]
+    },
+    "field_recognition_legal_person": {
+      "description": "法人代表和被授权人字段识别测试",
+      "test_cases": [
+        {
+          "id": "legal_001",
+          "field_alias": "法定代表人",
+          "expected_standard_field": "legalRepresentative",
+          "note": "法定代表人标准名称",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "legal_002",
+          "field_alias": "法人",
+          "expected_standard_field": "legalRepresentative",
+          "note": "法人简称",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "legal_003",
+          "field_alias": "法人代表",
+          "expected_standard_field": "legalRepresentative",
+          "note": "法人代表",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "legal_004",
+          "field_alias": "法定代表人/负责人（姓名）或者其委托代理人（姓名）",
+          "expected_standard_field": "legalRepresentative",
+          "note": "复杂变体-包含多种角色说明",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "representative_001",
+          "field_alias": "供应商被授权人姓名",
+          "expected_standard_field": "representativeName",
+          "note": "被授权人标准名称",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "representative_002",
+          "field_alias": "被授权人姓名",
+          "expected_standard_field": "representativeName",
+          "note": "被授权人姓名",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "representative_003",
+          "field_alias": "授权人姓名",
+          "expected_standard_field": "representativeName",
+          "note": "授权人姓名",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "representative_004",
+          "field_alias": "供应商代表",
+          "expected_standard_field": "representativeName",
+          "note": "供应商代表",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "representative_005",
+          "field_alias": "供应商代表姓名",
+          "expected_standard_field": "representativeName",
+          "note": "供应商代表姓名",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "representative_006",
+          "field_alias": "代表姓名",
+          "expected_standard_field": "representativeName",
+          "note": "代表姓名",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "representative_007",
+          "field_alias": "代表人",
+          "expected_standard_field": "representativeName",
+          "note": "代表人",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "legal_person_001_auto",
+          "field_alias": "法定代表人姓名、职务",
+          "expected_standard_field": "legalRepresentative",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "50",
+            "template_file": "第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/50/第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "paragraph_index": 185,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "legal_person_002_auto",
+          "field_alias": "法人、其他组织或者个人",
+          "expected_standard_field": "legalRepresentative",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 18,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "legal_person_003_auto",
+          "field_alias": "法定代表人直接签署可不提供",
+          "expected_standard_field": "legalRepresentative",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "39",
+            "template_file": "第一部分  采购邀请_第二部分  响应方须知_应答模板_20251122_154947.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/39/第一部分  采购邀请_第二部分  响应方须知_应答模板_20251122_154947.docx",
+            "paragraph_index": 112,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "legal_person_004_auto",
+          "field_alias": "负责人",
+          "expected_standard_field": "legalRepresentative",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "37",
+            "template_file": "第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/37/第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "paragraph_index": 38,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "legal_person_005_auto",
+          "field_alias": "法定代表人（负责人",
+          "expected_standard_field": "legalRepresentative",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "37",
+            "template_file": "第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/37/第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "paragraph_index": 67,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "legal_person_006_auto",
+          "field_alias": "须由法定代表人（负责人",
+          "expected_standard_field": "legalRepresentative",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "34",
+            "template_file": "第四章响应文件格式_应答模板_20251110_141306.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/34/第四章响应文件格式_应答模板_20251110_141306.docx",
+            "paragraph_index": 98,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "legal_person_007_auto",
+          "field_alias": "法定代表人姓名:XXX",
+          "expected_standard_field": "legalRepresentative",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 123,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        }
+      ]
+    },
+    "bracket_field_filling": {
+      "description": "括号字段填充测试",
+      "test_cases": [
+        {
+          "id": "bracket_001",
+          "bracket_text": "(供应商名称)",
+          "field_name": "供应商名称",
+          "expected_standard_field": "companyName",
+          "expected_value": "北京测试科技有限公司",
+          "note": "英文圆括号",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "bracket_002",
+          "bracket_text": "（公司名称）",
+          "field_name": "公司名称",
+          "expected_standard_field": "companyName",
+          "expected_value": "北京测试科技有限公司",
+          "note": "中文圆括号",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "bracket_003",
+          "bracket_text": "[单位名称]",
+          "field_name": "单位名称",
+          "expected_standard_field": "companyName",
+          "expected_value": "北京测试科技有限公司",
+          "note": "方括号",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "bracket_004",
+          "bracket_text": "(地址)",
+          "field_name": "地址",
+          "expected_standard_field": "address",
+          "expected_value": "北京市海淀区中关村大街1号",
+          "note": "地址字段括号",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "bracket_005",
+          "bracket_text": "（法定代表人）",
+          "field_name": "法定代表人",
+          "expected_standard_field": "legalRepresentative",
+          "expected_value": "张三",
+          "note": "法人字段括号",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        }
+      ]
+    },
+    "combo_field_recognition": {
+      "description": "组合字段识别测试",
+      "test_cases": [
+        {
+          "id": "combo_001",
+          "combo_text": "(公司名称、地址)",
+          "fields": [
+            "公司名称",
+            "地址"
+          ],
+          "expected_standard_fields": [
+            "companyName",
+            "address"
+          ],
+          "expected_values": [
+            "北京测试科技有限公司",
+            "北京市海淀区中关村大街1号"
+          ],
+          "note": "公司名称+地址组合",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "combo_002",
+          "combo_text": "（单位名称、法定代表人）",
+          "fields": [
+            "单位名称",
+            "法定代表人"
+          ],
+          "expected_standard_fields": [
+            "companyName",
+            "legalRepresentative"
+          ],
+          "expected_values": [
+            "北京测试科技有限公司",
+            "张三"
+          ],
+          "note": "单位名称+法人组合",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "combo_003",
+          "combo_text": "[供应商、联系电话]",
+          "fields": [
+            "供应商",
+            "联系电话"
+          ],
+          "expected_standard_fields": [
+            "companyName",
+            "phone"
+          ],
+          "expected_values": [
+            "北京测试科技有限公司",
+            "010-12345678"
+          ],
+          "note": "供应商+电话组合",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        }
+      ]
+    },
+    "date_formatting": {
+      "description": "日期格式化测试",
+      "test_cases": [
+        {
+          "id": "date_001",
+          "input_date": "2025-11-28",
+          "expected_format": "2025年11月28日",
+          "note": "ISO格式转中文",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "date_002",
+          "input_date": "2025/11/28",
+          "expected_format": "2025年11月28日",
+          "note": "斜杠格式转中文",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "date_003",
+          "input_date": "2025.11.28",
+          "expected_format": "2025年11月28日",
+          "note": "点号格式转中文",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "date_004",
+          "input_date": "2025年11月28日",
+          "expected_format": "2025年11月28日",
+          "note": "已是中文格式保持不变",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "date_005",
+          "input_date": "2025年11月28日下午14:30",
+          "expected_format": "2025年11月28日",
+          "note": "去掉时间部分只保留日期",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        }
+      ]
+    },
+    "signature_field_skip_logic": {
+      "description": "签字字段跳过逻辑测试",
+      "test_cases": [
+        {
+          "id": "signature_001",
+          "field_text": "法定代表人（签字）",
+          "should_skip": true,
+          "note": "个人签字字段应跳过",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "signature_002",
+          "field_text": "供应商名称（盖章）",
+          "should_skip": false,
+          "note": "单位盖章字段应填充",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "signature_003",
+          "field_text": "单位名称（盖章）",
+          "should_skip": false,
+          "note": "单位盖章字段应填充",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "signature_004",
+          "field_text": "法定代表人",
+          "should_skip": false,
+          "note": "无标记的字段应填充",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "signature_005",
+          "field_text": "投标人（签字或盖章）",
+          "should_skip": false,
+          "note": "投标人是单位,即使有签字也应填充",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        }
+      ]
+    },
+    "real_world_scenarios": {
+      "description": "真实场景字段映射测试",
+      "test_cases": [
+        {
+          "id": "real_001",
+          "document_field": "供应商名称",
+          "expected_data_field": "companyName",
+          "test_value": "某某科技有限公司",
+          "note": "供应商名称映射",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "real_002",
+          "document_field": "应答人名称",
+          "expected_data_field": "companyName",
+          "test_value": "某某科技有限公司",
+          "note": "应答人名称也映射到公司名",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        },
+        {
+          "id": "real_003",
+          "document_field": "投标人名称",
+          "expected_data_field": "companyName",
+          "test_value": "某某科技有限公司",
+          "note": "投标人名称映射",
+          "source": {
+            "type": "manual",
+            "created_date": "2025-11-28",
+            "note": "初始手工创建的测试用例"
+          }
+        }
+      ]
+    },
+    "field_recognition_representative": {
+      "description": "representative字段识别测试(从模板自动提取)",
+      "test_cases": [
+        {
+          "id": "representative_001_auto",
+          "field_alias": "被授权印章名称",
+          "expected_standard_field": "representativeName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 63,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "representative_002_auto",
+          "field_alias": "委托代理人姓名",
+          "expected_standard_field": "representativeName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 187,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "representative_003_auto",
+          "field_alias": "被授权人的姓名、职务",
+          "expected_standard_field": "representativeName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "50",
+            "template_file": "第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/50/第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "paragraph_index": 185,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "representative_004_auto",
+          "field_alias": "全权代表姓名、职务、职称",
+          "expected_standard_field": "representativeName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 3,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "representative_005_auto",
+          "field_alias": "被授权人姓名、职务",
+          "expected_standard_field": "representativeName",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "37",
+            "template_file": "第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/37/第三章  投标文件格式_应答模板_20251117_161649.docx",
+            "paragraph_index": 67,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        }
+      ]
+    },
+    "field_recognition_phone": {
+      "description": "phone字段识别测试(从模板自动提取)",
+      "test_cases": [
+        {
+          "id": "phone_001_auto",
+          "field_alias": "手机",
+          "expected_standard_field": "phone",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 196,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        }
+      ]
+    },
+    "field_recognition_date": {
+      "description": "date字段识别测试(从模板自动提取)",
+      "test_cases": [
+        {
+          "id": "date_001_auto",
+          "field_alias": "年   月    日至   年   月    日",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "51",
+            "template_file": "第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/12/51/第六章    投标文件格式_目  录_应答模板_20251202_101627.docx",
+            "paragraph_index": 369,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_002_auto",
+          "field_alias": "在近3年内合同执行过程中或目前正在进行的合同中所介入过的诉讼和仲裁的资料及违法记录等",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "50",
+            "template_file": "第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/50/第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "paragraph_index": 223,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_003_auto",
+          "field_alias": "2022年11月1日后3年内",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "50",
+            "template_file": "第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/50/第四部分  响应文件格式_应答模板_20251127_113110.docx",
+            "paragraph_index": 256,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_004_auto",
+          "field_alias": "2022年10月至今",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "49",
+            "template_file": "第四章 响应文件格式_应答模板_20251125_144944.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/49/第四章 响应文件格式_应答模板_20251125_144944.docx",
+            "paragraph_index": 47,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_005_auto",
+          "field_alias": "时间从投标截止日起算前三年，以相关行业主管部门的行政处罚决定或司法机关出具的有关法律文书为准",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "40",
+            "template_file": "第六部分 附  件_应答模板_20251123_111239.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/40/第六部分 附  件_应答模板_20251123_111239.docx",
+            "paragraph_index": 14,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_006_auto",
+          "field_alias": "2022年X月X日后3年内",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "39",
+            "template_file": "第四部分  响应文件格式_应答模板_20251122_173742.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/39/第四部分  响应文件格式_应答模板_20251122_173742.docx",
+            "paragraph_index": 256,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_007_auto",
+          "field_alias": "2022年1月至今",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "27",
+            "template_file": "第四章 响应文件格式_应答模板_20251120_145019.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/27/第四章 响应文件格式_应答模板_20251120_145019.docx",
+            "paragraph_index": 47,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_008_auto",
+          "field_alias": "2020年起6月1日起，合同签署日期",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "34",
+            "template_file": "第四章响应文件格式_应答模板_20251110_141306.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/34/第四章响应文件格式_应答模板_20251110_141306.docx",
+            "paragraph_index": 137,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        },
+        {
+          "id": "date_009_auto",
+          "field_alias": "且截止月至少包括2025年6月",
+          "expected_standard_field": "date",
+          "note": "从未知项目模板自动提取",
+          "source": {
+            "type": "template",
+            "project_name": "未知项目",
+            "project_id": "26",
+            "template_file": "第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "template_path": "ai_tender_system/data/uploads/response_files/2025/11/26/第五部分    谈判响应文件格式_应答模板_20251109_191440.docx",
+            "paragraph_index": 66,
+            "extracted_date": "2025-12-02",
+            "extract_method": "auto"
+          }
+        }
+      ]
+    }
+  },
+  "sample_data": {
+    "description": "测试用的示例公司数据",
+    "data": {
+      "companyName": "北京测试科技有限公司",
+      "address": "北京市海淀区中关村大街1号",
+      "legalRepresentative": "张三",
+      "representativeName": "李四",
+      "phone": "010-12345678",
+      "email": "test@example.com",
+      "date": "2025-11-28",
+      "registeredCapital": "1000万元"
+    }
+  },
+  "source_statistics": {
+    "total_cases": 98,
+    "by_source_type": {
+      "manual": 46,
+      "template": 52,
+      "user_feedback": 0
+    }
+  }
+}

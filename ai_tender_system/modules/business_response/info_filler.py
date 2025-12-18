@@ -309,11 +309,11 @@ class InfoFiller:
                             return True
         
         # 特殊处理日期
-        # 支持多种日期占位符格式：____年____月____日 或 XXXX年X月X日
+        # 支持多种日期占位符格式：____年____月____日 或 XXXX年X月X日 或 XX年 XX月XX日
         date_patterns = [
             r'日\s*期\s*[:：]?\s*[_\s]*年[_\s]*月[_\s]*日',  # 日期：____年____月____日
-            r'日\s*期\s*[:：]?\s*[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # 日期：XXXX年X月X日
-            r'[X]{1,4}年[X]{1,2}月[X]{1,2}日',  # XXXX年X月X日（不带日期前缀）
+            r'日\s*期\s*[:：]?\s*[Xx]{1,4}\s*年\s*[Xx]{1,2}\s*月\s*[Xx]{1,2}\s*日',  # 日期：XXXX年X月X日 或 XX年 XX月XX日（支持空格和小写）
+            r'[Xx]{1,4}\s*年\s*[Xx]{1,2}\s*月\s*[Xx]{1,2}\s*日',  # XXXX年X月X日 或 XX年 XX月XX日（不带日期前缀，支持空格和小写）
         ]
 
         for date_pattern in date_patterns:

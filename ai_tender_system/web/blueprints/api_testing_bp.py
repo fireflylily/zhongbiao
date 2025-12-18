@@ -558,6 +558,231 @@ def view_coverage_report():
 # 健康检查
 # ============================================================================
 
+@api_testing_bp.route('/checklist', methods=['GET'])
+def get_test_checklist():
+    """获取测试清单（从TEST_REGISTRY.md解析）"""
+    try:
+        # 读取TEST_REGISTRY.md
+        registry_path = Path(__file__).parent.parent.parent.parent / 'tests' / 'TEST_REGISTRY.md'
+
+        if not registry_path.exists():
+            return jsonify({
+                'success': False,
+                'message': 'TEST_REGISTRY.md 不存在'
+            }), 404
+
+        # 读取test_config.json获取测试映射
+        config_path = Path(__file__).parent.parent.parent.parent / 'tests' / 'test_config.json'
+
+        if not config_path.exists():
+            return jsonify({
+                'success': False,
+                'message': 'test_config.json 不存在'
+            }), 404
+
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        # 构建测试清单结构
+        checklist = {
+            'core_tests': {
+                'name': '核心回归测试',
+                'description': config['core_tests']['description'],
+                'tests': []
+            },
+            'test_suites': {}
+        }
+
+        # 添加核心测试
+        for test_path in config['core_tests']['tests']:
+            # 解析测试路径: tests/unit/modules/test_xxx.py::test_function
+            parts = test_path.split('::')
+            file_path = parts[0]
+            test_name = parts[1] if len(parts) > 1 else ''
+
+            checklist['core_tests']['tests'].append({
+                'id': test_path,
+                'name': test_name,
+                'file': file_path,
+                'full_path': test_path,
+                'importance': 'critical'
+            })
+
+        # 添加测试套件
+        for suite_name, suite_data in config['test_suites'].items():
+            checklist['test_suites'][suite_name] = {
+                'name': suite_name,
+                'description': suite_data['description'],
+                'tests': []
+            }
+
+            for test_path in suite_data['tests']:
+                # 如果是目录，标记为目录
+                if test_path.endswith('/'):
+                    checklist['test_suites'][suite_name]['tests'].append({
+                        'id': test_path,
+                        'name': f'{suite_name}目录下所有测试',
+                        'file': test_path,
+                        'full_path': test_path,
+                        'is_directory': True
+                    })
+                else:
+                    parts = test_path.split('::')
+                    file_path = parts[0]
+                    test_name = parts[1] if len(parts) > 1 else file_path.split('/')[-1]
+
+                    checklist['test_suites'][suite_name]['tests'].append({
+                        'id': test_path,
+                        'name': test_name,
+                        'file': file_path,
+                        'full_path': test_path,
+                        'is_directory': False
+                    })
+
+        return jsonify({
+            'success': True,
+            'checklist': checklist,
+            'total_core_tests': len(checklist['core_tests']['tests']),
+            'total_suites': len(checklist['test_suites'])
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_testing_bp.route('/checklist/status', methods=['GET'])
+def get_checklist_status():
+    """获取测试清单的状态（运行pytest --collect-only获取测试列表，然后检查最近运行状态）"""
+    try:
+        project_root = Path(__file__).parent.parent.parent.parent
+
+        # 读取test_config.json
+        config_path = project_root / 'tests' / 'test_config.json'
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+
+        # 运行pytest --collect-only获取所有测试
+        result = subprocess.run(
+            ['pytest', '--collect-only', '-q', 'tests/'],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        # 解析输出获取测试列表
+        output_lines = result.stdout.split('\n')
+        available_tests = set()
+        for line in output_lines:
+            line = line.strip()
+            if '::' in line and not line.startswith('<'):
+                # 格式: tests/unit/modules/test_xxx.py::test_function
+                available_tests.add(line)
+
+        # 检查每个核心测试的状态
+        test_status = {}
+
+        for test_path in config['core_tests']['tests']:
+            # 简化判断：如果测试在available_tests中，标记为可用
+            is_available = test_path in available_tests
+
+            test_status[test_path] = {
+                'available': is_available,
+                'status': 'unknown',  # unknown/passed/failed
+                'last_run': None
+            }
+
+        # 从数据库获取最近的测试运行记录
+        conn = get_test_history_db()
+        cursor = conn.execute(
+            'SELECT * FROM test_runs ORDER BY run_time DESC LIMIT 1'
+        )
+        latest_run = cursor.fetchone()
+        conn.close()
+
+        # 如果有最近的运行记录，更新状态
+        if latest_run:
+            status_text = latest_run['status']
+            for test_id in test_status:
+                test_status[test_id]['status'] = 'passed' if status_text == 'success' else 'unknown'
+                test_status[test_id]['last_run'] = latest_run['run_time']
+
+        return jsonify({
+            'success': True,
+            'test_status': test_status,
+            'total_tests': len(test_status),
+            'available_tests': len([t for t in test_status.values() if t['available']]),
+            'last_run_time': latest_run['run_time'] if latest_run else None
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_testing_bp.route('/run-single', methods=['POST'])
+def run_single_test():
+    """运行单个测试用例"""
+    try:
+        data = request.get_json()
+        test_path = data.get('test_path')
+
+        if not test_path:
+            return jsonify({
+                'success': False,
+                'error': '未指定test_path参数'
+            }), 400
+
+        project_root = Path(__file__).parent.parent.parent.parent
+
+        # 运行单个测试
+        cmd = [
+            'pytest',
+            test_path,
+            '-v',
+            '--tb=short'
+        ]
+
+        result = subprocess.run(
+            cmd,
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=60  # 单个测试1分钟超时
+        )
+
+        # 解析结果
+        output = result.stdout + result.stderr
+        passed = ' PASSED' in output
+        failed = ' FAILED' in output
+
+        return jsonify({
+            'success': result.returncode == 0,
+            'test_path': test_path,
+            'passed': passed,
+            'failed': failed,
+            'output': output,
+            'return_code': result.returncode
+        })
+
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'success': False,
+            'error': '测试运行超时（超过1分钟）'
+        }), 500
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @api_testing_bp.route('/health', methods=['GET'])
 def health_check():
     """健康检查"""

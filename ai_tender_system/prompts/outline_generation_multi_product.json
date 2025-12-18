@@ -1,0 +1,323 @@
+{
+  "module": "outline_generation",
+  "description": "技术方案应答大纲生成模块的提示词配置（多产品/行业支持）",
+  "version": "2.0.0",
+  "updated_at": "2025-01-18",
+
+  "metadata": {
+    "supported_products": [
+      "telecom_data_service",
+      "government_platform",
+      "smart_city",
+      "financial_system",
+      "education_platform",
+      "healthcare_system"
+    ],
+    "supported_industries": [
+      "telecom",
+      "government",
+      "finance",
+      "education",
+      "healthcare",
+      "manufacturing"
+    ]
+  },
+
+  "product_profiles": {
+    "telecom_data_service": {
+      "name": "通信运营商数据服务",
+      "description": "为通信运营商提供数据查询、验证、分析服务",
+      "typical_requirements": [
+        "运营商三要素验证",
+        "在网时长与状态查询",
+        "实名认证",
+        "号码归属地查询",
+        "通话详单查询",
+        "流量使用分析"
+      ],
+      "key_technologies": [
+        "运营商API对接",
+        "高并发处理",
+        "数据加密",
+        "实时查询",
+        "缓存优化"
+      ],
+      "common_evidence": [
+        "工信部电信业务经营许可证",
+        "运营商合作协议",
+        "API接口文档",
+        "性能压力测试报告",
+        "数据安全认证"
+      ],
+      "scoring_focus": [
+        "接口响应时间（<3秒）",
+        "并发支持数（≥1000TPS）",
+        "数据准确率（≥99.9%）",
+        "服务可用性（≥99.95%）"
+      ]
+    },
+
+    "government_platform": {
+      "name": "政务服务平台",
+      "description": "为政府部门提供一网通办、数据共享、监管服务平台",
+      "typical_requirements": [
+        "电子政务外网接入",
+        "信创国产化适配",
+        "等保三级合规",
+        "统一身份认证",
+        "CA数字证书集成",
+        "政务数据共享交换",
+        "电子印章",
+        "电子签名"
+      ],
+      "key_technologies": [
+        "信创技术栈（国产数据库、中间件、操作系统）",
+        "SM2/SM3/SM4国密算法",
+        "OAuth2.0/SAML2.0统一认证",
+        "数据交换总线",
+        "电子政务外网接入"
+      ],
+      "common_evidence": [
+        "等保三级测评报告",
+        "信创适配认证证书",
+        "软件产品登记证书",
+        "国产化兼容性测试报告",
+        "CA证书认证文件"
+      ],
+      "scoring_focus": [
+        "信创国产化替代率（≥80%）",
+        "等保合规性（三级）",
+        "系统安全性（漏洞修复时效）",
+        "电子政务外网接入能力"
+      ]
+    },
+
+    "smart_city": {
+      "name": "智慧城市综合平台",
+      "description": "城市级智慧管理平台，涵盖交通、环保、安防、城管等",
+      "typical_requirements": [
+        "城市大数据中心",
+        "IOT设备接入",
+        "视频监控接入",
+        "GIS地理信息展示",
+        "大屏可视化",
+        "应急指挥联动",
+        "多部门数据融合"
+      ],
+      "key_technologies": [
+        "物联网平台（MQTT/CoAP）",
+        "视频AI分析",
+        "GIS引擎（ArcGIS/超图）",
+        "大数据平台（Hadoop/Spark）",
+        "实时流处理（Flink/Kafka）"
+      ],
+      "common_evidence": [
+        "智慧城市建设案例",
+        "大数据平台性能测试",
+        "IOT设备兼容性清单",
+        "视频AI识别准确率报告",
+        "GIS数据可视化演示"
+      ],
+      "scoring_focus": [
+        "IOT设备接入数量（≥10万）",
+        "视频并发路数（≥500路）",
+        "数据处理实时性（<5秒）",
+        "系统稳定性（7x24小时）"
+      ]
+    },
+
+    "financial_system": {
+      "name": "金融核心业务系统",
+      "description": "银行、证券、保险核心业务系统",
+      "typical_requirements": [
+        "交易安全",
+        "ACID事务保证",
+        "双活容灾",
+        "分布式事务",
+        "反洗钱",
+        "反欺诈",
+        "人行征信对接"
+      ],
+      "key_technologies": [
+        "分布式数据库",
+        "分布式事务（Seata/2PC）",
+        "容灾备份（同城双活/异地灾备）",
+        "加密机/密码机",
+        "区块链技术"
+      ],
+      "common_evidence": [
+        "金融行业软件测评证书",
+        "PCI-DSS合规认证",
+        "容灾演练报告",
+        "交易性能压测报告",
+        "安全渗透测试报告"
+      ],
+      "scoring_focus": [
+        "交易TPS（≥10000）",
+        "容灾切换时间（<60秒）",
+        "数据一致性保证",
+        "安全合规性（金融级）"
+      ]
+    }
+  },
+
+  "industry_keywords": {
+    "telecom": {
+      "domain_terms": ["运营商", "三要素", "在网状态", "实名", "号码归属地", "通话详单", "流量"],
+      "technical_terms": ["API网关", "限流", "熔断", "降级", "缓存", "高并发", "TPS"],
+      "compliance_terms": ["工信部许可证", "电信业务", "数据安全", "隐私保护"]
+    },
+    "government": {
+      "domain_terms": ["政务服务", "一网通办", "电子政务外网", "数据共享", "CA认证", "电子印章"],
+      "technical_terms": ["信创", "国产化", "国密算法", "SM2", "SM3", "SM4", "统一认证"],
+      "compliance_terms": ["等保三级", "分级保护", "信创认证", "国产适配"]
+    },
+    "finance": {
+      "domain_terms": ["核心业务", "交易", "清算", "结算", "征信", "反洗钱", "风控"],
+      "technical_terms": ["分布式事务", "ACID", "CAP", "BASE", "双活", "容灾", "加密机"],
+      "compliance_terms": ["PCI-DSS", "金融级安全", "PBOC", "银监会"]
+    }
+  },
+
+  "prompt_templates": {
+    "base": {
+      "analyze_requirements": "你是一位专业的投标技术顾问，擅长分析招标文件的技术需求。\n\n{product_context}\n\n【文档内容】\n{text}\n\n【分析任务】\n请从以下维度对需求进行分类分析：\n\n✅ 1. 需求分类识别\n按类型将需求划分为：\n- 功能性需求：系统功能、业务流程、用户操作\n- 非功能性需求：性能指标、安全要求、可靠性、易用性\n- 技术要求：技术架构、开发语言、平台要求、接口标准\n- 实施要求：实施计划、交付物、培训、运维\n- 服务要求：售后服务、响应时间、维护周期\n\n{industry_specific_categories}\n\n✅ 2. 优先级标注\n根据以下特征判断优先级：\n- ★ 高优先级（必答）：\n  * 包含\"必须\"、\"强制\"、\"不得低于\"等词汇\n  * 明确的技术指标和量化要求\n  * 评分权重≥10%的项目\n  {product_priority_rules}\n  \n- ▲ 关键指标（需证明）：\n  * 可量化的性能参数（如并发数、响应时间）\n  * 需要提供测试报告的项目\n  {product_evidence_rules}\n  \n- 普通需求：\n  * 常规功能描述\n  * 使用\"宜\"、\"建议\"等非强制词汇\n\n✅ 3. 关键词提取\n为每个需求类别提取5-10个核心关键词，优先使用以下领域术语：\n{domain_keywords}\n\n✅ 4. 章节结构建议\n根据需求逻辑和{product_name}行业特点，建议应答方案的章节结构。\n\n【返回格式】（必须是有效的JSON）\n{{\n  \"product_type\": \"{product_type}\",\n  \"industry\": \"{industry}\",\n  \"document_summary\": {{\n    \"total_requirements\": 50,\n    \"mandatory_count\": 30,\n    \"optional_count\": 15,\n    \"scoring_items\": 5,\n    \"estimated_pages\": 80,\n    \"complexity_level\": \"high\",\n    \"industry_specific_score\": 85\n  }},\n  \"requirement_categories\": [...],\n  \"suggested_outline_structure\": [...],\n  \"special_attention\": [...],\n  \"recommended_evidence\": {evidence_list}\n}}\n\n【分析要点】\n1. 重点识别{product_name}特有的业务术语和技术要求\n2. 优先匹配{industry}行业的常见评分指标\n3. 标记需要{industry}特定资质证明的项目\n{product_analysis_tips}"
+    },
+
+    "telecom_data_service": {
+      "product_context": "【产品背景】\n你正在为\"通信运营商数据服务\"产品撰写投标方案。该产品提供三大运营商（移动/联通/电信）的实名验证、在网状态查询、号码归属地等API服务，核心竞争力在于：\n- 直连三大运营商，数据实时准确\n- 高并发处理能力（≥1000TPS）\n- 99.95%服务可用性\n- 符合工信部电信业务规范",
+
+      "industry_specific_categories": "\n特别关注以下运营商行业特定需求：\n- 运营商对接需求：三要素验证、在网状态、通话详单、流量查询\n- 数据合规需求：工信部许可、隐私保护、数据脱敏\n- 性能指标：接口响应时间、并发TPS、成功率、可用性",
+
+      "product_priority_rules": "* 包含\"运营商\"、\"三要素\"、\"实名\"、\"在网\"等核心业务术语\n  * 明确的API响应时间要求（如<3秒）\n  * 并发TPS要求（如≥1000）",
+
+      "product_evidence_rules": "* 要求提供工信部电信业务经营许可证\n  * 需要运营商合作协议证明\n  * API性能压测报告",
+
+      "domain_keywords": "运营商、三要素、实名认证、在网状态、号码归属地、通话详单、流量查询、API接口、高并发、TPS、响应时间、数据准确率、服务可用性、工信部许可证",
+
+      "evidence_list": "[\n    \"工信部增值电信业务经营许可证（必须）\",\n    \"中国移动/联通/电信合作协议（至少一家）\",\n    \"API接口文档及示例代码\",\n    \"性能压力测试报告（TPS≥1000）\",\n    \"数据安全等级保护备案证明\"\n  ]",
+
+      "product_analysis_tips": "4. 特别关注\"三要素验证\"、\"在网状态\"等核心功能的实现细节\n5. 识别API接口的性能指标（响应时间、并发数、成功率）\n6. 检查是否要求工信部许可证或运营商合作证明"
+    },
+
+    "government_platform": {
+      "product_context": "【产品背景】\n你正在为\"政务服务平台\"产品撰写投标方案。该产品符合国家电子政务标准，核心特点：\n- 100%信创国产化技术栈（国产数据库、中间件、操作系统）\n- 通过等保三级测评\n- 支持电子政务外网接入\n- 集成CA数字证书、电子印章\n- 采用国密SM2/SM3/SM4加密算法",
+
+      "industry_specific_categories": "\n特别关注以下政务行业特定需求：\n- 信创国产化需求：国产数据库、中间件、操作系统、浏览器\n- 安全合规需求：等保三级、密码应用、电子政务外网\n- 认证需求：统一身份认证、CA证书、电子印章\n- 数据共享需求：政务数据交换、接口标准",
+
+      "product_priority_rules": "* 包含\"信创\"、\"国产化\"、\"等保\"、\"电子政务外网\"等关键词\n  * 明确的国产化替代率要求（如≥80%）\n  * 等保三级合规要求",
+
+      "product_evidence_rules": "* 需要等保三级测评报告\n  * 要求信创适配认证证书\n  * 国产化兼容性测试报告",
+
+      "domain_keywords": "政务服务、一网通办、信创、国产化、等保三级、电子政务外网、统一认证、CA认证、电子印章、电子签名、国密算法、SM2、SM3、SM4、数据共享、政务数据交换",
+
+      "evidence_list": "[\n    \"等保三级测评报告（必须）\",\n    \"信创产品适配认证证书\",\n    \"软件产品登记证书\",\n    \"国产数据库/中间件兼容性测试报告\",\n    \"电子政务外网接入许可\",\n    \"CA认证服务资质\"\n  ]",
+
+      "product_analysis_tips": "4. 重点识别\"信创\"、\"国产化\"相关要求，明确国产化比例\n5. 检查等保三级合规性要求和安全审计要求\n6. 识别电子政务外网接入、CA认证等政务特定需求"
+    },
+
+    "financial_system": {
+      "product_context": "【产品背景】\n你正在为\"金融核心业务系统\"产品撰写投标方案。该产品符合金融行业标准，核心特点：\n- 支持分布式事务，保证ACID特性\n- 同城双活+异地灾备架构\n- 交易TPS≥10000\n- 通过PCI-DSS金融安全认证\n- 集成加密机/密码机，保障交易安全",
+
+      "industry_specific_categories": "\n特别关注以下金融行业特定需求：\n- 交易安全需求：ACID事务、分布式事务、数据一致性\n- 容灾备份需求：双活架构、灾备切换、RPO/RTO指标\n- 性能需求：交易TPS、并发用户数、响应时间\n- 合规需求：PCI-DSS、反洗钱、反欺诈、人行征信",
+
+      "product_priority_rules": "* 包含\"交易\"、\"ACID\"、\"双活\"、\"容灾\"等金融核心术语\n  * 明确的TPS性能要求（如≥10000）\n  * 容灾切换时间要求（如<60秒）",
+
+      "product_evidence_rules": "* 需要金融行业软件测评证书\n  * PCI-DSS合规认证\n  * 容灾演练报告",
+
+      "domain_keywords": "核心业务、交易、清算、结算、ACID、分布式事务、双活、容灾、TPS、加密机、密码机、PCI-DSS、反洗钱、风控、征信",
+
+      "evidence_list": "[\n    \"金融行业软件测评证书（必须）\",\n    \"PCI-DSS合规认证证书\",\n    \"容灾备份演练报告\",\n    \"交易性能压力测试报告（TPS≥10000）\",\n    \"安全渗透测试报告\",\n    \"人行征信对接资质\"\n  ]",
+
+      "product_analysis_tips": "4. 重点关注交易ACID特性、分布式事务处理能力\n5. 识别容灾备份要求（双活、异地灾备、RPO/RTO）\n6. 检查金融合规性要求（PCI-DSS、反洗钱、征信）"
+    }
+  },
+
+  "chapter_templates": {
+    "telecom_data_service": {
+      "typical_chapters": [
+        {
+          "level": 1,
+          "title": "运营商数据服务技术方案",
+          "subsections": [
+            {"title": "运营商三要素验证", "priority": "high"},
+            {"title": "在网时长与状态查询", "priority": "high"},
+            {"title": "号码归属地查询", "priority": "medium"},
+            {"title": "通话详单查询", "priority": "medium"}
+          ]
+        },
+        {
+          "level": 1,
+          "title": "API接口设计",
+          "subsections": [
+            {"title": "接口规范与协议", "priority": "high"},
+            {"title": "接口安全机制", "priority": "high"},
+            {"title": "接口性能优化", "priority": "high"}
+          ]
+        },
+        {
+          "level": 1,
+          "title": "性能与可靠性保障",
+          "subsections": [
+            {"title": "高并发处理能力（≥1000TPS）", "priority": "high"},
+            {"title": "服务可用性保障（≥99.95%）", "priority": "high"},
+            {"title": "故障容错与降级", "priority": "medium"}
+          ]
+        }
+      ]
+    },
+
+    "government_platform": {
+      "typical_chapters": [
+        {
+          "level": 1,
+          "title": "信创国产化技术方案",
+          "subsections": [
+            {"title": "国产数据库适配", "priority": "high"},
+            {"title": "国产中间件集成", "priority": "high"},
+            {"title": "国产操作系统兼容", "priority": "high"},
+            {"title": "信创适配测试", "priority": "high"}
+          ]
+        },
+        {
+          "level": 1,
+          "title": "安全合规方案",
+          "subsections": [
+            {"title": "等保三级合规设计", "priority": "high"},
+            {"title": "国密算法应用", "priority": "high"},
+            {"title": "电子政务外网接入", "priority": "high"}
+          ]
+        },
+        {
+          "level": 1,
+          "title": "统一认证与电子印章",
+          "subsections": [
+            {"title": "统一身份认证", "priority": "high"},
+            {"title": "CA数字证书集成", "priority": "high"},
+            {"title": "电子印章与电子签名", "priority": "medium"}
+          ]
+        }
+      ]
+    }
+  },
+
+  "prompts": {
+    "analyze_requirements": "使用 prompt_templates.base.analyze_requirements，动态替换产品变量",
+    "generate_outline": "继承原有 generate_outline，增加产品特定章节模板",
+    "generate_response_suggestions": "继承原有，增加产品特定应答策略",
+    "recommend_product_docs": "继承原有，增加产品特定文档匹配规则"
+  },
+
+  "usage_instructions": {
+    "how_to_use": "根据项目类型选择对应的 product_type，系统会自动加载对应的产品配置、行业关键词、章节模板",
+    "example": {
+      "product_type": "telecom_data_service",
+      "industry": "telecom",
+      "prompt_variables": {
+        "product_context": "从 prompt_templates.telecom_data_service.product_context 获取",
+        "domain_keywords": "从 industry_keywords.telecom.domain_terms 获取",
+        "evidence_list": "从 prompt_templates.telecom_data_service.evidence_list 获取"
+      }
+    }
+  }
+}

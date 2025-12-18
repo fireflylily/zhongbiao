@@ -5,7 +5,16 @@
         <el-button @click="loadQuickInfo" :icon="RefreshIcon" circle size="small" title="刷新"></el-button>
       </template>
 
-      <!-- 快速信息卡片 -->
+      <!-- 标签页导航 -->
+      <el-tabs v-model="activeTab" class="test-tabs">
+        <el-tab-pane label="测试清单" name="checklist">
+          <TestChecklist />
+        </el-tab-pane>
+
+        <el-tab-pane label="测试运行器" name="runner">
+          <!-- 原有的测试运行器内容 -->
+          <div class="runner-content">
+            <!-- 快速信息卡片 -->
       <div class="quick-info-grid">
         <el-card class="info-card" shadow="hover">
           <div class="info-content">
@@ -335,6 +344,9 @@
           </div>
         </el-card>
       </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </Card>
   </div>
 </template>
@@ -344,10 +356,12 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh as RefreshIcon, VideoPlay as PlayIcon, Loading as LoadingIcon } from '@element-plus/icons-vue'
 import { Card } from '@/components'
+import TestChecklist from '@/components/TestChecklist.vue'
 import { testRunnerApi, type TestTask, type CoverageData, type QuickInfo } from '@/api/test-runner'
 
 // ==================== State ====================
 
+const activeTab = ref('checklist')  // 默认显示测试清单
 const quickInfo = ref<QuickInfo | null>(null)
 const testEnv = ref<'backend' | 'frontend'>('backend')  // 新增：测试环境选择
 const testType = ref<'unit' | 'integration' | 'all'>('unit')
@@ -685,6 +699,23 @@ onUnmounted(() => {
 .automated-test {
   // 移除padding，避免与page-content的padding叠加
   // page-content已经有padding: 16px 20px
+}
+
+// ==================== 标签页 ====================
+
+.test-tabs {
+  :deep(.el-tabs__header) {
+    margin-bottom: 20px;
+  }
+
+  :deep(.el-tabs__item) {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .runner-content {
+    // 包裹原有内容，保持结构
+  }
 }
 
 // ==================== 快速信息卡片 ====================
