@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, Response
 from werkzeug.utils import secure_filename
 from docx import Document
 
@@ -117,11 +117,14 @@ class ParserDebugger:
         """
         results = {}
 
-        # 方法1: 语义锚点解析
-        results['semantic'] = self._run_with_timing(
-            self._run_semantic_anchors,
-            "语义锚点解析"
-        )
+        # 方法1: 语义锚点解析 (暂时禁用 - 性能太慢)
+        results['semantic'] = {
+            'success': False,
+            'error': '语义锚点解析已禁用（性能优化中）',
+            'chapters': [],
+            'method_name': '语义锚点解析',
+            'performance': {'elapsed': 0}
+        }
 
         # 方法2: 样式识别(增强)
         results['style'] = self._run_with_timing(
@@ -231,273 +234,19 @@ class ParserDebugger:
 
     def _run_semantic_anchors(self) -> Dict:
         """方法1: 强制使用语义锚点解析（包含子章节识别）"""
-        if not self.has_toc:
-            return {
-                'success': False,
-                'error': '文档无目录，无法使用语义锚点解析',
-                'chapters': [],
-                'method_name': '语义锚点解析'
-            }
-
-        try:
-            toc_items, toc_end_idx = self.parser._parse_toc_items(self.doc, self.toc_start_idx)
-            toc_targets = [item['title'] for item in toc_items]
-
-            chapters = self.parser._parse_chapters_by_semantic_anchors(
-                self.doc, toc_targets, toc_end_idx
-            )
-
-            # ⭐ 关键修复：为每个章节识别子章节（与旧目录定位方法保持一致）
-            for i, chapter in enumerate(chapters):
-                logger.info(f"正在识别章节 '{chapter.title}' 的子章节...")
-                subsections = self.parser._parse_subsections_in_range(
-                    self.doc,
-                    chapter.para_start_idx,
-                    chapter.para_end_idx,
-                    chapter.level,
-                    f"sem_{i}"
-                )
-
-                if subsections:
-                    chapter.children = subsections
-                    # 注意：不需要累加子章节字数，因为父章节的word_count已经包含了
-                    # 其段落范围内的所有内容（包括子章节所在的段落）
-                    logger.info(f"  └─ 识别到 {len(subsections)} 个子章节（父章节字数: {chapter.word_count}）")
-
-            # 构建树形结构
-            chapter_tree = self.parser._build_chapter_tree(chapters)
-
-            # 计算统计信息
-            total_detected_words = sum(ch.word_count for ch in chapters)
-            coverage_rate = total_detected_words / self.total_chars if self.total_chars > 0 else 0
-
-            # 覆盖率警告：如果识别字数少于文档总字数的60%,可能有问题
-            coverage_warning = None
-            if coverage_rate < 0.60:
-                coverage_warning = f"⚠️ 覆盖率仅{coverage_rate:.1%},可能漏识别了章节"
-                logger.warning(f"语义锚点解析 - {coverage_warning}")
-
-            return {
-                'success': True,
-                'method_name': '语义锚点解析',
-                'chapters': [ch.to_dict() for ch in chapter_tree],
-                'statistics': {
-                    'total_chapters': len(chapters),
-                    'total_words': total_detected_words,
-                    'document_total_chars': self.total_chars,
-                    'coverage_rate': round(coverage_rate, 4),
-                    'coverage_warning': coverage_warning,
-                    'toc_items_count': len(toc_items),
-                    'match_rate': len(chapters) / len(toc_items) if toc_items else 0
-                }
-            }
-        except Exception as e:
-            logger.error(f"语义锚点解析失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            raise
+        return self.parser.parse_by_semantic_anchors(self.doc_path)
 
     def _run_style_detection(self) -> Dict:
-        """方法3: 强制使用样式识别方案"""
-        try:
-            # 直接使用样式解析
-            chapters = self.parser._parse_chapters_from_doc(self.doc)
-            chapters = self.parser._locate_chapter_content(self.doc, chapters)
+        """方法2: 强制使用样式识别方案"""
+        return self.parser.parse_by_style(self.doc_path)
 
-            # 构建树形结构
-            chapter_tree = self.parser._build_chapter_tree(chapters)
-
-            # 计算统计信息
-            total_detected_words = sum(ch.word_count for ch in chapters)
-            coverage_rate = total_detected_words / self.total_chars if self.total_chars > 0 else 0
-
-            # 覆盖率警告
-            coverage_warning = None
-            if coverage_rate < 0.60:
-                coverage_warning = f"⚠️ 覆盖率仅{coverage_rate:.1%},可能漏识别了章节"
-                logger.warning(f"样式识别 - {coverage_warning}")
-
-            return {
-                'success': True,
-                'method_name': '样式识别',
-                'chapters': [ch.to_dict() for ch in chapter_tree],
-                'statistics': {
-                    'total_chapters': len(chapters),
-                    'total_words': total_detected_words,
-                    'document_total_chars': self.total_chars,
-                    'coverage_rate': round(coverage_rate, 4),
-                    'coverage_warning': coverage_warning
-                }
-            }
-        except Exception as e:
-            logger.error(f"样式识别失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            raise
+    def _run_toc_exact_match(self) -> Dict:
+        """方法0: 精确匹配(基于目录) - 直接使用目录定位章节"""
+        return self.parser.parse_by_toc_exact(self.doc_path)
 
     def _run_hybrid_detection(self) -> Dict:
         """方法3: 混合启发式识别 - 综合多种特征判断标题"""
-        import re
-
-        try:
-            chapters = []
-
-            for i, para in enumerate(self.doc.paragraphs):
-                text = para.text.strip()
-
-                # 基础过滤: 跳过空行和过长文本
-                if not text or len(text) > 150 or len(text) < 2:
-                    continue
-
-                # 计算多维度得分
-                score = 0
-
-                # 特征1: 编号模式识别 (30分)
-                numbering_patterns = [
-                    (r'^第[一二三四五六七八九十\d]+[章部分]', 30),  # 第X章/部分
-                    (r'^\d+\.\s+\S', 25),  # 1. xxx
-                    (r'^\d+\.\d+\s+\S', 20),  # 1.1 xxx
-                    (r'^\d+\.\d+\.\d+\s+\S', 15),  # 1.1.1 xxx
-                    (r'^[一二三四五六七八九十]+、', 20),  # 一、xxx
-                    (r'^\([一二三四五六七八九十\d]+\)', 15),  # (一)
-                ]
-
-                for pattern, points in numbering_patterns:
-                    if re.match(pattern, text):
-                        score += points
-                        break
-
-                # 特征2: 字体大小和加粗 (25分)
-                if para.runs:
-                    sizes = []
-                    bold_count = 0
-                    total_runs = len(para.runs)
-
-                    for run in para.runs:
-                        if run.font.size:
-                            sizes.append(run.font.size.pt)
-                        if run.bold:
-                            bold_count += 1
-
-                    # 加粗比例
-                    if bold_count >= total_runs * 0.5:
-                        score += 10
-
-                    # 字体大小
-                    if sizes:
-                        avg_size = sum(sizes) / len(sizes)
-                        if avg_size >= 16:
-                            score += 15
-                        elif avg_size >= 13:
-                            score += 10
-                        elif avg_size >= 10:
-                            score += 5
-
-                # 特征3: 段落缩进 (20分)
-                try:
-                    if para.paragraph_format.left_indent:
-                        indent_pt = para.paragraph_format.left_indent.pt
-                        # 缩进越小越可能是标题
-                        if indent_pt == 0:
-                            score += 20
-                        elif indent_pt <= 10:
-                            score += 10
-                        elif indent_pt <= 20:
-                            score += 5
-                except (AttributeError, TypeError):
-                    # 无缩进信息时默认给一些分数
-                    score += 10
-
-                # 特征4: 内容长度 (15分)
-                text_len = len(text)
-                if text_len <= 30:
-                    score += 15
-                elif text_len <= 50:
-                    score += 10
-                elif text_len <= 80:
-                    score += 5
-
-                # 特征5: 位置特征 (10分)
-                # 文档前部的短文本更可能是标题
-                if i < len(self.doc.paragraphs) * 0.1:  # 前10%
-                    score += 10
-                elif i < len(self.doc.paragraphs) * 0.3:  # 前30%
-                    score += 5
-
-                # 判断阈值: 60分以上认为是标题
-                if score >= 60:
-                    # 判断层级
-                    level = self._determine_level_by_text(text)
-
-                    chapter = ChapterNode(
-                        id=f"hybrid_{i}",
-                        level=level,
-                        title=text,
-                        para_start_idx=i,
-                        para_end_idx=i,
-                        word_count=0,
-                        preview_text="",
-                        auto_selected=False,
-                        skip_recommended=False,
-                        content_tags=[f'score_{score}']
-                    )
-                    chapters.append(chapter)
-                    logger.debug(f"混合识别标题 (得分{score}): {text[:50]}")
-
-            # 定位内容
-            chapters = self.parser._locate_chapter_content(self.doc, chapters)
-
-            # 构建树形结构
-            chapter_tree = self.parser._build_chapter_tree(chapters)
-
-            # 计算统计信息
-            total_detected_words = sum(ch.word_count for ch in chapters)
-            coverage_rate = total_detected_words / self.total_chars if self.total_chars > 0 else 0
-
-            # 覆盖率警告
-            coverage_warning = None
-            if coverage_rate < 0.60:
-                coverage_warning = f"⚠️ 覆盖率仅{coverage_rate:.1%},可能漏识别了章节"
-                logger.warning(f"混合启发式识别 - {coverage_warning}")
-
-            return {
-                'success': True,
-                'method_name': '混合启发式识别',
-                'chapters': [ch.to_dict() for ch in chapter_tree],
-                'statistics': {
-                    'total_chapters': len(chapters),
-                    'total_words': total_detected_words,
-                    'document_total_chars': self.total_chars,
-                    'coverage_rate': round(coverage_rate, 4),
-                    'coverage_warning': coverage_warning
-                }
-            }
-        except Exception as e:
-            logger.error(f"混合启发式识别失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            raise
-
-    def _determine_level_by_text(self, text: str) -> int:
-        """根据文本内容判断标题层级"""
-        import re
-
-        # 一级标题: 第X章/部分, 单个数字
-        if re.match(r'^第[一二三四五六七八九十\d]+[章部分]', text):
-            return 1
-        if re.match(r'^\d+\.\s+\S', text) and not re.match(r'^\d+\.\d+', text):
-            return 1
-
-        # 二级标题: X.Y格式
-        if re.match(r'^\d+\.\d+\s+\S', text) and not re.match(r'^\d+\.\d+\.\d+', text):
-            return 2
-
-        # 三级标题: X.Y.Z格式
-        if re.match(r'^\d+\.\d+\.\d+\s+\S', text):
-            return 3
-
-        # 默认二级
-        return 2
+        return self.parser.parse_by_hybrid(self.doc_path)
 
     def _run_azure_parser(self) -> Dict:
         """方法4: Azure Form Recognizer 解析"""
@@ -513,176 +262,7 @@ class ParserDebugger:
 
     def _run_docx_native(self) -> Dict:
         """方法5: Word大纲级别识别（微软官方API）"""
-        import re
-
-        try:
-            headings = []
-
-            # 直接从Word文档提取标题 - 使用微软官方的大纲级别API
-            for idx, para in enumerate(self.doc.paragraphs):
-                is_heading = False
-                level = 0
-                detection_method = ""
-
-                # ⭐ 优先级1: 检查大纲级别 (Outline Level) - 微软官方语义标记
-                # 这是Word导航窗格和大纲视图使用的结构，准确度最高
-                try:
-                    pPr = para._element.pPr
-                    if pPr is not None:
-                        outlineLvl = pPr.outlineLvl
-                        if outlineLvl is not None:
-                            outline_level_val = int(outlineLvl.val)
-                            # Word大纲级别: 0-8表示标题(0=一级), 9表示正文
-                            if outline_level_val <= 8:
-                                # 🔧 添加过滤规则，排除噪音内容
-                                text = para.text.strip()
-                                should_skip = False
-
-                                # 过滤1: 跳过文档前30段的封面/元数据（Level 0）
-                                if idx < 30 and outline_level_val == 0:
-                                    metadata_keywords = ['项目编号', '招标人', '代理机构', '联系人', '联系方式',
-                                                        '地址', '电话', '传真', '邮编', '网址', 'http']
-                                    if any(kw in text for kw in metadata_keywords):
-                                        should_skip = True
-                                        logger.debug(f"过滤封面: 段落{idx} '{text[:30]}'")
-
-                                # 过滤2: 跳过Level 3-4的长条款内容
-                                if not should_skip and outline_level_val >= 3:
-                                    # 形如 "1.1 这是一个很长的说明文字..." 的是条款，不是标题
-                                    if re.match(r'^\d+\.\d+\s+.{15,}', text):
-                                        should_skip = True
-                                        logger.debug(f"过滤条款: 段落{idx} '{text[:30]}'")
-
-                                # 过滤3: 标题长度限制（超过50字的通常不是标题）
-                                if not should_skip and len(text) > 50:
-                                    # 除非有明确的章节编号
-                                    if not re.match(r'^第[一二三四五六七八九十\d]+[章部分]', text):
-                                        should_skip = True
-                                        logger.debug(f"过滤长文本: 段落{idx} '{text[:30]}'")
-
-                                if not should_skip:
-                                    is_heading = True
-                                    level = outline_level_val + 1  # 转换: 0→1级, 1→2级, ...
-                                    detection_method = f"大纲级别{outline_level_val}"
-                except (AttributeError, TypeError, ValueError):
-                    pass  # 没有大纲级别，继续其他方法
-
-                # 优先级2: 检查标准Heading样式 (备用方案)
-                if not is_heading:
-                    style_name = para.style.name if para.style else ""
-
-                    # 只接受标准的Heading样式（精确匹配，避免误识别）
-                    if style_name.startswith('Heading '):  # 'Heading 1', 'Heading 2'
-                        match = re.search(r'Heading (\d+)', style_name)
-                        if match:
-                            is_heading = True
-                            level = int(match.group(1))
-                            detection_method = f"样式{style_name}"
-                    elif style_name.startswith('标题 '):  # '标题 1', '标题 2'
-                        match = re.search(r'标题 (\d+)', style_name)
-                        if match:
-                            is_heading = True
-                            level = int(match.group(1))
-                            detection_method = f"样式{style_name}"
-
-                if is_heading and para.text.strip():
-                    headings.append({
-                        'index': idx,
-                        'text': para.text.strip(),
-                        'level': level if level > 0 else 1,
-                        'detection_method': detection_method
-                    })
-                    logger.debug(f"识别标题: 段落{idx} [{detection_method}] '{para.text.strip()[:50]}'")
-
-            if not headings:
-                return {
-                    'success': False,
-                    'error': 'Word文档中未找到标题（未设置大纲级别，也未使用Heading样式）',
-                    'chapters': [],
-                    'method_name': 'Word大纲级别识别',
-                    'statistics': {
-                        'total_chapters': 0,
-                        'detection_note': '文档未使用Word标准标题结构'
-                    }
-                }
-
-            logger.info(f"✅ 基于大纲级别识别到 {len(headings)} 个标题")
-
-            # 构建章节结构
-            chapters = []
-            for i, heading in enumerate(headings):
-                # 确定章节范围
-                start_idx = heading['index']
-                end_idx = headings[i + 1]['index'] - 1 if i + 1 < len(headings) else self.total_paragraphs - 1
-
-                # 提取章节内容
-                content_paras = self.doc.paragraphs[start_idx + 1:end_idx + 1]
-                content_text = '\n'.join(p.text for p in content_paras if p.text.strip())
-                word_count = len(content_text.replace(' ', '').replace('\n', ''))
-
-                # 生成预览文本
-                preview_lines = []
-                for p in content_paras[:5]:
-                    text = p.text.strip()
-                    if text:
-                        preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
-                    if len(preview_lines) >= 5:
-                        break
-                preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
-
-                # 创建章节节点
-                chapter = ChapterNode(
-                    id=f"docx_{i}",
-                    level=heading['level'],
-                    title=heading['text'],
-                    para_start_idx=start_idx,
-                    para_end_idx=end_idx,
-                    word_count=word_count,
-                    preview_text=preview_text,
-                    auto_selected=False,
-                    skip_recommended=False,
-                    content_tags=['docx_native', heading.get('detection_method', 'unknown')]
-                )
-
-                chapters.append(chapter)
-
-            # 构建树形结构
-            chapter_tree = self.parser._build_chapter_tree(chapters)
-
-            # 计算统计信息
-            total_detected_words = sum(ch.word_count for ch in chapters)
-            coverage_rate = total_detected_words / self.total_chars if self.total_chars > 0 else 0
-
-            # 覆盖率警告
-            coverage_warning = None
-            if coverage_rate < 0.60:
-                coverage_warning = f"⚠️ 覆盖率仅{coverage_rate:.1%},可能漏识别了章节"
-                logger.warning(f"Word大纲级别识别 - {coverage_warning}")
-
-            # 统计检测方法分布
-            detection_stats = {}
-            for h in headings:
-                method = h.get('detection_method', 'unknown')
-                detection_stats[method] = detection_stats.get(method, 0) + 1
-
-            return {
-                'success': True,
-                'method_name': 'Word大纲级别识别',
-                'chapters': [ch.to_dict() for ch in chapter_tree],
-                'statistics': {
-                    'total_chapters': len(chapters),
-                    'total_words': total_detected_words,
-                    'document_total_chars': self.total_chars,
-                    'coverage_rate': round(coverage_rate, 4),
-                    'coverage_warning': coverage_warning,
-                    'detection_methods': detection_stats  # 记录使用了哪些检测方法
-                }
-            }
-        except Exception as e:
-            logger.error(f"Word大纲级别识别失败: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            raise
+        return self.parser.parse_by_outline_level(self.doc_path)
 
     def _run_gemini_parser(self, gemini_parser: 'GeminiParser') -> Dict:
         """方法6: Gemini AI解析器"""
@@ -810,18 +390,16 @@ class ParserDebugger:
 @api_parser_debug_bp.route('/upload', methods=['POST'])
 def upload_document():
     """
-    上传文档并运行所有解析方法
+    上传文档并返回document_id（流式解析请使用 /upload-stream）
 
     请求:
         - file: .docx文件
-        - methods: 要运行的方法列表（可选，默认全部）
 
     响应:
         {
             "success": true,
             "document_id": "uuid",
-            "document_info": {...},
-            "results": {...}
+            "document_info": {...}
         }
     """
     try:
@@ -838,67 +416,44 @@ def upload_document():
 
         # 保存文件
         document_id = str(uuid.uuid4())
-        original_filename = file.filename  # 保留原始文件名（包含中文）用于显示
+        original_filename = file.filename
 
         config = get_config()
         upload_dir = config.get_path('data') / 'parser_debug'
         upload_dir.mkdir(parents=True, exist_ok=True)
 
-        # 物理文件直接用UUID.docx命名，避免文件名冲突和特殊字符问题
         file_path = upload_dir / f"{document_id}.docx"
         file.save(str(file_path))
 
         logger.info(f"文件已保存: {file_path}")
 
-        # 创建调试器并运行所有方法
+        # 获取文档基本信息
         debugger = ParserDebugger(str(file_path))
         document_info = debugger.get_document_info()
-        results = debugger.run_all_methods()
+        document_info['filename'] = original_filename
 
-        # 保存到数据库（使用原始文件名，用于显示）
+        # 初始化数据库记录（结果为空，稍后由流式API更新）
         db = get_knowledge_base_db()
         db.execute_query("""
             INSERT INTO parser_debug_tests (
                 document_id, filename, file_path,
-                total_paragraphs, has_toc, toc_items_count, toc_start_idx, toc_end_idx,
-                semantic_result, style_result, hybrid_result, azure_result, docx_native_result, gemini_result,
-                semantic_elapsed, style_elapsed, hybrid_elapsed, azure_elapsed, docx_native_elapsed, gemini_elapsed,
-                semantic_chapters_count, style_chapters_count, hybrid_chapters_count, azure_chapters_count, docx_native_chapters_count, gemini_chapters_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                total_paragraphs, has_toc, toc_items_count, toc_start_idx, toc_end_idx
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             document_id,
-            original_filename,  # 存储原始文件名（包含中文），用于显示
+            original_filename,
             str(file_path),
             document_info['total_paragraphs'],
             document_info['has_toc'],
             document_info['toc_items_count'],
             document_info['toc_start_idx'],
-            document_info['toc_end_idx'],
-            json.dumps(results['semantic'], ensure_ascii=False),
-            json.dumps(results['style'], ensure_ascii=False),
-            json.dumps(results['hybrid'], ensure_ascii=False),
-            json.dumps(results['azure'], ensure_ascii=False),
-            json.dumps(results['docx_native'], ensure_ascii=False),
-            json.dumps(results['gemini'], ensure_ascii=False),
-            results['semantic']['performance']['elapsed'],
-            results['style']['performance']['elapsed'],
-            results['hybrid']['performance']['elapsed'],
-            results['azure']['performance']['elapsed'],
-            results['docx_native']['performance']['elapsed'],
-            results['gemini']['performance']['elapsed'],
-            len(results['semantic'].get('chapters', [])),
-            len(results['style'].get('chapters', [])),
-            len(results['hybrid'].get('chapters', [])),
-            len(results['azure'].get('chapters', [])),
-            len(results['docx_native'].get('chapters', [])),
-            len(results['gemini'].get('chapters', []))
+            document_info['toc_end_idx']
         ))
 
         return jsonify({
             'success': True,
             'document_id': document_id,
-            'document_info': document_info,
-            'results': results
+            'document_info': document_info
         })
 
     except Exception as e:
@@ -906,6 +461,140 @@ def upload_document():
         import traceback
         logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_parser_debug_bp.route('/parse-stream/<document_id>', methods=['GET'])
+def parse_document_stream(document_id):
+    """
+    流式解析文档 - 每完成一个解析器就立即返回结果
+
+    使用Server-Sent Events (SSE)格式
+
+    事件格式:
+        data: {"method": "style", "result": {...}, "progress": "2/5"}
+        data: {"method": "complete", "document_id": "xxx"}
+    """
+    def generate():
+        try:
+            # 获取文件路径
+            db = get_knowledge_base_db()
+            row = db.execute_query(
+                "SELECT file_path FROM parser_debug_tests WHERE document_id = ?",
+                (document_id,),
+                fetch_one=True
+            )
+
+            if not row:
+                yield f"data: {json.dumps({'error': '文档不存在'}, ensure_ascii=False)}\n\n"
+                return
+
+            file_path = row['file_path']
+            debugger = ParserDebugger(file_path)
+
+            # 定义要运行的解析器列表
+            parsers = [
+                ('toc_exact', debugger._run_toc_exact_match, '精确匹配(基于目录)'),
+                ('style', debugger._run_style_detection, '样式识别'),
+                ('hybrid', debugger._run_hybrid_detection, '混合启发式识别'),
+                ('azure', lambda: debugger._run_azure_parser() if is_azure_available() and AZURE_PARSER_AVAILABLE else {
+                    'success': False, 'error': 'Azure未配置', 'chapters': [], 'method_name': 'Azure Form Recognizer', 'performance': {'elapsed': 0}
+                }, 'Azure Form Recognizer'),
+                ('docx_native', debugger._run_docx_native, 'Word大纲级别识别'),
+            ]
+
+            # 如果Gemini可用，添加到列表
+            if GEMINI_PARSER_AVAILABLE:
+                try:
+                    gemini_parser = GeminiParser()
+                    if gemini_parser.is_available():
+                        parsers.append(('gemini', lambda: debugger._run_gemini_parser(gemini_parser), 'Gemini AI解析器'))
+                except:
+                    pass
+
+            total = len(parsers)
+            results_dict = {
+                'semantic': {
+                    'success': False,
+                    'error': '语义锚点解析已禁用（性能优化中）',
+                    'chapters': [],
+                    'method_name': '语义锚点解析',
+                    'performance': {'elapsed': 0}
+                }
+            }
+
+            # 逐个运行解析器并流式返回结果
+            for idx, (method_key, method_func, method_name) in enumerate(parsers, 1):
+                try:
+                    logger.info(f"[流式解析 {idx}/{total}] 开始运行: {method_name}")
+                    result = debugger._run_with_timing(method_func, method_name)
+                    results_dict[method_key] = result
+
+                    # 立即发送结果给前端
+                    event_data = {
+                        'method': method_key,
+                        'method_name': method_name,
+                        'result': result,
+                        'progress': f"{idx}/{total}",
+                        'progress_percent': int((idx / total) * 100)
+                    }
+                    yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+
+                    # 立即更新数据库
+                    db.execute_query(f"""
+                        UPDATE parser_debug_tests
+                        SET {method_key}_result = ?,
+                            {method_key}_elapsed = ?,
+                            {method_key}_chapters_count = ?
+                        WHERE document_id = ?
+                    """, (
+                        json.dumps(result, ensure_ascii=False),
+                        result['performance']['elapsed'],
+                        len(result.get('chapters', [])),
+                        document_id
+                    ))
+
+                except Exception as e:
+                    logger.error(f"解析器 {method_name} 失败: {e}")
+                    error_result = {
+                        'success': False,
+                        'error': str(e),
+                        'chapters': [],
+                        'method_name': method_name,
+                        'performance': {'elapsed': 0}
+                    }
+                    results_dict[method_key] = error_result
+
+                    event_data = {
+                        'method': method_key,
+                        'method_name': method_name,
+                        'result': error_result,
+                        'progress': f"{idx}/{total}",
+                        'progress_percent': int((idx / total) * 100)
+                    }
+                    yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+
+            # 同步语义锚点解析结果到数据库
+            db.execute_query("""
+                UPDATE parser_debug_tests
+                SET semantic_result = ?, semantic_elapsed = ?, semantic_chapters_count = ?
+                WHERE document_id = ?
+            """, (
+                json.dumps(results_dict['semantic'], ensure_ascii=False),
+                0,
+                0,
+                document_id
+            ))
+
+            # 完成信号
+            yield f"data: {json.dumps({'method': 'complete', 'document_id': document_id}, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            logger.error(f"流式解析失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+
+    return Response(generate(), mimetype='text/event-stream')
 
 
 @api_parser_debug_bp.route('/<document_id>', methods=['GET'])
@@ -935,6 +624,7 @@ def get_test_result(document_id):
 
         # 解析结果
         results = {
+            'toc_exact': json.loads(row['toc_exact_result']) if row.get('toc_exact_result') else None,
             'semantic': json.loads(row['semantic_result']) if row['semantic_result'] else None,
             'style': json.loads(row['style_result']) if row['style_result'] else None,
             'hybrid': json.loads(row['hybrid_result']) if row.get('hybrid_result') else None,
@@ -957,6 +647,11 @@ def get_test_result(document_id):
         accuracy = None
         if ground_truth:
             accuracy = {
+                'toc_exact': {
+                    'precision': row.get('toc_exact_precision'),
+                    'recall': row.get('toc_exact_recall'),
+                    'f1_score': row.get('toc_exact_f1')
+                } if row.get('toc_exact_precision') else None,
                 'semantic': {
                     'precision': row['semantic_precision'],
                     'recall': row['semantic_recall'],
@@ -1033,7 +728,7 @@ def save_ground_truth(document_id):
         # 获取现有测试结果
         db = get_knowledge_base_db()
         row = db.execute_query(
-            "SELECT semantic_result, style_result, hybrid_result, azure_result, docx_native_result, gemini_result FROM parser_debug_tests WHERE document_id = ?",
+            "SELECT toc_exact_result, semantic_result, style_result, hybrid_result, azure_result, docx_native_result, gemini_result FROM parser_debug_tests WHERE document_id = ?",
             (document_id,),
             fetch_one=True
         )
@@ -1042,6 +737,7 @@ def save_ground_truth(document_id):
             return jsonify({'success': False, 'error': '测试记录不存在'}), 404
 
         # 解析各方法的结果
+        toc_exact_chapters = json.loads(row['toc_exact_result'])['chapters'] if row.get('toc_exact_result') else []
         semantic_chapters = json.loads(row['semantic_result'])['chapters'] if row['semantic_result'] else []
         style_chapters = json.loads(row['style_result'])['chapters'] if row['style_result'] else []
         hybrid_chapters = json.loads(row['hybrid_result'])['chapters'] if row.get('hybrid_result') else []
@@ -1050,6 +746,7 @@ def save_ground_truth(document_id):
         gemini_chapters = json.loads(row['gemini_result'])['chapters'] if row.get('gemini_result') else []
 
         # 计算各方法的准确率
+        toc_exact_acc = ParserDebugger.calculate_accuracy(toc_exact_chapters, chapters) if toc_exact_chapters else None
         semantic_acc = ParserDebugger.calculate_accuracy(semantic_chapters, chapters)
         style_acc = ParserDebugger.calculate_accuracy(style_chapters, chapters)
         hybrid_acc = ParserDebugger.calculate_accuracy(hybrid_chapters, chapters) if hybrid_chapters else None
@@ -1062,6 +759,8 @@ def save_ground_truth(document_id):
             'semantic': semantic_acc['f1_score'],
             'style': style_acc['f1_score'],
         }
+        if toc_exact_acc:
+            all_f1['toc_exact'] = toc_exact_acc['f1_score']
         if hybrid_acc:
             all_f1['hybrid'] = hybrid_acc['f1_score']
         if azure_acc:
@@ -1082,6 +781,12 @@ def save_ground_truth(document_id):
             semantic_acc['precision'], semantic_acc['recall'], semantic_acc['f1_score'],
             style_acc['precision'], style_acc['recall'], style_acc['f1_score'],
         ]
+
+        # 如果有 toc_exact 结果，添加其准确率
+        if toc_exact_acc:
+            update_params.extend([toc_exact_acc['precision'], toc_exact_acc['recall'], toc_exact_acc['f1_score']])
+        else:
+            update_params.extend([None, None, None])
 
         # 如果有 hybrid 结果，添加其准确率
         if hybrid_acc:
@@ -1114,6 +819,7 @@ def save_ground_truth(document_id):
                 ground_truth = ?, annotator = ?, annotation_time = ?, ground_truth_count = ?,
                 semantic_precision = ?, semantic_recall = ?, semantic_f1 = ?,
                 style_precision = ?, style_recall = ?, style_f1 = ?,
+                toc_exact_precision = ?, toc_exact_recall = ?, toc_exact_f1 = ?,
                 hybrid_precision = ?, hybrid_recall = ?, hybrid_f1 = ?,
                 azure_precision = ?, azure_recall = ?, azure_f1 = ?,
                 docx_native_precision = ?, docx_native_recall = ?, docx_native_f1 = ?,
@@ -1129,6 +835,8 @@ def save_ground_truth(document_id):
             'best_f1_score': best_f1_score
         }
 
+        if toc_exact_acc:
+            accuracy_result['toc_exact'] = toc_exact_acc
         if hybrid_acc:
             accuracy_result['hybrid'] = hybrid_acc
         if azure_acc:
@@ -1260,6 +968,7 @@ def export_comparison_report(document_id):
                 'toc_items_count': row['toc_items_count']
             },
             'results': {
+                'toc_exact': json.loads(row['toc_exact_result']) if row.get('toc_exact_result') else None,
                 'semantic': json.loads(row['semantic_result']) if row['semantic_result'] else None,
                 'style': json.loads(row['style_result']) if row['style_result'] else None,
                 'hybrid': json.loads(row['hybrid_result']) if row.get('hybrid_result') else None,
@@ -1287,6 +996,14 @@ def export_comparison_report(document_id):
                 'best_method': row['best_method'],
                 'best_f1_score': row['best_f1_score']
             }
+
+            # 添加toc_exact结果(如果存在)
+            if row.get('toc_exact_precision'):
+                report['accuracy']['toc_exact'] = {
+                    'precision': row['toc_exact_precision'],
+                    'recall': row['toc_exact_recall'],
+                    'f1_score': row['toc_exact_f1']
+                }
 
             # 添加hybrid结果(如果存在)
             if row.get('hybrid_precision'):

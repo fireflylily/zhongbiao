@@ -198,12 +198,23 @@ export const tenderApi = {
 
   /**
    * 解析文档结构（用于章节选择）
+   *
+   * FormData 参数:
+   * - file: Word文档文件（与 file_path 二选一）
+   * - file_path: 历史文件路径（与 file 二选一）
+   * - company_id: 公司ID（必填）
+   * - project_id: 项目ID（可选）
+   * - methods: 解析方法列表（可选，JSON字符串数组）
+   *   例如: JSON.stringify(['toc_exact', 'style'])
+   *   可选值: 'toc_exact', 'semantic_anchors', 'style', 'hybrid', 'azure', 'outline_level', 'gemini'
+   * - fallback: 是否启用回退机制（可选，'true'/'false'字符串，默认'true'）
    */
   async parseDocumentStructure(formData: FormData): Promise<ApiResponse<{
     task_id: string
     project_id: number
     chapters: any[]
     statistics: any
+    method?: string  // 使用的解析方法
   }>> {
     return apiClient.post('/tender-processing/parse-structure', formData, {
       headers: {

@@ -146,12 +146,25 @@ class DocumentStructureParser:
             3: ['Heading 3', '标题 3', 'heading 3', '3级标题'],
         }
 
-    def parse_document_structure(self, doc_path: str) -> Dict:
+    def parse_document_structure(
+        self,
+        doc_path: str,
+        methods: Optional[List[str]] = None,
+        fallback: bool = True
+    ) -> Dict:
         """
-        解析文档结构
+        解析文档结构 - 总调用器
+
+        支持指定解析方法或使用默认智能策略
 
         Args:
             doc_path: Word文档路径
+            methods: 可选，指定要使用的解析方法列表，按优先级顺序尝试
+                    可选值: ['toc_exact', 'semantic_anchors', 'style', 'hybrid',
+                            'azure', 'outline_level', 'gemini']
+                    默认None表示使用智能策略（根据文档特征自动选择）
+            fallback: 可选，是否启用回退机制（当前方法失败时尝试下一个）
+                     默认True
 
         Returns:
             {
@@ -163,9 +176,21 @@ class DocumentStructureParser:
                     "skip_recommended": 3,
                     "total_words": 15000
                 },
+                "method": "使用的解析方法名称",
                 "error": "错误信息（如果失败）"
             }
         """
+        # 方法映射表
+        method_map = {
+            'toc_exact': self.parse_by_toc_exact,
+            'semantic_anchors': self.parse_by_semantic_anchors,
+            'style': self.parse_by_style,
+            'hybrid': self.parse_by_hybrid,
+            'azure': self.parse_by_azure,
+            'outline_level': self.parse_by_outline_level,
+            'gemini': self.parse_by_gemini
+        }
+
         try:
             self.logger.info(f"开始解析文档结构: {doc_path}")
 
@@ -182,6 +207,48 @@ class DocumentStructureParser:
                 )
                 self.logger.error(f".doc 文件不支持: {doc_path}")
                 raise ValueError(error_message)
+
+            # 场景1: 用户指定了具体方法
+            if methods is not None:
+                self.logger.info(f"使用指定方法: {methods}, fallback={fallback}")
+
+                for method_name in methods:
+                    if method_name not in method_map:
+                        self.logger.warning(f"未知方法: {method_name}，跳过")
+                        continue
+
+                    self.logger.info(f"尝试方法: {method_name}")
+                    result = method_map[method_name](doc_path)
+
+                    # 判断成功标准
+                    if result.get('success'):
+                        # 检查是否识别到足够的章节
+                        chapters = result.get('chapters', [])
+                        if len(chapters) >= 1:  # 至少识别到1个章节
+                            self.logger.info(f"方法 {method_name} 成功，识别到 {len(chapters)} 个章节")
+                            return result
+                        else:
+                            self.logger.warning(f"方法 {method_name} 未识别到章节")
+
+                    # 如果不启用fallback，直接返回结果（即使失败）
+                    if not fallback:
+                        self.logger.info(f"fallback=False，直接返回 {method_name} 的结果")
+                        return result
+
+                    # 否则继续尝试下一个方法
+                    self.logger.warning(f"方法 {method_name} 失败或效果不佳，尝试下一个方法")
+
+                # 所有方法都失败
+                return {
+                    "success": False,
+                    "chapters": [],
+                    "statistics": {},
+                    "error": f"所有指定方法({methods})都失败",
+                    "method": "none"
+                }
+
+            # 场景2: 默认智能策略（保持向后兼容）
+            self.logger.info("使用默认智能策略")
 
             # 使用智能路径解析（兼容本地和生产环境）
             doc_path_abs = resolve_file_path(doc_path)
@@ -243,7 +310,8 @@ class DocumentStructureParser:
             return {
                 "success": True,
                 "chapters": [ch.to_dict() for ch in chapter_tree],
-                "statistics": stats
+                "statistics": stats,
+                "method": "default"
             }
 
         except Exception as e:
@@ -254,7 +322,541 @@ class DocumentStructureParser:
                 "success": False,
                 "chapters": [],
                 "statistics": {},
-                "error": str(e)
+                "error": str(e),
+                "method": "error"
+            }
+
+    # ============================================
+    # 独立解析方法 - 可单独调用或组合使用
+    # ============================================
+
+    def parse_by_toc_exact(self, doc_path: str) -> Dict:
+        """
+        方法0: 精确匹配(基于目录)
+
+        直接使用目录项精确匹配正文位置,速度快、准确率高
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "toc_exact"
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+
+            # 检测目录
+            toc_idx = self._find_toc_section(doc)
+            if toc_idx is None:
+                return {
+                    "success": False,
+                    "error": "未检测到目录,无法使用精确匹配方法",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "toc_exact"
+                }
+
+            toc_items, toc_end_idx = self._parse_toc_items(doc, toc_idx)
+            if not toc_items:
+                return {
+                    "success": False,
+                    "error": "目录解析失败",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "toc_exact"
+                }
+
+            # 使用精确匹配
+            chapters = self._locate_chapters_by_toc(doc, toc_items, toc_end_idx)
+            chapter_tree = self._build_chapter_tree(chapters)
+            chapter_tree = self._propagate_skip_status(chapter_tree)
+            stats = self._calculate_statistics(chapter_tree)
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": stats,
+                "method": "toc_exact"
+            }
+
+        except Exception as e:
+            self.logger.error(f"精确匹配解析失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "toc_exact"
+            }
+
+    def parse_by_style(self, doc_path: str) -> Dict:
+        """
+        方法2: 样式识别
+
+        基于Word标题样式识别章节
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "style"
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+
+            chapters = self._parse_chapters_from_doc(doc)
+            chapters = self._locate_chapter_content(doc, chapters)
+            chapter_tree = self._build_chapter_tree(chapters)
+            chapter_tree = self._propagate_skip_status(chapter_tree)
+            stats = self._calculate_statistics(chapter_tree)
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": stats,
+                "method": "style"
+            }
+
+        except Exception as e:
+            self.logger.error(f"样式识别解析失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "style"
+            }
+
+    def parse_by_outline_level(self, doc_path: str) -> Dict:
+        """
+        方法5: Word大纲级别识别
+
+        使用Word文档大纲级别(Outline Level)识别章节
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "outline_level"
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+
+            chapters = self._parse_chapters_by_outline_level(doc)
+            chapters = self._locate_chapter_content(doc, chapters)
+            chapter_tree = self._build_chapter_tree(chapters)
+            chapter_tree = self._propagate_skip_status(chapter_tree)
+            stats = self._calculate_statistics(chapter_tree)
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": stats,
+                "method": "outline_level"
+            }
+
+        except Exception as e:
+            self.logger.error(f"大纲级别识别失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "outline_level"
+            }
+
+    def parse_by_semantic_anchors(self, doc_path: str) -> Dict:
+        """
+        方法1: 语义锚点解析
+
+        基于目录信息，使用语义匹配方法定位章节位置
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "semantic_anchors"
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+
+            # 检测目录
+            toc_idx = self._find_toc_section(doc)
+            if toc_idx is None:
+                return {
+                    "success": False,
+                    "error": "未检测到目录，无法使用语义锚点解析",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "semantic_anchors"
+                }
+
+            # 解析目录
+            toc_items, toc_end_idx = self._parse_toc_items(doc, toc_idx)
+            if not toc_items:
+                return {
+                    "success": False,
+                    "error": "目录解析失败",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "semantic_anchors"
+                }
+
+            # 提取目标标题
+            toc_targets = [item['title'] for item in toc_items]
+
+            # 使用语义锚点解析
+            chapters = self._parse_chapters_by_semantic_anchors(doc, toc_targets, toc_end_idx)
+
+            # 为每个章节识别子章节
+            for i, chapter in enumerate(chapters):
+                subsections = self._parse_subsections_in_range(
+                    doc,
+                    chapter.para_start_idx,
+                    chapter.para_end_idx,
+                    chapter.level,
+                    f"sem_{i}"
+                )
+                if subsections:
+                    chapter.children = subsections
+
+            # 构建树形结构
+            chapter_tree = self._build_chapter_tree(chapters)
+            chapter_tree = self._propagate_skip_status(chapter_tree)
+            stats = self._calculate_statistics(chapter_tree)
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": stats,
+                "method": "semantic_anchors"
+            }
+
+        except Exception as e:
+            self.logger.error(f"语义锚点解析失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "semantic_anchors"
+            }
+
+    def parse_by_hybrid(self, doc_path: str) -> Dict:
+        """
+        方法3: 混合启发式识别
+
+        综合多种特征（编号、样式、缩进、长度）判断标题
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "hybrid"
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+            chapters = []
+
+            # 遍历所有段落，使用多维度评分
+            for i, para in enumerate(doc.paragraphs):
+                text = para.text.strip()
+
+                # 基础过滤
+                if not text or len(text) > 150 or len(text) < 2:
+                    continue
+
+                # 计算多维度得分
+                score = 0
+
+                # 特征1: 编号模式识别 (30分)
+                numbering_patterns = [
+                    (r'^第[一二三四五六七八九十\d]+[章部分]', 30),
+                    (r'^\d+\.\s+\S', 25),
+                    (r'^\d+\.\d+\s+\S', 20),
+                    (r'^\d+\.\d+\.\d+\s+\S', 15),
+                    (r'^[一二三四五六七八九十]+、', 20),
+                    (r'^\([一二三四五六七八九十\d]+\)', 15),
+                ]
+
+                for pattern, points in numbering_patterns:
+                    if re.match(pattern, text):
+                        score += points
+                        break
+
+                # 特征2: 字体大小和加粗 (25分)
+                if para.runs:
+                    sizes = []
+                    bold_count = 0
+                    total_runs = len(para.runs)
+
+                    for run in para.runs:
+                        if run.font.size:
+                            sizes.append(run.font.size.pt)
+                        if run.bold:
+                            bold_count += 1
+
+                    # 加粗比例
+                    if bold_count >= total_runs * 0.5:
+                        score += 10
+
+                    # 字体大小
+                    if sizes:
+                        avg_size = sum(sizes) / len(sizes)
+                        if avg_size >= 16:
+                            score += 15
+                        elif avg_size >= 13:
+                            score += 10
+                        elif avg_size >= 10:
+                            score += 5
+
+                # 特征3: 段落缩进 (20分)
+                try:
+                    if para.paragraph_format.left_indent:
+                        indent_pt = para.paragraph_format.left_indent.pt
+                        if indent_pt == 0:
+                            score += 20
+                        elif indent_pt <= 10:
+                            score += 10
+                        elif indent_pt <= 20:
+                            score += 5
+                except (AttributeError, TypeError):
+                    score += 10
+
+                # 特征4: 内容长度 (15分)
+                text_len = len(text)
+                if text_len <= 30:
+                    score += 15
+                elif text_len <= 50:
+                    score += 10
+                elif text_len <= 80:
+                    score += 5
+
+                # 特征5: 位置特征 (10分)
+                if i < len(doc.paragraphs) * 0.1:
+                    score += 10
+                elif i < len(doc.paragraphs) * 0.3:
+                    score += 5
+
+                # 判断阈值: 60分以上认为是标题
+                if score >= 60:
+                    level = self._determine_level_by_numbering(text)
+
+                    chapter = ChapterNode(
+                        id=f"hybrid_{i}",
+                        level=level,
+                        title=text,
+                        para_start_idx=i,
+                        para_end_idx=i,
+                        word_count=0,
+                        preview_text="",
+                        auto_selected=False,
+                        skip_recommended=False,
+                        content_tags=[f'score_{score}']
+                    )
+                    chapters.append(chapter)
+
+            if not chapters:
+                return {
+                    "success": False,
+                    "error": "未识别到章节",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "hybrid"
+                }
+
+            # 定位章节内容
+            chapters = self._locate_chapter_content(doc, chapters)
+            chapter_tree = self._build_chapter_tree(chapters)
+            chapter_tree = self._propagate_skip_status(chapter_tree)
+            stats = self._calculate_statistics(chapter_tree)
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": stats,
+                "method": "hybrid"
+            }
+
+        except Exception as e:
+            self.logger.error(f"混合启发式识别失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "hybrid"
+            }
+
+    def parse_by_azure(self, doc_path: str) -> Dict:
+        """
+        方法4: Azure Form Recognizer解析
+
+        使用Azure AI服务识别文档结构
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "azure"
+            }
+        """
+        try:
+            # 检查Azure解析器是否可用
+            try:
+                from modules.tender_processing.azure_parser import AzureDocumentParser, is_azure_available
+
+                if not is_azure_available():
+                    return {
+                        "success": False,
+                        "error": "Azure Form Recognizer未配置或SDK未安装",
+                        "chapters": [],
+                        "statistics": {},
+                        "method": "azure"
+                    }
+
+                doc_path_abs = resolve_file_path(doc_path)
+                if not doc_path_abs:
+                    raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+                # 使用Azure解析器
+                azure_parser = AzureDocumentParser()
+                result = azure_parser.parse_document_structure(str(doc_path_abs))
+                return result
+
+            except ImportError as e:
+                return {
+                    "success": False,
+                    "error": f"Azure解析器不可用: {str(e)}",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "azure"
+                }
+
+        except Exception as e:
+            self.logger.error(f"Azure解析失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "azure"
+            }
+
+    def parse_by_gemini(self, doc_path: str) -> Dict:
+        """
+        方法6: Gemini AI解析
+
+        使用Google Gemini AI模型识别文档结构
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "gemini"
+            }
+        """
+        try:
+            # 检查Gemini解析器是否可用
+            try:
+                from modules.tender_processing.parsers.gemini_parser import GeminiParser
+
+                gemini_parser = GeminiParser()
+
+                if not gemini_parser.is_available():
+                    return {
+                        "success": False,
+                        "error": "Gemini API密钥未配置",
+                        "chapters": [],
+                        "statistics": {},
+                        "method": "gemini"
+                    }
+
+                doc_path_abs = resolve_file_path(doc_path)
+                if not doc_path_abs:
+                    raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+                # 使用Gemini解析器
+                result = gemini_parser.parse_structure(str(doc_path_abs))
+
+                # 确保chapters是dict格式
+                if result.get('success') and result.get('chapters'):
+                    chapters = result['chapters']
+                    if chapters and hasattr(chapters[0], 'to_dict'):
+                        result['chapters'] = [ch.to_dict() if hasattr(ch, 'to_dict') else ch for ch in chapters]
+
+                return result
+
+            except ImportError as e:
+                return {
+                    "success": False,
+                    "error": f"Gemini解析器不可用: {str(e)} (pip install google-generativeai)",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "gemini"
+                }
+
+        except Exception as e:
+            self.logger.error(f"Gemini解析失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "gemini"
             }
 
     def _is_title_page_content(self, para_idx: int, para_text: str, total_paras: int) -> bool:
@@ -438,8 +1040,8 @@ class DocumentStructureParser:
         """
         方法五：基于Word大纲级别（outlineLevel）识别章节
 
-        这是最纯粹的方法，只依赖Word文档的官方大纲级别元数据，
-        不使用样式名、字体大小等启发式方法。
+        使用微软官方的大纲级别API，支持0-8级标题识别，
+        包含3层精细过滤规则和Heading样式备用检测。
 
         Args:
             doc: python-docx Document 对象
@@ -447,38 +1049,82 @@ class DocumentStructureParser:
         Returns:
             章节列表（扁平结构，未构建树）
         """
+        import re
+
         chapters = []
         chapter_counter = 0
 
-        self.logger.info("使用方法五：大纲级别识别")
+        self.logger.info("使用方法五：大纲级别识别（增强版）")
 
+        # 直接从Word文档提取标题 - 使用微软官方的大纲级别API
         for para_idx, paragraph in enumerate(doc.paragraphs):
-            title = paragraph.text.strip()
-
-            # 跳过空段落
-            if not title:
-                continue
-
-            # 检查段落的大纲级别属性
+            is_heading = False
             level = 0
+            detection_method = ""
+
+            # ⭐ 优先级1: 检查大纲级别 (Outline Level) - 微软官方语义标记
+            # 这是Word导航窗格和大纲视图使用的结构，准确度最高
             try:
                 pPr = paragraph._element.pPr
                 if pPr is not None:
                     outlineLvl = pPr.outlineLvl
                     if outlineLvl is not None:
                         outline_level_val = int(outlineLvl.val)
-                        # Word大纲级别：0=一级, 1=二级, 2=三级
-                        if outline_level_val <= 2:
-                            level = outline_level_val + 1  # 转换为1-3
-            except (AttributeError, TypeError):
-                pass  # 没有大纲级别，跳过
+                        # Word大纲级别: 0-8表示标题(0=一级), 9表示正文
+                        if outline_level_val <= 8:
+                            # 🔧 添加过滤规则，排除噪音内容
+                            text = paragraph.text.strip()
+                            should_skip = False
 
-            # 只处理有大纲级别的段落
-            if level > 0:
-                # 过滤标题页内容
-                if self._is_title_page_content(para_idx, title, len(doc.paragraphs)):
-                    self.logger.debug(f"跳过标题页内容: 段落{para_idx} '{title}'")
-                    continue
+                            # 过滤1: 跳过文档前30段的封面/元数据（Level 0）
+                            if para_idx < 30 and outline_level_val == 0:
+                                metadata_keywords = ['项目编号', '招标人', '代理机构', '联系人', '联系方式',
+                                                    '地址', '电话', '传真', '邮编', '网址', 'http']
+                                if any(kw in text for kw in metadata_keywords):
+                                    should_skip = True
+                                    self.logger.debug(f"过滤封面: 段落{para_idx} '{text[:30]}'")
+
+                            # 过滤2: 跳过Level 3-4的长条款内容
+                            if not should_skip and outline_level_val >= 3:
+                                # 形如 "1.1 这是一个很长的说明文字..." 的是条款，不是标题
+                                if re.match(r'^\d+\.\d+\s+.{15,}', text):
+                                    should_skip = True
+                                    self.logger.debug(f"过滤条款: 段落{para_idx} '{text[:30]}'")
+
+                            # 过滤3: 标题长度限制（超过50字的通常不是标题）
+                            if not should_skip and len(text) > 50:
+                                # 除非有明确的章节编号
+                                if not re.match(r'^第[一二三四五六七八九十\d]+[章部分]', text):
+                                    should_skip = True
+                                    self.logger.debug(f"过滤长文本: 段落{para_idx} '{text[:30]}'")
+
+                            if not should_skip:
+                                is_heading = True
+                                level = outline_level_val + 1  # 转换: 0→1级, 1→2级, ...
+                                detection_method = f"大纲级别{outline_level_val}"
+            except (AttributeError, TypeError, ValueError):
+                pass  # 没有大纲级别，继续其他方法
+
+            # 优先级2: 检查标准Heading样式 (备用方案)
+            if not is_heading:
+                style_name = paragraph.style.name if paragraph.style else ""
+
+                # 只接受标准的Heading样式（精确匹配，避免误识别）
+                if style_name.startswith('Heading '):  # 'Heading 1', 'Heading 2'
+                    match = re.search(r'Heading (\d+)', style_name)
+                    if match:
+                        is_heading = True
+                        level = int(match.group(1))
+                        detection_method = f"样式{style_name}"
+                elif style_name.startswith('标题 '):  # '标题 1', '标题 2'
+                    match = re.search(r'标题 (\d+)', style_name)
+                    if match:
+                        is_heading = True
+                        level = int(match.group(1))
+                        detection_method = f"样式{style_name}"
+
+            if is_heading and paragraph.text.strip():
+                title = paragraph.text.strip()
 
                 # 判断是否匹配白/黑名单
                 auto_selected = self._matches_whitelist(title)
@@ -488,26 +1134,27 @@ class DocumentStructureParser:
                     auto_selected = False
 
                 chapter = ChapterNode(
-                    id=f"ch_{chapter_counter}",
-                    level=level,
+                    id=f"docx_{chapter_counter}",
+                    level=level if level > 0 else 1,
                     title=title,
                     para_start_idx=para_idx,
                     para_end_idx=None,  # 稍后计算
                     word_count=0,       # 稍后计算
                     preview_text="",    # 稍后提取
                     auto_selected=auto_selected,
-                    skip_recommended=skip_recommended
+                    skip_recommended=skip_recommended,
+                    content_tags=['docx_native', detection_method]
                 )
 
                 chapters.append(chapter)
                 chapter_counter += 1
 
                 self.logger.debug(
-                    f"找到章节 [大纲Level{level}]: {title} "
+                    f"识别标题: 段落{para_idx} [{detection_method}] '{title[:50]}' "
                     f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
                 )
 
-        self.logger.info(f"方法五识别完成：找到 {len(chapters)} 个章节")
+        self.logger.info(f"✅ 方法五识别完成：找到 {len(chapters)} 个标题")
         return chapters
 
     def _get_heading_level(self, paragraph) -> int:

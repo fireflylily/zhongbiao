@@ -54,13 +54,18 @@ def register_hitl_routes(app):
         - file_path: 历史文件路径（与 file 二选一）
         - company_id: 公司ID（必填）
         - project_id: 项目ID（可选，为空时自动创建新项目）
+        - methods: 解析方法列表（可选，JSON数组字符串）
+                  例如: '["toc_exact", "style"]'
+                  可选值: toc_exact, semantic_anchors, style, hybrid, azure, outline_level, gemini
+        - fallback: 是否启用回退机制（可选，true/false字符串，默认true）
 
         返回：
         {
             "success": True/False,
             "project_id": xxx,  # 新建或已有项目ID
             "chapters": [...],  # 章节树
-            "statistics": {...}
+            "statistics": {...},
+            "method": "使用的解析方法"
         }
         """
         try:
@@ -69,8 +74,27 @@ def register_hitl_routes(app):
             project_id = request.form.get('project_id')  # 可选
             file_path_param = request.form.get('file_path')  # 历史文件路径（可选）
 
+            # 新增：解析方法参数
+            methods_param = request.form.get('methods')  # 可选
+            fallback_param = request.form.get('fallback', 'true')  # 可选，默认true
+
             if not company_id:
                 return jsonify({'success': False, 'error': '缺少company_id参数'}), 400
+
+            # 解析methods参数（如果提供）
+            methods = None
+            if methods_param:
+                try:
+                    import json
+                    methods = json.loads(methods_param)
+                    if not isinstance(methods, list):
+                        return jsonify({'success': False, 'error': 'methods参数必须是JSON数组'}), 400
+                    logger.info(f"使用指定解析方法: {methods}")
+                except json.JSONDecodeError:
+                    return jsonify({'success': False, 'error': 'methods参数格式错误'}), 400
+
+            # 解析fallback参数
+            fallback = fallback_param.lower() in ('true', '1', 'yes')
 
             # 检查文件：支持两种模式
             file_path = None
@@ -146,7 +170,11 @@ def register_hitl_routes(app):
 
             # 解析文档结构
             parser = DocumentStructureParser()
-            result = parser.parse_document_structure(file_path)
+            result = parser.parse_document_structure(
+                file_path,
+                methods=methods,
+                fallback=fallback
+            )
 
             if not result["success"]:
                 return jsonify(result), 500
