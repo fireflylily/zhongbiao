@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2025-12-20",
+  "description": "评分点智能体提示词 - 支持评分提取、评估、方案生成",
+  "prompts": {
+    "extract_scoring_points": "请从以下招标文档中提取技术评分标准，按JSON格式返回。\n\n【招标文档】\n{tender_doc}\n\n【输出格式】\n{{\n  \"scoring_dimensions\": [\n    {{\n      \"dimension\": \"技术方案\",\n      \"weight\": 40,\n      \"description\": \"技术方案的完整性和创新性\",\n      \"criteria\": [\n        {{\n          \"item\": \"系统架构设计\",\n          \"score\": 10,\n          \"requirement\": \"需提供完整的系统架构图和说明\"\n        }},\n        {{\n          \"item\": \"技术选型合理性\",\n          \"score\": 8,\n          \"requirement\": \"技术选型需符合行业标准\"\n        }}\n      ]\n    }},\n    {{\n      \"dimension\": \"实施方案\",\n      \"weight\": 30,\n      \"description\": \"项目实施计划的可行性\",\n      \"criteria\": [\n        {{\n          \"item\": \"实施计划\",\n          \"score\": 15,\n          \"requirement\": \"提供详细的时间表和里程碑\"\n        }}\n      ]\n    }}\n  ]\n}}\n\n【提取要求】\n1. 准确识别所有评分维度和权重\n2. 提取每个维度的具体评分细项（criteria）\n3. 权重总和应为100分（允许±5分误差）\n4. 如果文档中未明确评分标准，请根据常见投标规范推断\n5. 每个维度至少包含1个评分细项\n\n请仔细分析文档，确保不遗漏任何评分点。",
+
+    "evaluate_dimension": "请根据评分标准评估标书在【{dimension_name}】维度的得分情况。\n\n【评分标准】\n维度名称: {dimension_name}\n权重: {dimension_weight}分\n评分细项:\n{criteria}\n\n【标书内容】\n{tender_doc}\n\n【输出格式】\n{{\n  \"score\": 36,\n  \"strengths\": [\n    \"系统架构设计清晰完整，采用微服务架构\",\n    \"技术选型合理，使用成熟的开源框架\"\n  ],\n  \"weaknesses\": [\n    \"缺少容灾方案的详细说明\"\n  ],\n  \"suggestions\": [\n    \"建议补充异地容灾设计方案\",\n    \"建议增加系统性能优化措施\"\n  ]\n}}\n\n【评估要求】\n1. 客观公正，基于标书实际内容\n2. 优势至少列出2-3条\n3. 不足应明确指出缺失或不足之处\n4. 建议应具体可操作\n5. 得分应合理，不可过高或过低",
+
+    "analyze_risks": "请分析以下标书的整体风险。\n\n【各维度得分】\n{dimension_scores}\n\n【输出格式】\n{{\n  \"risk_level\": \"中\",\n  \"weak_dimensions\": [\"实施方案\", \"服务保障\"],\n  \"description\": \"实施方案和服务保障两个维度得分偏低，可能影响整体竞争力\",\n  \"key_risks\": [\n    \"实施周期规划不够详细，可能影响项目交付\",\n    \"缺少7x24小时运维保障承诺\"\n  ]\n}}\n\n【分析要求】\n1. 识别得分率<70%的弱项维度\n2. 风险等级: 低（无弱项）、中（1-2个弱项）、高（3个以上弱项）\n3. 提供具体的风险描述和关键风险点",
+
+    "generate_suggestions": "根据评分结果提供改进建议。\n\n【维度得分详情】\n{dimension_scores}\n\n【输出格式】\n{{\n  \"improvement_suggestions\": [\n    \"补充详细的容灾方案设计，包括异地备份和故障切换机制\",\n    \"增加系统性能测试数据，证明满足并发要求\",\n    \"完善培训计划，明确培训内容、时长和考核标准\"\n  ]\n}}\n\n【要求】\n1. 优先改进低分维度\n2. 建议应具体可操作\n3. 最多返回10条建议"
+  }
+}

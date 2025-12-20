@@ -104,38 +104,143 @@
           </el-col>
         </el-row>
 
-        <el-form-item label="方案模式">
-          <el-radio-group v-model="config.proposalMode">
-            <el-radio value="basic">
-              基础方案
+        <el-form-item label="生成模式">
+          <el-radio-group v-model="config.generationMode">
+            <el-radio value="按评分点写">
+              按评分点写
               <el-tooltip placement="top">
                 <template #content>
                   <div style="max-width: 300px;">
-                    快速生成通用技术方案<br/>
-                    • 适合时间紧急的项目<br/>
-                    • 生成速度快<br/>
-                    • 使用通用技术描述
+                    根据评分标准生成方案<br/>
+                    • 自动提取评分点<br/>
+                    • 按权重分配页数<br/>
+                    • 确保得分最大化
                   </div>
                 </template>
                 <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
               </el-tooltip>
             </el-radio>
-            <el-radio value="advanced">
-              进阶方案（推荐）
+            <el-radio value="按招标书目录写">
+              按招标书目录写（推荐）
               <el-tooltip placement="top">
                 <template #content>
                   <div style="max-width: 300px;">
-                    生成业务定制化方案<br/>
-                    • 紧扣招标需求和业务场景<br/>
-                    • 突出数据优势和实力证明<br/>
-                    • 语言专业、具有说服力<br/>
-                    • 适合竞争激烈的重要项目
+                    动态分析需求生成方案<br/>
+                    • 紧扣招标需求<br/>
+                    • 智能分类应答<br/>
+                    • 覆盖率≥90%
+                  </div>
+                </template>
+                <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </el-radio>
+            <el-radio value="编写专项章节">
+              使用固定模板
+              <el-tooltip placement="top">
+                <template #content>
+                  <div style="max-width: 300px;">
+                    使用预定义模板<br/>
+                    • 快速生成<br/>
+                    • 符合行业规范<br/>
+                    • 3种模板可选
                   </div>
                 </template>
                 <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
               </el-tooltip>
             </el-radio>
           </el-radio-group>
+        </el-form-item>
+
+        <!-- 模板选择（仅当选择"使用固定模板"时显示） -->
+        <el-form-item v-if="config.generationMode === '编写专项章节'" label="选择模板">
+          <el-select v-model="config.templateName" placeholder="请选择模板" style="width: 100%">
+            <el-option
+              label="政府采购标准（5章）"
+              value="政府采购标准"
+            >
+              <div>
+                <div>政府采购标准</div>
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  总体设计 | 需求应答 | 技术指标 | 实施方案 | 服务承诺
+                </div>
+              </div>
+            </el-option>
+            <el-option
+              label="软件开发项目（8章）"
+              value="软件开发项目"
+            >
+              <div>
+                <div>软件开发项目</div>
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  项目概述 | 需求分析 | 系统设计 | 开发实施 | 测试 | 部署 | 运维 | 培训
+                </div>
+              </div>
+            </el-option>
+            <el-option
+              label="ISO质量体系（6章）"
+              value="ISO质量体系"
+            >
+              <div>
+                <div>ISO质量体系</div>
+                <div style="color: #999; font-size: 12px; margin-top: 4px;">
+                  质量方针 | 质量目标 | 过程控制 | 文档管理 | 持续改进 | 管理评审
+                </div>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+
+        <!-- 页数控制 -->
+        <el-form-item label="页数控制">
+          <el-slider
+            v-model="config.pageCount"
+            :min="50"
+            :max="400"
+            :step="10"
+            :marks="{
+              50: '50页',
+              100: '100页',
+              200: '200页',
+              300: '300页',
+              400: '400页'
+            }"
+            show-input
+            :show-input-controls="false"
+          />
+          <div style="margin-top: 8px; color: #999; font-size: 12px;">
+            预估字数: {{ Math.round(config.pageCount * 700 * 0.8) }} - {{ Math.round(config.pageCount * 700) }} 字
+          </div>
+        </el-form-item>
+
+        <!-- 内容风格配置 -->
+        <el-form-item label="内容风格">
+          <el-row :gutter="12">
+            <el-col :span="8">
+              <div style="margin-bottom: 4px; font-size: 13px; color: #666;">表格数量</div>
+              <el-select v-model="config.contentStyle.tables" size="small" style="width: 100%">
+                <el-option label="无" value="无" />
+                <el-option label="少量" value="少量" />
+                <el-option label="适量（推荐）" value="适量" />
+                <el-option label="大量" value="大量" />
+              </el-select>
+            </el-col>
+            <el-col :span="8">
+              <div style="margin-bottom: 4px; font-size: 13px; color: #666;">流程图</div>
+              <el-select v-model="config.contentStyle.flowcharts" size="small" style="width: 100%">
+                <el-option label="无" value="无" />
+                <el-option label="流程图（推荐）" value="流程图" />
+                <el-option label="SmartArt" value="SmartArt" />
+              </el-select>
+            </el-col>
+            <el-col :span="8">
+              <div style="margin-bottom: 4px; font-size: 13px; color: #666;">图片数量</div>
+              <el-select v-model="config.contentStyle.images" size="small" style="width: 100%">
+                <el-option label="无" value="无" />
+                <el-option label="少量（推荐）" value="少量" />
+                <el-option label="大量" value="大量" />
+              </el-select>
+            </el-col>
+          </el-row>
         </el-form-item>
 
         <el-form-item label="附加输出">
@@ -543,7 +648,14 @@ const form = ref({
 const config = ref({
   outputPrefix: '技术方案',
   aiModel: 'shihuang-gpt4o-mini',
-  proposalMode: 'basic' as 'basic' | 'advanced',  // 默认基础模式
+  generationMode: '按招标书目录写' as '按评分点写' | '按招标书目录写' | '编写专项章节',  // 智能体生成模式
+  templateName: '政府采购标准' as string,  // 模板名称
+  pageCount: 200,  // 目标页数
+  contentStyle: {  // 内容风格
+    tables: '适量',
+    flowcharts: '流程图',
+    images: '少量'
+  },
   additionalOutputs: ['includeAnalysis', 'includeMapping', 'includeSummary'] as string[]
 })
 
@@ -716,7 +828,18 @@ const generateProposal = async () => {
     formData.append('projectName', selectedProject.value!.project_name || '')
     formData.append('projectId', form.value.projectId!.toString())
     formData.append('aiModel', config.value.aiModel)  // ✅ 添加AI模型参数
-    formData.append('proposalMode', config.value.proposalMode)  // ✅ 添加方案模式参数
+
+    // 智能体模式参数
+    if (config.value.generationMode) {
+      formData.append('generation_mode', config.value.generationMode)
+      formData.append('page_count', config.value.pageCount.toString())
+      formData.append('content_style', JSON.stringify(config.value.contentStyle))
+
+      // 如果使用模板模式，添加模板名称
+      if (config.value.generationMode === '编写专项章节' && config.value.templateName) {
+        formData.append('template_name', config.value.templateName)
+      }
+    }
 
     // 附加输出选项
     formData.append('includeAnalysis', config.value.additionalOutputs.includes('includeAnalysis') ? 'true' : 'false')
@@ -740,9 +863,11 @@ const generateProposal = async () => {
 
 // SSE流式处理（支持实时内容推送）
 const generateWithSSE = async (formData: FormData) => {
-  // 选择使用V2接口（支持流式内容）
-  const useStreamingContent = true
-  const apiEndpoint = useStreamingContent ? '/api/generate-proposal-stream-v2' : '/api/generate-proposal-stream'
+  // 根据是否使用智能体选择API端点
+  const useAgentAPI = !!config.value.generationMode
+  const apiEndpoint = useAgentAPI
+    ? '/api/agent/generate'  // 智能体API
+    : '/api/generate-proposal-stream-v2'  // 传统API（向后兼容）
 
   const response = await fetch(apiEndpoint, {
     method: 'POST',

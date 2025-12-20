@@ -213,9 +213,9 @@ def generate_proposal():
             mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
             summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
 
-        # 导出主方案
+        # 导出主方案（简洁模式，不显示大纲指导信息）
         proposal_path = output_dir / proposal_filename
-        exporter.export_proposal(proposal, str(proposal_path))
+        exporter.export_proposal(proposal, str(proposal_path), show_guidance=False)
         output_files['proposal'] = f"/api/downloads/{proposal_filename}"
 
         logger.info(f"主方案已导出: {proposal_path}")
@@ -475,9 +475,9 @@ def generate_proposal_stream():
                 mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
                 summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
 
-            # 导出主方案
+            # 导出主方案（简洁模式，不显示大纲指导信息）
             proposal_path = output_dir / proposal_filename
-            exporter.export_proposal(proposal, str(proposal_path))
+            exporter.export_proposal(proposal, str(proposal_path), show_guidance=False)
             output_files['proposal'] = f"/api/downloads/{proposal_filename}"
 
             # 导出附件
@@ -803,9 +803,9 @@ def generate_proposal_stream_v2():
                 mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
                 summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
 
-            # 导出主方案
+            # 导出主方案（简洁模式，不显示大纲指导信息）
             proposal_path = output_dir / proposal_filename
-            exporter.export_proposal(proposal, str(proposal_path))
+            exporter.export_proposal(proposal, str(proposal_path), show_guidance=False)
             output_files['proposal'] = f"/api/downloads/{proposal_filename}"
 
             # 导出附件
@@ -914,6 +914,256 @@ def get_outline_generation_prompts():
 
     except Exception as e:
         logger.error(f"获取提示词配置失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ==================== 智能体API ====================
+
+@api_outline_bp.route('/agent/generate', methods=['POST'])
+def generate_with_agent():
+    """
+    使用智能体生成技术方案API
+
+    请求参数（JSON）:
+    {
+        "generation_mode": "按评分点写" | "按招标书目录写" | "编写专项章节",
+        "tender_doc": "招标文档文本",
+        "page_count": 200,
+        "content_style": {
+            "tables": "适量",
+            "flowcharts": "流程图",
+            "images": "少量"
+        },
+        "scoring_points": [...],  // 按评分点模式必填
+        "template_name": "政府采购标准"  // 编写专项章节模式必填
+    }
+
+    返回:
+    {
+        "success": true,
+        "data": {
+            "outline": {...},
+            "chapters": [...],
+            "metadata": {...}
+        }
+    }
+    """
+    try:
+        from ai_tender_system.modules.outline_generator.agents import AgentRouter
+
+        logger.info("【智能体API】收到请求")
+
+        data = request.json
+
+        # 验证必填参数
+        if 'generation_mode' not in data:
+            return jsonify({
+                'success': False,
+                'error': '缺少必填参数: generation_mode'
+            }), 400
+
+        if 'tender_doc' not in data:
+            return jsonify({
+                'success': False,
+                'error': '缺少必填参数: tender_doc'
+            }), 400
+
+        # 创建路由器
+        router = AgentRouter()
+
+        # 路由并生成
+        result = router.route(
+            generation_mode=data.get('generation_mode'),
+            tender_doc=data.get('tender_doc'),
+            page_count=data.get('page_count', 200),
+            content_style=data.get('content_style', {}),
+            scoring_points=data.get('scoring_points'),
+            template_name=data.get('template_name', '政府采购标准')
+        )
+
+        logger.info(f"【智能体API】生成成功，模式: {data.get('generation_mode')}")
+
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+
+    except Exception as e:
+        logger.error(f"【智能体API】生成失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'trace': traceback.format_exc() if config.get('debug', False) else None
+        }), 500
+
+
+@api_outline_bp.route('/agent/templates', methods=['GET'])
+def list_templates():
+    """
+    获取可用模板列表
+
+    返回:
+    {
+        "success": true,
+        "data": [
+            {
+                "template_id": "政府采购标准",
+                "name": "政府采购标准模板",
+                "description": "...",
+                "chapters_count": 5,
+                "chapters": [...]
+            },
+            ...
+        ]
+    }
+    """
+    try:
+        from ai_tender_system.modules.outline_generator.agents import TemplateAgent
+
+        templates = TemplateAgent.list_templates()
+
+        return jsonify({
+            'success': True,
+            'data': templates
+        })
+
+    except Exception as e:
+        logger.error(f"获取模板列表失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_outline_bp.route('/agent/modes', methods=['GET'])
+def get_generation_modes():
+    """
+    获取可用的生成模式
+
+    返回:
+    {
+        "success": true,
+        "data": {
+            "modes": [...],
+            "templates": [...]
+        }
+    }
+    """
+    try:
+        from ai_tender_system.modules.outline_generator.agents import AgentRouter
+
+        router = AgentRouter()
+        modes_info = router.get_available_modes()
+
+        return jsonify({
+            'success': True,
+            'data': modes_info
+        })
+
+    except Exception as e:
+        logger.error(f"获取生成模式失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_outline_bp.route('/agent/scoring/extract', methods=['POST'])
+def extract_scoring_points():
+    """
+    从招标文档中提取评分点（场景1）
+
+    请求参数（JSON）:
+    {
+        "tender_doc": "招标文档文本"
+    }
+
+    返回:
+    {
+        "success": true,
+        "data": {
+            "scoring_points": [...]
+        }
+    }
+    """
+    try:
+        from ai_tender_system.modules.outline_generator.agents import ScoringPointAgent
+
+        data = request.json
+        tender_doc = data.get('tender_doc', '')
+
+        if not tender_doc:
+            return jsonify({
+                'success': False,
+                'error': '缺少必填参数: tender_doc'
+            }), 400
+
+        agent = ScoringPointAgent()
+        scoring_points = agent.extract_scoring_points(tender_doc)
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'scoring_points': scoring_points
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"评分点提取失败: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_outline_bp.route('/agent/scoring/evaluate', methods=['POST'])
+def evaluate_tender():
+    """
+    AI评分API（场景2）
+
+    请求参数（JSON）:
+    {
+        "tender_doc": "标书文档文本",
+        "scoring_points": [...]
+    }
+
+    返回:
+    {
+        "success": true,
+        "data": {
+            "overall_score": 85.5,
+            "dimension_scores": [...],
+            "risk_analysis": {...},
+            "improvement_suggestions": [...]
+        }
+    }
+    """
+    try:
+        from ai_tender_system.modules.outline_generator.agents import ScoringPointAgent
+
+        data = request.json
+        tender_doc = data.get('tender_doc', '')
+        scoring_points = data.get('scoring_points', [])
+
+        if not tender_doc or not scoring_points:
+            return jsonify({
+                'success': False,
+                'error': '缺少必填参数: tender_doc 或 scoring_points'
+            }), 400
+
+        agent = ScoringPointAgent()
+        result = agent.evaluate_tender_document(tender_doc, scoring_points)
+
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+
+    except Exception as e:
+        logger.error(f"AI评分失败: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)

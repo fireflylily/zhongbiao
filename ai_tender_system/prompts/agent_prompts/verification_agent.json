@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2025-12-20",
+  "description": "验证智能体提示词 - 验证内容覆盖率和质量",
+  "prompts": {
+    "verify_coverage": "请验证以下技术方案内容是否完整覆盖了所有需求点。\n\n【生成的方案内容】\n{generated_content}\n\n【期望的需求点】\n{expected_hints}\n\n【输出格式】\n{{\n  \"coverage_rate\": 0.94,\n  \"covered_hints\": [\n    \"系统架构设计\",\n    \"技术选型\",\n    \"实施计划\"\n  ],\n  \"missing_hints\": [\n    \"容灾方案\",\n    \"性能优化\"\n  ],\n  \"partial_hints\": [\n    \"安全措施（仅提及但未详细说明）\"\n  ]\n}}\n\n【验证标准】\n1. **完全覆盖**: 需求点在内容中有详细阐述（≥50字）\n2. **部分覆盖**: 需求点被提及但说明不充分（<50字）\n3. **未覆盖**: 需求点完全没有出现\n4. **覆盖率计算**: (完全覆盖数 + 0.5 × 部分覆盖数) / 总需求点数\n\n请逐项检查每个需求点，给出准确的验证结果。",
+
+    "suggest_improvements": "根据验证结果，提供改进建议。\n\n【验证结果】\n{verification_result}\n\n【原方案内容】\n{original_content}\n\n【输出格式】\n{{\n  \"recommendations\": [\n    {{\n      \"hint\": \"容灾方案\",\n      \"suggestion\": \"建议在'第三章 技术指标'中补充异地容灾设计，包括数据备份策略和故障切换机制\",\n      \"priority\": \"high\"\n    }},\n    {{\n      \"hint\": \"性能优化\",\n      \"suggestion\": \"建议在'第一章 总体设计'中增加系统性能优化措施，如缓存策略、负载均衡等\",\n      \"priority\": \"medium\"\n    }}\n  ]\n}}\n\n【要求】\n1. 针对所有未覆盖和部分覆盖的要点提供建议\n2. 明确指出应在哪个章节补充\n3. 说明具体补充什么内容\n4. 设置优先级: high（关键需求）/ medium（重要需求）/ low（次要需求）"
+  }
+}
