@@ -100,6 +100,16 @@
           color="#9C27B0"
         />
 
+        <!-- 方法6: Gemini AI解析器 -->
+        <MethodCard
+          v-if="results.gemini"
+          title="方法6: Gemini AI解析器"
+          :result="results.gemini"
+          :ground-truth="groundTruth"
+          :accuracy="accuracy?.gemini"
+          color="#FF6D00"
+        />
+
         <!-- 人工标注卡片 -->
         <GroundTruthCard
           v-model="groundTruth"
@@ -222,6 +232,15 @@
             <template #default="{ row }">
               <span v-if="row.docx_native_f1" :class="getScoreClass(row.docx_native_f1)">
                 {{ (row.docx_native_f1 * 100).toFixed(1) }}%
+              </span>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Gemini AI" width="110" align="center">
+            <template #default="{ row }">
+              <span v-if="row.gemini_f1" :class="getScoreClass(row.gemini_f1)">
+                {{ (row.gemini_f1 * 100).toFixed(1) }}%
               </span>
               <span v-else class="text-muted">-</span>
             </template>
@@ -414,7 +433,8 @@ const accuracyTableData = computed(() => {
     { key: 'style', name: '样式识别(增强)' },
     { key: 'hybrid', name: '混合启发式识别' },
     { key: 'azure', name: 'Azure Form Recognizer' },
-    { key: 'docx_native', name: 'Word大纲级别识别' }
+    { key: 'docx_native', name: 'Word大纲级别识别' },
+    { key: 'gemini', name: 'Gemini AI解析器' }
   ]
 
   return methods
@@ -451,7 +471,8 @@ const getBestMethodName = () => {
     style: '样式识别(增强)',
     hybrid: '混合启发式识别',
     azure: 'Azure Form Recognizer',
-    docx_native: 'Word大纲级别识别'
+    docx_native: 'Word大纲级别识别',
+    gemini: 'Gemini AI解析器'
   }
   return names[accuracy.value?.best_method] || '未知'
 }
@@ -462,7 +483,8 @@ const getMethodDisplayName = (key: string) => {
     style: '样式',
     hybrid: '混合启发式',
     azure: 'Azure',
-    docx_native: 'Word大纲'
+    docx_native: 'Word大纲',
+    gemini: 'Gemini AI'
   }
   return names[key] || key
 }

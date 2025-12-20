@@ -35,6 +35,14 @@ except ImportError as e:
     def is_azure_available():
         return False
 
+# 尝试导入 Gemini 解析器
+try:
+    from modules.tender_processing.parsers.gemini_parser import GeminiParser
+    GEMINI_PARSER_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Gemini 解析器不可用: {e}")
+    GEMINI_PARSER_AVAILABLE = False
+
 logger = get_module_logger("api_parser_debug")
 
 api_parser_debug_bp = Blueprint('api_parser_debug', __name__, url_prefix='/api/parser-debug')
@@ -103,7 +111,8 @@ class ParserDebugger:
                 'style': {...},
                 'hybrid': {...},
                 'azure': {...},  # 可选
-                'docx_native': {...}
+                'docx_native': {...},
+                'gemini': {...}  # 可选
             }
         """
         results = {}
@@ -146,6 +155,41 @@ class ParserDebugger:
             self._run_docx_native,
             "Word大纲级别识别"
         )
+
+        # 方法6: Gemini AI解析器（如果可用）
+        if GEMINI_PARSER_AVAILABLE:
+            try:
+                gemini_parser = GeminiParser()
+                if gemini_parser.is_available():
+                    results['gemini'] = self._run_with_timing(
+                        lambda: self._run_gemini_parser(gemini_parser),
+                        "Gemini AI解析器"
+                    )
+                else:
+                    results['gemini'] = {
+                        'success': False,
+                        'error': 'Gemini API密钥未配置',
+                        'chapters': [],
+                        'method_name': 'Gemini AI解析器',
+                        'performance': {'elapsed': 0}
+                    }
+            except Exception as e:
+                logger.error(f"初始化Gemini解析器失败: {e}")
+                results['gemini'] = {
+                    'success': False,
+                    'error': f'Gemini解析器初始化失败: {str(e)}',
+                    'chapters': [],
+                    'method_name': 'Gemini AI解析器',
+                    'performance': {'elapsed': 0}
+                }
+        else:
+            results['gemini'] = {
+                'success': False,
+                'error': 'Gemini SDK未安装 (pip install google-generativeai)',
+                'chapters': [],
+                'method_name': 'Gemini AI解析器',
+                'performance': {'elapsed': 0}
+            }
 
         return results
 
@@ -640,6 +684,28 @@ class ParserDebugger:
             logger.error(traceback.format_exc())
             raise
 
+    def _run_gemini_parser(self, gemini_parser: 'GeminiParser') -> Dict:
+        """方法6: Gemini AI解析器"""
+        try:
+            # 调用Gemini解析器的parse_structure方法
+            result = gemini_parser.parse_structure(self.doc_path)
+
+            # Gemini返回的结果已经是标准格式,包含success, chapters, statistics等
+            # 但需要确保chapters是dict格式而不是ChapterNode对象
+            if result.get('success') and result.get('chapters'):
+                # 如果chapters是ChapterNode对象列表,需要转换为dict
+                chapters = result['chapters']
+                if chapters and hasattr(chapters[0], 'to_dict'):
+                    result['chapters'] = [ch.to_dict() if hasattr(ch, 'to_dict') else ch for ch in chapters]
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Gemini解析失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
+
     @staticmethod
     def calculate_accuracy(detected_chapters: List[Dict], ground_truth_chapters: List[Dict]) -> Dict:
         """
@@ -795,10 +861,10 @@ def upload_document():
             INSERT INTO parser_debug_tests (
                 document_id, filename, file_path,
                 total_paragraphs, has_toc, toc_items_count, toc_start_idx, toc_end_idx,
-                semantic_result, style_result, hybrid_result, azure_result, docx_native_result,
-                semantic_elapsed, style_elapsed, hybrid_elapsed, azure_elapsed, docx_native_elapsed,
-                semantic_chapters_count, style_chapters_count, hybrid_chapters_count, azure_chapters_count, docx_native_chapters_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                semantic_result, style_result, hybrid_result, azure_result, docx_native_result, gemini_result,
+                semantic_elapsed, style_elapsed, hybrid_elapsed, azure_elapsed, docx_native_elapsed, gemini_elapsed,
+                semantic_chapters_count, style_chapters_count, hybrid_chapters_count, azure_chapters_count, docx_native_chapters_count, gemini_chapters_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             document_id,
             original_filename,  # 存储原始文件名（包含中文），用于显示
@@ -813,16 +879,19 @@ def upload_document():
             json.dumps(results['hybrid'], ensure_ascii=False),
             json.dumps(results['azure'], ensure_ascii=False),
             json.dumps(results['docx_native'], ensure_ascii=False),
+            json.dumps(results['gemini'], ensure_ascii=False),
             results['semantic']['performance']['elapsed'],
             results['style']['performance']['elapsed'],
             results['hybrid']['performance']['elapsed'],
             results['azure']['performance']['elapsed'],
             results['docx_native']['performance']['elapsed'],
+            results['gemini']['performance']['elapsed'],
             len(results['semantic'].get('chapters', [])),
             len(results['style'].get('chapters', [])),
             len(results['hybrid'].get('chapters', [])),
             len(results['azure'].get('chapters', [])),
-            len(results['docx_native'].get('chapters', []))
+            len(results['docx_native'].get('chapters', [])),
+            len(results['gemini'].get('chapters', []))
         ))
 
         return jsonify({
@@ -871,6 +940,7 @@ def get_test_result(document_id):
             'hybrid': json.loads(row['hybrid_result']) if row.get('hybrid_result') else None,
             'azure': json.loads(row['azure_result']) if row.get('azure_result') else None,
             'docx_native': json.loads(row['docx_native_result']) if row.get('docx_native_result') else None,
+            'gemini': json.loads(row['gemini_result']) if row.get('gemini_result') else None,
         }
 
         document_info = {
@@ -912,6 +982,11 @@ def get_test_result(document_id):
                     'recall': row.get('docx_native_recall'),
                     'f1_score': row.get('docx_native_f1')
                 } if row.get('docx_native_precision') else None,
+                'gemini': {
+                    'precision': row.get('gemini_precision'),
+                    'recall': row.get('gemini_recall'),
+                    'f1_score': row.get('gemini_f1')
+                } if row.get('gemini_precision') else None,
                 'best_method': row['best_method'],
                 'best_f1_score': row['best_f1_score']
             }
@@ -958,7 +1033,7 @@ def save_ground_truth(document_id):
         # 获取现有测试结果
         db = get_knowledge_base_db()
         row = db.execute_query(
-            "SELECT semantic_result, style_result, hybrid_result, azure_result, docx_native_result FROM parser_debug_tests WHERE document_id = ?",
+            "SELECT semantic_result, style_result, hybrid_result, azure_result, docx_native_result, gemini_result FROM parser_debug_tests WHERE document_id = ?",
             (document_id,),
             fetch_one=True
         )
@@ -972,6 +1047,7 @@ def save_ground_truth(document_id):
         hybrid_chapters = json.loads(row['hybrid_result'])['chapters'] if row.get('hybrid_result') else []
         azure_chapters = json.loads(row['azure_result'])['chapters'] if row.get('azure_result') else []
         docx_native_chapters = json.loads(row['docx_native_result'])['chapters'] if row.get('docx_native_result') else []
+        gemini_chapters = json.loads(row['gemini_result'])['chapters'] if row.get('gemini_result') else []
 
         # 计算各方法的准确率
         semantic_acc = ParserDebugger.calculate_accuracy(semantic_chapters, chapters)
@@ -979,6 +1055,7 @@ def save_ground_truth(document_id):
         hybrid_acc = ParserDebugger.calculate_accuracy(hybrid_chapters, chapters) if hybrid_chapters else None
         azure_acc = ParserDebugger.calculate_accuracy(azure_chapters, chapters) if azure_chapters else None
         docx_native_acc = ParserDebugger.calculate_accuracy(docx_native_chapters, chapters) if docx_native_chapters else None
+        gemini_acc = ParserDebugger.calculate_accuracy(gemini_chapters, chapters) if gemini_chapters else None
 
         # 找出最佳方法
         all_f1 = {
@@ -991,6 +1068,8 @@ def save_ground_truth(document_id):
             all_f1['azure'] = azure_acc['f1_score']
         if docx_native_acc:
             all_f1['docx_native'] = docx_native_acc['f1_score']
+        if gemini_acc:
+            all_f1['gemini'] = gemini_acc['f1_score']
         best_method = max(all_f1, key=all_f1.get)
         best_f1_score = all_f1[best_method]
 
@@ -1022,6 +1101,12 @@ def save_ground_truth(document_id):
         else:
             update_params.extend([None, None, None])
 
+        # 如果有 Gemini 结果，添加其准确率
+        if gemini_acc:
+            update_params.extend([gemini_acc['precision'], gemini_acc['recall'], gemini_acc['f1_score']])
+        else:
+            update_params.extend([None, None, None])
+
         update_params.extend([best_method, best_f1_score, document_id])
 
         db.execute_query("""
@@ -1032,6 +1117,7 @@ def save_ground_truth(document_id):
                 hybrid_precision = ?, hybrid_recall = ?, hybrid_f1 = ?,
                 azure_precision = ?, azure_recall = ?, azure_f1 = ?,
                 docx_native_precision = ?, docx_native_recall = ?, docx_native_f1 = ?,
+                gemini_precision = ?, gemini_recall = ?, gemini_f1 = ?,
                 best_method = ?, best_f1_score = ?
             WHERE document_id = ?
         """, tuple(update_params))
@@ -1049,6 +1135,8 @@ def save_ground_truth(document_id):
             accuracy_result['azure'] = azure_acc
         if docx_native_acc:
             accuracy_result['docx_native'] = docx_native_acc
+        if gemini_acc:
+            accuracy_result['gemini'] = gemini_acc
 
         return jsonify({
             'success': True,
@@ -1177,6 +1265,7 @@ def export_comparison_report(document_id):
                 'hybrid': json.loads(row['hybrid_result']) if row.get('hybrid_result') else None,
                 'azure': json.loads(row['azure_result']) if row.get('azure_result') else None,
                 'docx_native': json.loads(row['docx_native_result']) if row.get('docx_native_result') else None,
+                'gemini': json.loads(row['gemini_result']) if row.get('gemini_result') else None,
             },
             'ground_truth': json.loads(row['ground_truth']) if row['ground_truth'] else None,
             'accuracy': None
@@ -1221,6 +1310,14 @@ def export_comparison_report(document_id):
                     'precision': row['docx_native_precision'],
                     'recall': row['docx_native_recall'],
                     'f1_score': row['docx_native_f1']
+                }
+
+            # 添加gemini结果(如果存在)
+            if row.get('gemini_precision'):
+                report['accuracy']['gemini'] = {
+                    'precision': row['gemini_precision'],
+                    'recall': row['gemini_recall'],
+                    'f1_score': row['gemini_f1']
                 }
 
         # 保存为临时JSON文件

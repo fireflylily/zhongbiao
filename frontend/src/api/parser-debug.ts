@@ -75,6 +75,7 @@ export interface ParseTestResult {
     hybrid: ParseMethodResult
     azure?: ParseMethodResult
     docx_native?: ParseMethodResult
+    gemini?: ParseMethodResult
   }
   ground_truth?: ChapterNode[]
   accuracy?: {
@@ -83,6 +84,7 @@ export interface ParseTestResult {
     hybrid?: MethodAccuracy
     azure?: MethodAccuracy
     docx_native?: MethodAccuracy
+    gemini?: MethodAccuracy
     best_method: string
     best_f1_score: number
   }
@@ -99,11 +101,13 @@ export interface HistoryTest {
   hybrid_chapters_count: number
   azure_chapters_count: number
   docx_native_chapters_count: number
+  gemini_chapters_count: number
   semantic_f1?: number
   style_f1?: number
   hybrid_f1?: number
   azure_f1?: number
   docx_native_f1?: number
+  gemini_f1?: number
   best_method?: string
   best_f1_score?: number
   has_ground_truth: boolean

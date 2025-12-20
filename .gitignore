@@ -7,6 +7,8 @@ __pycache__/
 # Ignore environment files with sensitive data
 .env
 .env.local
+ai_tender_system/.env
+*/.env
 
 # Ignore log files
 *.log
