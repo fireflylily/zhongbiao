@@ -207,40 +207,40 @@
             show-input
             :show-input-controls="false"
           />
-          <div style="margin-top: 8px; color: #999; font-size: 12px;">
+          <div style="margin-top: 28px; color: #999; font-size: 12px;">
             预估字数: {{ Math.round(config.pageCount * 700 * 0.8) }} - {{ Math.round(config.pageCount * 700) }} 字
           </div>
         </el-form-item>
 
-        <!-- 内容风格配置 -->
+        <!-- 内容风格配置  -->
         <el-form-item label="内容风格">
-          <el-row :gutter="12">
-            <el-col :span="8">
-              <div style="margin-bottom: 4px; font-size: 13px; color: #666;">表格数量</div>
-              <el-select v-model="config.contentStyle.tables" size="small" style="width: 100%">
+          <div style="display: flex; gap: 20px;">
+            <div style="width: 200px;">
+              <div style="margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #666;">表格数量</div>
+              <el-select v-model="config.contentStyle.tables" style="width: 100%">
                 <el-option label="无" value="无" />
                 <el-option label="少量" value="少量" />
                 <el-option label="适量（推荐）" value="适量" />
                 <el-option label="大量" value="大量" />
               </el-select>
-            </el-col>
-            <el-col :span="8">
-              <div style="margin-bottom: 4px; font-size: 13px; color: #666;">流程图</div>
-              <el-select v-model="config.contentStyle.flowcharts" size="small" style="width: 100%">
+            </div>
+            <div style="width: 200px;">
+              <div style="margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #666;">流程图</div>
+              <el-select v-model="config.contentStyle.flowcharts" style="width: 100%">
                 <el-option label="无" value="无" />
                 <el-option label="流程图（推荐）" value="流程图" />
                 <el-option label="SmartArt" value="SmartArt" />
               </el-select>
-            </el-col>
-            <el-col :span="8">
-              <div style="margin-bottom: 4px; font-size: 13px; color: #666;">图片数量</div>
-              <el-select v-model="config.contentStyle.images" size="small" style="width: 100%">
+            </div>
+            <div style="width: 200px;">
+              <div style="margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #666;">图片数量</div>
+              <el-select v-model="config.contentStyle.images" style="width: 100%">
                 <el-option label="无" value="无" />
                 <el-option label="少量（推荐）" value="少量" />
                 <el-option label="大量" value="大量" />
               </el-select>
-            </el-col>
-          </el-row>
+            </div>
+          </div>
         </el-form-item>
 
         <el-form-item label="附加输出">
@@ -1490,3 +1490,4 @@ onMounted(async () => {
   }
 }
 </style>
+
