@@ -927,19 +927,13 @@ def generate_with_agent():
     """
     使用智能体生成技术方案API
 
-    请求参数（JSON）:
-    {
-        "generation_mode": "按评分点写" | "按招标书目录写" | "编写专项章节",
-        "tender_doc": "招标文档文本",
-        "page_count": 200,
-        "content_style": {
-            "tables": "适量",
-            "flowcharts": "流程图",
-            "images": "少量"
-        },
-        "scoring_points": [...],  // 按评分点模式必填
-        "template_name": "政府采购标准"  // 编写专项章节模式必填
-    }
+    请求参数（multipart/form-data 或 JSON）:
+    - generation_mode: 生成模式 ("按评分点写" | "按招标书目录写" | "编写专项章节")
+    - tender_file: 招标文档文件 (FormData) 或 tender_doc: 文本 (JSON)
+    - page_count: 目标页数
+    - content_style: 内容风格配置(JSON字符串或对象)
+    - template_name: 模板名称 (编写专项章节模式必填)
+    - projectId: 项目ID (可选，从HITL加载)
 
     返回:
     {
@@ -953,38 +947,141 @@ def generate_with_agent():
     """
     try:
         from ai_tender_system.modules.outline_generator.agents import AgentRouter
+        from ai_tender_system.modules.tender_processing.parsers import UnifiedDocumentParser
 
         logger.info("【智能体API】收到请求")
 
-        data = request.json
+        # 支持两种格式: FormData 和 JSON
+        if request.is_json:
+            # JSON格式
+            data = request.json
+            generation_mode = data.get('generation_mode')
+            tender_doc = data.get('tender_doc', '')
+        else:
+            # FormData格式
+            generation_mode = request.form.get('generation_mode')
+            tender_doc = ''
+
+            # 从HITL或上传文件获取招标文档
+            project_id = request.form.get('projectId') or request.form.get('project_id')
+            use_hitl_file = request.form.get('use_hitl_technical_file', 'false').lower() == 'true'
+
+            if use_hitl_file and project_id:
+                # 从HITL加载
+                logger.info(f"从HITL项目加载技术需求文件: project_id={project_id}")
+                technical_files_base = config.get_path('upload') / 'technical_files'
+                tender_path = None
+
+                for year_dir in technical_files_base.glob('*'):
+                    if not year_dir.is_dir():
+                        continue
+                    for month_dir in year_dir.glob('*'):
+                        if not month_dir.is_dir():
+                            continue
+                        project_dir = month_dir / str(project_id)
+                        if project_dir.exists():
+                            technical_files = list(project_dir.glob('*.*'))
+                            if technical_files:
+                                tender_path = technical_files[0]
+                                logger.info(f"找到HITL技术需求文件: {tender_path}")
+                                break
+                    if tender_path:
+                        break
+
+                if not tender_path:
+                    return jsonify({
+                        'success': False,
+                        'error': f'未找到项目的技术需求文件: project_id={project_id}'
+                    }), 400
+
+                # 解析文件内容
+                parser = UnifiedDocumentParser()
+                tender_doc = parser.parse(str(tender_path))
+
+            elif 'tender_file' in request.files:
+                # 上传文件
+                tender_file = request.files['tender_file']
+
+                if not allowed_file(tender_file.filename):
+                    return jsonify({
+                        'success': False,
+                        'error': '不支持的文件格式'
+                    }), 400
+
+                # 保存临时文件
+                upload_dir = config.get_path('uploads')
+                upload_dir.mkdir(parents=True, exist_ok=True)
+
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = secure_filename(f"{timestamp}_{tender_file.filename}")
+                tender_path = upload_dir / filename
+                tender_file.save(str(tender_path))
+
+                # 解析文件内容
+                parser = UnifiedDocumentParser()
+                tender_doc = parser.parse(str(tender_path))
+
+                logger.info(f"已解析上传文件: {tender_path}, 文本长度: {len(tender_doc)}")
 
         # 验证必填参数
-        if 'generation_mode' not in data:
+        if not generation_mode:
             return jsonify({
                 'success': False,
                 'error': '缺少必填参数: generation_mode'
             }), 400
 
-        if 'tender_doc' not in data:
+        if not tender_doc:
             return jsonify({
                 'success': False,
-                'error': '缺少必填参数: tender_doc'
+                'error': '缺少必填参数: tender_doc 或 tender_file'
             }), 400
+
+        # 获取其他参数
+        if request.is_json:
+            page_count = int(data.get('page_count', 200))
+            content_style = data.get('content_style', {})
+            template_name = data.get('template_name', '政府采购标准')
+            scoring_points = data.get('scoring_points')
+        else:
+            page_count = int(request.form.get('page_count', 200))
+
+            # content_style可能是JSON字符串或直接从form获取
+            content_style_str = request.form.get('content_style', '')
+            if content_style_str:
+                try:
+                    content_style = json.loads(content_style_str)
+                except:
+                    content_style = {
+                        'tables': request.form.get('content_style.tables', '适量'),
+                        'flowcharts': request.form.get('content_style.flowcharts', '流程图'),
+                        'images': request.form.get('content_style.images', '少量')
+                    }
+            else:
+                content_style = {
+                    'tables': '适量',
+                    'flowcharts': '流程图',
+                    'images': '少量'
+                }
+
+            template_name = request.form.get('template_name', '政府采购标准')
+            scoring_points = None
 
         # 创建路由器
         router = AgentRouter()
 
         # 路由并生成
+        logger.info(f"调用智能体路由: mode={generation_mode}, pages={page_count}, template={template_name}")
+
         result = router.route(
-            generation_mode=data.get('generation_mode'),
-            tender_doc=data.get('tender_doc'),
-            page_count=data.get('page_count', 200),
-            content_style=data.get('content_style', {}),
-            scoring_points=data.get('scoring_points'),
-            template_name=data.get('template_name', '政府采购标准')
+            generation_mode=generation_mode,
+            tender_doc=tender_doc,
+            page_count=page_count,
+            content_style=content_style,
+            scoring_points=scoring_points,
+            template_name=template_name
         )
 
-        logger.info(f"【智能体API】生成成功，模式: {data.get('generation_mode')}")
+        logger.info(f"【智能体API】生成成功，模式: {generation_mode}")
 
         return jsonify({
             'success': True,
