@@ -84,6 +84,13 @@ def register_all_blueprints(app: Flask, config, logger):
         logger.warning(f"公司管理API蓝图加载失败: {e}")
 
     try:
+        from .api_product_categories_bp import api_product_categories_bp
+        app.register_blueprint(api_product_categories_bp)
+        logger.info("产品分类管理API蓝图注册成功")
+    except ImportError as e:
+        logger.warning(f"产品分类管理API蓝图加载失败: {e}")
+
+    try:
         from .api_enterprise_credit_bp import api_enterprise_credit_bp
         app.register_blueprint(api_enterprise_credit_bp)
         logger.info("企业征信API蓝图注册成功")

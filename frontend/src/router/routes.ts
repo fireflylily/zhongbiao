@@ -259,6 +259,21 @@ export const routes: RouteRecordRaw[] = [
               hideBreadcrumb: false,
               description: '查看和编辑简历详细信息'
             }
+          },
+
+          // 产品分类
+          {
+            path: 'product-categories',
+            name: 'ProductCategories',
+            component: () => import('@/views/Knowledge/ProductCategories.vue'),
+            meta: {
+              title: '产品分类',
+              icon: 'bi-grid',
+              order: 5,
+              parent: 'Knowledge',
+              keepAlive: true,
+              description: '管理产品分类和业务类型'
+            }
           }
         ]
       },
