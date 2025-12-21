@@ -1334,21 +1334,51 @@ class DocumentStructureParser:
             # 查找所有SDT元素
             sdt_elements = body.findall('.//w:sdt', namespaces=ns)
 
-            for sdt in sdt_elements:
-                # 检查是否是TOC类型的SDT
+            for sdt_idx, sdt in enumerate(sdt_elements):
+                # 方法1: 检查是否是TOC类型的SDT（标准Word自动目录）
                 docpart = sdt.find('.//w:docPartObj/w:docPartGallery', namespaces=ns)
+                is_toc_sdt = False
+
                 if docpart is not None:
                     gallery_val = docpart.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
                     if gallery_val == 'Table of Contents':
-                        # 找到TOC SDT,获取其中第一个段落的索引
-                        sdt_paras = sdt.findall('.//w:p', namespaces=ns)
-                        if sdt_paras:
-                            # 找到SDT中第一个段落在doc.paragraphs中的索引
-                            first_sdt_para = sdt_paras[0]
-                            for idx, para in enumerate(doc.paragraphs[:100]):
-                                if para._element == first_sdt_para:
-                                    self.logger.info(f"检测到Word TOC域（SDT容器），目录起始于段落 {idx}")
-                                    return idx
+                        is_toc_sdt = True
+                        self.logger.info(f"检测到标准TOC类型的SDT (docPartGallery)")
+
+                # 方法2: 检查SDT中是否包含"目录"关键词（手工创建的目录SDT）
+                if not is_toc_sdt:
+                    sdt_paras = sdt.findall('.//w:p', namespaces=ns)
+                    if sdt_paras:
+                        # 获取第一个段落的文本
+                        first_para_texts = sdt_paras[0].findall('.//w:t', namespaces=ns)
+                        first_para_text = ''.join([t.text for t in first_para_texts if t.text])
+
+                        # 检查是否包含目录关键词
+                        for keyword in TOC_KEYWORDS:
+                            if keyword in first_para_text:
+                                is_toc_sdt = True
+                                self.logger.info(f"检测到包含'{keyword}'的SDT，可能是手工目录")
+                                break
+
+                # 如果确认是目录SDT，返回对应的段落索引
+                if is_toc_sdt:
+                    sdt_paras = sdt.findall('.//w:p', namespaces=ns)
+                    if sdt_paras:
+                        # 方法: 通过计算SDT在body中的位置来推算段落索引
+                        # 获取SDT之前有多少个段落元素
+                        para_count = 0
+                        for child in body:
+                            child_tag = child.tag.split('}')[-1]
+                            if child == sdt:
+                                # 找到当前SDT，此时para_count就是它前面的段落数
+                                self.logger.info(f"检测到目录SDT，位于body的第{para_count}个段落位置（python-docx索引）")
+                                return para_count
+                            elif child_tag == 'p':
+                                para_count += 1
+                            elif child_tag == 'sdt':
+                                # 之前的SDT中的段落也要计数
+                                prev_sdt_paras = child.findall('.//w:p', namespaces=ns)
+                                para_count += len(prev_sdt_paras)
         except Exception as e:
             self.logger.debug(f"SDT检测失败（正常情况）: {e}")
             pass
@@ -1419,7 +1449,7 @@ class DocumentStructureParser:
 
     def _parse_toc_items(self, doc: Document, toc_start_idx: int) -> Tuple[List[Dict], int]:
         """
-        解析目录项（改进3：确保 toc_end_idx > toc_start_idx）
+        解析目录项（改进3：确保 toc_end_idx > toc_start_idx + SDT支持）
 
         Args:
             doc: Word文档对象
@@ -1434,8 +1464,89 @@ class DocumentStructureParser:
         toc_end_idx = toc_start_idx  # 目录结束位置
 
         # ⭐️ 目录项数量限制（避免扫描过远）
-        MAX_TOC_ITEMS = 100
+        MAX_TOC_ITEMS = 200
 
+        # 🆕 特殊处理：检查目录是否在SDT中
+        try:
+            body = doc.element.body
+            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+
+            # 计算toc_start_idx对应的body子元素
+            para_count = 0
+            target_sdt = None
+
+            for child in body:
+                child_tag = child.tag.split('}')[-1]
+                if child_tag == 'p':
+                    if para_count == toc_start_idx:
+                        # 找到了,但这个位置不是SDT
+                        break
+                    para_count += 1
+                elif child_tag == 'sdt':
+                    sdt_para_count = len(child.findall('.//w:p', namespaces=ns))
+                    if para_count == toc_start_idx:
+                        # toc_start_idx正好指向这个SDT
+                        target_sdt = child
+                        self.logger.info(f"目录位于SDT中，包含{sdt_para_count}个段落")
+                        break
+                    para_count += sdt_para_count
+
+            # 如果找到SDT目录，直接从SDT中提取目录项
+            if target_sdt is not None:
+                sdt_paras = target_sdt.findall('.//w:p', namespaces=ns)
+                self.logger.info(f"从SDT中提取目录项，共{len(sdt_paras)}个段落")
+
+                for para_elem in sdt_paras[1:]:  # 跳过第一个"目录"标题段落
+                    # 提取段落文本
+                    texts = para_elem.findall('.//w:t', namespaces=ns)
+                    text = ''.join([t.text for t in texts if t.text])
+                    text = text.strip()
+
+                    if not text:
+                        continue
+
+                    # 解析目录项（使用相同的正则模式）
+                    # 匹配目录项格式（带页码）
+                    toc_pattern = re.compile(
+                        r'^(.+?)'  # 标题（非贪婪）
+                        r'[\s\.\u2026]*'  # 可能的点、空格或省略号
+                        r'(\d+)$'  # 页码
+                    )
+
+                    match = toc_pattern.match(text)
+                    if match:
+                        title = match.group(1).strip()
+                        page_num = int(match.group(2))
+
+                        if len(toc_items) >= MAX_TOC_ITEMS:
+                            self.logger.info(f"SDT目录项已达上限({MAX_TOC_ITEMS})，停止解析")
+                            break
+
+                        # 从XML元素推断层级（因为无法直接访问Paragraph对象）
+                        level = 1
+                        if re.match(r'^\d+\.\d+', title):
+                            level = 2
+                        elif re.match(r'^\d+\.\d+\.\d+', title):
+                            level = 3
+
+                        toc_items.append({
+                            'title': title,
+                            'page_num': page_num,
+                            'level': level
+                        })
+
+                        self.logger.debug(f"SDT目录项 [{level}级]: {title} (页码:{page_num})")
+
+                # SDT目录解析完成
+                if toc_items:
+                    toc_end_idx = toc_start_idx + 1  # SDT算作一个"段落"位置
+                    self.logger.info(f"SDT目录解析完成，共{len(toc_items)}项")
+                    return (toc_items, toc_end_idx)
+
+        except Exception as e:
+            self.logger.debug(f"SDT目录解析失败，回退到常规方法: {e}")
+
+        # 常规方法：从python-docx的paragraphs中解析
         for i in range(toc_start_idx + 1, min(toc_start_idx + 100, len(doc.paragraphs))):
             para = doc.paragraphs[i]
             text = para.text.strip()

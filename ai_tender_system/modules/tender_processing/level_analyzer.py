@@ -359,7 +359,7 @@ class LevelAnalyzer:
         title = title.strip()
 
         patterns = [
-            r'^第[一二三四五六七八九十百千\d]+[章部分篇节]',  # 第一章、第二部分、第三节
+            r'^第[一二三四五六七八九十百千\d]+(章|部分|篇|节|条|册)',  # 第一章、第二部分、第三节、第一册
             r'^附[件表录图]\d+\.?',                        # 附表1.、附件2
             r'^[一二三四五六七八九十]+[、\s]',              # 一、二、
             r'^\([一二三四五六七八九十]+\)',                # (一)(二)
@@ -392,6 +392,8 @@ class LevelAnalyzer:
             return "第X章"
         if re.match(r'^第[一二三四五六七八九十百千\d]+部分', prefix):
             return "第X部分"
+        if re.match(r'^第[一二三四五六七八九十百千\d]+册', prefix):
+            return "第X册"
         if re.match(r'^第[一二三四五六七八九十百千\d]+节', prefix):
             return "第X节"
         if re.match(r'^第[一二三四五六七八九十百千\d]+条', prefix):
@@ -575,10 +577,13 @@ class LevelAnalyzer:
 
             # --- 情况B：有序号前缀 ---
 
-            # 规则1：章节模式（第X章/第X部分）始终是1级
+            # 规则1：章节模式（第X章/第X部分/第X册）始终是1级或2级
             if normalized == "第X章" or normalized == "第X部分":
                 level = 1
                 pattern_level_map[normalized] = 1
+            elif normalized == "第X册":
+                level = 2  # "第X册"通常是二级(在"第X部分"之下)
+                pattern_level_map[normalized] = 2
 
             # 规则2：已见过的归一化模式，使用记录的层级
             elif normalized in pattern_level_map:
