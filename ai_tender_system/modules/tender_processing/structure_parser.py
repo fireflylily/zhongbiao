@@ -245,64 +245,21 @@ class DocumentStructureParser:
                     "method": "none"
                 }
 
-            # 场景2: 默认智能策略（保持向后兼容）
-            self.logger.info("使用默认智能策略")
+            # 场景2: 默认智能策略（优化版：精确识别 → 大纲识别）
+            self.logger.info("使用优化策略：精确识别 → 大纲识别")
 
-            # 使用智能路径解析（兼容本地和生产环境）
-            doc_path_abs = resolve_file_path(doc_path)
-            if not doc_path_abs:
-                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+            # 1️⃣ 首先尝试精确识别（基于目录）
+            result = self.parse_by_toc_exact(doc_path)
 
-            self.logger.info(f"文档路径解析成功: {doc_path} -> {doc_path_abs}")
-
-            # 打开文档
-            doc = Document(str(doc_path_abs))
-
-            # 1. 尝试检测目录
-            toc_idx = self._find_toc_section(doc)
-
-            if toc_idx is not None:
-                # 有目录：优先使用精确匹配解析（方法1）
-                self.logger.info("检测到目录，使用精确匹配解析方案")
-                toc_items, toc_end_idx = self._parse_toc_items(doc, toc_idx)
-
-                if toc_items and len(toc_items) > 0:
-                    # 使用精确匹配（速度快、准确率高）
-                    chapters = self._locate_chapters_by_toc(doc, toc_items, toc_end_idx)
-
-                    # 如果精确匹配失败（识别的章节太少），回退到大纲级别识别
-                    if len(chapters) < len(toc_items) * 0.5:  # 至少识别50%的目录项
-                        self.logger.warning(f"精确匹配效果不佳（识别{len(chapters)}/{len(toc_items)}），回退到大纲级别识别")
-                        chapters = self._parse_chapters_by_outline_level(doc)
-                        chapters = self._locate_chapter_content(doc, chapters)
-                else:
-                    # 目录解析失败，回退到大纲级别识别
-                    self.logger.warning("目录解析失败，回退到大纲级别识别")
-                    chapters = self._parse_chapters_by_outline_level(doc)
-                    chapters = self._locate_chapter_content(doc, chapters)
+            if result['success'] and len(result.get('chapters', [])) >= 1:
+                # 精确识别成功
+                self.logger.info("✅ 精确识别成功")
+                return result
             else:
-                # 无目录：使用大纲级别识别
-                self.logger.info("未检测到目录，使用大纲级别识别")
-                chapters = self._parse_chapters_by_outline_level(doc)
-                chapters = self._locate_chapter_content(doc, chapters)
-
-            # 2. 构建层级树
-            chapter_tree = self._build_chapter_tree(chapters)
-
-            # 传播黑名单状态(父章节被跳过时,子章节也应跳过)
-            chapter_tree = self._propagate_skip_status(chapter_tree)
-
-            # 统计信息
-            stats = self._calculate_statistics(chapter_tree)
-
-            self.logger.info(f"结构解析完成: 找到 {stats['total_chapters']} 个章节")
-
-            return {
-                "success": True,
-                "chapters": [ch.to_dict() for ch in chapter_tree],
-                "statistics": stats,
-                "method": "default"
-            }
+                # 2️⃣ 精确识别失败（无目录或解析失败），回退到大纲识别
+                self.logger.info("⚠️ 精确识别失败，回退到大纲识别")
+                result = self.parse_by_outline_level(doc_path)
+                return result
 
         except Exception as e:
             self.logger.error(f"文档结构解析失败: {e}")

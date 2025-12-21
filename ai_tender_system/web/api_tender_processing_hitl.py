@@ -85,7 +85,6 @@ def register_hitl_routes(app):
             methods = None
             if methods_param:
                 try:
-                    import json
                     methods = json.loads(methods_param)
                     if not isinstance(methods, list):
                         return jsonify({'success': False, 'error': 'methods参数必须是JSON数组'}), 400
