@@ -1043,7 +1043,7 @@ class DocumentStructureParser:
 
     def _is_contract_chapter(self, title: str, content_sample: str = None) -> tuple:
         """
-        判断章节是否为合同章节（结合标题和内容特征）
+        判断章节是否为合同章节（增强版：结合标题、内容、排除规则）
 
         Args:
             title: 章节标题
@@ -1052,6 +1052,20 @@ class DocumentStructureParser:
         Returns:
             (is_contract, density, reason): 是否为合同章节、合同密度、判断理由
         """
+        # 🆕 0. 排除规则优先（避免误判）
+        exclude_keywords = [
+            "投标人须知", "供应商须知", "投标邀请", "投标须知", "招标须知",
+            "附件", "投标文件格式", "响应文件格式", "投标文件组成", "谈判响应文件格式",
+            "用户需求", "需求书", "技术要求", "技术规格", "技术需求书", "技术需求",
+            "评分", "评审", "评标", "开标", "报价", "投标报价",
+            "投标邀请函", "采购邀请", "谈判邀请"
+        ]
+
+        for exclude_kw in exclude_keywords:
+            if exclude_kw in title:
+                self.logger.debug(f"  ⛔ 排除章节: '{title}' - 匹配排除关键词'{exclude_kw}'")
+                return (False, 0.0, f"排除规则: '{exclude_kw}'")
+
         # 1. 基于标题的强合同标识（保留原有逻辑）
         strong_contract_keywords = [
             "合同条款", "合同文本", "合同范本", "合同格式", "合同协议",
@@ -1064,15 +1078,25 @@ class DocumentStructureParser:
             if keyword in title:
                 return (True, 1.0, f"标题强匹配: '{keyword}'")
 
-        # 2. 基于内容的合同密度检测（核心新增功能）
+        # 2. 基于内容的合同密度检测（🆕 提高阈值，降低误判）
         if content_sample:
             density = self._calculate_contract_density(content_sample)
 
-            # 阈值：密度 > 5% 认为是合同章节
-            if density > 0.05:
-                return (True, density, f"内容密度: {density:.1%}")
+            # 🆕 高密度阈值：从5%提高到10%
+            high_density_threshold = 0.10
 
-        # 3. 弱合同标识（标题模糊但可能是合同）
+            if density > high_density_threshold:
+                # 高密度需要标题验证，避免误判"引用合同内容"的章节
+                title_has_contract_kw = any(kw in title for kw in ["合同", "协议", "条款", "甲方", "乙方"])
+
+                if title_has_contract_kw:
+                    return (True, density, f"高密度+标题验证: {density:.1%}")
+                else:
+                    # 密度高但标题不像合同，可能是引用合同内容
+                    self.logger.debug(f"  ⚠️  高密度({density:.1%})但标题不匹配: '{title}'")
+                    return (False, density, f"高密度但标题不匹配: {density:.1%}")
+
+        # 3. 弱合同标识（标题模糊但可能是合同）- 保留原有逻辑
         weak_contract_patterns = [
             r'(第[一二三四五六七八九十\d]+部分|附件\d*)[^\u4e00-\u9fa5]*(协议|条款|权利|义务)',
             r'双方.*权利.*义务',
@@ -1085,7 +1109,8 @@ class DocumentStructureParser:
                 # 如果有内容样本，进一步验证
                 if content_sample:
                     density = self._calculate_contract_density(content_sample)
-                    if density > 0.03:  # 降低阈值到3%
+                    # 🆕 提高弱匹配的密度阈值：从3%提高到5%
+                    if density > 0.05:
                         return (True, density, f"标题弱匹配+内容验证: {density:.1%}")
 
         return (False, 0.0, "非合同章节")
@@ -1170,6 +1195,15 @@ class DocumentStructureParser:
             如果发现聚集区：{'start': int, 'end': int, 'density': float}
             否则返回 None
         """
+        # 🆕 参数验证：防止 end_idx 为 None 或无效值
+        if end_idx is None or start_idx is None:
+            self.logger.debug(f"  ⚠️  参数无效: start_idx={start_idx}, end_idx={end_idx}，跳过合同聚集区检测")
+            return None
+
+        if end_idx <= start_idx:
+            self.logger.debug(f"  ⚠️  章节范围无效: start_idx={start_idx}, end_idx={end_idx}，跳过合同聚集区检测")
+            return None
+
         if end_idx - start_idx < 50:
             # 章节太短，不需要检测
             return None
@@ -1224,15 +1258,38 @@ class DocumentStructureParser:
                         cluster_end = j - 1
                         break
 
+                # 🆕 计算聚集区占章节的比例
+                chapter_length = end_idx - start_idx
+                cluster_length = cluster_end - cluster_start
+                cluster_ratio = cluster_length / chapter_length if chapter_length > 0 else 0
+
+                # 🆕 占比过高（>80%）：可能整章都是合同，不拆分
+                if cluster_ratio > 0.8:
+                    self.logger.info(
+                        f"  ⚠️  合同聚集区占比过高({cluster_ratio:.1%})，不拆分章节 "
+                        f"(段落{cluster_start}-{cluster_end}, 可能整章都是合同或误判)"
+                    )
+                    return None
+
+                # 🆕 占比过低（<20%）：可能是误判（只是引用了部分合同内容）
+                if cluster_ratio < 0.2:
+                    self.logger.info(
+                        f"  ⚠️  合同聚集区占比过低({cluster_ratio:.1%})，可能是误判 "
+                        f"(段落{cluster_start}-{cluster_end}, 只是引用了部分合同内容)"
+                    )
+                    return None
+
+                # 占比适中（20%-80%），执行拆分
                 self.logger.info(
                     f"检测到合同聚集区: 段落{cluster_start}-{cluster_end} "
-                    f"(章节范围:{start_idx}-{end_idx}, 合同密度:{density:.1%})"
+                    f"(章节范围:{start_idx}-{end_idx}, 合同密度:{density:.1%}, 占比:{cluster_ratio:.1%})"
                 )
 
                 return {
                     'start': cluster_start,
                     'end': cluster_end,
-                    'density': density
+                    'density': density,
+                    'ratio': cluster_ratio
                 }
 
         return None
@@ -1523,6 +1580,43 @@ class DocumentStructureParser:
             from collections import Counter
             level_dist = Counter(corrected_levels)
             self.logger.info(f"使用contextual方法修正层级，分布: {dict(level_dist)}")
+
+        # 🆕 轻量级合同潜在标记（基于标题关键词）
+        if toc_items:
+            # 排除规则：这些章节不应被标记为合同
+            exclude_keywords = [
+                "投标人须知", "供应商须知", "投标邀请", "投标须知", "招标须知",
+                "附件", "投标文件格式", "响应文件格式", "投标文件组成", "谈判响应文件格式",
+                "用户需求", "需求书", "技术要求", "技术规格", "技术需求书", "技术需求",
+                "评分", "评审", "评标", "开标", "报价", "投标报价",
+                "投标邀请函", "采购邀请", "谈判邀请"
+            ]
+
+            # 合同关键词：只有包含这些关键词才标记为潜在合同
+            contract_keywords = [
+                "合同条款", "合同文本", "合同范本", "合同协议", "合同格式",
+                "通用条款", "专用条款", "拟签合同", "合同草稿", "合同主要条款"
+            ]
+
+            contract_potential_count = 0
+            for item in toc_items:
+                title = item['title']
+
+                # 排除规则优先
+                is_excluded = any(kw in title for kw in exclude_keywords)
+                is_contract_potential = any(kw in title for kw in contract_keywords)
+
+                # 只有在不被排除且包含合同关键词时才标记
+                item['is_contract_potential'] = is_contract_potential and not is_excluded
+
+                if item['is_contract_potential']:
+                    contract_potential_count += 1
+                    self.logger.debug(f"  🏷️  潜在合同章节: '{title}'")
+                elif is_excluded:
+                    self.logger.debug(f"  ⛔ 排除章节: '{title}' (匹配排除规则)")
+
+            if contract_potential_count > 0:
+                self.logger.info(f"🏷️  标记了 {contract_potential_count} 个潜在合同章节")
 
         return toc_items, toc_end_idx
 
@@ -1969,6 +2063,116 @@ class DocumentStructureParser:
             else:
                 chapter_info['para_end_idx'] = len(doc.paragraphs) - 1
 
+        # 🆕 步骤2.5: 重型合同检测（仅处理标记为潜在合同的章节）
+        contract_chapters_to_insert = []  # 存储需要插入的合同章节
+        contract_check_count = 0
+        contract_confirmed_count = 0
+
+        for i, chapter_info in enumerate(all_chapters):
+            toc_item = toc_items[chapter_info['toc_index']]
+
+            # 🎯 只对标记为潜在合同的章节执行重型检测
+            if toc_item.get('is_contract_potential', False):
+                contract_check_count += 1
+                self.logger.info(f"  🔍 对潜在合同章节执行重型检测: '{chapter_info['title']}'")
+
+                para_idx = chapter_info['para_idx']
+                para_end_idx = chapter_info['para_end_idx']
+
+                # 重型作业1: 提取完整内容样本（2000字）
+                content_sample = self._extract_content_sample(
+                    doc, para_idx, para_end_idx, sample_size=2000
+                )
+
+                # 重型作业2: 计算精确的合同密度
+                is_contract, density, reason = self._is_contract_chapter(
+                    chapter_info['title'],
+                    content_sample
+                )
+
+                if is_contract:
+                    contract_confirmed_count += 1
+                    chapter_info['is_contract_confirmed'] = True
+                    chapter_info['skip_recommended'] = True
+                    self.logger.info(f"  ✓ 合同章节确认: '{chapter_info['title']}' - {reason}")
+
+                    # 重型作业3: 检测合同聚集区（用于章节拆分）
+                    contract_cluster = self._detect_contract_cluster_in_chapter(
+                        doc, para_idx, para_end_idx
+                    )
+
+                    if contract_cluster:
+                        # 占比已在检测方法中限制（20%-80%），这里直接处理
+                        cluster_start = contract_cluster['start']
+                        cluster_end = contract_cluster['end']
+                        cluster_ratio = contract_cluster['ratio']
+
+                        # 检查是否满足拆分条件
+                        min_content_length = 1000
+                        min_paragraph_gap = 5
+
+                        if cluster_start > para_idx + min_paragraph_gap:
+                            # 计算前半部分字数
+                            front_content = "\n".join(
+                                doc.paragraphs[j].text.strip()
+                                for j in range(para_idx + 1, cluster_start)
+                                if j < len(doc.paragraphs)
+                            )
+                            front_word_count = len(front_content.replace(' ', '').replace('\n', ''))
+
+                            if front_word_count >= min_content_length:
+                                self.logger.warning(
+                                    f"✂️  准备拆分章节: '{chapter_info['title']}' "
+                                    f"→ 正常部分({para_idx}-{cluster_start-1}, {front_word_count}字) "
+                                    f"+ 合同部分({cluster_start}-{para_end_idx}, 占比{cluster_ratio:.1%})"
+                                )
+
+                                # 截断原章节（只保留合同之前的部分）
+                                chapter_info['para_end_idx'] = cluster_start - 1
+
+                                # 创建合同章节（记录待插入）
+                                contract_chapter = {
+                                    'toc_index': chapter_info['toc_index'] + 0.5,  # 标记为插入的章节
+                                    'title': '[检测到的合同条款-需人工确认]',
+                                    'level': chapter_info['level'],  # 与原章节同级
+                                    'para_idx': cluster_start,
+                                    'para_end_idx': para_end_idx,
+                                    'is_contract_confirmed': True,
+                                    'skip_recommended': True
+                                }
+
+                                # 记录待插入位置（插入到原章节后面）
+                                contract_chapters_to_insert.append((i + 1, contract_chapter))
+                            else:
+                                self.logger.info(
+                                    f"  ⏭️  跳过拆分: '{chapter_info['title']}' - "
+                                    f"前半部分内容不足({front_word_count}字 < {min_content_length}字)"
+                                )
+                        else:
+                            self.logger.info(
+                                f"  ⏭️  跳过拆分: '{chapter_info['title']}' - "
+                                f"合同聚集区起点太靠前(段落{cluster_start})"
+                            )
+                else:
+                    self.logger.info(f"  ✗ 非合同章节: '{chapter_info['title']}' - {reason}")
+            else:
+                # 非潜在合同章节，跳过重型检测
+                self.logger.debug(f"  ⏭️  跳过重型检测: '{chapter_info['title']}'")
+
+        # 插入拆分出的合同章节（倒序插入，避免索引偏移）
+        for insert_pos, contract_chapter in reversed(contract_chapters_to_insert):
+            all_chapters.insert(insert_pos, contract_chapter)
+            self.logger.info(
+                f"  ➕ 插入合同章节: '{contract_chapter['title']}' "
+                f"(段落{contract_chapter['para_idx']}-{contract_chapter['para_end_idx']})"
+            )
+
+        if contract_check_count > 0:
+            self.logger.info(
+                f"🔍 重型检测完成: 检测了 {contract_check_count} 个潜在章节，确认 {contract_confirmed_count} 个合同章节，"
+                f"拆分出 {len(contract_chapters_to_insert)} 个合同章节"
+            )
+
         # 步骤3: 创建所有ChapterNode对象
         chapter_nodes = []
         for chapter_info in all_chapters:
@@ -1993,6 +2197,10 @@ class DocumentStructureParser:
             # 判断是否匹配白/黑名单
             auto_selected = self._matches_whitelist(chapter_info['title'])
             skip_recommended = self._matches_blacklist(chapter_info['title'])
+
+            # 🆕 使用合同检测结果（优先级高于黑名单）
+            if chapter_info.get('skip_recommended'):
+                skip_recommended = True
             if skip_recommended:
                 auto_selected = False
 
