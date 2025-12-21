@@ -53,31 +53,40 @@
 
       <!-- 对比结果网格 -->
       <div v-if="results" class="comparison-grid">
-        <!-- 方法1: 语义锚点 -->
+        <!-- 方法1: Gemini AI解析器 -->
         <MethodCard
-          title="方法1: 语义锚点解析"
-          :result="results.semantic"
+          v-if="results.gemini"
+          title="方法1: Gemini AI解析器"
+          :result="results.gemini"
           :ground-truth="groundTruth"
-          :accuracy="accuracy?.semantic"
-          color="#67C23A"
+          :accuracy="accuracy?.gemini"
+          :status="methodStatus.gemini"
+          color="#FF6D00"
+          @start="startSingleMethod('gemini')"
         />
 
-        <!-- 方法2: 样式识别 -->
+        <!-- 方法2: Word大纲级别识别 -->
         <MethodCard
-          title="方法2: 样式识别(增强)"
-          :result="results.style"
+          v-if="results.docx_native"
+          title="方法2: Word大纲级别识别"
+          :result="results.docx_native"
           :ground-truth="groundTruth"
-          :accuracy="accuracy?.style"
-          color="#409EFF"
+          :accuracy="accuracy?.docx_native"
+          :status="methodStatus.docx_native"
+          color="#9C27B0"
+          @start="startSingleMethod('docx_native')"
         />
 
-        <!-- 方法3: 混合启发式 -->
+        <!-- 方法3: 精确匹配(基于目录) -->
         <MethodCard
-          title="方法3: 混合启发式识别"
-          :result="results.hybrid"
+          v-if="results.toc_exact"
+          title="方法3: 精确匹配(基于目录)"
+          :result="results.toc_exact"
           :ground-truth="groundTruth"
-          :accuracy="accuracy?.hybrid"
-          color="#E6A23C"
+          :accuracy="accuracy?.toc_exact"
+          :status="methodStatus.toc_exact"
+          color="#F56C6C"
+          @start="startSingleMethod('toc_exact')"
         />
 
         <!-- 方法4: Azure Form Recognizer -->
@@ -87,27 +96,9 @@
           :result="results.azure"
           :ground-truth="groundTruth"
           :accuracy="accuracy?.azure"
+          :status="methodStatus.azure"
           color="#00B7C3"
-        />
-
-        <!-- 方法5: Word大纲级别识别 -->
-        <MethodCard
-          v-if="results.docx_native"
-          title="方法5: Word大纲级别识别"
-          :result="results.docx_native"
-          :ground-truth="groundTruth"
-          :accuracy="accuracy?.docx_native"
-          color="#9C27B0"
-        />
-
-        <!-- 方法6: Gemini AI解析器 -->
-        <MethodCard
-          v-if="results.gemini"
-          title="方法6: Gemini AI解析器"
-          :result="results.gemini"
-          :ground-truth="groundTruth"
-          :accuracy="accuracy?.gemini"
-          color="#FF6D00"
+          @start="startSingleMethod('azure')"
         />
 
         <!-- 人工标注卡片 -->
@@ -192,56 +183,54 @@
           </el-table-column>
 
           <!-- 各方法准确率 -->
-          <el-table-column label="语义锚点" width="100" align="center">
+          <el-table-column label="精确匹配" width="110" align="center">
             <template #default="{ row }">
-              <span v-if="row.semantic_f1" :class="getScoreClass(row.semantic_f1)">
-                {{ (row.semantic_f1 * 100).toFixed(1) }}%
-              </span>
+              <div v-if="row.toc_exact_f1" :class="getScoreClass(row.toc_exact_f1)">
+                {{ (row.toc_exact_f1 * 100).toFixed(1) }}%
+              </div>
+              <div v-else-if="row.toc_exact_chapters_count > 0" class="chapter-count">
+                {{ row.toc_exact_chapters_count }}章
+              </div>
+              <el-tag v-else-if="row.toc_exact_elapsed !== undefined && row.toc_exact_elapsed !== null" type="danger" size="small">失败</el-tag>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="样式识别" width="100" align="center">
+          <el-table-column label="Azure" width="110" align="center">
             <template #default="{ row }">
-              <span v-if="row.style_f1" :class="getScoreClass(row.style_f1)">
-                {{ (row.style_f1 * 100).toFixed(1) }}%
-              </span>
-              <span v-else class="text-muted">-</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="混合启发式" width="100" align="center">
-            <template #default="{ row }">
-              <span v-if="row.hybrid_f1" :class="getScoreClass(row.hybrid_f1)">
-                {{ (row.hybrid_f1 * 100).toFixed(1) }}%
-              </span>
-              <span v-else class="text-muted">-</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="Azure" width="100" align="center">
-            <template #default="{ row }">
-              <span v-if="row.azure_f1" :class="getScoreClass(row.azure_f1)">
+              <div v-if="row.azure_f1" :class="getScoreClass(row.azure_f1)">
                 {{ (row.azure_f1 * 100).toFixed(1) }}%
-              </span>
+              </div>
+              <div v-else-if="row.azure_chapters_count > 0" class="chapter-count">
+                {{ row.azure_chapters_count }}章
+              </div>
+              <el-tag v-else-if="row.azure_elapsed !== undefined && row.azure_elapsed !== null" type="danger" size="small">失败</el-tag>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
           <el-table-column label="Word大纲" width="110" align="center">
             <template #default="{ row }">
-              <span v-if="row.docx_native_f1" :class="getScoreClass(row.docx_native_f1)">
+              <div v-if="row.docx_native_f1" :class="getScoreClass(row.docx_native_f1)">
                 {{ (row.docx_native_f1 * 100).toFixed(1) }}%
-              </span>
+              </div>
+              <div v-else-if="row.docx_native_chapters_count > 0" class="chapter-count">
+                {{ row.docx_native_chapters_count }}章
+              </div>
+              <el-tag v-else-if="row.docx_native_elapsed !== undefined && row.docx_native_elapsed !== null" type="danger" size="small">失败</el-tag>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
 
           <el-table-column label="Gemini AI" width="110" align="center">
             <template #default="{ row }">
-              <span v-if="row.gemini_f1" :class="getScoreClass(row.gemini_f1)">
+              <div v-if="row.gemini_f1" :class="getScoreClass(row.gemini_f1)">
                 {{ (row.gemini_f1 * 100).toFixed(1) }}%
-              </span>
+              </div>
+              <div v-else-if="row.gemini_chapters_count > 0" class="chapter-count">
+                {{ row.gemini_chapters_count }}章
+              </div>
+              <el-tag v-else-if="row.gemini_elapsed !== undefined && row.gemini_elapsed !== null" type="danger" size="small">失败</el-tag>
               <span v-else class="text-muted">-</span>
             </template>
           </el-table-column>
@@ -303,12 +292,20 @@ const accuracy = ref<ParseTestResult['accuracy'] | null>(null)
 const historyDialogVisible = ref(false)
 const historyList = ref<HistoryTest[]>([])
 
+// 各方法的状态
+const methodStatus = ref<Record<string, 'idle' | 'parsing' | 'success' | 'error'>>({
+  gemini: 'idle',
+  docx_native: 'idle',
+  toc_exact: 'idle',
+  azure: 'idle'
+})
+
 // 文件选择
 const handleFileSelect = (uploadFile: any) => {
   selectedFile.value = uploadFile.raw
 }
 
-// 开始解析
+// 开始解析(仅上传文件，不自动开始解析)
 const startParsing = async () => {
   if (!selectedFile.value) {
     ElMessage.warning('请先选择文件')
@@ -316,33 +313,91 @@ const startParsing = async () => {
   }
 
   parsing.value = true
+
   try {
     console.log('开始上传文件:', selectedFile.value.name)
-    const response = await parserDebugApi.uploadDocument(selectedFile.value)
 
-    console.log('API响应:', response)
+    // 上传文件获取document_id
+    const uploadResp = await parserDebugApi.uploadDocument(selectedFile.value)
+    const data = uploadResp.data || uploadResp
 
-    // 兼容不同的响应格式
+    if (!data || !data.success) {
+      ElMessage.error(data?.error || '文件上传失败')
+      parsing.value = false
+      return
+    }
+
+    currentDocumentId.value = data.document_id
+    documentInfo.value = data.document_info
+
+    // 初始化results对象为空结果(仅保留4种有效方法)
+    results.value = {
+      toc_exact: { success: false, chapters: [], method_name: '精确匹配(基于目录)', performance: { elapsed: 0, elapsed_formatted: '-' } },
+      azure: { success: false, chapters: [], method_name: 'Azure Form Recognizer', performance: { elapsed: 0, elapsed_formatted: '-' } },
+      docx_native: { success: false, chapters: [], method_name: 'Word大纲级别识别', performance: { elapsed: 0, elapsed_formatted: '-' } },
+      gemini: { success: false, chapters: [], method_name: 'Gemini AI解析器', performance: { elapsed: 0, elapsed_formatted: '-' } }
+    }
+
+    // 重置所有方法状态为idle
+    methodStatus.value = {
+      gemini: 'idle',
+      docx_native: 'idle',
+      toc_exact: 'idle',
+      azure: 'idle'
+    }
+
+    ElMessage.success(`文件上传成功！请点击各方法的"开始解析"按钮`)
+    parsing.value = false
+
+  } catch (error: any) {
+    console.error('上传异常:', error)
+    ElMessage.error(error.response?.data?.error || error.message || '上传失败')
+    parsing.value = false
+  }
+}
+
+// 解析单个方法
+const startSingleMethod = async (method: 'toc_exact' | 'azure' | 'docx_native' | 'gemini') => {
+  if (!currentDocumentId.value) {
+    ElMessage.error('请先上传文件')
+    return
+  }
+
+  // 设置状态为解析中
+  methodStatus.value[method] = 'parsing'
+
+  try {
+    console.log(`开始解析方法: ${method}`)
+
+    const response = await parserDebugApi.parseSingleMethod(currentDocumentId.value, method)
     const data = response.data || response
 
-    if (data && data.success) {
-      currentDocumentId.value = data.document_id
-      documentInfo.value = data.document_info
-      results.value = data.results
-      groundTruth.value = data.ground_truth || null
-      accuracy.value = data.accuracy || null
+    if (data.success && data.result) {
+      // 更新结果
+      if (results.value) {
+        results.value[method] = data.result
+      }
 
-      ElMessage.success('解析完成！')
+      // 设置状态
+      methodStatus.value[method] = data.result.success ? 'success' : 'error'
+
+      if (data.result.success) {
+        ElMessage.success(`${data.result.method_name} 解析完成！`)
+      } else {
+        ElMessage.error(`${data.result.method_name} 解析失败: ${data.result.error || '未知错误'}`)
+      }
+
+      // 刷新历史记录列表
+      loadHistoryList()
     } else {
-      console.error('解析失败，响应数据:', data)
-      ElMessage.error(data?.error || '解析失败')
+      methodStatus.value[method] = 'error'
+      ElMessage.error(`解析失败: ${data.error || '未知错误'}`)
     }
+
   } catch (error: any) {
-    console.error('解析异常:', error)
-    console.error('错误详情:', error.response)
+    console.error(`解析方法 ${method} 失败:`, error)
+    methodStatus.value[method] = 'error'
     ElMessage.error(error.response?.data?.error || error.message || '解析失败')
-  } finally {
-    parsing.value = false
   }
 }
 
@@ -399,6 +454,14 @@ const loadTest = async (documentId: string) => {
       groundTruth.value = response.ground_truth || null
       accuracy.value = response.accuracy || null
 
+      // 根据结果设置各方法的状态
+      methodStatus.value = {
+        gemini: results.value?.gemini?.success ? 'success' : (results.value?.gemini ? 'error' : 'idle'),
+        docx_native: results.value?.docx_native?.success ? 'success' : (results.value?.docx_native ? 'error' : 'idle'),
+        toc_exact: results.value?.toc_exact?.success ? 'success' : (results.value?.toc_exact ? 'error' : 'idle'),
+        azure: results.value?.azure?.success ? 'success' : (results.value?.azure ? 'error' : 'idle')
+      }
+
       historyDialogVisible.value = false
       ElMessage.success('测试结果已加载')
     }
@@ -429,12 +492,10 @@ const accuracyTableData = computed(() => {
   if (!accuracy.value || !results.value) return []
 
   const methods = [
-    { key: 'semantic', name: '语义锚点解析' },
-    { key: 'style', name: '样式识别(增强)' },
-    { key: 'hybrid', name: '混合启发式识别' },
-    { key: 'azure', name: 'Azure Form Recognizer' },
+    { key: 'gemini', name: 'Gemini AI解析器' },
     { key: 'docx_native', name: 'Word大纲级别识别' },
-    { key: 'gemini', name: 'Gemini AI解析器' }
+    { key: 'toc_exact', name: '精确匹配(基于目录)' },
+    { key: 'azure', name: 'Azure Form Recognizer' }
   ]
 
   return methods
@@ -467,9 +528,7 @@ const getF1TagType = (f1: number) => {
 
 const getBestMethodName = () => {
   const names = {
-    semantic: '语义锚点解析',
-    style: '样式识别(增强)',
-    hybrid: '混合启发式识别',
+    toc_exact: '精确匹配(基于目录)',
     azure: 'Azure Form Recognizer',
     docx_native: 'Word大纲级别识别',
     gemini: 'Gemini AI解析器'
@@ -479,9 +538,7 @@ const getBestMethodName = () => {
 
 const getMethodDisplayName = (key: string) => {
   const names = {
-    semantic: '语义锚点',
-    style: '样式',
-    hybrid: '混合启发式',
+    toc_exact: '精确匹配',
     azure: 'Azure',
     docx_native: 'Word大纲',
     gemini: 'Gemini AI'
@@ -579,6 +636,11 @@ onMounted(async () => {
 
 .text-muted {
   color: #909399;
+}
+
+.chapter-count {
+  color: #606266;
+  font-size: 13px;
 }
 
 .history-section {

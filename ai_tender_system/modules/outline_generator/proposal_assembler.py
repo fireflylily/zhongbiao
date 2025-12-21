@@ -367,7 +367,6 @@ class ProposalAssembler:
 
             response = self.llm_client.call(
                 prompt=prompt,
-                temperature=0.7,
                 max_tokens=max_tokens,
                 max_retries=2,
                 purpose=f"批量章节内容生成 ({chapter_count}章)"
@@ -830,7 +829,6 @@ class ProposalAssembler:
             self.logger.info(f"为章节'{chapter_title}'生成AI内容（{mode_label}）...")
             response = self.llm_client.call(
                 prompt=prompt,
-                temperature=0.7,
                 max_tokens=1500,  # 从2000降到1500
                 max_retries=2,
                 purpose=f"章节内容生成: {chapter_title}"
@@ -853,7 +851,6 @@ class ProposalAssembler:
 
             response = self.llm_client.call(
                 prompt=simplified_prompt,
-                temperature=0.7,
                 max_tokens=1500,
                 max_retries=1,
                 purpose=f"章节内容简化生成: {chapter_title}"
@@ -902,7 +899,6 @@ class ProposalAssembler:
 
             for chunk in self.llm_client.call_stream(
                 prompt=prompt,
-                temperature=0.7,
                 max_tokens=1500,  # 降到1500
                 timeout=120,
                 purpose=f"章节内容流式生成: {chapter_title}"
@@ -921,7 +917,6 @@ class ProposalAssembler:
 
             response = self.llm_client.call(
                 prompt=prompt,  # 使用相同的精简提示词
-                temperature=0.7,
                 max_tokens=1500,
                 max_retries=1,
                 purpose=f"章节内容非流式生成: {chapter_title}"

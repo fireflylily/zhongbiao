@@ -96,7 +96,6 @@ class OutlineGenerator:
             # 调用LLM (增加max_tokens以确保返回完整的大纲JSON)
             response = self.llm_client.call(
                 prompt=prompt,
-                temperature=0.7,
                 max_tokens=4000,  # 增加到4000以支持完整的大纲生成
                 max_retries=3,
                 purpose="大纲生成"
@@ -347,7 +346,6 @@ class OutlineGenerator:
             # 调用LLM
             response = self.llm_client.call(
                 prompt=prompt,
-                temperature=0.7,
                 max_retries=1,
                 purpose=f"应答建议生成: {category_name}"
             )

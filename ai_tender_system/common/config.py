@@ -201,6 +201,19 @@ class Config:
                 'display_name': '始皇-GPT4o Mini',
                 'description': '高效快速的AI模型，适合日常应答和点对点回复（注：仅支持默认温度1.0）'
             },
+            # 别名配置 - 简化模型名称访问
+            'gpt-4o-mini': {
+                'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
+                'api_endpoint': clean_env_value(os.getenv('SHIHUANG_API_ENDPOINT', 'https://api.oaipro.com/v1/chat/completions')),
+                'model_name': 'gpt-4o-mini',
+                'max_tokens': int(os.getenv('SHIHUANG_MAX_TOKENS', '1000')),
+                'temperature': 1.0,
+                'supports_temperature': False,  # ✅ gpt-4o-mini不支持自定义temperature
+                'timeout': int(os.getenv('SHIHUANG_TIMEOUT', '60')),
+                'provider': 'Shihuang',
+                'display_name': 'GPT-4o Mini',
+                'description': 'OpenAI GPT-4o Mini (始皇API)，不支持temperature参数'
+            },
             # 向后兼容性配置 - 保持原有模型名称可用
             'unicom-yuanjing': {
                 'access_token': clean_env_value(os.getenv('ACCESS_TOKEN', '')),

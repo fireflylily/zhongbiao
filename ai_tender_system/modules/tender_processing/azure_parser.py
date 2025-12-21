@@ -78,8 +78,9 @@ class AzureDocumentParser:
             self.logger.info(f"开始转换 Word 到 PDF: {docx_path}")
 
             # 创建临时PDF文件
+            # 注意：LibreOffice 会使用输入文件的基础名称（去掉扩展名）+ .pdf
             temp_dir = tempfile.gettempdir()
-            pdf_filename = Path(docx_path).stem + '_converted.pdf'
+            pdf_filename = Path(docx_path).stem + '.pdf'  # 不再添加后缀，LibreOffice会自动处理
             pdf_path = Path(temp_dir) / pdf_filename
 
             # 方法1: 使用 docx2pdf (Windows/Mac)

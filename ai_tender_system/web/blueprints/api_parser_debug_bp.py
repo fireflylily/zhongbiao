@@ -109,34 +109,12 @@ class ParserDebugger:
             {
                 'semantic': {...},
                 'style': {...},
-                'hybrid': {...},
                 'azure': {...},  # 可选
                 'docx_native': {...},
                 'gemini': {...}  # 可选
             }
         """
         results = {}
-
-        # 方法1: 语义锚点解析 (暂时禁用 - 性能太慢)
-        results['semantic'] = {
-            'success': False,
-            'error': '语义锚点解析已禁用（性能优化中）',
-            'chapters': [],
-            'method_name': '语义锚点解析',
-            'performance': {'elapsed': 0}
-        }
-
-        # 方法2: 样式识别(增强)
-        results['style'] = self._run_with_timing(
-            self._run_style_detection,
-            "样式识别"
-        )
-
-        # 方法3: 混合启发式识别
-        results['hybrid'] = self._run_with_timing(
-            self._run_hybrid_detection,
-            "混合启发式识别"
-        )
 
         # 方法4: Azure Form Recognizer（如果可用）
         if is_azure_available() and AZURE_PARSER_AVAILABLE:
@@ -232,21 +210,9 @@ class ParserDebugger:
                 'performance': {'elapsed': round(elapsed, 3)}
             }
 
-    def _run_semantic_anchors(self) -> Dict:
-        """方法1: 强制使用语义锚点解析（包含子章节识别）"""
-        return self.parser.parse_by_semantic_anchors(self.doc_path)
-
-    def _run_style_detection(self) -> Dict:
-        """方法2: 强制使用样式识别方案"""
-        return self.parser.parse_by_style(self.doc_path)
-
     def _run_toc_exact_match(self) -> Dict:
         """方法0: 精确匹配(基于目录) - 直接使用目录定位章节"""
         return self.parser.parse_by_toc_exact(self.doc_path)
-
-    def _run_hybrid_detection(self) -> Dict:
-        """方法3: 混合启发式识别 - 综合多种特征判断标题"""
-        return self.parser.parse_by_hybrid(self.doc_path)
 
     def _run_azure_parser(self) -> Dict:
         """方法4: Azure Form Recognizer 解析"""
@@ -463,6 +429,120 @@ def upload_document():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@api_parser_debug_bp.route('/parse-single/<document_id>/<method>', methods=['POST'])
+def parse_single_method(document_id, method):
+    """
+    解析单个方法
+
+    Args:
+        document_id: 文档ID
+        method: 解析方法 (toc_exact/azure/docx_native/gemini)
+
+    返回:
+        {
+            "success": true,
+            "result": {...}
+        }
+    """
+    try:
+        # 获取文件路径
+        db = get_knowledge_base_db()
+        row = db.execute_query(
+            "SELECT file_path FROM parser_debug_tests WHERE document_id = ?",
+            (document_id,),
+            fetch_one=True
+        )
+
+        if not row:
+            return jsonify({'success': False, 'error': '文档不存在'}), 404
+
+        file_path = row['file_path']
+        debugger = ParserDebugger(file_path)
+
+        # 根据method选择对应的解析器
+        method_map = {
+            'toc_exact': (debugger._run_toc_exact_match, '精确匹配(基于目录)'),
+            'docx_native': (debugger._run_docx_native, 'Word大纲级别识别'),
+            'azure': (debugger._run_azure_parser, 'Azure Form Recognizer'),
+            'gemini': (lambda: debugger._run_gemini_parser(GeminiParser()) if GEMINI_PARSER_AVAILABLE else None, 'Gemini AI解析器')
+        }
+
+        if method not in method_map:
+            return jsonify({'success': False, 'error': f'不支持的解析方法: {method}'}), 400
+
+        method_func, method_name = method_map[method]
+
+        # 特殊处理Azure和Gemini
+        if method == 'azure' and not (is_azure_available() and AZURE_PARSER_AVAILABLE):
+            result = {
+                'success': False,
+                'error': 'Azure Form Recognizer 未配置或SDK未安装',
+                'chapters': [],
+                'method_name': method_name,
+                'performance': {'elapsed': 0}
+            }
+        elif method == 'gemini' and not GEMINI_PARSER_AVAILABLE:
+            result = {
+                'success': False,
+                'error': 'Gemini SDK未安装 (pip install google-generativeai)',
+                'chapters': [],
+                'method_name': method_name,
+                'performance': {'elapsed': 0}
+            }
+        elif method == 'gemini':
+            try:
+                gemini_parser = GeminiParser()
+                if not gemini_parser.is_available():
+                    result = {
+                        'success': False,
+                        'error': 'Gemini API密钥未配置',
+                        'chapters': [],
+                        'method_name': method_name,
+                        'performance': {'elapsed': 0}
+                    }
+                else:
+                    result = debugger._run_with_timing(lambda: debugger._run_gemini_parser(gemini_parser), method_name)
+            except Exception as e:
+                logger.error(f"Gemini解析失败: {e}")
+                result = {
+                    'success': False,
+                    'error': str(e),
+                    'chapters': [],
+                    'method_name': method_name,
+                    'performance': {'elapsed': 0}
+                }
+        else:
+            # 执行解析
+            result = debugger._run_with_timing(method_func, method_name)
+
+        # 更新数据库
+        db.execute_query(f"""
+            UPDATE parser_debug_tests
+            SET {method}_result = ?,
+                {method}_elapsed = ?,
+                {method}_chapters_count = ?
+            WHERE document_id = ?
+        """, (
+            json.dumps(result, ensure_ascii=False),
+            result['performance']['elapsed'],
+            len(result.get('chapters', [])),
+            document_id
+        ))
+
+        logger.info(f"单方法解析完成: {method_name}, 耗时 {result['performance']['elapsed']}s")
+
+        return jsonify({
+            'success': True,
+            'result': result
+        })
+
+    except Exception as e:
+        logger.error(f"单方法解析失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @api_parser_debug_bp.route('/parse-stream/<document_id>', methods=['GET'])
 def parse_document_stream(document_id):
     """
@@ -491,18 +571,10 @@ def parse_document_stream(document_id):
             file_path = row['file_path']
             debugger = ParserDebugger(file_path)
 
-            # 定义要运行的解析器列表
-            parsers = [
-                ('toc_exact', debugger._run_toc_exact_match, '精确匹配(基于目录)'),
-                ('style', debugger._run_style_detection, '样式识别'),
-                ('hybrid', debugger._run_hybrid_detection, '混合启发式识别'),
-                ('azure', lambda: debugger._run_azure_parser() if is_azure_available() and AZURE_PARSER_AVAILABLE else {
-                    'success': False, 'error': 'Azure未配置', 'chapters': [], 'method_name': 'Azure Form Recognizer', 'performance': {'elapsed': 0}
-                }, 'Azure Form Recognizer'),
-                ('docx_native', debugger._run_docx_native, 'Word大纲级别识别'),
-            ]
+            # 定义要运行的解析器列表（按新顺序：Gemini → Word大纲 → 精确匹配 → Azure → 其他）
+            parsers = []
 
-            # 如果Gemini可用，添加到列表
+            # 1. Gemini AI解析器（如果可用）
             if GEMINI_PARSER_AVAILABLE:
                 try:
                     gemini_parser = GeminiParser()
@@ -510,6 +582,17 @@ def parse_document_stream(document_id):
                         parsers.append(('gemini', lambda: debugger._run_gemini_parser(gemini_parser), 'Gemini AI解析器'))
                 except:
                     pass
+
+            # 2. Word大纲级别识别
+            parsers.append(('docx_native', debugger._run_docx_native, 'Word大纲级别识别'))
+
+            # 3. 精确匹配(基于目录)
+            parsers.append(('toc_exact', debugger._run_toc_exact_match, '精确匹配(基于目录)'))
+
+            # 4. Azure Form Recognizer（如果可用）
+            parsers.append(('azure', lambda: debugger._run_azure_parser() if is_azure_available() and AZURE_PARSER_AVAILABLE else {
+                'success': False, 'error': 'Azure未配置', 'chapters': [], 'method_name': 'Azure Form Recognizer', 'performance': {'elapsed': 0}
+            }, 'Azure Form Recognizer'))
 
             total = len(parsers)
             results_dict = {

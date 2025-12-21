@@ -36,21 +36,28 @@ class RequirementAnalyzer:
 
         self.logger.info(f"需求分析器初始化完成，使用模型: {model_name}")
 
-    def analyze_document(self, file_path: str) -> Dict[str, Any]:
+    def analyze_document(self, file_path_or_text: str) -> Dict[str, Any]:
         """
         分析技术需求文档
 
         Args:
-            file_path: 需求文档路径
+            file_path_or_text: 需求文档路径或文本内容
 
         Returns:
             分析结果字典
         """
         try:
-            self.logger.info(f"开始分析需求文档: {file_path}")
+            self.logger.info(f"开始分析需求文档: {file_path_or_text[:100] if len(file_path_or_text) > 100 else file_path_or_text}...")
 
-            # 1. 解析文档内容
-            document_text = self._parse_document(file_path)
+            # 1. 解析文档内容 - 自动判断是文件路径还是文本
+            if '\n' in file_path_or_text or len(file_path_or_text) > 500:
+                # 包含换行符或很长,可能是文本内容
+                self.logger.info("检测到输入为文本内容，直接使用")
+                document_text = file_path_or_text
+            else:
+                # 可能是文件路径,尝试解析
+                self.logger.info("检测到输入为文件路径，尝试解析")
+                document_text = self._parse_document(file_path_or_text)
 
             # 2. AI分析需求
             analysis_result = self._analyze_requirements(document_text)
@@ -123,9 +130,9 @@ class RequirementAnalyzer:
             prompt = prompt_template.format(text=text)
 
             # 调用LLM（增加max_tokens以支持复杂JSON输出）
+            # 注意: 某些模型(如gpt-4o-mini)不支持自定义temperature,使用默认值
             response = self.llm_client.call(
                 prompt=prompt,
-                temperature=0.7,
                 max_tokens=4000,  # 增加到4000以支持完整的需求分析JSON
                 max_retries=3,
                 purpose="需求分析"

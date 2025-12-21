@@ -49,11 +49,11 @@ class BaseAgent(ABC):
         if response_format == "json_object":
             prompt = prompt + "\n\n请严格按照JSON格式返回，不要包含任何其他文本。"
 
-        # 使用模型自身的默认temperature（不传递temperature参数）
-        # 因为某些模型（如gpt-4o-mini）不支持自定义temperature
+        # ✅ 不传递temperature参数，让LLMClient内部根据模型配置处理
+        # 因为某些模型（如shihuang-gpt4o-mini）不支持自定义temperature
+        # LLMClient.call()会根据model_config['supports_temperature']自动处理
         return self.llm_client.call(
             prompt=prompt,
-            temperature=self.llm_client.temperature if hasattr(self.llm_client, 'temperature') else 0.7,
             purpose=f"{self.__class__.__name__} 调用"
         )
 

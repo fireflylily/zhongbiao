@@ -307,7 +307,6 @@ class ProductMatcher:
             # 调用LLM
             response = self.llm_client.call(
                 prompt=prompt,
-                temperature=0.7,
                 max_retries=1,
                 purpose="文档推荐"
             )

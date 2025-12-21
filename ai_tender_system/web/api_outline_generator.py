@@ -947,7 +947,6 @@ def generate_with_agent():
     """
     try:
         from ai_tender_system.modules.outline_generator.agents import AgentRouter
-        from ai_tender_system.modules.tender_processing.parsers import UnifiedDocumentParser
 
         logger.info("【智能体API】收到请求")
 
@@ -994,9 +993,27 @@ def generate_with_agent():
                         'error': f'未找到项目的技术需求文件: project_id={project_id}'
                     }), 400
 
-                # 解析文件内容
-                parser = UnifiedDocumentParser()
-                tender_doc = parser.parse(str(tender_path))
+                # 解析文件内容（包含段落和表格）
+                from docx import Document
+                doc = Document(str(tender_path))
+
+                # 提取段落
+                content_parts = []
+                for para in doc.paragraphs:
+                    text = para.text.strip()
+                    if text:
+                        content_parts.append(text)
+
+                # 提取表格
+                for table in doc.tables:
+                    content_parts.append('\n[表格内容]')
+                    for row in table.rows:
+                        row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                        if row_text:
+                            content_parts.append(row_text)
+                    content_parts.append('[表格结束]\n')
+
+                tender_doc = '\n'.join(content_parts)
 
             elif 'tender_file' in request.files:
                 # 上传文件
@@ -1017,9 +1034,27 @@ def generate_with_agent():
                 tender_path = upload_dir / filename
                 tender_file.save(str(tender_path))
 
-                # 解析文件内容
-                parser = UnifiedDocumentParser()
-                tender_doc = parser.parse(str(tender_path))
+                # 解析文件内容（包含段落和表格）
+                from docx import Document
+                doc = Document(str(tender_path))
+
+                # 提取段落
+                content_parts = []
+                for para in doc.paragraphs:
+                    text = para.text.strip()
+                    if text:
+                        content_parts.append(text)
+
+                # 提取表格
+                for table in doc.tables:
+                    content_parts.append('\n[表格内容]')
+                    for row in table.rows:
+                        row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                        if row_text:
+                            content_parts.append(row_text)
+                    content_parts.append('[表格结束]\n')
+
+                tender_doc = '\n'.join(content_parts)
 
                 logger.info(f"已解析上传文件: {tender_path}, 文本长度: {len(tender_doc)}")
 
@@ -1082,6 +1117,62 @@ def generate_with_agent():
         )
 
         logger.info(f"【智能体API】生成成功，模式: {generation_mode}")
+
+        # ✅ 导出Word文件（新增功能）
+        from ai_tender_system.modules.outline_generator import WordExporter
+
+        output_dir = config.get_path('output')
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        # 获取项目名称用于文件命名
+        project_name = request.form.get('projectName', '') if not request.is_json else data.get('projectName', '')
+        output_prefix = request.form.get('outputPrefix', '技术方案') if not request.is_json else data.get('outputPrefix', '技术方案')
+
+        # 文件命名
+        if project_name:
+            proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
+        else:
+            proposal_filename = f"{output_prefix}_{timestamp}.docx"
+
+        proposal_path = output_dir / proposal_filename
+
+        # 将智能体返回的章节数据转换为WordExporter期望的格式
+        exporter = WordExporter()
+
+        # 构建proposal数据结构
+        proposal_data = {
+            'metadata': {
+                'title': result.get('outline', {}).get('title', '技术方案'),
+                'generation_time': timestamp,
+                'total_chapters': len(result.get('chapters', [])),
+                'estimated_pages': result.get('metadata', {}).get('estimated_pages', 0)
+            },
+            'chapters': []
+        }
+
+        # 转换chapters数据结构（字段名映射）
+        for chapter in result.get('chapters', []):
+            chapter_data = {
+                'level': chapter.get('level', 1),
+                'chapter_number': chapter.get('chapter_number', ''),
+                'title': chapter.get('chapter_title', ''),
+                'ai_generated_content': chapter.get('content', ''),  # ✅ 字段名映射: content -> ai_generated_content
+                'subsections': chapter.get('subsections', [])
+            }
+            proposal_data['chapters'].append(chapter_data)
+
+        # 导出Word文件
+        exporter.export_proposal(proposal_data, str(proposal_path), show_guidance=False)
+
+        logger.info(f"【智能体API】Word文件已导出: {proposal_path}")
+
+        # 在返回结果中添加文件信息
+        result['output_file'] = str(proposal_path)
+        result['output_files'] = {
+            'proposal': f"/api/downloads/{proposal_filename}"
+        }
 
         return jsonify({
             'success': True,

@@ -171,11 +171,25 @@ export function exportReport(documentId: string) {
   })
 }
 
+/**
+ * 解析单个方法
+ */
+export function parseSingleMethod(documentId: string, method: 'toc_exact' | 'azure' | 'docx_native' | 'gemini') {
+  return apiClient.post<{ success: boolean; result: ParseMethodResult }>(
+    `/parser-debug/parse-single/${documentId}/${method}`,
+    {},
+    {
+      timeout: 300000 // 5分钟超时
+    }
+  )
+}
+
 export const parserDebugApi = {
   uploadDocument,
   getTestResult,
   saveGroundTruth,
   getHistory,
   deleteTest,
-  exportReport
+  exportReport,
+  parseSingleMethod
 }

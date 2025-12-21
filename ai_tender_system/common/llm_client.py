@@ -347,9 +347,15 @@ class LLMClient:
         data = {
             'model': fallback_model,
             'messages': messages,
-            'max_tokens': actual_max_tokens,
-            'temperature': temperature
+            'max_tokens': actual_max_tokens
         }
+
+        # ✅ 仅在fallback模型支持时添加temperature参数
+        fallback_supports_temp = default_config.get('supports_temperature', True)
+        if fallback_supports_temp:
+            data['temperature'] = temperature
+        else:
+            self.logger.info(f"{purpose} - fallback模型 {fallback_model} 不支持自定义temperature，使用默认值")
 
         # 临时替换endpoint进行fallback调用
         original_endpoint = self.api_endpoint

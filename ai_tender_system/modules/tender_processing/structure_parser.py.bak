@@ -184,6 +184,9 @@ class DocumentStructureParser:
         # 方法映射表
         method_map = {
             'toc_exact': self.parse_by_toc_exact,
+            'semantic_anchors': self.parse_by_semantic_anchors,
+            'style': self.parse_by_style,
+            'hybrid': self.parse_by_hybrid,
             'azure': self.parse_by_azure,
             'outline_level': self.parse_by_outline_level,
             'gemini': self.parse_by_gemini
@@ -267,23 +270,31 @@ class DocumentStructureParser:
                 toc_items, toc_end_idx = self._parse_toc_items(doc, toc_idx)
 
                 if toc_items and len(toc_items) > 0:
-                    # 使用精确匹配（速度快、准确率高）
+                    # 提取目录标题列表（作为语义目标）
+                    toc_targets = [item['title'] for item in toc_items]
+
+                    # 优先使用方法1：精确匹配（速度快、准确率高）
                     chapters = self._locate_chapters_by_toc(doc, toc_items, toc_end_idx)
 
-                    # 如果精确匹配失败（识别的章节太少），回退到大纲级别识别
+                    # 如果精确匹配失败（识别的章节太少），回退到语义锚点方法
                     if len(chapters) < len(toc_items) * 0.5:  # 至少识别50%的目录项
-                        self.logger.warning(f"精确匹配效果不佳（识别{len(chapters)}/{len(toc_items)}），回退到大纲级别识别")
-                        chapters = self._parse_chapters_by_outline_level(doc)
-                        chapters = self._locate_chapter_content(doc, chapters)
+                        self.logger.warning(f"精确匹配效果不佳（识别{len(chapters)}/{len(toc_items)}），回退到语义锚点解析方案")
+                        chapters = self._parse_chapters_by_semantic_anchors(doc, toc_targets, toc_end_idx)
                 else:
-                    # 目录解析失败，回退到大纲级别识别
-                    self.logger.warning("目录解析失败，回退到大纲级别识别")
-                    chapters = self._parse_chapters_by_outline_level(doc)
+                    # 目录解析失败，回退到标题样式识别
+                    self.logger.warning("目录解析失败，回退到标题样式识别方案")
+                    chapters = self._parse_chapters_from_doc(doc)
                     chapters = self._locate_chapter_content(doc, chapters)
             else:
-                # 无目录：使用大纲级别识别
-                self.logger.info("未检测到目录，使用大纲级别识别")
+                # 无目录：优先使用方法五（大纲级别识别）
+                self.logger.info("未检测到目录，使用方法五（大纲级别识别）")
                 chapters = self._parse_chapters_by_outline_level(doc)
+
+                # 如果识别章节太少，回退到标题样式识别
+                if len(chapters) < 3:
+                    self.logger.warning(f"方法五识别效果不佳（只找到{len(chapters)}个章节），回退到标题样式识别")
+                    chapters = self._parse_chapters_from_doc(doc)
+
                 chapters = self._locate_chapter_content(doc, chapters)
 
             # 2. 构建层级树
@@ -433,6 +444,161 @@ class DocumentStructureParser:
                 "chapters": [],
                 "statistics": {},
                 "method": "outline_level"
+            }
+
+    def parse_by_hybrid(self, doc_path: str) -> Dict:
+        """
+        方法3: 混合启发式识别
+
+        综合多种特征（编号、样式、缩进、长度）判断标题
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "hybrid"
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+            chapters = []
+
+            # 遍历所有段落，使用多维度评分
+            for i, para in enumerate(doc.paragraphs):
+                text = para.text.strip()
+
+                # 基础过滤
+                if not text or len(text) > 150 or len(text) < 2:
+                    continue
+
+                # 计算多维度得分
+                score = 0
+
+                # 特征1: 编号模式识别 (30分)
+                numbering_patterns = [
+                    (r'^第[一二三四五六七八九十\d]+[章部分]', 30),
+                    (r'^\d+\.\s+\S', 25),
+                    (r'^\d+\.\d+\s+\S', 20),
+                    (r'^\d+\.\d+\.\d+\s+\S', 15),
+                    (r'^[一二三四五六七八九十]+、', 20),
+                    (r'^\([一二三四五六七八九十\d]+\)', 15),
+                ]
+
+                for pattern, points in numbering_patterns:
+                    if re.match(pattern, text):
+                        score += points
+                        break
+
+                # 特征2: 字体大小和加粗 (25分)
+                if para.runs:
+                    sizes = []
+                    bold_count = 0
+                    total_runs = len(para.runs)
+
+                    for run in para.runs:
+                        if run.font.size:
+                            sizes.append(run.font.size.pt)
+                        if run.bold:
+                            bold_count += 1
+
+                    # 加粗比例
+                    if bold_count >= total_runs * 0.5:
+                        score += 10
+
+                    # 字体大小
+                    if sizes:
+                        avg_size = sum(sizes) / len(sizes)
+                        if avg_size >= 16:
+                            score += 15
+                        elif avg_size >= 13:
+                            score += 10
+                        elif avg_size >= 10:
+                            score += 5
+
+                # 特征3: 段落缩进 (20分)
+                try:
+                    if para.paragraph_format.left_indent:
+                        indent_pt = para.paragraph_format.left_indent.pt
+                        if indent_pt == 0:
+                            score += 20
+                        elif indent_pt <= 10:
+                            score += 10
+                        elif indent_pt <= 20:
+                            score += 5
+                except (AttributeError, TypeError):
+                    score += 10
+
+                # 特征4: 内容长度 (15分)
+                text_len = len(text)
+                if text_len <= 30:
+                    score += 15
+                elif text_len <= 50:
+                    score += 10
+                elif text_len <= 80:
+                    score += 5
+
+                # 特征5: 位置特征 (10分)
+                if i < len(doc.paragraphs) * 0.1:
+                    score += 10
+                elif i < len(doc.paragraphs) * 0.3:
+                    score += 5
+
+                # 判断阈值: 60分以上认为是标题
+                if score >= 60:
+                    level = self._determine_level_by_numbering(text)
+
+                    chapter = ChapterNode(
+                        id=f"hybrid_{i}",
+                        level=level,
+                        title=text,
+                        para_start_idx=i,
+                        para_end_idx=i,
+                        word_count=0,
+                        preview_text="",
+                        auto_selected=False,
+                        skip_recommended=False,
+                        content_tags=[f'score_{score}']
+                    )
+                    chapters.append(chapter)
+
+            if not chapters:
+                return {
+                    "success": False,
+                    "error": "未识别到章节",
+                    "chapters": [],
+                    "statistics": {},
+                    "method": "hybrid"
+                }
+
+            # 定位章节内容
+            chapters = self._locate_chapter_content(doc, chapters)
+            chapter_tree = self._build_chapter_tree(chapters)
+            chapter_tree = self._propagate_skip_status(chapter_tree)
+            stats = self._calculate_statistics(chapter_tree)
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": stats,
+                "method": "hybrid"
+            }
+
+        except Exception as e:
+            self.logger.error(f"混合启发式识别失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "hybrid"
             }
 
     def parse_by_azure(self, doc_path: str) -> Dict:
@@ -678,6 +844,65 @@ class DocumentStructureParser:
             return False
 
         return True
+
+    def _parse_chapters_from_doc(self, doc: Document) -> List[ChapterNode]:
+        """
+        从 Word 文档中解析章节 (优化5: 添加标题页过滤)
+
+        Args:
+            doc: python-docx Document 对象
+
+        Returns:
+            章节列表（扁平结构，未构建树）
+        """
+        chapters = []
+        chapter_counter = 0
+
+        for para_idx, paragraph in enumerate(doc.paragraphs):
+            # 检查是否为标题
+            level = self._get_heading_level(paragraph)
+
+            if level > 0:
+                title = paragraph.text.strip()
+
+                # 跳过空标题
+                if not title:
+                    continue
+
+                # 新增: 过滤标题页内容
+                if self._is_title_page_content(para_idx, title, len(doc.paragraphs)):
+                    self.logger.debug(f"跳过标题页内容: 段落{para_idx} '{title}'")
+                    continue
+
+                # 判断是否匹配白/黑名单
+                auto_selected = self._matches_whitelist(title)
+                skip_recommended = self._matches_blacklist(title)
+
+                # 如果在黑名单中，则不自动选中
+                if skip_recommended:
+                    auto_selected = False
+
+                chapter = ChapterNode(
+                    id=f"ch_{chapter_counter}",
+                    level=level,
+                    title=title,
+                    para_start_idx=para_idx,
+                    para_end_idx=None,  # 稍后计算
+                    word_count=0,       # 稍后计算
+                    preview_text="",    # 稍后提取
+                    auto_selected=auto_selected,
+                    skip_recommended=skip_recommended
+                )
+
+                chapters.append(chapter)
+                chapter_counter += 1
+
+                self.logger.debug(
+                    f"找到章节 [{level}级]: {title} "
+                    f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+                )
+
+        return chapters
 
     def _parse_chapters_by_outline_level(self, doc: Document) -> List[ChapterNode]:
         """
@@ -1920,60 +2145,44 @@ class DocumentStructureParser:
 
     def _locate_chapters_by_toc(self, doc: Document, toc_items: List[Dict], toc_end_idx: int) -> List[ChapterNode]:
         """
-        根据目录项定位章节在文档中的位置，并构建树形结构
-
-        核心改进: 完全使用TOC中已识别的层级信息，不再重新检测子章节
-        这样可以保留 analyze_toc_hierarchy_contextual() 的精确分析结果
+        根据目录项定位章节在文档中的位置
 
         Args:
             doc: Word文档对象
-            toc_items: 目录项列表（已包含精确的层级信息）
+            toc_items: 目录项列表
             toc_end_idx: 目录结束的段落索引
 
         Returns:
-            章节树（只包含根节点，子节点在children属性中）
+            章节列表
         """
-        # 步骤1: 定位所有TOC项在文档中的位置
-        all_chapters = []
+        chapters = []
+        # 从目录结束位置之后开始搜索，避免将目录中的项误识别为章节标题
         last_found_idx = toc_end_idx + 1
-        self.logger.info(f"⭐ 开始定位 {len(toc_items)} 个TOC项的位置（目录结束于段落 {toc_end_idx}）")
+        self.logger.info(f"目录结束于段落 {toc_end_idx}，从段落 {last_found_idx} 开始搜索章节正文")
 
         for i, item in enumerate(toc_items):
             title = item['title']
             level = item['level']
 
-            # 在文档中查找标题位置
+            # 从上一个位置之后开始搜索（章节按顺序出现）
             para_idx = self._find_paragraph_by_title(doc, title, last_found_idx)
 
             if para_idx is None:
-                self.logger.warning(f"⚠️  未找到目录项: [{level}级] {title}")
+                self.logger.warning(f"未找到目录项对应的章节: {title}")
                 continue
 
-            # 记录找到的章节（暂不确定结束位置）
-            all_chapters.append({
-                'toc_index': i,
-                'title': title,
-                'level': level,
-                'para_idx': para_idx,
-                'para_end_idx': None  # 稍后计算
-            })
-
+            # 更新搜索起点
             last_found_idx = para_idx + 1
-            self.logger.debug(f"  ✓ 找到 [{level}级] {title} (段落 {para_idx})")
 
-        # 步骤2: 计算每个章节的结束位置
-        for i, chapter_info in enumerate(all_chapters):
-            # 结束位置 = 下一个章节的起始位置 - 1
-            if i + 1 < len(all_chapters):
-                chapter_info['para_end_idx'] = all_chapters[i + 1]['para_idx'] - 1
-            else:
-                chapter_info['para_end_idx'] = len(doc.paragraphs) - 1
+            # 确定章节结束位置
+            para_end_idx = len(doc.paragraphs) - 1  # 默认到文档末尾
 
-        # 步骤3: 创建所有ChapterNode对象
-        chapter_nodes = []
-        for chapter_info in all_chapters:
-            para_idx = chapter_info['para_idx']
-            para_end_idx = chapter_info['para_end_idx']
+            # 查找下一个目录项的位置
+            for j in range(i + 1, len(toc_items)):
+                next_para_idx = self._find_paragraph_by_title(doc, toc_items[j]['title'], last_found_idx)
+                if next_para_idx:
+                    para_end_idx = next_para_idx - 1
+                    break
 
             # 提取章节内容
             content_paras = doc.paragraphs[para_idx + 1 : para_end_idx + 1]
@@ -1988,18 +2197,20 @@ class DocumentStructureParser:
                     preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
                 if len(preview_lines) >= 5:
                     break
+
             preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
 
             # 判断是否匹配白/黑名单
-            auto_selected = self._matches_whitelist(chapter_info['title'])
-            skip_recommended = self._matches_blacklist(chapter_info['title'])
+            auto_selected = self._matches_whitelist(title)
+            skip_recommended = self._matches_blacklist(title)
+
             if skip_recommended:
                 auto_selected = False
 
-            node = ChapterNode(
-                id=f"ch_{chapter_info['toc_index']}",
-                level=chapter_info['level'],  # ⭐ 使用TOC中的层级，不重新检测
-                title=chapter_info['title'],
+            chapter = ChapterNode(
+                id=f"ch_{i}",
+                level=level,
+                title=title,
                 para_start_idx=para_idx,
                 para_end_idx=para_end_idx,
                 word_count=word_count,
@@ -2008,62 +2219,27 @@ class DocumentStructureParser:
                 skip_recommended=skip_recommended
             )
 
-            chapter_nodes.append(node)
+            # 在章节范围内识别子章节
+            self.logger.info(f"正在识别 '{title}' 的子章节 (段落范围: {para_idx}-{para_end_idx})")
+            subsections = self._parse_subsections_in_range(
+                doc, para_idx, para_end_idx, level, f"ch_{i}"
+            )
 
-        # 步骤4: 构建树形结构（基于level属性）
-        root_chapters = self._build_chapter_tree(chapter_nodes)
+            if subsections:
+                chapter.children = subsections
+                # 注意：父章节的word_count已经包含了其段落范围内的所有内容
+                # 无需再累加子章节字数，否则会导致重复计算
+                self.logger.info(f"  └─ 识别到 {len(subsections)} 个子章节（父章节字数: {chapter.word_count}）")
 
-        self.logger.info(f"✅ 成功构建章节树: {len(root_chapters)} 个根章节")
-        return root_chapters
+            chapters.append(chapter)
 
-    def _build_chapter_tree(self, chapters: List[ChapterNode]) -> List[ChapterNode]:
-        """
-        根据章节的level属性构建树形结构
+            self.logger.debug(
+                f"定位章节 [{level}级]: {title} "
+                f"(段落 {para_idx}-{para_end_idx}, {word_count}字) "
+                f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+            )
 
-        Args:
-            chapters: 扁平的章节列表（按文档顺序排列）
-
-        Returns:
-            根章节列表（子章节在children属性中）
-        """
-        if not chapters:
-            return []
-
-        root_chapters = []
-        stack = []  # 用于追踪父节点的栈
-
-        for chapter in chapters:
-            # 弹出所有层级 >= 当前章节的节点（它们不是当前章节的祖先）
-            while stack and stack[-1].level >= chapter.level:
-                stack.pop()
-
-            # 如果栈为空，说明是根节点
-            if not stack:
-                root_chapters.append(chapter)
-            else:
-                # 否则，当前章节是栈顶节点的子节点
-                parent = stack[-1]
-                if parent.children is None:
-                    parent.children = []
-                parent.children.append(chapter)
-
-            # 将当前章节压入栈
-            stack.append(chapter)
-
-        # 统计树形结构
-        def count_by_level(nodes, level_counts=None):
-            if level_counts is None:
-                level_counts = {}
-            for node in nodes:
-                level_counts[node.level] = level_counts.get(node.level, 0) + 1
-                if node.children:
-                    count_by_level(node.children, level_counts)
-            return level_counts
-
-        level_dist = count_by_level(root_chapters)
-        self.logger.info(f"📊 章节层级分布: {dict(sorted(level_dist.items()))}")
-
-        return root_chapters
+        return chapters
 
     def _locate_chapter_content(self, doc: Document, chapters: List[ChapterNode]) -> List[ChapterNode]:
         """
@@ -3149,6 +3325,304 @@ class DocumentStructureParser:
             )
 
         return is_composition
+
+    def _parse_chapters_by_semantic_anchors(self, doc: Document, toc_targets: List[str], toc_end_idx: int = 0) -> List[ChapterNode]:
+        """
+        基于语义锚点解析章节（核心新方法）
+
+        策略：严格按目录顺序匹配，找到每个目录项在正文中相似度最高的位置
+
+        Args:
+            doc: Word文档对象
+            toc_targets: 目录标题列表
+            toc_end_idx: 目录结束位置（从此之后开始识别章节）
+
+        Returns:
+            章节列表（扁平结构，未构建树）
+        """
+        chapters = []
+        last_found_idx = toc_end_idx + 1  # 上一个章节找到的位置，确保按顺序查找
+
+        # 改进1：使用智能检测计算正文起始位置
+        min_search_start = self._calculate_content_start_idx(doc, toc_end_idx, len(toc_targets))
+
+        # 优化1: 计算动态阈值
+        dynamic_threshold = self._calculate_dynamic_threshold(len(toc_targets), len(doc.paragraphs))
+
+        self.logger.info(f"开始按目录顺序解析章节，共 {len(toc_targets)} 个目标")
+        self.logger.info(f"目录结束于段落 {toc_end_idx}，正文搜索起点: 段落 {min_search_start} (跳过 {min_search_start - toc_end_idx} 段)")
+        self.logger.info(f"使用动态阈值: {dynamic_threshold:.2f}")
+
+        for i, toc_title in enumerate(toc_targets):
+            self.logger.info(f"\n[{i+1}/{len(toc_targets)}] 查找目录项: '{toc_title}'")
+
+            # 在剩余段落中寻找最佳匹配
+            best_match_idx = None
+            best_score = 0.0
+            best_para_text = None
+
+            # 统一搜索策略：所有章节从目录结束后或上一个位置开始搜索
+            search_start = max(last_found_idx, min_search_start)
+            search_end = len(doc.paragraphs)
+            self.logger.info(f"  搜索范围: 段落 {search_start} - {search_end}")
+
+            # ⭐️ 改进：收集所有符合阈值的候选，而不是只记录最佳
+            # 这样可以在最佳候选是"文件构成"时，使用次优候选
+            all_candidates = []  # 所有符合阈值的候选
+
+            for para_idx in range(search_start, search_end):
+                paragraph = doc.paragraphs[para_idx]
+                para_text = paragraph.text.strip()
+
+                # 跳过空行或太长的段落
+                if not para_text or len(para_text) > 100:
+                    continue
+
+                # ⭐️ 跳过模板占位符文本（如"（项目名称）"、"（采购编号）"）
+                template_placeholders = ['（项目名称）', '（采购编号）', '（供应商名称）', '（姓名、职务）']
+                if any(placeholder in para_text for placeholder in template_placeholders):
+                    continue  # 这是模板示例文字，不是真实章节标题
+
+                # 移除编号
+                clean_para, para_level = self.remove_leading_patterns(para_text)
+                clean_toc, toc_level = self.remove_leading_patterns(toc_title)
+
+                # 计算相似度 (使用新的分阶段匹配函数)
+                score = self.fuzzy_match_title_v2(para_text, toc_title, threshold=dynamic_threshold)
+
+                # 检查是否有"第X部分"编号
+                has_part_number = bool(re.match(r'^第[一二三四五六七八九十\d]+部分', para_text))
+
+                # 检查是否为数字列表格式（如 "1.xxx" 或 "2、xxx"）
+                is_numbered_list = bool(re.match(r'^\d+[\.\、][\u4e00-\u9fa5]{3,20}$', para_text))
+
+                # 收集所有符合阈值的候选
+                if score >= dynamic_threshold and not is_numbered_list:
+                    # 优先级权重：有"第X部分"的加0.05
+                    priority_score = score + (0.05 if has_part_number else 0)
+                    all_candidates.append((priority_score, score, para_idx, para_text, has_part_number))
+
+                # 限制搜索范围：最多向后搜索800段（覆盖大部分标书）
+                if para_idx - search_start > 800:
+                    break
+
+            # 按优先级分数排序（从高到低）
+            all_candidates.sort(reverse=True, key=lambda x: x[0])
+
+            # ⭐️ 核心改进：逐个验证候选，跳过文件构成，选择第一个有效的
+            best_score = 0.0
+            best_match_idx = None
+            best_para_text = None
+
+            for priority_score, score, para_idx, para_text, has_part_number in all_candidates:
+                # 检查是否为文件构成
+                if not self._is_file_composition_section(doc, para_idx, toc_targets):
+                    # 不是文件构成，使用这个候选！
+                    best_score = score
+                    best_match_idx = para_idx
+                    best_para_text = para_text
+                    self.logger.info(
+                        f"  ✓ 选择候选({score:.0%}): 段落{para_idx} '{para_text}' "
+                        f"{'[有编号]' if has_part_number else ''}"
+                    )
+                    break
+                else:
+                    self.logger.debug(
+                        f"  ⊗ 跳过文件构成候选({score:.0%}): 段落{para_idx} '{para_text}'"
+                    )
+
+            # 如果所有候选都是文件构成，记录日志
+            if not best_match_idx and all_candidates:
+                self.logger.warning(f"  所有{len(all_candidates)}个候选都是文件构成，将尝试重新搜索")
+
+            # 判断是否找到有效匹配
+            if best_match_idx is not None:
+                # 候选列表验证已确保best_match_idx不是文件构成
+                # 直接使用，不需要再次检测
+
+                # 下面这段旧的检测逻辑已被候选列表验证替代，保留用于兼容
+                if False and self._is_file_composition_section(doc, best_match_idx, toc_targets):
+                    self.logger.warning(
+                        f"  ⚠ 跳过文件构成部分: 段落{best_match_idx}检测到连续章节标题"
+                    )
+                    # 继续向后搜索真实章节（从匹配位置之后开始）
+                    self.logger.info(f"  → 从段落{best_match_idx + 10}重新搜索真实章节")
+
+                    # 重新搜索（跳过文件构成区域，至少向后10段）
+                    new_search_start = best_match_idx + 10
+                    found_real_chapter = False
+                    for para_idx in range(new_search_start, len(doc.paragraphs)):
+                        paragraph = doc.paragraphs[para_idx]
+                        para_text = paragraph.text.strip()
+
+                        if not para_text or len(para_text) > 100:
+                            continue
+
+                        clean_para, _ = self.remove_leading_patterns(para_text)
+                        clean_toc, _ = self.remove_leading_patterns(toc_title)
+                        score = self.fuzzy_match_title_v2(para_text, toc_title, threshold=dynamic_threshold)
+
+                        if score >= dynamic_threshold:
+                            # 再次检查是否仍为文件构成
+                            if not self._is_file_composition_section(doc, para_idx, toc_targets):
+                                best_match_idx = para_idx
+                                best_para_text = para_text
+                                best_score = score
+                                found_real_chapter = True
+                                self.logger.info(f"  ✓ 找到真实章节({score:.0%}): 段落{para_idx} '{para_text}'")
+                                break
+
+                        if para_idx - new_search_start > 800:
+                            break
+
+                    if not found_real_chapter:
+                        # 如果向后没找到，尝试在智能起点之前搜索（可能真实章节在前面）
+                        self.logger.info(f"  → 尝试在智能起点{min_search_start}之前搜索")
+                        for para_idx in range(toc_end_idx + 1, min_search_start):
+                            paragraph = doc.paragraphs[para_idx]
+                            para_text = paragraph.text.strip()
+
+                            if not para_text or len(para_text) > 100:
+                                continue
+
+                            clean_para, _ = self.remove_leading_patterns(para_text)
+                            clean_toc, _ = self.remove_leading_patterns(toc_title)
+                            score = self.fuzzy_match_title(clean_para, clean_toc, threshold=0.70)
+
+                            if score >= 0.70:
+                                # 检查是否仍为文件构成
+                                if not self._is_file_composition_section(doc, para_idx, toc_targets):
+                                    best_match_idx = para_idx
+                                    best_para_text = para_text
+                                    best_score = score
+                                    found_real_chapter = True
+                                    self.logger.info(f"  ✓ 在前面找到真实章节({score:.0%}): 段落{para_idx} '{para_text}'")
+                                    break
+
+                    if not found_real_chapter:
+                        # 如果还是没找到，跳过这个目录项
+                        self.logger.warning(f"  ✗ 未找到真实章节，跳过目录项: '{toc_title}'")
+                        continue
+
+                # 创建章节节点
+                clean_title, level = self.remove_leading_patterns(toc_title)
+
+                # 判断是否匹配白/黑名单
+                auto_selected = self._matches_whitelist(toc_title)
+                skip_recommended = self._matches_blacklist(toc_title)
+                if skip_recommended:
+                    auto_selected = False
+
+                # 确定章节结束位置（下一个目录项的位置）
+                if i + 1 < len(toc_targets):
+                    # 暂时设为文档末尾，后续会更新
+                    para_end_idx = len(doc.paragraphs) - 1
+                else:
+                    para_end_idx = len(doc.paragraphs) - 1
+
+                chapter = ChapterNode(
+                    id=f"ch_{i}",
+                    level=level,
+                    title=toc_title,  # 使用目录中的标题
+                    para_start_idx=best_match_idx,
+                    para_end_idx=para_end_idx,  # 稍后更新
+                    word_count=0,
+                    preview_text="",
+                    auto_selected=auto_selected,
+                    skip_recommended=skip_recommended
+                )
+
+                chapters.append(chapter)
+                last_found_idx = best_match_idx + 1  # 更新搜索起点
+            else:
+                # Bug修复: 在智能起点之后未找到，尝试回溯到目录后区域搜索
+                self.logger.warning(f"  ✗ 未找到匹配（最佳相似度{best_score:.0%}）: '{toc_title}'")
+
+                # 如果智能起点大于目录结束位置，说明跳过了一些段落，尝试在跳过的区域搜索
+                if min_search_start > toc_end_idx + 1:
+                    self.logger.info(f"  → 回溯搜索: 尝试在目录后区域(段落{toc_end_idx + 1}-{min_search_start})搜索")
+
+                    found_in_backtrack = False
+                    backtrack_best_score = 0.0
+                    backtrack_best_idx = None
+                    backtrack_best_text = None
+
+                    for para_idx in range(toc_end_idx + 1, min_search_start):
+                        paragraph = doc.paragraphs[para_idx]
+                        para_text = paragraph.text.strip()
+
+                        if not para_text or len(para_text) > 100:
+                            continue
+
+                        # 计算相似度（降低阈值到0.70）
+                        clean_para, _ = self.remove_leading_patterns(para_text)
+                        clean_toc, _ = self.remove_leading_patterns(toc_title)
+                        score = self.fuzzy_match_title(clean_para, clean_toc, threshold=0.70)
+
+                        if score >= 0.70 and score > backtrack_best_score:
+                            # 检查是否为文件构成
+                            if not self._is_file_composition_section(doc, para_idx, toc_targets):
+                                backtrack_best_score = score
+                                backtrack_best_idx = para_idx
+                                backtrack_best_text = para_text
+
+                    if backtrack_best_idx is not None:
+                        self.logger.info(f"  ✓ 回溯找到章节({backtrack_best_score:.0%}): 段落{backtrack_best_idx} '{backtrack_best_text}'")
+
+                        # 创建章节节点
+                        clean_title, level = self.remove_leading_patterns(toc_title)
+                        auto_selected = self._matches_whitelist(toc_title)
+                        skip_recommended = self._matches_blacklist(toc_title)
+                        if skip_recommended:
+                            auto_selected = False
+
+                        chapter = ChapterNode(
+                            id=f"ch_{i}",
+                            level=level,
+                            title=toc_title,
+                            para_start_idx=backtrack_best_idx,
+                            para_end_idx=len(doc.paragraphs) - 1,
+                            word_count=0,
+                            preview_text="",
+                            auto_selected=auto_selected,
+                            skip_recommended=skip_recommended
+                        )
+
+                        chapters.append(chapter)
+                        last_found_idx = backtrack_best_idx + 1
+                        found_in_backtrack = True
+
+                    if not found_in_backtrack:
+                        self.logger.warning(f"  ✗ 回溯搜索也未找到，跳过目录项: '{toc_title}'")
+
+        # ⭐️ 关键修复：按段落索引排序章节，确保章节顺序与文档物理顺序一致
+        # 这可以防止索引倒置问题（如 para_start_idx=542 > para_end_idx=62）
+        chapters_sorted = sorted(chapters, key=lambda ch: ch.para_start_idx)
+        self.logger.info(f"章节已按段落索引排序，共 {len(chapters_sorted)} 个章节")
+
+        # ⭐️ 关键修复：排序后重新分配章节ID，确保ID顺序与文档物理顺序一致
+        # 避免前端按ID排序时出现乱序
+        for idx, chapter in enumerate(chapters_sorted):
+            chapter.id = f"ch_{idx}"
+        self.logger.info(f"章节ID已按物理顺序重新分配")
+
+        # 更新所有章节的结束位置和内容
+        for i, chapter in enumerate(chapters_sorted):
+            if i + 1 < len(chapters_sorted):
+                chapter.para_end_idx = chapters_sorted[i + 1].para_start_idx - 1
+
+            # 提取内容和预览
+            self._extract_chapter_content(doc, chapter)
+
+            self.logger.info(
+                f"章节 [{chapter.level}级]: {chapter.title} "
+                f"({'✅自动选中' if chapter.auto_selected else '❌跳过' if chapter.skip_recommended else '⚪默认'}) "
+                f"(段落 {chapter.para_start_idx}-{chapter.para_end_idx}, {chapter.word_count}字)"
+            )
+
+        self.logger.info(f"\n语义锚点解析完成，成功识别 {len(chapters_sorted)}/{len(toc_targets)} 个章节")
+
+        return chapters_sorted
 
     def _detect_content_tags(self, content_text: str) -> List[str]:
         """

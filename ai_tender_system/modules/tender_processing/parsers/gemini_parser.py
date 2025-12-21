@@ -4,16 +4,21 @@
 Gemini AI解析器 - 使用Google Gemini多模态模型解析文档结构
 
 优势:
-- 直接理解PDF/Word文档,无需格式转换
+- 直接理解PDF文档
 - 支持结构化JSON输出
 - 理解语义,不只是识别样式
 - 支持多语言和复杂布局
+
+注意:
+- Gemini API不支持.docx格式,会自动转换为PDF
 """
 
 import os
 import sys
 import json
 import time
+import tempfile
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -23,6 +28,14 @@ sys.path.insert(0, str(project_root))
 
 from common import get_module_logger
 from . import BaseStructureParser, ParserMetrics
+from ..level_analyzer import LevelAnalyzer
+
+# 尝试导入docx2pdf转换库
+try:
+    from docx2pdf import convert as docx_to_pdf_convert
+    DOCX2PDF_AVAILABLE = True
+except ImportError:
+    DOCX2PDF_AVAILABLE = False
 
 
 class GeminiParser(BaseStructureParser):
@@ -32,17 +45,180 @@ class GeminiParser(BaseStructureParser):
         super().__init__()
         self.logger = get_module_logger("parsers.gemini")
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
-        # 价格配置(元/百万token)
+        # 方案B: 模型配置优化
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-002")
+
+        # 方案C: Context Caching配置
+        self.enable_cache = os.getenv("GEMINI_ENABLE_CACHE", "true").lower() == "true"
+        self.cache_ttl = int(os.getenv("GEMINI_CACHE_TTL", "3600"))
+
+        # 方案A: 重试配置
+        self.max_retries = int(os.getenv("GEMINI_MAX_RETRIES", "3"))
+        self.retry_delay = int(os.getenv("GEMINI_RETRY_DELAY", "2"))
+
+        # 初始化层级分析器
+        self.level_analyzer = LevelAnalyzer()
+
+        # 方案C: 缓存管理器(字典: 文件哈希 -> 缓存信息)
+        self.cache_manager = {}
+
+        # 价格配置(元/百万token) - 更新为Flash 1.5定价
         self.pricing = {
-            "gemini-2.0-flash": {"input": 0.015, "output": 0.06},      # 性价比最高
-            "gemini-2.5-pro": {"input": 0.25, "output": 1.0},          # 功能最强
+            "gemini-1.5-flash-002": {"input": 0.015, "output": 0.06, "cache": 0.0015},  # Flash 1.5(推荐)
+            "gemini-2.0-flash": {"input": 0.015, "output": 0.06, "cache": 0.00375},     # Flash 2.0
+            "gemini-2.5-pro": {"input": 0.25, "output": 1.0, "cache": 0.025},           # Pro版
         }
+
+        self.logger.info(
+            f"[Gemini] 初始化完成: model={self.model_name}, "
+            f"cache={self.enable_cache}, ttl={self.cache_ttl}s, "
+            f"max_retries={self.max_retries}"
+        )
+
+    def _convert_docx_to_pdf(self, docx_path: str) -> Optional[str]:
+        """
+        将 Word 文档转换为 PDF（复用自 Azure Parser）
+
+        Args:
+            docx_path: Word文档路径
+
+        Returns:
+            PDF文件路径，失败返回None
+        """
+        try:
+            self.logger.info(f"[Gemini] 开始转换 Word 到 PDF: {docx_path}")
+
+            # 创建临时PDF文件
+            # 注意：LibreOffice 会使用输入文件的基础名称（去掉扩展名）+ .pdf
+            temp_dir = tempfile.gettempdir()
+            pdf_filename = Path(docx_path).stem + '.pdf'  # 不再添加后缀，LibreOffice会自动处理
+            pdf_path = Path(temp_dir) / pdf_filename
+
+            # 方法1: 使用 docx2pdf (Windows/Mac)
+            if DOCX2PDF_AVAILABLE:
+                self.logger.info("[Gemini] 使用 docx2pdf 转换...")
+                docx_to_pdf_convert(docx_path, str(pdf_path))
+                if pdf_path.exists():
+                    self.logger.info(f"[Gemini] 转换成功: {pdf_path}")
+                    return str(pdf_path)
+
+            # 方法2: 使用 LibreOffice (Linux/Mac/Windows)
+            self.logger.info("[Gemini] 尝试使用 LibreOffice 转换...")
+
+            # 尝试不同的 LibreOffice 命令名
+            for cmd in ['soffice', 'libreoffice']:
+                try:
+                    result = subprocess.run(
+                        [cmd, '--headless', '--convert-to', 'pdf', '--outdir', temp_dir, docx_path],
+                        capture_output=True,
+                        timeout=30
+                    )
+
+                    if result.returncode == 0 and pdf_path.exists():
+                        self.logger.info(f"[Gemini] LibreOffice ({cmd}) 转换成功: {pdf_path}")
+                        return str(pdf_path)
+                except FileNotFoundError:
+                    continue
+
+            # 方法3: 使用 unoconv (需要安装)
+            self.logger.info("[Gemini] 尝试使用 unoconv 转换...")
+            result = subprocess.run(
+                ['unoconv', '-f', 'pdf', '-o', str(pdf_path), docx_path],
+                capture_output=True,
+                timeout=30
+            )
+
+            if result.returncode == 0 and pdf_path.exists():
+                self.logger.info(f"[Gemini] unoconv 转换成功: {pdf_path}")
+                return str(pdf_path)
+
+            self.logger.error("[Gemini] 所有转换方法均失败")
+            return None
+
+        except subprocess.TimeoutExpired:
+            self.logger.error("[Gemini] 文档转换超时")
+            return None
+        except Exception as e:
+            self.logger.error(f"[Gemini] 文档转换失败: {e}")
+            return None
+
+    def _get_file_hash(self, file_path: str) -> str:
+        """
+        计算文件SHA256哈希值(用于缓存键)
+
+        Args:
+            file_path: 文件路径
+
+        Returns:
+            文件的SHA256哈希值
+        """
+        import hashlib
+        with open(file_path, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+    def _get_or_create_cache(self, uploaded_file, doc_hash: str) -> Optional[str]:
+        """
+        获取或创建文档缓存
+
+        Args:
+            uploaded_file: 已上传的Gemini文件对象
+            doc_hash: 文档哈希值
+
+        Returns:
+            缓存名称,如果不启用缓存则返回None
+        """
+        if not self.enable_cache:
+            return None
+
+        # 检查是否有该文档的有效缓存
+        if doc_hash in self.cache_manager:
+            cached_info = self.cache_manager[doc_hash]
+            # 检查缓存是否过期
+            if time.time() - cached_info['created_at'] < self.cache_ttl:
+                cache_name = cached_info['cache_name']
+                self.logger.info(f"[Gemini缓存] 命中缓存: {cache_name}")
+                return cache_name
+            else:
+                self.logger.info(f"[Gemini缓存] 缓存已过期,将创建新缓存")
+                del self.cache_manager[doc_hash]
+
+        # 创建新缓存
+        try:
+            import google.generativeai as genai
+
+            self.logger.info(f"[Gemini缓存] 创建新缓存: model={self.model_name}, ttl={self.cache_ttl}s")
+
+            cache = genai.caching.CachedContent.create(
+                model=self.model_name,
+                display_name=f"tender_doc_{doc_hash[:8]}",
+                system_instruction="你是一个专业的招标文档分析专家,擅长提取文档的章节结构",
+                contents=[uploaded_file],
+                ttl=f"{self.cache_ttl}s"
+            )
+
+            # 保存缓存信息
+            self.cache_manager[doc_hash] = {
+                'cache_name': cache.name,
+                'created_at': time.time(),
+                'file_uri': uploaded_file.uri
+            }
+
+            self.logger.info(
+                f"[Gemini缓存] 缓存创建成功: {cache.name}, "
+                f"过期时间: {self.cache_ttl}s"
+            )
+
+            return cache.name
+
+        except Exception as e:
+            self.logger.warning(f"[Gemini缓存] 创建缓存失败: {e}, 将使用普通模式")
+            return None
 
     def parse_structure(self, doc_path: str) -> Dict:
         """使用Gemini解析文档结构"""
         start_time = time.time()
+        pdf_to_cleanup = None  # 用于清理临时PDF文件
 
         try:
             self.logger.info(f"[Gemini解析器] 开始解析: {doc_path}")
@@ -62,23 +238,110 @@ class GeminiParser(BaseStructureParser):
             genai.configure(api_key=self.api_key)
             model = genai.GenerativeModel(self.model_name)
 
-            # 上传文档
+            # 检查文件格式并处理
+            file_ext = Path(doc_path).suffix.lower()
+            actual_doc_path = doc_path
+
+            if file_ext == '.docx':
+                # .docx 文件自动转换为 PDF（Gemini API不支持.docx）
+                self.logger.info("[Gemini] 检测到 Word 文档，开始自动转换为 PDF...")
+                pdf_path = self._convert_docx_to_pdf(doc_path)
+
+                if not pdf_path:
+                    return {
+                        "success": False,
+                        "chapters": [],
+                        "statistics": {},
+                        "error": (
+                            "Word转PDF失败。Gemini API不支持.docx格式，需要转换为PDF。\n"
+                            "请安装转换工具:\n"
+                            "- pip install docx2pdf\n"
+                            "或\n"
+                            "- 安装 LibreOffice"
+                        ),
+                        "method_name": "Gemini AI解析器"
+                    }
+
+                actual_doc_path = pdf_path
+                pdf_to_cleanup = pdf_path
+                self.logger.info(f"[Gemini] 转换成功，使用 PDF: {pdf_path}")
+
+            # 上传文档（现在是PDF格式）
             self.logger.info(f"[Gemini] 上传文档到Gemini...")
-            uploaded_file = genai.upload_file(doc_path)
+            uploaded_file = genai.upload_file(actual_doc_path)
             self.logger.info(f"[Gemini] 文档已上传,URI: {uploaded_file.uri}")
+
+            # 方案C: 获取或创建文档缓存
+            doc_hash = self._get_file_hash(actual_doc_path)
+            cache_name = self._get_or_create_cache(uploaded_file, doc_hash)
 
             # 构造Prompt
             prompt = self._build_prompt()
 
-            # 调用Gemini
-            self.logger.info(f"[Gemini] 调用模型: {self.model_name}")
-            response = model.generate_content(
-                [uploaded_file, prompt],
-                generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",  # 强制JSON输出
-                    temperature=0.1  # 降低随机性,提高一致性
-                )
-            )
+            # 方案A: 带重试机制的Gemini调用
+            response = None
+            last_error = None
+
+            for attempt in range(self.max_retries):
+                try:
+                    self.logger.info(
+                        f"[Gemini] 调用模型: {self.model_name} "
+                        f"(尝试 {attempt+1}/{self.max_retries})"
+                    )
+
+                    # 根据是否有缓存选择调用方式
+                    if cache_name:
+                        # 使用缓存模式
+                        response = model.generate_content(
+                            [prompt],  # 只发送prompt,文档在缓存中
+                            config=genai.GenerationConfig(
+                                cached_content=cache_name,  # 引用缓存
+                                response_mime_type="application/json",
+                                temperature=0.1
+                            )
+                        )
+                        self.logger.info("[Gemini] 使用缓存模式调用成功")
+                    else:
+                        # 普通模式
+                        response = model.generate_content(
+                            [uploaded_file, prompt],  # 直接发送文档
+                            generation_config=genai.GenerationConfig(
+                                response_mime_type="application/json",
+                                temperature=0.1
+                            )
+                        )
+                        self.logger.info("[Gemini] 使用普通模式调用成功")
+
+                    # 成功,跳出重试循环
+                    break
+
+                except Exception as e:
+                    error_msg = str(e)
+                    last_error = e
+
+                    # 检测429错误(Resource exhausted)
+                    if "429" in error_msg or "Resource exhausted" in error_msg:
+                        if attempt < self.max_retries - 1:
+                            # 指数退避: 2s, 4s, 8s
+                            delay = self.retry_delay * (2 ** attempt)
+                            self.logger.warning(
+                                f"[Gemini] 遇到429配额限制错误, {delay}秒后重试 "
+                                f"(第{attempt+1}/{self.max_retries}次)"
+                            )
+                            time.sleep(delay)
+                            continue
+                        else:
+                            self.logger.error(
+                                f"[Gemini] 重试{self.max_retries}次后仍失败,放弃"
+                            )
+                            raise e
+                    else:
+                        # 非429错误,直接抛出
+                        raise e
+
+            # 如果所有重试都失败
+            if response is None:
+                raise last_error or Exception("Gemini调用失败")
 
             # 解析响应
             gemini_result = json.loads(response.text)
@@ -87,12 +350,19 @@ class GeminiParser(BaseStructureParser):
             # 转换为系统格式
             chapters = self._convert_gemini_to_chapters(gemini_result)
 
+            # 后处理：修正层级（使用LevelAnalyzer）
+            chapters = self._postprocess_gemini_levels(chapters)
+
             # 计算统计信息
             statistics = self._calculate_statistics(chapters)
 
-            # 计算成本
+            # 计算成本(考虑缓存token折扣)
             token_count = response.usage_metadata.total_token_count if hasattr(response, 'usage_metadata') else 1000
-            api_cost = self._calculate_cost(token_count)
+            cached_token_count = 0
+            if cache_name and hasattr(response, 'usage_metadata'):
+                # 如果使用了缓存,获取缓存token数量
+                cached_token_count = getattr(response.usage_metadata, 'cached_content_token_count', 0)
+            api_cost = self._calculate_cost(token_count, cached_token_count)
 
             # 计算性能指标
             parse_time = time.time() - start_time
@@ -114,7 +384,12 @@ class GeminiParser(BaseStructureParser):
                 "success": True,
                 "chapters": [ch.to_dict() if hasattr(ch, 'to_dict') else ch for ch in chapters],
                 "statistics": statistics,
-                "metrics": metrics,
+                "method_name": "Gemini AI解析器",
+                "performance": {
+                    "elapsed": parse_time,
+                    "api_cost": api_cost,
+                    "token_count": token_count
+                },
                 "gemini_metadata": {
                     "model": self.model_name,
                     "token_count": token_count,
@@ -132,14 +407,19 @@ class GeminiParser(BaseStructureParser):
                 "chapters": [],
                 "statistics": {},
                 "error": error_msg,
-                "metrics": ParserMetrics(
-                    parser_name="gemini",
-                    parse_time=parse_time,
-                    chapters_found=0,
-                    success=False,
-                    error_message=error_msg
-                )
+                "method_name": "Gemini AI解析器",
+                "performance": {
+                    "elapsed": parse_time
+                }
             }
+        finally:
+            # 清理临时PDF文件
+            if pdf_to_cleanup and Path(pdf_to_cleanup).exists():
+                try:
+                    Path(pdf_to_cleanup).unlink()
+                    self.logger.info(f"[Gemini] 已清理临时PDF文件: {pdf_to_cleanup}")
+                except Exception as e:
+                    self.logger.warning(f"[Gemini] 清理临时文件失败: {e}")
 
     def _build_prompt(self) -> str:
         """构造Gemini Prompt"""
@@ -172,6 +452,7 @@ class GeminiParser(BaseStructureParser):
       "auto_selected": true,
       "skip_recommended": false,
       "page_start": 5,
+      "word_count": 1200,
       "children": [
         {
           "level": 2,
@@ -179,6 +460,7 @@ class GeminiParser(BaseStructureParser):
           "auto_selected": false,
           "skip_recommended": false,
           "page_start": 5,
+          "word_count": 300,
           "children": []
         }
       ]
@@ -190,8 +472,9 @@ class GeminiParser(BaseStructureParser):
 1. 保持完整的层级结构(parent-children关系)
 2. level: 1=一级标题, 2=二级标题, 3=三级标题
 3. 如果无法确定页码,page_start设为0
-4. children是数组,即使为空也要包含[]
-5. 只返回JSON,不要有任何其他解释文字
+4. word_count: 估算该章节的字数(不包括空格和换行符),如果无法估算设为0
+5. children是数组,即使为空也要包含[]
+6. 只返回JSON,不要有任何其他解释文字
 """
 
     def _convert_gemini_to_chapters(self, gemini_result: Dict) -> List:
@@ -213,7 +496,7 @@ class GeminiParser(BaseStructureParser):
                 title=ch_data.get('title', '未命名章节'),
                 para_start_idx=ch_data.get('page_start', 0),  # 使用页码作为索引
                 para_end_idx=None,  # Gemini无法提供
-                word_count=0,  # 需要后续计算
+                word_count=ch_data.get('word_count', 0),  # 从Gemini返回的数据中获取
                 preview_text="",  # 需要后续提取
                 auto_selected=ch_data.get('auto_selected', False),
                 skip_recommended=ch_data.get('skip_recommended', False),
@@ -242,6 +525,7 @@ class GeminiParser(BaseStructureParser):
             total = len(chs)
             auto_selected = sum(1 for ch in chs if ch.auto_selected)
             skip_recommended = sum(1 for ch in chs if ch.skip_recommended)
+            total_words = sum(ch.word_count for ch in chs)
 
             # 递归统计子章节
             for ch in chs:
@@ -250,42 +534,118 @@ class GeminiParser(BaseStructureParser):
                     total += child_stats['total_chapters']
                     auto_selected += child_stats['auto_selected']
                     skip_recommended += child_stats['skip_recommended']
+                    total_words += child_stats['total_words']
 
             return {
                 'total_chapters': total,
                 'auto_selected': auto_selected,
-                'skip_recommended': skip_recommended
+                'skip_recommended': skip_recommended,
+                'total_words': total_words
             }
 
         stats = count_chapters(chapters)
-        stats['total_words'] = 0  # Gemini无法直接提供
 
         return stats
 
-    def _calculate_cost(self, token_count: int) -> float:
-        """计算API调用成本
+    def _postprocess_gemini_levels(self, chapters: List) -> List:
+        """
+        对Gemini返回的章节进行层级后处理修正
+
+        Gemini在PDF上工作，可能丢失Word的格式信息，
+        我们使用LevelAnalyzer基于编号格式进行修正
+
+        Args:
+            chapters: Gemini解析的ChapterNode列表
+
+        Returns:
+            层级修正后的章节列表
+        """
+        if not chapters:
+            return chapters
+
+        self.logger.info("[Gemini后处理] 开始修正章节层级...")
+
+        # 步骤1: 扁平化提取所有章节
+        flat_items = []
+
+        def flatten(chs, depth=0):
+            for ch in chs:
+                flat_items.append({
+                    'title': ch.title,
+                    'chapter': ch,
+                    'original_level': ch.level
+                })
+                if ch.children:
+                    flatten(ch.children, depth + 1)
+
+        flatten(chapters)
+
+        self.logger.info(f"[Gemini后处理] 扁平化了 {len(flat_items)} 个章节")
+
+        # 步骤2: 使用LevelAnalyzer整体分析层级
+        corrected_levels = self.level_analyzer.analyze_toc_hierarchy(flat_items)
+
+        # 步骤3: 应用修正后的层级
+        correction_count = 0
+        for i, item in enumerate(flat_items):
+            original = item['original_level']
+            corrected = corrected_levels[i]
+
+            if original != corrected:
+                correction_count += 1
+                self.logger.debug(
+                    f"[Gemini后处理] 修正: '{item['title'][:30]}...' "
+                    f"({original}级 -> {corrected}级)"
+                )
+
+            item['chapter'].level = corrected
+
+        self.logger.info(
+            f"[Gemini后处理] 完成: 修正了 {correction_count}/{len(flat_items)} 个章节的层级"
+        )
+
+        return chapters
+
+    def _calculate_cost(self, token_count: int, cached_token_count: int = 0) -> float:
+        """计算API调用成本(支持缓存token折扣)
 
         Args:
             token_count: 总token数
+            cached_token_count: 缓存token数(享受90%折扣)
 
         Returns:
             成本(元)
         """
         model_pricing = self.pricing.get(
             self.model_name,
-            self.pricing["gemini-2.0-flash"]  # 默认使用Flash定价
+            self.pricing["gemini-1.5-flash-002"]  # 默认使用Flash 1.5定价
         )
 
-        # 假设输入输出各占一半
-        input_tokens = token_count * 0.7
-        output_tokens = token_count * 0.3
+        # 计算非缓存token数量
+        regular_token_count = token_count - cached_token_count
 
-        cost = (
-            (input_tokens / 1_000_000) * model_pricing["input"] +
-            (output_tokens / 1_000_000) * model_pricing["output"]
+        # 假设输入输出token比例为 7:3
+        regular_input_tokens = regular_token_count * 0.7
+        regular_output_tokens = regular_token_count * 0.3
+
+        # 常规token成本
+        regular_cost = (
+            (regular_input_tokens / 1_000_000) * model_pricing["input"] +
+            (regular_output_tokens / 1_000_000) * model_pricing["output"]
         )
 
-        return round(cost, 4)
+        # 缓存token成本(仅输入token享受折扣)
+        cache_cost = 0
+        if cached_token_count > 0 and "cache" in model_pricing:
+            cache_cost = (cached_token_count / 1_000_000) * model_pricing["cache"]
+            self.logger.info(
+                f"[Gemini成本] 缓存token: {cached_token_count}, "
+                f"节省: ¥{(cached_token_count / 1_000_000) * (model_pricing['input'] - model_pricing['cache']):.4f}"
+            )
+
+        total_cost = regular_cost + cache_cost
+
+        return round(total_cost, 4)
 
     def is_available(self) -> bool:
         """检查Gemini API是否可用"""
@@ -309,14 +669,16 @@ class GeminiParser(BaseStructureParser):
                 f"• 模型: {self.model_name}\n"
                 "• 优势: 理解语义、支持复杂布局、多语言、结构化输出\n"
                 "• 劣势: 需要API密钥、有一定成本\n"
-                "• 适用: 格式不规范、复杂布局的文档"
+                "• 适用: 格式不规范、复杂布局的文档\n"
+                "• 支持: PDF直接处理，Word自动转换为PDF"
             ),
             "requires_api": True,
             "cost_per_page": 0.01,  # 估算
             "available": self.is_available(),
             "model": self.model_name,
             "capabilities": [
-                "直接理解PDF/Word",
+                "直接理解PDF",
+                "自动转换Word→PDF",
                 "语义理解",
                 "结构化输出",
                 "多语言支持",

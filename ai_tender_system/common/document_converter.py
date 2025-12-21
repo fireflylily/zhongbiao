@@ -595,7 +595,7 @@ class DocumentConverter:
             print(f"[DocumentConverter] HTML转Word失败: {e}")
             raise Exception(f"HTML转Word失败: {str(e)}")
 
-    def _parse_html_to_docx(self, soup: BeautifulSoup, doc: Document):
+    def _parse_html_to_docx(self, soup: "BeautifulSoup", doc: "Document"):
         """
         递归解析HTML并添加到Word文档
 
