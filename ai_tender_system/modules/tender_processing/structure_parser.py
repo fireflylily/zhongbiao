@@ -369,7 +369,33 @@ class DocumentStructureParser:
 
             doc = Document(str(doc_path_abs))
 
+            # 1. 基于Word大纲级别识别章节
             chapters = self._parse_chapters_by_outline_level(doc)
+
+            # 2. 🆕 使用智能层级分析器修正层级(与精确识别保持一致)
+            if chapters:
+                from modules.tender_processing.level_analyzer import LevelAnalyzer
+
+                # 转换为类似目录项的格式
+                toc_like_items = [
+                    {'title': ch.title, 'level': ch.level}
+                    for ch in chapters
+                ]
+
+                # 使用contextual方法智能分析层级
+                analyzer = LevelAnalyzer()
+                corrected_levels = analyzer.analyze_toc_hierarchy_contextual(toc_like_items)
+
+                # 更新章节层级
+                for i, level in enumerate(corrected_levels):
+                    chapters[i].level = level
+
+                # 统计日志
+                from collections import Counter
+                level_dist = Counter(corrected_levels)
+                self.logger.info(f"✅ 智能层级分析完成,修正 {len(chapters)} 个章节: {dict(level_dist)}")
+
+            # 3. 后续处理(定位内容、构建树、统计)
             chapters = self._locate_chapter_content(doc, chapters)
             chapter_tree = self._build_chapter_tree(chapters)
             chapter_tree = self._propagate_skip_status(chapter_tree)
