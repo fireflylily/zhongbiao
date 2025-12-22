@@ -1784,7 +1784,13 @@ class DocumentStructureParser:
         # 候选匹配列表（用于诊断）
         candidates = []
 
+        # 记录已跳过的元数据列表区域（避免重复检测和日志）
+        skipped_ranges = []
+
         for i in range(start_idx, len(doc.paragraphs)):
+            # 检查是否在已跳过的区域中
+            if any(start <= i <= end for start, end in skipped_ranges):
+                continue
             para = doc.paragraphs[i]
             para_text = para.text.strip()
 
@@ -1802,6 +1808,27 @@ class DocumentStructureParser:
 
             # Level 1: 完全匹配或包含匹配
             if clean_title == clean_para or clean_title in clean_para:
+                # ⭐️ 检查是否在连续章节标题列表中（如"文件构成说明"）
+                list_range = self._detect_chapter_title_list_range(doc, i)
+
+                if list_range:
+                    start, end, titles = list_range
+                    self.logger.info(
+                        f"  ⚠️  检测到'文件构成说明'列表 (段落{start}-{end}，"
+                        f"包含{len(titles)}个章节标题)，跳过该区域"
+                    )
+                    # 显示列表中的章节（最多5个）
+                    for idx, title_text in titles[:5]:
+                        self.logger.info(f"      - 段落{idx}: {title_text}")
+                    if len(titles) > 5:
+                        self.logger.info(f"      ... 还有{len(titles)-5}个")
+
+                    # 记录跳过区域
+                    skipped_ranges.append((start, end))
+
+                    # 继续搜索（不返回此匹配）
+                    continue
+
                 self.logger.info(f"  ✓ 找到匹配 (Level 1-完全): 段落 {i}: '{para_text}'")
                 return i
 
@@ -3451,6 +3478,86 @@ class DocumentStructureParser:
             )
 
         return is_composition
+
+    def _detect_chapter_title_list_range(self, doc: Document, para_idx: int) -> Optional[tuple]:
+        """
+        检测连续章节标题列表的完整范围（用于跳过"文件构成说明"等元数据列表）
+
+        策略：
+        1. 从当前段落向前向后扫描，查找连续的章节标题
+        2. 章节标题特征：以"第X章"开头的短文本（≤50字）
+        3. 允许章节标题间有1-2个空段落
+        4. 至少需要3个连续章节标题才判定为列表
+
+        Args:
+            doc: Word文档对象
+            para_idx: 当前段落索引
+
+        Returns:
+            (start, end, titles) 或 None
+            - start: 列表起始段落索引
+            - end: 列表结束段落索引
+            - titles: [(idx, text), ...] 列表中的所有章节标题
+        """
+        # 向前扫描，找到列表开始位置
+        list_start = para_idx
+        for i in range(para_idx - 1, max(0, para_idx - 20), -1):
+            text = doc.paragraphs[i].text.strip()
+
+            # 检测章节标题格式
+            if re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) and len(text) <= 50:
+                list_start = i
+            else:
+                # 允许有空段落，但如果有实质内容则停止
+                if text and len(text) > 10:
+                    # 检查是否是"文件构成"说明文本
+                    if not any(kw in text for kw in ['文件构成', '由下述部分组成', '由以下部分组成', '包括以下']):
+                        break
+
+        # 向后扫描，找到列表结束位置并收集所有标题
+        list_end = para_idx
+        titles = []
+        last_title_idx = list_start
+
+        for i in range(list_start, min(len(doc.paragraphs), list_start + 30)):
+            text = doc.paragraphs[i].text.strip()
+
+            # 检测章节标题
+            if re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) and len(text) <= 50:
+                list_end = i
+                titles.append((i, text))
+                last_title_idx = i
+            else:
+                # 如果连续4段都不是章节标题，判定列表结束
+                if i > last_title_idx + 4:
+                    break
+                # 如果遇到长文本（>100字）且不是章节标题，判定列表结束
+                if text and len(text) > 100:
+                    break
+
+        # 至少要有3个章节标题才判定为列表
+        if len(titles) >= 3:
+            # 检查标题之间是否有大量内容（如果有，不是元数据列表）
+            has_substantial_content = False
+            for j in range(len(titles) - 1):
+                start_idx = titles[j][0]
+                end_idx = titles[j + 1][0]
+
+                # 计算两个标题之间的内容字数
+                content_chars = sum(
+                    len(doc.paragraphs[k].text.strip())
+                    for k in range(start_idx + 1, end_idx)
+                )
+
+                # 如果标题间有超过100字，说明不是元数据列表
+                if content_chars > 100:
+                    has_substantial_content = True
+                    break
+
+            if not has_substantial_content:
+                return (titles[0][0], titles[-1][0], titles)
+
+        return None
 
     def _detect_content_tags(self, content_text: str) -> List[str]:
         """
