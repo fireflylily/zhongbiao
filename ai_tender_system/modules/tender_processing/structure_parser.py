@@ -1733,20 +1733,21 @@ class DocumentStructureParser:
             text = re.sub(r'^附件[-:：]?', '', text)
             # 移除连字符、下划线、制表符
             text = re.sub(r'[-_\t]+', '', text)
-            # 移除所有空格
-            text = re.sub(r'\s+', '', text)
+            # 移除所有空格和冒号（将"第一章："和"第一章 "视为等价）
+            text = re.sub(r'[:：\s]+', '', text)
             return text
 
         def extract_core_keywords(text: str) -> str:
             """提取核心关键词：去除编号和常见前缀"""
-            # 移除编号
-            text = re.sub(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章|\d+\.|\d+\.\d+|[一二三四五六七八九十]+、)\s*', '', text)
+            # 移除编号（支持冒号和空格：第X章：、第X章 、第X章、第X部分：等）
+            text = re.sub(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章)[:：\s]*', '', text)
+            text = re.sub(r'^(\d+\.|\d+\.\d+|[一二三四五六七八九十]+、)\s*', '', text)
             # 移除"附件"前缀
             text = re.sub(r'^附件[-:：]?', '', text)
             # 移除分隔符
             text = re.sub(r'[-_\t]+', '', text)
-            # 移除空格
-            text = re.sub(r'\s+', '', text)
+            # 移除空格和冒号
+            text = re.sub(r'[:：\s]+', '', text)
             return text
 
         def calculate_similarity(str1: str, str2: str) -> float:
@@ -1810,7 +1811,10 @@ class DocumentStructureParser:
             para_keywords = extract_core_keywords(aggressive_para)
 
             # Level 1: 完全匹配或包含匹配
-            if clean_title == clean_para or clean_title in clean_para:
+            level1_exact_match = (clean_title == clean_para)
+            level1_contain_match = (clean_title in clean_para)
+
+            if level1_exact_match or level1_contain_match:
                 # ⭐️ 检查是否在连续章节标题列表中（如"文件构成说明"）
                 list_range = self._detect_chapter_title_list_range(doc, i, toc_items)
 
@@ -1832,11 +1836,35 @@ class DocumentStructureParser:
                     # 继续搜索（不返回此匹配）
                     continue
 
+                # 🔑 对于包含匹配（非完全匹配），需要额外验证
+                if level1_contain_match and not level1_exact_match:
+                    # 检查是否是Heading样式（更可能是真正的章节标题）
+                    is_heading = para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower())
+                    # 或者文本很短（≤20字，更可能是标题而不是正文）
+                    is_short = len(para_text) <= 20
+
+                    if not (is_heading or is_short):
+                        # 既不是Heading样式，文本也不短 → 可能是正文中提到标题 → 跳过
+                        self.logger.debug(f"  ⏭️  跳过段落 {i}（包含匹配但不是Heading且文本过长）: '{para_text[:60]}'")
+                        continue
+
                 self.logger.info(f"  ✓ 找到匹配 (Level 1-完全): 段落 {i}: '{para_text}'")
                 return i
 
-            # Level 2: 激进规范化后的完全匹配
-            if aggressive_title == aggressive_para or aggressive_title in aggressive_para:
+            # Level 2: 激进规范化后的完全匹配或包含匹配
+            level2_exact_match = (aggressive_title == aggressive_para)
+            level2_contain_match = (aggressive_title in aggressive_para)
+
+            if level2_exact_match or level2_contain_match:
+                # 🔑 对于包含匹配（非完全匹配），需要额外验证
+                if level2_contain_match and not level2_exact_match:
+                    is_heading = para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower())
+                    is_short = len(para_text) <= 20
+
+                    if not (is_heading or is_short):
+                        self.logger.debug(f"  ⏭️  跳过段落 {i}（包含匹配但不是Heading且文本过长）: '{para_text[:60]}'")
+                        continue
+
                 self.logger.info(f"  ✓ 找到匹配 (Level 2-规范化): 段落 {i}: '{para_text}'")
                 return i
 
@@ -3528,10 +3556,15 @@ class DocumentStructureParser:
         toc_matched_paras = []
 
         for i in range(scan_start, scan_end):
-            text = doc.paragraphs[i].text.strip()
+            para = doc.paragraphs[i]
+            text = para.text.strip()
 
             # 只检查短文本（可能是标题）
             if not text or len(text) > 50:
+                continue
+
+            # 🔑 跳过Heading样式的段落（它们更可能是真实章节标题，不是元数据列表）
+            if para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower()):
                 continue
 
             # 清理文本（去除空格、制表符）
