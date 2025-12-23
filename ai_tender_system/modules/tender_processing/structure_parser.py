@@ -1714,7 +1714,7 @@ class DocumentStructureParser:
 
         return toc_items, toc_end_idx
 
-    def _find_paragraph_by_title(self, doc: Document, title: str, start_idx: int = 0, toc_items: Optional[List[Dict]] = None) -> Optional[int]:
+    def _find_paragraph_by_title(self, doc: Document, title: str, start_idx: int = 0, toc_items: Optional[List[Dict]] = None, toc_end_idx: Optional[int] = None) -> Optional[int]:
         """
         在文档中搜索与标题匹配的段落
 
@@ -1723,6 +1723,7 @@ class DocumentStructureParser:
             title: 要搜索的标题文本
             start_idx: 开始搜索的段落索引
             toc_items: 目录项列表（可选），用于智能检测元数据列表
+            toc_end_idx: 目录结束的段落索引（可选），用于限制元数据检测不扫描目录区域
 
         Returns:
             段落索引，如果未找到则返回None
@@ -1816,7 +1817,7 @@ class DocumentStructureParser:
 
             if level1_exact_match or level1_contain_match:
                 # ⭐️ 检查是否在连续章节标题列表中（如"文件构成说明"）
-                list_range = self._detect_chapter_title_list_range(doc, i, toc_items)
+                list_range = self._detect_chapter_title_list_range(doc, i, toc_items, toc_end_idx)
 
                 if list_range:
                     start, end, titles = list_range
@@ -2201,8 +2202,8 @@ class DocumentStructureParser:
             title = item['title']
             level = item['level']
 
-            # 在文档中查找标题位置（传入toc_items用于智能检测元数据列表）
-            para_idx = self._find_paragraph_by_title(doc, title, last_found_idx, toc_items)
+            # 在文档中查找标题位置（传入toc_items和toc_end_idx用于智能检测元数据列表）
+            para_idx = self._find_paragraph_by_title(doc, title, last_found_idx, toc_items, toc_end_idx)
 
             if para_idx is None:
                 self.logger.warning(f"⚠️  未找到目录项: [{level}级] {title}")
@@ -3524,7 +3525,7 @@ class DocumentStructureParser:
 
         return is_composition
 
-    def _detect_chapter_title_list_range(self, doc: Document, para_idx: int, toc_items: Optional[List[Dict]] = None) -> Optional[tuple]:
+    def _detect_chapter_title_list_range(self, doc: Document, para_idx: int, toc_items: Optional[List[Dict]] = None, toc_end_idx: Optional[int] = None) -> Optional[tuple]:
         """
         检测连续章节标题列表的完整范围（用于跳过"文件构成说明"等元数据列表）
 
@@ -3537,6 +3538,7 @@ class DocumentStructureParser:
             doc: Word文档对象
             para_idx: 当前段落索引
             toc_items: 目录项列表（可选），如果提供则基于TOC对比
+            toc_end_idx: 目录结束的段落索引（可选），用于限制不扫描目录区域
 
         Returns:
             (start, end, titles) 或 None
@@ -3548,8 +3550,12 @@ class DocumentStructureParser:
         if not toc_items:
             return None
 
-        # 扫描范围：当前段落前后
-        scan_start = max(0, para_idx - 10)
+        # 🔑 扫描范围：当前段落前后，但不扫描目录区域（目录和正文分离）
+        if toc_end_idx is not None:
+            # 确保扫描起点在目录结束之后（正文区域）
+            scan_start = max(toc_end_idx + 1, para_idx - 10)
+        else:
+            scan_start = max(0, para_idx - 10)
         scan_end = min(len(doc.paragraphs), para_idx + 20)
 
         # 收集与TOC匹配的段落
@@ -3561,10 +3567,6 @@ class DocumentStructureParser:
 
             # 只检查短文本（可能是标题）
             if not text or len(text) > 50:
-                continue
-
-            # 🔑 跳过Heading样式的段落（它们更可能是真实章节标题，不是元数据列表）
-            if para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower()):
                 continue
 
             # 清理文本（去除空格、制表符）
