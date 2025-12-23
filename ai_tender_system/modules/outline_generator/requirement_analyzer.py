@@ -50,14 +50,27 @@ class RequirementAnalyzer:
             self.logger.info(f"开始分析需求文档: {file_path_or_text[:100] if len(file_path_or_text) > 100 else file_path_or_text}...")
 
             # 1. 解析文档内容 - 自动判断是文件路径还是文本
-            if '\n' in file_path_or_text or len(file_path_or_text) > 500:
-                # 包含换行符或很长,可能是文本内容
+            # 改进判断逻辑: 检查是否为有效文件路径
+            from pathlib import Path
+
+            # 使用try-except避免文件名过长导致OSError
+            is_file_path = False
+            try:
+                path_obj = Path(file_path_or_text)
+                # 如果路径存在且是文件,则解析
+                if path_obj.exists() and path_obj.is_file():
+                    is_file_path = True
+            except (OSError, ValueError):
+                # 文件名过长或路径无效,视为文本内容
+                is_file_path = False
+
+            if is_file_path:
+                self.logger.info(f"检测到输入为文件路径,尝试解析: {file_path_or_text}")
+                document_text = self._parse_document(file_path_or_text)
+            else:
+                # 否则视为文本内容
                 self.logger.info("检测到输入为文本内容，直接使用")
                 document_text = file_path_or_text
-            else:
-                # 可能是文件路径,尝试解析
-                self.logger.info("检测到输入为文件路径，尝试解析")
-                document_text = self._parse_document(file_path_or_text)
 
             # 2. AI分析需求
             analysis_result = self._analyze_requirements(document_text)

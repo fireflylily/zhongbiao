@@ -1121,10 +1121,17 @@ def generate_with_agent():
         # ✅ 导出Word文件（新增功能）
         from ai_tender_system.modules.outline_generator import WordExporter
 
-        output_dir = config.get_path('output')
-        output_dir.mkdir(parents=True, exist_ok=True)
-
+        # 📂 修改保存路径: 与传统方式保持一致,使用 tech_proposal_files 目录
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        # 获取项目ID用于目录组织
+        project_id = request.form.get('projectId') or request.form.get('project_id') if not request.is_json else data.get('projectId', 'default')
+        if not project_id:
+            project_id = 'default'
+
+        # 构建输出路径: uploads/tech_proposal_files/年份/月份/项目ID/
+        output_dir = config.get_path('upload') / 'tech_proposal_files' / datetime.now().strftime('%Y/%m') / str(project_id)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取项目名称用于文件命名
         project_name = request.form.get('projectName', '') if not request.is_json else data.get('projectName', '')
@@ -1132,11 +1139,13 @@ def generate_with_agent():
 
         # 文件命名
         if project_name:
-            proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
+            proposal_filename = f"{project_name}_技术方案_{timestamp}_{output_prefix}.docx"
         else:
             proposal_filename = f"{output_prefix}_{timestamp}.docx"
 
         proposal_path = output_dir / proposal_filename
+
+        logger.info(f"【智能体API】文件将保存到: {proposal_path}")
 
         # 将智能体返回的章节数据转换为WordExporter期望的格式
         exporter = WordExporter()
@@ -1356,6 +1365,103 @@ def evaluate_tender():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@api_outline_bp.route('/tech-proposal-files', methods=['GET'])
+def list_tech_proposal_files():
+    """
+    获取技术方案文件列表
+
+    查询参数:
+    - project_id: 项目ID（可选，如果提供则只返回该项目的文件）
+
+    返回:
+    {
+        "success": true,
+        "files": [
+            {
+                "filename": "xxx_技术方案_20251222_110612_技术方案.docx",
+                "size": "46K",
+                "date": "2025-12-22 11:06:12",
+                "download_url": "/api/files/download/xxx.docx",
+                "project_id": "61",
+                "created": "2025-12-22T11:06:12",
+                "modified": "2025-12-22T11:06:12"
+            },
+            ...
+        ]
+    }
+    """
+    try:
+        import os
+        from datetime import datetime
+
+        def format_size(size_bytes):
+            """格式化文件大小"""
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size_bytes < 1024.0:
+                    return f"{size_bytes:.1f} {unit}"
+                size_bytes /= 1024.0
+            return f"{size_bytes:.1f} TB"
+
+        project_id = request.args.get('project_id')
+        files = []
+
+        # 技术方案文件保存在 tech_proposal_files/{年份}/{月份}/{项目ID}/ 目录下
+        tech_proposal_base = config.get_path('upload') / 'tech_proposal_files'
+
+        if tech_proposal_base.exists():
+            # 遍历年份目录
+            for year_dir in tech_proposal_base.glob('*'):
+                if not year_dir.is_dir():
+                    continue
+
+                # 遍历月份目录
+                for month_dir in year_dir.glob('*'):
+                    if not month_dir.is_dir():
+                        continue
+
+                    # 遍历项目目录
+                    for proj_dir in month_dir.glob('*'):
+                        if not proj_dir.is_dir():
+                            continue
+
+                        # 如果指定了project_id,只处理该项目
+                        if project_id and proj_dir.name != str(project_id):
+                            continue
+
+                        # 遍历项目目录下的文件
+                        for file_path in proj_dir.glob('*.docx'):
+                            try:
+                                stat = file_path.stat()
+                                modified_time = datetime.fromtimestamp(stat.st_mtime)
+
+                                # 构建相对于uploads目录的路径用于下载
+                                relative_path = file_path.relative_to(config.get_path('upload'))
+
+                                files.append({
+                                    'filename': file_path.name,
+                                    'size': format_size(stat.st_size),
+                                    'date': modified_time.strftime('%Y-%m-%d %H:%M:%S'),
+                                    'download_url': f'/api/files/download/{file_path.name}',
+                                    'file_path': str(file_path),  # 完整路径用于预览
+                                    'project_id': proj_dir.name,
+                                    'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                                    'modified': modified_time.isoformat()
+                                })
+                            except Exception as e:
+                                logger.warning(f"读取文件信息失败 {file_path}: {e}")
+
+        # 按修改时间倒序排列
+        files.sort(key=lambda x: x.get('modified', ''), reverse=True)
+
+        logger.info(f"找到{len(files)}个技术方案文件" + (f" (project_id={project_id})" if project_id else ""))
+
+        return jsonify({'success': True, 'files': files})
+
+    except Exception as e:
+        logger.error(f"获取技术方案文件列表失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # 导出蓝图

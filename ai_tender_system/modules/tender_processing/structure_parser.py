@@ -3526,8 +3526,9 @@ class DocumentStructureParser:
                 toc_title = toc_item['title']
                 clean_toc = re.sub(r'[\s\u3000]+', '', toc_title)
 
-                # 完全匹配或包含匹配
-                if clean_text == clean_toc or clean_text in clean_toc or clean_toc in clean_text:
+                # 🔑 只使用完全匹配（避免误判子标题为元数据）
+                # 例如："投标人须知前附表"不应该匹配"投标人须知前附表及投标人须知"
+                if clean_text == clean_toc:
                     toc_matched_paras.append((i, text, toc_item))
                     break
 
@@ -3566,9 +3567,9 @@ class DocumentStructureParser:
                 if target_group is None or len(group) > len(target_group):
                     target_group = group
 
-        # 如果当前段落不在任何组中，选择最近的组
+        # 🔑 关键修改：如果当前段落不在任何组中，返回 None（不是元数据）
         if target_group is None:
-            target_group = min(consecutive_groups, key=lambda g: min(abs(g[0][0] - para_idx), abs(g[-1][0] - para_idx)))
+            return None
 
         # 检查该组的标题之间是否无实质内容
         has_substantial_content = False
