@@ -1782,12 +1782,14 @@ class DocumentStructureParser:
 
         self.logger.info(f"搜索标题: '{title}' (清理后: '{clean_title}', 核心: '{core_keywords}'), 从段落 {start_idx} 开始")
 
-        # 候选匹配列表（用于诊断）
-        candidates = []
+        # 候选匹配列表（用于宽松匹配级别）
+        # 格式: [(段落索引, 匹配级别, 得分, 段落文本, 匹配原因)]
+        loose_match_candidates = []
 
         # 记录已跳过的元数据列表区域（避免重复检测和日志）
         skipped_ranges = []
 
+        # 🔑 第一轮：严格匹配 (Level 1-3)，找到立即返回
         for i in range(start_idx, len(doc.paragraphs)):
             # 检查是否在已跳过的区域中
             if any(start <= i <= end for start, end in skipped_ranges):
@@ -1855,98 +1857,111 @@ class DocumentStructureParser:
                     self.logger.info(f"  ✓ 找到匹配 (Level 3-去编号): 段落 {i}: '{para_text}'")
                     return i
 
+        # 🔑 第二轮：宽松匹配 (Level 4-7)，收集所有候选
+        self.logger.info(f"  严格匹配 (Level 1-3) 未找到，开始宽松匹配 (Level 4-7)")
+
+        for i in range(start_idx, len(doc.paragraphs)):
+            # 检查是否在已跳过的区域中
+            if any(start <= i <= end for start, end in skipped_ranges):
+                continue
+            para = doc.paragraphs[i]
+            para_text = para.text.strip()
+
+            if not para_text:
+                continue
+
+            # 清理段落文本
+            clean_para = re.sub(r'\s+', '', para_text)
+
+            # 激进规范化的段落
+            aggressive_para = aggressive_normalize(para_text)
+
+            # 段落核心关键词
+            para_keywords = extract_core_keywords(aggressive_para)
+
+            # 检查标题和段落是否包含"第X部分"
+            title_has_part_number = bool(re.search(r'第[一二三四五六七八九十\d]+部分', title))
+            para_has_part_number = bool(re.search(r'第[一二三四五六七八九十\d]+部分', para_text))
+
+            # 去除编号
+            title_without_number = re.sub(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章|\d+\.|\d+\.\d+|[一二三四五六七八九十]+、)\s*', '', clean_title)
+            para_without_number = re.sub(r'^(第[一二三四五六七八九十\d]+部分|第[一二三四五六七八九十\d]+章|\d+\.|\d+\.\d+|[一二三四五六七八九十\d]+、)\s*', '', clean_para)
+
             # Level 4: 核心关键词匹配（长度≥4字）
-            # 特别检查：如果原标题包含"第X部分",则段落也必须包含"第X部分"
-
             if len(core_keywords) >= 4 and len(para_keywords) >= 4:
-                # 双向包含检查
-                if core_keywords in para_keywords or para_keywords in core_keywords:
-                    # 如果标题有"第X部分",则段落也必须有,且段落应该是短标题(≤50字)
-                    if title_has_part_number:
-                        if para_has_part_number and len(para_text) <= 50:
-                            self.logger.info(f"  ✓ 找到匹配 (Level 4-关键词+部分编号): 段落 {i}: '{para_text}' (核心词: '{para_keywords}')")
-                            return i
-                    else:
-                        # 标题没有"第X部分",普通关键词匹配
-                        self.logger.info(f"  ✓ 找到匹配 (Level 4-关键词): 段落 {i}: '{para_text}' (核心词: '{para_keywords}')")
-                        return i
+                # 完全相等匹配（得分最高）
+                if core_keywords == para_keywords:
+                    loose_match_candidates.append((i, 4, 100, para_text, f"关键词完全相等: '{core_keywords}'"))
+                # 标题关键词包含段落关键词（得分中等）
+                elif core_keywords in para_keywords:
+                    loose_match_candidates.append((i, 4, 70, para_text, f"关键词包含: '{core_keywords}' in '{para_keywords}'"))
+                # 段落关键词包含标题关键词（得分较低，容易误匹配）
+                elif para_keywords in core_keywords:
+                    loose_match_candidates.append((i, 4, 50, para_text, f"被包含: '{para_keywords}' in '{core_keywords}'"))
 
-            # Level 4.5: 部分子串匹配（解决TOC与实际文本部分差异问题）
-            # 例如：TOC="单一来源采购谈判邀请" vs 实际="单一来源采购邀请" (少"谈判")
+            # Level 4.5: 部分子串匹配
             if len(core_keywords) >= 6 and title_has_part_number:
-                # 从长到短尝试提取子串
                 for substr_len in range(len(core_keywords), 5, -1):
                     substr = core_keywords[:substr_len]
                     if substr in para_keywords and len(substr) >= 6:
-                        # 找到大部分匹配，验证段落格式
                         if para_has_part_number and len(para_text) <= 50:
                             match_ratio = len(substr) / len(core_keywords)
-                            self.logger.info(f"  ✓ 找到匹配 (Level 4.5-部分子串{match_ratio:.0%}): 段落 {i}: '{para_text}' (匹配: '{substr}')")
-                            return i
-                        break  # 找到但格式不对，不继续尝试更短的
+                            score = 65 + match_ratio * 10  # 65-75分
+                            loose_match_candidates.append((i, 4.5, score, para_text, f"部分子串{match_ratio:.0%}: '{substr}'"))
+                        break
 
-            # Level 5: 相似度匹配（相似度≥80%，更严格）
+            # Level 5: 相似度匹配（相似度≥60%）
             if len(core_keywords) >= 4:
                 similarity = calculate_similarity(core_keywords, para_keywords)
-                if similarity >= 0.8:  # 提高阈值从70%到80%
-                    self.logger.info(f"  ✓ 找到匹配 (Level 5-相似度{similarity:.0%}): 段落 {i}: '{para_text}'")
-                    return i
-
-                # 记录高相似度候选
-                if similarity >= 0.6:  # 候选阈值也相应提高
-                    candidates.append((i, para_text, similarity, core_keywords, para_keywords))
+                if similarity >= 0.6:
+                    score = similarity * 60  # 36-60分
+                    loose_match_candidates.append((i, 5, score, para_text, f"相似度{similarity:.0%}"))
 
             # Level 6: 宽松关键词匹配（至少6字标题）
             if len(title_without_number) >= 6:
-                # 检查段落是否包含标题去除编号后的大部分内容
                 if title_without_number in clean_para:
-                    self.logger.info(f"  ✓ 找到匹配 (Level 6-宽松): 段落 {i}: '{para_text}'")
-                    return i
+                    loose_match_candidates.append((i, 6, 40, para_text, f"包含去编号标题: '{title_without_number}'"))
 
-            # 额外尝试：将"第X部分"转换为"X."进行匹配
-            # 例如："第一部分 单一来源采购谈判邀请" 也可以匹配 "1.单一来源采购谈判邀请"
+            # Level 7: 转换编号后匹配
             def convert_chinese_to_number(text):
                 """将第一/第二/第三等转换为1/2/3"""
                 mapping = {'一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
                           '六': '6', '七': '7', '八': '8', '九': '9', '十': '10'}
-                # 匹配"第X部分"格式
                 match = re.match(r'^第([一二三四五六七八九十]+)部分(.*)$', text)
                 if match:
                     num = mapping.get(match.group(1), match.group(1))
                     return f"{num}.{match.group(2)}"
                 return text
 
-            # Level 7: 转换编号后匹配
             converted_title = convert_chinese_to_number(clean_title)
             if converted_title != clean_title and clean_para.startswith(converted_title[:3]):
-                # 转换后的标题开头与段落匹配
                 converted_para_without_num = re.sub(r'^\d+\.', '', clean_para)
                 converted_title_without_num = re.sub(r'^\d+\.', '', converted_title)
                 if converted_title_without_num == converted_para_without_num:
-                    self.logger.info(f"  ✓ 找到匹配 (Level 7-转换编号): 段落 {i}: '{para_text}'")
-                    return i
+                    loose_match_candidates.append((i, 7, 30, para_text, f"转换编号后匹配"))
 
-            # 收集低相似度候选（用于诊断）
-            if i < start_idx + 100 and len(para_text) > 5 and len(para_text) < 100:
-                # 检查是否部分匹配
-                if title_without_number and para_without_number:
-                    # 如果标题去编号后的内容部分出现在段落中
-                    if len(title_without_number) >= 3:
-                        if title_without_number[:4] in para_without_number or para_without_number[:4] in title_without_number:
-                            if not any(c[0] == i for c in candidates):  # 避免重复
-                                candidates.append((i, para_text, 0.4, title_without_number, para_without_number))
+        # 🔑 从候选中选择得分最高的
+        if loose_match_candidates:
+            # 按得分排序
+            loose_match_candidates.sort(key=lambda x: x[2], reverse=True)
+            best = loose_match_candidates[0]
+            para_idx, level, score, para_text, reason = best
 
-        # 未找到，输出诊断信息
+            self.logger.info(f"  ✓ 从 {len(loose_match_candidates)} 个宽松候选中选择最佳匹配:")
+            self.logger.info(f"     段落 {para_idx} (Level {level}, 得分{score:.0f}): '{para_text[:60]}'")
+            self.logger.info(f"     匹配原因: {reason}")
+
+            # 显示其他候选（前3个）
+            if len(loose_match_candidates) > 1:
+                self.logger.info(f"  其他候选:")
+                for candidate in loose_match_candidates[1:4]:
+                    c_idx, c_level, c_score, c_text, c_reason = candidate
+                    self.logger.info(f"     段落 {c_idx} (Level {c_level}, 得分{c_score:.0f}): '{c_text[:60]}'")
+
+            return para_idx
+
+        # 未找到任何匹配
         self.logger.warning(f"未找到标题匹配: '{title}'")
-        if candidates:
-            # 按相似度排序
-            candidates.sort(key=lambda x: x[2] if isinstance(x[2], float) else 0.3, reverse=True)
-            self.logger.info(f"  可能的候选段落 (前{min(5, len(candidates))}个，按相似度排序):")
-            for idx, text, sim, title_key, para_key in candidates[:5]:
-                sim_str = f"{sim:.0%}" if isinstance(sim, float) else "低"
-                self.logger.info(f"    段落 {idx} (相似度{sim_str}): '{text[:50]}...' ")
-                self.logger.info(f"      标题核心: '{title_key}' vs 段落核心: '{para_key}'")
-
         return None
 
     def _detect_numbering_pattern(self, text: str) -> Optional[Tuple[str, int]]:
