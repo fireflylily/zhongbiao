@@ -1714,7 +1714,7 @@ class DocumentStructureParser:
 
         return toc_items, toc_end_idx
 
-    def _find_paragraph_by_title(self, doc: Document, title: str, start_idx: int = 0) -> Optional[int]:
+    def _find_paragraph_by_title(self, doc: Document, title: str, start_idx: int = 0, toc_items: Optional[List[Dict]] = None) -> Optional[int]:
         """
         在文档中搜索与标题匹配的段落
 
@@ -1722,6 +1722,7 @@ class DocumentStructureParser:
             doc: Word文档对象
             title: 要搜索的标题文本
             start_idx: 开始搜索的段落索引
+            toc_items: 目录项列表（可选），用于智能检测元数据列表
 
         Returns:
             段落索引，如果未找到则返回None
@@ -1809,7 +1810,7 @@ class DocumentStructureParser:
             # Level 1: 完全匹配或包含匹配
             if clean_title == clean_para or clean_title in clean_para:
                 # ⭐️ 检查是否在连续章节标题列表中（如"文件构成说明"）
-                list_range = self._detect_chapter_title_list_range(doc, i)
+                list_range = self._detect_chapter_title_list_range(doc, i, toc_items)
 
                 if list_range:
                     start, end, titles = list_range
@@ -2157,8 +2158,8 @@ class DocumentStructureParser:
             title = item['title']
             level = item['level']
 
-            # 在文档中查找标题位置
-            para_idx = self._find_paragraph_by_title(doc, title, last_found_idx)
+            # 在文档中查找标题位置（传入toc_items用于智能检测元数据列表）
+            para_idx = self._find_paragraph_by_title(doc, title, last_found_idx, toc_items)
 
             if para_idx is None:
                 self.logger.warning(f"⚠️  未找到目录项: [{level}级] {title}")
@@ -3479,19 +3480,19 @@ class DocumentStructureParser:
 
         return is_composition
 
-    def _detect_chapter_title_list_range(self, doc: Document, para_idx: int) -> Optional[tuple]:
+    def _detect_chapter_title_list_range(self, doc: Document, para_idx: int, toc_items: Optional[List[Dict]] = None) -> Optional[tuple]:
         """
         检测连续章节标题列表的完整范围（用于跳过"文件构成说明"等元数据列表）
 
-        策略：
-        1. 从当前段落向前向后扫描，查找连续的章节标题
-        2. 章节标题特征：以"第X章"或"第X部分"开头的短文本（≤50字）
-        3. 允许章节标题间有1-2个空段落
-        4. 至少需要3个连续章节标题才判定为列表
+        策略（基于TOC对比，更智能）：
+        1. 从当前段落向前向后扫描短文本（≤50字）
+        2. 检查这些文本是否与TOC项匹配
+        3. 如果连续3个以上TOC匹配，且标题间无实质内容，判定为元数据列表
 
         Args:
             doc: Word文档对象
             para_idx: 当前段落索引
+            toc_items: 目录项列表（可选），如果提供则基于TOC对比
 
         Returns:
             (start, end, titles) 或 None
@@ -3499,66 +3500,100 @@ class DocumentStructureParser:
             - end: 列表结束段落索引
             - titles: [(idx, text), ...] 列表中的所有章节标题
         """
-        # 向前扫描，找到列表开始位置
-        list_start = para_idx
-        for i in range(para_idx - 1, max(0, para_idx - 20), -1):
+        # 如果没有TOC，无法进行智能检测
+        if not toc_items:
+            return None
+
+        # 扫描范围：当前段落前后
+        scan_start = max(0, para_idx - 10)
+        scan_end = min(len(doc.paragraphs), para_idx + 20)
+
+        # 收集与TOC匹配的段落
+        toc_matched_paras = []
+
+        for i in range(scan_start, scan_end):
             text = doc.paragraphs[i].text.strip()
 
-            # 检测章节标题格式（第X章 或 第X部分）
-            if (re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) or
-                re.match(r'^第[一二三四五六七八九十\d]+部分[\s\u3000]', text)) and len(text) <= 50:
-                list_start = i
+            # 只检查短文本（可能是标题）
+            if not text or len(text) > 50:
+                continue
+
+            # 清理文本（去除空格、制表符）
+            clean_text = re.sub(r'[\s\u3000]+', '', text)
+
+            # 检查是否与任何TOC项匹配
+            for toc_item in toc_items:
+                toc_title = toc_item['title']
+                clean_toc = re.sub(r'[\s\u3000]+', '', toc_title)
+
+                # 完全匹配或包含匹配
+                if clean_text == clean_toc or clean_text in clean_toc or clean_toc in clean_text:
+                    toc_matched_paras.append((i, text, toc_item))
+                    break
+
+        # 至少需要3个连续的TOC匹配
+        if len(toc_matched_paras) < 3:
+            return None
+
+        # 检查是否连续（允许间隔1-3个段落）
+        consecutive_groups = []
+        current_group = [toc_matched_paras[0]]
+
+        for j in range(1, len(toc_matched_paras)):
+            gap = toc_matched_paras[j][0] - toc_matched_paras[j-1][0]
+
+            if gap <= 4:  # 允许间隔最多3个空段
+                current_group.append(toc_matched_paras[j])
             else:
-                # 允许有空段落，但如果有实质内容则停止
-                if text and len(text) > 10:
-                    # 检查是否是"文件构成"说明文本
-                    if not any(kw in text for kw in ['文件构成', '由下述部分组成', '由以下部分组成', '包括以下']):
-                        break
+                if len(current_group) >= 3:
+                    consecutive_groups.append(current_group)
+                current_group = [toc_matched_paras[j]]
 
-        # 向后扫描，找到列表结束位置并收集所有标题
-        list_end = para_idx
-        titles = []
-        last_title_idx = list_start
+        # 检查最后一组
+        if len(current_group) >= 3:
+            consecutive_groups.append(current_group)
 
-        for i in range(list_start, min(len(doc.paragraphs), list_start + 30)):
-            text = doc.paragraphs[i].text.strip()
+        # 如果没有找到连续组，返回None
+        if not consecutive_groups:
+            return None
 
-            # 检测章节标题（第X章 或 第X部分）
-            if ((re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) or
-                 re.match(r'^第[一二三四五六七八九十\d]+部分[\s\u3000]', text)) and
-                len(text) <= 50):
-                list_end = i
-                titles.append((i, text))
-                last_title_idx = i
-            else:
-                # 如果连续4段都不是章节标题，判定列表结束
-                if i > last_title_idx + 4:
-                    break
-                # 如果遇到长文本（>100字）且不是章节标题，判定列表结束
-                if text and len(text) > 100:
-                    break
+        # 选择包含当前段落的组（如果有多个，选择最大的）
+        target_group = None
+        for group in consecutive_groups:
+            group_start = group[0][0]
+            group_end = group[-1][0]
+            if group_start <= para_idx <= group_end:
+                if target_group is None or len(group) > len(target_group):
+                    target_group = group
 
-        # 至少要有3个章节标题才判定为列表
-        if len(titles) >= 3:
-            # 检查标题之间是否有大量内容（如果有，不是元数据列表）
-            has_substantial_content = False
-            for j in range(len(titles) - 1):
-                start_idx = titles[j][0]
-                end_idx = titles[j + 1][0]
+        # 如果当前段落不在任何组中，选择最近的组
+        if target_group is None:
+            target_group = min(consecutive_groups, key=lambda g: min(abs(g[0][0] - para_idx), abs(g[-1][0] - para_idx)))
 
-                # 计算两个标题之间的内容字数
-                content_chars = sum(
-                    len(doc.paragraphs[k].text.strip())
-                    for k in range(start_idx + 1, end_idx)
-                )
+        # 检查该组的标题之间是否无实质内容
+        has_substantial_content = False
+        for j in range(len(target_group) - 1):
+            start_idx = target_group[j][0]
+            end_idx = target_group[j + 1][0]
 
-                # 如果标题间有超过100字，说明不是元数据列表
-                if content_chars > 100:
-                    has_substantial_content = True
-                    break
+            # 计算两个标题之间的内容字数
+            content_chars = sum(
+                len(doc.paragraphs[k].text.strip())
+                for k in range(start_idx + 1, end_idx)
+            )
 
-            if not has_substantial_content:
-                return (titles[0][0], titles[-1][0], titles)
+            # 如果标题间有超过100字，说明不是元数据列表
+            if content_chars > 100:
+                has_substantial_content = True
+                break
+
+        if not has_substantial_content:
+            # 返回列表范围
+            return (
+                target_group[0][0],  # start
+                target_group[-1][0],  # end
+                [(idx, text) for idx, text, _ in target_group]  # titles
+            )
 
         return None
 
