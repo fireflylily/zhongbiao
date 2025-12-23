@@ -2740,20 +2740,24 @@ class DocumentStructureParser:
             "estimated_processing_cost": 0.0
         }
 
-        def traverse(chapters):
+        def traverse(chapters, is_root_level=False):
             for ch in chapters:
                 stats["total_chapters"] += 1
                 if ch.auto_selected:
                     stats["auto_selected"] += 1
                 if ch.skip_recommended:
                     stats["skip_recommended"] += 1
-                stats["total_words"] += ch.word_count
+
+                # 🔑 只统计根节点（1级章节）的字数，避免重复统计
+                # 因为父节点的字数已经包含了所有子节点的内容
+                if is_root_level:
+                    stats["total_words"] += ch.word_count
 
                 # 递归遍历子章节
                 if ch.children:
-                    traverse(ch.children)
+                    traverse(ch.children, is_root_level=False)
 
-        traverse(chapter_tree)
+        traverse(chapter_tree, is_root_level=True)
 
         # 估算处理成本（基于字数）
         # 假设：1000字 ≈ 1500 tokens ≈ $0.002（GPT-4o-mini）
