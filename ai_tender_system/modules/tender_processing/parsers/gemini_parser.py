@@ -385,6 +385,12 @@ class GeminiParser(BaseStructureParser):
                 "chapters": [ch.to_dict() if hasattr(ch, 'to_dict') else ch for ch in chapters],
                 "statistics": statistics,
                 "method_name": "Gemini AI解析器",
+                "metrics": {
+                    "parse_time": parse_time,
+                    "chapters_found": len(chapters),
+                    "confidence_score": 95.0,
+                    "api_cost": api_cost
+                },
                 "performance": {
                     "elapsed": parse_time,
                     "api_cost": api_cost,

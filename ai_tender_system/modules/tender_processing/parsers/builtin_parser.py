@@ -62,8 +62,13 @@ class BuiltinParser(BaseStructureParser):
                 api_cost=0.0  # 内置解析器无API成本
             )
 
-            # 添加指标到结果
-            result['metrics'] = metrics
+            # 添加指标到结果（转换为字典格式）
+            result['metrics'] = {
+                "parse_time": metrics.parse_time,
+                "chapters_found": metrics.chapters_found,
+                "confidence_score": metrics.confidence_score,
+                "api_cost": metrics.api_cost
+            }
 
             self.logger.info(
                 f"[内置解析器] 完成: 找到{chapters_found}个章节, "
@@ -82,13 +87,12 @@ class BuiltinParser(BaseStructureParser):
                 "chapters": [],
                 "statistics": {},
                 "error": error_msg,
-                "metrics": ParserMetrics(
-                    parser_name="builtin",
-                    parse_time=parse_time,
-                    chapters_found=0,
-                    success=False,
-                    error_message=error_msg
-                )
+                "metrics": {
+                    "parse_time": parse_time,
+                    "chapters_found": 0,
+                    "confidence_score": 0.0,
+                    "api_cost": 0.0
+                }
             }
 
     def _calculate_confidence(self, result: Dict) -> float:

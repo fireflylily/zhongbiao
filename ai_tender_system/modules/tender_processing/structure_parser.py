@@ -2163,7 +2163,7 @@ class DocumentStructureParser:
             # 提取子章节内容
             content_paras = doc.paragraphs[subsection.para_start_idx + 1 : subsection.para_end_idx + 1]
             content_text = '\n'.join(p.text for p in content_paras)
-            subsection.word_count = len(content_text.replace(' ', '').replace('\n', ''))
+            subsection.word_count = self._calculate_word_count(content_text)
 
             # 提取预览文本
             preview_lines = []
@@ -2222,12 +2222,18 @@ class DocumentStructureParser:
             self.logger.debug(f"  ✓ 找到 [{level}级] {title} (段落 {para_idx})")
 
         # 步骤2: 计算每个章节的结束位置
+        # ⭐ 关键修复：采用"同级或更高级"逻辑，确保父章节包含所有子章节的内容
         for i, chapter_info in enumerate(all_chapters):
-            # 结束位置 = 下一个章节的起始位置 - 1
-            if i + 1 < len(all_chapters):
-                chapter_info['para_end_idx'] = all_chapters[i + 1]['para_idx'] - 1
-            else:
-                chapter_info['para_end_idx'] = len(doc.paragraphs) - 1
+            current_level = chapter_info['level']
+            next_start = len(doc.paragraphs)  # 默认到文档末尾
+
+            # 找下一个同级或更高级的章节（与方法2逻辑保持一致）
+            for j in range(i + 1, len(all_chapters)):
+                if all_chapters[j]['level'] <= current_level:
+                    next_start = all_chapters[j]['para_idx']
+                    break
+
+            chapter_info['para_end_idx'] = next_start - 1
 
         # 🆕 步骤2.5: 重型合同检测（仅处理标记为潜在合同的章节）
         contract_chapters_to_insert = []  # 存储需要插入的合同章节
@@ -2284,7 +2290,7 @@ class DocumentStructureParser:
                                 for j in range(para_idx + 1, cluster_start)
                                 if j < len(doc.paragraphs)
                             )
-                            front_word_count = len(front_content.replace(' ', '').replace('\n', ''))
+                            front_word_count = self._calculate_word_count(front_content)
 
                             if front_word_count >= min_content_length:
                                 self.logger.warning(
@@ -2351,7 +2357,7 @@ class DocumentStructureParser:
             )
 
             # 计算字数
-            word_count = len(content_text.replace(' ', '').replace('\n', ''))
+            word_count = self._calculate_word_count(content_text)
 
             # 如果没有预览文本，设置默认值
             if not preview_text:
@@ -2474,7 +2480,7 @@ class DocumentStructureParser:
             )
 
             # 计算字数
-            chapter.word_count = len(content_text.replace(' ', '').replace('\n', ''))
+            chapter.word_count = self._calculate_word_count(content_text)
             chapter.preview_text = preview_text if preview_text else "(无内容)"
 
             # 【新增】对于level 1-2的章节，提取内容样本并进行合同识别
@@ -2522,7 +2528,7 @@ class DocumentStructureParser:
                         for j in range(chapter.para_start_idx + 1, cluster_start)
                         if j < len(doc.paragraphs)
                     )
-                    front_word_count = len(front_content.replace(' ', '').replace('\n', ''))
+                    front_word_count = self._calculate_word_count(front_content)
 
                     if front_word_count >= min_content_length:
                         self.logger.warning(
@@ -2539,7 +2545,7 @@ class DocumentStructureParser:
                         content_text, preview_text = self._extract_chapter_content_with_tables(
                             doc, chapter.para_start_idx, chapter.para_end_idx
                         )
-                        chapter.word_count = len(content_text.replace(' ', '').replace('\n', ''))
+                        chapter.word_count = self._calculate_word_count(content_text)
                         chapter.preview_text = preview_text
 
                         # 🆕 创建合同章节（标记为待插入）
@@ -2559,7 +2565,7 @@ class DocumentStructureParser:
                         contract_content, contract_preview = self._extract_chapter_content_with_tables(
                             doc, contract_chapter.para_start_idx, contract_chapter.para_end_idx
                         )
-                        contract_chapter.word_count = len(contract_content.replace(' ', '').replace('\n', ''))
+                        contract_chapter.word_count = self._calculate_word_count(contract_content)
                         contract_chapter.preview_text = contract_preview
 
                         # 添加到待插入列表（记录插入位置）
@@ -2683,6 +2689,35 @@ class DocumentStructureParser:
         preview_text = '\n'.join(preview_lines)
 
         return full_content, preview_text
+
+    def _calculate_word_count(self, text: str) -> int:
+        """
+        计算文本的字数（中文字符数）
+
+        统计规则：去除空格和换行后的字符总数
+
+        Args:
+            text: 待统计的文本
+
+        Returns:
+            字数（去除空格和换行后的字符数）
+
+        Examples:
+            >>> parser._calculate_word_count("Hello World\\n测试")
+            13  # "HelloWorld测试" = 13个字符
+
+            >>> parser._calculate_word_count("")
+            0
+
+        Note:
+            此方法提供统一的字数统计逻辑，用于：
+            - 章节内容字数统计
+            - 判断内容是否足够（如合同拆分前的字数检查）
+            - 预览显示的字数信息
+        """
+        if not text:
+            return 0
+        return len(text.replace(' ', '').replace('\n', ''))
 
     def _build_chapter_tree(self, chapters: List[ChapterNode]) -> List[ChapterNode]:
         """
@@ -2857,7 +2892,7 @@ class DocumentStructureParser:
                         "id": chapter_dict["id"],
                         "title": chapter_dict["title"],
                         "content": content,
-                        "word_count": len(content.replace(' ', '').replace('\n', ''))
+                        "word_count": self._calculate_word_count(content)
                     })
 
                     total_words += selected_chapters[-1]["word_count"]
@@ -3697,7 +3732,7 @@ class DocumentStructureParser:
 
         # 计算字数
         content_text = '\n'.join(p.text for p in content_paras)
-        chapter.word_count = len(content_text.replace(' ', '').replace('\n', ''))
+        chapter.word_count = self._calculate_word_count(content_text)
 
         # 提取预览文本（前5行，每行最多100字符）
         preview_lines = []

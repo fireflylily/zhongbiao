@@ -240,6 +240,13 @@
             }
         });
 
+        // 获取解析器显示名称的辅助函数
+        function getParserDisplayName(parserName) {
+            if (!parserName) return '无';
+            const parser = availableParsers.find(p => p.name === parserName);
+            return parser ? parser.display_name : parserName;
+        }
+
         // 显示结果
         function displayResults(results, comparison) {
             document.getElementById('resultsContainer').style.display = 'block';
@@ -249,19 +256,19 @@
                 <div class="row">
                     <div class="col-md-3">
                         <h6><i class="bi bi-speedometer2"></i> 最快</h6>
-                        <p class="h4">${comparison.fastest || '无'}</p>
+                        <p class="h4">${getParserDisplayName(comparison.fastest)}</p>
                     </div>
                     <div class="col-md-3">
                         <h6><i class="bi bi-list-check"></i> 章节最多</h6>
-                        <p class="h4">${comparison.most_chapters || '无'}</p>
+                        <p class="h4">${getParserDisplayName(comparison.most_chapters)}</p>
                     </div>
                     <div class="col-md-3">
                         <h6><i class="bi bi-shield-check"></i> 置信度最高</h6>
-                        <p class="h4">${comparison.highest_confidence || '无'}</p>
+                        <p class="h4">${getParserDisplayName(comparison.highest_confidence)}</p>
                     </div>
                     <div class="col-md-3">
                         <h6><i class="bi bi-piggy-bank"></i> 成本最低</h6>
-                        <p class="h4">${comparison.lowest_cost || '无'}</p>
+                        <p class="h4">${getParserDisplayName(comparison.lowest_cost)}</p>
                     </div>
                 </div>
             `;
