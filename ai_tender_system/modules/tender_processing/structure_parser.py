@@ -3485,7 +3485,7 @@ class DocumentStructureParser:
 
         策略：
         1. 从当前段落向前向后扫描，查找连续的章节标题
-        2. 章节标题特征：以"第X章"开头的短文本（≤50字）
+        2. 章节标题特征：以"第X章"或"第X部分"开头的短文本（≤50字）
         3. 允许章节标题间有1-2个空段落
         4. 至少需要3个连续章节标题才判定为列表
 
@@ -3504,8 +3504,9 @@ class DocumentStructureParser:
         for i in range(para_idx - 1, max(0, para_idx - 20), -1):
             text = doc.paragraphs[i].text.strip()
 
-            # 检测章节标题格式
-            if re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) and len(text) <= 50:
+            # 检测章节标题格式（第X章 或 第X部分）
+            if (re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) or
+                re.match(r'^第[一二三四五六七八九十\d]+部分[\s\u3000]', text)) and len(text) <= 50:
                 list_start = i
             else:
                 # 允许有空段落，但如果有实质内容则停止
@@ -3522,8 +3523,10 @@ class DocumentStructureParser:
         for i in range(list_start, min(len(doc.paragraphs), list_start + 30)):
             text = doc.paragraphs[i].text.strip()
 
-            # 检测章节标题
-            if re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) and len(text) <= 50:
+            # 检测章节标题（第X章 或 第X部分）
+            if ((re.match(r'^第[一二三四五六七八九十\d]+章[\s\u3000]', text) or
+                 re.match(r'^第[一二三四五六七八九十\d]+部分[\s\u3000]', text)) and
+                len(text) <= 50):
                 list_end = i
                 titles.append((i, text))
                 last_title_idx = i
