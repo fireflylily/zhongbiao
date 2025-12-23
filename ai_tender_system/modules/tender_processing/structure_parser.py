@@ -2301,20 +2301,17 @@ class DocumentStructureParser:
             para_idx = chapter_info['para_idx']
             para_end_idx = chapter_info['para_end_idx']
 
-            # 提取章节内容
-            content_paras = doc.paragraphs[para_idx + 1 : para_end_idx + 1]
-            content_text = '\n'.join(p.text for p in content_paras)
+            # 提取章节内容（包括段落和表格）
+            content_text, preview_text = self._extract_chapter_content_with_tables(
+                doc, para_idx, para_end_idx
+            )
+
+            # 计算字数
             word_count = len(content_text.replace(' ', '').replace('\n', ''))
 
-            # 提取预览文本
-            preview_lines = []
-            for p in content_paras[:5]:
-                text = p.text.strip()
-                if text:
-                    preview_lines.append(text[:100] + ('...' if len(text) > 100 else ''))
-                if len(preview_lines) >= 5:
-                    break
-            preview_text = '\n'.join(preview_lines) if preview_lines else "(无内容)"
+            # 如果没有预览文本，设置默认值
+            if not preview_text:
+                preview_text = "(无内容)"
 
             # 判断是否匹配白/黑名单
             auto_selected = self._matches_whitelist(chapter_info['title'])
