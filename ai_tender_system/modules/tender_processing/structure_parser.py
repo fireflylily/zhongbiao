@@ -1539,7 +1539,7 @@ class DocumentStructureParser:
 
                 # SDT目录解析完成
                 if toc_items:
-                    toc_end_idx = toc_start_idx + 1  # SDT算作一个"段落"位置
+                    toc_end_idx = toc_start_idx - 1  # SDT不占用paragraphs索引,SDT后第一个段落就是toc_start_idx
                     self.logger.info(f"SDT目录解析完成，共{len(toc_items)}项")
                     return (toc_items, toc_end_idx)
 
@@ -3675,6 +3675,26 @@ class DocumentStructureParser:
                 break
 
         if not has_substantial_content:
+            # ⭐️ 额外检查：如果列表中包含"第X章"标题，检查该章节后面是否有大量内容
+            # 这是为了区分"文件构成说明"和"真正的章节恰好在多标题区域"
+            has_chapter_title = any(
+                re.match(r'^第[一二三四五六七八九十\d]+章', text)
+                for _, text, _ in target_group
+            )
+
+            if has_chapter_title:
+                # 找到"第X章"标题，检查它后面的内容量
+                for idx, text, _ in target_group:
+                    if re.match(r'^第[一二三四五六七八九十\d]+章', text):
+                        # 检查这个章节后面的内容（扫描后面50个段落）
+                        content_after_chapter = sum(
+                            len(doc.paragraphs[k].text.strip())
+                            for k in range(idx + 1, min(idx + 51, len(doc.paragraphs)))
+                        )
+                        # 如果章节后面有超过500字的内容，说明这是真正的章节，不是元数据
+                        if content_after_chapter > 500:
+                            return None  # 不是元数据列表
+
             # 返回列表范围
             return (
                 target_group[0][0],  # start
