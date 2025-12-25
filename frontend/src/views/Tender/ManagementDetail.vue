@@ -32,10 +32,15 @@
         :project-id="projectId"
         :company-id="projectDetail.company_id"
         :project-detail="projectDetail"
+        :response-file-info="responseFileInfo"
+        :technical-file-info="technicalFileInfo"
         @success="handleProcessSuccess"
         @refresh="loadProjectDetail"
         @parse-complete="handleParseComplete"
         @preview="handlePreview"
+        @start-business="handleStartBusiness"
+        @start-p2p="handleStartPointToPoint"
+        @start-proposal="handleStartProposal"
       />
 
       <!-- Tab 导航 -->
@@ -1700,7 +1705,7 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .tender-management-detail {
-  padding: 16px;
+  // 不设置padding,使用page-content的默认padding即可
 
   .tabs-card {
     :deep(.el-card__body) {
