@@ -186,21 +186,6 @@
       </div>
     </el-card>
 
-    <!-- 历史商务应答文件卡片（使用统一组件） -->
-    <HistoryFilesPanel
-      v-if="generationResult && !showEditor"
-      title="📄 该项目已有商务应答文件"
-      :current-file="generationResult"
-      :history-files="[]"
-      :show-editor-open="true"
-      :show-stats="true"
-      current-file-message="检测到该项目的历史商务应答文件"
-      @open-in-editor="openHistoryInEditor"
-      @preview="previewDocument"
-      @download="downloadDocument"
-      @regenerate="startGeneration"
-    />
-
     <!-- 富文本编辑器（生成时立即显示） -->
     <el-card v-if="showEditor" class="editor-section" shadow="never">
       <RichTextEditor
@@ -353,11 +338,79 @@
       </el-collapse-item>
     </el-collapse>
 
+    <!-- 本项目历史文件列表 -->
+    <el-collapse v-if="form.projectId" v-model="showAllHistory" class="history-collapse">
+      <el-collapse-item name="history">
+        <template #title>
+          <div class="collapse-header">
+            <span>📂 本项目历史文件 ({{ historyFiles.length }})</span>
+            <el-button
+              v-if="showAllHistory"
+              type="primary"
+              size="small"
+              :loading="loadingHistory"
+              @click.stop="loadFilesList"
+              style="margin-left: 16px"
+            >
+              刷新列表
+            </el-button>
+          </div>
+        </template>
+
+        <el-card shadow="never" style="border: none;">
+          <el-table
+            :data="historyFiles"
+            border
+            stripe
+            v-loading="loadingHistory"
+            max-height="400"
+          >
+            <el-table-column type="index" label="序号" width="60" />
+            <el-table-column prop="filename" label="文件名" min-width="300">
+              <template #default="{ row }">
+                <div class="filename-cell">
+                  <el-icon><Document /></el-icon>
+                  <span>{{ row.filename }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="size" label="文件大小" width="120">
+              <template #default="{ row }">
+                {{ formatFileSize(row.size) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="process_time" label="处理时间" width="180">
+              <template #default="{ row }">
+                {{ formatDate(row.process_time) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="previewFile(row)">
+                  预览
+                </el-button>
+                <el-button type="success" size="small" @click="downloadHistoryFile(row)">
+                  下载
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 空状态 -->
+          <el-empty
+            v-if="!loadingHistory && historyFiles.length === 0"
+            description="暂无历史文件"
+            :image-size="100"
+          />
+        </el-card>
+      </el-collapse-item>
+    </el-collapse>
+
     <!-- 文档预览对话框 -->
     <DocumentPreview
       v-model="previewVisible"
-      :file-url="generationResult?.downloadUrl"
-      :file-name="`商务应答-${selectedProject?.project_name || '文档'}.docx`"
+      :file-url="previewFileUrl"
+      :file-name="previewFileName"
     />
   </div>
 </template>
@@ -472,9 +525,16 @@ const editorSaving = ref(false)
 
 // 预览状态
 const previewVisible = ref(false)
+const previewFileUrl = ref('')
+const previewFileName = ref('')
 
 // 折叠面板状态
 const activeCollapse = ref<string[]>([])
+
+// 历史文件列表
+const historyFiles = ref<any[]>([])
+const loadingHistory = ref(false)
+const showAllHistory = ref<string[]>([])
 
 // 自定义上传函数：商务应答模板
 const handleTemplateUpload = async (options: UploadRequestOptions) => {
@@ -608,6 +668,8 @@ const handleProjectChange = async () => {
       showEditor.value = false
       editorContent.value = ''
       activeCollapse.value = []
+      // 清空历史文件列表
+      historyFiles.value = []
       // 取消使用HITL文件
       if (useHitlTemplate.value) {
         cancelHitlTemplate()
@@ -975,6 +1037,90 @@ const getQualCategoryType = (category: string): string => {
   return typeMap[category] || ''
 }
 
+// 加载历史文件列表（仅当前项目）
+const loadFilesList = async () => {
+  if (!form.value.projectId) {
+    historyFiles.value = []
+    return
+  }
+
+  loadingHistory.value = true
+  try {
+    const response = await fetch(`/api/business-files?project_id=${form.value.projectId}`)
+    const result = await response.json()
+
+    if (result.success) {
+      historyFiles.value = result.data || []
+    } else {
+      throw new Error(result.error || '加载失败')
+    }
+  } catch (error: any) {
+    console.error('加载历史文件失败:', error)
+    ElMessage.error(error.message || '加载历史文件失败')
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes: number): string => {
+  const units = ['B', 'KB', 'MB', 'GB']
+  let size = bytes
+  let unitIndex = 0
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex++
+  }
+
+  return `${size.toFixed(1)} ${units[unitIndex]}`
+}
+
+// 格式化日期
+const formatDate = (dateStr: string): string => {
+  try {
+    const date = new Date(dateStr)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+// 预览历史文件
+const previewFile = (file: any) => {
+  if (!file.file_path) {
+    ElMessage.warning('无法获取文件信息')
+    return
+  }
+
+  previewFileUrl.value = file.file_path
+  previewFileName.value = file.filename
+  previewVisible.value = true
+}
+
+// 下载历史文件
+const downloadHistoryFile = async (file: any) => {
+  try {
+    if (!file.download_url) {
+      ElMessage.error('下载地址无效')
+      return
+    }
+
+    const filename = file.filename || '商务应答.docx'
+    downloadFile(file.download_url, filename)
+    ElMessage.success('文件下载中...')
+  } catch (error: any) {
+    console.error('下载文件失败:', error)
+    ElMessage.error(error.message || '下载文件失败')
+  }
+}
+
 // 在编辑器中打开历史文件
 const openHistoryInEditor = async () => {
   if (!generationResult.value?.outputFile) {
@@ -1132,9 +1278,7 @@ onMounted(async () => {
   .generation-controls {
     display: flex;
     justify-content: center;
-    margin-top: 30px;
-    padding-top: 30px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    margin-top: 20px;
   }
 
   .result-content {

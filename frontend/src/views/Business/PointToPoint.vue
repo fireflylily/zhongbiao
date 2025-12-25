@@ -79,9 +79,6 @@
         @success="handleUploadSuccess"
       />
 
-      <!-- 处理配置 -->
-      <el-divider>处理配置</el-divider>
-
       <el-form :model="config" label-width="100px" class="config-form">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -128,15 +125,6 @@
       </el-form>
 
       <div class="action-controls">
-        <el-button
-          type="primary"
-          size="large"
-          :disabled="!canExtract"
-          :loading="extracting"
-          @click="extractRequirements"
-        >
-          提取招标要求
-        </el-button>
         <el-button
           type="success"
           size="large"
@@ -469,27 +457,12 @@
       </div>
     </el-dialog>
 
-    <!-- 当前项目的历史文件（使用统一组件） -->
-    <HistoryFilesPanel
-      v-if="currentP2pFile && !showEditor"
-      title="📄 该项目已有点对点应答文件"
-      :current-file="currentP2pFile"
-      :history-files="[]"
-      :show-editor-open="true"
-      :show-stats="true"
-      current-file-message="检测到该项目的历史点对点应答文件"
-      @open-in-editor="openHistoryInEditor"
-      @preview="previewCurrentFile"
-      @download="downloadCurrentFile"
-      @regenerate="regenerateCurrentFile"
-    />
-
-    <!-- 所有历史文件列表（可折叠，可选功能） -->
-    <el-collapse v-model="showAllHistory" class="history-collapse">
+    <!-- 本项目历史文件列表 -->
+    <el-collapse v-if="form.projectId" v-model="showAllHistory" class="history-collapse">
       <el-collapse-item name="history">
         <template #title>
           <div class="collapse-header">
-            <span>📂 查看所有历史处理文件 ({{ historyFiles.length }})</span>
+            <span>📂 本项目历史文件 ({{ historyFiles.length }})</span>
             <el-button
               v-if="showAllHistory"
               type="primary"
@@ -774,6 +747,8 @@ const handleProjectChange = async () => {
       showEditor.value = false
       editorContent.value = ''
       activeCollapse.value = []
+      // 清空历史文件列表
+      historyFiles.value = []
       // 取消使用HITL文件
       if (useHitlFile.value) {
         cancelHitlFile()
@@ -782,6 +757,11 @@ const handleProjectChange = async () => {
     // 文档加载完成回调：使用共享函数
     onDocumentsLoaded: handleDocumentsLoaded
   })
+
+  // 项目选择后，自动加载历史文件列表
+  if (form.value.projectId) {
+    await loadFilesList()
+  }
 }
 
 // 上传成功
@@ -1398,16 +1378,20 @@ const getFileName = (path: string | undefined) => {
 // P1功能：历史文件列表
 // ============================================
 
-// 加载历史文件列表
+// 加载历史文件列表（仅当前项目）
 const loadFilesList = async () => {
+  if (!form.value.projectId) {
+    historyFiles.value = []
+    return
+  }
+
   loadingHistory.value = true
   try {
-    const response = await fetch('/api/point-to-point/files')
+    const response = await fetch(`/api/point-to-point/files?project_id=${form.value.projectId}`)
     const result = await response.json()
 
     if (result.success) {
       historyFiles.value = result.data || []
-      ElMessage.success(`加载了 ${historyFiles.value.length} 个历史文件`)
     } else {
       throw new Error(result.error || '加载失败')
     }
@@ -1699,9 +1683,7 @@ onMounted(async () => {
     display: flex;
     justify-content: center;
     gap: 16px;
-    margin-top: 30px;
-    padding-top: 30px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    margin-top: 20px;
   }
 
   .requirement-text {

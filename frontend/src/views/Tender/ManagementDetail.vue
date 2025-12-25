@@ -80,57 +80,11 @@
             </template>
 
             <div class="tab-content">
-              <!-- 项目基本信息 -->
+              <!-- 基本信息（合并后） -->
               <section class="info-section">
-                <div class="section-header">
-                  <h3><i class="bi bi-folder"></i> 项目基本信息</h3>
-                  <el-tag :type="getStatusType(projectDetail.status)">
-                    {{ getStatusText(projectDetail.status) }}
-                  </el-tag>
-                </div>
-
-                <!-- 编辑模式 -->
-                <el-form v-if="isEditing" :model="formData" :rules="formRules" label-width="120px" class="edit-form">
-                  <el-row :gutter="20">
-                    <el-col :span="24">
-                      <el-form-item label="项目名称" prop="name">
-                        <el-input v-model="formData.name" placeholder="请输入项目名称" />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="项目编号" prop="number">
-                        <el-input v-model="formData.number" placeholder="请输入项目编号" />
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
-                </el-form>
-
-                <!-- 查看模式 -->
-                <el-descriptions v-else :column="2" border>
-                  <el-descriptions-item label="项目名称" :span="2">
-                    <strong>{{ projectDetail.name }}</strong>
-                  </el-descriptions-item>
-                  <el-descriptions-item label="项目编号">
-                    {{ projectDetail.number || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="创建时间">
-                    {{ projectDetail.created_at }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="最后更新">
-                    {{ projectDetail.updated_at || '-' }}
-                  </el-descriptions-item>
-                </el-descriptions>
-              </section>
-
-              <!-- 招标信息 -->
-              <section class="info-section">
-                <div class="section-header">
-                  <h3>
-                    <i class="bi bi-megaphone"></i> 招标信息
-                    <el-tag v-if="hasUnsavedChanges && isEditing" type="warning" size="small" style="margin-left: 10px;">
-                      <i class="bi bi-exclamation-triangle-fill"></i> 有未保存的更改
-                    </el-tag>
-                  </h3>
+                <!-- 操作按钮区域 -->
+                <div class="section-header" style="justify-content: space-between;">
+                  <!-- 左侧：AI提取按钮 -->
                   <el-button
                     size="small"
                     type="primary"
@@ -141,11 +95,37 @@
                     <i v-if="!extractingBasicInfo" class="bi bi-magic me-1"></i>
                     {{ extractingBasicInfo ? 'AI提取中...' : 'AI提取基本信息' }}
                   </el-button>
+
+                  <!-- 右侧：警告标签和编辑按钮 -->
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <el-tag v-if="hasUnsavedChanges && isEditing" type="warning" size="small">
+                      <i class="bi bi-exclamation-triangle-fill"></i> 有未保存的更改
+                    </el-tag>
+                    <!-- 编辑模式下显示取消和保存按钮 -->
+                    <template v-if="isEditing">
+                      <el-button size="small" @click="handleCancel">
+                        <i class="bi bi-x-lg"></i> 取消
+                      </el-button>
+                      <el-button size="small" type="primary" :loading="saving" @click="handleSave">
+                        <i class="bi bi-check-lg"></i> 保存
+                      </el-button>
+                    </template>
+                  </div>
                 </div>
 
                 <!-- 编辑模式 -->
-                <el-form v-if="isEditing" :model="formData" label-width="120px" class="edit-form">
+                <el-form v-if="isEditing" :model="formData" :rules="formRules" label-width="120px" class="edit-form">
                   <el-row :gutter="20">
+                    <el-col :span="12">
+                      <el-form-item label="项目名称" prop="name">
+                        <el-input v-model="formData.name" placeholder="请输入项目名称" />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="项目编号" prop="number">
+                        <el-input v-model="formData.number" placeholder="请输入项目编号" />
+                      </el-form-item>
+                    </el-col>
                     <el-col :span="12">
                       <el-form-item label="招标单位">
                         <el-input v-model="formData.tenderer" placeholder="请输入招标单位" />
@@ -207,6 +187,23 @@
 
                 <!-- 查看模式 -->
                 <el-descriptions v-else :column="2" border>
+                  <el-descriptions-item label="项目名称" :span="2">
+                    <strong>{{ projectDetail.name }}</strong>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="项目编号">
+                    {{ projectDetail.number || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="创建时间">
+                    {{ projectDetail.created_at }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="最后更新">
+                    {{ projectDetail.updated_at || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="状态">
+                    <el-tag :type="getStatusType(projectDetail.status)">
+                      {{ getStatusText(projectDetail.status) }}
+                    </el-tag>
+                  </el-descriptions-item>
                   <el-descriptions-item label="招标单位">
                     {{ projectDetail.tenderer || '-' }}
                   </el-descriptions-item>
@@ -1772,10 +1769,7 @@ onMounted(() => {
 
       // 编辑表单样式
       .edit-form {
-        padding: 16px;
-        background: var(--el-fill-color-lighter);
-        border-radius: 6px;
-        border: 1px solid var(--el-border-color-lighter);
+        padding: 0;
 
         :deep(.el-form-item) {
           margin-bottom: 16px;

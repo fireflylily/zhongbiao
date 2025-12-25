@@ -38,29 +38,114 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           title: '工作台',
           icon: 'bi-house',
-          category: 'workspace',
+          category: 'bidding-center',
           order: 1,
           affix: true,
           description: '项目总览和快捷入口'
         }
       },
 
-      // ========== 项目管理 ==========
+      // ========== 投标中心（仅用于菜单分组显示） ==========
       {
-        path: 'tender-management',
-        name: 'TenderManagement',
-        component: () => import('@/views/Tender/Management.vue'),
+        path: 'bidding-center',
+        name: 'BiddingCenter',
+        redirect: '/',
         meta: {
-          title: '投标管理',
-          icon: 'bi-file-earmark-text',
-          category: 'project',
-          order: 2,
-          keepAlive: true,
-          description: 'HITL人机协同系统'
-        }
+          title: '投标中心',
+          icon: 'bi-folder-fill',
+          category: 'bidding-center',
+          order: 1,
+          showInMenu: false,  // 不在菜单中单独显示
+          description: '投标项目全流程管理'
+        },
+        children: [
+          // ========== 项目管理 ==========
+          {
+            path: '/tender-management',
+            name: 'TenderManagement',
+            component: () => import('@/views/Tender/Management.vue'),
+            meta: {
+              title: '投标管理',
+              icon: 'bi-file-earmark-text',
+              parent: 'BiddingCenter',
+              order: 2,
+              keepAlive: true,
+              description: 'HITL人机协同系统'
+            }
+          },
+
+          // ========== AI核心工具 - 智能应答 ==========
+          {
+            path: '/business-response',
+            name: 'BusinessResponse',
+            component: () => import('@/views/Business/Response.vue'),
+            meta: {
+              title: '商务应答',
+              icon: 'bi-briefcase',
+              parent: 'BiddingCenter',
+              order: 3,
+              description: '智能生成商务应答文档'
+            }
+          },
+
+          {
+            path: '/point-to-point',
+            name: 'PointToPoint',
+            component: () => import('@/views/Business/PointToPoint.vue'),
+            meta: {
+              title: '点对点应答',
+              icon: 'bi-arrow-left-right',
+              parent: 'BiddingCenter',
+              order: 4,
+              description: '针对招标要求逐点响应'
+            }
+          },
+
+          // ========== AI核心工具 - 方案生成 ==========
+          {
+            path: '/tech-proposal',
+            name: 'TechProposal',
+            component: () => import('@/views/Business/TechProposal.vue'),
+            meta: {
+              title: '技术方案',
+              icon: 'bi-file-code',
+              parent: 'BiddingCenter',
+              order: 5,
+              description: 'AI生成技术方案大纲'
+            }
+          },
+
+          // ========== AI核心工具 - 最终标书 ==========
+          {
+            path: '/final-tender',
+            name: 'FinalTender',
+            component: () => import('@/views/Business/FinalTender.vue'),
+            meta: {
+              title: '最终标书',
+              icon: 'bi-file-earmark-zip',
+              parent: 'BiddingCenter',
+              order: 6,
+              description: '智能整合生成最终投标文件'
+            }
+          },
+
+          // ========== AI核心工具 - 智能评审 ==========
+          {
+            path: '/tender-scoring',
+            name: 'TenderScoring',
+            component: () => import('@/views/Tender/Scoring.vue'),
+            meta: {
+              title: '标书评分',
+              icon: 'bi-star',
+              parent: 'BiddingCenter',
+              order: 7,
+              description: 'AI辅助标书评分和风险分析'
+            }
+          }
+        ]
       },
 
-      // 项目详情页
+      // 项目详情页（保持在主children中）
       {
         path: 'tender-management/:id',
         name: 'TenderManagementDetail',
@@ -75,75 +160,6 @@ export const routes: RouteRecordRaw[] = [
         }
       },
 
-      // ========== AI核心工具 - 智能应答 ==========
-      {
-        path: 'business-response',
-        name: 'BusinessResponse',
-        component: () => import('@/views/Business/Response.vue'),
-        meta: {
-          title: '商务应答',
-          icon: 'bi-briefcase',
-          category: 'ai-tools',
-          order: 3,
-          description: '智能生成商务应答文档'
-        }
-      },
-
-      {
-        path: 'point-to-point',
-        name: 'PointToPoint',
-        component: () => import('@/views/Business/PointToPoint.vue'),
-        meta: {
-          title: '点对点应答',
-          icon: 'bi-arrow-left-right',
-          category: 'ai-tools',
-          order: 4,
-          description: '针对招标要求逐点响应'
-        }
-      },
-
-      // ========== AI核心工具 - 方案生成 ==========
-      {
-        path: 'tech-proposal',
-        name: 'TechProposal',
-        component: () => import('@/views/Business/TechProposal.vue'),
-        meta: {
-          title: '技术方案',
-          icon: 'bi-file-code',
-          category: 'ai-tools',
-          order: 5,
-          description: 'AI生成技术方案大纲'
-        }
-      },
-
-      // ========== AI核心工具 - 最终标书 ==========
-      {
-        path: 'final-tender',
-        name: 'FinalTender',
-        component: () => import('@/views/Business/FinalTender.vue'),
-        meta: {
-          title: '最终标书',
-          icon: 'bi-file-earmark-zip',
-          category: 'ai-tools',
-          order: 6,
-          description: '智能整合生成最终投标文件'
-        }
-      },
-
-      // ========== AI核心工具 - 智能评审 ==========
-      {
-        path: 'tender-scoring',
-        name: 'TenderScoring',
-        component: () => import('@/views/Tender/Scoring.vue'),
-        meta: {
-          title: '标书评分',
-          icon: 'bi-star',
-          category: 'ai-tools',
-          order: 6,
-          description: 'AI辅助标书评分和风险分析'
-        }
-      },
-
       // ========== 知识中心 ==========
       {
         path: 'knowledge',
@@ -152,7 +168,8 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           title: '知识中心',
           icon: 'bi-book',
-          order: 7,
+          category: 'knowledge',
+          order: 2,
           description: 'AI系统的大脑和资料库'
         },
         children: [

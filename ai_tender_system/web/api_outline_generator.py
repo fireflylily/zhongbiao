@@ -925,7 +925,7 @@ def get_outline_generation_prompts():
 @api_outline_bp.route('/agent/generate', methods=['POST'])
 def generate_with_agent():
     """
-    使用智能体生成技术方案API
+    使用智能体生成技术方案API（SSE流式响应）
 
     请求参数（multipart/form-data 或 JSON）:
     - generation_mode: 生成模式 ("按评分点写" | "按招标书目录写" | "编写专项章节")
@@ -935,37 +935,57 @@ def generate_with_agent():
     - template_name: 模板名称 (编写专项章节模式必填)
     - projectId: 项目ID (可选，从HITL加载)
 
-    返回:
-    {
-        "success": true,
-        "data": {
-            "outline": {...},
-            "chapters": [...],
-            "metadata": {...}
-        }
-    }
+    返回: SSE流式事件
+    - stage: init/analysis/analysis_completed/outline_completed/export/completed/error
+    - progress: 0-100
+    - message: 进度消息
+    - 各阶段特定数据
     """
+    # 先解析请求参数（在generator外部，避免上下文问题）
     try:
         from ai_tender_system.modules.outline_generator.agents import AgentRouter
 
         logger.info("【智能体API】收到请求")
 
         # 支持两种格式: FormData 和 JSON
-        if request.is_json:
+        is_json_request = request.is_json
+        if is_json_request:
             # JSON格式
-            data = request.json
-            generation_mode = data.get('generation_mode')
-            tender_doc = data.get('tender_doc', '')
+            req_data = request.json
+            generation_mode = req_data.get('generation_mode')
+            tender_doc = req_data.get('tender_doc', '')
+            page_count = int(req_data.get('page_count', 200))
+            content_style = req_data.get('content_style', {})
+            template_name = req_data.get('template_name', '政府采购标准')
+            scoring_points = req_data.get('scoring_points')
+            project_id = req_data.get('projectId', 'default')
+            project_name = req_data.get('projectName', '')
+            output_prefix = req_data.get('outputPrefix', '技术方案')
         else:
             # FormData格式
             generation_mode = request.form.get('generation_mode')
             tender_doc = ''
+            page_count = int(request.form.get('page_count', 200))
+            template_name = request.form.get('template_name', '政府采购标准')
+            scoring_points = None
+            project_id = request.form.get('projectId') or request.form.get('project_id') or 'default'
+            project_name = request.form.get('projectName', '')
+            output_prefix = request.form.get('outputPrefix', '技术方案')
+
+            # content_style可能是JSON字符串
+            content_style_str = request.form.get('content_style', '')
+            if content_style_str:
+                try:
+                    content_style = json.loads(content_style_str)
+                except:
+                    content_style = {'tables': '适量', 'flowcharts': '流程图', 'images': '少量'}
+            else:
+                content_style = {'tables': '适量', 'flowcharts': '流程图', 'images': '少量'}
 
             # 从HITL或上传文件获取招标文档
-            project_id = request.form.get('projectId') or request.form.get('project_id')
             use_hitl_file = request.form.get('use_hitl_technical_file', 'false').lower() == 'true'
 
-            if use_hitl_file and project_id:
+            if use_hitl_file and project_id and project_id != 'default':
                 # 从HITL加载
                 logger.info(f"从HITL项目加载技术需求文件: project_id={project_id}")
                 technical_files_base = config.get_path('upload') / 'technical_files'
@@ -987,214 +1007,213 @@ def generate_with_agent():
                     if tender_path:
                         break
 
-                if not tender_path:
-                    return jsonify({
-                        'success': False,
-                        'error': f'未找到项目的技术需求文件: project_id={project_id}'
-                    }), 400
-
-                # 解析文件内容（包含段落和表格）
-                from docx import Document
-                doc = Document(str(tender_path))
-
-                # 提取段落
-                content_parts = []
-                for para in doc.paragraphs:
-                    text = para.text.strip()
-                    if text:
-                        content_parts.append(text)
-
-                # 提取表格
-                for table in doc.tables:
-                    content_parts.append('\n[表格内容]')
-                    for row in table.rows:
-                        row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
-                        if row_text:
-                            content_parts.append(row_text)
-                    content_parts.append('[表格结束]\n')
-
-                tender_doc = '\n'.join(content_parts)
+                if tender_path:
+                    from docx import Document
+                    doc = Document(str(tender_path))
+                    content_parts = []
+                    for para in doc.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            content_parts.append(text)
+                    for table in doc.tables:
+                        content_parts.append('\n[表格内容]')
+                        for row in table.rows:
+                            row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                            if row_text:
+                                content_parts.append(row_text)
+                        content_parts.append('[表格结束]\n')
+                    tender_doc = '\n'.join(content_parts)
 
             elif 'tender_file' in request.files:
-                # 上传文件
                 tender_file = request.files['tender_file']
+                if allowed_file(tender_file.filename):
+                    upload_dir = config.get_path('uploads')
+                    upload_dir.mkdir(parents=True, exist_ok=True)
+                    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = secure_filename(f"{ts}_{tender_file.filename}")
+                    tender_path = upload_dir / filename
+                    tender_file.save(str(tender_path))
 
-                if not allowed_file(tender_file.filename):
-                    return jsonify({
-                        'success': False,
-                        'error': '不支持的文件格式'
-                    }), 400
+                    from docx import Document
+                    doc = Document(str(tender_path))
+                    content_parts = []
+                    for para in doc.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            content_parts.append(text)
+                    for table in doc.tables:
+                        content_parts.append('\n[表格内容]')
+                        for row in table.rows:
+                            row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                            if row_text:
+                                content_parts.append(row_text)
+                        content_parts.append('[表格结束]\n')
+                    tender_doc = '\n'.join(content_parts)
+                    logger.info(f"已解析上传文件: {tender_path}, 文本长度: {len(tender_doc)}")
 
-                # 保存临时文件
-                upload_dir = config.get_path('uploads')
-                upload_dir.mkdir(parents=True, exist_ok=True)
-
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = secure_filename(f"{timestamp}_{tender_file.filename}")
-                tender_path = upload_dir / filename
-                tender_file.save(str(tender_path))
-
-                # 解析文件内容（包含段落和表格）
-                from docx import Document
-                doc = Document(str(tender_path))
-
-                # 提取段落
-                content_parts = []
-                for para in doc.paragraphs:
-                    text = para.text.strip()
-                    if text:
-                        content_parts.append(text)
-
-                # 提取表格
-                for table in doc.tables:
-                    content_parts.append('\n[表格内容]')
-                    for row in table.rows:
-                        row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
-                        if row_text:
-                            content_parts.append(row_text)
-                    content_parts.append('[表格结束]\n')
-
-                tender_doc = '\n'.join(content_parts)
-
-                logger.info(f"已解析上传文件: {tender_path}, 文本长度: {len(tender_doc)}")
-
-        # 验证必填参数
+        # 参数验证
+        param_error = None
         if not generation_mode:
-            return jsonify({
-                'success': False,
-                'error': '缺少必填参数: generation_mode'
-            }), 400
-
-        if not tender_doc:
-            return jsonify({
-                'success': False,
-                'error': '缺少必填参数: tender_doc 或 tender_file'
-            }), 400
-
-        # 获取其他参数
-        if request.is_json:
-            page_count = int(data.get('page_count', 200))
-            content_style = data.get('content_style', {})
-            template_name = data.get('template_name', '政府采购标准')
-            scoring_points = data.get('scoring_points')
-        else:
-            page_count = int(request.form.get('page_count', 200))
-
-            # content_style可能是JSON字符串或直接从form获取
-            content_style_str = request.form.get('content_style', '')
-            if content_style_str:
-                try:
-                    content_style = json.loads(content_style_str)
-                except:
-                    content_style = {
-                        'tables': request.form.get('content_style.tables', '适量'),
-                        'flowcharts': request.form.get('content_style.flowcharts', '流程图'),
-                        'images': request.form.get('content_style.images', '少量')
-                    }
-            else:
-                content_style = {
-                    'tables': '适量',
-                    'flowcharts': '流程图',
-                    'images': '少量'
-                }
-
-            template_name = request.form.get('template_name', '政府采购标准')
-            scoring_points = None
-
-        # 创建路由器
-        router = AgentRouter()
-
-        # 路由并生成
-        logger.info(f"调用智能体路由: mode={generation_mode}, pages={page_count}, template={template_name}")
-
-        result = router.route(
-            generation_mode=generation_mode,
-            tender_doc=tender_doc,
-            page_count=page_count,
-            content_style=content_style,
-            scoring_points=scoring_points,
-            template_name=template_name
-        )
-
-        logger.info(f"【智能体API】生成成功，模式: {generation_mode}")
-
-        # ✅ 导出Word文件（新增功能）
-        from ai_tender_system.modules.outline_generator import WordExporter
-
-        # 📂 修改保存路径: 与传统方式保持一致,使用 tech_proposal_files 目录
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-        # 获取项目ID用于目录组织
-        project_id = request.form.get('projectId') or request.form.get('project_id') if not request.is_json else data.get('projectId', 'default')
-        if not project_id:
-            project_id = 'default'
-
-        # 构建输出路径: uploads/tech_proposal_files/年份/月份/项目ID/
-        output_dir = config.get_path('upload') / 'tech_proposal_files' / datetime.now().strftime('%Y/%m') / str(project_id)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # 获取项目名称用于文件命名
-        project_name = request.form.get('projectName', '') if not request.is_json else data.get('projectName', '')
-        output_prefix = request.form.get('outputPrefix', '技术方案') if not request.is_json else data.get('outputPrefix', '技术方案')
-
-        # 文件命名
-        if project_name:
-            proposal_filename = f"{project_name}_技术方案_{timestamp}_{output_prefix}.docx"
-        else:
-            proposal_filename = f"{output_prefix}_{timestamp}.docx"
-
-        proposal_path = output_dir / proposal_filename
-
-        logger.info(f"【智能体API】文件将保存到: {proposal_path}")
-
-        # 将智能体返回的章节数据转换为WordExporter期望的格式
-        exporter = WordExporter()
-
-        # 构建proposal数据结构
-        proposal_data = {
-            'metadata': {
-                'title': result.get('outline', {}).get('title', '技术方案'),
-                'generation_time': timestamp,
-                'total_chapters': len(result.get('chapters', [])),
-                'estimated_pages': result.get('metadata', {}).get('estimated_pages', 0)
-            },
-            'chapters': []
-        }
-
-        # 转换chapters数据结构（字段名映射）
-        for chapter in result.get('chapters', []):
-            chapter_data = {
-                'level': chapter.get('level', 1),
-                'chapter_number': chapter.get('chapter_number', ''),
-                'title': chapter.get('chapter_title', ''),
-                'ai_generated_content': chapter.get('content', ''),  # ✅ 字段名映射: content -> ai_generated_content
-                'subsections': chapter.get('subsections', [])
-            }
-            proposal_data['chapters'].append(chapter_data)
-
-        # 导出Word文件
-        exporter.export_proposal(proposal_data, str(proposal_path), show_guidance=False)
-
-        logger.info(f"【智能体API】Word文件已导出: {proposal_path}")
-
-        # 在返回结果中添加文件信息
-        result['output_file'] = str(proposal_path)
-        result['output_files'] = {
-            'proposal': f"/api/downloads/{proposal_filename}"
-        }
-
-        return jsonify({
-            'success': True,
-            'data': result
-        })
+            param_error = '缺少必填参数: generation_mode'
+        elif not tender_doc:
+            param_error = '缺少必填参数: tender_doc 或 tender_file'
 
     except Exception as e:
-        logger.error(f"【智能体API】生成失败: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e),
-            'trace': traceback.format_exc() if config.get('debug', False) else None
-        }), 500
+        param_error = f'参数解析失败: {str(e)}'
+        generation_mode = None
+        tender_doc = None
+        page_count = 200
+        content_style = {}
+        template_name = '政府采购标准'
+        scoring_points = None
+        project_id = 'default'
+        project_name = ''
+        output_prefix = '技术方案'
+
+    def generate_events():
+        """生成SSE事件流"""
+        nonlocal param_error, generation_mode, tender_doc, page_count, content_style
+        nonlocal template_name, scoring_points, project_id, project_name, output_prefix
+
+        try:
+            # 检查参数错误
+            if param_error:
+                yield f"data: {json.dumps({'stage': 'error', 'error': param_error, 'message': f'❌ {param_error}'}, ensure_ascii=False)}\n\n"
+                return
+
+            # 1. 初始化阶段
+            yield f"data: {json.dumps({'stage': 'init', 'progress': 5, 'message': '🚀 开始生成技术方案...'}, ensure_ascii=False)}\n\n"
+
+            # 2. 解析参数完成
+            yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': '📄 参数解析完成'}, ensure_ascii=False)}\n\n"
+
+            # 3. 需求分析阶段
+            yield f"data: {json.dumps({'stage': 'analysis', 'progress': 20, 'message': '🔍 正在分析技术需求...'}, ensure_ascii=False)}\n\n"
+
+            # 创建路由器并生成
+            from ai_tender_system.modules.outline_generator.agents import AgentRouter
+            router = AgentRouter()
+
+            logger.info(f"调用智能体路由: mode={generation_mode}, pages={page_count}, template={template_name}")
+
+            result = router.route(
+                generation_mode=generation_mode,
+                tender_doc=tender_doc,
+                page_count=page_count,
+                content_style=content_style,
+                scoring_points=scoring_points,
+                template_name=template_name
+            )
+
+            logger.info(f"【智能体API】生成成功，模式: {generation_mode}")
+
+            # 4. 分析完成
+            yield f"data: {json.dumps({'stage': 'analysis', 'progress': 35, 'message': '✓ 需求分析完成'}, ensure_ascii=False)}\n\n"
+
+            # 发送分析结果（如果有）
+            analysis_result = result.get('analysis', {})
+            if analysis_result:
+                yield f"data: {json.dumps({'stage': 'analysis_completed', 'progress': 40, 'analysis_result': analysis_result}, ensure_ascii=False)}\n\n"
+
+            # 5. 大纲生成完成
+            outline_data = result.get('outline', {})
+            chapters = result.get('chapters', [])
+            yield f"data: {json.dumps({'stage': 'outline', 'progress': 50, 'message': '📝 正在生成大纲...'}, ensure_ascii=False)}\n\n"
+
+            # 构建大纲数据供前端显示
+            outline_for_frontend = {
+                'chapters': outline_data.get('chapters', []),
+                'total_chapters': len(chapters),
+                'estimated_pages': result.get('metadata', {}).get('total_pages', page_count)
+            }
+            yield f"data: {json.dumps({'stage': 'outline_completed', 'progress': 60, 'outline_data': outline_for_frontend}, ensure_ascii=False)}\n\n"
+
+            # 6. 导出Word文档
+            yield f"data: {json.dumps({'stage': 'export', 'progress': 75, 'message': '💾 正在导出Word文档...'}, ensure_ascii=False)}\n\n"
+
+            from ai_tender_system.modules.outline_generator import WordExporter
+
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_dir = config.get_path('upload') / 'tech_proposal_files' / datetime.now().strftime('%Y/%m') / str(project_id)
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            if project_name:
+                proposal_filename = f"{project_name}_技术方案_{timestamp}_{output_prefix}.docx"
+            else:
+                proposal_filename = f"{output_prefix}_{timestamp}.docx"
+
+            proposal_path = output_dir / proposal_filename
+
+            logger.info(f"【智能体API】文件将保存到: {proposal_path}")
+
+            # 构建proposal数据结构
+            proposal_data = {
+                'metadata': {
+                    'title': outline_data.get('title', '技术方案'),
+                    'generation_time': timestamp,
+                    'total_chapters': len(chapters),
+                    'estimated_pages': result.get('metadata', {}).get('estimated_pages', 0)
+                },
+                'chapters': []
+            }
+
+            for chapter in chapters:
+                # 智能体返回的字段是 'title' 和 'content'
+                chapter_data = {
+                    'level': chapter.get('level', 1),
+                    'chapter_number': chapter.get('chapter_number', ''),
+                    'title': chapter.get('title', ''),  # 智能体返回 'title' 而非 'chapter_title'
+                    'ai_generated_content': chapter.get('content', ''),
+                    'subsections': chapter.get('subsections', [])
+                }
+                proposal_data['chapters'].append(chapter_data)
+
+            logger.info(f"【智能体API】构建的章节数量: {len(proposal_data['chapters'])}")
+            if proposal_data['chapters']:
+                first_chapter = proposal_data['chapters'][0]
+                logger.info(f"【智能体API】第一章标题: {first_chapter.get('title', 'N/A')}")
+                logger.info(f"【智能体API】第一章内容长度: {len(first_chapter.get('ai_generated_content', ''))}")
+
+            exporter = WordExporter()
+            exporter.export_proposal(proposal_data, str(proposal_path), show_guidance=False)
+
+            logger.info(f"【智能体API】Word文件已导出: {proposal_path}")
+
+            yield f"data: {json.dumps({'stage': 'export', 'progress': 90, 'message': '✓ Word文档导出完成'}, ensure_ascii=False)}\n\n"
+
+            # 7. 完成
+            completed_data = {
+                'stage': 'completed',
+                'progress': 100,
+                'success': True,
+                'message': '✅ 技术方案生成成功！',
+                'output_file': str(proposal_path),
+                'output_files': {
+                    'proposal': f"/api/downloads/{proposal_filename}"
+                },
+                'sections_count': len(chapters),
+                'requirements_count': result.get('metadata', {}).get('requirement_categories_count', 0),
+                'coverage_rate': result.get('metadata', {}).get('coverage_rate', 0)
+            }
+            yield f"data: {json.dumps(completed_data, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            logger.error(f"【智能体API】生成失败: {e}", exc_info=True)
+            error_data = {
+                'stage': 'error',
+                'error': str(e),
+                'message': f'❌ 生成失败: {str(e)}'
+            }
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+
+    return Response(
+        stream_with_context(generate_events()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        }
+    )
 
 
 @api_outline_bp.route('/agent/templates', methods=['GET'])

@@ -577,18 +577,33 @@ def preview_document(filename):
 
 @api_business_bp.route('/business-files')
 def list_business_files():
-    """获取商务应答文件列表"""
+    """获取商务应答文件列表（支持按项目ID过滤）"""
     try:
         import os
+        import re
         from datetime import datetime
 
-        def format_size(size_bytes):
-            """格式化文件大小"""
-            for unit in ['B', 'KB', 'MB', 'GB']:
-                if size_bytes < 1024.0:
-                    return f"{size_bytes:.1f} {unit}"
-                size_bytes /= 1024.0
-            return f"{size_bytes:.1f} TB"
+        # 获取项目ID参数（可选）
+        project_id = request.args.get('project_id', type=int)
+        target_project_name = None
+
+        # 如果指定了项目ID，查询项目名称用于过滤
+        if project_id:
+            try:
+                from ai_tender_system.database.db_manager import DatabaseManager
+                db_manager = DatabaseManager()
+                with db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT project_name FROM tender_projects WHERE project_id = ?",
+                        (project_id,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        target_project_name = row[0]
+                        logger.info(f"商务应答按项目过滤: project_id={project_id}, project_name={target_project_name}")
+            except Exception as e:
+                logger.warning(f"查询项目名称失败: {e}")
 
         files = []
         output_dir = config.get_path('output')
@@ -601,22 +616,107 @@ def list_business_files():
                     try:
                         stat = file_path.stat()
                         modified_time = datetime.fromtimestamp(stat.st_mtime)
+
+                        # 提取项目名称(文件名格式: {项目名称}_商务应答_{时间戳}.docx)
+                        project_name_match = re.match(r'^(.+?)_商务应答_\d{8}_\d{6}\.', filename)
+                        project_name = project_name_match.group(1) if project_name_match else filename
+
+                        # 如果指定了项目名称，过滤不匹配的文件
+                        if target_project_name and project_name != target_project_name:
+                            continue
+
                         files.append({
-                            'name': filename,
-                            'size': format_size(stat.st_size),
-                            'date': modified_time.strftime('%Y-%m-%d %H:%M:%S'),
+                            'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
+                            'filename': filename,
+                            'file_path': str(file_path),
+                            'size': stat.st_size,
+                            'process_time': modified_time.isoformat(),
                             'download_url': f'/api/files/download/{filename}',
-                            'created': datetime.fromtimestamp(stat.st_ctime).isoformat(),
-                            'modified': modified_time.isoformat()
+                            'project_name': project_name
                         })
                     except Exception as e:
                         logger.warning(f"读取文件信息失败 {filename}: {e}")
 
-        files.sort(key=lambda x: x.get('modified', ''), reverse=True)
-        return jsonify({'success': True, 'files': files})
+        files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
+        return jsonify({'success': True, 'data': files})
 
     except Exception as e:
         logger.error(f"获取商务文件列表失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_business_bp.route('/tech-proposal/files')
+def list_tech_proposal_files():
+    """获取技术方案文件列表（支持按项目ID过滤）"""
+    try:
+        import os
+        import re
+        from datetime import datetime
+
+        # 获取项目ID参数（可选）
+        project_id = request.args.get('project_id', type=int)
+        target_project_name = None
+
+        # 如果指定了项目ID，查询项目名称用于过滤
+        if project_id:
+            try:
+                from ai_tender_system.database.db_manager import DatabaseManager
+                db_manager = DatabaseManager()
+                with db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT project_name FROM tender_projects WHERE project_id = ?",
+                        (project_id,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        target_project_name = row[0]
+                        logger.info(f"技术方案按项目过滤: project_id={project_id}, project_name={target_project_name}")
+            except Exception as e:
+                logger.warning(f"查询项目名称失败: {e}")
+
+        files = []
+        output_dir = config.get_path('output')
+
+        if output_dir.exists():
+            for filename in os.listdir(output_dir):
+                # 过滤技术方案文件（匹配包含"技术方案"或"tech"的文件，排除商务应答和点对点应答）
+                if filename.endswith(('.docx', '.doc', '.pdf')) and \
+                   ('技术方案' in filename or 'tech' in filename.lower()) and \
+                   '商务应答' not in filename and '点对点' not in filename:
+                    file_path = output_dir / filename
+                    try:
+                        stat = file_path.stat()
+                        modified_time = datetime.fromtimestamp(stat.st_mtime)
+
+                        # 提取项目名称(文件名格式: {项目名称}_技术方案_{时间戳}.docx)
+                        project_name_match = re.match(r'^(.+?)_技术方案_\d{8}_\d{6}\.', filename)
+                        if not project_name_match:
+                            # 尝试其他格式: 技术方案_{项目名称}_{时间戳}.docx
+                            project_name_match = re.match(r'^技术方案_(.+?)_\d{8}_\d{6}\.', filename)
+                        project_name = project_name_match.group(1) if project_name_match else filename
+
+                        # 如果指定了项目名称，过滤不匹配的文件
+                        if target_project_name and project_name != target_project_name:
+                            continue
+
+                        files.append({
+                            'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
+                            'filename': filename,
+                            'file_path': str(file_path),
+                            'size': stat.st_size,
+                            'process_time': modified_time.isoformat(),
+                            'download_url': f'/api/files/download/{filename}',
+                            'project_name': project_name
+                        })
+                    except Exception as e:
+                        logger.warning(f"读取文件信息失败 {filename}: {e}")
+
+        files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
+        return jsonify({'success': True, 'data': files})
+
+    except Exception as e:
+        logger.error(f"获取技术方案文件列表失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -904,11 +1004,34 @@ def process_point_to_point():
 
 @api_business_bp.route('/point-to-point/files')
 def list_point_to_point_files():
-    """获取点对点应答文件列表（自动去重，每个项目只保留最新的文件）"""
+    """获取点对点应答文件列表（支持按项目ID过滤）"""
     try:
         import os
         from datetime import datetime
         import re
+
+        # 获取项目ID参数（可选）
+        project_id = request.args.get('project_id', type=int)
+        target_project_name = None
+
+        # 📥 记录API调用
+        logger.info(f"📥 /api/point-to-point/files called with project_id={project_id}")
+
+        # 如果指定了项目ID，查询项目名称用于过滤
+        if project_id:
+            try:
+                result = kb_manager.db.execute_query(
+                    "SELECT project_name FROM tender_projects WHERE project_id = ?",
+                    [project_id],
+                    fetch_one=True
+                )
+                if result:
+                    target_project_name = result['project_name']
+                    logger.info(f"🔍 Database lookup: project_id={project_id} → project_name='{target_project_name}'")
+                else:
+                    logger.warning(f"⚠️  Project not found in database: project_id={project_id}")
+            except Exception as e:
+                logger.warning(f"❌ 查询项目名称失败: {e}")
 
         files = []
         output_dir = config.get_path('output')
@@ -925,6 +1048,14 @@ def list_point_to_point_files():
                         # 使用正则提取项目名称部分(去掉后面的时间戳)
                         project_name_match = re.match(r'^(.+?)_点对点应答_\d{8}_\d{6}\.', filename)
                         project_name = project_name_match.group(1) if project_name_match else filename
+
+                        # 如果指定了项目名称，过滤不匹配的文件
+                        if target_project_name:
+                            if project_name != target_project_name:
+                                logger.info(f"⚠️  FILTERED: {filename} (project='{project_name}' ≠ target='{target_project_name}')")
+                                continue
+                            else:
+                                logger.info(f"✅ MATCHED: {filename} (project='{project_name}')")
 
                         files.append({
                             'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
@@ -945,21 +1076,11 @@ def list_point_to_point_files():
         # 按时间排序(最新的在前)
         files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
 
-        # 去重:每个项目只保留最新的文件
-        unique_files = []
-        seen_projects = set()
-        for file in files:
-            project_name = file.get('project_name', file['filename'])
-            if project_name not in seen_projects:
-                unique_files.append(file)
-                seen_projects.add(project_name)
-                logger.debug(f"保留文件: {file['filename']} (项目: {project_name})")
-            else:
-                logger.debug(f"跳过重复项目文件: {file['filename']} (项目: {project_name})")
+        # 📊 记录返回结果统计
+        logger.info(f"📊 Returning {len(files)} point-to-point files" +
+                   (f" for project '{target_project_name}'" if target_project_name else " (all projects)"))
 
-        logger.info(f"文件去重: 原始{len(files)}个 -> 去重后{len(unique_files)}个")
-
-        return jsonify({'success': True, 'data': unique_files})
+        return jsonify({'success': True, 'data': files})
 
     except Exception as e:
         logger.error(f"获取点对点应答文件列表失败: {e}")

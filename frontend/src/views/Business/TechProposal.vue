@@ -79,9 +79,6 @@
         @success="handleUploadSuccess"
       />
 
-      <!-- 生成配置 -->
-      <el-divider>生成选项</el-divider>
-
       <el-form :model="config" label-width="140px" class="config-form">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -526,21 +523,73 @@
       </div>
     </el-card>
 
-    <!-- 历史文件管理 -->
-    <HistoryFilesPanel
-      v-if="form.projectId"
-      title="该项目的技术方案文件"
-      :current-file="currentTechFile"
-      :history-files="historyFiles"
-      :loading="loadingHistory"
-      :show-stats="false"
-      :show-editor-open="true"
-      @preview="previewFile"
-      @download="downloadHistoryFile"
-      @regenerate="handleRegenerate"
-      @refresh="loadHistoryFiles"
-      @open-in-editor="openHistoryInEditor"
-    />
+    <!-- 本项目历史文件列表 -->
+    <el-collapse v-if="form.projectId" v-model="showAllHistory" class="history-collapse">
+      <el-collapse-item name="history">
+        <template #title>
+          <div class="collapse-header">
+            <span>📂 本项目历史文件 ({{ historyFiles.length }})</span>
+            <el-button
+              v-if="showAllHistory"
+              type="primary"
+              size="small"
+              :loading="loadingHistory"
+              @click.stop="loadFilesList"
+              style="margin-left: 16px"
+            >
+              刷新列表
+            </el-button>
+          </div>
+        </template>
+
+        <el-card shadow="never" style="border: none;">
+          <el-table
+            :data="historyFiles"
+            border
+            stripe
+            v-loading="loadingHistory"
+            max-height="400"
+          >
+            <el-table-column type="index" label="序号" width="60" />
+            <el-table-column prop="filename" label="文件名" min-width="300">
+              <template #default="{ row }">
+                <div class="filename-cell">
+                  <el-icon><Document /></el-icon>
+                  <span>{{ row.filename }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="size" label="文件大小" width="120">
+              <template #default="{ row }">
+                {{ formatFileSize(row.size) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="process_time" label="处理时间" width="180">
+              <template #default="{ row }">
+                {{ formatDate(row.process_time) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
+              <template #default="{ row }">
+                <el-button type="primary" size="small" @click="previewFile(row)">
+                  预览
+                </el-button>
+                <el-button type="success" size="small" @click="downloadHistoryFile(row)">
+                  下载
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <!-- 空状态 -->
+          <el-empty
+            v-if="!loadingHistory && historyFiles.length === 0"
+            description="暂无历史文件"
+            :image-size="100"
+          />
+        </el-card>
+      </el-collapse-item>
+    </el-collapse>
 
     <!-- 文档预览对话框 -->
     <DocumentPreview
@@ -609,27 +658,76 @@ const {
   }
 })
 
-// 暂时禁用历史文件API（接口未实现）
+// 历史文件列表
 const historyFiles = ref<any[]>([])
 const loadingHistory = ref(false)
-const loadHistoryFiles = async () => {
-  console.log('历史文件API暂未实现')
+const showAllHistory = ref<string[]>([])
+
+// 加载历史文件列表（仅当前项目）
+const loadFilesList = async () => {
+  if (!form.value.projectId) {
+    historyFiles.value = []
+    return
+  }
+
+  loadingHistory.value = true
+  try {
+    const response = await fetch(`/api/tech-proposal/files?project_id=${form.value.projectId}`)
+    const result = await response.json()
+
+    if (result.success) {
+      historyFiles.value = result.data || []
+    } else {
+      throw new Error(result.error || '加载失败')
+    }
+  } catch (error: any) {
+    console.error('加载历史文件失败:', error)
+    ElMessage.error(error.message || '加载历史文件失败')
+  } finally {
+    loadingHistory.value = false
+  }
 }
+
+// 格式化文件大小
+const formatFileSize = (bytes: number): string => {
+  const units = ['B', 'KB', 'MB', 'GB']
+  let size = bytes
+  let unitIndex = 0
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex++
+  }
+
+  return `${size.toFixed(1)} ${units[unitIndex]}`
+}
+
+// 格式化日期
+const formatDate = (dateStr: string): string => {
+  try {
+    const date = new Date(dateStr)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+// 下载历史文件
 const downloadHistoryFile = async (file: any) => {
   try {
-    if (!file.downloadUrl) {
+    if (!file.download_url) {
       ElMessage.error('下载地址无效')
       return
     }
 
-    // 从URL中提取文件名，去除查询参数
-    let filename = file.filename || file.downloadUrl.split('/').pop() || '技术方案.docx'
-    // 去除URL查询参数（例如 ?download=true）
-    filename = filename.split('?')[0]
-
-    // 使用公用下载函数
-    downloadFile(file.downloadUrl, filename)
-
+    const filename = file.filename || '技术方案.docx'
+    downloadFile(file.download_url, filename)
     ElMessage.success('文件下载中...')
   } catch (error: any) {
     console.error('下载文件失败:', error)
@@ -772,6 +870,8 @@ const handleProjectChange = async () => {
       streamContent.value = ''
       showEditor.value = false
       editorContent.value = ''
+      // 清空历史文件列表
+      historyFiles.value = []
       if (useHitlFile.value) {
         cancelHitlFile()
       }
@@ -975,9 +1075,7 @@ const generateWithSSE = async (formData: FormData) => {
             }
 
             // 显示编辑器
-            if (useStreamingContent) {
-              showEditor.value = true
-            }
+            showEditor.value = true
 
             // 自动同步到HITL
             if (data.output_file && form.value.projectId) {
@@ -1403,9 +1501,7 @@ onMounted(async () => {
     display: flex;
     justify-content: center;
     gap: 16px;
-    margin-top: 30px;
-    padding-top: 30px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    margin-top: 20px;
   }
 
   .requirement-categories,

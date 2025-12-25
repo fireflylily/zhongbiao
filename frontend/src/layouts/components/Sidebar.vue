@@ -16,8 +16,9 @@
     <el-scrollbar class="sidebar-scrollbar">
       <el-menu
         :default-active="activeMenu"
+        :default-openeds="defaultOpeneds"
         :collapse="collapsed"
-        :unique-opened="uniqueOpened"
+        :unique-opened="false"
         :collapse-transition="false"
         class="sidebar-menu"
         @select="handleMenuSelect"
@@ -205,9 +206,7 @@ const sidebarClasses = computed(() => ({
  */
 const menuCategories = computed(() => {
   const categories = [
-    { key: 'workspace', label: '工作台', icon: 'bi-house-fill' },
-    { key: 'project', label: '项目管理', icon: 'bi-folder-fill' },
-    { key: 'ai-tools', label: 'AI核心工具', icon: 'bi-robot' },
+    { key: 'bidding-center', label: '投标中心', icon: 'bi-folder-fill' },
     { key: 'knowledge', label: '知识中心', icon: 'bi-book-fill' }
   ]
 
@@ -262,9 +261,45 @@ const groupedMenuItems = computed(() => {
     groups[category].push(item)
   })
 
-  // 按order排序
+  // 特殊处理：为投标中心手动创建一个虚拟父菜单项
+  if (groups['bidding-center'] && groups['bidding-center'].length > 0) {
+    // 收集所有投标中心的菜单项（包括有parent属性的）
+    const biddingItems: MenuItem[] = []
+    menuItems.value.forEach((item) => {
+      if (item.meta?.category === 'bidding-center' || item.meta?.parent === 'BiddingCenter') {
+        biddingItems.push(item)
+      }
+    })
+
+    // 按order排序
+    biddingItems.sort((a, b) => (a.order || 99) - (b.order || 99))
+
+    // 创建虚拟父菜单项
+    const biddingCenterMenu: MenuItem = {
+      name: 'BiddingCenter',
+      path: '/bidding-center',
+      title: '投标中心',
+      icon: 'bi-folder-fill',
+      order: 1,
+      category: 'bidding-center',
+      children: biddingItems,
+      meta: {
+        title: '投标中心',
+        icon: 'bi-folder-fill',
+        category: 'bidding-center',
+        order: 1
+      }
+    }
+
+    // 替换原来的分组
+    groups['bidding-center'] = [biddingCenterMenu]
+  }
+
+  // 按order排序其他分组
   Object.keys(groups).forEach((key) => {
-    groups[key].sort((a, b) => (a.order || 99) - (b.order || 99))
+    if (key !== 'bidding-center') {
+      groups[key].sort((a, b) => (a.order || 99) - (b.order || 99))
+    }
   })
 
   return groups
@@ -276,6 +311,14 @@ const groupedMenuItems = computed(() => {
 const activeMenu = computed(() => {
   const { path } = route
   return path
+})
+
+/**
+ * 默认展开的菜单
+ */
+const defaultOpeneds = computed(() => {
+  // 投标中心默认展开
+  return ['/bidding-center']
 })
 
 // ==================== Methods ====================
