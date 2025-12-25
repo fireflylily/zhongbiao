@@ -41,7 +41,32 @@
         @start-business="handleStartBusiness"
         @start-p2p="handleStartPointToPoint"
         @start-proposal="handleStartProposal"
-      />
+      >
+        <!-- 公司和授权人选择（放在按钮上方） -->
+        <template #selectors>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <div class="selector-item">
+                <span class="selector-label">公司：</span>
+                <el-select v-model="formData.company_id" placeholder="请选择公司" style="width: 100%">
+                  <el-option
+                    v-for="company in companies"
+                    :key="company.company_id"
+                    :label="company.name"
+                    :value="company.company_id"
+                  />
+                </el-select>
+              </div>
+            </el-col>
+            <el-col :span="12">
+              <div class="selector-item">
+                <span class="selector-label">被授权人：</span>
+                <el-input v-model="formData.authorized_person_name" placeholder="请输入被授权人姓名" />
+              </div>
+            </el-col>
+          </el-row>
+        </template>
+      </TenderDocumentProcessor>
 
       <!-- Tab 导航 -->
       <el-card class="tabs-card" shadow="never">
@@ -77,28 +102,6 @@
                         <el-input v-model="formData.number" placeholder="请输入项目编号" />
                       </el-form-item>
                     </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="公司名称" prop="company_id">
-                        <el-select v-model="formData.company_id" placeholder="请选择公司" style="width: 100%">
-                          <el-option
-                            v-for="company in companies"
-                            :key="company.company_id"
-                            :label="company.name"
-                            :value="company.company_id"
-                          />
-                        </el-select>
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="被授权人">
-                        <el-input v-model="formData.authorized_person_name" placeholder="请输入被授权人姓名" />
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="授权人身份证">
-                        <el-input v-model="formData.authorized_person_id" placeholder="请输入身份证号" />
-                      </el-form-item>
-                    </el-col>
                   </el-row>
                 </el-form>
 
@@ -110,20 +113,11 @@
                   <el-descriptions-item label="项目编号">
                     {{ projectDetail.number || '-' }}
                   </el-descriptions-item>
-                  <el-descriptions-item label="公司名称">
-                    {{ projectDetail.company_name }}
-                  </el-descriptions-item>
                   <el-descriptions-item label="创建时间">
                     {{ projectDetail.created_at }}
                   </el-descriptions-item>
                   <el-descriptions-item label="最后更新">
                     {{ projectDetail.updated_at || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="被授权人">
-                    {{ projectDetail.authorized_person_name || '-' }}
-                  </el-descriptions-item>
-                  <el-descriptions-item label="授权人身份证">
-                    {{ projectDetail.authorized_person_id || '-' }}
                   </el-descriptions-item>
                 </el-descriptions>
               </section>
@@ -1898,6 +1892,20 @@ onMounted(() => {
 
     i {
       font-size: 13px;
+    }
+  }
+
+  // 快捷选择器样式
+  .selector-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .selector-label {
+      flex-shrink: 0;
+      font-size: 14px;
+      color: var(--el-text-color-regular);
+      white-space: nowrap;
     }
   }
 }

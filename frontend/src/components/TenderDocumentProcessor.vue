@@ -96,6 +96,41 @@
               </el-alert>
             </div>
           </div>
+
+          <!-- 快捷操作区 -->
+          <div v-if="responseFileInfo || technicalFileInfo" class="quick-actions">
+            <!-- 上部：选择器区域（slot） -->
+            <div class="selectors-area">
+              <slot name="selectors"></slot>
+            </div>
+
+            <!-- 下部：操作按钮 -->
+            <div class="action-buttons">
+              <div v-if="responseFileInfo" class="quick-action-item">
+                <el-button type="primary" size="large" @click="emit('start-business')">
+                  <i class="bi bi-rocket-takeoff me-1"></i>
+                  开始商务应答
+                </el-button>
+                <span class="action-hint">确认公司和应答文件模板后开始。</span>
+              </div>
+
+              <div v-if="technicalFileInfo" class="quick-action-item">
+                <el-button type="primary" size="large" @click="emit('start-p2p')">
+                  <i class="bi bi-arrow-left-right me-1"></i>
+                  开始点对点应答
+                </el-button>
+                <span class="action-hint">根据标书要求，选做。</span>
+              </div>
+
+              <div v-if="technicalFileInfo" class="quick-action-item">
+                <el-button type="primary" size="large" @click="emit('start-proposal')">
+                  <i class="bi bi-file-code me-1"></i>
+                  开始技术方案编写
+                </el-button>
+                <span class="action-hint">开始应答。</span>
+              </div>
+            </div>
+          </div>
         </div>
         </el-card>
       </el-col>
@@ -224,6 +259,8 @@ interface Props {
   projectId: number
   companyId: number
   projectDetail?: any // 项目详情数据
+  responseFileInfo?: any // 商务应答模板文件信息
+  technicalFileInfo?: any // 技术需求文件信息
 }
 
 const props = defineProps<Props>()
@@ -234,6 +271,9 @@ const emit = defineEmits<{
   refresh: []
   preview: [fileUrl: string, fileName: string]
   parseComplete: [] // 🆕 文档解析完成事件
+  'start-business': [] // 开始商务应答
+  'start-p2p': [] // 开始点对点应答
+  'start-proposal': [] // 开始技术方案编写
 }>()
 
 // 状态
@@ -600,16 +640,20 @@ watch(() => props.projectDetail, () => {
 
   .step-card {
     height: 100%;
+    display: flex;
+    flex-direction: column;
 
     :deep(.el-card__header) {
       background: var(--el-fill-color-light);
       border-bottom: 2px solid var(--el-border-color-lighter);
-      padding: 12px 20px; // 减小头部内边距
+      padding: 12px 20px;
     }
 
     :deep(.el-card__body) {
-      min-height: 150px; // 从250px减小到150px
-      padding: 16px; // 减小body内边距
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
     }
   }
 
@@ -632,6 +676,10 @@ watch(() => props.projectDetail, () => {
   }
 
   .upload-section {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
     :deep(.el-upload-dragger) {
       width: 100%;
       padding: 20px 16px; // 从30px 20px减小到20px 16px
@@ -680,6 +728,9 @@ watch(() => props.projectDetail, () => {
   }
 
   .chapter-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 
     .stats-grid {
       display: flex;
@@ -716,6 +767,7 @@ watch(() => props.projectDetail, () => {
     .save-actions {
       display: flex;
       justify-content: center;
+      margin-top: auto;
       padding-top: 20px;
       border-top: 1px solid var(--el-border-color-lighter);
     }
@@ -725,6 +777,49 @@ watch(() => props.projectDetail, () => {
     :deep(.el-alert__title) {
       display: flex;
       align-items: center;
+    }
+  }
+
+  // 快捷操作区样式
+  .quick-actions {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--el-border-color-lighter);
+
+    .selectors-area {
+      margin-bottom: 8px;
+
+      // 如果slot没有内容，隐藏该区域
+      &:empty {
+        display: none;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+  }
+
+  .quick-action-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .el-button {
+      flex-shrink: 0;
+      width: 200px;
+    }
+
+    .action-hint {
+      color: var(--el-text-color-secondary);
+      font-size: 13px;
     }
   }
 }
