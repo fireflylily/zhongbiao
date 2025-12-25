@@ -34,8 +34,7 @@ class ChapterNode:
     para_end_idx: int            # 结束段落索引（可能为None）
     word_count: int              # 字数统计
     preview_text: str            # 预览文本（前5行）
-    auto_selected: bool          # 是否自动选中（白名单匹配）
-    skip_recommended: bool       # 是否推荐跳过（黑名单匹配）
+    has_table: bool = False      # 章节是否包含表格
     content_tags: List[str] = None  # 内容标签（基于内容关键词检测）
     content_sample: str = None   # 内容样本（用于合同识别，1500-2000字）
     children: List['ChapterNode'] = None  # 子章节列表
@@ -90,55 +89,6 @@ class DocumentStructureParser:
             r'^附录[一二三四五六七八九十\d]+[:：]\s*',  # 附录1: 或 附录一：
         ]
 
-        # 白名单：自动选中的关键词（改进2：扩展关键词库）
-        self.WHITELIST_KEYWORDS = [
-            # 投标要求类
-            "投标须知", "供应商须知", "投标人须知", "资格要求", "资质要求",
-            "响应人须知",  # 新增：竞争性谈判常用
-            "投标邀请", "谈判邀请", "采购邀请", "招标公告", "项目概况",
-            "磋商邀请",  # 新增：竞争性磋商常用
-            "单一来源", "竞争性谈判", "询价公告",
-            # 技术要求类
-            "技术要求", "技术需求", "需求书", "技术规格", "技术参数", "性能指标", "项目需求",
-            "需求说明", "技术标准", "功能要求", "技术规范", "技术方案",
-            "采购需求", "服务要求", "服务内容", "服务范围",  # 新增：服务类项目常用
-            # 商务要求类
-            "商务要求", "商务条款", "付款方式", "交付要求", "质保要求",
-            "价格要求", "报价要求",
-            "合同主要条款", "付款条款", "结算方式",  # 新增：合同相关（但在白名单中）
-            # 评分标准类
-            "评分标准", "评标办法", "评分细则", "打分标准", "综合评分",
-            "评审标准", "评审办法",
-            "评价方法", "打分细则",  # 新增：评分相关变体
-        ]
-
-        # 黑名单：推荐跳过的关键词（优先级高于白名单）
-        self.BLACKLIST_KEYWORDS = [
-            # 合同类（包含"合同"但非要求类的标题）
-            "合同条款", "合同文本", "合同范本", "合同格式", "合同协议",
-            "通用条款", "专用条款", "合同主要条款", "合同草稿", "拟签合同",
-            "服务合同", "采购合同", "买卖合同", "销售合同", "施工合同",
-            "分包合同", "劳务合同", "租赁合同", "委托合同", "代理合同",
-            # 合同元信息
-            "合同编号", "合同双方", "甲方", "乙方", "丙方",
-            "签订地点", "签订日期", "有效期", "合同期限",
-            # 项目和公司信息
-            "项目名称", "项目编号", "公司名称", "公司简介", "企业信息",
-            "采购人信息", "供应商信息", "投标人信息",
-            # 目录结构
-            "目录", "索引", "章节目录", "内容目录",
-            # 格式类
-            "投标文件格式", "文件格式", "格式要求", "编制要求", "封装要求",
-            "响应文件格式", "资料清单", "包装要求", "密封要求",
-            # 法律声明类
-            "法律声明", "免责声明", "投标承诺", "廉政承诺", "保密协议",
-            "诚信承诺", "声明函", "授权书", "委托书",
-            # 附件类
-            "附件", "附表", "附录", "样表", "模板", "格式范本", "空白表格",
-            # 说明性文字
-            "填写说明", "填表说明", "使用说明", "注意事项", "特别说明",
-            "备注", "参考样本", "示例", "仅供参考",
-        ]
 
         # 标题样式名称映射（中英文）
         self.HEADING_STYLES = {
@@ -173,8 +123,6 @@ class DocumentStructureParser:
                 "chapters": [ChapterNode.to_dict(), ...],
                 "statistics": {
                     "total_chapters": 10,
-                    "auto_selected": 5,
-                    "skip_recommended": 3,
                     "total_words": 15000
                 },
                 "method": "使用的解析方法名称",
@@ -325,7 +273,6 @@ class DocumentStructureParser:
             # 使用精确匹配
             chapters = self._locate_chapters_by_toc(doc, toc_items, toc_end_idx)
             chapter_tree = self._build_chapter_tree(chapters)
-            chapter_tree = self._propagate_skip_status(chapter_tree)
             stats = self._calculate_statistics(chapter_tree)
 
             return {
@@ -398,7 +345,6 @@ class DocumentStructureParser:
             # 3. 后续处理(定位内容、构建树、统计)
             chapters = self._locate_chapter_content(doc, chapters)
             chapter_tree = self._build_chapter_tree(chapters)
-            chapter_tree = self._propagate_skip_status(chapter_tree)
             stats = self._calculate_statistics(chapter_tree)
 
             return {
@@ -752,13 +698,6 @@ class DocumentStructureParser:
             if is_heading and paragraph.text.strip():
                 title = paragraph.text.strip()
 
-                # 判断是否匹配白/黑名单
-                auto_selected = self._matches_whitelist(title)
-                skip_recommended = self._matches_blacklist(title)
-
-                if skip_recommended:
-                    auto_selected = False
-
                 chapter = ChapterNode(
                     id=f"docx_{chapter_counter}",
                     level=level if level > 0 else 1,
@@ -767,8 +706,6 @@ class DocumentStructureParser:
                     para_end_idx=None,  # 稍后计算
                     word_count=0,       # 稍后计算
                     preview_text="",    # 稍后提取
-                    auto_selected=auto_selected,
-                    skip_recommended=skip_recommended,
                     content_tags=['docx_native', detection_method]
                 )
 
@@ -776,8 +713,7 @@ class DocumentStructureParser:
                 chapter_counter += 1
 
                 self.logger.debug(
-                    f"识别标题: 段落{para_idx} [{detection_method}] '{title[:50]}' "
-                    f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+                    f"识别标题: 段落{para_idx} [{detection_method}] '{title[:50]}'"
                 )
 
         self.logger.info(f"✅ 方法五识别完成：找到 {len(chapters)} 个标题")
@@ -952,37 +888,6 @@ class DocumentStructureParser:
 
         return similarity
 
-    def _matches_whitelist(self, title: str) -> bool:
-        """检查标题是否匹配白名单"""
-        return any(keyword in title for keyword in self.WHITELIST_KEYWORDS)
-
-    def _matches_blacklist(self, title: str) -> bool:
-        """检查标题是否匹配黑名单"""
-        # 1. 关键词匹配
-        if any(keyword in title for keyword in self.BLACKLIST_KEYWORDS):
-            return True
-
-        # 2. 特殊模式匹配
-        special_patterns = [
-            # 匹配纯公司名称章节（如 "中国光大银行股份有限公司"、"XXX公司"）
-            r'^.{2,30}(有限公司|股份有限公司|集团有限公司|集团)$',
-            # 匹配甲乙丙方开头的章节
-            r'^(甲方|乙方|丙方)[:：]',
-            # 匹配纯项目名称章节（如 "XXX项目"，但不包括 "项目需求"、"项目概况" 等）
-            r'^.{1,20}项目$',  # 以"项目"结尾，前面是项目名称
-            # 匹配合同编号格式章节
-            r'.*编号[:：].{0,50}$',  # 包含 "编号:" 或 "编号："
-        ]
-
-        for pattern in special_patterns:
-            if re.match(pattern, title.strip()):
-                return True
-
-        # 3. 匹配空白或极短章节（< 3个字符，可能是格式错误）
-        if len(title.strip()) < 3:
-            return True
-
-        return False
 
     def _calculate_contract_density(self, text: str) -> float:
         """
@@ -2125,13 +2030,6 @@ class DocumentStructureParser:
             if is_subsection:
                 title = text
 
-                # 判断是否匹配白/黑名单
-                auto_selected = self._matches_whitelist(title)
-                skip_recommended = self._matches_blacklist(title)
-
-                if skip_recommended:
-                    auto_selected = False
-
                 subsection = ChapterNode(
                     id=f"{parent_id}_{counter}",
                     level=level if level > 0 else parent_level + 1,
@@ -2139,17 +2037,14 @@ class DocumentStructureParser:
                     para_start_idx=para_idx,
                     para_end_idx=None,  # 稍后计算
                     word_count=0,       # 稍后计算
-                    preview_text="",    # 稍后提取
-                    auto_selected=auto_selected,
-                    skip_recommended=skip_recommended
+                    preview_text=""     # 稍后提取
                 )
 
                 subsections.append(subsection)
                 counter += 1
 
                 self.logger.debug(
-                    f"  └─ 找到子章节 [{recognition_type}]: {title} "
-                    f"{'✅自动选中' if auto_selected else '❌跳过' if skip_recommended else '⚪默认'}"
+                    f"  └─ 找到子章节 [{recognition_type}]: {title}"
                 )
 
         # 计算每个子章节的范围
@@ -2265,7 +2160,6 @@ class DocumentStructureParser:
                 if is_contract:
                     contract_confirmed_count += 1
                     chapter_info['is_contract_confirmed'] = True
-                    chapter_info['skip_recommended'] = True
                     self.logger.info(f"  ✓ 合同章节确认: '{chapter_info['title']}' - {reason}")
 
                     # 重型作业3: 检测合同聚集区（用于章节拆分）
@@ -2309,8 +2203,7 @@ class DocumentStructureParser:
                                     'level': chapter_info['level'],  # 与原章节同级
                                     'para_idx': cluster_start,
                                     'para_end_idx': para_end_idx,
-                                    'is_contract_confirmed': True,
-                                    'skip_recommended': True
+                                    'is_contract_confirmed': True
                                 }
 
                                 # 记录待插入位置（插入到原章节后面）
@@ -2352,7 +2245,7 @@ class DocumentStructureParser:
             para_end_idx = chapter_info['para_end_idx']
 
             # 提取章节内容（包括段落和表格）
-            content_text, preview_text = self._extract_chapter_content_with_tables(
+            content_text, preview_text, has_table = self._extract_chapter_content_with_tables(
                 doc, para_idx, para_end_idx
             )
 
@@ -2363,16 +2256,6 @@ class DocumentStructureParser:
             if not preview_text:
                 preview_text = "(无内容)"
 
-            # 判断是否匹配白/黑名单
-            auto_selected = self._matches_whitelist(chapter_info['title'])
-            skip_recommended = self._matches_blacklist(chapter_info['title'])
-
-            # 🆕 使用合同检测结果（优先级高于黑名单）
-            if chapter_info.get('skip_recommended'):
-                skip_recommended = True
-            if skip_recommended:
-                auto_selected = False
-
             node = ChapterNode(
                 id=f"ch_{chapter_info['toc_index']}",
                 level=chapter_info['level'],  # ⭐ 使用TOC中的层级，不重新检测
@@ -2381,8 +2264,7 @@ class DocumentStructureParser:
                 para_end_idx=para_end_idx,
                 word_count=word_count,
                 preview_text=preview_text,
-                auto_selected=auto_selected,
-                skip_recommended=skip_recommended
+                has_table=has_table
             )
 
             chapter_nodes.append(node)
@@ -2475,13 +2357,14 @@ class DocumentStructureParser:
             chapter.para_end_idx = next_start - 1
 
             # 提取章节内容（包括段落和表格）
-            content_text, preview_text = self._extract_chapter_content_with_tables(
+            content_text, preview_text, has_table = self._extract_chapter_content_with_tables(
                 doc, chapter.para_start_idx, chapter.para_end_idx
             )
 
             # 计算字数
             chapter.word_count = self._calculate_word_count(content_text)
             chapter.preview_text = preview_text if preview_text else "(无内容)"
+            chapter.has_table = has_table
 
             # 【新增】对于level 1-2的章节，提取内容样本并进行合同识别
             if chapter.level <= 2:
@@ -2496,17 +2379,9 @@ class DocumentStructureParser:
                 )
 
                 if is_contract:
-                    # 更新skip_recommended标记
-                    if not chapter.skip_recommended:  # 避免重复标记
-                        chapter.skip_recommended = True
-                        chapter.auto_selected = False
-                        self.logger.info(
-                            f"  ✓ 合同章节识别: '{chapter.title}' - {reason}"
-                        )
-                    else:
-                        self.logger.debug(
-                            f"  ✓ 合同章节已标记: '{chapter.title}' - {reason}"
-                        )
+                    self.logger.info(
+                        f"  ✓ 合同章节识别: '{chapter.title}' - {reason}"
+                    )
 
             # 🆕 新增：检测章节内是否有合同聚集区（用于拆分章节）
             contract_cluster = self._detect_contract_cluster_in_chapter(
@@ -2542,11 +2417,12 @@ class DocumentStructureParser:
                         chapter.para_end_idx = cluster_start - 1
 
                         # 重新计算缩短后的章节内容
-                        content_text, preview_text = self._extract_chapter_content_with_tables(
+                        content_text, preview_text, has_table = self._extract_chapter_content_with_tables(
                             doc, chapter.para_start_idx, chapter.para_end_idx
                         )
                         chapter.word_count = self._calculate_word_count(content_text)
                         chapter.preview_text = preview_text
+                        chapter.has_table = has_table
 
                         # 🆕 创建合同章节（标记为待插入）
                         contract_chapter = ChapterNode(
@@ -2556,17 +2432,16 @@ class DocumentStructureParser:
                             para_start_idx=cluster_start,
                             para_end_idx=original_end,
                             word_count=0,
-                            preview_text="",
-                            auto_selected=False,
-                            skip_recommended=True  # 标记为推荐跳过
+                            preview_text=""
                         )
 
                         # 计算合同章节内容
-                        contract_content, contract_preview = self._extract_chapter_content_with_tables(
+                        contract_content, contract_preview, contract_has_table = self._extract_chapter_content_with_tables(
                             doc, contract_chapter.para_start_idx, contract_chapter.para_end_idx
                         )
                         contract_chapter.word_count = self._calculate_word_count(contract_content)
                         contract_chapter.preview_text = contract_preview
+                        contract_chapter.has_table = contract_has_table
 
                         # 添加到待插入列表（记录插入位置）
                         contract_chapters_to_insert.append((i + 1, contract_chapter))
@@ -2611,7 +2486,7 @@ class DocumentStructureParser:
             para_end_idx: 结束段落索引
 
         Returns:
-            (完整内容文本, 预览文本)
+            (完整内容文本, 预览文本, 是否包含表格)
         """
         # 构建段落索引到body元素索引的映射
         para_count = 0
@@ -2628,7 +2503,7 @@ class DocumentStructureParser:
                 para_count += 1
 
         if start_body_idx is None:
-            return "", ""
+            return "", "", False
 
         if end_body_idx is None:
             end_body_idx = len(doc.element.body) - 1
@@ -2637,6 +2512,7 @@ class DocumentStructureParser:
         content_parts = []
         preview_lines = []
         preview_limit = 5
+        has_table = False  # 标记是否包含表格
 
         for body_idx in range(start_body_idx + 1, end_body_idx + 1):
             element = doc.element.body[body_idx]
@@ -2676,6 +2552,7 @@ class DocumentStructureParser:
                             table_preview_parts.append(row_text[:100] + ('...' if len(row_text) > 100 else ''))
 
                 if table_text_parts:
+                    has_table = True  # 发现表格
                     # 添加表格标识
                     table_content = f"[表格]\n" + '\n'.join(table_text_parts)
                     content_parts.append(table_content)
@@ -2688,7 +2565,7 @@ class DocumentStructureParser:
         full_content = '\n'.join(content_parts)
         preview_text = '\n'.join(preview_lines)
 
-        return full_content, preview_text
+        return full_content, preview_text, has_table
 
     def _calculate_word_count(self, text: str) -> int:
         """
@@ -2756,48 +2633,6 @@ class DocumentStructureParser:
 
         return root_chapters
 
-    def _propagate_skip_status(self, chapter_tree: List[ChapterNode]) -> List[ChapterNode]:
-        """
-        递归传播父章节的 skip_recommended 状态到子章节
-        如果父章节被跳过，则所有子章节及其后代都应该被跳过
-
-        Args:
-            chapter_tree: 章节树
-
-        Returns:
-            更新后的章节树
-        """
-        propagated_count = 0
-
-        def propagate_recursive(chapter: ChapterNode):
-            """递归传播跳过状态"""
-            nonlocal propagated_count
-
-            # 如果当前章节被标记为跳过，传播到所有子章节和后代
-            if chapter.skip_recommended:
-                for child in chapter.children:
-                    if not child.skip_recommended:  # 避免重复计数
-                        child.skip_recommended = True
-                        child.auto_selected = False
-                        propagated_count += 1
-                        self.logger.debug(f"  └─ 传播skip状态: {chapter.title} -> {child.title}")
-                    # 递归传播到所有后代
-                    propagate_recursive(child)
-            else:
-                # 即使当前章节不被跳过，也要递归检查子章节
-                # （因为子章节可能自己匹配黑名单）
-                for child in chapter.children:
-                    propagate_recursive(child)
-
-        # 遍历所有根级章节
-        for root_chapter in chapter_tree:
-            propagate_recursive(root_chapter)
-
-        if propagated_count > 0:
-            self.logger.info(f"黑名单状态传播完成: 共传播到 {propagated_count} 个子章节")
-
-        return chapter_tree
-
     def _calculate_statistics(self, chapter_tree: List[ChapterNode]) -> Dict:
         """
         计算统计信息
@@ -2810,8 +2645,6 @@ class DocumentStructureParser:
         """
         stats = {
             "total_chapters": 0,
-            "auto_selected": 0,
-            "skip_recommended": 0,
             "total_words": 0,
             "estimated_processing_cost": 0.0
         }
@@ -2819,10 +2652,6 @@ class DocumentStructureParser:
         def traverse(chapters, is_root_level=False):
             for ch in chapters:
                 stats["total_chapters"] += 1
-                if ch.auto_selected:
-                    stats["auto_selected"] += 1
-                if ch.skip_recommended:
-                    stats["skip_recommended"] += 1
 
                 # 🔑 只统计根节点（1级章节）的字数，避免重复统计
                 # 因为父节点的字数已经包含了所有子节点的内容
@@ -3675,26 +3504,23 @@ class DocumentStructureParser:
                 break
 
         if not has_substantial_content:
-            # ⭐️ 额外检查：如果列表中包含"第X章"标题，检查该章节后面是否有大量内容
-            # 这是为了区分"文件构成说明"和"真正的章节恰好在多标题区域"
-            has_chapter_title = any(
-                re.match(r'^第[一二三四五六七八九十\d]+章', text)
-                for _, text, _ in target_group
+            # ⭐ 关键逻辑：即使标题间无实质内容，仍需验证这不是真正章节的开始
+            #
+            # 检查：如果列表中所有段落都有Heading样式 → 这是真正的章节序列，不是元数据
+            # 示例：连续的Heading 1段落 = 真正章节
+            #       连续的Normal样式 = 元数据列表（文件构成说明）
+            all_headings = all(
+                doc.paragraphs[idx].style and
+                ('heading' in doc.paragraphs[idx].style.name.lower() or '标题' in doc.paragraphs[idx].style.name.lower())
+                for idx, _, _ in target_group
             )
 
-            if has_chapter_title:
-                # 找到"第X章"标题，检查它后面的内容量
-                for idx, text, _ in target_group:
-                    if re.match(r'^第[一二三四五六七八九十\d]+章', text):
-                        # 检查这个章节后面的内容（扫描后面50个段落）
-                        content_after_chapter = sum(
-                            len(doc.paragraphs[k].text.strip())
-                            for k in range(idx + 1, min(idx + 51, len(doc.paragraphs)))
-                        )
-                        # 如果章节后面有超过500字的内容，说明这是真正的章节，不是元数据
-                        if content_after_chapter > 500:
-                            return None  # 不是元数据列表
+            if all_headings:
+                self.logger.info(f"  检测到连续Heading样式章节（段落{target_group[0][0]}-{target_group[-1][0]}），"
+                                f"判定为真正章节序列，不是元数据")
+                return None  # 不是元数据列表，是真正的章节
 
+            # 如果不是全部Heading，则判定为元数据列表
             # 返回列表范围
             return (
                 target_group[0][0],  # start
@@ -3781,17 +3607,9 @@ class DocumentStructureParser:
             )
 
             if is_contract:
-                # 更新skip_recommended标记
-                if not chapter.skip_recommended:  # 避免重复标记
-                    chapter.skip_recommended = True
-                    chapter.auto_selected = False
-                    self.logger.info(
-                        f"  ✓ 合同章节识别: '{chapter.title}' - {reason}"
-                    )
-                else:
-                    self.logger.debug(
-                        f"  ✓ 合同章节已标记: '{chapter.title}' - {reason}"
-                    )
+                self.logger.info(
+                    f"  ✓ 合同章节识别: '{chapter.title}' - {reason}"
+                )
 
 
 if __name__ == '__main__':
@@ -3815,8 +3633,7 @@ if __name__ == '__main__':
         def print_tree(chapters, indent=0):
             for ch in chapters:
                 prefix = "  " * indent
-                status = "✅" if ch["auto_selected"] else "❌" if ch["skip_recommended"] else "⚪"
-                print(f"{prefix}{status} [{ch['level']}级] {ch['title']} ({ch['word_count']}字)")
+                print(f"{prefix}[{ch['level']}级] {ch['title']} ({ch['word_count']}字)")
                 if ch.get("children"):
                     print_tree(ch["children"], indent + 1)
 

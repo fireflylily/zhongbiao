@@ -32,6 +32,9 @@
             <span class="chapter-title">
               <i :class="getChapterIcon(data)" class="me-1"></i>
               {{ data.title }}
+              <el-tooltip v-if="data.has_table" content="包含表格" placement="top">
+                <i class="bi bi-table ms-1 table-indicator"></i>
+              </el-tooltip>
             </span>
             <span class="chapter-meta">
               <el-tag v-if="data.level" size="small" type="info">
@@ -243,6 +246,12 @@ defineExpose({
         i {
           color: var(--el-color-primary);
         }
+
+        .table-indicator {
+          color: var(--el-color-warning);
+          font-size: 13px;
+          animation: pulse 2s ease-in-out infinite;
+        }
       }
 
       .chapter-meta {
@@ -255,6 +264,15 @@ defineExpose({
         }
       }
     }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 </style>
