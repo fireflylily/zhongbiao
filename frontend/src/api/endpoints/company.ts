@@ -210,5 +210,32 @@ export const companyApi = {
    */
   async searchCompanies(keyword: string): Promise<ListApiResponse<Company>> {
     return apiClient.get('/companies/search', { keyword })
+  },
+
+  // ==================== 智能提取 ====================
+
+  /**
+   * 从标书中提取公司信息
+   * @param formData 包含file字段的FormData
+   * @returns 提取的公司信息预览
+   */
+  async extractFromTender(formData: FormData): Promise<ApiResponse<{
+    company_info: Record<string, any>
+    authorized_person: Record<string, any>
+    financial_info: Record<string, any>
+    qualification_images: Array<{
+      index: number
+      image_data: string
+      content_type: string
+      original_filename: string
+      guessed_type: string
+      guessed_type_name: string
+      confidence: number
+      confirmed: boolean
+    }>
+    extraction_time: string
+    model_used: string
+  }>> {
+    return apiClient.upload('/companies/extract-from-tender', formData)
   }
 }

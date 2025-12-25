@@ -760,5 +760,73 @@ def delete_qualification_by_id(qualification_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ===================
+# 智能提取API
+# ===================
+
+@api_companies_bp.route('/companies/extract-from-tender', methods=['POST'])
+@require_auth
+def extract_company_from_tender():
+    """
+    从标书中智能提取公司信息（预览）
+
+    请求体：
+    - file: Word文档文件 (multipart/form-data)
+    - model: 可选，使用的AI模型名称
+
+    返回：
+    - 提取的公司信息预览（不保存到数据库）
+    """
+    import tempfile
+    import os
+
+    try:
+        user = get_current_user()
+
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': '请上传Word文档'}), 400
+
+        file = request.files['file']
+        if not file.filename:
+            return jsonify({'success': False, 'error': '文件名不能为空'}), 400
+
+        # 检查文件类型
+        filename_lower = file.filename.lower()
+        if not (filename_lower.endswith('.docx') or filename_lower.endswith('.doc')):
+            return jsonify({'success': False, 'error': '只支持Word文档格式(.docx/.doc)'}), 400
+
+        # 获取模型参数
+        model_name = request.form.get('model', 'gpt-4o-mini')
+
+        # 保存临时文件
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+            file.save(tmp.name)
+            tmp_path = tmp.name
+
+        try:
+            # 导入提取器
+            from modules.company_info.extractor import CompanyInfoExtractor
+
+            # 调用提取器
+            extractor = CompanyInfoExtractor(model_name=model_name)
+            result = extractor.extract_from_tender(tmp_path)
+
+            if result.get('success'):
+                logger.info(f"用户 {user['username']} 从标书提取公司信息成功")
+                return jsonify(result)
+            else:
+                logger.warning(f"提取失败: {result.get('error')}")
+                return jsonify(result), 500
+
+        finally:
+            # 清理临时文件
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    except Exception as e:
+        logger.error(f"从标书提取公司信息失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # 导出蓝图
 __all__ = ['api_companies_bp']

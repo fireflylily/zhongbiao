@@ -9,7 +9,21 @@
           {{ getIndustryLabel(companyData.industry_type) }}
         </el-tag>
       </div>
+      <!-- 从标书提取按钮 -->
+      <div class="header-actions" v-if="!isNewMode">
+        <el-button type="primary" @click="showExtractorDialog = true">
+          <el-icon><DocumentCopy /></el-icon>
+          从标书提取信息
+        </el-button>
+      </div>
     </div>
+
+    <!-- 智能提取对话框 -->
+    <CompanyInfoExtractorDialog
+      v-model="showExtractorDialog"
+      :company-id="companyId"
+      @success="handleExtractSuccess"
+    />
 
     <!-- 加载状态 -->
     <Loading v-if="loading" text="加载企业信息中..." />
@@ -90,7 +104,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { Loading } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
-import { OfficeBuilding, Medal, User, Wallet, ArrowLeft } from '@element-plus/icons-vue'
+import { OfficeBuilding, Medal, User, Wallet, ArrowLeft, DocumentCopy } from '@element-plus/icons-vue'
+import CompanyInfoExtractorDialog from '@/components/CompanyInfoExtractorDialog.vue'
 
 // 导入Tab组件（暂时注释，后续实现）
 import BasicInfoTab from './components/BasicInfoTab.vue'
@@ -111,6 +126,7 @@ const activeTab = ref('basic')
 const companyId = ref<number>(0)
 const companyData = ref<any>({})
 const isNewMode = ref(false) // 是否为新建模式
+const showExtractorDialog = ref(false) // 智能提取对话框
 
 // 行业类型映射
 const industryMap: Record<string, string> = {
@@ -168,6 +184,12 @@ const handleCompanyCreated = (newCompanyId: number) => {
   // 更新路由，但不触发导航
   router.replace(`/knowledge/company/${newCompanyId}`)
   // 加载企业数据
+  loadCompanyData()
+}
+
+// 智能提取成功处理
+const handleExtractSuccess = (extractedCompanyId: number) => {
+  // 重新加载公司数据
   loadCompanyData()
 }
 
@@ -230,6 +252,11 @@ onMounted(() => {
       font-weight: 600;
       color: #303133;
     }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
   }
 }
 

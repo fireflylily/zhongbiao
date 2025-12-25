@@ -69,13 +69,31 @@
             </el-button>
           </el-form-item>
           <el-form-item style="margin-left: auto;">
-            <el-button type="primary" @click="handleCreate">
+            <el-dropdown split-button type="primary" @click="handleCreate" @command="handleCreateCommand">
               <el-icon><Plus /></el-icon>
               新建企业
-            </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="manual">
+                    <el-icon><Edit /></el-icon>
+                    手动创建
+                  </el-dropdown-item>
+                  <el-dropdown-item command="extract" divided>
+                    <el-icon><DocumentCopy /></el-icon>
+                    从标书创建
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </el-form-item>
         </el-form>
       </div>
+
+      <!-- 智能提取对话框 -->
+      <CompanyInfoExtractorDialog
+        v-model="showExtractorDialog"
+        @success="handleExtractSuccess"
+      />
 
       <Loading v-if="loading" text="加载中..." />
       <Empty v-else-if="!filteredCompanies.length" type="no-data" description="暂无企业数据" />
@@ -136,7 +154,8 @@ import { useRouter } from 'vue-router'
 import { Card, Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
-import { OfficeBuilding, Filter, Search, RefreshLeft, Plus } from '@element-plus/icons-vue'
+import { OfficeBuilding, Filter, Search, RefreshLeft, Plus, Edit, DocumentCopy } from '@element-plus/icons-vue'
+import CompanyInfoExtractorDialog from '@/components/CompanyInfoExtractorDialog.vue'
 
 // Router
 const router = useRouter()
@@ -151,6 +170,7 @@ const filters = ref({
   keyword: '',
   industry: ''
 })
+const showExtractorDialog = ref(false) // 智能提取对话框
 
 
 // 标准资质类型总数（与后端保持一致）
@@ -262,6 +282,21 @@ const getProgressColor = (percentage: number) => {
 // 新建企业 - 直接跳转到企业详情页
 const handleCreate = () => {
   router.push('/knowledge/company/new')
+}
+
+// 下拉菜单命令处理
+const handleCreateCommand = (command: string) => {
+  if (command === 'manual') {
+    router.push('/knowledge/company/new')
+  } else if (command === 'extract') {
+    showExtractorDialog.value = true
+  }
+}
+
+// 智能提取成功处理
+const handleExtractSuccess = (newCompanyId: number) => {
+  // 跳转到新创建的公司详情页
+  router.push(`/knowledge/company/${newCompanyId}`)
 }
 
 // 查看详情

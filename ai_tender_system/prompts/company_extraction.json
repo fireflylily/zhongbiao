@@ -1,0 +1,11 @@
+{
+  "module": "company_extraction",
+  "description": "公司信息提取模块的提示词配置 - 从历史标书中提取公司信息",
+  "version": "1.0.0",
+  "updated_at": "2025-01-01",
+  "prompts": {
+    "extract_company_info": "请从以下历史标书文档中提取投标公司的信息，以JSON格式返回。\n\n文档内容：\n{text}\n\n请提取以下信息并返回JSON格式：\n\n{{\n  \"basic_info\": {{\n    \"company_name\": \"公司全称\",\n    \"social_credit_code\": \"统一社会信用代码（18位）\",\n    \"legal_representative\": \"法定代表人姓名\",\n    \"legal_representative_position\": \"法定代表人职务（如：执行董事、总经理）\",\n    \"legal_representative_gender\": \"法定代表人性别（男/女）\",\n    \"registered_capital\": \"注册资本（如：1000万元人民币）\",\n    \"establish_date\": \"成立日期（YYYY-MM-DD格式）\",\n    \"company_type\": \"公司类型（如：有限责任公司）\",\n    \"registered_address\": \"注册地址\",\n    \"office_address\": \"办公地址\",\n    \"business_scope\": \"经营范围\",\n    \"fixed_phone\": \"固定电话\",\n    \"fax\": \"传真号码\",\n    \"postal_code\": \"邮政编码\",\n    \"email\": \"电子邮箱\",\n    \"employee_count\": \"员工人数（数字）\"\n  }},\n  \"authorized_person\": {{\n    \"name\": \"被授权人/投标代表姓名\",\n    \"id_number\": \"身份证号码（18位）\",\n    \"gender\": \"性别（男/女）\",\n    \"position\": \"职位\",\n    \"title\": \"职称\",\n    \"phone\": \"联系电话\"\n  }},\n  \"financial_info\": {{\n    \"bank_name\": \"开户银行全称\",\n    \"bank_account\": \"银行账号\"\n  }}\n}}\n\n提取规则：\n1. 公司名称通常出现在投标函、法人授权书或公司介绍部分\n2. 统一社会信用代码为18位字母数字组合\n3. 被授权人信息通常在法人授权委托书中\n4. 财务信息可能出现在公司基本情况表或银行资信证明中\n5. 如果某字段在文档中未找到，请设为null\n6. 日期请转换为YYYY-MM-DD格式\n7. 只返回JSON，不要添加任何说明文字",
+
+    "classify_qualification_image": "请分析以下图片的上下文描述，判断这是什么类型的资质证书图片。\n\n上下文文本：\n{context}\n\n文件名：{filename}\n\n请从以下资质类型中选择最匹配的一个：\n- business_license: 营业执照\n- legal_id_front: 法人身份证正面\n- legal_id_back: 法人身份证反面\n- auth_id_front: 被授权人身份证正面\n- auth_id_back: 被授权人身份证反面\n- iso9001: ISO9001质量管理体系认证\n- iso14001: ISO14001环境管理体系认证\n- iso20000: ISO20000信息技术服务管理认证\n- iso27001: ISO27001信息安全管理体系认证\n- cmmi: CMMI认证\n- itss: ITSS信息技术服务标准认证\n- value_added_telecom_permit: 增值电信业务许可证\n- basic_telecom_permit: 基础电信业务许可证\n- level_protection: 等级保护认证\n- software_copyright: 软件著作权\n- patent_certificate: 专利证书\n- high_tech_enterprise: 高新技术企业证书\n- audit_report: 审计报告\n- bank_account_permit: 开户许可证\n- tax_registration: 税务登记证\n- unknown: 无法识别\n\n请只返回资质类型的英文标识（如：business_license），不要添加其他内容。"
+  }
+}
