@@ -85,8 +85,9 @@ export const tenderApi = {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('project_id', projectId.toString())
+    formData.append('type', 'tender_document')
 
-    return apiClient.upload('/upload/tender-document', formData, (event) => {
+    return apiClient.upload('/files/upload', formData, (event) => {
       if (onProgress && event.total) {
         const progress = Math.round((event.loaded * 100) / event.total)
         onProgress(progress)
@@ -106,7 +107,7 @@ export const tenderApi = {
     formData.append('file', file)
     formData.append('project_id', projectId.toString())
 
-    return apiClient.upload('/upload/business-template', formData, (event) => {
+    return apiClient.upload('/files/upload/business-template', formData, (event) => {
       if (onProgress && event.total) {
         const progress = Math.round((event.loaded * 100) / event.total)
         onProgress(progress)
@@ -125,8 +126,9 @@ export const tenderApi = {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('project_id', projectId.toString())
+    formData.append('type', 'technical_template')
 
-    return apiClient.upload('/upload/technical-template', formData, (event) => {
+    return apiClient.upload('/files/upload', formData, (event) => {
       if (onProgress && event.total) {
         const progress = Math.round((event.loaded * 100) / event.total)
         onProgress(progress)

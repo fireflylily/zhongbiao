@@ -224,4 +224,96 @@ def serve_file(filepath):
         return jsonify(format_error_response(e)), 500
 
 
+@api_files_bp.route('/upload/business-template', methods=['POST'])
+def upload_business_template():
+    """
+    上传商务应答模板
+
+    POST参数:
+    - file: 上传的Word文档（multipart/form-data）
+    - project_id: 项目ID（必填）
+
+    Returns:
+        {
+            "success": true,
+            "filename": "safe_filename.docx",
+            "file_path": "/path/to/file",
+            "file_size": 123456,
+            "message": "商务应答模板上传成功"
+        }
+    """
+    try:
+        from core.storage_service import storage_service
+        from common.database import get_knowledge_base_db
+        import json
+
+        if 'file' not in request.files:
+            raise ValueError("没有选择文件")
+
+        file = request.files['file']
+        if not file.filename:
+            raise ValueError("文件名为空")
+
+        project_id = request.form.get('project_id')
+        if not project_id:
+            raise ValueError("缺少project_id参数")
+
+        # 验证文件格式
+        if not file.filename.lower().endswith(('.doc', '.docx')):
+            raise ValueError("只支持Word文档格式(.doc/.docx)")
+
+        # 使用统一存储服务保存文件
+        file_metadata = storage_service.store_file(
+            file_obj=file,
+            original_name=file.filename,
+            category='business_response',
+            business_type='template'
+        )
+
+        # 构建完整文件路径（用于数据库存储）
+        full_path = file_metadata.file_path
+        if not full_path.startswith('ai_tender_system/'):
+            full_path = f"ai_tender_system/{full_path}"
+
+        # 更新项目的response_file_path字段
+        db = get_knowledge_base_db()
+
+        # 获取现有的step1_data
+        result = db.execute_query(
+            "SELECT step1_data FROM tender_projects WHERE project_id = ?",
+            (project_id,),
+            fetch_one=True
+        )
+
+        if not result:
+            raise ValueError(f"项目不存在: {project_id}")
+
+        step1_data = json.loads(result['step1_data']) if result['step1_data'] else {}
+
+        # 更新response_file_path
+        step1_data['response_file_path'] = full_path
+
+        # 保存回数据库
+        db.execute_query(
+            "UPDATE tender_projects SET step1_data = ?, response_template_path = ? WHERE project_id = ?",
+            (json.dumps(step1_data, ensure_ascii=False), full_path, project_id)
+        )
+
+        logger.info(f"商务应答模板上传成功: {file.filename} -> {full_path} (项目ID: {project_id})")
+
+        return jsonify({
+            'success': True,
+            'filename': file_metadata.safe_name,
+            'file_path': full_path,
+            'file_size': file_metadata.file_size,
+            'message': '商务应答模板上传成功'
+        })
+
+    except Exception as e:
+        logger.error(f"商务应答模板上传失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify(format_error_response(e)), 400
+
+
 __all__ = ['api_files_bp']

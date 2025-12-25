@@ -91,7 +91,7 @@
           <div class="upload-item">
             <h4>商务应答模板 <span class="required">*</span></h4>
 
-            <!-- HITL模板文件Alert -->
+            <!-- 情况1: 从项目加载的HITL文件 -->
             <HitlFileAlert
               v-if="useHitlTemplate"
               :file-info="hitlTemplateInfo"
@@ -99,9 +99,24 @@
               @cancel="cancelHitlTemplate"
             />
 
-            <!-- 文件上传器（不使用HITL模板时显示） -->
+            <!-- 情况2: 手动上传的文件 -->
+            <HitlFileAlert
+              v-else-if="form.templateFiles.length > 0"
+              :file-info="{
+                filename: form.templateFiles[0].name,
+                file_path: form.templateFiles[0].response?.file_path || '',
+                file_size: form.templateFiles[0].size
+              }"
+              label="商务应答模板:"
+              :show-tag="false"
+              type="info"
+              cancel-text="删除文件"
+              @cancel="form.templateFiles = []"
+            />
+
+            <!-- 情况3: 未上传，显示上传器 -->
             <DocumentUploader
-              v-if="!useHitlTemplate"
+              v-else
               v-model="form.templateFiles"
               :http-request="handleTemplateUpload"
               accept=".doc,.docx"
@@ -119,7 +134,7 @@
           <div class="upload-item">
             <h4>招标文档（可选）</h4>
 
-            <!-- HITL招标文档Alert -->
+            <!-- 情况1: 从项目加载的HITL文件 -->
             <HitlFileAlert
               v-if="useHitlTender"
               :file-info="hitlTenderInfo"
@@ -127,9 +142,24 @@
               @cancel="cancelHitlTender"
             />
 
-            <!-- 文件上传器（不使用HITL时显示） -->
+            <!-- 情况2: 手动上传的文件 -->
+            <HitlFileAlert
+              v-else-if="form.tenderFiles.length > 0"
+              :file-info="{
+                filename: form.tenderFiles[0].name,
+                file_path: form.tenderFiles[0].response?.file_path || '',
+                file_size: form.tenderFiles[0].size
+              }"
+              label="招标文档:"
+              :show-tag="false"
+              type="info"
+              cancel-text="删除文件"
+              @cancel="form.tenderFiles = []"
+            />
+
+            <!-- 情况3: 未上传，显示上传器 -->
             <DocumentUploader
-              v-if="!useHitlTender"
+              v-else
               v-model="form.tenderFiles"
               :http-request="handleTenderUpload"
               accept=".pdf,.doc,.docx"
@@ -478,19 +508,11 @@ const handleTemplateUpload = async (options: UploadRequestOptions) => {
       await handleProjectChange()
     }
 
-    // 获取公司ID（现在一定有项目了）
-    const companyId = selectedProject.value?.company_id
-    if (!companyId) {
-      throw new Error('项目没有关联公司')
-    }
-
-    // 上传文件
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('company_id', companyId.toString())
-    formData.append('project_id', form.value.projectId.toString())
-
-    const response = await tenderApi.parseDocumentStructure(formData)
+    // 使用正确的商务应答模板上传API
+    const response = await tenderApi.uploadBusinessTemplate(
+      form.value.projectId,
+      file as File
+    )
 
     if (response.success) {
       onSuccess(response.data)
