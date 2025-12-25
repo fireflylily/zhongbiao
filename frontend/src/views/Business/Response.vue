@@ -701,6 +701,11 @@ const handleProjectChange = async () => {
     }
   })
 
+  // 项目选择后，自动加载历史文件列表
+  if (form.value.projectId) {
+    await loadFilesList()
+  }
+
   // 【新建项目模式】重置项目编号
   if (!form.value.projectId) {
     form.value.projectNumber = `PRJ-${Date.now()}`

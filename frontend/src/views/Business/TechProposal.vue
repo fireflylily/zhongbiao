@@ -889,6 +889,11 @@ const handleProjectChange = async () => {
       }
     }
   })
+
+  // 项目选择后，自动加载历史文件列表
+  if (form.value.projectId) {
+    await loadFilesList()
+  }
 }
 
 // ============================================

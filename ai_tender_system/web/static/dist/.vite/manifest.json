@@ -1281,7 +1281,7 @@
     ]
   },
   "src/layouts/MainLayout.vue": {
-    "file": "js/MainLayout-DMTL0nbY.js",
+    "file": "js/MainLayout-CU-b3vKW.js",
     "name": "MainLayout",
     "src": "src/layouts/MainLayout.vue",
     "isDynamicEntry": true,
@@ -1305,7 +1305,7 @@
       "_tender-Bln5F12J.js"
     ],
     "css": [
-      "css/MainLayout-Dea-2E9Q.css",
+      "css/MainLayout-DPbERPDg.css",
       "css/DocumentPreview-D7JSFyWn.css",
       "css/el-scrollbar-BWxh-h6K.css",
       "css/el-tag-DljBBxJR.css",
@@ -1516,7 +1516,7 @@
     ]
   },
   "src/views/Business/Response.vue": {
-    "file": "js/Response-CE6a9tGb.js",
+    "file": "js/Response-uYKaAHQU.js",
     "name": "Response",
     "src": "src/views/Business/Response.vue",
     "isDynamicEntry": true,
@@ -1562,7 +1562,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/Response-CPK1WbH9.css",
+      "css/Response-0qo-cwrc.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
@@ -1576,7 +1576,7 @@
     ]
   },
   "src/views/Business/TechProposal.vue": {
-    "file": "js/TechProposal-y9gn1PK0.js",
+    "file": "js/TechProposal-zM7nYHJX.js",
     "name": "TechProposal",
     "src": "src/views/Business/TechProposal.vue",
     "isDynamicEntry": true,
@@ -1624,7 +1624,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/TechProposal-CXsC0UKP.css",
+      "css/TechProposal-BL4J2Twq.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
