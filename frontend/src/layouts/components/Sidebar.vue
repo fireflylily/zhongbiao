@@ -152,6 +152,20 @@
       </el-menu>
     </el-scrollbar>
 
+    <!-- 帮助文档链接 -->
+    <div class="sidebar-help">
+      <a
+        href="https://ai.feishu.cn/wiki/Y68GwwLxqiGXUYklMDZcMcAenub"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="help-link"
+        :title="collapsed ? '帮助文档' : ''"
+      >
+        <i class="bi bi-question-circle"></i>
+        <span v-if="!collapsed" class="help-text">帮助文档</span>
+      </a>
+    </div>
+
     <!-- 折叠按钮 -->
     <div class="sidebar-footer" v-if="showCollapseButton">
       <button class="collapse-button" @click="toggleCollapse">
@@ -510,6 +524,52 @@ watch(
     :deep(.el-sub-menu__icon-arrow) {
       display: none;
     }
+  }
+}
+
+// ==================== 帮助文档链接 ====================
+
+.sidebar-help {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-light, #e5e7eb);
+}
+
+.help-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-md, 8px);
+  color: var(--text-secondary, #6c757d);
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.3s;
+
+  &:hover {
+    background: var(--bg-hover, #f3f4f6);
+    color: var(--brand-primary, #4a89dc);
+
+    i {
+      color: var(--brand-primary, #4a89dc);
+    }
+  }
+
+  i {
+    font-size: 18px;
+    transition: color 0.3s;
+  }
+
+  .help-text {
+    flex: 1;
+  }
+}
+
+.sidebar--collapsed .sidebar-help {
+  padding: 8px;
+
+  .help-link {
+    justify-content: center;
+    padding: 10px;
   }
 }
 
