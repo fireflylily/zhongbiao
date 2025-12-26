@@ -166,7 +166,7 @@ class RequirementAnalyzer:
 
     def _parse_json_response(self, response: str) -> Optional[Dict]:
         """
-        解析JSON响应（容错处理）
+        解析JSON响应（增强容错处理）
 
         Args:
             response: AI响应文本
@@ -191,8 +191,21 @@ class RequirementAnalyzer:
             try:
                 return json.loads(json_str)
             except json.JSONDecodeError as e:
-                self.logger.warning(f"JSON解析失败: {e}")
-                return None
+                self.logger.warning(f"JSON解析失败(第一次尝试): {e}")
+
+                # 尝试修复常见的JSON格式问题
+                try:
+                    # 修复尾随逗号问题: ,} 或 ,]
+                    fixed_json = re.sub(r',\s*}', '}', json_str)
+                    fixed_json = re.sub(r',\s*]', ']', fixed_json)
+
+                    # 尝试解析修复后的JSON
+                    result = json.loads(fixed_json)
+                    self.logger.info("JSON修复成功（移除尾随逗号）")
+                    return result
+                except json.JSONDecodeError as e2:
+                    self.logger.warning(f"JSON解析失败(修复后): {e2}")
+                    return None
 
         return None
 

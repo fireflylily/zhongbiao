@@ -38,12 +38,19 @@ from common import (
 class InlineReplyProcessor:
     """增强版内联回复处理器"""
 
-    def __init__(self, model_name: str = "shihuang-gpt4o-mini"):
+    def __init__(
+        self,
+        model_name: str = "shihuang-gpt4o-mini",
+        response_content: str = None,
+        response_text_format: str = "gray_background"
+    ):
         """
         初始化处理器
 
         Args:
             model_name: 使用的模型名称
+            response_content: 自定义应答内容（仅简单模板模式使用）
+            response_text_format: 应答文本格式（'gray_background' 或 'red_bold'）
         """
         self.config = get_config()
         self.logger = get_module_logger("inline_reply")
@@ -59,7 +66,11 @@ class InlineReplyProcessor:
         self.patterns = self._get_requirement_patterns()
         self.templates = self._get_response_templates()
 
-        self.logger.info(f"内联回复处理器初始化完成，使用模型: {model_name}")
+        # 新增属性
+        self.custom_response_content = response_content
+        self.response_text_format = response_text_format
+
+        self.logger.info(f"内联回复处理器初始化完成，使用模型: {model_name}, 应答格式: {response_text_format}")
 
     def _get_requirement_patterns(self) -> Dict:
         """获取需求识别模式"""
@@ -206,8 +217,13 @@ class InlineReplyProcessor:
 
         # 如果不使用AI，直接返回模板应答
         if not use_ai:
-            template = self.templates.get(req_type, self.templates["通用模板"])
-            return f"应答：满足。{template}。"
+            # 简单模板模式：优先使用用户自定义的应答内容
+            if self.custom_response_content:
+                return self.custom_response_content
+            else:
+                # 使用默认模板
+                template = self.templates.get(req_type, self.templates["通用模板"])
+                return f"应答：满足。{template}。"
 
         # 使用点对点应答风格 - 从提示词管理器获取
         prompt_template = self.prompt_manager.get_prompt('business_response', 'point_to_point',
@@ -326,17 +342,15 @@ class InlineReplyProcessor:
                 source_run = source_para.runs[0]
                 target_run = target_para.runs[0]
 
-                # 复制字体属性
+                # 复制字体属性（但保留已经设置的格式，如红字加粗）
+                # 只复制字体名称和大小，不覆盖颜色、加粗、斜体
                 if source_run.font.name:
                     target_run.font.name = source_run.font.name
                 if source_run.font.size:
                     target_run.font.size = source_run.font.size
-                if source_run.font.bold is not None:
-                    target_run.font.bold = source_run.font.bold
-                if source_run.font.italic is not None:
-                    target_run.font.italic = source_run.font.italic
-                # 对于应答内容，始终设置为黑色字体
-                target_run.font.color.rgb = RGBColor(0, 0, 0)
+
+                # 注意：不再覆盖bold、italic和color属性
+                # 因为这些属性已经在insert_paragraph_after_with_format中根据格式需求设置了
 
         except Exception as e:
             self.logger.warning(f"格式复制（排除行距）失败: {e}")
@@ -367,7 +381,13 @@ class InlineReplyProcessor:
         except Exception as e:
             self.logger.warning(f"添加段落底纹失败: {e}")
 
-    def insert_paragraph_after_with_format(self, paragraph, text=None, style=None):
+    def insert_paragraph_after_with_format(
+        self,
+        paragraph,
+        text=None,
+        style=None,
+        response_text_format=None
+    ):
         """
         在指定段落后插入新段落，并保持格式一致
 
@@ -375,10 +395,14 @@ class InlineReplyProcessor:
             paragraph: 源段落
             text: 要插入的文本
             style: 段落样式
+            response_text_format: 应答文本格式（'gray_background' 或 'red_bold'）
 
         Returns:
             新插入的段落
         """
+        # 如果没有传入format参数，使用实例属性
+        if response_text_format is None:
+            response_text_format = self.response_text_format
         if not DOCX_AVAILABLE:
             self.logger.error("未安装python-docx库，无法进行段落插入操作")
             return None
@@ -435,8 +459,17 @@ class InlineReplyProcessor:
             # 如果需要添加文本且之前没有添加
             if text and not new_para.text:
                 run = new_para.add_run(text)
-                # 设置字体为黑色
-                run.font.color.rgb = RGBColor(0, 0, 0)
+
+                # 根据格式选择应用不同样式
+                if response_text_format == "red_bold":
+                    # 红字加粗
+                    run.font.color.rgb = RGBColor(245, 108, 108)
+                    run.font.bold = True
+                    self.logger.info("✅ 应用红字加粗格式")
+                else:
+                    # 灰底黑字（默认）
+                    run.font.color.rgb = RGBColor(0, 0, 0)
+                    self.logger.info("✅ 应用灰底黑字格式")
 
             # 复制源段落的部分格式（除了行距，因为我们要强制使用1.5倍）
             self.copy_paragraph_format_except_line_spacing(paragraph, new_para)
@@ -446,8 +479,10 @@ class InlineReplyProcessor:
             new_para.paragraph_format.line_spacing = 1.5
             self.logger.debug(f"格式复制后重新设置行距: rule={new_para.paragraph_format.line_spacing_rule}, spacing={new_para.paragraph_format.line_spacing}")
 
-            # 添加浅灰色底纹 RGB(217,217,217)
-            self.add_paragraph_shading(new_para, RGBColor(217, 217, 217))
+            # 仅在灰底黑字格式下添加灰色底纹
+            if response_text_format == "gray_background":
+                self.add_paragraph_shading(new_para, RGBColor(217, 217, 217))
+                self.logger.info("✅ 已添加灰色底纹")
 
             # 最终验证行距设置
             final_rule = new_para.paragraph_format.line_spacing_rule
@@ -462,7 +497,14 @@ class InlineReplyProcessor:
             self.logger.error(traceback.format_exc())
             return None
 
-    def process_document(self, input_file: str, output_file: Optional[str] = None, use_ai: bool = True) -> Dict[str, Any]:
+    def process_document(
+        self,
+        input_file: str,
+        output_file: Optional[str] = None,
+        use_ai: bool = True,
+        response_content: str = None,
+        response_text_format: str = "gray_background"
+    ) -> Dict[str, Any]:
         """
         处理文档，插入内联回复
 
@@ -470,6 +512,8 @@ class InlineReplyProcessor:
             input_file: 输入文档路径
             output_file: 输出文档路径（可选）
             use_ai: 是否使用AI生成应答（False则使用简单模板）
+            response_content: 应答内容（仅简单模板模式使用）
+            response_text_format: 应答文本格式（'gray_background' 或 'red_bold'）
 
         Returns:
             dict: 包含输出文件路径和统计信息
@@ -482,6 +526,11 @@ class InlineReplyProcessor:
         Raises:
             BusinessResponseError: 处理失败
         """
+        # 保存参数到实例属性（用于后续方法调用）
+        if response_content is not None:
+            self.custom_response_content = response_content
+        if response_text_format is not None:
+            self.response_text_format = response_text_format
         if not DOCX_AVAILABLE:
             error_msg = "未安装python-docx库，请安装：pip install python-docx"
             self.logger.error(error_msg)

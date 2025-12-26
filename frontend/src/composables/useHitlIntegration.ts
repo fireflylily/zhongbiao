@@ -97,10 +97,8 @@ export function useHitlIntegration(options: UseHitlIntegrationOptions = {}) {
     useHitlFile.value = true
     synced.value = false
 
-    ElMessage.success({
-      message: `已加载HITL${getFileTypeLabel(fileKey)}: ${hitlFileInfo.value.filename}`,
-      duration: 3000
-    })
+    // 静默加载，不显示提示信息
+    console.log(`[HITL] 已加载${getFileTypeLabel(fileKey)}: ${hitlFileInfo.value.filename}`)
 
     // 执行回调
     if (onFileLoaded) {
@@ -118,7 +116,8 @@ export function useHitlIntegration(options: UseHitlIntegrationOptions = {}) {
     hitlFileInfo.value = null
     synced.value = false
 
-    ElMessage.info('已取消使用HITL文件')
+    // 静默取消，不显示提示信息
+    console.log('[HITL] 已取消使用HITL文件')
 
     // 执行回调
     if (onFileCancelled) {

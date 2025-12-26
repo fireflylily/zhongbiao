@@ -1,256 +1,179 @@
 <template>
   <div class="tech-proposal">
-    <!-- Step 1: 项目选择 -->
-    <el-card class="project-section" shadow="never">
-      <el-form :model="form" label-width="100px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="项目">
-              <el-select
-                v-model="form.projectId"
-                placeholder="请选择项目"
-                filterable
-                @change="handleProjectChange"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="project in projects"
-                  :key="project.id"
-                  :label="`${project.project_name} (${project.project_number || '-'})`"
-                  :value="project.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-
-          <el-col :span="12">
-            <el-form-item label="公司">
-              <el-input
-                :value="selectedProject?.company_name || '-'"
-                disabled
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-    </el-card>
-
-    <!-- Step 2: 文件上传和配置 -->
-    <el-card class="upload-section" shadow="never">
-      <!-- 使用技术文件提示 -->
-      <el-alert
-        v-if="currentDocuments.technicalFile && !useHitlFile"
-        type="success"
-        :closable="false"
-        style="margin-bottom: 16px"
-      >
-        <template #default>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>💡 检测到该项目已有技术需求文件，可直接使用</span>
-            <el-button
-              type="primary"
-              size="small"
-              @click="loadFromHITL(currentDocuments, 'technicalFile')"
-            >
-              使用技术需求文件
-            </el-button>
-          </div>
-        </template>
-      </el-alert>
-
-      <!-- HITL文件Alert -->
-      <HitlFileAlert
-        v-if="useHitlFile"
-        :file-info="hitlFileInfo"
-        label="技术需求文件:"
-        @cancel="cancelHitlFile"
-      />
-
-      <!-- 文件上传器（不使用HITL文件时显示） -->
-      <DocumentUploader
-        v-if="!useHitlFile"
-        v-model="form.tenderFiles"
-        :http-request="handleTenderUpload"
-        accept=".pdf,.doc,.docx"
-        :limit="1"
-        :max-size="50"
-        drag
-        tip-text="上传技术需求文档"
-        @success="handleUploadSuccess"
-      />
-
-      <el-form :model="config" label-width="140px" class="config-form">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="输出文件前缀">
-              <el-input
-                v-model="config.outputPrefix"
-                placeholder="技术方案"
-              />
-            </el-form-item>
-          </el-col>
-
-          <el-col :span="12">
-            <el-form-item label="AI模型">
-              <el-select v-model="config.aiModel" style="width: 100%">
-                <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
-                <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
-                <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="生成模式">
-          <el-radio-group v-model="config.generationMode">
-            <el-radio value="按评分点写">
-              按评分点写
-              <el-tooltip placement="top">
-                <template #content>
-                  <div style="max-width: 300px;">
-                    根据评分标准生成方案<br/>
-                    • 自动提取评分点<br/>
-                    • 按权重分配页数<br/>
-                    • 确保得分最大化
-                  </div>
-                </template>
-                <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </el-radio>
-            <el-radio value="按招标书目录写">
-              按招标书目录写（推荐）
-              <el-tooltip placement="top">
-                <template #content>
-                  <div style="max-width: 300px;">
-                    动态分析需求生成方案<br/>
-                    • 紧扣招标需求<br/>
-                    • 智能分类应答<br/>
-                    • 覆盖率≥90%
-                  </div>
-                </template>
-                <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </el-radio>
-            <el-radio value="编写专项章节">
-              使用固定模板
-              <el-tooltip placement="top">
-                <template #content>
-                  <div style="max-width: 300px;">
-                    使用预定义模板<br/>
-                    • 快速生成<br/>
-                    • 符合行业规范<br/>
-                    • 3种模板可选
-                  </div>
-                </template>
-                <el-icon style="margin-left: 4px;"><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
-
-        <!-- 模板选择（仅当选择"使用固定模板"时显示） -->
-        <el-form-item v-if="config.generationMode === '编写专项章节'" label="选择模板">
-          <el-select v-model="config.templateName" placeholder="请选择模板" style="width: 100%">
+    <!-- 统一的操作面板：项目选择 + 文档准备 -->
+    <el-card class="main-panel" shadow="never">
+      <!-- 第一行：项目和公司选择 -->
+      <div class="panel-row project-row">
+        <div class="row-item">
+          <label class="row-label">选择项目</label>
+          <el-select
+            v-model="form.projectId"
+            placeholder="请选择项目"
+            filterable
+            @change="handleProjectChange"
+            class="row-select"
+          >
             <el-option
-              label="政府采购标准（5章）"
-              value="政府采购标准"
-            >
-              <div>
-                <div>政府采购标准</div>
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  总体设计 | 需求应答 | 技术指标 | 实施方案 | 服务承诺
-                </div>
-              </div>
-            </el-option>
-            <el-option
-              label="软件开发项目（8章）"
-              value="软件开发项目"
-            >
-              <div>
-                <div>软件开发项目</div>
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  项目概述 | 需求分析 | 系统设计 | 开发实施 | 测试 | 部署 | 运维 | 培训
-                </div>
-              </div>
-            </el-option>
-            <el-option
-              label="ISO质量体系（6章）"
-              value="ISO质量体系"
-            >
-              <div>
-                <div>ISO质量体系</div>
-                <div style="color: #999; font-size: 12px; margin-top: 4px;">
-                  质量方针 | 质量目标 | 过程控制 | 文档管理 | 持续改进 | 管理评审
-                </div>
-              </div>
-            </el-option>
+              v-for="project in projects"
+              :key="project.id"
+              :label="`${project.project_name} (${project.project_number || '-'})`"
+              :value="project.id"
+            />
           </el-select>
-        </el-form-item>
+        </div>
 
-        <!-- 页数控制 -->
-        <el-form-item label="页数控制">
-          <el-slider
-            v-model="config.pageCount"
-            :min="50"
-            :max="400"
-            :step="10"
-            :marks="{
-              50: '50页',
-              100: '100页',
-              200: '200页',
-              300: '300页',
-              400: '400页'
-            }"
-            show-input
-            :show-input-controls="false"
+        <div class="row-item">
+          <label class="row-label">公司</label>
+          <el-input
+            :value="selectedProject?.company_name || '-'"
+            disabled
+            class="row-input"
           />
-          <div style="margin-top: 28px; color: #999; font-size: 12px;">
-            预估字数: {{ Math.round(config.pageCount * 700 * 0.8) }} - {{ Math.round(config.pageCount * 700) }} 字
-          </div>
-        </el-form-item>
+        </div>
+      </div>
 
-        <!-- 内容风格配置  -->
-        <el-form-item label="内容风格">
-          <div style="display: flex; gap: 20px;">
-            <div style="width: 200px;">
-              <div style="margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #666;">表格数量</div>
-              <el-select v-model="config.contentStyle.tables" style="width: 100%">
-                <el-option label="无" value="无" />
-                <el-option label="少量" value="少量" />
-                <el-option label="适量（推荐）" value="适量" />
-                <el-option label="大量" value="大量" />
-              </el-select>
-            </div>
-            <div style="width: 200px;">
-              <div style="margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #666;">流程图</div>
-              <el-select v-model="config.contentStyle.flowcharts" style="width: 100%">
-                <el-option label="无" value="无" />
-                <el-option label="流程图（推荐）" value="流程图" />
-                <el-option label="SmartArt" value="SmartArt" />
-              </el-select>
-            </div>
-            <div style="width: 200px;">
-              <div style="margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #666;">图片数量</div>
-              <el-select v-model="config.contentStyle.images" style="width: 100%">
-                <el-option label="无" value="无" />
-                <el-option label="少量（推荐）" value="少量" />
-                <el-option label="大量" value="大量" />
-              </el-select>
-            </div>
+      <!-- 第二行：文档区域（行内样式） -->
+      <div class="panel-row project-row document-row">
+        <div class="row-item">
+          <label class="row-label">技术文档</label>
+          <!-- 已加载文件 -->
+          <div v-if="useHitlFile" class="file-chip file-chip--success">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="hitlFileInfo?.filename">
+              {{ hitlFileInfo?.filename || '未知文件' }}
+            </span>
+            <span class="file-chip-tag">已加载</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="cancelHitlFile">×</el-button>
           </div>
-        </el-form-item>
+          <!-- 手动上传的文件 -->
+          <div v-else-if="form.tenderFiles.length > 0" class="file-chip file-chip--info">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="form.tenderFiles[0].name">
+              {{ form.tenderFiles[0].name }}
+            </span>
+            <span class="file-chip-tag">已上传</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="form.tenderFiles = []">×</el-button>
+          </div>
+          <!-- 未上传：显示为类似输入框的占位区域 -->
+          <div v-else class="file-placeholder">
+            <span class="placeholder-text">请上传技术需求文档</span>
+            <DocumentUploader
+              v-model="form.tenderFiles"
+              :http-request="handleTenderUpload"
+              accept=".pdf,.doc,.docx"
+              :limit="1"
+              :max-size="50"
+              :show-file-list="false"
+              trigger-text="选择文件"
+              @success="handleUploadSuccess"
+            />
+          </div>
+        </div>
+      </div>
 
-        <el-form-item label="附加输出">
-          <el-checkbox-group v-model="config.additionalOutputs">
-            <el-checkbox label="includeAnalysis">需求分析报告</el-checkbox>
-            <el-checkbox label="includeMapping">需求匹配表</el-checkbox>
-            <el-checkbox label="includeSummary">生成总结报告</el-checkbox>
-          </el-checkbox-group>
-        </el-form-item>
-      </el-form>
+      <!-- 第三行：配置选项 -->
+      <div class="config-section">
+        <!-- 第一行：输出前缀 + AI模型 -->
+        <div class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">输出前缀</label>
+            <el-input v-model="config.outputPrefix" placeholder="技术方案" class="row-input" />
+          </div>
+          <div class="row-item">
+            <label class="row-label">AI模型</label>
+            <el-select v-model="config.aiModel" class="row-select">
+              <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
+              <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
+              <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
+            </el-select>
+          </div>
+        </div>
+
+        <!-- 第二行：生成模式 -->
+        <div class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">生成模式</label>
+            <el-radio-group v-model="config.generationMode" class="row-radio-group">
+              <el-radio value="按评分点写">按评分点写</el-radio>
+              <el-radio value="按招标书目录写">按招标书目录写（推荐）</el-radio>
+              <el-radio value="编写专项章节">使用固定模板</el-radio>
+            </el-radio-group>
+          </div>
+          <!-- 模板选择（仅当选择"使用固定模板"时显示） -->
+          <div v-if="config.generationMode === '编写专项章节'" class="row-item">
+            <label class="row-label">选择模板</label>
+            <el-select v-model="config.templateName" placeholder="请选择模板" class="row-select">
+              <el-option label="政府采购标准（5章）" value="政府采购标准" />
+              <el-option label="软件开发项目（8章）" value="软件开发项目" />
+              <el-option label="ISO质量体系（6章）" value="ISO质量体系" />
+            </el-select>
+          </div>
+          <div v-else class="row-item"></div>
+        </div>
+
+        <!-- 第三行：页数控制 -->
+        <div class="panel-row project-row">
+          <div class="row-item slider-row">
+            <label class="row-label">页数控制</label>
+            <div class="slider-wrapper">
+              <el-slider
+                v-model="config.pageCount"
+                :min="50"
+                :max="400"
+                :step="10"
+                :marks="{ 50: '50页', 100: '100页', 200: '200页', 300: '300页', 400: '400页' }"
+                show-input
+                :show-input-controls="false"
+              />
+            </div>
+            <span class="page-hint">约 {{ Math.round(config.pageCount * 700 * 0.8).toLocaleString() }} - {{ Math.round(config.pageCount * 700).toLocaleString() }} 字</span>
+          </div>
+        </div>
+
+        <!-- 第四行：内容风格 -->
+        <div class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">表格数量</label>
+            <el-select v-model="config.contentStyle.tables" class="row-select">
+              <el-option label="无" value="无" />
+              <el-option label="少量" value="少量" />
+              <el-option label="适量（推荐）" value="适量" />
+              <el-option label="大量" value="大量" />
+            </el-select>
+          </div>
+          <div class="row-item">
+            <label class="row-label">流程图</label>
+            <el-select v-model="config.contentStyle.flowcharts" class="row-select">
+              <el-option label="无" value="无" />
+              <el-option label="流程图（推荐）" value="流程图" />
+              <el-option label="SmartArt" value="SmartArt" />
+            </el-select>
+          </div>
+        </div>
+
+        <!-- 第五行：图片数量 + 附加输出 -->
+        <div class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">图片数量</label>
+            <el-select v-model="config.contentStyle.images" class="row-select">
+              <el-option label="无" value="无" />
+              <el-option label="少量（推荐）" value="少量" />
+              <el-option label="大量" value="大量" />
+            </el-select>
+          </div>
+          <div class="row-item">
+            <label class="row-label">附加输出</label>
+            <el-checkbox-group v-model="config.additionalOutputs" class="row-checkbox-group">
+              <el-checkbox label="includeAnalysis">需求分析</el-checkbox>
+              <el-checkbox label="includeMapping">匹配表</el-checkbox>
+              <el-checkbox label="includeSummary">总结报告</el-checkbox>
+            </el-checkbox-group>
+          </div>
+        </div>
+      </div>
 
       <!-- 操作按钮 -->
-      <div class="action-controls">
+      <div class="panel-actions">
         <el-button
           type="primary"
           size="large"
@@ -885,7 +808,7 @@ const handleProjectChange = async () => {
       // 显示历史技术方案文件
       if (docs.techProposalFile) {
         currentTechFile.value = docs.techProposalFile
-        ElMessage.success('已加载历史技术方案文件')
+        console.log('[TechProposal] 已加载历史技术方案文件')
       }
     }
   })
@@ -1458,7 +1381,6 @@ onMounted(async () => {
 <style scoped lang="scss">
 
 .tech-proposal {
-  // 移除padding，避免与page-content的padding叠加
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -1476,8 +1398,203 @@ onMounted(async () => {
     }
   }
 
-  .project-section,
-  .upload-section,
+  // ========================================
+  // 统一的主面板样式
+  // ========================================
+  .main-panel {
+    :deep(.el-card__body) {
+      padding: 24px;
+    }
+  }
+
+  .panel-row {
+    display: flex;
+    gap: 24px;
+  }
+
+  .project-row {
+    margin-bottom: 24px;  // 1.5倍行距
+
+    .row-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .row-label {
+        flex-shrink: 0;
+        width: 70px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--el-text-color-regular);
+      }
+
+      .row-select,
+      .row-input {
+        flex: 1;
+      }
+    }
+  }
+
+  // 文档行样式（复用 project-row 的 row-item 结构）
+  .document-row {
+    margin-top: 0;
+    margin-bottom: 0;
+
+    .file-chip,
+    .file-placeholder {
+      flex: 1;
+    }
+  }
+
+  // 文件占位区域（未上传时显示）
+  .file-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px dashed var(--el-border-color);
+    border-radius: 6px;
+    background: var(--el-fill-color-lighter);
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+    }
+
+    .placeholder-text {
+      font-size: 14px;
+      color: var(--el-text-color-placeholder);
+    }
+
+    :deep(.document-uploader) {
+      .el-upload {
+        display: flex;
+      }
+
+      .el-button {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  // 文件条样式
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid;
+    background: var(--el-fill-color-lighter);
+
+    &--success {
+      background: #f0f9eb;
+      border-color: #b3e19d;
+    }
+
+    &--info {
+      background: #ecf5ff;
+      border-color: #a0cfff;
+    }
+
+    .file-chip-icon {
+      flex-shrink: 0;
+      font-size: 20px;
+      color: #67C23A;
+    }
+
+    .file-chip-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--el-text-color-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-chip-tag {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: #67C23A;
+      padding: 2px 8px;
+      background: rgba(103, 194, 58, 0.1);
+      border-radius: 4px;
+    }
+
+    .file-chip-close {
+      flex-shrink: 0;
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+  }
+
+  // 配置区域样式
+  .config-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+
+    .project-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .row-radio-group {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .row-checkbox-group {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    // 滑块行特殊样式
+    .slider-row {
+      flex: 1;
+
+      .slider-wrapper {
+        flex: 1;
+        min-width: 0;
+
+        :deep(.el-slider) {
+          margin-bottom: 24px;  // 为刻度标记留出空间
+        }
+      }
+
+      .page-hint {
+        flex-shrink: 0;
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+        white-space: nowrap;
+        padding: 6px 12px;
+        background: var(--el-fill-color-light);
+        border-radius: 4px;
+        margin-left: 16px;
+      }
+    }
+  }
+
+  // 操作按钮区域
+  .panel-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+
+  // ========================================
+  // 其他卡片样式
+  // ========================================
   .generation-output,
   .analysis-section,
   .outline-section,
@@ -1490,28 +1607,14 @@ onMounted(async () => {
   }
 
   .editor-section {
-    height: 1050px;       // 固定卡片高度（包含header）
-    overflow: hidden;     // 防止溢出
+    height: 1050px;
+    overflow: hidden;
 
     :deep(.el-card__body) {
       padding: 0;
-      height: 1000px;     // 内容区域1000px（编辑器高度）
-      overflow: hidden;   // 防止溢出
+      height: 1000px;
+      overflow: hidden;
     }
-  }
-
-  .config-form {
-    margin-top: 20px;
-    padding: 20px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 8px;
-  }
-
-  .action-controls {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 20px;
   }
 
   .requirement-categories,
@@ -1591,6 +1694,36 @@ onMounted(async () => {
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
+      }
+    }
+  }
+
+  // 历史文件折叠面板
+  .history-collapse {
+    :deep(.el-collapse-item__header) {
+      padding: 16px 20px;
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    :deep(.el-collapse-item__content) {
+      padding: 0;
+    }
+
+    .collapse-header {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .filename-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .el-icon {
+        color: var(--el-color-primary);
       }
     }
   }

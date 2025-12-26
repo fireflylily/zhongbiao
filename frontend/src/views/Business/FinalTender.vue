@@ -1,96 +1,69 @@
 <template>
   <div class="final-tender-page">
-    <!-- 页面头部 -->
-    <PageHeader title="最终标书" :show-back="false">
-      <template #actions>
-        <el-button @click="handleRefresh">
-          <i class="bi bi-arrow-clockwise"></i> 刷新
-        </el-button>
-      </template>
-    </PageHeader>
-
     <!-- 加载状态 -->
     <Loading v-if="loading" text="加载项目列表..." />
 
     <!-- 主要内容 -->
     <template v-else>
-      <!-- 项目选择器 -->
-      <el-card v-if="!form.projectId" class="project-selector-card" shadow="never">
-        <div class="selector-content">
-          <div class="selector-icon">
-            <i class="bi bi-folder2-open"></i>
-          </div>
-          <h3>请选择要整合的项目</h3>
-          <p class="text-muted">
-            从下方列表中选择一个已完成商务应答和技术方案的项目
-          </p>
-
-          <el-select
-            v-model="form.projectId"
-            placeholder="选择项目"
-            size="large"
-            filterable
-            class="project-select"
-            @change="handleProjectChange"
-          >
-            <el-option
-              v-for="project in projects"
-              :key="project.id"
-              :label="`${project.project_name} (${project.project_number || '-'})`"
-              :value="project.id"
+      <!-- 统一的操作面板：项目选择 -->
+      <el-card class="main-panel" shadow="never">
+        <!-- 第一行：项目和公司选择 -->
+        <div class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">选择项目</label>
+            <el-select
+              v-model="form.projectId"
+              placeholder="请选择项目"
+              filterable
+              @change="handleProjectChange"
+              class="row-select"
             >
-              <div class="project-option">
-                <span class="project-name">{{ project.project_name }}</span>
-                <div class="project-status">
-                  <el-tag type="info" size="small">{{ project.company_name }}</el-tag>
-                </div>
-              </div>
-            </el-option>
-          </el-select>
+              <el-option
+                v-for="project in projects"
+                :key="project.id"
+                :label="`${project.project_name} (${project.project_number || '-'})`"
+                :value="project.id"
+              />
+            </el-select>
+          </div>
 
-          <!-- 空状态提示 -->
-          <el-empty
-            v-if="!hasProjects"
-            description="暂无项目"
-            :image-size="120"
-          >
-            <template #extra>
-              <el-button type="primary" @click="$router.push({ name: 'TenderManagement' })">
-                <i class="bi bi-folder-plus"></i> 前往项目管理
-              </el-button>
-            </template>
-          </el-empty>
+          <div class="row-item">
+            <label class="row-label">公司</label>
+            <el-input
+              :value="selectedProject?.company_name || '-'"
+              disabled
+              class="row-input"
+            />
+          </div>
+        </div>
+
+        <!-- 空状态提示 -->
+        <el-empty
+          v-if="!hasProjects"
+          description="暂无项目"
+          :image-size="100"
+          style="margin-top: 20px;"
+        >
+          <template #extra>
+            <el-button type="primary" @click="$router.push({ name: 'TenderManagement' })">
+              前往项目管理
+            </el-button>
+          </template>
+        </el-empty>
+
+        <!-- 提示信息 -->
+        <div v-if="!form.projectId && hasProjects" class="select-hint">
+          请选择一个已完成商务应答和技术方案的项目进行整合
         </div>
       </el-card>
 
-      <!-- 当前项目信息 -->
-      <template v-if="form.projectId && selectedProject">
-        <el-card class="current-project-card" shadow="never">
-          <div class="project-info">
-            <div class="project-header">
-              <h3>
-                <i class="bi bi-folder-check"></i>
-                {{ selectedProject.project_name }}
-              </h3>
-              <el-button size="small" text @click="changeProject">
-                <i class="bi bi-arrow-left-right"></i> 切换项目
-              </el-button>
-            </div>
-            <p class="project-meta">
-              公司：{{ selectedProject.company_name }} |
-              项目编号：{{ selectedProject.project_number || '-' }} |
-              创建时间：{{ selectedProject.created_at }}
-            </p>
-          </div>
-        </el-card>
-
-        <!-- 文档整合面板 -->
-        <DocumentMergePanel
-          :project-id="form.projectId"
-          :current-documents="currentDocuments"
-          :key="form.projectId"
-        />
-      </template>
+      <!-- 文档整合面板 -->
+      <DocumentMergePanel
+        v-if="form.projectId && selectedProject"
+        :project-id="form.projectId"
+        :current-documents="currentDocuments"
+        :key="form.projectId"
+      />
     </template>
   </div>
 </template>
@@ -99,7 +72,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { PageHeader, Loading } from '@/components'
+import { Loading } from '@/components'
 import DocumentMergePanel from '@/components/DocumentMergePanel.vue'
 import { useProjectDocuments } from '@/composables'
 import { useProjectStore } from '@/stores/project'
@@ -217,91 +190,56 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .final-tender-page {
-  // 移除padding，避免与page-content的padding叠加
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 
-  .project-selector-card {
-    margin-bottom: 20px;
+  // ========================================
+  // 统一的主面板样式
+  // ========================================
+  .main-panel {
+    :deep(.el-card__body) {
+      padding: 24px;
+    }
+  }
 
-    .selector-content {
-      text-align: center;
-      padding: 40px 20px;
+  .panel-row {
+    display: flex;
+    gap: 24px;
+  }
 
-      .selector-icon {
-        font-size: 64px;
-        color: var(--el-color-primary);
-        margin-bottom: 20px;
-      }
+  .project-row {
+    margin-bottom: 24px;  // 1.5倍行距
 
-      h3 {
-        margin: 0 0 12px 0;
-        font-size: 24px;
-        font-weight: 600;
+    .row-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .row-label {
+        flex-shrink: 0;
+        width: 50px;
+        font-size: 14px;
+        font-weight: 500;
         color: var(--el-text-color-primary);
       }
 
-      .text-muted {
-        margin: 0 0 32px 0;
-        color: var(--el-text-color-secondary);
-      }
-
-      .project-select {
-        width: 100%;
-        max-width: 500px;
-      }
-
-      .project-option {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        gap: 12px;
-
-        .project-name {
-          flex: 1;
-          min-width: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .project-status {
-          display: flex;
-          gap: 4px;
-          flex-shrink: 0;
-        }
+      .row-select,
+      .row-input {
+        flex: 1;
       }
     }
   }
 
-  .current-project-card {
-    margin-bottom: 20px;
-
-    .project-info {
-      .project-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-
-        h3 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: var(--el-text-color-primary);
-
-          i {
-            margin-right: 8px;
-            color: var(--el-color-success);
-          }
-        }
-      }
-
-      .project-meta {
-        margin: 0;
-        font-size: 14px;
-        color: var(--el-text-color-secondary);
-      }
-    }
+  .select-hint {
+    margin-top: 20px;
+    padding: 16px;
+    text-align: center;
+    color: var(--el-text-color-secondary);
+    font-size: 14px;
+    background: var(--el-fill-color-lighter);
+    border-radius: 8px;
   }
 }
 </style>

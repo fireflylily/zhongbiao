@@ -876,6 +876,10 @@ def process_point_to_point():
         response_mode = request.form.get('responseMode', 'simple')
         ai_model = request.form.get('aiModel', 'shihuang-gpt4o-mini')
 
+        # 新增参数
+        response_content = request.form.get('responseContent', '应答：满足。')
+        response_text_format = request.form.get('responseTextFormat', 'gray_background')
+
         # 根据模型选择映射到正确的模型名称
         model_mapping = {
             'gpt-4o-mini': 'shihuang-gpt4o-mini',
@@ -885,7 +889,7 @@ def process_point_to_point():
         }
         actual_model = model_mapping.get(ai_model, ai_model)
 
-        logger.info(f"配置参数 - 应答频次: {response_frequency}, 应答方式: {response_mode}, AI模型: {actual_model}")
+        logger.info(f"配置参数 - 应答频次: {response_frequency}, 应答方式: {response_mode}, AI模型: {actual_model}, 应答内容: {response_content}, 应答格式: {response_text_format}")
 
         # 创建商务应答处理器（使用内联回复功能）
         processor = BusinessResponseProcessor(model_name=actual_model)
@@ -909,7 +913,10 @@ def process_point_to_point():
         result_stats = processor.process_inline_reply(
             str(file_path),
             str(output_path),
-            use_ai=use_ai
+            use_ai=use_ai,
+            # 新增参数
+            response_content=response_content,
+            response_text_format=response_text_format
         )
 
         if result_stats.get('success'):

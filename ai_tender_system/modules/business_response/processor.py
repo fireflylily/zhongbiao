@@ -303,7 +303,14 @@ class BusinessResponseProcessor:
                 'message': '处理失败'
             }
     
-    def process_inline_reply(self, input_file: str, output_file: Optional[str] = None, use_ai: bool = True) -> Dict[str, Any]:
+    def process_inline_reply(
+        self,
+        input_file: str,
+        output_file: Optional[str] = None,
+        use_ai: bool = True,
+        response_content: str = '应答：满足。',
+        response_text_format: str = 'gray_background'
+    ) -> Dict[str, Any]:
         """
         处理内联回复（原地插入应答）
 
@@ -316,6 +323,8 @@ class BusinessResponseProcessor:
             input_file: 输入文档路径
             output_file: 输出文档路径（可选）
             use_ai: 是否使用AI生成应答（False则使用简单模板）
+            response_content: 应答内容（仅简单模板模式使用）
+            response_text_format: 应答文本格式（'gray_background' 或 'red_bold'）
 
         Returns:
             dict: 处理结果
@@ -325,9 +334,17 @@ class BusinessResponseProcessor:
             self.logger.info(f"输入文件: {input_file}")
             self.logger.info(f"使用模型: {self.model_name}")
             self.logger.info(f"应答模式: {'AI智能应答' if use_ai else '简单模板应答'}")
+            self.logger.info(f"应答内容: {response_content}")
+            self.logger.info(f"应答格式: {response_text_format}")
 
-            # 调用内联处理器，传递use_ai参数
-            result = self.inline_processor.process_document(input_file, output_file, use_ai)
+            # 调用内联处理器，传递所有参数
+            result = self.inline_processor.process_document(
+                input_file,
+                output_file,
+                use_ai,
+                response_content=response_content,
+                response_text_format=response_text_format
+            )
 
             return {
                 'success': True,

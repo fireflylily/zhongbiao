@@ -1,127 +1,144 @@
 <template>
   <div class="point-to-point">
-    <!-- 项目选择 -->
-    <el-card class="project-section" shadow="never">
-      <el-form :model="form" label-width="100px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="项目">
-              <el-select
-                v-model="form.projectId"
-                placeholder="请选择项目"
-                filterable
-                @change="handleProjectChange"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="project in projects"
-                  :key="project.id"
-                  :label="`${project.project_name} (${project.project_number || '-'})`"
-                  :value="project.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
+    <!-- 统一的操作面板：项目选择 + 文档准备 -->
+    <el-card class="main-panel" shadow="never">
+      <!-- 第一行：项目和公司选择 -->
+      <div class="panel-row project-row">
+        <div class="row-item">
+          <label class="row-label">选择项目</label>
+          <el-select
+            v-model="form.projectId"
+            placeholder="请选择项目"
+            filterable
+            @change="handleProjectChange"
+            class="row-select"
+          >
+            <el-option
+              v-for="project in projects"
+              :key="project.id"
+              :label="`${project.project_name} (${project.project_number || '-'})`"
+              :value="project.id"
+            />
+          </el-select>
+        </div>
 
-          <el-col :span="12">
-            <el-form-item label="公司">
-              <el-input
-                :value="selectedProject?.company_name || '-'"
-                disabled
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-    </el-card>
+        <div class="row-item">
+          <label class="row-label">公司</label>
+          <el-input
+            :value="selectedProject?.company_name || '-'"
+            disabled
+            class="row-input"
+          />
+        </div>
+      </div>
 
-    <!-- 文档上传 -->
-    <el-card class="upload-section" shadow="never">
-      <!-- 使用技术文件提示 -->
-      <el-alert
-        v-if="currentDocuments.technicalFile && !useHitlFile"
-        type="success"
-        :closable="false"
-        style="margin-bottom: 16px"
-      >
-        <template #default>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span>💡 检测到该项目已有技术需求文件，可直接使用</span>
-            <el-button
-              type="primary"
-              size="small"
-              @click="loadFromHITL(currentDocuments, 'technicalFile')"
-            >
-              使用技术需求文件
-            </el-button>
+      <!-- 第二行：文档区域（行内样式） -->
+      <div class="panel-row project-row document-row">
+        <div class="row-item">
+          <label class="row-label">技术文档</label>
+          <!-- 已加载文件 -->
+          <div v-if="useHitlFile" class="file-chip file-chip--success">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="hitlFileInfo?.filename">
+              {{ hitlFileInfo?.filename || '未知文件' }}
+            </span>
+            <span class="file-chip-tag">已加载</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="cancelHitlFile">×</el-button>
           </div>
-        </template>
-      </el-alert>
+          <!-- 手动上传的文件 -->
+          <div v-else-if="form.tenderFiles.length > 0" class="file-chip file-chip--info">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="form.tenderFiles[0].name">
+              {{ form.tenderFiles[0].name }}
+            </span>
+            <span class="file-chip-tag">已上传</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="form.tenderFiles = []">×</el-button>
+          </div>
+          <!-- 未上传：显示为类似输入框的占位区域 -->
+          <div v-else class="file-placeholder">
+            <span class="placeholder-text">请上传技术需求文档</span>
+            <DocumentUploader
+              v-model="form.tenderFiles"
+              :http-request="handleTenderUpload"
+              accept=".pdf,.doc,.docx"
+              :limit="5"
+              :max-size="50"
+              :show-file-list="false"
+              trigger-text="选择文件"
+              @success="handleUploadSuccess"
+            />
+          </div>
+        </div>
+      </div>
 
-      <!-- HITL文件Alert -->
-      <HitlFileAlert
-        v-if="useHitlFile"
-        :file-info="hitlFileInfo"
-        label="技术需求文件:"
-        @cancel="cancelHitlFile"
-      />
+      <!-- 第三行：配置选项 -->
+      <div class="config-section">
+        <!-- 配置第一行：应答频率 + 应答方式 -->
+        <div class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">应答频率</label>
+            <el-select v-model="config.responseFrequency" class="row-select">
+              <el-option label="每段应答" value="every_paragraph" />
+              <el-option label="每页应答" value="every_page" />
+              <el-option label="每章节应答" value="every_section" />
+              <el-option label="文档末尾统一应答" value="end_of_document" />
+            </el-select>
+          </div>
 
-      <!-- 文档上传器（当不使用HITL文件时显示） -->
-      <DocumentUploader
-        v-if="!useHitlFile"
-        v-model="form.tenderFiles"
-        :http-request="handleTenderUpload"
-        accept=".pdf,.doc,.docx"
-        :limit="5"
-        :max-size="50"
-        drag
-        tip-text="上传技术需求文档"
-        @success="handleUploadSuccess"
-      />
+          <div class="row-item">
+            <label class="row-label">应答方式</label>
+            <el-radio-group v-model="config.responseMode" class="row-radio-group">
+              <el-radio label="simple">简单模板应答</el-radio>
+              <el-radio label="ai">AI智能应答</el-radio>
+            </el-radio-group>
+          </div>
+        </div>
 
-      <el-form :model="config" label-width="100px" style="margin-top: 20px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="应答频率">
-              <el-select v-model="config.responseFrequency" style="width: 100%">
-                <el-option label="每段应答" value="every_paragraph" />
-                <el-option label="每页应答" value="every_page" />
-                <el-option label="每章节应答" value="every_section" />
-                <el-option label="文档末尾统一应答" value="end_of_document" />
+        <!-- 配置第二行：应答内容 + 文本格式（仅简单模板应答时显示） -->
+        <div v-if="config.responseMode === 'simple'" class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">应答内容</label>
+            <el-input v-model="config.responseContent" placeholder="请输入应答内容" class="row-input" />
+          </div>
+
+          <div class="row-item">
+            <label class="row-label">文本格式</label>
+            <div class="format-preview">
+              <el-select v-model="config.responseTextFormat" style="width: 120px;">
+                <el-option label="灰底黑字" value="gray_background" />
+                <el-option label="红字加粗" value="red_bold" />
               </el-select>
-            </el-form-item>
-          </el-col>
+              <span :style="getResponseTextStyle" class="format-sample">
+                {{ config.responseContent }}
+              </span>
+            </div>
+          </div>
+        </div>
 
-          <el-col :span="12">
-            <el-form-item label="应答方式">
-              <el-radio-group v-model="config.responseMode">
-                <el-radio label="simple">简单模板应答</el-radio>
-                <el-radio label="ai">AI智能应答</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
+        <!-- 配置第二行：AI模型（仅AI智能应答时显示） -->
+        <div v-if="config.responseMode === 'ai'" class="panel-row project-row">
+          <div class="row-item">
+            <label class="row-label">AI模型</label>
+            <el-select v-model="config.aiModel" class="row-select">
+              <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
+              <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
+              <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
+            </el-select>
+          </div>
+          <div class="row-item"></div>
+        </div>
+      </div>
 
-          <el-col :span="12" v-if="config.responseMode === 'ai'">
-            <el-form-item label="AI模型">
-              <el-select v-model="config.aiModel" style="width: 100%">
-                <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
-                <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
-                <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-
-      <div class="action-controls">
+      <!-- 操作按钮 -->
+      <div class="panel-actions">
         <el-button
-          type="success"
+          type="primary"
           size="large"
           :disabled="!canExtract"
           :loading="generating"
           @click="processPointToPointDirect"
         >
-          直接生成Word文档
+          开始点对点应答
         </el-button>
       </div>
     </el-card>
@@ -585,7 +602,10 @@ const form = ref({
 const config = ref({
   responseFrequency: 'every_paragraph' as 'every_paragraph' | 'every_page' | 'every_section' | 'end_of_document',
   responseMode: 'simple' as 'ai' | 'simple',
-  aiModel: 'shihuang-gpt4o-mini'
+  aiModel: 'shihuang-gpt4o-mini',
+  // 新增字段
+  responseContent: '应答：满足。',
+  responseTextFormat: 'gray_background' as 'gray_background' | 'red_bold'
 })
 
 // 提取状态
@@ -683,6 +703,24 @@ const canExtract = computed(() =>
   form.value.projectId && (form.value.tenderFiles.length > 0 || useHitlFile.value)
 )
 
+// 计算应答文本的样式
+const getResponseTextStyle = computed(() => {
+  if (config.value.responseTextFormat === 'red_bold') {
+    return {
+      color: '#F56C6C',
+      fontWeight: 'bold',
+      background: 'transparent'
+    }
+  } else {
+    // gray_background
+    return {
+      color: '#000000',
+      fontWeight: 'normal',
+      background: '#E5E5E5'
+    }
+  }
+})
+
 // 自定义上传函数：招标文档
 const handleTenderUpload = async (options: UploadRequestOptions) => {
   const { file, onSuccess, onError } = options
@@ -775,7 +813,6 @@ const handleDocumentsLoaded = (docs: ProjectDocuments) => {
     showEditor.value = false  // 明确不自动打开编辑器
 
     console.log('[PointToPoint] 检测到历史点对点应答文件:', docs.p2pResponseFile.outputFile)
-    ElMessage.info('检测到历史点对点应答文件，点击"在编辑器中打开"可编辑')
   }
 }
 
@@ -995,6 +1032,9 @@ const processPointToPointDirect = async () => {
     formData.append('responseFrequency', config.value.responseFrequency)
     formData.append('responseMode', config.value.responseMode)
     formData.append('aiModel', config.value.aiModel)
+    // 新增参数
+    formData.append('responseContent', config.value.responseContent)
+    formData.append('responseTextFormat', config.value.responseTextFormat)
 
     // 调用后端API
     const response = await fetch('/api/process-point-to-point', {
@@ -1556,11 +1596,213 @@ onMounted(async () => {
 <style scoped lang="scss">
 
 .point-to-point {
-  // 移除padding，避免与page-content的padding叠加
   display: flex;
   flex-direction: column;
   gap: 20px;
 
+  // ============================================
+  // 统一操作面板样式
+  // ============================================
+  .main-panel {
+    :deep(.el-card__body) {
+      padding: 24px;
+    }
+  }
+
+  .panel-row {
+    display: flex;
+    gap: 24px;
+  }
+
+  // 项目选择行
+  .project-row {
+    margin-bottom: 24px;  // 1.5倍行距
+
+    .row-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .row-label {
+        flex-shrink: 0;
+        width: 70px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--el-text-color-regular);
+      }
+
+      .row-select,
+      .row-input {
+        flex: 1;
+      }
+    }
+  }
+
+  // 文档行样式（复用 project-row 的 row-item 结构）
+  .document-row {
+    margin-top: 0;
+    margin-bottom: 0;
+
+    .file-chip,
+    .file-placeholder {
+      flex: 1;
+    }
+  }
+
+  // 文件占位区域（未上传时显示）
+  .file-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px dashed var(--el-border-color);
+    border-radius: 6px;
+    background: var(--el-fill-color-lighter);
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+    }
+
+    .placeholder-text {
+      font-size: 14px;
+      color: var(--el-text-color-placeholder);
+    }
+
+    :deep(.document-uploader) {
+      .el-upload {
+        display: flex;
+      }
+
+      .el-button {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  // 文档区域行
+  .documents-row {
+    margin-top: 20px;
+
+    .document-item {
+      flex: 1;
+      min-width: 0;
+
+      .document-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+
+        .document-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+        }
+      }
+    }
+  }
+
+  // 文件条样式
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid;
+    background: var(--el-fill-color-lighter);
+
+    &--success {
+      background: #f0f9eb;
+      border-color: #b3e19d;
+    }
+
+    &--info {
+      background: #ecf5ff;
+      border-color: #a0cfff;
+    }
+
+    .file-chip-icon {
+      flex-shrink: 0;
+      font-size: 20px;
+      color: #67C23A;
+    }
+
+    .file-chip-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--el-text-color-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-chip-tag {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: #67C23A;
+      padding: 2px 8px;
+      background: rgba(103, 194, 58, 0.1);
+      border-radius: 4px;
+    }
+
+    .file-chip-close {
+      flex-shrink: 0;
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+  }
+
+  // 配置区域
+  .config-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+
+    .project-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .row-radio-group {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .format-preview {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .format-sample {
+        padding: 6px 16px;
+        border-radius: 4px;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  // 操作按钮
+  .panel-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+
+  // ============================================
+  // 其他区域样式
+  // ============================================
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -1571,21 +1813,6 @@ onMounted(async () => {
       display: flex;
       gap: 12px;
       align-items: center;
-    }
-  }
-
-  .project-section,
-  .upload-section,
-  .extracting-section,
-  .requirements-section,
-  .generation-output,
-  .responses-section,
-  .current-file-section,
-  .editor-section,
-  .result-section {
-    :deep(.el-card__header) {
-      padding: 16px 20px;
-      background: var(--el-fill-color-light);
     }
   }
 
@@ -1611,15 +1838,6 @@ onMounted(async () => {
     }
   }
 
-  .current-file-content {
-    .current-file-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-  }
-
   .history-collapse {
     :deep(.el-collapse-item__header) {
       padding: 16px 20px;
@@ -1637,65 +1855,14 @@ onMounted(async () => {
       align-items: center;
       width: 100%;
     }
-  }
 
-  .filename-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    .filename-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-    .el-icon {
-      color: var(--el-color-primary);
-    }
-  }
-
-  .action-controls {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 20px;
-  }
-
-  .requirement-text {
-    line-height: 1.6;
-  }
-
-  .collapse-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-
-    .requirement-preview {
-      flex: 1;
-      font-size: 14px;
-      color: var(--el-text-color-primary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
-  .response-content {
-    .response-item {
-      margin-bottom: 24px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      h4 {
-        margin: 0 0 12px 0;
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-      }
-
-      .requirement-detail {
-        padding: 12px;
-        background: var(--el-fill-color-light);
-        border-radius: 6px;
-        line-height: 1.6;
+      .el-icon {
+        color: var(--el-color-primary);
       }
     }
   }

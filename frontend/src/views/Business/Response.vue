@@ -1,179 +1,146 @@
 <template>
   <div class="business-response">
-    <!-- 项目选择 -->
-    <el-card class="project-section" shadow="never">
-      <!-- 提示信息 -->
-      <el-alert type="info" :closable="false" style="margin-bottom: 16px">
-        <template #default>
-          💡 提示：可选择现有项目，或选择公司后新建项目并上传文档
-        </template>
-      </el-alert>
-
-      <el-form :model="form" label-width="100px">
-        <!-- 项目选择 -->
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="项目">
-              <el-select
-                v-model="form.projectId"
-                placeholder="请选择项目或直接新建"
-                filterable
-                clearable
-                @change="handleProjectChange"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="project in projects"
-                  :key="project.id"
-                  :label="`${project.project_name} (${project.project_number || '-'})`"
-                  :value="project.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-
-          <!-- 公司：根据是否选择项目显示不同内容 -->
-          <el-col :span="12">
-            <el-form-item label="公司">
-              <!-- 现有项目模式：只读显示 -->
-              <el-input
-                v-if="form.projectId"
-                :value="selectedProject?.company_name || '-'"
-                disabled
-              />
-              <!-- 新建项目模式：可选择 -->
-              <el-select
-                v-else
-                v-model="form.companyId"
-                placeholder="请选择公司（必填）"
-                filterable
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="company in companies"
-                  :key="company.company_id"
-                  :label="company.company_name"
-                  :value="company.company_id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <!-- 新建项目信息：仅当未选择项目时显示 -->
-        <el-row v-if="!form.projectId" :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="项目名称">
-              <el-input
-                v-model="form.projectName"
-                placeholder="新项目"
-              />
-            </el-form-item>
-          </el-col>
-
-          <el-col :span="12">
-            <el-form-item label="项目编号">
-              <el-input
-                v-model="form.projectNumber"
-                placeholder="PRJ-..."
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-    </el-card>
-
-    <!-- 文档上传 -->
-    <el-card class="upload-section" shadow="never">
-      <el-row :gutter="20">
-        <!-- 商务应答模板 -->
-        <el-col :span="12">
-          <div class="upload-item">
-            <h4>商务应答模板 <span class="required">*</span></h4>
-
-            <!-- 情况1: 从项目加载的HITL文件 -->
-            <HitlFileAlert
-              v-if="useHitlTemplate"
-              :file-info="hitlTemplateInfo"
-              label="商务应答模板:"
-              @cancel="cancelHitlTemplate"
+    <!-- 统一的操作面板：项目选择 + 文档准备 -->
+    <el-card class="main-panel" shadow="never">
+      <!-- 第一行：项目和公司选择 -->
+      <div class="panel-row project-row">
+        <div class="row-item">
+          <label class="row-label">选择项目</label>
+          <el-select
+            v-model="form.projectId"
+            placeholder="请选择项目"
+            filterable
+            clearable
+            @change="handleProjectChange"
+            class="row-select"
+          >
+            <el-option
+              v-for="project in projects"
+              :key="project.id"
+              :label="`${project.project_name} (${project.project_number || '-'})`"
+              :value="project.id"
             />
+          </el-select>
+        </div>
 
-            <!-- 情况2: 手动上传的文件 -->
-            <HitlFileAlert
-              v-else-if="form.templateFiles.length > 0"
-              :file-info="{
-                filename: form.templateFiles[0].name,
-                file_path: form.templateFiles[0].response?.file_path || '',
-                file_size: form.templateFiles[0].size
-              }"
-              label="商务应答模板:"
-              :show-tag="false"
-              type="info"
-              cancel-text="删除文件"
-              @cancel="form.templateFiles = []"
+        <div class="row-item">
+          <label class="row-label">公司</label>
+          <!-- 现有项目模式：只读显示 -->
+          <el-input
+            v-if="form.projectId"
+            :value="selectedProject?.company_name || '-'"
+            disabled
+            class="row-input"
+          />
+          <!-- 新建项目模式：可选择 -->
+          <el-select
+            v-else
+            v-model="form.companyId"
+            placeholder="请选择公司"
+            filterable
+            class="row-select"
+          >
+            <el-option
+              v-for="company in companies"
+              :key="company.company_id"
+              :label="company.company_name"
+              :value="company.company_id"
             />
+          </el-select>
+        </div>
+      </div>
 
-            <!-- 情况3: 未上传，显示上传器 -->
+      <!-- 新建项目信息：仅当未选择项目时显示 -->
+      <div v-if="!form.projectId" class="panel-row project-row">
+        <div class="row-item">
+          <label class="row-label">项目名称</label>
+          <el-input v-model="form.projectName" placeholder="新项目" class="row-input" />
+        </div>
+        <div class="row-item">
+          <label class="row-label">项目编号</label>
+          <el-input v-model="form.projectNumber" placeholder="PRJ-..." class="row-input" />
+        </div>
+      </div>
+
+      <!-- 第二行：文档区域（商务应答模板 + 招标文档 并排） -->
+      <div class="panel-row project-row document-row">
+        <!-- 左侧：商务应答模板 -->
+        <div class="row-item">
+          <label class="row-label">应答模板</label>
+          <!-- 已加载文件 -->
+          <div v-if="useHitlTemplate" class="file-chip file-chip--success">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="hitlTemplateInfo?.filename">
+              {{ hitlTemplateInfo?.filename || '未知文件' }}
+            </span>
+            <span class="file-chip-tag">已加载</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="cancelHitlTemplate">×</el-button>
+          </div>
+          <!-- 手动上传的文件 -->
+          <div v-else-if="form.templateFiles.length > 0" class="file-chip file-chip--info">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="form.templateFiles[0].name">
+              {{ form.templateFiles[0].name }}
+            </span>
+            <span class="file-chip-tag">已上传</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="form.templateFiles = []">×</el-button>
+          </div>
+          <!-- 未上传：显示为类似输入框的占位区域 -->
+          <div v-else class="file-placeholder">
+            <span class="placeholder-text">请上传应答模板</span>
             <DocumentUploader
-              v-else
               v-model="form.templateFiles"
               :http-request="handleTemplateUpload"
               accept=".doc,.docx"
               :limit="1"
               :max-size="100"
-              drag
-              tip-text="必须上传商务应答模板，用于生成应答文档"
+              :show-file-list="false"
+              trigger-text="选择文件"
               @success="handleTemplateUploadSuccess"
             />
           </div>
-        </el-col>
+        </div>
 
-        <!-- 招标文档 -->
-        <el-col :span="12">
-          <div class="upload-item">
-            <h4>招标文档（可选）</h4>
-
-            <!-- 情况1: 从项目加载的HITL文件 -->
-            <HitlFileAlert
-              v-if="useHitlTender"
-              :file-info="hitlTenderInfo"
-              label="招标文档:"
-              @cancel="cancelHitlTender"
-            />
-
-            <!-- 情况2: 手动上传的文件 -->
-            <HitlFileAlert
-              v-else-if="form.tenderFiles.length > 0"
-              :file-info="{
-                filename: form.tenderFiles[0].name,
-                file_path: form.tenderFiles[0].response?.file_path || '',
-                file_size: form.tenderFiles[0].size
-              }"
-              label="招标文档:"
-              :show-tag="false"
-              type="info"
-              cancel-text="删除文件"
-              @cancel="form.tenderFiles = []"
-            />
-
-            <!-- 情况3: 未上传，显示上传器 -->
+        <!-- 右侧：招标文档 -->
+        <div class="row-item">
+          <label class="row-label">招标文档</label>
+          <!-- 已加载文件 -->
+          <div v-if="useHitlTender" class="file-chip file-chip--success">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="hitlTenderInfo?.filename">
+              {{ hitlTenderInfo?.filename || '未知文件' }}
+            </span>
+            <span class="file-chip-tag">已加载</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="cancelHitlTender">×</el-button>
+          </div>
+          <!-- 手动上传的文件 -->
+          <div v-else-if="form.tenderFiles.length > 0" class="file-chip file-chip--info">
+            <el-icon class="file-chip-icon"><Document /></el-icon>
+            <span class="file-chip-name" :title="form.tenderFiles[0].name">
+              {{ form.tenderFiles[0].name }}
+            </span>
+            <span class="file-chip-tag">已上传</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="form.tenderFiles = []">×</el-button>
+          </div>
+          <!-- 未上传：显示为类似输入框的占位区域 -->
+          <div v-else class="file-placeholder">
+            <span class="placeholder-text">上传招标文档（可选）</span>
             <DocumentUploader
-              v-else
               v-model="form.tenderFiles"
               :http-request="handleTenderUpload"
               accept=".pdf,.doc,.docx"
               :limit="5"
               :max-size="50"
-              drag
-              tip-text="可选上传招标文档作为参考，支持PDF、Word格式，最大50MB"
+              :show-file-list="false"
+              trigger-text="选择文件"
               @success="handleTenderUploadSuccess"
             />
           </div>
-        </el-col>
-      </el-row>
+        </div>
+      </div>
 
-      <div class="generation-controls">
+      <!-- 操作按钮 -->
+      <div class="panel-actions">
         <el-button
           type="primary"
           size="large"
@@ -419,7 +386,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
-import { Download, RefreshRight, Document, View, Upload, Edit, SuccessFilled } from '@element-plus/icons-vue'
+import { Download, RefreshRight, Document, View, Upload, Edit, SuccessFilled, Close } from '@element-plus/icons-vue'
 import { DocumentUploader, SSEStreamViewer, DocumentPreview, StatsCard, HitlFileAlert, RichTextEditor, HistoryFilesPanel } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import { businessLegacyApi } from '@/api/endpoints/business'
@@ -696,7 +663,6 @@ const handleProjectChange = async () => {
         showEditor.value = false  // 明确不自动打开编辑器
 
         console.log('[Response] 检测到历史商务应答文件:', docs.businessResponseFile.outputFile)
-        ElMessage.info('检测到历史商务应答文件，点击"在编辑器中打开"可编辑')
       }
     }
   })
@@ -1197,7 +1163,6 @@ onMounted(async () => {
         showEditor.value = false  // 明确不自动打开编辑器
 
         console.log('[Response] 从Store恢复历史商务应答文件:', docs.businessResponseFile.outputFile)
-        ElMessage.info('检测到历史商务应答文件，点击"在编辑器中打开"可编辑')
       }
     }
   })
@@ -1213,11 +1178,159 @@ onMounted(async () => {
 <style scoped lang="scss">
 
 .business-response {
-  // 移除padding，避免与page-content的padding叠加
   display: flex;
   flex-direction: column;
   gap: 20px;
 
+  // ============================================
+  // 统一操作面板样式
+  // ============================================
+  .main-panel {
+    :deep(.el-card__body) {
+      padding: 24px;
+    }
+  }
+
+  .panel-row {
+    display: flex;
+    gap: 24px;
+  }
+
+  // 项目选择行
+  .project-row {
+    margin-bottom: 24px;  // 1.5倍行距
+
+    .row-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .row-label {
+        flex-shrink: 0;
+        width: 70px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--el-text-color-regular);
+      }
+
+      .row-select,
+      .row-input {
+        flex: 1;
+      }
+    }
+  }
+
+  // 文档行样式（复用 project-row 的 row-item 结构）
+  .document-row {
+    margin-top: 0;
+    margin-bottom: 0;
+
+    .file-chip,
+    .file-placeholder {
+      flex: 1;
+    }
+  }
+
+  // 文件占位区域（未上传时显示）
+  .file-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px dashed var(--el-border-color);
+    border-radius: 6px;
+    background: var(--el-fill-color-lighter);
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+    }
+
+    .placeholder-text {
+      font-size: 14px;
+      color: var(--el-text-color-placeholder);
+    }
+
+    :deep(.document-uploader) {
+      .el-upload {
+        display: flex;
+      }
+
+      .el-button {
+        padding: 8px 16px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  // 文件条样式
+  .file-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid;
+    background: var(--el-fill-color-lighter);
+
+    &--success {
+      background: #f0f9eb;
+      border-color: #b3e19d;
+    }
+
+    &--info {
+      background: #ecf5ff;
+      border-color: #a0cfff;
+    }
+
+    .file-chip-icon {
+      flex-shrink: 0;
+      font-size: 20px;
+      color: #67C23A;
+    }
+
+    .file-chip-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--el-text-color-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-chip-tag {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: #67C23A;
+      padding: 2px 8px;
+      background: rgba(103, 194, 58, 0.1);
+      border-radius: 4px;
+    }
+
+    .file-chip-close {
+      flex-shrink: 0;
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+  }
+
+  // 操作按钮
+  .panel-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+
+  // ============================================
+  // 其他区域样式
+  // ============================================
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -1230,25 +1343,14 @@ onMounted(async () => {
     }
   }
 
-  .project-section,
-  .upload-section,
-  .generation-output,
-  .result-section,
   .editor-section {
-    :deep(.el-card__header) {
-      padding: 16px 20px;
-      background: var(--el-fill-color-light);
-    }
-  }
-
-  .editor-section {
-    height: 1050px;       // 固定卡片高度（包含header）
-    overflow: hidden;     // 防止溢出
+    height: 1050px;
+    overflow: hidden;
 
     :deep(.el-card__body) {
       padding: 0;
-      height: 1000px;     // 内容区域1000px（编辑器高度）
-      overflow: hidden;   // 防止溢出
+      height: 1000px;
+      overflow: hidden;
     }
   }
 
@@ -1264,26 +1366,6 @@ onMounted(async () => {
     :deep(.el-collapse-item__content) {
       padding: 0;
     }
-  }
-
-  .upload-item {
-    h4 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-
-      .required {
-        color: var(--el-color-danger);
-        margin-left: 4px;
-      }
-    }
-  }
-
-  .generation-controls {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
   }
 
   .result-content {
@@ -1309,6 +1391,36 @@ onMounted(async () => {
           background-color: var(--el-fill-color-light);
           font-weight: 600;
         }
+      }
+    }
+  }
+
+  // 历史文件折叠面板
+  .history-collapse {
+    :deep(.el-collapse-item__header) {
+      padding: 16px 20px;
+      background: var(--el-fill-color-lighter);
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    :deep(.el-collapse-item__content) {
+      padding: 0;
+    }
+
+    .collapse-header {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .filename-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .el-icon {
+        color: var(--el-color-primary);
       }
     }
   }
