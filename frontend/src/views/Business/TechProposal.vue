@@ -1455,6 +1455,7 @@ onMounted(async () => {
     .file-placeholder {
       flex: 1;
       min-width: 0;  // 防止flex子项溢出
+      box-sizing: border-box;  // 确保与 el-input/el-select 一致的盒模型
     }
   }
 
