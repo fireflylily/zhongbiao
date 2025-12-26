@@ -1226,6 +1226,16 @@ onMounted(async () => {
     margin-top: 0;
     margin-bottom: 0;
 
+    .row-item {
+      // 确保和项目行的对齐一致
+      align-items: flex-start;  // 顶部对齐，因为文件条可能更高
+
+      .row-label {
+        // 保持和项目行一致的label高度对齐
+        line-height: 40px;  // 与 file-chip 高度一致
+      }
+    }
+
     .file-chip,
     .file-placeholder {
       flex: 1;
