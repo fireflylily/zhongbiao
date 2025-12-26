@@ -24,7 +24,7 @@
         </div>
 
         <div class="row-item">
-          <label class="row-label">公司</label>
+          <label class="row-label">应答公司</label>
           <!-- 现有项目模式：只读显示 -->
           <el-input
             v-if="form.projectId"
@@ -1229,6 +1229,30 @@ onMounted(async () => {
     .file-chip,
     .file-placeholder {
       flex: 1;
+      min-width: 0;  // 防止flex子项溢出
+    }
+  }
+
+  // 响应式布局：小屏幕时改为垂直排列
+  @media (max-width: 1200px) {
+    .panel-row.document-row {
+      flex-direction: column;
+      gap: 16px;
+
+      .row-item {
+        width: 100%;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .panel-row.project-row {
+      flex-direction: column;
+      gap: 16px;
+
+      .row-item {
+        width: 100%;
+      }
     }
   }
 

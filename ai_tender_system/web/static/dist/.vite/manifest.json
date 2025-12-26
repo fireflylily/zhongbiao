@@ -1444,7 +1444,7 @@
     ]
   },
   "src/views/Business/PointToPoint.vue": {
-    "file": "js/PointToPoint-V4gucu9k.js",
+    "file": "js/PointToPoint-BYiFopTJ.js",
     "name": "PointToPoint",
     "src": "src/views/Business/PointToPoint.vue",
     "isDynamicEntry": true,
@@ -1489,7 +1489,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/PointToPoint-BQww2VPE.css",
+      "css/PointToPoint-ud8ekW4F.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
@@ -1503,7 +1503,7 @@
     ]
   },
   "src/views/Business/Response.vue": {
-    "file": "js/Response-B8q2xe-g.js",
+    "file": "js/Response-DsSEuKGW.js",
     "name": "Response",
     "src": "src/views/Business/Response.vue",
     "isDynamicEntry": true,
@@ -1549,7 +1549,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/Response-DcgL2NMh.css",
+      "css/Response-Cv8qEe83.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
@@ -1563,7 +1563,7 @@
     ]
   },
   "src/views/Business/TechProposal.vue": {
-    "file": "js/TechProposal-CrqW8PVT.js",
+    "file": "js/TechProposal-Sl-ytnaj.js",
     "name": "TechProposal",
     "src": "src/views/Business/TechProposal.vue",
     "isDynamicEntry": true,
@@ -1611,7 +1611,7 @@
       "_raf-B6jWGkGX.js"
     ],
     "css": [
-      "css/TechProposal-Ce1cNhMN.css",
+      "css/TechProposal-Df2ZQDTl.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/HistoryFilesPanel-CEJ_ghlp.css",
       "css/el-descriptions-item-DPqPz_nA.css",
