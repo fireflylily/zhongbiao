@@ -79,17 +79,8 @@
         @success="handleUploadSuccess"
       />
 
-      <el-form :model="config" label-width="100px" class="config-form">
+      <el-form :model="config" label-width="100px" style="margin-top: 20px">
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="投标角色">
-              <el-radio-group v-model="config.bidRole">
-                <el-radio label="primary">应标</el-radio>
-                <el-radio label="secondary">陪标</el-radio>
-              </el-radio-group>
-            </el-form-item>
-          </el-col>
-
           <el-col :span="12">
             <el-form-item label="应答频率">
               <el-select v-model="config.responseFrequency" style="width: 100%">
@@ -100,9 +91,7 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
 
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="应答方式">
               <el-radio-group v-model="config.responseMode">
@@ -594,7 +583,6 @@ const form = ref({
 
 // 处理配置
 const config = ref({
-  bidRole: 'primary' as 'primary' | 'secondary',
   responseFrequency: 'every_paragraph' as 'every_paragraph' | 'every_page' | 'every_section' | 'end_of_document',
   responseMode: 'simple' as 'ai' | 'simple',
   aiModel: 'shihuang-gpt4o-mini'
@@ -1533,17 +1521,6 @@ const openHistoryInEditor = async () => {
   }
 }
 
-
-// ============================================
-// 监听折叠面板展开，自动加载历史文件
-// ============================================
-watch(showAllHistory, (newVal) => {
-  // 当用户展开折叠面板且历史文件列表为空时，自动加载
-  if (newVal.includes('history') && historyFiles.value.length === 0 && !loadingHistory.value) {
-    loadFilesList()
-  }
-})
-
 onMounted(async () => {
   // 加载项目列表
   await loadProjects()
@@ -1660,13 +1637,6 @@ onMounted(async () => {
       align-items: center;
       width: 100%;
     }
-  }
-
-  .config-form {
-    margin-top: 20px;
-    padding: 20px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 8px;
   }
 
   .filename-cell {

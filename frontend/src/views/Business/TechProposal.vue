@@ -1079,8 +1079,13 @@ const generateWithSSE = async (formData: FormData) => {
               message: '技术方案已生成'
             }
 
-            // 显示编辑器
+            // 显示编辑器并加载Word内容
             showEditor.value = true
+
+            // 加载生成的Word文档到编辑器
+            if (data.output_file) {
+              await loadWordToEditor(data.output_file)
+            }
 
             // 自动同步到HITL
             if (data.output_file && form.value.projectId) {

@@ -587,23 +587,24 @@ def list_business_files():
         project_id = request.args.get('project_id', type=int)
         target_project_name = None
 
+        # 📥 记录API调用
+        logger.info(f"📥 /api/business-response/files called with project_id={project_id}")
+
         # 如果指定了项目ID，查询项目名称用于过滤
         if project_id:
             try:
-                from ai_tender_system.database.db_manager import DatabaseManager
-                db_manager = DatabaseManager()
-                with db_manager.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        "SELECT project_name FROM tender_projects WHERE project_id = ?",
-                        (project_id,)
-                    )
-                    row = cursor.fetchone()
-                    if row:
-                        target_project_name = row[0]
-                        logger.info(f"商务应答按项目过滤: project_id={project_id}, project_name={target_project_name}")
+                result = kb_manager.db.execute_query(
+                    "SELECT project_name FROM tender_projects WHERE project_id = ?",
+                    [project_id],
+                    fetch_one=True
+                )
+                if result:
+                    target_project_name = result['project_name']
+                    logger.info(f"🔍 Database lookup: project_id={project_id} → project_name='{target_project_name}'")
+                else:
+                    logger.warning(f"⚠️  Project not found in database: project_id={project_id}")
             except Exception as e:
-                logger.warning(f"查询项目名称失败: {e}")
+                logger.warning(f"❌ 查询项目名称失败: {e}")
 
         files = []
         output_dir = config.get_path('output')
@@ -622,22 +623,36 @@ def list_business_files():
                         project_name = project_name_match.group(1) if project_name_match else filename
 
                         # 如果指定了项目名称，过滤不匹配的文件
-                        if target_project_name and project_name != target_project_name:
-                            continue
+                        if target_project_name:
+                            if project_name != target_project_name:
+                                logger.info(f"⚠️  FILTERED: {filename} (project='{project_name}' ≠ target='{target_project_name}')")
+                                continue
+                            else:
+                                logger.info(f"✅ MATCHED: {filename} (project='{project_name}')")
 
                         files.append({
                             'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
                             'filename': filename,
+                            'original_filename': filename,
                             'file_path': str(file_path),
+                            'output_path': str(file_path),
                             'size': stat.st_size,
+                            'created_at': datetime.fromtimestamp(stat.st_ctime).isoformat(),
                             'process_time': modified_time.isoformat(),
-                            'download_url': f'/api/files/download/{filename}',
-                            'project_name': project_name
+                            'status': 'completed',
+                            'company_name': '未知公司',  # 暂时使用默认值，后续会从数据库获取
+                            'project_name': project_name  # 添加项目名称用于去重
                         })
                     except Exception as e:
                         logger.warning(f"读取文件信息失败 {filename}: {e}")
 
+        # 按时间排序(最新的在前)
         files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
+
+        # 📊 记录返回结果统计
+        logger.info(f"📊 Returning {len(files)} business-response files" +
+                   (f" for project '{target_project_name}'" if target_project_name else " (all projects)"))
+
         return jsonify({'success': True, 'data': files})
 
     except Exception as e:
@@ -657,23 +672,24 @@ def list_tech_proposal_files():
         project_id = request.args.get('project_id', type=int)
         target_project_name = None
 
+        # 📥 记录API调用
+        logger.info(f"📥 /api/tech-proposal/files called with project_id={project_id}")
+
         # 如果指定了项目ID，查询项目名称用于过滤
         if project_id:
             try:
-                from ai_tender_system.database.db_manager import DatabaseManager
-                db_manager = DatabaseManager()
-                with db_manager.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        "SELECT project_name FROM tender_projects WHERE project_id = ?",
-                        (project_id,)
-                    )
-                    row = cursor.fetchone()
-                    if row:
-                        target_project_name = row[0]
-                        logger.info(f"技术方案按项目过滤: project_id={project_id}, project_name={target_project_name}")
+                result = kb_manager.db.execute_query(
+                    "SELECT project_name FROM tender_projects WHERE project_id = ?",
+                    [project_id],
+                    fetch_one=True
+                )
+                if result:
+                    target_project_name = result['project_name']
+                    logger.info(f"🔍 Database lookup: project_id={project_id} → project_name='{target_project_name}'")
+                else:
+                    logger.warning(f"⚠️  Project not found in database: project_id={project_id}")
             except Exception as e:
-                logger.warning(f"查询项目名称失败: {e}")
+                logger.warning(f"❌ 查询项目名称失败: {e}")
 
         files = []
         output_dir = config.get_path('output')
@@ -697,22 +713,36 @@ def list_tech_proposal_files():
                         project_name = project_name_match.group(1) if project_name_match else filename
 
                         # 如果指定了项目名称，过滤不匹配的文件
-                        if target_project_name and project_name != target_project_name:
-                            continue
+                        if target_project_name:
+                            if project_name != target_project_name:
+                                logger.info(f"⚠️  FILTERED: {filename} (project='{project_name}' ≠ target='{target_project_name}')")
+                                continue
+                            else:
+                                logger.info(f"✅ MATCHED: {filename} (project='{project_name}')")
 
                         files.append({
                             'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
                             'filename': filename,
+                            'original_filename': filename,
                             'file_path': str(file_path),
+                            'output_path': str(file_path),
                             'size': stat.st_size,
+                            'created_at': datetime.fromtimestamp(stat.st_ctime).isoformat(),
                             'process_time': modified_time.isoformat(),
-                            'download_url': f'/api/files/download/{filename}',
-                            'project_name': project_name
+                            'status': 'completed',
+                            'company_name': '未知公司',  # 暂时使用默认值，后续会从数据库获取
+                            'project_name': project_name  # 添加项目名称用于去重
                         })
                     except Exception as e:
                         logger.warning(f"读取文件信息失败 {filename}: {e}")
 
+        # 按时间排序(最新的在前)
         files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
+
+        # 📊 记录返回结果统计
+        logger.info(f"📊 Returning {len(files)} tech-proposal files" +
+                   (f" for project '{target_project_name}'" if target_project_name else " (all projects)"))
+
         return jsonify({'success': True, 'data': files})
 
     except Exception as e:
