@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2025-12-26",
+  "description": "评分策略智能体提示词 - 制定评分点响应策略",
+  "prompts": {
+    "analyze_dimension": "请分析以下评分维度的响应策略。\n\n【评分维度】\n维度名称: {dimension_name}\n权重: {weight}分\n评分细项:\n{criteria}\n\n【产品能力】\n{capabilities}\n\n【输出格式】\n{{\n  \"support_rate\": 0.75,\n  \"strategy\": \"selective_response\",\n  \"key_points\": [\"重点1\", \"重点2\"],\n  \"risks\": [\"风险点\"],\n  \"recommendations\": [\"建议1\"]\n}}\n\n【分析要求】\n1. 评估产品对各评分项的支持程度\n2. 制定针对性的响应策略\n3. 识别可能的风险点\n4. 给出内容准备建议",
+
+    "generate_content_allocation": "根据评分权重和产品能力，分配技术方案的内容篇幅。\n\n【评分点分布】\n{scoring_distribution}\n\n【产品能力覆盖】\n{capability_coverage}\n\n【目标页数】\n{target_pages}页\n\n【输出格式】\n{{\n  \"allocations\": [\n    {{\n      \"chapter\": \"章节名\",\n      \"pages\": 15,\n      \"priority\": \"high\",\n      \"content_focus\": [\"重点1\", \"重点2\"]\n    }}\n  ]\n}}\n\n【分配原则】\n1. 高权重评分点分配更多篇幅\n2. 产品能力强的章节可以详细展开\n3. 能力弱的章节简洁说明替代方案\n4. 确保总页数接近目标",
+
+    "identify_highlights": "请识别技术方案的得分亮点。\n\n【评分分析】\n{scoring_analysis}\n\n【产品能力】\n{capabilities}\n\n【输出格式】\n{{\n  \"highlights\": [\n    {{\n      \"title\": \"亮点标题\",\n      \"description\": \"说明\",\n      \"scoring_impact\": \"预计得分影响\"\n    }}\n  ]\n}}\n\n请识别产品在哪些评分点上有明显优势。",
+
+    "risk_assessment": "请评估技术方案的得分风险。\n\n【评分分析】\n{scoring_analysis}\n\n【能力差距】\n{capability_gaps}\n\n【输出格式】\n{{\n  \"risks\": [\n    {{\n      \"risk\": \"风险描述\",\n      \"impact\": \"high/medium/low\",\n      \"mitigation\": \"缓解措施\"\n    }}\n  ],\n  \"overall_risk_level\": \"medium\"\n}}\n\n请识别可能影响得分的风险点并提供缓解建议。"
+  }
+}

@@ -193,6 +193,7 @@ import { Card, Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { Grid, Tickets, Plus } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 
 // API 基础路径
 const API_BASE = '/api'
@@ -332,9 +333,15 @@ const handleSaveCategory = async () => {
 // 删除分类
 const handleDeleteCategory = async (category: any) => {
   try {
-    if (!confirm(`确定要删除分类 "${category.category_name}" 吗？此操作将同时删除该分类下的所有项目。`)) {
-      return
-    }
+    await ElMessageBox.confirm(
+      `确定要删除分类 "${category.category_name}" 吗？此操作将同时删除该分类下的所有项目。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     const response = await fetch(`${API_BASE}/product-categories/${category.category_id}`, {
       method: 'DELETE'
@@ -425,9 +432,15 @@ const handleSaveItem = async () => {
 // 删除项目
 const handleDeleteItem = async (category: any, item: any) => {
   try {
-    if (!confirm(`确定要删除项目 "${item.item_name}" 吗？`)) {
-      return
-    }
+    await ElMessageBox.confirm(
+      `确定要删除项目 "${item.item_name}" 吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     const response = await fetch(`${API_BASE}/product-category-items/${item.item_id}`, {
       method: 'DELETE'

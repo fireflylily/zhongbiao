@@ -1360,6 +1360,22 @@ class TenderInfoExtractor:
             total_chars = 0
             MAX_CHARS = 20000  # 最大字符数限制
 
+            # ⭐️ 新增：提取封面内容（第一个章节开始之前的段落，通常包含项目名称和编号）
+            cover_text_parts = []
+            first_chapter_start = selected_chapters[0]['para_start_idx'] if selected_chapters else 50
+
+            # 提取封面段落（到第一个章节开始前，最多30段）
+            for i, para_text in enumerate(paragraphs[:min(first_chapter_start, 30)]):
+                text = para_text.strip()
+                if text and len(text) > 3:  # 过滤空行和太短的内容
+                    cover_text_parts.append(text)
+
+            if cover_text_parts:
+                cover_text = "\n".join(cover_text_parts)
+                chapter_texts.append(f"【封面及基本信息】\n{cover_text}")
+                total_chars += len(cover_text)
+                self.logger.info(f"提取封面内容: {len(cover_text)} 字符")
+
             for chapter in selected_chapters:
                 start_idx = chapter['para_start_idx']
                 end_idx = chapter['para_end_idx'] or len(paragraphs)

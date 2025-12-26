@@ -1267,16 +1267,26 @@ class DocumentStructureParser:
 
                 # 如果确认是目录SDT，返回对应的段落索引
                 if is_toc_sdt:
+                    # 方法1: 尝试在doc.paragraphs中查找"目录"标题
+                    # （适用于目录标题同时出现在doc.paragraphs中的情况）
+                    toc_keywords_normalized = ["目录", "contents", "tableofcontents", "索引", "章节目录", "内容目录"]
+                    for idx, para in enumerate(doc.paragraphs[:50]):
+                        text = para.text.strip().replace(" ", "").replace("\u3000", "").lower()
+                        if text in toc_keywords_normalized:
+                            self.logger.info(f"检测到目录SDT，目录标题在paragraphs[{idx}]")
+                            return idx
+
+                    # 方法2: 如果目录标题完全在SDT内部（不在doc.paragraphs中），
+                    # 通过计算SDT在body中的位置来推算段落索引
                     sdt_paras = sdt.findall('.//w:p', namespaces=ns)
                     if sdt_paras:
-                        # 方法: 通过计算SDT在body中的位置来推算段落索引
-                        # 获取SDT之前有多少个段落元素
                         para_count = 0
                         for child in body:
                             child_tag = child.tag.split('}')[-1]
                             if child == sdt:
                                 # 找到当前SDT，此时para_count就是它前面的段落数
-                                self.logger.info(f"检测到目录SDT，位于body的第{para_count}个段落位置（python-docx索引）")
+                                self.logger.info(f"检测到目录SDT（目录在SDT内），位于body的第{para_count}个段落位置")
+                                self.logger.info(f"目录位于SDT中，包含{len(sdt_paras)}个段落")
                                 return para_count
                             elif child_tag == 'p':
                                 para_count += 1
@@ -1284,6 +1294,8 @@ class DocumentStructureParser:
                                 # 之前的SDT中的段落也要计数
                                 prev_sdt_paras = child.findall('.//w:p', namespaces=ns)
                                 para_count += len(prev_sdt_paras)
+
+                    self.logger.debug("SDT目录检测失败，回退到关键词检测")
         except Exception as e:
             self.logger.debug(f"SDT检测失败（正常情况）: {e}")
             pass
@@ -1429,10 +1441,10 @@ class DocumentStructureParser:
 
                         # 从XML元素推断层级（因为无法直接访问Paragraph对象）
                         level = 1
-                        if re.match(r'^\d+\.\d+', title):
-                            level = 2
-                        elif re.match(r'^\d+\.\d+\.\d+', title):
+                        if re.match(r'^\d+\.\d+\.\d+', title):  # 先检查3级
                             level = 3
+                        elif re.match(r'^\d+\.\d+[^\d]', title):  # 再检查2级
+                            level = 2
 
                         toc_items.append({
                             'title': title,

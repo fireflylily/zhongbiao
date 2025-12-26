@@ -8,6 +8,9 @@ from .requirement_response_agent import RequirementResponseAgent
 from .template_agent import TemplateAgent
 from .verification_agent import VerificationAgent
 from .agent_router import AgentRouter
+from .product_match_agent import ProductMatchAgent
+from .scoring_strategy_agent import ScoringStrategyAgent
+from .material_retriever_agent import MaterialRetrieverAgent
 
 __all__ = [
     'BaseAgent',
@@ -15,5 +18,8 @@ __all__ = [
     'RequirementResponseAgent',
     'TemplateAgent',
     'VerificationAgent',
-    'AgentRouter'
+    'AgentRouter',
+    'ProductMatchAgent',
+    'ScoringStrategyAgent',
+    'MaterialRetrieverAgent'
 ]

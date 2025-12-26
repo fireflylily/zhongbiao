@@ -94,6 +94,7 @@ import { Card, Loading } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
 import { Folder, Plus } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import QualificationCard from './QualificationCard.vue'
 
 // Props
@@ -233,9 +234,15 @@ const handleDownload = async (qualKey: string, qualId?: number) => {
 // 处理文件删除
 const handleDelete = async (qualKey: string, qualId?: number) => {
   try {
-    if (!confirm('确定要删除此资质文件吗？')) {
-      return
-    }
+    await ElMessageBox.confirm(
+      '确定要删除此资质文件吗？',
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     if (qualId) {
       // 通过ID删除（多文件资质）
@@ -283,10 +290,21 @@ const handleAddCustom = () => {
 }
 
 // 移除自定义资质
-const removeCustomQualification = (index: number) => {
-  if (confirm('确定要移除此自定义资质吗？')) {
+const removeCustomQualification = async (index: number) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要移除此自定义资质吗？',
+      '移除确认',
+      {
+        confirmButtonText: '确定移除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
     customQualifications.value.splice(index, 1)
     success('移除成功', '自定义资质已移除')
+  } catch {
+    // 用户取消
   }
 }
 

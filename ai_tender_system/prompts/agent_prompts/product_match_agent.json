@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2025-12-26",
+  "description": "产品匹配智能体提示词 - 提取技术需求并匹配产品能力",
+  "prompts": {
+    "extract_requirements": "请从以下招标文件中提取所有技术需求，包括功能需求、性能需求、安全需求、接口需求等。\n\n【招标文件】\n{tender_doc}\n\n【输出格式】\n{{\n  \"requirements\": [\n    {{\n      \"requirement\": \"具体需求描述\",\n      \"category\": \"需求分类（功能/性能/安全/接口/部署/其他）\",\n      \"priority\": \"优先级（high/medium/low）\"\n    }}\n  ]\n}}\n\n【提取原则】\n1. 提取具体、可验证的技术需求\n2. 保留需求的原文表述，不要过度概括\n3. 识别关键技术指标（如响应时间、并发数、可用性等）\n4. 对模糊的需求也要提取，标记为medium优先级\n5. 每条需求独立，避免合并多个需求\n\n请严格按照JSON格式返回。",
+
+    "analyze_capability_gap": "请分析以下需求与产品能力之间的差距，并提供建议。\n\n【需求列表】\n{requirements}\n\n【产品能力】\n{capabilities}\n\n【输出格式】\n{{\n  \"matched\": [\n    {{\n      \"requirement\": \"需求描述\",\n      \"capability\": \"匹配的能力\",\n      \"confidence\": 0.9\n    }}\n  ],\n  \"gaps\": [\n    {{\n      \"requirement\": \"无法满足的需求\",\n      \"reason\": \"缺乏相关能力\",\n      \"suggestion\": \"建议的解决方案\"\n    }}\n  ],\n  \"summary\": \"整体分析总结\"\n}}\n\n【分析要求】\n1. 逐条对比需求和能力\n2. 识别能力空白点\n3. 提供可操作的建议",
+
+    "generate_match_report": "根据产品能力匹配结果生成分析报告。\n\n【匹配结果】\n{match_results}\n\n【输出格式】\n{{\n  \"executive_summary\": \"执行摘要（2-3句话）\",\n  \"strengths\": [\n    \"优势1：描述\",\n    \"优势2：描述\"\n  ],\n  \"risks\": [\n    {{\n      \"risk\": \"风险描述\",\n      \"impact\": \"影响程度（高/中/低）\",\n      \"mitigation\": \"缓解措施\"\n    }}\n  ],\n  \"recommendations\": [\n    \"建议1\",\n    \"建议2\"\n  ],\n  \"go_no_go\": \"建议（投标/慎投/放弃）\",\n  \"confidence_score\": 0.75\n}}\n\n【报告要求】\n1. 客观评估匹配情况\n2. 明确指出风险点\n3. 给出投标建议"
+  }
+}

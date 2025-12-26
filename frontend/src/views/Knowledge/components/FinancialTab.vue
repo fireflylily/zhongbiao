@@ -187,6 +187,7 @@ import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
 import { Plus, Select, Document, Tickets } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 
 // Props
 const props = defineProps<{
@@ -345,8 +346,18 @@ const handleEditShareholder = (index: number) => {
 }
 
 // 删除股东
-const handleDeleteShareholder = (index: number) => {
-  if (confirm('确定要删除此股东吗？')) {
+const handleDeleteShareholder = async (index: number) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除此股东吗？',
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
     // 如果删除的是已标记的股东，清除标记
     if (index === controllingShareholderIndex.value) {
       controllingShareholderIndex.value = -1
@@ -366,6 +377,8 @@ const handleDeleteShareholder = (index: number) => {
     }
 
     success('删除成功', '股东已删除，请点击保存按钮保存更改')
+  } catch {
+    // 用户取消
   }
 }
 
@@ -525,9 +538,15 @@ const handleDownloadFile = async (qualKey: string, qualId?: number) => {
 // 删除资质文件
 const handleDeleteFile = async (qualKey: string, qualId?: number) => {
   try {
-    if (!confirm('确定要删除此资质文件吗？')) {
-      return
-    }
+    await ElMessageBox.confirm(
+      '确定要删除此资质文件吗？',
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     if (qualId) {
       // 通过ID删除（多文件资质）

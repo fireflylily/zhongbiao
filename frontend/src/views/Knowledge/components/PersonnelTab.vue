@@ -226,6 +226,7 @@ import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
 import { Select, CreditCard, User, DocumentChecked, Document, Upload, Download, Delete } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 
 // Props
 const props = defineProps<{
@@ -356,7 +357,19 @@ const downloadAttachment = (type: string) => {
 
 // 删除附件
 const deleteAttachment = async (type: string) => {
-  if (!confirm('确定要删除此附件吗？')) return
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除此附件吗？',
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+  } catch {
+    return  // 用户取消
+  }
 
   try {
     const response = await fetch(`/api/companies/${props.companyId}/qualifications/${type}`, {

@@ -3,22 +3,12 @@
     <!-- 页面头部 -->
     <PageHeader :title="pageTitle" :show-back="true">
       <template #actions>
-        <template v-if="!isEditing">
-          <el-button @click="handleRefresh">
-            <i class="bi bi-arrow-clockwise"></i> 刷新
-          </el-button>
-          <el-button type="primary" @click="handleEdit">
-            <i class="bi bi-pencil"></i> 编辑项目
-          </el-button>
-        </template>
-        <template v-else>
-          <el-button @click="handleCancel">
-            <i class="bi bi-x-lg"></i> 取消
-          </el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">
-            <i class="bi bi-check-lg"></i> 保存
-          </el-button>
-        </template>
+        <el-button @click="handleRefresh">
+          <i class="bi bi-arrow-clockwise"></i> 刷新
+        </el-button>
+        <el-button v-if="!isEditing" type="primary" @click="handleEdit">
+          <i class="bi bi-pencil"></i> 编辑项目
+        </el-button>
       </template>
     </PageHeader>
 
@@ -1159,7 +1149,11 @@ const loadProjectDetail = async () => {
             })
           }
 
-          parsedChapters.value = filterInvalidChapters(step1Data.chapters)
+          // 只保留一级目录（移除children）
+          parsedChapters.value = filterInvalidChapters(step1Data.chapters).map(ch => ({
+            ...ch,
+            children: []
+          }))
 
           if (parsedChapters.value.length < step1Data.chapters.length) {
             console.info(

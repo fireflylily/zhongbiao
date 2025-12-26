@@ -363,6 +363,7 @@ import {
   RefreshLeft
 } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules, UploadInstance, UploadFile } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import type { Resume } from '@/types'
 
 // Router
@@ -673,9 +674,15 @@ const handleEdit = (row: Resume) => {
 const handleDelete = async (row: Resume) => {
   try {
     // 确认删除
-    if (!confirm(`确定要删除简历 "${row.name}" 吗？此操作不可恢复。`)) {
-      return
-    }
+    await ElMessageBox.confirm(
+      `确定要删除简历 "${row.name}" 吗？此操作不可恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     const response = await knowledgeApi.deleteResume(row.resume_id)
     if (response.success) {

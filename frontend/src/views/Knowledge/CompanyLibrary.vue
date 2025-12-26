@@ -155,6 +155,7 @@ import { Card, Loading, Empty } from '@/components'
 import { useNotification } from '@/composables'
 import { companyApi } from '@/api/endpoints/company'
 import { OfficeBuilding, Filter, Search, RefreshLeft, Plus, Edit, DocumentCopy } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import CompanyInfoExtractorDialog from '@/components/CompanyInfoExtractorDialog.vue'
 
 // Router
@@ -315,9 +316,15 @@ const handleEdit = (row: any) => {
 const handleDelete = async (row: any) => {
   try {
     // 确认删除
-    if (!confirm(`确定要删除企业 "${row.company_name}" 吗？此操作将同时删除企业的所有产品和文档，且不可恢复。`)) {
-      return
-    }
+    await ElMessageBox.confirm(
+      `确定要删除企业 "${row.company_name}" 吗？此操作将同时删除企业的所有产品和文档，且不可恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     await companyApi.deleteCompany(row.company_id)
     success('删除成功', `已删除企业: ${row.company_name}`)

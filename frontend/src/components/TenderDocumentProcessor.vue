@@ -98,7 +98,7 @@
           </div>
 
           <!-- 快捷操作区 -->
-          <div v-if="responseFileInfo || technicalFileInfo" class="quick-actions">
+          <div v-if="hasExistingDocument || responseFileInfo || technicalFileInfo" class="quick-actions">
             <!-- 上部：选择器区域（slot） -->
             <div class="selectors-area">
               <slot name="selectors"></slot>
@@ -359,8 +359,8 @@ const handleFileChange = async (file: UploadFile) => {
   fileList.value = [file]
 
   // 🆕 自动触发解析（延迟500ms让用户看到文件已选择）
-  ElMessage.info({
-    message: '文件已选择，正在自动解析...',
+  ElMessage.success({
+    message: '文件上传成功，系统正在自动提取项目基本信息',
     duration: 2000
   })
 

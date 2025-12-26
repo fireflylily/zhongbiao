@@ -177,6 +177,7 @@ import {
   Search,
   RefreshLeft
 } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
 import type { Case } from '@/types'
 
 // Router
@@ -370,9 +371,15 @@ const handleEdit = (row: Case) => {
 const handleDelete = async (row: Case) => {
   try {
     // 确认删除
-    if (!confirm(`确定要删除案例 "${row.case_title}" 吗？此操作不可恢复。`)) {
-      return
-    }
+    await ElMessageBox.confirm(
+      `确定要删除案例 "${row.case_title}" 吗？此操作不可恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     const response = await knowledgeApi.deleteCase(row.case_id)
     if (response.success) {

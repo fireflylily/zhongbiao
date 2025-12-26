@@ -3,81 +3,71 @@
 
   功能:
   - KPI关键指标展示
-  - 快捷入口
-  - 进行中的项目列表
+  - 项目列表管理（含文档状态、删除等功能）
 -->
 
 <template>
   <div class="dashboard-page">
     <!-- KPI统计卡片 -->
-    <el-row :gutter="16" class="kpi-cards">
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <Card shadow="hover" :loading="loadingStats">
-          <el-statistic title="总项目数" :value="statistics.totalProjects">
-            <template #prefix>
-              <i class="bi bi-folder-fill statistic-icon" style="color: #409eff"></i>
-            </template>
-          </el-statistic>
-        </Card>
+    <el-row :gutter="12" class="kpi-cards">
+      <el-col :xs="12" :sm="6" :md="6" :lg="6">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: #ecf5ff; color: #409eff">
+            <i class="bi bi-folder-fill"></i>
+          </div>
+          <div class="kpi-info">
+            <div class="kpi-value">{{ statistics.totalProjects }}</div>
+            <div class="kpi-label">总项目数</div>
+          </div>
+        </div>
       </el-col>
-
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <Card shadow="hover" :loading="loadingStats">
-          <el-statistic title="进行中项目" :value="statistics.inProgressProjects">
-            <template #prefix>
-              <i class="bi bi-clock-fill statistic-icon" style="color: #e6a23c"></i>
-            </template>
-          </el-statistic>
-        </Card>
+      <el-col :xs="12" :sm="6" :md="6" :lg="6">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: #fdf6ec; color: #e6a23c">
+            <i class="bi bi-clock-fill"></i>
+          </div>
+          <div class="kpi-info">
+            <div class="kpi-value">{{ statistics.inProgressProjects }}</div>
+            <div class="kpi-label">进行中</div>
+          </div>
+        </div>
       </el-col>
-
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <Card shadow="hover" :loading="loadingStats">
-          <el-statistic title="本月中标" :value="statistics.wonThisMonth">
-            <template #prefix>
-              <i class="bi bi-trophy-fill statistic-icon" style="color: #67c23a"></i>
-            </template>
-          </el-statistic>
-        </Card>
+      <el-col :xs="12" :sm="6" :md="6" :lg="6">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: #f0f9eb; color: #67c23a">
+            <i class="bi bi-trophy-fill"></i>
+          </div>
+          <div class="kpi-info">
+            <div class="kpi-value">{{ statistics.wonThisMonth }}</div>
+            <div class="kpi-label">本月中标</div>
+          </div>
+        </div>
       </el-col>
-
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <Card shadow="hover" :loading="loadingStats">
-          <el-statistic title="待处理任务" :value="statistics.pendingTasks">
-            <template #prefix>
-              <i class="bi bi-list-task statistic-icon" style="color: #f56c6c"></i>
-            </template>
-          </el-statistic>
-        </Card>
+      <el-col :xs="12" :sm="6" :md="6" :lg="6">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: #fef0f0; color: #f56c6c">
+            <i class="bi bi-list-task"></i>
+          </div>
+          <div class="kpi-info">
+            <div class="kpi-value">{{ statistics.pendingTasks }}</div>
+            <div class="kpi-label">待处理</div>
+          </div>
+        </div>
       </el-col>
     </el-row>
 
-    <!-- 快捷入口 -->
-    <Card title="快捷入口" class="quick-actions-card">
-      <div class="quick-actions">
-        <div
-          v-for="action in quickActions"
-          :key="action.name"
-          class="action-item"
-          @click="handleQuickAction(action)"
-        >
-          <div class="action-icon" :style="{ background: action.color }">
-            <i :class="action.icon"></i>
-          </div>
-          <div class="action-label">{{ action.label }}</div>
-        </div>
-      </div>
-    </Card>
-
-    <!-- 进行中的项目列表 -->
-    <Card title="进行中的项目" class="projects-card">
+    <!-- 项目列表 -->
+    <Card title="项目列表" class="projects-card">
       <template #actions>
+        <el-button type="primary" :loading="creating" @click="handleCreateProject">
+          <i class="bi bi-plus-lg"></i> 新建项目
+        </el-button>
         <IconButton icon="bi-arrow-clockwise" tooltip="刷新" @click="refreshProjects" />
       </template>
 
       <Loading v-if="loadingProjects" :visible="true" :fullscreen="false" text="加载项目列表..." />
 
-      <Empty v-else-if="projects.length === 0" type="no-data" description="暂无进行中的项目">
+      <Empty v-else-if="projects.length === 0" type="no-data" description="暂无项目">
         <template #action>
           <el-button type="primary" @click="handleCreateProject">创建第一个项目</el-button>
         </template>
@@ -85,7 +75,8 @@
 
       <template v-else>
         <el-table :data="projects" stripe style="width: 100%">
-          <el-table-column prop="project_name" label="项目名称" min-width="200">
+          <el-table-column prop="id" label="ID" width="70" fixed />
+          <el-table-column prop="project_name" label="项目名称" min-width="200" fixed>
             <template #default="{ row }">
               <el-link type="primary" @click="handleViewProject(row)">
                 {{ row.project_name }}
@@ -93,25 +84,70 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="project_number" label="项目编号" width="150" />
+          <el-table-column prop="tenderer" label="招标人" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="authorized_person_name" label="被授权人" width="100" />
 
-          <el-table-column prop="status" label="状态" width="120">
+          <!-- 文档生成状态列 -->
+          <el-table-column label="商务应答" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">
-                {{ getStatusLabel(row.status) }}
+              <el-tag v-if="hasBusinessResponse(row)" type="success" size="small">
+                <i class="bi bi-check-circle-fill"></i> 已生成
+              </el-tag>
+              <el-tag v-else type="info" size="small">
+                <i class="bi bi-dash-circle"></i> 未生成
               </el-tag>
             </template>
           </el-table-column>
 
-          <el-table-column prop="company_name" label="关联企业" width="200" />
+          <el-table-column label="技术点对点" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="hasPointToPoint(row)" type="success" size="small">
+                <i class="bi bi-check-circle-fill"></i> 已生成
+              </el-tag>
+              <el-tag v-else type="info" size="small">
+                <i class="bi bi-dash-circle"></i> 未生成
+              </el-tag>
+            </template>
+          </el-table-column>
 
-          <el-table-column prop="created_at" label="创建时间" width="180">
+          <el-table-column label="技术方案" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="hasTechProposal(row)" type="success" size="small">
+                <i class="bi bi-check-circle-fill"></i> 已生成
+              </el-tag>
+              <el-tag v-else type="info" size="small">
+                <i class="bi bi-dash-circle"></i> 未生成
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="最后融合" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="hasFinalMerge(row)" type="success" size="small">
+                <i class="bi bi-check-circle-fill"></i> 已融合
+              </el-tag>
+              <el-tag v-else type="info" size="small">
+                <i class="bi bi-dash-circle"></i> 未融合
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="status" label="项目状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.status === 'active'" type="success">进行中</el-tag>
+              <el-tag v-else-if="row.status === 'completed'" type="primary">已完成</el-tag>
+              <el-tag v-else-if="row.status === 'archived'" type="info">已归档</el-tag>
+              <el-tag v-else type="info">草稿</el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="created_at" label="创建时间" width="160">
             <template #default="{ row }">
               {{ formatDate(row.created_at) }}
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="200" fixed="right">
+          <el-table-column label="操作" width="120" fixed="right">
             <template #default="{ row }">
               <IconButton
                 icon="bi-eye"
@@ -120,16 +156,10 @@
                 @click="handleViewProject(row)"
               />
               <IconButton
-                icon="bi-play-circle"
-                type="success"
-                tooltip="继续处理"
-                @click="handleContinueProject(row)"
-              />
-              <IconButton
-                icon="bi-archive"
-                type="warning"
-                tooltip="归档"
-                @click="handleArchiveProject(row)"
+                icon="bi-trash"
+                type="danger"
+                tooltip="删除项目"
+                @click="handleDeleteProject(row)"
               />
             </template>
           </el-table-column>
@@ -153,12 +183,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/project'
 import { tenderApi, companyApi } from '@/api'
 import { useNotification } from '@/composables'
 import { Card, Loading, Empty, IconButton } from '@/components'
+import { ElMessageBox } from 'element-plus'
 import type { Project } from '@/types'
 import dayjs from 'dayjs'
 
@@ -166,12 +197,13 @@ import dayjs from 'dayjs'
 
 const router = useRouter()
 const projectStore = useProjectStore()
-const { success, error: showError, confirm } = useNotification()
+const { success, error: showError } = useNotification()
 
 // ==================== State ====================
 
 const loadingStats = ref(false)
 const loadingProjects = ref(false)
+const creating = ref(false)
 
 // KPI统计数据
 const statistics = ref({
@@ -186,54 +218,6 @@ const projects = ref<Project[]>([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-
-// 快捷入口配置
-const quickActions = [
-  {
-    name: 'start-tender',
-    label: '开始投标',
-    icon: 'bi bi-play-circle-fill',
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    route: '/tender-management'
-  },
-  {
-    name: 'business-response',
-    label: '商务应答',
-    icon: 'bi bi-briefcase-fill',
-    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    route: '/business-response'
-  },
-  {
-    name: 'point-to-point',
-    label: '点对点应答',
-    icon: 'bi bi-arrow-left-right',
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    route: '/point-to-point'
-  },
-  {
-    name: 'tech-proposal',
-    label: '技术方案',
-    icon: 'bi bi-file-code-fill',
-    color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    route: '/tech-proposal'
-  },
-  {
-    name: 'tender-scoring',
-    label: '标书评分',
-    icon: 'bi bi-star-fill',
-    color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-    route: '/tender-scoring'
-  },
-  {
-    name: 'knowledge',
-    label: '知识中心',
-    icon: 'bi bi-book-fill',
-    color: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-    route: '/knowledge/company-library'
-  }
-]
-
-// ==================== Computed ====================
 
 // ==================== Methods ====================
 
@@ -274,14 +258,20 @@ async function loadProjects(): Promise<void> {
     })
 
     if (response.success && response.data) {
-      // 处理分页数据
-      if (Array.isArray(response.data)) {
-        projects.value = response.data
-        total.value = response.data.length
-      } else if (response.data.items) {
-        projects.value = response.data.items
-        total.value = response.data.total || 0
-      }
+      // 处理分页数据，转换字段名以匹配前端
+      const rawData = response.data.items || response.data || []
+      projects.value = rawData.map((project: any) => ({
+        id: project.project_id,
+        project_name: project.project_name,
+        project_number: project.project_number,
+        company_name: project.company_name,
+        tenderer: project.tenderer,
+        authorized_person_name: project.authorized_person_name,
+        status: project.status,
+        created_at: project.created_at,
+        ...project
+      }))
+      total.value = response.data.total || projects.value.length
     }
   } catch (err: any) {
     showError('加载项目列表失败: ' + err.message)
@@ -299,20 +289,10 @@ async function refreshProjects(): Promise<void> {
 }
 
 /**
- * 处理快捷操作
- */
-async function handleQuickAction(action: any): Promise<void> {
-  if (action.name === 'start-tender') {
-    await handleCreateProject()
-  } else {
-    router.push(action.route)
-  }
-}
-
-/**
  * 创建新项目并跳转
  */
 async function handleCreateProject(): Promise<void> {
+  creating.value = true
   try {
     // 获取公司列表，使用第一个公司作为默认值
     const companiesResponse = await companyApi.getCompanies()
@@ -340,6 +320,8 @@ async function handleCreateProject(): Promise<void> {
     })
   } catch (err: any) {
     showError('创建项目失败: ' + err.message)
+  } finally {
+    creating.value = false
   }
 }
 
@@ -355,35 +337,56 @@ function handleViewProject(project: Project): void {
 }
 
 /**
- * 继续处理项目
+ * 删除项目
  */
-function handleContinueProject(project: Project): void {
-  projectStore.setCurrentProject(project as any)
-  router.push({
-    name: 'TenderManagementDetail',
-    params: { id: project.id }
-  })
+async function handleDeleteProject(project: Project): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除项目 "${project.project_name}" 吗？此操作将同时删除项目的所有文档，且不可恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    await tenderApi.deleteProject(project.id)
+    success(`已删除项目: ${project.project_name}`)
+    await loadProjects()
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      showError('删除失败: ' + (err.message || '未知错误'))
+    }
+  }
 }
 
 /**
- * 归档项目
+ * 判断是否有商务应答文档
  */
-async function handleArchiveProject(project: Project): Promise<void> {
-  const confirmed = await confirm(
-    `确定要归档项目"${project.project_name}"吗?`,
-    '归档项目',
-    '归档后项目将不再显示在进行中列表'
-  )
+function hasBusinessResponse(project: any): boolean {
+  return !!project.business_response_file || project.business_response_status === 'completed'
+}
 
-  if (confirmed) {
-    try {
-      await projectStore.updateProject(project.id, { status: 'archived' as any })
-      success('项目已归档')
-      await loadProjects()
-    } catch (err: any) {
-      showError('归档失败: ' + err.message)
-    }
-  }
+/**
+ * 判断是否有技术点对点文档
+ */
+function hasPointToPoint(project: any): boolean {
+  return !!project.point_to_point_file || project.point_to_point_status === 'completed'
+}
+
+/**
+ * 判断是否有技术方案文档
+ */
+function hasTechProposal(project: any): boolean {
+  return !!project.tech_proposal_file || project.tech_proposal_status === 'completed' || !!project.technical_data
+}
+
+/**
+ * 判断是否有最后融合文档
+ */
+function hasFinalMerge(project: any): boolean {
+  return !!project.final_merge_file || project.merge_status === 'completed'
 }
 
 /**
@@ -404,36 +407,6 @@ function handlePageChange(page: number): void {
 }
 
 /**
- * 获取状态类型
- */
-function getStatusType(status: string): string {
-  const typeMap: Record<string, string> = {
-    pending: 'info',
-    in_progress: 'warning',
-    completed: 'success',
-    won: 'success',
-    lost: 'danger',
-    archived: 'info'
-  }
-  return typeMap[status] || 'info'
-}
-
-/**
- * 获取状态标签
- */
-function getStatusLabel(status: string): string {
-  const labelMap: Record<string, string> = {
-    pending: '待处理',
-    in_progress: '进行中',
-    completed: '已完成',
-    won: '已中标',
-    lost: '未中标',
-    archived: '已归档'
-  }
-  return labelMap[status] || status
-}
-
-/**
  * 格式化日期
  */
 function formatDate(date: string | Date): string {
@@ -451,78 +424,63 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .dashboard-page {
-  // 不设置padding,使用page-content的默认padding即可
   background: var(--bg-light, #f8f9fa);
 }
 
 // ==================== KPI卡片 ====================
 
 .kpi-cards {
-  margin-bottom: var(--spacing-xl, 32px);
+  margin-bottom: 16px;
 }
 
-.statistic-icon {
-  font-size: 24px;
-  margin-right: 8px;
-}
-
-// ==================== 快捷入口 ====================
-
-.quick-actions-card {
-  margin-bottom: var(--spacing-xl, 32px);
-}
-
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--spacing-lg, 24px);
-  padding: var(--spacing-md, 16px) 0;
-}
-
-.action-item {
+.kpi-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-sm, 12px);
-  padding: var(--spacing-lg, 24px);
-  background: var(--bg-white, #ffffff);
-  border-radius: var(--border-radius-md, 8px);
-  cursor: pointer;
-  transition: all 0.3s;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
-  }
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  height: 72px;
 }
 
-.action-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 28px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-size: 20px;
+  flex-shrink: 0;
 }
 
-.action-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary, #333);
-  text-align: center;
+.kpi-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: #909399;
+  margin-top: 4px;
 }
 
 // ==================== 项目列表 ====================
 
 .projects-card {
-  margin-bottom: var(--spacing-xl, 32px);
+  margin-bottom: 16px;
 }
 
 .pagination-wrapper {
-  margin-top: var(--spacing-lg, 24px);
+  margin-top: 16px;
   display: flex;
   justify-content: flex-end;
 }
@@ -530,23 +488,10 @@ onMounted(() => {
 // ==================== 响应式 ====================
 
 @media (max-width: 768px) {
-  .dashboard-page {
-    padding: var(--spacing-md, 16px);
-  }
-
-  .quick-actions {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-md, 16px);
-  }
-
-  .action-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
-  }
-
-  .action-label {
-    font-size: 12px;
+  .kpi-cards {
+    .el-col {
+      margin-bottom: 12px;
+    }
   }
 
   .pagination-wrapper {
@@ -555,8 +500,13 @@ onMounted(() => {
 }
 
 @media (max-width: 480px) {
-  .quick-actions {
-    grid-template-columns: repeat(2, 1fr);
+  .kpi-card {
+    padding: 12px 16px;
+    height: auto;
+  }
+
+  .kpi-value {
+    font-size: 22px;
   }
 }
 </style>

@@ -59,21 +59,6 @@ export const routes: RouteRecordRaw[] = [
           description: '投标项目全流程管理'
         },
         children: [
-          // ========== 项目管理 ==========
-          {
-            path: '/tender-management',
-            name: 'TenderManagement',
-            component: () => import('@/views/Tender/Management.vue'),
-            meta: {
-              title: '投标管理',
-              icon: 'bi-file-earmark-text',
-              parent: 'BiddingCenter',
-              order: 2,
-              keepAlive: true,
-              description: 'HITL人机协同系统'
-            }
-          },
-
           // ========== AI核心工具 - 智能应答 ==========
           {
             path: '/business-response',
@@ -83,7 +68,7 @@ export const routes: RouteRecordRaw[] = [
               title: '商务应答',
               icon: 'bi-briefcase',
               parent: 'BiddingCenter',
-              order: 3,
+              order: 2,
               description: '智能生成商务应答文档'
             }
           },
@@ -96,7 +81,7 @@ export const routes: RouteRecordRaw[] = [
               title: '点对点应答',
               icon: 'bi-arrow-left-right',
               parent: 'BiddingCenter',
-              order: 4,
+              order: 3,
               description: '针对招标要求逐点响应'
             }
           },
@@ -110,7 +95,7 @@ export const routes: RouteRecordRaw[] = [
               title: '技术方案',
               icon: 'bi-file-code',
               parent: 'BiddingCenter',
-              order: 5,
+              order: 4,
               description: 'AI生成技术方案大纲'
             }
           },
@@ -124,7 +109,7 @@ export const routes: RouteRecordRaw[] = [
               title: '最终标书',
               icon: 'bi-file-earmark-zip',
               parent: 'BiddingCenter',
-              order: 6,
+              order: 5,
               description: '智能整合生成最终投标文件'
             }
           },
@@ -138,7 +123,7 @@ export const routes: RouteRecordRaw[] = [
               title: '标书评分',
               icon: 'bi-star',
               parent: 'BiddingCenter',
-              order: 7,
+              order: 6,
               description: 'AI辅助标书评分和风险分析'
             }
           }
@@ -290,6 +275,36 @@ export const routes: RouteRecordRaw[] = [
               parent: 'Knowledge',
               keepAlive: true,
               description: '管理产品分类和业务类型'
+            }
+          },
+
+          // 产品能力
+          {
+            path: 'capability',
+            name: 'CapabilityManagement',
+            component: () => import('@/views/Knowledge/CapabilityManagement.vue'),
+            meta: {
+              title: '产品能力',
+              icon: 'bi-cpu',
+              order: 6,
+              parent: 'Knowledge',
+              keepAlive: true,
+              description: '管理产品能力索引'
+            }
+          },
+
+          // 标书素材库
+          {
+            path: 'tender-library',
+            name: 'TenderLibrary',
+            component: () => import('@/views/Knowledge/TenderLibrary.vue'),
+            meta: {
+              title: '标书素材',
+              icon: 'bi-journal-text',
+              order: 7,
+              parent: 'Knowledge',
+              keepAlive: true,
+              description: '管理历史标书和素材片段'
             }
           }
         ]
@@ -500,8 +515,8 @@ export const routes: RouteRecordRaw[] = [
  */
 export const legacyHashRoutes: Record<string, string> = {
   '#home': '/',
-  '#project-overview': '/project-overview',
-  '#tender-management': '/tender-management',
+  '#project-overview': '/',
+  '#tender-management': '/',
   '#business-response': '/business-response',
   '#point-to-point': '/point-to-point',
   '#tech-proposal': '/tech-proposal',

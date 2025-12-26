@@ -140,6 +140,7 @@ import {
   Files
 } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules, UploadInstance, UploadFile } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import type { ResumeAttachment } from '@/types'
 
 // Props
@@ -317,9 +318,15 @@ const handleDownload = (attachment: ResumeAttachment) => {
 // 删除附件
 const handleDelete = async (attachment: ResumeAttachment) => {
   try {
-    if (!confirm(`确定要删除附件 "${attachment.original_filename}" 吗？`)) {
-      return
-    }
+    await ElMessageBox.confirm(
+      `确定要删除附件 "${attachment.original_filename}" 吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
 
     const response = await knowledgeApi.deleteResumeAttachment(attachment.attachment_id)
     if (response.success) {
