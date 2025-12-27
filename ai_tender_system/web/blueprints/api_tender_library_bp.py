@@ -310,10 +310,8 @@ def extract_excerpts(tender_doc_id):
     """
     从标书文档中提取片段
 
-    自动解析文档内容，按章节/段落拆分，创建素材片段。
+    使用 structure_parser 解析文档章节结构，提取结构化的素材片段。
     """
-    import re
-
     try:
         doc_manager = get_document_manager()
         excerpt_manager = get_excerpt_manager()
@@ -329,53 +327,289 @@ def extract_excerpts(tender_doc_id):
 
         company_id = document.get('company_id')
 
-        # 使用文档解析器解析文档
-        from modules.document_parser.parser_manager import ParserManager
-        parser = ParserManager()
+        # 检查文件类型
+        file_ext = file_path.rsplit('.', 1)[-1].lower() if '.' in file_path else ''
+        if file_ext not in ['docx', 'doc']:
+            # 对于非 Word 文件，使用旧的解析方式
+            return _extract_excerpts_legacy(tender_doc_id, document, doc_manager, excerpt_manager)
 
+        # 使用 structure_parser 解析章节结构
+        from modules.tender_processing.structure_parser import DocumentStructureParser
+
+        parser = DocumentStructureParser()
         try:
-            content = parser.parse_document_simple(file_path)
+            result = parser.parse_document_structure(file_path)
         except Exception as parse_error:
-            logger.error(f"解析文档失败: {parse_error}")
-            return jsonify({'success': False, 'error': f'解析文档失败: {str(parse_error)}'}), 500
+            logger.error(f"解析文档结构失败: {parse_error}")
+            # 降级到旧的解析方式
+            return _extract_excerpts_legacy(tender_doc_id, document, doc_manager, excerpt_manager)
 
-        if not content or not content.strip():
-            return jsonify({'success': False, 'error': '文档内容为空'}), 400
+        if not result.get('success') or not result.get('chapters'):
+            logger.warning(f"structure_parser 解析失败或无章节，降级到旧方式")
+            return _extract_excerpts_legacy(tender_doc_id, document, doc_manager, excerpt_manager)
 
-        # 按章节/段落拆分内容
-        excerpts = _split_content_to_excerpts(content, document)
-        extracted_count = 0
+        chapters = result['chapters']
 
-        for excerpt_data in excerpts:
-            try:
-                excerpt_manager.create_excerpt(
-                    tender_doc_id=tender_doc_id,
-                    company_id=company_id,
-                    content=excerpt_data['content'],
-                    chapter_number=excerpt_data.get('chapter_number'),
-                    chapter_title=excerpt_data.get('chapter_title'),
-                    chapter_level=excerpt_data.get('chapter_level', 1),
-                    category=excerpt_data.get('category'),
-                    quality_score=excerpt_data.get('quality_score', 0)
-                )
-                extracted_count += 1
-            except Exception as e:
-                logger.warning(f"创建片段失败: {e}")
-                continue
+        # 打开 Word 文档提取内容
+        from docx import Document as DocxDocument
+        try:
+            word_doc = DocxDocument(file_path)
+        except Exception as e:
+            logger.error(f"打开Word文档失败: {e}")
+            return _extract_excerpts_legacy(tender_doc_id, document, doc_manager, excerpt_manager)
+
+        # 清空旧的片段
+        _delete_old_excerpts(tender_doc_id)
+
+        # 递归保存章节为素材
+        extracted_count = _save_chapters_as_excerpts(
+            chapters=chapters,
+            tender_doc_id=tender_doc_id,
+            company_id=company_id,
+            word_doc=word_doc,
+            excerpt_manager=excerpt_manager
+        )
 
         # 更新文档解析状态
-        doc_manager.update_document(tender_doc_id, parse_status='completed', total_chapters=extracted_count)
+        doc_manager.update_document(
+            tender_doc_id,
+            parse_status='completed',
+            total_chapters=extracted_count
+        )
 
+        statistics = result.get('statistics', {})
         logger.info(f"提取片段完成: 文档ID={tender_doc_id}, 提取数量={extracted_count}")
         return jsonify({
             'success': True,
-            'message': f'成功提取 {extracted_count} 个片段',
-            'extracted_count': extracted_count
+            'message': f'成功提取 {extracted_count} 个章节素材',
+            'data': {
+                'excerpt_count': extracted_count,
+                'statistics': statistics
+            }
         })
 
     except Exception as e:
-        logger.error(f"提取片段失败: {e}")
+        logger.error(f"提取片段失败: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _extract_excerpts_legacy(tender_doc_id, document, doc_manager, excerpt_manager):
+    """
+    旧版提取方式（降级方案）
+
+    用于非 Word 文件或 structure_parser 解析失败时。
+    """
+    file_path = document.get('file_path')
+    company_id = document.get('company_id')
+
+    # 使用文档解析器解析文档
+    from modules.document_parser.parser_manager import ParserManager
+    parser = ParserManager()
+
+    try:
+        content = parser.parse_document_simple(file_path)
+    except Exception as parse_error:
+        logger.error(f"解析文档失败: {parse_error}")
+        return jsonify({'success': False, 'error': f'解析文档失败: {str(parse_error)}'}), 500
+
+    if not content or not content.strip():
+        return jsonify({'success': False, 'error': '文档内容为空'}), 400
+
+    # 清空旧的片段
+    _delete_old_excerpts(tender_doc_id)
+
+    # 按章节/段落拆分内容
+    excerpts = _split_content_to_excerpts(content, document)
+    extracted_count = 0
+
+    for excerpt_data in excerpts:
+        try:
+            excerpt_manager.create_excerpt(
+                tender_doc_id=tender_doc_id,
+                company_id=company_id,
+                content=excerpt_data['content'],
+                chapter_number=excerpt_data.get('chapter_number'),
+                chapter_title=excerpt_data.get('chapter_title'),
+                chapter_level=excerpt_data.get('chapter_level', 1),
+                category=excerpt_data.get('category'),
+                quality_score=excerpt_data.get('quality_score', 0)
+            )
+            extracted_count += 1
+        except Exception as e:
+            logger.warning(f"创建片段失败: {e}")
+            continue
+
+    # 更新文档解析状态
+    doc_manager.update_document(tender_doc_id, parse_status='completed', total_chapters=extracted_count)
+
+    logger.info(f"提取片段完成(旧方式): 文档ID={tender_doc_id}, 提取数量={extracted_count}")
+    return jsonify({
+        'success': True,
+        'message': f'成功提取 {extracted_count} 个片段',
+        'data': {
+            'excerpt_count': extracted_count
+        }
+    })
+
+
+def _delete_old_excerpts(tender_doc_id: int):
+    """删除文档的旧片段"""
+    import sqlite3
+    from pathlib import Path
+
+    db_path = Path(__file__).parent.parent.parent / "data" / "knowledge_base.db"
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("DELETE FROM tender_excerpts WHERE tender_doc_id = ?", (tender_doc_id,))
+        conn.commit()
+        conn.close()
+        logger.info(f"已删除文档 {tender_doc_id} 的旧片段")
+    except Exception as e:
+        logger.warning(f"删除旧片段失败: {e}")
+
+
+def _save_chapters_as_excerpts(
+    chapters: list,
+    tender_doc_id: int,
+    company_id: int,
+    word_doc,
+    excerpt_manager,
+    parent_excerpt_id: int = None
+) -> int:
+    """
+    递归保存章节树为素材
+
+    Args:
+        chapters: 章节列表
+        tender_doc_id: 标书文档ID
+        company_id: 企业ID
+        word_doc: python-docx Document 对象
+        excerpt_manager: 片段管理器
+        parent_excerpt_id: 父章节ID
+
+    Returns:
+        提取的片段数量
+    """
+    count = 0
+
+    for chapter in chapters:
+        # 提取章节内容
+        content = _extract_chapter_content(
+            word_doc,
+            chapter.get('para_start_idx', 0),
+            chapter.get('para_end_idx')
+        )
+
+        # 跳过空内容或过短内容
+        if not content or len(content.strip()) < 50:
+            # 仍然递归处理子章节
+            if chapter.get('children'):
+                count += _save_chapters_as_excerpts(
+                    chapter['children'],
+                    tender_doc_id, company_id, word_doc,
+                    excerpt_manager, parent_excerpt_id
+                )
+            continue
+
+        # 简单规则分类（基于标题关键词）
+        category = _guess_category_by_title(chapter.get('title', ''))
+
+        # 质量评分
+        quality_score = _calculate_quality_score(content)
+
+        # 存入数据库
+        try:
+            excerpt_id = excerpt_manager.create_excerpt(
+                tender_doc_id=tender_doc_id,
+                company_id=company_id,
+                content=content,
+                chapter_number=chapter.get('id', ''),
+                chapter_title=chapter.get('title', ''),
+                chapter_level=chapter.get('level', 1),
+                parent_excerpt_id=parent_excerpt_id,
+                category=category,
+                quality_score=quality_score
+            )
+            count += 1
+
+            # 递归处理子章节
+            if chapter.get('children'):
+                count += _save_chapters_as_excerpts(
+                    chapter['children'],
+                    tender_doc_id, company_id, word_doc,
+                    excerpt_manager, excerpt_id
+                )
+        except Exception as e:
+            logger.warning(f"创建片段失败: {e}, 章节={chapter.get('title', '')}")
+            # 仍然递归处理子章节
+            if chapter.get('children'):
+                count += _save_chapters_as_excerpts(
+                    chapter['children'],
+                    tender_doc_id, company_id, word_doc,
+                    excerpt_manager, parent_excerpt_id
+                )
+
+    return count
+
+
+def _extract_chapter_content(word_doc, para_start_idx: int, para_end_idx: int) -> str:
+    """
+    从 Word 文档提取章节内容
+
+    Args:
+        word_doc: python-docx Document 对象
+        para_start_idx: 起始段落索引
+        para_end_idx: 结束段落索引
+
+    Returns:
+        章节文本内容
+    """
+    paragraphs = word_doc.paragraphs
+
+    if para_end_idx is None:
+        para_end_idx = len(paragraphs)
+
+    content_parts = []
+    for i in range(para_start_idx, min(para_end_idx, len(paragraphs))):
+        text = paragraphs[i].text.strip()
+        if text:
+            content_parts.append(text)
+
+    return '\n'.join(content_parts)
+
+
+def _guess_category_by_title(title: str) -> str:
+    """
+    根据标题关键词猜测分类
+
+    Args:
+        title: 章节标题
+
+    Returns:
+        分类名称（中文，与前端一致）
+    """
+    if not title:
+        return '其他'
+
+    # 分类关键词映射（中文分类，与前端一致）
+    category_keywords = {
+        '技术方案': ['架构', '技术方案', '系统设计', '总体设计', '技术路线', '详细设计',
+                 '功能设计', '模块设计', '接口设计', '实施', '部署', '上线', '迁移',
+                 '实施方案', '实施计划', '安全', '加密', '防护', '权限', '安全方案', '安全保障'],
+        '项目管理': ['项目管理', '进度', '质量管理', '风险管理', '项目组织', '组织架构', '管理方案'],
+        '售后服务': ['运维', '维护', '监控', '告警', '运营', '运维方案', '运维保障',
+                 '售后', '服务', '支持', '保障', '培训', '交付', '验收', '知识转移'],
+        '企业资质': ['公司', '企业', '资质证书', '荣誉', '公司简介', '企业介绍',
+                 '案例', '业绩', '经验', '项目经验', '成功案例'],
+        '团队介绍': ['团队', '人员', '资质', '简历', '项目团队', '人员配置', '团队介绍', '人员简历']
+    }
+
+    for category, keywords in category_keywords.items():
+        for kw in keywords:
+            if kw in title:
+                return category
+
+    return '其他'
 
 
 def _split_content_to_excerpts(content: str, document: dict) -> list:

@@ -347,6 +347,24 @@ watch(
     }
   }
 )
+
+// 监听内容加载完成，设置到编辑器
+watch(
+  () => previewContent.value,
+  async (newContent) => {
+    if (newContent && editorRef.value) {
+      await nextTick()
+      setTimeout(() => {
+        if (editorRef.value && typeof editorRef.value.setContent === 'function') {
+          editorRef.value.setContent(newContent)
+          console.log('[DocumentPreview] 内容已通过watch设置，长度:', newContent.length)
+          // 设置内容后刷新目录
+          setTimeout(() => refreshOutline(), 500)
+        }
+      }, 300)
+    }
+  }
+)
 </script>
 
 <style lang="scss">

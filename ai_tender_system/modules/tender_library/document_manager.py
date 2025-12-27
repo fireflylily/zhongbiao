@@ -147,7 +147,7 @@ class TenderDocumentManager:
         conn = self._get_connection()
         try:
             sql = """
-                SELECT tender_doc_id, doc_name, project_name, customer_name,
+                SELECT tender_doc_id, doc_name, file_path, project_name, customer_name,
                        industry, project_type, bid_date, bid_result,
                        final_score, technical_score, parse_status,
                        total_chapters, created_at

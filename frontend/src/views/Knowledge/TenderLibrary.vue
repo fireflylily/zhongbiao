@@ -133,6 +133,7 @@
             <el-option label="售后服务" value="售后服务" />
             <el-option label="企业资质" value="企业资质" />
             <el-option label="团队介绍" value="团队介绍" />
+            <el-option label="其他" value="其他" />
           </el-select>
           <el-checkbox v-model="excerptWonOnly" @change="loadExcerpts">仅中标</el-checkbox>
         </div>
@@ -361,6 +362,7 @@
               <el-option label="售后服务" value="售后服务" />
               <el-option label="企业资质" value="企业资质" />
               <el-option label="团队介绍" value="团队介绍" />
+              <el-option label="其他" value="其他" />
             </el-select>
           </el-form-item>
           <el-form-item label="质量评分">
@@ -397,12 +399,20 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 文档预览对话框 -->
+    <DocumentPreview
+      v-model="previewDialogVisible"
+      :file-url="previewFileUrl"
+      :file-name="previewFileName"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { Card, Loading, Empty } from '@/components'
+import DocumentPreview from '@/components/DocumentPreview.vue'
 import { useNotification } from '@/composables'
 import {
   Document, Tickets, Trophy, Search, Upload
@@ -465,6 +475,11 @@ const uploadRules = {
   project_name: [{ required: true, message: '请输入项目名称', trigger: 'blur' }]
 }
 const uploading = ref(false)
+
+// 文档预览对话框
+const previewDialogVisible = ref(false)
+const previewFileUrl = ref('')
+const previewFileName = ref('')
 
 // 编辑文档对话框
 const editDocDialogVisible = ref(false)
@@ -620,10 +635,11 @@ const handleSubmitUpload = async () => {
   }
 }
 
-// 查看文档
+// 查看文档 - 使用 DocumentPreview 组件
 const handleViewDoc = (doc: any) => {
-  // 可以打开预览或跳转到详情页
-  window.open(`/api/documents/${doc.doc_id}/preview`, '_blank')
+  previewFileUrl.value = doc.file_path || ''
+  previewFileName.value = doc.doc_name || '文档预览'
+  previewDialogVisible.value = true
 }
 
 // 提取素材
@@ -840,7 +856,8 @@ const getCategoryType = (category: string) => {
     '项目管理': 'success',
     '售后服务': 'warning',
     '企业资质': 'info',
-    '团队介绍': ''
+    '团队介绍': '',
+    '其他': 'info'
   }
   return map[category] || 'info'
 }

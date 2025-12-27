@@ -175,6 +175,8 @@ class ExcerptManager:
                        e.chapter_title, e.chapter_level, e.category,
                        e.subcategory, e.word_count, e.quality_score,
                        e.is_highlighted, e.usage_count,
+                       e.content,
+                       substr(e.content, 1, 200) as content_preview,
                        d.doc_name, d.bid_result
                 FROM tender_excerpts e
                 JOIN tender_documents d ON e.tender_doc_id = d.tender_doc_id
