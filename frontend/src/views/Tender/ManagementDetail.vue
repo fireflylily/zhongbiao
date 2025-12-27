@@ -1,16 +1,7 @@
 <template>
   <div class="tender-management-detail">
     <!-- 页面头部 -->
-    <PageHeader :title="pageTitle" :show-back="true">
-      <template #actions>
-        <el-button @click="handleRefresh">
-          <i class="bi bi-arrow-clockwise"></i> 刷新
-        </el-button>
-        <el-button v-if="!isEditing" type="primary" @click="handleEdit">
-          <i class="bi bi-pencil"></i> 编辑项目
-        </el-button>
-      </template>
-    </PageHeader>
+    <PageHeader :title="pageTitle" :show-back="true" />
 
     <!-- 加载状态 -->
     <Loading v-if="loading" text="加载项目详情..." />
@@ -86,11 +77,20 @@
                     {{ extractingBasicInfo ? 'AI提取中...' : 'AI提取基本信息' }}
                   </el-button>
 
-                  <!-- 右侧：警告标签和编辑按钮 -->
+                  <!-- 右侧：警告标签和操作按钮 -->
                   <div style="display: flex; align-items: center; gap: 10px;">
                     <el-tag v-if="hasUnsavedChanges && isEditing" type="warning" size="small">
                       <i class="bi bi-exclamation-triangle-fill"></i> 有未保存的更改
                     </el-tag>
+                    <!-- 非编辑模式下显示刷新和编辑按钮 -->
+                    <template v-if="!isEditing">
+                      <el-button size="small" @click="handleRefresh">
+                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                      </el-button>
+                      <el-button size="small" type="primary" @click="handleEdit">
+                        <i class="bi bi-pencil"></i> 编辑项目
+                      </el-button>
+                    </template>
                     <!-- 编辑模式下显示取消和保存按钮 -->
                     <template v-if="isEditing">
                       <el-button size="small" @click="handleCancel">

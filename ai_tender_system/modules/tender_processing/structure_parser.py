@@ -1464,7 +1464,8 @@ class DocumentStructureParser:
             self.logger.debug(f"SDT目录解析失败，回退到常规方法: {e}")
 
         # 常规方法：从python-docx的paragraphs中解析
-        for i in range(toc_start_idx + 1, min(toc_start_idx + 100, len(doc.paragraphs))):
+        # 🔧 扩展范围从100到150，以覆盖更长的目录（如包含100+个目录项的招标文件）
+        for i in range(toc_start_idx + 1, min(toc_start_idx + 150, len(doc.paragraphs))):
             para = doc.paragraphs[i]
             text = para.text.strip()
 
@@ -1481,6 +1482,11 @@ class DocumentStructureParser:
             if not match:
                 # 格式3: "标题文本\t页码" (制表符)
                 match = re.match(r'^(.+?)\t+(\d+)$', text)
+
+            # 🆕 格式4: "第X章 标题 页码" (单个空格，专门匹配章节标题)
+            # 使用非贪婪匹配，确保页码前的空格被正确识别
+            if not match:
+                match = re.match(r'^(第[一二三四五六七八九十百千\d]+[章部分节篇].+?)\s+(\d+)$', text)
 
             if match:
                 title = match.group(1).strip()
@@ -1738,6 +1744,15 @@ class DocumentStructureParser:
 
                 if list_range:
                     start, end, titles = list_range
+
+                    # 🔑 关键：对于"第X章"、"第X部分"这种明确的一级章节标题，即使在列表中也不应跳过
+                    # 因为这是文档的主要结构划分，不是元数据
+                    is_primary_chapter = re.match(r'^第[一二三四五六七八九十百千\d]+[章部分]', para_text.strip())
+
+                    if is_primary_chapter:
+                        self.logger.info(f"  ✓ 找到一级章节标题（不跳过元数据列表）: 段落 {i}: '{para_text}'")
+                        return i
+
                     self.logger.info(
                         f"  ⚠️  检测到'文件构成说明'列表 (段落{start}-{end}，"
                         f"包含{len(titles)}个章节标题)，跳过该区域"

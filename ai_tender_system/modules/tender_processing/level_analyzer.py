@@ -546,6 +546,14 @@ class LevelAnalyzer:
         unique = freq_info['unique']    # 归一化后的唯一模式
         common = freq_info['common']    # 归一化后的高频模式
 
+        # ⭐️ 单一模式检测：如果整个目录只有一种归一化模式，全部判定为1级
+        # 例如：只有"一、二、三、..."格式时，归一化后都是"X、"，应该是1级
+        distinct_patterns = set(p for p in normalized_prefixes if p)
+        if len(distinct_patterns) == 1:
+            single_pattern = list(distinct_patterns)[0]
+            self.logger.info(f"检测到单一模式: '{single_pattern}'，所有条目判定为1级")
+            return [1] * len(toc_items)
+
         levels = []
         current_level = 1
         last_normalized = None
@@ -605,7 +613,10 @@ class LevelAnalyzer:
                 elif normalized in common:
                     # 特殊规则：根据模式类型确定基础层级
                     if normalized == "X、":
-                        level = 2  # "一、二、三、" 固定为2级
+                        # 如果没有更高级别的模式（如第X章），则"一、二、三、"是1级
+                        has_higher_level = any(p in pattern_level_map and pattern_level_map[p] == 1
+                                              for p in ["第X章", "第X部分"])
+                        level = 2 if has_higher_level else 1
                     elif normalized == "N.":
                         # "1. 2. 3." 的层级取决于上下文
                         level = 3 if current_level >= 2 else 2

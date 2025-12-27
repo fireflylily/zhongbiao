@@ -346,6 +346,10 @@ const startParsing = async () => {
       azure: 'idle'
     }
 
+    // 清空人工标注
+    groundTruth.value = null
+    accuracy.value = null
+
     ElMessage.success(`文件上传成功！请点击各方法的"开始解析"按钮`)
     parsing.value = false
 

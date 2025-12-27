@@ -39,10 +39,9 @@
         <div class="template-selector mb-3">
           <span>基于方法结果:</span>
           <el-select v-model="selectedTemplate" placeholder="选择方法" @change="loadTemplate">
-            <el-option label="语义锚点解析" value="semantic" />
-            <el-option label="旧目录定位" value="old_toc" />
-            <el-option label="样式识别" value="style" />
-            <el-option label="大纲级别识别" value="outline" />
+            <el-option v-if="availableResults?.gemini?.success" label="Gemini AI解析器" value="gemini" />
+            <el-option v-if="availableResults?.docx_native?.success" label="Word大纲级别识别" value="docx_native" />
+            <el-option v-if="availableResults?.toc_exact?.success" label="精确匹配(基于目录)" value="toc_exact" />
             <el-option v-if="availableResults?.azure?.success" label="Azure Form Recognizer" value="azure" />
             <el-option label="手动创建" value="manual" />
           </el-select>
@@ -110,10 +109,10 @@ interface Props {
   modelValue?: ChapterNode[] | null
   documentId?: string
   availableResults?: {
-    semantic?: any
-    old_toc?: any
-    style?: any
-    outline?: any
+    gemini?: any
+    docx_native?: any
+    toc_exact?: any
+    azure?: any
   }
 }
 
