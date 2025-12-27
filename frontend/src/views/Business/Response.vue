@@ -50,6 +50,18 @@
         </div>
       </div>
 
+      <!-- 被授权人行 -->
+      <div class="panel-row project-row">
+        <div class="row-item">
+          <label class="row-label">被授权人</label>
+          <el-input
+            v-model="form.authorizedPersonName"
+            placeholder="请输入被授权人"
+            class="row-input"
+          />
+        </div>
+      </div>
+
       <!-- 新建项目信息：仅当未选择项目时显示 -->
       <div v-if="!form.projectId" class="panel-row project-row">
         <div class="row-item">
@@ -464,7 +476,8 @@ const form = ref({
   projectName: '新项目',                // 新建项目：项目名称
   projectNumber: `PRJ-${Date.now()}`,  // 新建项目：项目编号
   tenderFiles: [] as UploadUserFile[],
-  templateFiles: [] as UploadUserFile[]
+  templateFiles: [] as UploadUserFile[],
+  authorizedPersonName: ''  // 被授权人姓名
 })
 
 // 公司列表（项目列表由 Composable 提供）
@@ -631,6 +644,7 @@ const handleProjectChange = async () => {
       streamContent.value = ''
       form.value.tenderFiles = []
       form.value.templateFiles = []
+      form.value.authorizedPersonName = ''  // 清空被授权人
       // 清空编辑器
       showEditor.value = false
       editorContent.value = ''
@@ -667,9 +681,13 @@ const handleProjectChange = async () => {
     }
   })
 
-  // 项目选择后，自动加载历史文件列表
+  // 项目选择后，自动加载历史文件列表和被授权人信息
   if (form.value.projectId) {
     await loadFilesList()
+    // 从项目数据中加载被授权人信息
+    if (selectedProject.value?.authorized_person_name) {
+      form.value.authorizedPersonName = selectedProject.value.authorized_person_name
+    }
   }
 
   // 【新建项目模式】重置项目编号
@@ -1135,6 +1153,7 @@ onMounted(async () => {
       streamContent.value = ''
       form.value.tenderFiles = []
       form.value.templateFiles = []
+      form.value.authorizedPersonName = ''  // 清空被授权人
       // 清空编辑器
       showEditor.value = false
       editorContent.value = ''
@@ -1170,6 +1189,10 @@ onMounted(async () => {
   // 如果成功恢复项目，同步到表单
   if (restoredProjectId) {
     form.value.projectId = restoredProjectId
+    // 从项目数据中加载被授权人信息
+    if (selectedProject.value?.authorized_person_name) {
+      form.value.authorizedPersonName = selectedProject.value.authorized_person_name
+    }
     console.log('✅ 已从Store恢复项目:', restoredProjectId)
   }
 })

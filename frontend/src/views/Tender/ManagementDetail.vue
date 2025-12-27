@@ -23,10 +23,10 @@
         @start-p2p="handleStartPointToPoint"
         @start-proposal="handleStartProposal"
       >
-        <!-- 公司和授权人选择（放在按钮上方） -->
+        <!-- 公司选择（放在按钮上方） -->
         <template #selectors>
           <el-row :gutter="16">
-            <el-col :span="12">
+            <el-col :span="24">
               <div class="selector-item">
                 <span class="selector-label">公司：</span>
                 <el-select v-model="formData.company_id" placeholder="请选择公司" style="width: 100%">
@@ -37,12 +37,6 @@
                     :value="company.company_id"
                   />
                 </el-select>
-              </div>
-            </el-col>
-            <el-col :span="12">
-              <div class="selector-item">
-                <span class="selector-label">被授权人：</span>
-                <el-input v-model="formData.authorized_person_name" placeholder="请输入被授权人姓名" />
               </div>
             </el-col>
           </el-row>
