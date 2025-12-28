@@ -390,15 +390,23 @@ class WordExporter:
         # 章节结束后添加空行
         doc.add_paragraph()
 
-    def _add_markdown_content(self, doc: Document, markdown_text: str):
+    def _add_markdown_content(self, doc: Document, markdown_text):
         """
         将Markdown格式文本转换为Word格式并添加到文档
 
         Args:
             doc: Word文档对象
-            markdown_text: Markdown格式的文本
+            markdown_text: Markdown格式的文本，或包含 'content' 键的字典
         """
         import re
+
+        # 处理字典类型输入（Quality-First 模式可能传入 {'content': '...'} 格式）
+        if isinstance(markdown_text, dict):
+            markdown_text = markdown_text.get('content', '') or str(markdown_text)
+
+        # 确保是字符串
+        if not isinstance(markdown_text, str):
+            markdown_text = str(markdown_text) if markdown_text else ''
 
         lines = markdown_text.split('\n')
 

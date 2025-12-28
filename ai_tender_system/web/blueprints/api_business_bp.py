@@ -692,49 +692,79 @@ def list_tech_proposal_files():
                 logger.warning(f"❌ 查询项目名称失败: {e}")
 
         files = []
-        output_dir = config.get_path('output')
 
-        if output_dir.exists():
-            for filename in os.listdir(output_dir):
-                # 过滤技术方案文件（匹配包含"技术方案"或"tech"的文件，排除商务应答和点对点应答）
-                if filename.endswith(('.docx', '.doc', '.pdf')) and \
-                   ('技术方案' in filename or 'tech' in filename.lower()) and \
-                   '商务应答' not in filename and '点对点' not in filename:
-                    file_path = output_dir / filename
-                    try:
-                        stat = file_path.stat()
-                        modified_time = datetime.fromtimestamp(stat.st_mtime)
+        # 定义要搜索的目录列表
+        search_dirs = [
+            config.get_path('output'),  # 主输出目录: data/outputs/
+        ]
 
-                        # 提取项目名称(文件名格式: {项目名称}_技术方案_{时间戳}.docx)
-                        project_name_match = re.match(r'^(.+?)_技术方案_\d{8}_\d{6}\.', filename)
-                        if not project_name_match:
-                            # 尝试其他格式: 技术方案_{项目名称}_{时间戳}.docx
-                            project_name_match = re.match(r'^技术方案_(.+?)_\d{8}_\d{6}\.', filename)
-                        project_name = project_name_match.group(1) if project_name_match else filename
+        # 如果指定了项目ID，也搜索该项目的 tech_proposal_files 目录
+        if project_id:
+            tech_proposal_dir = config.data_dir / 'uploads' / 'tech_proposal_files'
+            if tech_proposal_dir.exists():
+                # 递归搜索所有子目录（按年/月/项目ID组织）
+                for root, dirs, filenames in os.walk(tech_proposal_dir):
+                    if str(project_id) in root.split(os.sep):
+                        search_dirs.append(Path(root))
 
-                        # 如果指定了项目名称，过滤不匹配的文件
-                        if target_project_name:
-                            if project_name != target_project_name:
-                                logger.info(f"⚠️  FILTERED: {filename} (project='{project_name}' ≠ target='{target_project_name}')")
-                                continue
-                            else:
-                                logger.info(f"✅ MATCHED: {filename} (project='{project_name}')")
+        def process_file(file_path, filename):
+            """处理单个文件，返回文件信息字典或None"""
+            # 过滤技术方案文件（匹配包含"技术方案"或"tech"或"Quality-First"的文件）
+            if not filename.endswith(('.docx', '.doc', '.pdf')):
+                return None
+            if not ('技术方案' in filename or 'tech' in filename.lower() or 'Quality-First' in filename):
+                return None
+            if '商务应答' in filename or '点对点' in filename:
+                return None
 
-                        files.append({
-                            'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
-                            'filename': filename,
-                            'original_filename': filename,
-                            'file_path': str(file_path),
-                            'output_path': str(file_path),
-                            'size': stat.st_size,
-                            'created_at': datetime.fromtimestamp(stat.st_ctime).isoformat(),
-                            'process_time': modified_time.isoformat(),
-                            'status': 'completed',
-                            'company_name': '未知公司',  # 暂时使用默认值，后续会从数据库获取
-                            'project_name': project_name  # 添加项目名称用于去重
-                        })
-                    except Exception as e:
-                        logger.warning(f"读取文件信息失败 {filename}: {e}")
+            try:
+                stat = file_path.stat()
+                modified_time = datetime.fromtimestamp(stat.st_mtime)
+
+                # 提取项目名称(文件名格式: {项目名称}_技术方案_{时间戳}.docx 或 {项目名称}_Quality-First方案_{时间戳}.docx)
+                project_name_match = re.match(r'^(.+?)_(?:技术方案|Quality-First方案)_\d{8}_\d{6}\.', filename)
+                if not project_name_match:
+                    # 尝试其他格式: 技术方案_{项目名称}_{时间戳}.docx
+                    project_name_match = re.match(r'^技术方案_(.+?)_\d{8}_\d{6}\.', filename)
+                project_name = project_name_match.group(1) if project_name_match else filename
+
+                # 如果指定了项目名称，过滤不匹配的文件
+                if target_project_name:
+                    if project_name != target_project_name:
+                        logger.info(f"⚠️  FILTERED: {filename} (project='{project_name}' ≠ target='{target_project_name}')")
+                        return None
+                    else:
+                        logger.info(f"✅ MATCHED: {filename} (project='{project_name}')")
+
+                return {
+                    'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
+                    'filename': filename,
+                    'original_filename': filename,
+                    'file_path': str(file_path),
+                    'output_path': str(file_path),
+                    'size': stat.st_size,
+                    'created_at': datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                    'process_time': modified_time.isoformat(),
+                    'status': 'completed',
+                    'company_name': '未知公司',
+                    'project_name': project_name
+                }
+            except Exception as e:
+                logger.warning(f"读取文件信息失败 {filename}: {e}")
+                return None
+
+        # 搜索所有目录
+        seen_files = set()  # 用于去重
+        for search_dir in search_dirs:
+            if not search_dir.exists():
+                continue
+            for filename in os.listdir(search_dir):
+                file_path = search_dir / filename
+                if file_path.is_file() and str(file_path) not in seen_files:
+                    file_info = process_file(file_path, filename)
+                    if file_info:
+                        files.append(file_info)
+                        seen_files.add(str(file_path))
 
         # 按时间排序(最新的在前)
         files.sort(key=lambda x: x.get('process_time', ''), reverse=True)
