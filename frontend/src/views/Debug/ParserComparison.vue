@@ -29,6 +29,83 @@
         >
           开始解析对比
         </el-button>
+
+        <el-divider direction="vertical" />
+
+        <el-button
+          @click="startSmartParsing"
+          :loading="smartParsing"
+          :disabled="!currentDocumentId"
+          type="warning"
+        >
+          🧠 智能识别
+        </el-button>
+      </div>
+
+      <!-- 智能识别结果展示 -->
+      <div v-if="smartResult" class="smart-result-section">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="smart-result-header">
+              <span class="title">🧠 智能识别结果</span>
+              <div class="method-info">
+                <el-tag type="primary">{{ smartResult.method_used }}</el-tag>
+                <el-tag v-if="smartResult.fallback_from" type="warning">
+                  回退自: {{ smartResult.fallback_from }}
+                </el-tag>
+                <el-tag v-if="smartResult.fallback_reason" type="info">
+                  {{ smartResult.fallback_reason }}
+                </el-tag>
+                <span class="elapsed">耗时: {{ smartResult.performance?.elapsed_formatted || '-' }}</span>
+              </div>
+            </div>
+          </template>
+
+          <!-- 关键区域标记 -->
+          <div v-if="smartResult.key_sections" class="key-sections">
+            <h4>📌 关键区域</h4>
+            <div class="section-tags">
+              <div v-if="smartResult.key_sections.business_response?.length" class="section-item">
+                <el-tag type="primary" effect="dark">商务应答模板</el-tag>
+                <span v-for="title in smartResult.key_sections.business_response" :key="title" class="section-title">
+                  {{ title }}
+                </span>
+              </div>
+              <div v-if="smartResult.key_sections.technical_spec?.length" class="section-item">
+                <el-tag type="success" effect="dark">技术规范</el-tag>
+                <span v-for="title in smartResult.key_sections.technical_spec" :key="title" class="section-title">
+                  {{ title }}
+                </span>
+              </div>
+              <div v-if="smartResult.key_sections.contract_content?.length" class="section-item">
+                <el-tag type="warning" effect="dark">合同内容</el-tag>
+                <span v-for="title in smartResult.key_sections.contract_content" :key="title" class="section-title">
+                  {{ title }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 章节树展示 -->
+          <div class="chapters-tree">
+            <h4>📚 章节结构 (共 {{ smartResult.chapters?.length || 0 }} 个一级章节)</h4>
+            <el-tree
+              :data="smartChapterTree"
+              :props="{ label: 'label', children: 'children' }"
+              default-expand-all
+              :expand-on-click-node="false"
+            >
+              <template #default="{ node, data }">
+                <span class="chapter-node">
+                  <span class="chapter-title">{{ data.title }}</span>
+                  <el-tag v-if="data.chapter_type" :type="getChapterTypeTag(data.chapter_type)" size="small">
+                    {{ getChapterTypeName(data.chapter_type) }}
+                  </el-tag>
+                </span>
+              </template>
+            </el-tree>
+          </div>
+        </el-card>
       </div>
 
       <!-- 文档信息 -->
@@ -99,6 +176,18 @@
           :status="methodStatus.azure"
           color="#00B7C3"
           @start="startSingleMethod('azure')"
+        />
+
+        <!-- 方法5: LLM智能层级分析 -->
+        <MethodCard
+          v-if="results.llm_level"
+          title="方法5: LLM智能层级分析"
+          :result="results.llm_level"
+          :ground-truth="groundTruth"
+          :accuracy="accuracy?.llm_level"
+          :status="methodStatus.llm_level"
+          color="#10B981"
+          @start="startSingleMethod('llm_level')"
         />
 
         <!-- 人工标注卡片 -->
@@ -235,6 +324,19 @@
             </template>
           </el-table-column>
 
+          <el-table-column label="LLM层级" width="110" align="center">
+            <template #default="{ row }">
+              <div v-if="row.llm_level_f1" :class="getScoreClass(row.llm_level_f1)">
+                {{ (row.llm_level_f1 * 100).toFixed(1) }}%
+              </div>
+              <div v-else-if="row.llm_level_chapters_count > 0" class="chapter-count">
+                {{ row.llm_level_chapters_count }}章
+              </div>
+              <el-tag v-else-if="row.llm_level_elapsed !== undefined && row.llm_level_elapsed !== null" type="danger" size="small">失败</el-tag>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
+
           <el-table-column label="最佳方法" width="150" align="center">
             <template #default="{ row }">
               <div v-if="row.best_method">
@@ -282,12 +384,14 @@ import GroundTruthCard from './components/GroundTruthCard.vue'
 const uploadRef = ref()
 const selectedFile = ref<File | null>(null)
 const parsing = ref(false)
+const smartParsing = ref(false)
 
 const currentDocumentId = ref('')
 const documentInfo = ref<ParseTestResult['document_info'] | null>(null)
 const results = ref<ParseTestResult['results'] | null>(null)
 const groundTruth = ref<ChapterNode[] | null>(null)
 const accuracy = ref<ParseTestResult['accuracy'] | null>(null)
+const smartResult = ref<any>(null)
 
 const historyDialogVisible = ref(false)
 const historyList = ref<HistoryTest[]>([])
@@ -297,7 +401,8 @@ const methodStatus = ref<Record<string, 'idle' | 'parsing' | 'success' | 'error'
   gemini: 'idle',
   docx_native: 'idle',
   toc_exact: 'idle',
-  azure: 'idle'
+  azure: 'idle',
+  llm_level: 'idle'
 })
 
 // 文件选择
@@ -330,12 +435,13 @@ const startParsing = async () => {
     currentDocumentId.value = data.document_id
     documentInfo.value = data.document_info
 
-    // 初始化results对象为空结果(仅保留4种有效方法)
+    // 初始化results对象为空结果(包含5种有效方法)
     results.value = {
       toc_exact: { success: false, chapters: [], method_name: '精确匹配(基于目录)', performance: { elapsed: 0, elapsed_formatted: '-' } },
       azure: { success: false, chapters: [], method_name: 'Azure Form Recognizer', performance: { elapsed: 0, elapsed_formatted: '-' } },
       docx_native: { success: false, chapters: [], method_name: 'Word大纲级别识别', performance: { elapsed: 0, elapsed_formatted: '-' } },
-      gemini: { success: false, chapters: [], method_name: 'Gemini AI解析器', performance: { elapsed: 0, elapsed_formatted: '-' } }
+      gemini: { success: false, chapters: [], method_name: 'Gemini AI解析器', performance: { elapsed: 0, elapsed_formatted: '-' } },
+      llm_level: { success: false, chapters: [], method_name: 'LLM智能层级分析', performance: { elapsed: 0, elapsed_formatted: '-' } }
     }
 
     // 重置所有方法状态为idle
@@ -343,7 +449,8 @@ const startParsing = async () => {
       gemini: 'idle',
       docx_native: 'idle',
       toc_exact: 'idle',
-      azure: 'idle'
+      azure: 'idle',
+      llm_level: 'idle'
     }
 
     // 清空人工标注
@@ -360,8 +467,85 @@ const startParsing = async () => {
   }
 }
 
+// 智能解析
+const startSmartParsing = async () => {
+  if (!currentDocumentId.value) {
+    ElMessage.error('请先上传文件')
+    return
+  }
+
+  smartParsing.value = true
+  smartResult.value = null
+
+  try {
+    console.log('开始智能解析:', currentDocumentId.value)
+
+    const response = await parserDebugApi.parseSmart(currentDocumentId.value, { classify: true })
+    const data = response.data || response
+
+    if (data.success && data.result) {
+      smartResult.value = data.result
+      ElMessage.success(`智能解析完成！使用方法: ${data.result.method_used}`)
+    } else {
+      ElMessage.error(`智能解析失败: ${data.error || '未知错误'}`)
+    }
+  } catch (error: any) {
+    console.error('智能解析失败:', error)
+    ElMessage.error(error.response?.data?.error || error.message || '智能解析失败')
+  } finally {
+    smartParsing.value = false
+  }
+}
+
+// 智能解析结果转换为树形结构
+const smartChapterTree = computed(() => {
+  if (!smartResult.value?.chapters) return []
+
+  const buildTree = (chapters: any[]): any[] => {
+    return chapters.map(ch => ({
+      ...ch,
+      label: ch.title,
+      children: ch.children ? buildTree(ch.children) : []
+    }))
+  }
+
+  return buildTree(smartResult.value.chapters)
+})
+
+// 获取章节类型标签样式
+const getChapterTypeTag = (type: string) => {
+  const typeMap: Record<string, string> = {
+    invitation: 'info',
+    bidder_notice: 'info',
+    evaluation: '',
+    contract_terms: '',
+    contract_content: 'warning',
+    business_response: 'primary',
+    technical_spec: 'success',
+    appendix: 'info',
+    other: 'info'
+  }
+  return typeMap[type] || 'info'
+}
+
+// 获取章节类型中文名
+const getChapterTypeName = (type: string) => {
+  const nameMap: Record<string, string> = {
+    invitation: '投标邀请',
+    bidder_notice: '投标人须知',
+    evaluation: '评标办法',
+    contract_terms: '合同条款',
+    contract_content: '合同内容',
+    business_response: '商务应答',
+    technical_spec: '技术规范',
+    appendix: '附件',
+    other: '其他'
+  }
+  return nameMap[type] || type
+}
+
 // 解析单个方法
-const startSingleMethod = async (method: 'toc_exact' | 'azure' | 'docx_native' | 'gemini') => {
+const startSingleMethod = async (method: 'toc_exact' | 'azure' | 'docx_native' | 'gemini' | 'llm_level') => {
   if (!currentDocumentId.value) {
     ElMessage.error('请先上传文件')
     return
@@ -463,7 +647,8 @@ const loadTest = async (documentId: string) => {
         gemini: results.value?.gemini?.success ? 'success' : (results.value?.gemini ? 'error' : 'idle'),
         docx_native: results.value?.docx_native?.success ? 'success' : (results.value?.docx_native ? 'error' : 'idle'),
         toc_exact: results.value?.toc_exact?.success ? 'success' : (results.value?.toc_exact ? 'error' : 'idle'),
-        azure: results.value?.azure?.success ? 'success' : (results.value?.azure ? 'error' : 'idle')
+        azure: results.value?.azure?.success ? 'success' : (results.value?.azure ? 'error' : 'idle'),
+        llm_level: results.value?.llm_level?.success ? 'success' : (results.value?.llm_level ? 'error' : 'idle')
       }
 
       historyDialogVisible.value = false
@@ -499,7 +684,8 @@ const accuracyTableData = computed(() => {
     { key: 'gemini', name: 'Gemini AI解析器' },
     { key: 'docx_native', name: 'Word大纲级别识别' },
     { key: 'toc_exact', name: '精确匹配(基于目录)' },
-    { key: 'azure', name: 'Azure Form Recognizer' }
+    { key: 'azure', name: 'Azure Form Recognizer' },
+    { key: 'llm_level', name: 'LLM智能层级分析' }
   ]
 
   return methods
@@ -535,7 +721,8 @@ const getBestMethodName = () => {
     toc_exact: '精确匹配(基于目录)',
     azure: 'Azure Form Recognizer',
     docx_native: 'Word大纲级别识别',
-    gemini: 'Gemini AI解析器'
+    gemini: 'Gemini AI解析器',
+    llm_level: 'LLM智能层级分析'
   }
   return names[accuracy.value?.best_method] || '未知'
 }
@@ -545,7 +732,8 @@ const getMethodDisplayName = (key: string) => {
     toc_exact: '精确匹配',
     azure: 'Azure',
     docx_native: 'Word大纲',
-    gemini: 'Gemini AI'
+    gemini: 'Gemini AI',
+    llm_level: 'LLM层级'
   }
   return names[key] || key
 }
@@ -666,6 +854,82 @@ onMounted(async () => {
   .empty-state {
     padding: 40px;
     text-align: center;
+  }
+}
+
+/* 智能识别结果区域 */
+.smart-result-section {
+  margin-bottom: 20px;
+
+  .smart-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .method-info {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+
+      .elapsed {
+        color: #909399;
+        font-size: 13px;
+        margin-left: 8px;
+      }
+    }
+  }
+
+  .key-sections {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f5f7fa;
+    border-radius: 8px;
+
+    h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #606266;
+    }
+
+    .section-tags {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .section-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .section-title {
+          color: #303133;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  .chapters-tree {
+    h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #606266;
+    }
+
+    .chapter-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .chapter-title {
+        font-size: 14px;
+      }
+    }
   }
 }
 </style>

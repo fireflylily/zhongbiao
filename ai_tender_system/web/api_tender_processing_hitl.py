@@ -211,7 +211,11 @@ def register_hitl_routes(app):
                         updated_at = CURRENT_TIMESTAMP
                     WHERE project_id = ?
                 """, (
-                    json.dumps({'file_path': file_path, 'file_name': original_filename}),
+                    json.dumps({
+                        'file_path': file_path,
+                        'file_name': original_filename,
+                        'chapters': result["chapters"]  # 🆕 保存章节数据（包含 chapter_type）
+                    }),
                     file_path,
                     original_filename,
                     result["statistics"].get("total_words", 0),
@@ -230,7 +234,11 @@ def register_hitl_routes(app):
                 """, (
                     project_id,
                     'in_progress',
-                    json.dumps({'file_path': file_path, 'file_name': original_filename}),
+                    json.dumps({
+                        'file_path': file_path,
+                        'file_name': original_filename,
+                        'chapters': result["chapters"]  # 🆕 保存章节数据（包含 chapter_type）
+                    }),
                     result["statistics"].get("total_words", 0),
                     result["statistics"].get("estimated_processing_cost", 0.0)
                 ))

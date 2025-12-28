@@ -11,6 +11,10 @@ from .agent_router import AgentRouter
 from .product_match_agent import ProductMatchAgent
 from .scoring_strategy_agent import ScoringStrategyAgent
 from .material_retriever_agent import MaterialRetrieverAgent
+from .outline_architect_agent import OutlineArchitectAgent
+from .content_writer_agent import ContentWriterAgent
+from .expert_review_agent import ExpertReviewAgent
+from .proposal_crew import ProposalCrew, CrewConfig, CrewPhase, create_proposal_crew
 
 __all__ = [
     'BaseAgent',
@@ -21,5 +25,12 @@ __all__ = [
     'AgentRouter',
     'ProductMatchAgent',
     'ScoringStrategyAgent',
-    'MaterialRetrieverAgent'
+    'MaterialRetrieverAgent',
+    'OutlineArchitectAgent',
+    'ContentWriterAgent',
+    'ExpertReviewAgent',
+    'ProposalCrew',
+    'CrewConfig',
+    'CrewPhase',
+    'create_proposal_crew'
 ]

@@ -193,7 +193,7 @@ function handleBack(): void {
 
 .title-text {
   margin: 0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary, #333);
   line-height: 1.3;

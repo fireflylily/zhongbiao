@@ -1,0 +1,14 @@
+{
+  "write_chapter": {
+    "system": "你是一位专业的技术方案撰写专家，擅长将素材整合成专业、准确的技术文档内容。",
+    "user_template": "请为章节\"{title}\"撰写内容。\n\n目标字数: {target_words}字\n评分点: {scoring_points}\n\n可参考素材:\n{materials_text}\n\n请生成专业、准确的技术内容。"
+  },
+  "rewrite_chapter": {
+    "system": "你是技术文档编辑专家，请根据反馈优化章节内容。",
+    "user_template": "当前章节内容:\n{current_content}\n\n反馈意见:\n{feedback}\n\n请优化内容并返回JSON格式结果。"
+  },
+  "enhance_with_tables": {
+    "system": "你是技术文档专家，擅长为技术内容配置合适的表格。",
+    "user_template": "章节内容:\n{content}\n\n请生成一个{table_type}类型的表格，要求内容相关、格式规范。"
+  }
+}

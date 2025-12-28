@@ -23,6 +23,7 @@ from docx import Document
 from common import get_module_logger, get_config
 from common.database import get_knowledge_base_db
 from modules.tender_processing.structure_parser import DocumentStructureParser, ChapterNode
+from modules.tender_processing.level_analyzer import LevelAnalyzer
 
 # 尝试导入 Azure 解析器
 try:
@@ -252,6 +253,122 @@ class ParserDebugger:
             logger.error(traceback.format_exc())
             raise
 
+    def _run_llm_level_analyzer(self, model_name: str = "yuanjing-deepseek-v3") -> Dict:
+        """
+        方法7: LLM智能层级分析
+
+        使用LLM理解目录语义，智能判断每个目录项的层级
+        """
+        try:
+            # 首先需要获取目录项列表（使用现有的TOC解析）
+            toc_idx = self.parser._find_toc_section(self.doc)
+            if toc_idx is None:
+                return {
+                    'success': False,
+                    'error': '未找到目录节',
+                    'chapters': [],
+                    'method_name': 'LLM智能层级分析'
+                }
+
+            # 解析目录项
+            toc_items, toc_end_idx = self.parser._parse_toc_items(self.doc, toc_idx)
+            if not toc_items:
+                return {
+                    'success': False,
+                    'error': '目录解析失败',
+                    'chapters': [],
+                    'method_name': 'LLM智能层级分析'
+                }
+
+            logger.info(f"LLM层级分析: 解析到 {len(toc_items)} 个目录项")
+
+            # 使用LLM分析层级
+            level_analyzer = LevelAnalyzer()
+            levels = level_analyzer.analyze_toc_hierarchy_with_llm(toc_items, model_name)
+
+            # 将层级结果应用到目录项
+            for i, item in enumerate(toc_items):
+                if i < len(levels):
+                    item['level'] = levels[i]
+                else:
+                    item['level'] = 2  # 默认2级
+
+            # 🔧 使用 _locate_chapters_by_toc 定位章节并计算字数
+            # 这样可以获取每个章节的 word_count
+            # 注意: _locate_chapters_by_toc 内部已经调用了 _build_chapter_tree，返回的就是树形结构
+            chapter_tree = self.parser._locate_chapters_by_toc(self.doc, toc_items, toc_end_idx)
+
+            # 转换为字典格式
+            chapters = [ch.to_dict() for ch in chapter_tree]
+
+            # 🆕 添加章节类型分类
+            classified_chapters, key_sections = self.parser._classify_chapters(chapters)
+
+            # 计算统计信息
+            stats = self.parser._calculate_statistics(chapter_tree)
+
+            return {
+                'success': True,
+                'chapters': classified_chapters,
+                'method_name': 'LLM智能层级分析',
+                'model_used': model_name,
+                'key_sections': key_sections,
+                'statistics': {
+                    'total_items': len(toc_items),
+                    'total_words': stats.get('total_words', self.total_chars),
+                    'level_1_count': sum(1 for l in levels if l == 1),
+                    'level_2_count': sum(1 for l in levels if l == 2),
+                    'level_3_count': sum(1 for l in levels if l == 3),
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"LLM层级分析失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            raise
+
+    def _build_chapter_tree_from_toc(self, toc_items: List[Dict]) -> List[Dict]:
+        """
+        从带层级的目录项列表构建章节树
+
+        Args:
+            toc_items: 带level的目录项列表
+
+        Returns:
+            层级结构的章节列表
+        """
+        if not toc_items:
+            return []
+
+        chapters = []
+        stack = []  # 用于跟踪父节点
+
+        for item in toc_items:
+            chapter = {
+                'title': item.get('title', ''),
+                'level': item.get('level', 1),
+                'page_num': item.get('page_num'),
+                'children': []
+            }
+
+            level = chapter['level']
+
+            # 清空比当前层级高或相等的节点
+            while stack and stack[-1]['level'] >= level:
+                stack.pop()
+
+            if not stack:
+                # 没有父节点，添加到根
+                chapters.append(chapter)
+            else:
+                # 添加到最近的父节点
+                stack[-1]['children'].append(chapter)
+
+            stack.append(chapter)
+
+        return chapters
+
     @staticmethod
     def calculate_accuracy(detected_chapters: List[Dict], ground_truth_chapters: List[Dict]) -> Dict:
         """
@@ -351,6 +468,83 @@ class ParserDebugger:
             'ground_truth_count': len(truth_flat),
             'details': details
         }
+
+
+@api_parser_debug_bp.route('/parse-smart/<document_id>', methods=['POST'])
+def parse_smart(document_id):
+    """
+    智能解析：结构识别 + 类型分类
+
+    流程：
+    1. 检查是否有目录
+       - 有目录 → 精确匹配(toc_exact)
+       - 无目录 → Word大纲识别(docx_native)
+    2. 检查结果是否异常
+       - 正常 → 对章节进行类型分类
+       - 异常 → 回退到LLM层级分析
+
+    请求参数:
+        - classify: 是否进行章节类型分类 (默认true)
+
+    响应:
+        {
+            "success": true,
+            "result": {
+                "chapters": [...],
+                "method_used": "toc_exact",
+                "fallback_from": null,
+                "fallback_reason": null,
+                "key_sections": {...}
+            }
+        }
+    """
+    try:
+        # 获取请求参数
+        data = request.get_json() or {}
+        classify_chapters = data.get('classify', True)
+
+        # 获取文件路径
+        db = get_knowledge_base_db()
+        row = db.execute_query(
+            "SELECT file_path FROM parser_debug_tests WHERE document_id = ?",
+            (document_id,),
+            fetch_one=True
+        )
+
+        if not row:
+            return jsonify({'success': False, 'error': '文档不存在'}), 404
+
+        file_path = row['file_path']
+
+        # 初始化解析器
+        parser = DocumentStructureParser()
+
+        # 调用智能解析方法
+        start_time = time.time()
+        result = parser.parse_smart(file_path, classify_chapters=classify_chapters)
+        elapsed = time.time() - start_time
+
+        # 添加性能信息
+        result['performance'] = {
+            'elapsed': round(elapsed, 3),
+            'elapsed_formatted': f"{elapsed:.3f}s"
+        }
+
+        logger.info(f"智能解析完成: method={result.get('method_used')}, "
+                   f"fallback={result.get('fallback_from')}, "
+                   f"chapters={len(result.get('chapters', []))}, "
+                   f"elapsed={elapsed:.3f}s")
+
+        return jsonify({
+            'success': True,
+            'result': result
+        })
+
+    except Exception as e:
+        logger.error(f"智能解析失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @api_parser_debug_bp.route('/upload', methods=['POST'])
@@ -464,7 +658,8 @@ def parse_single_method(document_id, method):
             'toc_exact': (debugger._run_toc_exact_match, '精确匹配(基于目录)'),
             'docx_native': (debugger._run_docx_native, 'Word大纲级别识别'),
             'azure': (debugger._run_azure_parser, 'Azure Form Recognizer'),
-            'gemini': (lambda: debugger._run_gemini_parser(GeminiParser()) if GEMINI_PARSER_AVAILABLE else None, 'Gemini AI解析器')
+            'gemini': (lambda: debugger._run_gemini_parser(GeminiParser()) if GEMINI_PARSER_AVAILABLE else None, 'Gemini AI解析器'),
+            'llm_level': (debugger._run_llm_level_analyzer, 'LLM智能层级分析')
         }
 
         if method not in method_map:
@@ -594,6 +789,9 @@ def parse_document_stream(document_id):
                 'success': False, 'error': 'Azure未配置', 'chapters': [], 'method_name': 'Azure Form Recognizer', 'performance': {'elapsed': 0}
             }, 'Azure Form Recognizer'))
 
+            # 5. LLM智能层级分析
+            parsers.append(('llm_level', debugger._run_llm_level_analyzer, 'LLM智能层级分析'))
+
             total = len(parsers)
             results_dict = {
                 'semantic': {
@@ -714,6 +912,7 @@ def get_test_result(document_id):
             'azure': json.loads(row['azure_result']) if row.get('azure_result') else None,
             'docx_native': json.loads(row['docx_native_result']) if row.get('docx_native_result') else None,
             'gemini': json.loads(row['gemini_result']) if row.get('gemini_result') else None,
+            'llm_level': json.loads(row['llm_level_result']) if row.get('llm_level_result') else None,
         }
 
         document_info = {
@@ -765,6 +964,11 @@ def get_test_result(document_id):
                     'recall': row.get('gemini_recall'),
                     'f1_score': row.get('gemini_f1')
                 } if row.get('gemini_precision') else None,
+                'llm_level': {
+                    'precision': row.get('llm_level_precision'),
+                    'recall': row.get('llm_level_recall'),
+                    'f1_score': row.get('llm_level_f1')
+                } if row.get('llm_level_precision') else None,
                 'best_method': row['best_method'],
                 'best_f1_score': row['best_f1_score']
             }
@@ -811,7 +1015,7 @@ def save_ground_truth(document_id):
         # 获取现有测试结果
         db = get_knowledge_base_db()
         row = db.execute_query(
-            "SELECT toc_exact_result, semantic_result, style_result, hybrid_result, azure_result, docx_native_result, gemini_result FROM parser_debug_tests WHERE document_id = ?",
+            "SELECT toc_exact_result, semantic_result, style_result, hybrid_result, azure_result, docx_native_result, gemini_result, llm_level_result FROM parser_debug_tests WHERE document_id = ?",
             (document_id,),
             fetch_one=True
         )
@@ -827,6 +1031,7 @@ def save_ground_truth(document_id):
         azure_chapters = json.loads(row['azure_result'])['chapters'] if row.get('azure_result') else []
         docx_native_chapters = json.loads(row['docx_native_result'])['chapters'] if row.get('docx_native_result') else []
         gemini_chapters = json.loads(row['gemini_result'])['chapters'] if row.get('gemini_result') else []
+        llm_level_chapters = json.loads(row['llm_level_result'])['chapters'] if row.get('llm_level_result') else []
 
         # 计算各方法的准确率
         toc_exact_acc = ParserDebugger.calculate_accuracy(toc_exact_chapters, chapters) if toc_exact_chapters else None
@@ -836,6 +1041,7 @@ def save_ground_truth(document_id):
         azure_acc = ParserDebugger.calculate_accuracy(azure_chapters, chapters) if azure_chapters else None
         docx_native_acc = ParserDebugger.calculate_accuracy(docx_native_chapters, chapters) if docx_native_chapters else None
         gemini_acc = ParserDebugger.calculate_accuracy(gemini_chapters, chapters) if gemini_chapters else None
+        llm_level_acc = ParserDebugger.calculate_accuracy(llm_level_chapters, chapters) if llm_level_chapters else None
 
         # 找出最佳方法
         all_f1 = {
@@ -852,6 +1058,8 @@ def save_ground_truth(document_id):
             all_f1['docx_native'] = docx_native_acc['f1_score']
         if gemini_acc:
             all_f1['gemini'] = gemini_acc['f1_score']
+        if llm_level_acc:
+            all_f1['llm_level'] = llm_level_acc['f1_score']
         best_method = max(all_f1, key=all_f1.get)
         best_f1_score = all_f1[best_method]
 
@@ -895,6 +1103,12 @@ def save_ground_truth(document_id):
         else:
             update_params.extend([None, None, None])
 
+        # 如果有 LLM层级分析 结果，添加其准确率
+        if llm_level_acc:
+            update_params.extend([llm_level_acc['precision'], llm_level_acc['recall'], llm_level_acc['f1_score']])
+        else:
+            update_params.extend([None, None, None])
+
         update_params.extend([best_method, best_f1_score, document_id])
 
         db.execute_query("""
@@ -907,6 +1121,7 @@ def save_ground_truth(document_id):
                 azure_precision = ?, azure_recall = ?, azure_f1 = ?,
                 docx_native_precision = ?, docx_native_recall = ?, docx_native_f1 = ?,
                 gemini_precision = ?, gemini_recall = ?, gemini_f1 = ?,
+                llm_level_precision = ?, llm_level_recall = ?, llm_level_f1 = ?,
                 best_method = ?, best_f1_score = ?
             WHERE document_id = ?
         """, tuple(update_params))
@@ -928,6 +1143,8 @@ def save_ground_truth(document_id):
             accuracy_result['docx_native'] = docx_native_acc
         if gemini_acc:
             accuracy_result['gemini'] = gemini_acc
+        if llm_level_acc:
+            accuracy_result['llm_level'] = llm_level_acc
 
         return jsonify({
             'success': True,
@@ -1058,6 +1275,7 @@ def export_comparison_report(document_id):
                 'azure': json.loads(row['azure_result']) if row.get('azure_result') else None,
                 'docx_native': json.loads(row['docx_native_result']) if row.get('docx_native_result') else None,
                 'gemini': json.loads(row['gemini_result']) if row.get('gemini_result') else None,
+                'llm_level': json.loads(row['llm_level_result']) if row.get('llm_level_result') else None,
             },
             'ground_truth': json.loads(row['ground_truth']) if row['ground_truth'] else None,
             'accuracy': None
@@ -1118,6 +1336,14 @@ def export_comparison_report(document_id):
                     'precision': row['gemini_precision'],
                     'recall': row['gemini_recall'],
                     'f1_score': row['gemini_f1']
+                }
+
+            # 添加llm_level结果(如果存在)
+            if row.get('llm_level_precision'):
+                report['accuracy']['llm_level'] = {
+                    'precision': row['llm_level_precision'],
+                    'recall': row['llm_level_recall'],
+                    'f1_score': row['llm_level_f1']
                 }
 
         # 保存为临时JSON文件

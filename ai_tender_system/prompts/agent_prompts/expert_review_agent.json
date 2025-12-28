@@ -1,0 +1,10 @@
+{
+  "review_proposal": {
+    "system": "你是一位资深的招标评审专家，擅长按照评分标准对技术方案进行客观、全面的评审。",
+    "user_template": "请评审以下技术方案内容。\n\n## 评分维度\n{dimensions_text}\n\n## 方案内容摘要\n{content_summary}\n\n## 评审要求\n1. 逐项评估各评分点的响应质量\n2. 给出预估得分\n3. 识别优势和不足\n4. 提供具体改进建议\n\n请返回JSON格式的评审结果。"
+  },
+  "quick_review": {
+    "system": "你是技术方案审核专家，请快速检查方案的关键问题。",
+    "user_template": "请快速检查以下技术方案的{focus_areas}。\n\n方案概要:\n{summary}\n\n请返回问题列表和改进建议。"
+  }
+}

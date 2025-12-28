@@ -193,21 +193,22 @@ class DocumentStructureParser:
                     "method": "none"
                 }
 
-            # 场景2: 默认智能策略（优化版：精确识别 → 大纲识别）
-            self.logger.info("使用优化策略：精确识别 → 大纲识别")
+            # 场景2: 默认智能策略（使用 parse_smart 智能识别 + 章节分类）
+            self.logger.info("使用智能策略：parse_smart（精确/大纲 → 异常检测 → LLM回退 → 章节分类）")
 
-            # 1️⃣ 首先尝试精确识别（基于目录）
-            result = self.parse_by_toc_exact(doc_path)
+            # 调用智能解析方法
+            result = self.parse_smart(doc_path, classify_chapters=True)
 
-            if result['success'] and len(result.get('chapters', [])) >= 1:
-                # 精确识别成功
-                self.logger.info("✅ 精确识别成功")
-                return result
-            else:
-                # 2️⃣ 精确识别失败（无目录或解析失败），回退到大纲识别
-                self.logger.info("⚠️ 精确识别失败，回退到大纲识别")
-                result = self.parse_by_outline_level(doc_path)
-                return result
+            # parse_smart 返回的结果需要转换为 parse_document_structure 的标准格式
+            return {
+                "success": result.get('success', False),
+                "chapters": result.get('chapters', []),
+                "statistics": result.get('statistics', {}),
+                "method": result.get('method_used', 'smart'),
+                "fallback_from": result.get('fallback_from'),
+                "fallback_reason": result.get('fallback_reason'),
+                "key_sections": result.get('key_sections', {})
+            }
 
         except Exception as e:
             self.logger.error(f"文档结构解析失败: {e}")
@@ -489,6 +490,408 @@ class DocumentStructureParser:
                 "statistics": {},
                 "method": "gemini"
             }
+
+    def parse_smart(self, doc_path: str, classify_chapters: bool = True) -> Dict:
+        """
+        智能解析：结构识别 + 类型分类
+
+        流程：
+        1. 检查文档是否有目录
+           - 有目录 → 精确匹配(toc_exact)
+           - 无目录 → Word大纲识别(docx_native)
+        2. 检查结果是否异常（章节太少、编号跳跃等）
+           - 正常 → 进行章节分类
+           - 异常 → 回退到LLM层级分析
+        3. 对章节进行类型分类（可选）
+
+        Args:
+            doc_path: Word文档路径
+            classify_chapters: 是否对章节进行类型分类
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],
+                "statistics": {...},
+                "method": "smart",
+                "primary_method": "toc_exact|docx_native|llm_level",
+                "fallback_from": None|"toc_exact"|"docx_native",
+                "fallback_reason": None|str,
+                "key_sections": {
+                    "business_response": [...],
+                    "technical_spec": [...],
+                    "contract_content": [...]
+                }
+            }
+        """
+        import time
+        start_time = time.time()
+
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+            doc_paragraph_count = len(doc.paragraphs)
+
+            # ========================================
+            # 阶段1: 章节结构识别（智能回退）
+            # ========================================
+            fallback_from = None
+            fallback_reason = None
+            primary_method = None
+
+            # 检测是否有目录
+            toc_idx = self._find_toc_section(doc)
+            has_toc = toc_idx is not None
+
+            if has_toc:
+                # 有目录：使用精确匹配
+                self.logger.info("📌 智能解析: 检测到目录，使用精确匹配")
+                result = self.parse_by_toc_exact(doc_path)
+                primary_method = "toc_exact"
+            else:
+                # 无目录：使用大纲识别
+                self.logger.info("📌 智能解析: 未检测到目录，使用大纲识别")
+                result = self.parse_by_outline_level(doc_path)
+                primary_method = "docx_native"
+
+            # 检查结果是否异常
+            if result.get('success') and result.get('chapters'):
+                chapters = result['chapters']
+                is_suspicious, reason = self._is_result_suspicious(chapters, doc_paragraph_count)
+
+                if is_suspicious:
+                    self.logger.warning(f"⚠️ {primary_method} 结果异常: {reason}，回退到LLM层级分析")
+                    fallback_from = primary_method
+                    fallback_reason = reason
+
+                    # 回退到LLM层级分析
+                    llm_result = self._parse_by_llm_level(doc_path)
+                    if llm_result.get('success') and llm_result.get('chapters'):
+                        result = llm_result
+                        primary_method = "llm_level"
+                    else:
+                        self.logger.warning("LLM层级分析也失败，保留原结果")
+            elif not result.get('success'):
+                # 主方法失败，尝试备选方法
+                self.logger.warning(f"⚠️ {primary_method} 失败，尝试备选方法")
+                fallback_from = primary_method
+
+                if has_toc:
+                    # 精确匹配失败，尝试大纲识别
+                    result = self.parse_by_outline_level(doc_path)
+                    primary_method = "docx_native"
+                else:
+                    # 大纲识别失败，尝试LLM
+                    result = self._parse_by_llm_level(doc_path)
+                    primary_method = "llm_level"
+
+                if not result.get('success'):
+                    fallback_reason = "所有方法都失败"
+
+            # ========================================
+            # 阶段2: 章节类型分类
+            # ========================================
+            key_sections = {}
+            if classify_chapters and result.get('success') and result.get('chapters'):
+                try:
+                    classified_chapters, key_sections = self._classify_chapters(result['chapters'])
+                    result['chapters'] = classified_chapters
+                except Exception as e:
+                    self.logger.warning(f"章节分类失败: {e}")
+
+            # 构建返回结果
+            elapsed = time.time() - start_time
+            return {
+                "success": result.get('success', False),
+                "chapters": result.get('chapters', []),
+                "statistics": result.get('statistics', {}),
+                "method": "smart",
+                "primary_method": primary_method,
+                "fallback_from": fallback_from,
+                "fallback_reason": fallback_reason,
+                "key_sections": key_sections,
+                "performance": {
+                    "elapsed": elapsed,
+                    "elapsed_formatted": f"{elapsed:.2f}s"
+                }
+            }
+
+        except Exception as e:
+            self.logger.error(f"智能解析失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "statistics": {},
+                "method": "smart"
+            }
+
+    def _is_result_suspicious(self, chapters: List[Dict], doc_paragraph_count: int = 0) -> Tuple[bool, Optional[str]]:
+        """
+        检查识别结果是否异常
+
+        Args:
+            chapters: 章节列表
+            doc_paragraph_count: 文档段落总数
+
+        Returns:
+            (是否异常, 异常原因)
+        """
+        # 扁平化章节列表（包括子章节）
+        def flatten(chs):
+            result = []
+            for ch in chs:
+                result.append(ch)
+                if ch.get('children'):
+                    result.extend(flatten(ch['children']))
+            return result
+
+        all_chapters = flatten(chapters) if chapters else []
+        level1_chapters = [c for c in all_chapters if c.get('level') == 1]
+        level1_count = len(level1_chapters)
+
+        # 规则1: 一级章节太少（招标文件通常有5-10个一级章节）
+        if level1_count < 3:
+            return True, f"一级章节太少（仅{level1_count}个）"
+
+        # 规则2: 章节编号有跳跃（如只有第一章和第五章）
+        has_gap, gap_info = self._has_chapter_number_gap(level1_chapters)
+        if has_gap:
+            return True, f"章节编号有跳跃: {gap_info}"
+
+        # 规则3: 文档很长但章节很少（每章平均超过100个段落不太合理）
+        if doc_paragraph_count > 0 and level1_count > 0:
+            avg_paras = doc_paragraph_count / level1_count
+            if avg_paras > 150:
+                return True, f"每章平均段落数过多（{avg_paras:.0f}段/章）"
+
+        return False, None
+
+    def _has_chapter_number_gap(self, level1_chapters: List[Dict]) -> Tuple[bool, Optional[str]]:
+        """
+        检查章节编号是否有跳跃
+
+        Args:
+            level1_chapters: 一级章节列表
+
+        Returns:
+            (是否有跳跃, 跳跃信息)
+        """
+        # 中文数字转换
+        chinese_nums = {
+            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+            '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15
+        }
+
+        def chinese_to_number(s):
+            if s.isdigit():
+                return int(s)
+            return chinese_nums.get(s, None)
+
+        # 提取章节编号
+        numbers = []
+        for ch in level1_chapters:
+            title = ch.get('title', '')
+            # 匹配 "第一章"、"第1章"、"第一部分" 等格式
+            match = re.search(r'第([一二三四五六七八九十\d]+)[章部分篇]', title)
+            if match:
+                num = chinese_to_number(match.group(1))
+                if num:
+                    numbers.append(num)
+
+        # 检查连续性
+        if len(numbers) >= 2:
+            numbers.sort()
+            for i in range(1, len(numbers)):
+                if numbers[i] - numbers[i-1] > 1:
+                    return True, f"第{numbers[i-1]}→第{numbers[i]}"
+
+        return False, None
+
+    def _parse_by_llm_level(self, doc_path: str) -> Dict:
+        """
+        使用LLM层级分析解析文档结构
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            解析结果字典
+        """
+        try:
+            from modules.tender_processing.level_analyzer import LevelAnalyzer
+
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+            analyzer = LevelAnalyzer()
+
+            # 提取所有可能的章节标题
+            potential_titles = []
+            for i, para in enumerate(doc.paragraphs):
+                text = para.text.strip()
+                if not text or len(text) > 100:
+                    continue
+
+                # 检测是否有编号模式
+                pattern_info = analyzer.extract_numbering_pattern(text)
+                if pattern_info.get('type') != 'none':
+                    potential_titles.append({
+                        'index': i,
+                        'title': text,
+                        'pattern': pattern_info
+                    })
+
+            if not potential_titles:
+                return {
+                    "success": False,
+                    "error": "未检测到章节标题",
+                    "chapters": [],
+                    "method": "llm_level"
+                }
+
+            # 使用LLM分析层级
+            toc_items = [{'title': t['title'], 'index': t['index']} for t in potential_titles]
+            analyzed = analyzer.analyze_toc_hierarchy(toc_items)
+
+            # 构建章节节点
+            chapters = []
+            for item in analyzed:
+                chapter = ChapterNode(
+                    id=f"ch_{item.get('index', len(chapters))}",
+                    level=item.get('level', 1),
+                    title=item.get('title', ''),
+                    para_start_idx=item.get('index', 0),
+                    para_end_idx=item.get('index', 0),
+                    word_count=0,
+                    preview_text=""
+                )
+                chapters.append(chapter)
+
+            # 构建树形结构
+            chapter_tree = self._build_chapter_tree(chapters)
+
+            return {
+                "success": True,
+                "chapters": [ch.to_dict() for ch in chapter_tree],
+                "statistics": self._calculate_statistics(chapter_tree),
+                "method": "llm_level"
+            }
+
+        except Exception as e:
+            self.logger.error(f"LLM层级分析失败: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "method": "llm_level"
+            }
+
+    def _classify_chapters(self, chapters: List[Dict]) -> Tuple[List[Dict], Dict]:
+        """
+        对章节进行类型分类
+
+        章节类型：
+        - invitation: 投标邀请书
+        - bidder_notice: 投标人须知
+        - evaluation: 评标办法/评分标准
+        - contract_terms: 合同条款
+        - contract_content: 合同正文（实际需填写的合同）
+        - business_response: 商务应答模板
+        - technical_spec: 技术规范书/技术需求
+        - appendix: 附件/附录
+        - other: 其他
+
+        Args:
+            chapters: 章节列表
+
+        Returns:
+            (带类型标注的章节列表, 重点区域汇总)
+        """
+        # 分类规则（基于关键词匹配）
+        classification_rules = {
+            'invitation': [
+                r'投标邀请', r'招标公告', r'邀请书', r'询价公告', r'比选公告'
+            ],
+            'bidder_notice': [
+                r'投标人须知', r'应答人须知', r'供应商须知', r'磋商须知', r'响应人须知'
+            ],
+            'evaluation': [
+                r'评标办法', r'评分标准', r'评审办法', r'评审标准', r'评分细则', r'评标标准'
+            ],
+            'contract_terms': [
+                r'合同条款', r'合同条件', r'协议条款', r'合同格式'
+            ],
+            'contract_content': [
+                r'服务合同', r'采购合同', r'合同正文', r'合同书', r'合同范本',
+                r'货物供应合同', r'技术服务合同', r'框架合同'
+            ],
+            'business_response': [
+                r'投标文件格式', r'响应文件格式', r'商务部分', r'资格证明', r'报价要求',
+                r'投标函', r'法定代表人', r'授权委托书', r'投标保证金',
+                r'业绩证明', r'财务报表', r'资质证明'
+            ],
+            'technical_spec': [
+                r'技术规范', r'技术要求', r'技术需求', r'服务要求', r'功能需求', r'技术参数',
+                r'技术方案', r'服务规范', r'技术服务', r'技术（服务）',
+                r'需求说明', r'产品规格'
+            ],
+            'appendix': [
+                r'^附件', r'^附录', r'^附表', r'^附图'
+            ]
+        }
+
+        def classify_single(title: str) -> str:
+            """对单个标题进行分类"""
+            title_clean = title.strip()
+            for category, patterns in classification_rules.items():
+                for pattern in patterns:
+                    if re.search(pattern, title_clean, re.IGNORECASE):
+                        return category
+            return 'other'
+
+        def classify_recursive(chs: List[Dict]) -> List[Dict]:
+            """递归分类章节及其子章节"""
+            result = []
+            for ch in chs:
+                ch_copy = ch.copy()
+                ch_copy['chapter_type'] = classify_single(ch.get('title', ''))
+
+                if ch.get('children'):
+                    ch_copy['children'] = classify_recursive(ch['children'])
+
+                result.append(ch_copy)
+            return result
+
+        # 执行分类
+        classified = classify_recursive(chapters)
+
+        # 汇总重点区域
+        key_sections = {
+            'business_response': [],
+            'technical_spec': [],
+            'contract_content': []
+        }
+
+        def collect_key_sections(chs: List[Dict]):
+            for ch in chs:
+                ch_type = ch.get('chapter_type')
+                if ch_type in key_sections:
+                    key_sections[ch_type].append(ch.get('title', ''))
+                if ch.get('children'):
+                    collect_key_sections(ch['children'])
+
+        collect_key_sections(classified)
+
+        return classified, key_sections
 
     def _is_title_page_content(self, para_idx: int, para_text: str, total_paras: int) -> bool:
         """
@@ -1465,7 +1868,9 @@ class DocumentStructureParser:
 
         # 常规方法：从python-docx的paragraphs中解析
         # 🔧 扩展范围从100到150，以覆盖更长的目录（如包含100+个目录项的招标文件）
-        for i in range(toc_start_idx + 1, min(toc_start_idx + 150, len(doc.paragraphs))):
+        # 🆕 从 toc_start_idx 开始（而不是 +1），因为 toc_start_idx 可能本身就是第一个目录项
+        #    如果 toc_start_idx 段落只包含"目录"标题，会被后续逻辑跳过
+        for i in range(toc_start_idx, min(toc_start_idx + 150, len(doc.paragraphs))):
             para = doc.paragraphs[i]
             text = para.text.strip()
 
@@ -1487,6 +1892,11 @@ class DocumentStructureParser:
             # 使用非贪婪匹配，确保页码前的空格被正确识别
             if not match:
                 match = re.match(r'^(第[一二三四五六七八九十百千\d]+[章部分节篇].+?)\s+(\d+)$', text)
+
+            # 🆕 格式5: "标题文本 - 页码 -" (带短横线的页码格式)
+            # 某些招标文件使用此格式，如 "第一章	投标邀请书	- 3 -"
+            if not match:
+                match = re.match(r'^(.+?)\s*-\s*(\d+)\s*-\s*$', text)
 
             if match:
                 title = match.group(1).strip()
@@ -1534,6 +1944,13 @@ class DocumentStructureParser:
                     re.match(r'^第[一二三四五六七八九十\d]+部分', text) or
                     text in ['竞争性磋商公告', '招标公告', '采购公告', '谈判公告', '询价公告']
                 )
+
+                # 🆕 排除 Heading 样式的段落 - Heading 样式说明这是正文标题，不是目录项
+                # 目录项通常使用 TOC 样式或普通样式，不会使用 Heading 样式
+                is_heading_style = para.style and para.style.name.startswith('Heading')
+                if is_heading_style and is_chapter_pattern:
+                    self.logger.info(f"检测到Heading样式的章节标题 '{text}'，判定为正文开始，目录解析结束")
+                    break
 
                 # 如果满足条件，作为无页码目录项
                 if (has_indent or is_chapter_pattern) and len(text) < 50 and not text.startswith('项目'):
@@ -1745,13 +2162,22 @@ class DocumentStructureParser:
                 if list_range:
                     start, end, titles = list_range
 
-                    # 🔑 关键：对于"第X章"、"第X部分"这种明确的一级章节标题，即使在列表中也不应跳过
-                    # 因为这是文档的主要结构划分，不是元数据
+                    # 🔑 关键：对于"第X章"、"第X部分"这种明确的一级章节标题
+                    # 只有当它具有 Heading 样式时才认为是真正的章节标题
+                    # 否则可能只是文档中的一个章节列表/索引区域
                     is_primary_chapter = re.match(r'^第[一二三四五六七八九十百千\d]+[章部分]', para_text.strip())
+                    is_heading_style = para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower())
 
-                    if is_primary_chapter:
-                        self.logger.info(f"  ✓ 找到一级章节标题（不跳过元数据列表）: 段落 {i}: '{para_text}'")
+                    if is_primary_chapter and is_heading_style:
+                        self.logger.info(f"  ✓ 找到一级章节标题（Heading样式，不跳过）: 段落 {i}: '{para_text}'")
                         return i
+
+                    # 如果是"第X章"但不是Heading样式，很可能是文档中的章节列表区域
+                    if is_primary_chapter and not is_heading_style:
+                        self.logger.info(f"  ⏭️  跳过段落 {i}（第X章格式但非Heading样式，可能是章节列表）: '{para_text}'")
+                        # 记录跳过区域
+                        skipped_ranges.append((start, end))
+                        continue
 
                     self.logger.info(
                         f"  ⚠️  检测到'文件构成说明'列表 (段落{start}-{end}，"
@@ -1775,11 +2201,15 @@ class DocumentStructureParser:
                     is_heading = para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower())
                     # 或者文本很短（≤20字，更可能是标题而不是正文）
                     is_short = len(para_text) <= 20
+                    # 🆕 检查标题是否在段落开头位置（章节标题应该在开头，不是中间）
+                    title_at_start = clean_para.startswith(clean_title)
 
-                    if not (is_heading or is_short):
-                        # 既不是Heading样式，文本也不短 → 可能是正文中提到标题 → 跳过
-                        self.logger.debug(f"  ⏭️  跳过段落 {i}（包含匹配但不是Heading且文本过长）: '{para_text[:60]}'")
-                        continue
+                    if not is_heading:
+                        # 非 Heading 样式时，需要满足：短文本 或 标题在开头
+                        if not (is_short or title_at_start):
+                            # 标题在段落中间 → 可能是正文中提到标题 → 跳过
+                            self.logger.debug(f"  ⏭️  跳过段落 {i}（包含匹配但标题不在开头且非短文本）: '{para_text[:60]}'")
+                            continue
 
                 self.logger.info(f"  ✓ 找到匹配 (Level 1-完全): 段落 {i}: '{para_text}'")
                 return i
@@ -1793,10 +2223,15 @@ class DocumentStructureParser:
                 if level2_contain_match and not level2_exact_match:
                     is_heading = para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower())
                     is_short = len(para_text) <= 20
+                    # 🆕 检查标题是否在段落开头位置（章节标题应该在开头，不是中间）
+                    title_at_start = aggressive_para.startswith(aggressive_title)
 
-                    if not (is_heading or is_short):
-                        self.logger.debug(f"  ⏭️  跳过段落 {i}（包含匹配但不是Heading且文本过长）: '{para_text[:60]}'")
-                        continue
+                    if not is_heading:
+                        # 非 Heading 样式时，需要满足：短文本 或 标题在开头
+                        if not (is_short or title_at_start):
+                            # 标题在段落中间 → 可能是正文中提到标题 → 跳过
+                            self.logger.debug(f"  ⏭️  跳过段落 {i}（包含匹配但标题不在开头且非短文本）: '{para_text[:60]}'")
+                            continue
 
                 self.logger.info(f"  ✓ 找到匹配 (Level 2-规范化): 段落 {i}: '{para_text}'")
                 return i

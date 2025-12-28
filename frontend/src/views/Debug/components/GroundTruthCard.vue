@@ -43,6 +43,7 @@
             <el-option v-if="availableResults?.docx_native?.success" label="Word大纲级别识别" value="docx_native" />
             <el-option v-if="availableResults?.toc_exact?.success" label="精确匹配(基于目录)" value="toc_exact" />
             <el-option v-if="availableResults?.azure?.success" label="Azure Form Recognizer" value="azure" />
+            <el-option v-if="availableResults?.llm_level?.success" label="LLM智能层级分析" value="llm_level" />
             <el-option label="手动创建" value="manual" />
           </el-select>
         </div>

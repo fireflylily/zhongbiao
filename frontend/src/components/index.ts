@@ -28,6 +28,9 @@ import StatsCard from './business/StatsCard.vue'
 import HitlFileAlert from './business/HitlFileAlert.vue'
 import HistoryFilesPanel from './business/HistoryFilesPanel.vue'
 
+// Crew 智能体组件
+import CrewProgressTracker from './crew/CrewProgressTracker.vue'
+
 // 全局组件
 import FeedbackButton from './FeedbackButton.vue'
 
@@ -52,6 +55,8 @@ export {
   StatsCard,
   HitlFileAlert,
   HistoryFilesPanel,
+  // Crew 智能体组件
+  CrewProgressTracker,
   // 全局组件
   FeedbackButton
 }
@@ -83,6 +88,8 @@ export default {
   StatsCard,
   HitlFileAlert,
   HistoryFilesPanel,
+  // Crew 智能体组件
+  CrewProgressTracker,
   // 全局组件
   FeedbackButton
 }

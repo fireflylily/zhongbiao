@@ -94,8 +94,12 @@
           <div class="row-item">
             <label class="row-label">生成模式</label>
             <el-radio-group v-model="config.generationMode" class="row-radio-group">
+              <el-radio value="Quality-First">
+                Quality-First模式
+                <el-tag type="success" size="small" style="margin-left: 4px">推荐</el-tag>
+              </el-radio>
               <el-radio value="按评分点写">按评分点写</el-radio>
-              <el-radio value="按招标书目录写">按招标书目录写（推荐）</el-radio>
+              <el-radio value="按招标书目录写">按招标书目录写</el-radio>
               <el-radio value="编写专项章节">使用固定模板</el-radio>
             </el-radio-group>
           </div>
@@ -109,6 +113,64 @@
             </el-select>
           </div>
           <div v-else class="row-item"></div>
+        </div>
+
+        <!-- Quality-First 模式配置（仅当选择 Quality-First 时显示） -->
+        <div v-if="config.generationMode === 'Quality-First'" class="quality-first-config">
+          <div class="config-header">
+            <el-icon><Setting /></el-icon>
+            <span>Quality-First 高级配置</span>
+            <el-tooltip content="8个智能体协作生成高质量技术方案：评分点提取 → 产品匹配 → 策略规划 → 素材检索 → 大纲生成 → 内容撰写 → 专家评审 → 迭代优化" placement="top">
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </div>
+
+          <div class="panel-row project-row">
+            <!-- 流程控制 -->
+            <div class="row-item">
+              <label class="row-label">流程控制</label>
+              <el-checkbox-group v-model="crewConfig.enabledPhases" class="row-checkbox-group">
+                <el-checkbox label="product_matching">产品匹配</el-checkbox>
+                <el-checkbox label="material_retrieval">素材检索</el-checkbox>
+                <el-checkbox label="expert_review">专家评审</el-checkbox>
+              </el-checkbox-group>
+            </div>
+          </div>
+
+          <div class="panel-row project-row">
+            <!-- 质量目标 -->
+            <div class="row-item slider-row">
+              <label class="row-label">质量目标</label>
+              <div class="slider-wrapper">
+                <el-slider
+                  v-model="crewConfig.minReviewScore"
+                  :min="60"
+                  :max="100"
+                  :step="5"
+                  :marks="{ 60: '60分', 70: '70分', 80: '80分', 90: '90分', 100: '100分' }"
+                  show-input
+                  :show-input-controls="false"
+                />
+              </div>
+              <span class="page-hint" style="color: var(--el-color-success); background: var(--el-color-success-light-9);">评审目标分数</span>
+            </div>
+          </div>
+
+          <div class="panel-row project-row">
+            <!-- 最大迭代次数 -->
+            <div class="row-item">
+              <label class="row-label">迭代优化</label>
+              <el-input-number
+                v-model="crewConfig.maxIterations"
+                :min="0"
+                :max="5"
+                :step="1"
+                controls-position="right"
+              />
+              <span class="page-hint">0表示不迭代，最多5轮</span>
+            </div>
+            <div class="row-item"></div>
+          </div>
         </div>
 
         <!-- 第三行：页数控制 -->
@@ -199,6 +261,20 @@
           />
         </div>
       </template>
+
+      <!-- Quality-First 模式进度追踪 -->
+      <CrewProgressTracker
+        v-if="config.generationMode === 'Quality-First'"
+        :current-phase="crewResults.currentPhase"
+        :phase-progress="crewResults.phaseProgress"
+        :scoring-points="crewResults.scoringPoints"
+        :product-match="crewResults.productMatch"
+        :scoring-strategy="crewResults.scoringStrategy"
+        :materials="crewResults.materials"
+        :review-result="crewResults.reviewResult"
+        :show-details="true"
+        class="crew-tracker"
+      />
 
       <SSEStreamViewer
         :content="streamContent"
@@ -535,7 +611,8 @@ import {
   Promotion,
   Folder,
   Document,
-  QuestionFilled
+  QuestionFilled,
+  Setting
 } from '@element-plus/icons-vue'
 import {
   DocumentUploader,
@@ -544,7 +621,8 @@ import {
   StatsCard,
   HitlFileAlert,
   HistoryFilesPanel,
-  RichTextEditor
+  RichTextEditor,
+  CrewProgressTracker
 } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import {
@@ -669,7 +747,7 @@ const form = ref({
 const config = ref({
   outputPrefix: '技术方案',
   aiModel: 'shihuang-gpt4o-mini',
-  generationMode: '按招标书目录写' as '按评分点写' | '按招标书目录写' | '编写专项章节',  // 智能体生成模式
+  generationMode: 'Quality-First' as 'Quality-First' | '按评分点写' | '按招标书目录写' | '编写专项章节',  // 智能体生成模式
   templateName: '政府采购标准' as string,  // 模板名称
   pageCount: 200,  // 目标页数
   contentStyle: {  // 内容风格
@@ -678,6 +756,24 @@ const config = ref({
     images: '少量'
   },
   additionalOutputs: ['includeAnalysis', 'includeMapping', 'includeSummary'] as string[]
+})
+
+// Quality-First 模式配置
+const crewConfig = ref({
+  enabledPhases: ['product_matching', 'material_retrieval', 'expert_review'] as string[],
+  minReviewScore: 85,
+  maxIterations: 2
+})
+
+// Quality-First 模式结果
+const crewResults = ref({
+  scoringPoints: null as any,
+  productMatch: null as any,
+  scoringStrategy: null as any,
+  materials: null as any,
+  reviewResult: null as any,
+  currentPhase: '' as string,
+  phaseProgress: {} as Record<string, any>
 })
 
 // 生成状态
@@ -891,11 +987,35 @@ const generateProposal = async () => {
 
 // SSE流式处理（支持实时内容推送）
 const generateWithSSE = async (formData: FormData) => {
-  // 根据是否使用智能体选择API端点
-  const useAgentAPI = !!config.value.generationMode
-  const apiEndpoint = useAgentAPI
-    ? '/api/agent/generate'  // 智能体API
-    : '/api/generate-proposal-stream-v2'  // 传统API（向后兼容）
+  // 根据生成模式选择API端点
+  let apiEndpoint: string
+  if (config.value.generationMode === 'Quality-First') {
+    apiEndpoint = '/api/agent/generate-crew'  // Quality-First 模式（8智能体协作）
+
+    // 添加 crew 配置参数
+    formData.append('crew_config', JSON.stringify({
+      skip_product_matching: !crewConfig.value.enabledPhases.includes('product_matching'),
+      skip_material_retrieval: !crewConfig.value.enabledPhases.includes('material_retrieval'),
+      enable_expert_review: crewConfig.value.enabledPhases.includes('expert_review'),
+      min_review_score: crewConfig.value.minReviewScore,
+      max_iterations: crewConfig.value.maxIterations
+    }))
+
+    // 重置 crew 结果
+    crewResults.value = {
+      scoringPoints: null,
+      productMatch: null,
+      scoringStrategy: null,
+      materials: null,
+      reviewResult: null,
+      currentPhase: '',
+      phaseProgress: {}
+    }
+  } else if (config.value.generationMode) {
+    apiEndpoint = '/api/agent/generate'  // 其他智能体模式
+  } else {
+    apiEndpoint = '/api/generate-proposal-stream-v2'  // 传统API（向后兼容）
+  }
 
   const response = await fetch(apiEndpoint, {
     method: 'POST',
@@ -958,6 +1078,100 @@ const generateWithSSE = async (formData: FormData) => {
           // 处理大纲生成完成
           if (data.stage === 'outline_completed' && data.outline_data) {
             outlineData.value = data.outline_data
+          }
+
+          // ========================================
+          // Quality-First 模式阶段事件处理
+          // ========================================
+          if (config.value.generationMode === 'Quality-First') {
+            // 更新当前阶段
+            if (data.phase) {
+              crewResults.value.currentPhase = data.phase
+              crewResults.value.phaseProgress[data.phase] = {
+                status: data.status,
+                message: data.message,
+                result: data.result
+              }
+            }
+
+            // 评分点提取完成
+            if (data.phase === 'scoring_extraction' && data.status === 'complete') {
+              crewResults.value.scoringPoints = data.result
+              streamContent.value += `✅ 评分点提取完成: ${data.result?.count || 0}个评分维度\n`
+            }
+
+            // 产品匹配完成
+            if (data.phase === 'product_matching' && data.status === 'complete') {
+              crewResults.value.productMatch = data.result
+              const coverage = data.result?.coverage_rate || 0
+              streamContent.value += `✅ 产品能力匹配完成: 覆盖率 ${(coverage * 100).toFixed(1)}%\n`
+            }
+
+            // 策略规划完成
+            if (data.phase === 'strategy_planning' && data.status === 'complete') {
+              crewResults.value.scoringStrategy = data.result
+              streamContent.value += `✅ 评分策略制定完成: 预估得分 ${data.result?.estimated_score || 0}\n`
+            }
+
+            // 素材检索完成
+            if (data.phase === 'material_retrieval' && data.status === 'complete') {
+              crewResults.value.materials = data.result
+              streamContent.value += `✅ 素材检索完成: ${data.result?.package_count || 0}个素材包\n`
+            }
+
+            // 大纲生成完成
+            if (data.phase === 'outline_generation' && data.status === 'complete') {
+              // 更新大纲数据
+              if (data.result?.outline) {
+                outlineData.value = {
+                  chapters: data.result.outline,
+                  total_chapters: data.result.chapter_count,
+                  total_words: data.result.total_words
+                }
+              }
+              streamContent.value += `✅ 大纲生成完成: ${data.result?.chapter_count || 0}章\n`
+            }
+
+            // 内容撰写进度
+            if (data.phase === 'content_writing') {
+              if (data.event === 'chapter_progress') {
+                currentChapterNumber = data.chapter_index?.toString() || ''
+                streamContent.value += `📝 正在撰写: ${data.chapter_title}\n`
+                if (!showEditor.value) {
+                  showEditor.value = true
+                }
+              } else if (data.event === 'chapter_complete' && data.chapter) {
+                // 接收完成的章节内容
+                const chapterNum = data.chapter?.chapter_number || currentChapterNumber
+                if (chapterNum) {
+                  chapterContents[chapterNum] = data.chapter?.content || ''
+                  updateEditorContent(chapterContents)
+                }
+                streamContent.value += `✓ ${data.chapter?.title || '章节'} 撰写完成\n`
+              }
+            }
+
+            // 专家评审完成
+            if (data.phase === 'expert_review' && data.status === 'complete') {
+              crewResults.value.reviewResult = data.result
+              const score = data.result?.overall_score || 0
+              const passed = data.result?.pass_recommendation ? '✅通过' : '⚠️需改进'
+              streamContent.value += `✅ 专家评审完成: ${score}分 ${passed}\n`
+            }
+
+            // 迭代优化
+            if (data.phase === 'iteration') {
+              if (data.status === 'running') {
+                streamContent.value += `🔄 第${data.iteration}轮优化中... (当前${data.current_score}分 → 目标${data.target_score}分)\n`
+              } else if (data.status === 'complete') {
+                streamContent.value += `✅ 第${data.iteration}轮优化完成: ${data.result?.new_score || 0}分\n`
+              }
+            }
+
+            // 跳过的阶段
+            if (data.status === 'skipped') {
+              streamContent.value += `⏭️ 跳过: ${data.message}\n`
+            }
           }
 
           // 【新增】处理流式内容生成事件
@@ -1023,8 +1237,13 @@ const generateWithSSE = async (formData: FormData) => {
           // 处理错误
           if (data.stage === 'error') {
             // 显示详细错误信息
-            streamContent.value += `\n❌ 错误: ${data.error || data.message}\n`
-            throw new Error(data.error || data.message || '生成失败')
+            const errorMsg = data.error || data.message || '未知错误'
+            streamContent.value += `\n❌ 错误: ${errorMsg}\n`
+            if (data.traceback) {
+              console.error('[Quality-First] 后端错误堆栈:', data.traceback)
+              streamContent.value += `\n📋 详细信息:\n${data.traceback}\n`
+            }
+            throw new Error(errorMsg)
           }
         } catch (e: any) {
           // 如果是JSON解析错误，可能是正常的非data行，忽略
@@ -1618,6 +1837,39 @@ onMounted(async () => {
     }
   }
 
+  // Quality-First 配置面板样式（复用 Element Plus 变量）
+  .quality-first-config {
+    margin: 16px 0 24px;
+    padding: 20px;
+    background: var(--el-color-success-light-9);
+    border: 1px solid var(--el-color-success-light-5);
+    border-radius: 8px;
+
+    .config-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--el-color-success);
+
+      .help-icon {
+        margin-left: auto;
+        color: var(--el-text-color-secondary);
+        cursor: help;
+      }
+    }
+
+    .panel-row.project-row {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
   // 操作按钮区域
   .panel-actions {
     display: flex;
@@ -1638,6 +1890,12 @@ onMounted(async () => {
     :deep(.el-card__header) {
       padding: 16px 20px;
       background: var(--el-fill-color-light);
+    }
+  }
+
+  .generation-output {
+    .crew-tracker {
+      margin-bottom: 20px;
     }
   }
 

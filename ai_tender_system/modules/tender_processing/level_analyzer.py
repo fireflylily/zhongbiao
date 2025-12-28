@@ -7,16 +7,20 @@
 1. 整体分析目录编号格式，建立层级映射
 2. 检测单个标题的层级
 3. 校验Word大纲级别的准确性
+4. 使用LLM智能分析目录层级结构
 
 核心算法：
 - 基于编号格式的点号计数（1.=1级，1.1=2级，1.1.1=3级）
 - 识别中文章节格式（第X章=1级，第X节=2级）
 - 作为辅助的缩进距离判断
+- LLM智能分析：理解文档语义，准确判断层级关系
 """
 
 import re
+import json
 from typing import List, Dict, Optional
 from common import get_module_logger
+from common.llm_client import create_llm_client
 
 logger = get_module_logger("level_analyzer")
 
@@ -43,6 +47,10 @@ class LevelAnalyzer:
             }
         """
         title = title.strip()
+
+        # 移除可能的特殊前缀符号（如 ※、★、◆ 等）
+        # 这些符号在某些招标文件中用于标注重要章节，但不影响层级判断
+        title = re.sub(r'^[※★◆●○◇□■▲△▼▽→←↑↓✓✗☆★♦♣♠♥]+\s*', '', title)
 
         # 模式1: 数字点号格式 (1., 1.1, 1.1.1)
         match = re.match(r'^(\d+(?:\.\d+)*)', title)
@@ -358,9 +366,12 @@ class LevelAnalyzer:
         """
         title = title.strip()
 
+        # 移除可能的特殊前缀符号（如 ※、★、◆ 等）
+        title = re.sub(r'^[※★◆●○◇□■▲△▼▽→←↑↓✓✗☆★♦♣♠♥]+\s*', '', title)
+
         patterns = [
             r'^第[一二三四五六七八九十百千\d]+(章|部分|篇|节|条|册)',  # 第一章、第二部分、第三节、第一册
-            r'^附[件表录图]\d+\.?',                        # 附表1.、附件2
+            r'^附[件表录图][一二三四五六七八九十\d]+[\.、：:\s]?',     # 附表1.、附件2、附件一、附件二：
             r'^[一二三四五六七八九十]+[、\s]',              # 一、二、
             r'^\([一二三四五六七八九十]+\)',                # (一)(二)
             r'^\d+\.\d+\.?\d*',                           # 1.1、1.1.1
@@ -399,14 +410,14 @@ class LevelAnalyzer:
         if re.match(r'^第[一二三四五六七八九十百千\d]+条', prefix):
             return "第X条"
 
-        # 附件格式
-        if re.match(r'^附件\d+', prefix):
+        # 附件格式（支持阿拉伯数字和中文数字）
+        if re.match(r'^附件[一二三四五六七八九十\d]+', prefix):
             return "附件N"
-        if re.match(r'^附表\d+', prefix):
+        if re.match(r'^附表[一二三四五六七八九十\d]+', prefix):
             return "附表N"
-        if re.match(r'^附录\d+', prefix):
+        if re.match(r'^附录[一二三四五六七八九十\d]+', prefix):
             return "附录N"
-        if re.match(r'^附图\d+', prefix):
+        if re.match(r'^附图[一二三四五六七八九十\d]+', prefix):
             return "附图N"
 
         # 中文序号
@@ -666,6 +677,157 @@ class LevelAnalyzer:
         self.logger.info(f"Contextual层级分析完成: {dict(level_counts)}")
 
         return levels
+
+    def analyze_toc_hierarchy_with_llm(self, toc_items: List[Dict], model_name: str = "yuanjing-deepseek-v3") -> List[int]:
+        """
+        使用LLM智能分析目录层级结构
+
+        核心思想：
+        1. 将目录列表发送给LLM，让其理解文档结构语义
+        2. LLM根据标题内容、编号格式、上下文关系判断层级
+        3. 返回每个目录项的层级（1-3级）
+
+        Args:
+            toc_items: 目录项列表，格式：[{'title': '...', 'page_num': 1}, ...]
+            model_name: 使用的LLM模型名称
+
+        Returns:
+            每个目录项的层级列表，如 [1, 2, 2, 3, 1, 2, ...]
+        """
+        if not toc_items:
+            return []
+
+        self.logger.info(f"使用LLM分析 {len(toc_items)} 个目录项的层级，模型: {model_name}")
+
+        # 构建目录列表文本
+        toc_text_lines = []
+        for i, item in enumerate(toc_items):
+            title = item.get('title', '').strip()
+            page = item.get('page_num', '')
+            toc_text_lines.append(f"{i+1}. {title}")
+
+        toc_text = "\n".join(toc_text_lines)
+
+        # 构建Prompt
+        system_prompt = """你是一个专业的招标文档分析专家，擅长分析文档的目录结构层级。
+
+你的任务是分析给定的目录列表，判断每个条目的层级（1-3级）。
+
+层级判断规则：
+1. **一级目录**：文档的主要章节，如"第一章 XXX"、"第一部分 XXX"、独立的大标题
+2. **二级目录**：章节下的子节，如"第一节 XXX"、"一、XXX"、"附件一"、"附表1"等
+3. **三级目录**：更细的子项，如"1.1 XXX"、"（一）XXX"、"第X条"等
+
+特别注意：
+- "附件"、"附表"、"附录"通常是二级目录（除非是独立的顶级章节）
+- 根据上下文判断：如果文档没有"第X章"这样的一级标题，那么"一、二、三"可能就是一级
+- 编号格式可以帮助判断：1. 是一级，1.1 是二级，1.1.1 是三级
+- 但要结合语义理解，不能仅靠编号格式
+
+输出格式要求：
+请直接输出JSON数组，每个元素是对应目录项的层级数字（1、2或3）。
+例如输入有5个目录项，输出：[1, 2, 2, 3, 1]
+
+不要输出任何解释，只输出JSON数组。"""
+
+        user_prompt = f"""请分析以下目录列表的层级结构：
+
+{toc_text}
+
+请输出每个条目的层级（1-3），格式为JSON数组，如 [1, 2, 2, 3, 1, ...]
+共有 {len(toc_items)} 个条目，请确保输出的数组长度也是 {len(toc_items)}。"""
+
+        try:
+            # 调用LLM
+            llm_client = create_llm_client(model_name)
+            response = llm_client.call(
+                prompt=user_prompt,
+                system_prompt=system_prompt,
+                temperature=0.1,  # 低温度，保证稳定性
+                max_tokens=2000,
+                purpose="目录层级分析"
+            )
+
+            self.logger.debug(f"LLM响应: {response[:500]}...")
+
+            # 解析响应
+            levels = self._parse_llm_levels_response(response, len(toc_items))
+
+            if levels:
+                # 统计结果
+                from collections import Counter
+                level_counts = Counter(levels)
+                self.logger.info(f"LLM层级分析完成: {dict(level_counts)}")
+                return levels
+            else:
+                self.logger.warning("LLM响应解析失败，回退到规则算法")
+                return self.analyze_toc_hierarchy_contextual(toc_items)
+
+        except Exception as e:
+            self.logger.error(f"LLM层级分析失败: {e}，回退到规则算法")
+            return self.analyze_toc_hierarchy_contextual(toc_items)
+
+    def _parse_llm_levels_response(self, response: str, expected_count: int) -> Optional[List[int]]:
+        """
+        解析LLM返回的层级数组
+
+        Args:
+            response: LLM的响应文本
+            expected_count: 期望的层级数量
+
+        Returns:
+            层级列表，解析失败返回None
+        """
+        try:
+            # 尝试提取JSON数组
+            response = response.strip()
+
+            # 移除可能的markdown代码块标记
+            if response.startswith("```"):
+                lines = response.split("\n")
+                # 过滤掉```开头和结尾的行
+                lines = [l for l in lines if not l.strip().startswith("```")]
+                response = "\n".join(lines).strip()
+
+            # 尝试找到JSON数组
+            start_idx = response.find('[')
+            end_idx = response.rfind(']')
+
+            if start_idx != -1 and end_idx != -1:
+                json_str = response[start_idx:end_idx + 1]
+                levels = json.loads(json_str)
+
+                # 验证结果
+                if isinstance(levels, list) and len(levels) == expected_count:
+                    # 确保所有值都是1-3的整数
+                    validated_levels = []
+                    for level in levels:
+                        if isinstance(level, (int, float)):
+                            level = int(level)
+                            level = max(1, min(3, level))  # 限制在1-3范围内
+                            validated_levels.append(level)
+                        else:
+                            validated_levels.append(2)  # 默认2级
+                    return validated_levels
+                else:
+                    self.logger.warning(f"层级数量不匹配: 期望{expected_count}，实际{len(levels)}")
+                    # 尝试修复长度问题
+                    if len(levels) > expected_count:
+                        return [max(1, min(3, int(l))) for l in levels[:expected_count]]
+                    else:
+                        # 用2填充缺失的
+                        result = [max(1, min(3, int(l))) for l in levels]
+                        result.extend([2] * (expected_count - len(levels)))
+                        return result
+
+            return None
+
+        except json.JSONDecodeError as e:
+            self.logger.warning(f"JSON解析失败: {e}")
+            return None
+        except Exception as e:
+            self.logger.warning(f"解析LLM响应失败: {e}")
+            return None
 
 
 # 便捷函数

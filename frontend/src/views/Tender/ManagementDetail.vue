@@ -1,7 +1,7 @@
 <template>
   <div class="tender-management-detail">
     <!-- 页面头部 -->
-    <PageHeader :title="pageTitle" :show-back="true" />
+    <PageHeader :title="pageTitle" :show-back="true" :ghost="true" />
 
     <!-- 加载状态 -->
     <Loading v-if="loading" text="加载项目详情..." />

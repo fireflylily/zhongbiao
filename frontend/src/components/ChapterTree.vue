@@ -37,6 +37,15 @@
               </el-tooltip>
             </span>
             <span class="chapter-meta">
+              <!-- 🆕 章节类型标签（仅对关键类型显示） -->
+              <el-tag
+                v-if="isKeyChapterType(data.chapter_type)"
+                :type="getChapterTypeColor(data.chapter_type)"
+                size="small"
+                effect="dark"
+              >
+                {{ getChapterTypeName(data.chapter_type) }}
+              </el-tag>
               <el-tag v-if="data.level" size="small" type="info">
                 {{ getLevelText(data.level) }}
               </el-tag>
@@ -68,6 +77,7 @@ interface Chapter {
   title: string
   level: number
   word_count?: number
+  chapter_type?: string  // 🆕 章节类型
   children?: Chapter[]
   [key: string]: any
 }
@@ -187,6 +197,32 @@ const formatWordCount = (count: number) => {
     return `${(count / 10000).toFixed(1)}万`
   }
   return count.toLocaleString()
+}
+
+// 🆕 判断是否为关键章节类型（只对这三种显示标签）
+const isKeyChapterType = (type?: string): boolean => {
+  const keyTypes = ['technical_spec', 'business_response', 'contract_content']
+  return type ? keyTypes.includes(type) : false
+}
+
+// 🆕 获取章节类型颜色
+const getChapterTypeColor = (type?: string): string => {
+  const colorMap: Record<string, string> = {
+    technical_spec: 'success',      // 绿色 - 技术需求
+    business_response: 'primary',   // 蓝色 - 商务应答
+    contract_content: 'warning'     // 橙色 - 合同内容
+  }
+  return colorMap[type || ''] || 'info'
+}
+
+// 🆕 获取章节类型名称
+const getChapterTypeName = (type?: string): string => {
+  const nameMap: Record<string, string> = {
+    technical_spec: '技术需求',
+    business_response: '商务应答',
+    contract_content: '合同内容'
+  }
+  return nameMap[type || ''] || ''
 }
 
 // 暴露方法给父组件

@@ -1134,11 +1134,11 @@ def generate_with_agent():
             from ai_tender_system.modules.outline_generator import WordExporter
 
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_dir = config.get_path('upload') / 'tech_proposal_files' / datetime.now().strftime('%Y/%m') / str(project_id)
+            output_dir = config.get_path('output')
             output_dir.mkdir(parents=True, exist_ok=True)
 
             if project_name:
-                proposal_filename = f"{project_name}_技术方案_{timestamp}_{output_prefix}.docx"
+                proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
             else:
                 proposal_filename = f"{output_prefix}_{timestamp}.docx"
 
@@ -1384,6 +1384,370 @@ def evaluate_tender():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@api_outline_bp.route('/agent/generate-crew', methods=['POST'])
+def generate_with_crew():
+    """
+    使用 ProposalCrew 生成技术方案（Quality-First 模式）
+
+    请求参数（multipart/form-data 或 JSON）:
+    - tender_file / tender_doc: 招标文档
+    - page_count: 目标页数 (默认200)
+    - projectId: 项目ID
+    - projectName: 项目名称
+    - companyId: 公司ID
+    - aiModel: AI模型
+    - crew_config: CrewConfig配置（JSON字符串）
+      - skip_product_matching: bool
+      - skip_material_retrieval: bool
+      - enable_expert_review: bool
+      - max_iterations: int
+      - min_review_score: float
+    - content_style: 内容风格配置
+
+    返回: SSE流式事件
+    """
+    # 先解析请求参数（在generator外部，避免上下文问题）
+    try:
+        logger.info("【Quality-First API】收到请求")
+
+        # 支持两种格式: FormData 和 JSON
+        is_json_request = request.is_json
+        if is_json_request:
+            req_data = request.json
+            tender_doc = req_data.get('tender_doc', '')
+            page_count = int(req_data.get('page_count', 200))
+            company_id = req_data.get('companyId', 1)
+            project_id = req_data.get('projectId', 'default')
+            project_name = req_data.get('projectName', '')
+            ai_model = req_data.get('aiModel', 'shibing624-gpt4o-mini')
+            crew_config_raw = req_data.get('crew_config', {})
+            content_style = req_data.get('content_style', {})
+        else:
+            # FormData格式
+            tender_doc = ''
+            page_count = int(request.form.get('page_count', 200))
+            company_id = request.form.get('companyId', 1)
+            project_id = request.form.get('projectId') or request.form.get('project_id') or 'default'
+            project_name = request.form.get('projectName', '')
+            ai_model = request.form.get('aiModel', 'shibing624-gpt4o-mini')
+
+            # crew_config 是 JSON 字符串
+            crew_config_str = request.form.get('crew_config', '{}')
+            try:
+                crew_config_raw = json.loads(crew_config_str)
+            except:
+                crew_config_raw = {}
+
+            # content_style 是 JSON 字符串
+            content_style_str = request.form.get('content_style', '{}')
+            try:
+                content_style = json.loads(content_style_str)
+            except:
+                content_style = {'tables': '适量', 'flowcharts': '流程图', 'images': '少量'}
+
+            # 从HITL或上传文件获取招标文档
+            use_hitl_file = request.form.get('use_hitl_technical_file', 'false').lower() == 'true'
+
+            if use_hitl_file and project_id and project_id != 'default':
+                # 从HITL加载
+                logger.info(f"从HITL项目加载技术需求文件: project_id={project_id}")
+                technical_files_base = config.get_path('upload') / 'technical_files'
+
+                for year_dir in technical_files_base.glob('*'):
+                    if not year_dir.is_dir():
+                        continue
+                    for month_dir in year_dir.glob('*'):
+                        if not month_dir.is_dir():
+                            continue
+                        project_dir = month_dir / str(project_id)
+                        if project_dir.exists():
+                            technical_files = list(project_dir.glob('*.*'))
+                            if technical_files:
+                                tender_path = technical_files[0]
+                                logger.info(f"找到HITL技术需求文件: {tender_path}")
+                                from docx import Document
+                                doc = Document(str(tender_path))
+                                content_parts = []
+                                for para in doc.paragraphs:
+                                    text = para.text.strip()
+                                    if text:
+                                        content_parts.append(text)
+                                for table in doc.tables:
+                                    content_parts.append('\n[表格内容]')
+                                    for row in table.rows:
+                                        row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                                        if row_text:
+                                            content_parts.append(row_text)
+                                    content_parts.append('[表格结束]\n')
+                                tender_doc = '\n'.join(content_parts)
+                                break
+                    if tender_doc:
+                        break
+
+            elif 'tender_file' in request.files:
+                tender_file = request.files['tender_file']
+                if allowed_file(tender_file.filename):
+                    upload_dir = config.get_path('uploads')
+                    upload_dir.mkdir(parents=True, exist_ok=True)
+                    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = secure_filename(f"{ts}_{tender_file.filename}")
+                    tender_path = upload_dir / filename
+                    tender_file.save(str(tender_path))
+
+                    from docx import Document
+                    doc = Document(str(tender_path))
+                    content_parts = []
+                    for para in doc.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            content_parts.append(text)
+                    for table in doc.tables:
+                        content_parts.append('\n[表格内容]')
+                        for row in table.rows:
+                            row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                            if row_text:
+                                content_parts.append(row_text)
+                        content_parts.append('[表格结束]\n')
+                    tender_doc = '\n'.join(content_parts)
+                    logger.info(f"已解析上传文件: {tender_path}, 文本长度: {len(tender_doc)}")
+
+        # 参数验证
+        param_error = None
+        if not tender_doc:
+            param_error = '缺少必填参数: tender_doc 或 tender_file'
+
+    except Exception as e:
+        param_error = f'参数解析失败: {str(e)}'
+        tender_doc = ''
+        page_count = 200
+        company_id = 1
+        project_id = 'default'
+        project_name = ''
+        ai_model = 'shibing624-gpt4o-mini'
+        crew_config_raw = {}
+        content_style = {}
+
+    def generate_events():
+        """生成SSE事件流"""
+        nonlocal param_error, tender_doc, page_count, company_id, project_id
+        nonlocal project_name, ai_model, crew_config_raw, content_style
+
+        try:
+            # 检查参数错误
+            if param_error:
+                yield f"data: {json.dumps({'stage': 'error', 'status': 'error', 'error': param_error, 'message': f'❌ {param_error}'}, ensure_ascii=False)}\n\n"
+                return
+
+            # 初始化事件
+            yield f"data: {json.dumps({'stage': 'init', 'status': 'running', 'progress': 0, 'message': '🚀 初始化 Quality-First 模式...'}, ensure_ascii=False)}\n\n"
+
+            # 创建 ProposalCrew
+            from ai_tender_system.modules.outline_generator.agents import ProposalCrew, CrewConfig
+
+            crew_config = CrewConfig(
+                model_name=ai_model,
+                company_id=int(company_id) if company_id else 1,
+                skip_product_matching=crew_config_raw.get('skip_product_matching', False),
+                skip_material_retrieval=crew_config_raw.get('skip_material_retrieval', False),
+                enable_expert_review=crew_config_raw.get('enable_expert_review', True),
+                max_iterations=crew_config_raw.get('max_iterations', 2),
+                min_review_score=crew_config_raw.get('min_review_score', 85.0),
+                target_word_count=page_count * 700,
+                content_style=content_style
+            )
+
+            crew = ProposalCrew(crew_config)
+
+            logger.info(f"【Quality-First】开始生成: pages={page_count}, company_id={company_id}")
+
+            # 阶段进度映射
+            phase_progress = {
+                'scoring_extraction': 12,
+                'product_matching': 22,
+                'strategy_planning': 32,
+                'material_retrieval': 42,
+                'outline_generation': 55,
+                'content_writing': 75,
+                'expert_review': 90,
+                'iteration': 95,
+                'complete': 100
+            }
+
+            phase_messages = {
+                'scoring_extraction': '🎯 正在提取评分点...',
+                'product_matching': '🔗 正在匹配产品能力...',
+                'strategy_planning': '📊 正在制定评分策略...',
+                'material_retrieval': '📚 正在检索历史素材...',
+                'outline_generation': '📝 正在生成技术方案大纲...',
+                'content_writing': '✍️ 正在撰写方案内容...',
+                'expert_review': '👨‍🔬 专家评审中...',
+                'iteration': '🔄 正在迭代优化...',
+                'complete': '✅ 技术方案生成完成！'
+            }
+
+            # 流式运行 ProposalCrew
+            for event in crew.run_stream(tender_doc, page_count):
+                phase = event.get('phase', 'unknown')
+                status = event.get('status', 'running')
+
+                # 处理错误事件
+                if phase == 'error' or status == 'error':
+                    error_data = {
+                        'stage': 'error',
+                        'status': 'error',
+                        'progress': 0,
+                        'error': event.get('error', '未知错误'),
+                        'message': event.get('message', f"❌ {event.get('error', '未知错误')}"),
+                        'traceback': event.get('traceback', '')
+                    }
+                    yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+                    return  # 遇到错误就停止
+
+                # 转换为前端期望的格式
+                sse_data = {
+                    'stage': phase,
+                    'status': status,
+                    'progress': phase_progress.get(phase, 0),
+                    'message': event.get('message') or phase_messages.get(phase, '')
+                }
+
+                # 附加阶段特定数据
+                if status == 'complete' and 'result' in event:
+                    result = event['result']
+                    if phase == 'scoring_extraction':
+                        sse_data['scoring_points'] = result
+                    elif phase == 'product_matching':
+                        sse_data['product_match'] = result
+                    elif phase == 'strategy_planning':
+                        sse_data['scoring_strategy'] = result
+                    elif phase == 'material_retrieval':
+                        sse_data['materials'] = result
+                    elif phase == 'outline_generation':
+                        sse_data['outline_data'] = result
+                        # 兼容现有前端
+                        sse_data['stage'] = 'outline_completed'
+                    elif phase == 'expert_review':
+                        sse_data['review_result'] = result
+
+                # 内容撰写的进度事件
+                if phase == 'content_writing' and event.get('event') == 'chapter_progress':
+                    chapter_idx = event.get('chapter_index', 0)
+                    total_chapters = event.get('total_chapters', 1)
+                    sse_data['progress'] = 55 + int(chapter_idx / total_chapters * 20)
+                    sse_data['chapter_title'] = event.get('chapter_title', '')
+
+                # 章节完成事件
+                if phase == 'content_writing' and event.get('event') == 'chapter_complete':
+                    sse_data['chapter'] = event.get('chapter')
+                    sse_data['event'] = 'chapter_complete'
+
+                yield f"data: {json.dumps(sse_data, ensure_ascii=False)}\n\n"
+
+            # 获取最终结果
+            final_result = crew._build_final_result()
+
+            if final_result.get('success'):
+                # 导出 Word 文档
+                from ai_tender_system.modules.outline_generator import WordExporter
+
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                output_dir = config.get_path('output')
+                output_dir.mkdir(parents=True, exist_ok=True)
+
+                proposal_filename = f"{project_name}_技术方案_{timestamp}.docx" if project_name else f"技术方案_{timestamp}.docx"
+                proposal_path = output_dir / proposal_filename
+
+                exporter = WordExporter()
+                proposal_content = final_result.get('proposal_content', {})
+
+                # 转换章节格式以匹配 WordExporter 的期望
+                def convert_chapter(chapter: dict, prefix: str = '') -> dict:
+                    """将 ContentWriterAgent 输出转换为 WordExporter 期望的格式"""
+                    # 生成章节编号
+                    chapter_num = prefix or chapter.get('id', '') or ''
+
+                    converted = {
+                        'chapter_number': chapter_num,
+                        'title': chapter.get('title', ''),
+                        'level': chapter.get('level', 1),
+                        'ai_generated_content': chapter.get('content', ''),
+                        'subsections': []
+                    }
+
+                    # 递归转换子章节
+                    for i, child in enumerate(chapter.get('children', []), 1):
+                        child_prefix = f"{chapter_num}.{i}" if chapter_num else str(i)
+                        converted['subsections'].append(convert_chapter(child, child_prefix))
+
+                    return converted
+
+                # 转换所有章节
+                converted_chapters = []
+                for i, chapter in enumerate(proposal_content.get('chapters', []), 1):
+                    converted_chapters.append(convert_chapter(chapter, str(i)))
+
+                # 构建 WordExporter 期望的数据结构（添加 metadata）
+                proposal_for_export = {
+                    'metadata': {
+                        'title': project_name or 'Quality-First技术方案',
+                        'generation_time': timestamp,
+                        'total_chapters': len(converted_chapters),
+                        'estimated_pages': final_result.get('metadata', {}).get('total_words', 0) // 700
+                    },
+                    'chapters': converted_chapters
+                }
+                exporter.export_proposal(proposal_for_export, str(proposal_path), show_guidance=False)
+
+                logger.info(f"【Quality-First】导出完成: {proposal_path}")
+
+                # 发送完成事件
+                completed_data = {
+                    'stage': 'completed',
+                    'status': 'complete',
+                    'progress': 100,
+                    'success': True,
+                    'message': '✅ Quality-First 技术方案生成完成！',
+                    'output_file': f'/api/downloads/{proposal_filename}',
+                    'output_files': {
+                        'proposal': f'/api/downloads/{proposal_filename}'
+                    },
+                    'final_result': {
+                        'total_words': final_result.get('metadata', {}).get('total_words', 0),
+                        'chapter_count': final_result.get('metadata', {}).get('chapter_count', 0),
+                        'final_score': final_result.get('metadata', {}).get('final_score', 0),
+                        'pass_recommendation': final_result.get('metadata', {}).get('pass_recommendation', False),
+                        'elapsed_time': final_result.get('elapsed_time', 0)
+                    }
+                }
+                yield f"data: {json.dumps(completed_data, ensure_ascii=False)}\n\n"
+            else:
+                yield f"data: {json.dumps({'stage': 'error', 'status': 'error', 'error': final_result.get('error', '未知错误')}, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e) if str(e) else '未知错误'
+            error_trace = traceback.format_exc()
+            logger.error(f"【Quality-First API】生成失败: {error_msg}\n{error_trace}")
+            error_data = {
+                'stage': 'error',
+                'status': 'error',
+                'progress': 0,
+                'error': error_msg,
+                'message': f'❌ 生成失败: {error_msg}',
+                'traceback': error_trace[:500] if error_trace else ''  # 截断避免过长
+            }
+            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+
+    return Response(
+        stream_with_context(generate_events()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'X-Accel-Buffering': 'no'
+        }
+    )
 
 
 @api_outline_bp.route('/tech-proposal-files', methods=['GET'])

@@ -174,10 +174,43 @@ export function exportReport(documentId: string) {
 /**
  * 解析单个方法
  */
-export function parseSingleMethod(documentId: string, method: 'toc_exact' | 'azure' | 'docx_native' | 'gemini') {
+export function parseSingleMethod(documentId: string, method: 'toc_exact' | 'azure' | 'docx_native' | 'gemini' | 'llm_level') {
   return apiClient.post<{ success: boolean; result: ParseMethodResult }>(
     `/parser-debug/parse-single/${documentId}/${method}`,
     {},
+    {
+      timeout: 300000 // 5分钟超时
+    }
+  )
+}
+
+/**
+ * 智能解析结果
+ */
+export interface SmartParseResult {
+  success: boolean
+  chapters: ChapterNode[]
+  method_used: string
+  fallback_from?: string
+  fallback_reason?: string
+  key_sections?: {
+    business_response?: string[]
+    technical_spec?: string[]
+    contract_content?: string[]
+  }
+  performance?: {
+    elapsed: number
+    elapsed_formatted: string
+  }
+}
+
+/**
+ * 智能解析：结构识别 + 类型分类
+ */
+export function parseSmart(documentId: string, options?: { classify?: boolean }) {
+  return apiClient.post<{ success: boolean; result: SmartParseResult }>(
+    `/parser-debug/parse-smart/${documentId}`,
+    options || { classify: true },
     {
       timeout: 300000 // 5分钟超时
     }
@@ -191,5 +224,6 @@ export const parserDebugApi = {
   getHistory,
   deleteTest,
   exportReport,
-  parseSingleMethod
+  parseSingleMethod,
+  parseSmart
 }

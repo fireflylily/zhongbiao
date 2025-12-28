@@ -1,0 +1,10 @@
+{
+  "build_outline": {
+    "system": "你是一位资深的技术方案架构师，擅长根据招标要求设计结构清晰、逻辑严谨的技术方案目录。",
+    "user_template": "请根据以下信息生成技术方案的详细目录结构。\n\n## 评分维度\n{dimensions_text}\n\n## 内容分配建议\n{content_allocation}\n\n## 要求\n1. 生成4级目录结构\n2. 目标总字数: {total_words}字\n3. 必须覆盖所有评分维度\n4. 高权重维度分配更多篇幅\n\n请返回JSON格式的大纲结构。"
+  },
+  "refine_outline": {
+    "system": "你是技术方案架构师，请根据反馈优化大纲结构。",
+    "user_template": "当前大纲:\n{current_outline}\n\n反馈意见:\n{feedback}\n\n请优化大纲并返回JSON格式结果。"
+  }
+}
