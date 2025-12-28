@@ -1559,7 +1559,9 @@ class TenderInfoExtractor:
                     "tenderer_contact_person": None,
                     "tenderer_contact_method": None,
                     "agency_contact_person": None,
-                    "agency_contact_method": None
+                    "agency_contact_method": None,
+                    "product_category": None,
+                    "product_items": []
                 }
 
         except Exception as e:

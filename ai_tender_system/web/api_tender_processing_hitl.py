@@ -1951,7 +1951,7 @@ def register_hitl_routes(app):
                 # budget_amount 已经在basic_info中，无需额外映射
             }
 
-            logger.info(f"基本信息提取成功: {project_id}, tenderer={basic_info.get('tenderer')}")
+            logger.info(f"基本信息提取成功: {project_id}, tenderer={basic_info.get('tenderer')}, product_category={basic_info.get('product_category')}")
 
             return jsonify({
                 'success': True,
@@ -2017,6 +2017,27 @@ def register_hitl_routes(app):
             """, (project_id,), fetch_one=True)
 
             if existing_project:
+                # 处理产品分类信息
+                product_category = data.get('product_category')
+                product_items = data.get('product_items', [])
+                product_category_id = None
+                product_category_name = None
+
+                # 根据分类名称查找分类ID
+                if product_category:
+                    category_result = db.execute_query(
+                        "SELECT category_id, category_name FROM product_categories WHERE category_name = ? AND is_active = 1",
+                        [product_category],
+                        fetch_one=True
+                    )
+                    if category_result:
+                        product_category_id = category_result['category_id']
+                        product_category_name = category_result['category_name']
+                        logger.info(f"找到产品分类: {product_category_name} (ID: {product_category_id})")
+
+                # 序列化 product_items
+                product_items_json = json.dumps(product_items, ensure_ascii=False) if product_items else None
+
                 # 更新现有项目
                 db.execute_query("""
                     UPDATE tender_projects
@@ -2031,6 +2052,9 @@ def register_hitl_routes(app):
                         authorized_person_name = ?,
                         authorized_person_id = ?,
                         authorized_person_position = ?,
+                        product_category_id = ?,
+                        product_category_name = ?,
+                        product_items = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE project_id = ?
                 """, (
@@ -2045,10 +2069,13 @@ def register_hitl_routes(app):
                     data.get('authorized_person_name', ''),
                     data.get('authorized_person_id', ''),
                     data.get('authorized_person_position', ''),
+                    product_category_id,
+                    product_category_name,
+                    product_items_json,
                     project_id
                 ))
 
-                logger.info(f"项目基本信息已更新: {project_id}")
+                logger.info(f"项目基本信息已更新: {project_id}, 产品分类: {product_category_name}")
             else:
                 # 创建新项目（理论上不应该走这个分支，因为项目应该已经创建）
                 logger.warning(f"项目 {project_id} 不存在，跳过保存")
