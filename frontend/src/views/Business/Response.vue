@@ -74,28 +74,53 @@
         </div>
       </div>
 
-      <!-- 第二行：文档区域（商务应答模板 + 招标文档 并排） -->
+      <!-- 第二行：应答模板 -->
       <div class="panel-row project-row document-row">
-        <!-- 左侧：商务应答模板 -->
-        <div class="row-item">
+        <div class="row-item row-item--full">
           <label class="row-label">应答模板</label>
-          <!-- 已加载文件 -->
-          <div v-if="useHitlTemplate" class="file-chip file-chip--success">
-            <el-icon class="file-chip-icon"><Document /></el-icon>
-            <span class="file-chip-name" :title="hitlTemplateInfo?.filename">
-              {{ hitlTemplateInfo?.filename || '未知文件' }}
-            </span>
-            <span class="file-chip-tag">已加载</span>
-            <el-button class="file-chip-close" type="danger" text size="small" @click="cancelHitlTemplate">×</el-button>
+          <!-- 已加载文件（来自HITL） -->
+          <div v-if="useHitlTemplate" class="template-file-card">
+            <div class="template-file-card__icon">
+              <i class="bi bi-file-word"></i>
+            </div>
+            <div class="template-file-card__info">
+              <div class="template-file-card__name" :title="hitlTemplateInfo?.filename">
+                {{ hitlTemplateInfo?.filename || '未知文件' }}
+              </div>
+            </div>
+            <div class="template-file-card__actions">
+              <el-button size="small" @click="handleTemplateDownload">
+                <i class="bi bi-download"></i> 下载
+              </el-button>
+              <el-button size="small" @click="handleTemplatePreview">
+                <i class="bi bi-eye"></i> 预览
+              </el-button>
+              <el-button size="small" type="danger" plain @click="cancelHitlTemplate">
+                <i class="bi bi-x-lg"></i> 取消
+              </el-button>
+            </div>
           </div>
           <!-- 手动上传的文件 -->
-          <div v-else-if="form.templateFiles.length > 0" class="file-chip file-chip--info">
-            <el-icon class="file-chip-icon"><Document /></el-icon>
-            <span class="file-chip-name" :title="form.templateFiles[0].name">
-              {{ form.templateFiles[0].name }}
-            </span>
-            <span class="file-chip-tag">已上传</span>
-            <el-button class="file-chip-close" type="danger" text size="small" @click="form.templateFiles = []">×</el-button>
+          <div v-else-if="form.templateFiles.length > 0" class="template-file-card">
+            <div class="template-file-card__icon">
+              <i class="bi bi-file-word"></i>
+            </div>
+            <div class="template-file-card__info">
+              <div class="template-file-card__name" :title="form.templateFiles[0].name">
+                {{ form.templateFiles[0].name }}
+              </div>
+            </div>
+            <div class="template-file-card__actions">
+              <el-button size="small" @click="handleTemplateDownload">
+                <i class="bi bi-download"></i> 下载
+              </el-button>
+              <el-button size="small" @click="handleTemplatePreview">
+                <i class="bi bi-eye"></i> 预览
+              </el-button>
+              <el-button size="small" type="danger" plain @click="form.templateFiles = []">
+                <i class="bi bi-x-lg"></i> 取消
+              </el-button>
+            </div>
           </div>
           <!-- 未上传：显示为类似输入框的占位区域 -->
           <div v-else class="file-placeholder">
@@ -109,43 +134,6 @@
               :show-file-list="false"
               trigger-text="选择文件"
               @success="handleTemplateUploadSuccess"
-            />
-          </div>
-        </div>
-
-        <!-- 右侧：招标文档 -->
-        <div class="row-item">
-          <label class="row-label">招标文档</label>
-          <!-- 已加载文件 -->
-          <div v-if="useHitlTender" class="file-chip file-chip--success">
-            <el-icon class="file-chip-icon"><Document /></el-icon>
-            <span class="file-chip-name" :title="hitlTenderInfo?.filename">
-              {{ hitlTenderInfo?.filename || '未知文件' }}
-            </span>
-            <span class="file-chip-tag">已加载</span>
-            <el-button class="file-chip-close" type="danger" text size="small" @click="cancelHitlTender">×</el-button>
-          </div>
-          <!-- 手动上传的文件 -->
-          <div v-else-if="form.tenderFiles.length > 0" class="file-chip file-chip--info">
-            <el-icon class="file-chip-icon"><Document /></el-icon>
-            <span class="file-chip-name" :title="form.tenderFiles[0].name">
-              {{ form.tenderFiles[0].name }}
-            </span>
-            <span class="file-chip-tag">已上传</span>
-            <el-button class="file-chip-close" type="danger" text size="small" @click="form.tenderFiles = []">×</el-button>
-          </div>
-          <!-- 未上传：显示为类似输入框的占位区域 -->
-          <div v-else class="file-placeholder">
-            <span class="placeholder-text">上传招标文档（可选）</span>
-            <DocumentUploader
-              v-model="form.tenderFiles"
-              :http-request="handleTenderUpload"
-              accept=".pdf,.doc,.docx"
-              :limit="5"
-              :max-size="50"
-              :show-file-list="false"
-              trigger-text="选择文件"
-              @success="handleTenderUploadSuccess"
             />
           </div>
         </div>
@@ -442,19 +430,6 @@ const {
   }
 })
 
-// HITL集成 - 招标文档（第二个实例）
-const {
-  useHitlFile: useHitlTender,
-  hitlFileInfo: hitlTenderInfo,
-  loadFromHITL: loadTenderFromHITL,
-  cancelHitlFile: cancelHitlTender
-} = useHitlIntegration({
-  onFileLoaded: () => {
-    // 清空上传的文件
-    form.value.tenderFiles = []
-  }
-})
-
 interface GenerationResult {
   success: boolean
   outputFile: string
@@ -475,7 +450,6 @@ const form = ref({
   companyId: null as number | null,  // 新建项目：公司ID
   projectName: '新项目',                // 新建项目：项目名称
   projectNumber: `PRJ-${Date.now()}`,  // 新建项目：项目编号
-  tenderFiles: [] as UploadUserFile[],
   templateFiles: [] as UploadUserFile[],
   authorizedPersonName: ''  // 被授权人姓名
 })
@@ -566,64 +540,6 @@ const handleTemplateUpload = async (options: UploadRequestOptions) => {
   }
 }
 
-// 自定义上传函数：招标文档
-const handleTenderUpload = async (options: UploadRequestOptions) => {
-  const { file, onSuccess, onError } = options
-
-  try {
-    // 【关键】如果未选择项目，先创建项目
-    if (!form.value.projectId) {
-      if (!form.value.companyId) {
-        throw new Error('请先选择公司')
-      }
-
-      ElMessage.info('正在创建新项目...')
-
-      // 创建新项目
-      const createResponse = await tenderApi.createProject({
-        company_id: form.value.companyId,
-        project_name: form.value.projectName || '新项目',
-        project_number: form.value.projectNumber || `PRJ-${Date.now()}`
-      })
-
-      // 获取新项目ID
-      form.value.projectId = createResponse.project_id
-
-      // 刷新项目列表
-      await loadProjects()
-
-      ElMessage.success('新项目已创建')
-
-      // 触发项目切换逻辑（更新UI）
-      await handleProjectChange()
-    }
-
-    // 获取公司ID（现在一定有项目了）
-    const companyId = selectedProject.value?.company_id
-    if (!companyId) {
-      throw new Error('项目没有关联公司')
-    }
-
-    // 上传文件
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('company_id', companyId.toString())
-    formData.append('project_id', form.value.projectId.toString())
-
-    const response = await tenderApi.parseDocumentStructure(formData)
-
-    if (response.success) {
-      onSuccess(response.data)
-      ElMessage.success('招标文档上传成功')
-    } else {
-      throw new Error(response.message || '上传失败')
-    }
-  } catch (error: any) {
-    onError(error)
-    ElMessage.error(error.message || '招标文档上传失败')
-  }
-}
-
 // 加载公司列表
 const loadCompanies = async () => {
   try {
@@ -642,7 +558,6 @@ const handleProjectChange = async () => {
     onClear: () => {
       generationResult.value = null
       streamContent.value = ''
-      form.value.tenderFiles = []
       form.value.templateFiles = []
       form.value.authorizedPersonName = ''  // 清空被授权人
       // 清空编辑器
@@ -655,17 +570,9 @@ const handleProjectChange = async () => {
       if (useHitlTemplate.value) {
         cancelHitlTemplate()
       }
-      if (useHitlTender.value) {
-        cancelHitlTender()
-      }
     },
     // 文档加载完成回调：同步到页面状态
     onDocumentsLoaded: (docs) => {
-      // 从HITL加载招标文档
-      if (docs.tenderFile) {
-        loadTenderFromHITL(docs, 'tenderFile')
-      }
-
       // 从HITL加载应答模板
       if (docs.templateFile) {
         loadTemplateFromHITL(docs, 'templateFile')
@@ -696,14 +603,75 @@ const handleProjectChange = async () => {
   }
 }
 
-// 招标文档上传成功
-const handleTenderUploadSuccess = () => {
-  ElMessage.success('招标文档上传成功')
-}
-
 // 模板上传成功
 const handleTemplateUploadSuccess = () => {
   ElMessage.success('商务应答模板上传成功')
+}
+
+// 获取当前模板文件信息
+const getCurrentTemplateFile = () => {
+  if (useHitlTemplate.value && hitlTemplateInfo.value) {
+    return {
+      url: hitlTemplateInfo.value.url || '',
+      name: hitlTemplateInfo.value.filename || '应答模板'
+    }
+  }
+  if (form.value.templateFiles.length > 0) {
+    const file = form.value.templateFiles[0]
+    return {
+      url: (file as any).url || (file as any).response?.url || '',
+      name: file.name || '应答模板'
+    }
+  }
+  return null
+}
+
+// 将文件路径转换为API URL
+const convertToApiUrl = (filePath: string): string => {
+  if (!filePath) return ''
+  if (filePath.startsWith('http://') ||
+      filePath.startsWith('https://') ||
+      filePath.startsWith('/api/')) {
+    return filePath
+  }
+  let apiPath = filePath
+  if (apiPath.startsWith('ai_tender_system/data/')) {
+    apiPath = apiPath.substring('ai_tender_system/data/'.length)
+  }
+  if (apiPath.startsWith('outputs/')) {
+    apiPath = 'download/' + apiPath.substring('outputs/'.length)
+  }
+  return `/api/files/serve/${apiPath}`
+}
+
+// 模板下载
+const handleTemplateDownload = () => {
+  const fileInfo = getCurrentTemplateFile()
+  if (!fileInfo?.url) {
+    ElMessage.warning('无法获取文件路径')
+    return
+  }
+  const apiUrl = convertToApiUrl(fileInfo.url)
+  const link = document.createElement('a')
+  link.href = apiUrl + '?download=true'
+  link.download = fileInfo.name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  ElMessage.success('文件下载已开始')
+}
+
+// 模板预览
+const handleTemplatePreview = () => {
+  const fileInfo = getCurrentTemplateFile()
+  if (!fileInfo?.url) {
+    ElMessage.warning('无法获取文件路径')
+    return
+  }
+  // Word文档使用DocumentPreview组件预览
+  previewFileUrl.value = fileInfo.url
+  previewFileName.value = fileInfo.name
+  previewVisible.value = true
 }
 
 // 开始生成
@@ -1151,7 +1119,6 @@ onMounted(async () => {
     onClear: () => {
       generationResult.value = null
       streamContent.value = ''
-      form.value.tenderFiles = []
       form.value.templateFiles = []
       form.value.authorizedPersonName = ''  // 清空被授权人
       // 清空编辑器
@@ -1161,16 +1128,8 @@ onMounted(async () => {
       if (useHitlTemplate.value) {
         cancelHitlTemplate()
       }
-      if (useHitlTender.value) {
-        cancelHitlTender()
-      }
     },
     onDocumentsLoaded: (docs) => {
-      // 从HITL加载招标文档
-      if (docs.tenderFile) {
-        loadTenderFromHITL(docs, 'tenderFile')
-      }
-
       // 从HITL加载应答模板
       if (docs.templateFile) {
         loadTemplateFromHITL(docs, 'templateFile')
@@ -1260,7 +1219,8 @@ onMounted(async () => {
     }
 
     .file-chip,
-    .file-placeholder {
+    .file-placeholder,
+    .template-file-card {
       flex: 1;
       min-width: 0;  // 防止flex子项溢出
       box-sizing: border-box;  // 确保与 el-input/el-select 一致的盒模型
@@ -1288,6 +1248,72 @@ onMounted(async () => {
         width: 100%;
       }
     }
+  }
+
+  // 模板文件卡片样式（参考FileCard组件）
+  .template-file-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: #f0f9eb;
+    border-radius: 8px;
+    border: 2px solid #b3e19d;
+    transition: all 0.3s;
+    flex: 1;
+    min-width: 0;
+
+    &:hover {
+      border-color: #95d475;
+      box-shadow: 0 2px 8px rgba(103, 194, 58, 0.15);
+    }
+
+    &__icon {
+      flex-shrink: 0;
+      font-size: 40px;
+      color: var(--el-color-primary);
+
+      .bi-file-word {
+        color: #2b579a;
+      }
+    }
+
+    &__info {
+      flex: 1;
+      min-width: 0;
+
+      .template-file-card__name {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        word-break: break-all;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    &__actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+
+      .el-button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        i {
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  // row-item 全宽样式
+  .row-item--full {
+    width: 100%;
+    flex: 1;
   }
 
   // 文件占位区域（未上传时显示）
