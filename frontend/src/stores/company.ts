@@ -102,7 +102,12 @@ export const useCompanyStore = defineStore('company', () => {
       const response = await companyApi.getCompanies()
 
       if (response.success && response.data) {
-        companies.value = response.data
+        // 后端返回 company_id，前端使用 id，需要做字段映射
+        companies.value = response.data.map((item: any) => ({
+          ...item,
+          id: item.company_id ?? item.id,  // 优先使用 company_id，兼容两种格式
+          name: item.name ?? item.company_name  // 优先使用 name，兼容 company_name
+        }))
       }
     } catch (err: any) {
       error.value = err.message || '获取公司列表失败'

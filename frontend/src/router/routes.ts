@@ -263,33 +263,18 @@ export const routes: RouteRecordRaw[] = [
             }
           },
 
-          // 产品分类
+          // 产品管理（合并了产品分类和产品能力）
           {
-            path: 'product-categories',
-            name: 'ProductCategories',
-            component: () => import('@/views/Knowledge/ProductCategories.vue'),
+            path: 'products',
+            name: 'ProductManagement',
+            component: () => import('@/views/Knowledge/ProductManagement.vue'),
             meta: {
-              title: '产品分类',
-              icon: 'bi-grid',
+              title: '产品管理',
+              icon: 'bi-box',
               order: 5,
               parent: 'Knowledge',
               keepAlive: true,
-              description: '管理产品分类和业务类型'
-            }
-          },
-
-          // 产品能力
-          {
-            path: 'capability',
-            name: 'CapabilityManagement',
-            component: () => import('@/views/Knowledge/CapabilityManagement.vue'),
-            meta: {
-              title: '产品能力',
-              icon: 'bi-cpu',
-              order: 6,
-              parent: 'Knowledge',
-              keepAlive: true,
-              description: '管理产品能力索引'
+              description: '管理产品分类和能力索引'
             }
           },
 

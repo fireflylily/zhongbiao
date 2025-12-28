@@ -13,6 +13,8 @@ export interface ProjectCreationForm {
   companyId: number | null
   projectName: string
   projectNumber: string
+  productCategoryId: number | null
+  productItems: string[]
 }
 
 export interface UseProjectCreationOptions {
@@ -67,7 +69,9 @@ export function useProjectCreation(options: UseProjectCreationOptions = {}) {
       const response = await tenderApi.createProject({
         company_id: formData.companyId,
         project_name: formData.projectName || '新项目',
-        project_number: projectNumber
+        project_number: projectNumber,
+        product_category_id: formData.productCategoryId || undefined,
+        product_items: formData.productItems?.length > 0 ? formData.productItems : undefined
       })
 
       createdProjectId.value = response.project_id

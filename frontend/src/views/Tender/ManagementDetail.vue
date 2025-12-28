@@ -166,6 +166,35 @@
                         <el-input v-model="formData.agency_contact_method" placeholder="请输入代理机构联系电话" />
                       </el-form-item>
                     </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="产品分类">
+                        <el-select
+                          v-model="formData.product_category_id"
+                          placeholder="选择产品分类"
+                          clearable
+                          style="width: 100%"
+                          @change="handleProductCategoryChange"
+                        >
+                          <el-option
+                            v-for="cat in productCategories"
+                            :key="cat.category_id"
+                            :label="cat.category_name"
+                            :value="cat.category_id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12" v-if="selectedCategoryItems.length > 0">
+                      <el-form-item label="具体产品">
+                        <el-checkbox-group v-model="formData.product_items">
+                          <el-checkbox
+                            v-for="item in selectedCategoryItems"
+                            :key="item.item_id"
+                            :label="item.item_name"
+                          />
+                        </el-checkbox-group>
+                      </el-form-item>
+                    </el-col>
                   </el-row>
                 </el-form>
 
@@ -220,6 +249,20 @@
                   </el-descriptions-item>
                   <el-descriptions-item label="代理机构联系电话">
                     {{ projectDetail.agency_contact_method || '-' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item label="产品分类">
+                    <el-tag v-if="projectDetail.product_category_name" type="primary">
+                      {{ projectDetail.product_category_name }}
+                    </el-tag>
+                    <span v-else class="text-muted">未选择</span>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="具体产品">
+                    <el-space v-if="projectDetail.product_items?.length" wrap>
+                      <el-tag v-for="item in projectDetail.product_items" :key="item" size="small">
+                        {{ item }}
+                      </el-tag>
+                    </el-space>
+                    <span v-else class="text-muted">-</span>
                   </el-descriptions-item>
                 </el-descriptions>
               </section>
@@ -691,6 +734,7 @@ import ChapterTree from '@/components/ChapterTree.vue'
 import TenderDocumentProcessor from '@/components/TenderDocumentProcessor.vue'
 import { tenderApi } from '@/api/endpoints/tender'
 import { companyApi } from '@/api/endpoints/company'
+import { knowledgeApi } from '@/api/endpoints/knowledge'
 import { useProjectStore } from '@/stores/project'
 import type { ProjectDetail } from '@/types'
 
@@ -708,6 +752,7 @@ const companies = ref<any[]>([]) // 公司列表
 const extractingBasicInfo = ref(false) // AI提取基本信息loading状态
 const extractingQualifications = ref(false) // AI提取资格要求loading状态
 const projectDocuments = ref<any[]>([]) // 项目文档列表
+const productCategories = ref<any[]>([]) // 产品分类列表
 const parsedChapters = ref<any[]>([]) // 已解析的章节
 const hasUnsavedChanges = ref(false) // 标记是否有未保存的更改
 
@@ -734,7 +779,11 @@ const formData = reactive({
   agency_contact_person: '',  // 代理机构联系人
   agency_contact_method: '',  // 代理机构联系方式
   authorized_person_name: '',
-  authorized_person_id: ''
+  authorized_person_id: '',
+  // 产品分类字段
+  product_category_id: null as number | null,
+  product_category_name: '',
+  product_items: [] as string[]
 })
 
 // 表单验证规则
@@ -764,6 +813,15 @@ const totalParsedChapters = computed(() => {
     return count
   }
   return countChapters(parsedChapters.value)
+})
+
+// 计算选中分类的子项（用于产品分类联动选择）
+const selectedCategoryItems = computed(() => {
+  if (!formData.product_category_id) return []
+  const category = productCategories.value.find(
+    c => c.category_id === formData.product_category_id
+  )
+  return category?.items || []
 })
 
 // 辅助函数：安全提取文件路径
@@ -1107,6 +1165,20 @@ const loadProjectDetail = async () => {
     formData.agency_contact_method = projectDetail.value.agency_contact_method || ''
     formData.authorized_person_name = projectDetail.value.authorized_person_name || ''
     formData.authorized_person_id = projectDetail.value.authorized_person_id || ''
+    // 产品分类字段
+    formData.product_category_id = projectDetail.value.product_category_id || null
+    formData.product_category_name = projectDetail.value.product_category_name || ''
+    // 处理 product_items - 可能是 JSON 字符串或数组
+    const rawProductItems = projectDetail.value.product_items
+    if (typeof rawProductItems === 'string') {
+      try {
+        formData.product_items = JSON.parse(rawProductItems) || []
+      } catch {
+        formData.product_items = []
+      }
+    } else {
+      formData.product_items = rawProductItems || []
+    }
 
     // 解析章节数据和文档信息
     if (rawData.step1_data) {
@@ -1284,6 +1356,32 @@ const loadCompanies = async () => {
   }
 }
 
+// 加载产品分类列表
+const loadProductCategories = async () => {
+  try {
+    const response = await knowledgeApi.getProductCategories()
+    if (response.success) {
+      productCategories.value = response.data || []
+    }
+  } catch (error) {
+    console.error('加载产品分类失败:', error)
+  }
+}
+
+// 产品分类变化处理
+const handleProductCategoryChange = (categoryId: number | null) => {
+  if (!categoryId) {
+    formData.product_category_name = ''
+    formData.product_items = []
+    return
+  }
+  const category = productCategories.value.find(c => c.category_id === categoryId)
+  if (category) {
+    formData.product_category_name = category.category_name
+    formData.product_items = [] // 清空已选的子项
+  }
+}
+
 // 格式化金额
 const formatAmount = (amount: number) => {
   return amount.toLocaleString('zh-CN', {
@@ -1359,6 +1457,10 @@ const handleSave = async () => {
       agency_contact_method: formData.agency_contact_method,
       authorized_person_name: formData.authorized_person_name,
       authorized_person_id: formData.authorized_person_id,
+      // 产品分类字段
+      product_category_id: formData.product_category_id,
+      product_category_name: formData.product_category_name,
+      product_items: formData.product_items,
       status: 'active' // 保存后更新为活跃状态
     }
 
@@ -1678,6 +1780,7 @@ watch(() => route.params.id, () => {
 
 onMounted(() => {
   loadCompanies()
+  loadProductCategories()
   loadProjectDetail()
 })
 </script>
@@ -1889,6 +1992,11 @@ onMounted(() => {
       color: var(--el-text-color-regular);
       white-space: nowrap;
     }
+  }
+
+  // 文本辅助样式
+  .text-muted {
+    color: var(--el-text-color-secondary);
   }
 }
 </style>

@@ -400,5 +400,34 @@ export const knowledgeApi = {
    */
   async getEducationLevels(): Promise<ApiResponse<any[]>> {
     return apiClient.get('/resume_library/education-levels')
+  },
+
+  // ==================== 产品分类 ====================
+
+  /**
+   * 获取产品分类列表（含子项）
+   */
+  async getProductCategories(): Promise<ApiResponse<{
+    category_id: number
+    category_name: string
+    category_code: string
+    category_description?: string
+    category_order?: number
+    items: {
+      item_id: number
+      item_name: string
+      item_code?: string
+      item_description?: string
+      item_order?: number
+    }[]
+  }[]>> {
+    return apiClient.get('/product-categories')
+  },
+
+  /**
+   * 获取产品分类详情
+   */
+  async getProductCategory(categoryId: number): Promise<ApiResponse<any>> {
+    return apiClient.get(`/product-categories/${categoryId}`)
   }
 }

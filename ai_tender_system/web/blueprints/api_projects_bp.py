@@ -224,14 +224,34 @@ def create_tender_project():
         if data.get('scoring_data'):
             scoring_json = json.dumps(data.get('scoring_data'), ensure_ascii=False)
 
+        # 【新增】处理产品分类字段
+        product_category_id = data.get('product_category_id')
+        product_category_name = None
+        product_items_json = None
+
+        # 根据 product_category_id 查询分类名称
+        if product_category_id:
+            category = kb_manager.db.execute_query(
+                "SELECT category_name FROM product_categories WHERE category_id = ?",
+                [product_category_id],
+                fetch_one=True
+            )
+            if category:
+                product_category_name = category['category_name']
+
+        # 序列化 product_items 为 JSON
+        if data.get('product_items'):
+            product_items_json = json.dumps(data.get('product_items'), ensure_ascii=False)
+
         query = """
             INSERT INTO tender_projects (
                 project_name, project_number, tenderer, agency,
                 bidding_method, bidding_location, bidding_time,
                 tender_document_path, original_filename,
                 company_id, qualifications_data, scoring_data,
+                product_category_id, product_category_name, product_items,
                 status, created_by, created_by_user_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         params = [
@@ -247,6 +267,9 @@ def create_tender_project():
             data.get('company_id'),
             qualifications_json,
             scoring_json,
+            product_category_id,
+            product_category_name,
+            product_items_json,
             'draft',
             user['username'],  # created_by
             user['user_id']    # created_by_user_id - 记录创建者ID
@@ -523,7 +546,11 @@ def update_tender_project(project_id):
             'tenderer_contact_person': 'tenderer_contact_person',
             'tenderer_contact_method': 'tenderer_contact_method',
             'agency_contact_person': 'agency_contact_person',
-            'agency_contact_method': 'agency_contact_method'
+            'agency_contact_method': 'agency_contact_method',
+            # 产品分类字段
+            'product_category_id': 'product_category_id',
+            'product_category_name': 'product_category_name',
+            'product_items': 'product_items'
         }
 
         # 构建动态更新语句
@@ -535,9 +562,20 @@ def update_tender_project(project_id):
                 value = data[request_field]
 
                 # 特殊处理：JSON字段需要序列化
-                if request_field in ['qualifications_data', 'scoring_data', 'technical_data']:
+                if request_field in ['qualifications_data', 'scoring_data', 'technical_data', 'product_items']:
                     if value is not None:
                         value = json.dumps(value, ensure_ascii=False)
+
+                # 特殊处理：更新 product_category_id 时自动更新 product_category_name
+                if request_field == 'product_category_id' and value:
+                    category = kb_manager.db.execute_query(
+                        "SELECT category_name FROM product_categories WHERE category_id = ?",
+                        [value],
+                        fetch_one=True
+                    )
+                    if category:
+                        update_fields.append("product_category_name = ?")
+                        params.append(category['category_name'])
 
                 update_fields.append(f"{db_field} = ?")
                 params.append(value)

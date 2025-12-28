@@ -1934,6 +1934,13 @@ class DocumentStructureParser:
                 consecutive_non_toc = 0
             else:
                 # 新增：尝试识别无页码的简单目录项
+                # 🆕 首先过滤目录标题本身，避免将"目录"当作目录项
+                TOC_TITLE_KEYWORDS = ['目录', '目  录', '目 录', 'contents', 'index', 'catalogue']
+                text_normalized = text.replace(' ', '').replace('\u3000', '').lower()
+                if text_normalized in [k.replace(' ', '').lower() for k in TOC_TITLE_KEYWORDS]:
+                    self.logger.debug(f"跳过目录标题本身: '{text}'")
+                    continue
+
                 # 特征1：有统一缩进（目录项通常缩进对齐）
                 has_indent = (para.paragraph_format.left_indent and
                               para.paragraph_format.left_indent > 200000)
@@ -2092,26 +2099,13 @@ class DocumentStructureParser:
             return text
 
         def calculate_similarity(str1: str, str2: str) -> float:
-            """计算两个字符串的相似度（基于包含关系）"""
+            """计算两个字符串的相似度（使用 SequenceMatcher）"""
             if not str1 or not str2:
                 return 0.0
 
-            shorter = str1 if len(str1) <= len(str2) else str2
-            longer = str2 if len(str1) <= len(str2) else str1
-
-            # 检查shorter是否被longer包含
-            if shorter in longer:
-                return len(shorter) / len(longer)
-
-            # 检查部分重叠
-            max_overlap = 0
-            for i in range(len(shorter)):
-                for j in range(i + 1, len(shorter) + 1):
-                    substr = shorter[i:j]
-                    if substr in longer and len(substr) > max_overlap:
-                        max_overlap = len(substr)
-
-            return max_overlap / max(len(str1), len(str2))
+            # 使用 SequenceMatcher 计算真正的字符串相似度
+            # 这比基于子串的方法更能处理同义词替换（如"响应"vs"应答"）
+            return SequenceMatcher(None, str1, str2).ratio()
 
         # 清理标题（移除多余空格）
         clean_title = re.sub(r'\s+', '', title)
@@ -2247,8 +2241,15 @@ class DocumentStructureParser:
 
             if title_without_number and para_without_number and title_without_number == para_without_number:
                 # 如果TOC标题有"第X部分"，则段落也必须有"第X部分"（避免匹配到TOC内的编号内容）
+                # 🆕 例外：如果正文段落使用 Heading 样式，说明是真正的章节标题，即使没有"第X部分"前缀也应匹配
+                is_heading = para.style and ('heading' in para.style.name.lower() or '标题' in para.style.name.lower())
                 if title_has_part_number and not para_has_part_number:
-                    pass  # 跳过，不匹配
+                    if is_heading:
+                        # 正文使用 Heading 样式，视为有效的章节标题，可以匹配
+                        self.logger.info(f"  ✓ 找到匹配 (Level 3-去编号+Heading样式): 段落 {i}: '{para_text}'")
+                        return i
+                    else:
+                        pass  # 跳过，不匹配
                 else:
                     self.logger.info(f"  ✓ 找到匹配 (Level 3-去编号): 段落 {i}: '{para_text}'")
                     return i
@@ -2310,8 +2311,25 @@ class DocumentStructureParser:
             if len(core_keywords) >= 4:
                 similarity = calculate_similarity(core_keywords, para_keywords)
                 if similarity >= 0.6:
-                    score = similarity * 60  # 36-60分
-                    loose_match_candidates.append((i, 5, score, para_text, f"相似度{similarity:.0%}"))
+                    # 🆕 检查章节编号是否匹配（如"第三章"）
+                    title_chapter_match = re.match(r'^第([一二三四五六七八九十\d]+)章', title)
+                    para_chapter_match = re.match(r'^第([一二三四五六七八九十\d]+)章', para_text)
+
+                    if title_chapter_match and para_chapter_match:
+                        # 两者都有章节编号
+                        if title_chapter_match.group(1) == para_chapter_match.group(1):
+                            # 章节编号相同（如都是"第三章"），大幅提高分数
+                            # 这种情况下，即使内容略有不同（如"响应"vs"应答"），也应该优先匹配
+                            score = 80 + similarity * 20  # 80-100分
+                            loose_match_candidates.append((i, 5, score, para_text, f"章节编号匹配+相似度{similarity:.0%}"))
+                        else:
+                            # 章节编号不同，降低分数
+                            score = similarity * 30  # 18-30分
+                            loose_match_candidates.append((i, 5, score, para_text, f"相似度{similarity:.0%}(编号不同)"))
+                    else:
+                        # 普通相似度匹配
+                        score = similarity * 60  # 36-60分
+                        loose_match_candidates.append((i, 5, score, para_text, f"相似度{similarity:.0%}"))
 
             # Level 6: 宽松关键词匹配（至少6字标题）
             if len(title_without_number) >= 6:

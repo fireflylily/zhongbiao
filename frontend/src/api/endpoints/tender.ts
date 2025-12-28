@@ -50,6 +50,8 @@ export const tenderApi = {
     project_name: string
     project_number: string
     company_id: number
+    product_category_id?: number
+    product_items?: string[]
     description?: string
   }): Promise<ApiResponse<Project>> {
     return apiClient.post('/tender-projects', data)
