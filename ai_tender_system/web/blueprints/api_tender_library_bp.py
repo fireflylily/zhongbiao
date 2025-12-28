@@ -178,6 +178,7 @@ def upload_tender_document():
         bid_result: 投标结果（中标/未中标/待定）
         bid_date: 投标日期（可选）
         notes: 备注（可选）
+        related_products: 关联产品分类（JSON数组，可选）
     """
     try:
         # 检查文件
@@ -200,6 +201,7 @@ def upload_tender_document():
         bid_result_cn = request.form.get('bid_result', '待定')
         bid_date = request.form.get('bid_date')
         notes = request.form.get('notes', '')
+        related_products = request.form.get('related_products', '')
 
         # 转换中文投标结果为数据库格式
         bid_result_map = {'中标': 'won', '未中标': 'lost', '待定': 'unknown'}
@@ -235,10 +237,11 @@ def upload_tender_document():
             file_size=file_size,
             bid_result=bid_result,
             bid_date=bid_date,
-            notes=notes
+            notes=notes,
+            related_products=related_products if related_products else None
         )
 
-        logger.info(f"上传标书文档成功: ID={doc_id}, 文件={original_filename}")
+        logger.info(f"上传标书文档成功: ID={doc_id}, 文件={original_filename}, 关联产品={related_products}")
         return jsonify({
             'success': True,
             'data': {'tender_doc_id': doc_id},
@@ -1047,6 +1050,17 @@ def list_excerpts():
             is_highlighted = is_highlighted.lower() == 'true'
 
         manager = get_excerpt_manager()
+
+        # 获取总数
+        total = manager.count_excerpts(
+            company_id=company_id,
+            tender_doc_id=tender_doc_id,
+            category=category,
+            is_highlighted=is_highlighted,
+            min_quality=min_quality
+        )
+
+        # 获取分页数据
         excerpts = manager.list_excerpts(
             company_id=company_id,
             tender_doc_id=tender_doc_id,
@@ -1060,7 +1074,7 @@ def list_excerpts():
         return jsonify({
             'success': True,
             'data': excerpts,
-            'total': len(excerpts),
+            'total': total,
             'page': page,
             'page_size': page_size
         })

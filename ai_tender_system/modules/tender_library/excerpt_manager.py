@@ -143,6 +143,58 @@ class ExcerptManager:
         finally:
             conn.close()
 
+    def count_excerpts(
+        self,
+        company_id: int,
+        tender_doc_id: int = None,
+        category: str = None,
+        is_highlighted: bool = None,
+        min_quality: int = None
+    ) -> int:
+        """
+        统计片段数量
+
+        Args:
+            company_id: 企业ID
+            tender_doc_id: 筛选特定标书
+            category: 筛选分类
+            is_highlighted: 筛选精选
+            min_quality: 最低质量分
+
+        Returns:
+            片段总数
+        """
+        conn = self._get_connection()
+        try:
+            sql = """
+                SELECT COUNT(*) as total
+                FROM tender_excerpts e
+                WHERE e.company_id = ?
+            """
+            params = [company_id]
+
+            if tender_doc_id:
+                sql += " AND e.tender_doc_id = ?"
+                params.append(tender_doc_id)
+
+            if category:
+                sql += " AND e.category = ?"
+                params.append(category)
+
+            if is_highlighted is not None:
+                sql += " AND e.is_highlighted = ?"
+                params.append(1 if is_highlighted else 0)
+
+            if min_quality is not None:
+                sql += " AND e.quality_score >= ?"
+                params.append(min_quality)
+
+            cursor = conn.execute(sql, params)
+            row = cursor.fetchone()
+            return row['total'] if row else 0
+        finally:
+            conn.close()
+
     def list_excerpts(
         self,
         company_id: int,

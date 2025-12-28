@@ -241,6 +241,44 @@
             </template>
           </el-upload>
         </el-form-item>
+        <el-form-item label="所属公司" prop="company_id">
+          <el-select
+            v-model="uploadForm.company_id"
+            placeholder="请选择公司"
+            style="width: 100%"
+            filterable
+          >
+            <el-option
+              v-for="company in companyStore.companiesOptions"
+              :key="company.value"
+              :label="company.label"
+              :value="company.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="关联产品" prop="related_products">
+          <el-select
+            v-model="uploadForm.related_products"
+            placeholder="请选择产品分类（可多选）"
+            style="width: 100%"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+          >
+            <el-option-group
+              v-for="category in productCategories"
+              :key="category.category_id"
+              :label="category.category_name"
+            >
+              <el-option
+                v-for="item in category.items"
+                :key="item.item_id"
+                :label="item.item_name"
+                :value="item.item_code"
+              />
+            </el-option-group>
+          </el-select>
+        </el-form-item>
         <el-form-item label="项目名称" prop="project_name">
           <el-input v-model="uploadForm.project_name" placeholder="投标项目名称" />
         </el-form-item>
@@ -419,17 +457,39 @@ import {
 } from '@element-plus/icons-vue'
 import type { FormInstance, UploadInstance } from 'element-plus'
 import { ElMessageBox } from 'element-plus'
-import { useUserStore } from '@/stores/user'
+import { useCompanyStore } from '@/stores/company'
 
 // API 基础路径
 const API_BASE = '/api/tender-library'
 
 // Hooks
 const { success, error } = useNotification()
-const userStore = useUserStore()
+const companyStore = useCompanyStore()
 
-// 获取当前企业ID
-const companyId = computed(() => userStore.currentCompanyId || 1)
+// 获取当前企业ID（用于列表筛选，优先使用 companyStore）
+const companyId = computed(() => companyStore.companyId || 1)
+
+// 产品分类数据
+interface ProductCategory {
+  category_id: number
+  category_name: string
+  category_code: string
+  items: { item_id: number; item_name: string; item_code: string }[]
+}
+const productCategories = ref<ProductCategory[]>([])
+
+// 加载产品分类
+const loadProductCategories = async () => {
+  try {
+    const response = await fetch('/api/product-categories')
+    const result = await response.json()
+    if (result.success) {
+      productCategories.value = result.data || []
+    }
+  } catch (err) {
+    console.error('加载产品分类失败:', err)
+  }
+}
 
 // 统计数据
 const stats = reactive({
@@ -466,12 +526,15 @@ const uploadRef = ref<UploadInstance>()
 const uploadFormRef = ref<FormInstance>()
 const uploadForm = reactive({
   file: null as File | null,
+  company_id: null as number | null,
+  related_products: [] as string[],
   project_name: '',
   bid_result: '待定',
   bid_date: '',
   notes: ''
 })
 const uploadRules = {
+  company_id: [{ required: true, message: '请选择所属公司', trigger: 'change' }],
   project_name: [{ required: true, message: '请输入项目名称', trigger: 'blur' }]
 }
 const uploading = ref(false)
@@ -572,6 +635,8 @@ const loadExcerpts = async () => {
 // 打开上传对话框
 const handleUploadDoc = () => {
   uploadForm.file = null
+  uploadForm.company_id = companyStore.companyId || null
+  uploadForm.related_products = []
   uploadForm.project_name = ''
   uploadForm.bid_result = '待定'
   uploadForm.bid_date = ''
@@ -602,16 +667,23 @@ const handleSubmitUpload = async () => {
     error('请选择文件')
     return
   }
+  if (!uploadForm.company_id) {
+    error('请选择所属公司')
+    return
+  }
 
   uploading.value = true
   try {
     const formData = new FormData()
     formData.append('file', uploadForm.file)
-    formData.append('company_id', String(companyId.value))
+    formData.append('company_id', String(uploadForm.company_id))
     formData.append('project_name', uploadForm.project_name)
     formData.append('bid_result', uploadForm.bid_result)
     if (uploadForm.bid_date) formData.append('bid_date', uploadForm.bid_date)
     if (uploadForm.notes) formData.append('notes', uploadForm.notes)
+    if (uploadForm.related_products.length > 0) {
+      formData.append('related_products', JSON.stringify(uploadForm.related_products))
+    }
 
     const response = await fetch(`${API_BASE}/documents/upload`, {
       method: 'POST',
@@ -864,6 +936,8 @@ const getCategoryType = (category: string) => {
 
 // 生命周期
 onMounted(() => {
+  companyStore.fetchCompanies()
+  loadProductCategories()
   loadDocuments()
   loadExcerpts()
 })

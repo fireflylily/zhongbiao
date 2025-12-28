@@ -147,24 +147,25 @@ class TenderDocumentManager:
         conn = self._get_connection()
         try:
             sql = """
-                SELECT tender_doc_id, doc_name, file_path, project_name, customer_name,
-                       industry, project_type, bid_date, bid_result,
-                       final_score, technical_score, parse_status,
-                       total_chapters, created_at
-                FROM tender_documents
-                WHERE company_id = ?
+                SELECT d.tender_doc_id, d.doc_name, d.file_path, d.project_name, d.customer_name,
+                       d.industry, d.project_type, d.bid_date, d.bid_result,
+                       d.final_score, d.technical_score, d.parse_status,
+                       d.total_chapters, d.created_at,
+                       (SELECT COUNT(*) FROM tender_excerpts e WHERE e.tender_doc_id = d.tender_doc_id) as excerpt_count
+                FROM tender_documents d
+                WHERE d.company_id = ?
             """
             params = [company_id]
 
             if bid_result:
-                sql += " AND bid_result = ?"
+                sql += " AND d.bid_result = ?"
                 params.append(bid_result)
 
             if industry:
-                sql += " AND industry = ?"
+                sql += " AND d.industry = ?"
                 params.append(industry)
 
-            sql += " ORDER BY bid_date DESC, created_at DESC LIMIT ? OFFSET ?"
+            sql += " ORDER BY d.bid_date DESC, d.created_at DESC LIMIT ? OFFSET ?"
             params.extend([limit, offset])
 
             cursor = conn.execute(sql, params)
