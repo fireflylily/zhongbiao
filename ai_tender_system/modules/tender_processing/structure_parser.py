@@ -1256,66 +1256,6 @@ class DocumentStructureParser:
         collect_key_sections(classified)
 
         return classified, key_sections
-    def _is_valid_chapter_title(self, text: str) -> bool:
-        """
-        判断文本是否是合法的章节标题 (过滤列表项、说明性内容等)
-
-        Args:
-            text: 段落文本
-
-        Returns:
-            True 表示可能是章节标题，False 表示应该被过滤
-        """
-        if not text or len(text.strip()) == 0:
-            return False
-
-        # 1. 过滤纯编号（如 "1"、"1.1"）
-        if re.match(r'^[\d\.]+$', text):
-            return False
-
-        # 2. 过滤纯列表项标记（如 "1."、"2."、"(1)"）
-        if re.match(r'^[\d]+\.$', text):  # "1." "2."
-            return False
-        if re.match(r'^\([\d]+\)$', text):  # "(1)" "(2)"
-            return False
-        if re.match(r'^[一二三四五六七八九十]+、$', text):  # "一、" "二、"
-            return False
-
-        # 3. 过滤说明性内容的特征关键词
-        note_keywords = ['注：', '注:', '说明：', '说明:', '备注：', '备注:']
-        if any(text.startswith(kw) for kw in note_keywords):
-            # "注："本身可能不是章节，但如果后面有内容可能是
-            # 如果只有"注："两个字，肯定不是章节标题
-            if len(text) <= 4:
-                return False
-
-        # 4. 过滤超长内容（章节标题一般不超过50个字符）
-        # 但允许包含长条款编号的章节（如 "7.3 双方均应当..."）
-        if len(text) > 100:  # 超过100字符肯定不是标题
-            return False
-
-        # 5. 过滤纯列表项格式（开头是编号+简短内容）
-        # 例如: "1.以上响应文件的构成为必须包含的内容..."
-        if re.match(r'^[\d]+\.[\u4e00-\u9fa5]{2,}', text):
-            # 如果匹配 "数字.中文"，且没有明确的章节特征词，则可能是列表项
-            # 检查是否包含章节特征词
-            chapter_markers = ['章', '节', '部分', '第', '条款', '要求', '标准', '方法', '原则']
-            if not any(marker in text for marker in chapter_markers):
-                # 进一步检查：如果内容很长（>20字符），可能是说明性列表项
-                if len(text) > 30:
-                    return False
-
-        # 6. 特殊过滤：排除纯条款编号（如 "1.1.1"、"2.3.4.5"）
-        if re.match(r'^[\d]+\.[\d]+\.[\d]+(\.[\d]+)*$', text):
-            return False
-
-        # 7. 特殊过滤：排除以条款编号开头且过长的内容
-        # 例如: "7.3 双方均应当严格按照相关法律法规..."（这不是章节标题）
-        if re.match(r'^[\d]+\.[\d]+\s+', text) and len(text) > 50:
-            return False
-
-        return True
-
     def _parse_chapters_by_outline_level(self, doc: Document) -> List[ChapterNode]:
         """
         方法五：基于Word大纲级别（outlineLevel）识别章节
