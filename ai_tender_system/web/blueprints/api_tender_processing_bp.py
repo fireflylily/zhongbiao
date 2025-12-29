@@ -61,7 +61,7 @@ def start_tender_processing():
         # 获取表单数据
         project_id = request.form.get('project_id')
         filter_model = request.form.get('filter_model', 'gpt-4o-mini')
-        extract_model = request.form.get('extract_model', 'yuanjing-deepseek-v3')
+        extract_model = request.form.get('extract_model', 'deepseek-v3')
         step = int(request.form.get('step', 1))  # 默认只执行第1步（分块）
 
         if not project_id:

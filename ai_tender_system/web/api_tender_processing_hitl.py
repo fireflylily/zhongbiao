@@ -2355,7 +2355,7 @@ def register_hitl_routes(app):
 
             data = request.get_json() or {}
             # project_id already comes from URL path parameter, don't overwrite it
-            model_name = data.get('model_name', 'yuanjing-deepseek-v3')  # 默认使用联通元景模型
+            model_name = data.get('model_name', 'deepseek-v3')  # 默认使用DeepSeek官方API
 
             logger.info(f"资质提取 - 任务ID: {project_id}, 使用模型: {model_name}")
 

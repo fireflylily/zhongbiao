@@ -253,7 +253,7 @@ class ParserDebugger:
             logger.error(traceback.format_exc())
             raise
 
-    def _run_llm_level_analyzer(self, model_name: str = "yuanjing-deepseek-v3") -> Dict:
+    def _run_llm_level_analyzer(self, model_name: str = "deepseek-v3") -> Dict:
         """
         方法7: LLM智能层级分析
 

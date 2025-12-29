@@ -678,7 +678,7 @@ class LevelAnalyzer:
 
         return levels
 
-    def analyze_toc_hierarchy_with_llm(self, toc_items: List[Dict], model_name: str = "yuanjing-deepseek-v3") -> List[int]:
+    def analyze_toc_hierarchy_with_llm(self, toc_items: List[Dict], model_name: str = "deepseek-v3") -> List[int]:
         """
         使用LLM智能分析目录层级结构
 

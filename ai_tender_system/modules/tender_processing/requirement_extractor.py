@@ -39,7 +39,7 @@ class TenderRequirement:
 class RequirementExtractor:
     """高精度要求提取器"""
 
-    def __init__(self, model_name: str = 'yuanjing-deepseek-v3', max_workers: int = 3):
+    def __init__(self, model_name: str = 'deepseek-v3', max_workers: int = 3):
         """
         初始化提取器
 
@@ -506,7 +506,7 @@ if __name__ == '__main__':
         }
     ]
 
-    extractor = RequirementExtractor(model_name='yuanjing-deepseek-v3', max_workers=2)
+    extractor = RequirementExtractor(model_name='deepseek-v3', max_workers=2)
 
     def progress_callback(processed, total):
         print(f"进度: {processed}/{total} ({processed/total*100:.1f}%)")

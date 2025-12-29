@@ -57,7 +57,7 @@ class TenderProcessingPipeline:
 
     def __init__(self, project_id: int, document_text: str,
                  filter_model: str = 'gpt-4o-mini',
-                 extract_model: str = 'yuanjing-deepseek-v3',
+                 extract_model: str = 'deepseek-v3',
                  progress_callback: Optional[Callable] = None):
         """
         初始化处理流程
@@ -622,7 +622,7 @@ if __name__ == '__main__':
         project_id=1,
         document_text=sample_document,
         filter_model='gpt-4o-mini',
-        extract_model='yuanjing-deepseek-v3',
+        extract_model='deepseek-v3',
         progress_callback=progress_callback
     )
 
