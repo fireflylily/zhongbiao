@@ -388,10 +388,11 @@ def get_tender_project(project_id):
                         is_selected,
                         auto_selected,
                         skip_recommended,
-                        parent_chapter_id
+                        parent_chapter_id,
+                        order_index
                     FROM tender_document_chapters
                     WHERE project_id = ?
-                    ORDER BY para_start_idx ASC
+                    ORDER BY order_index ASC
                 """
                 chapters_raw = kb_manager.db.execute_query(chapters_query, [project_id])
                 logger.info(f"🔍 数据库返回 {len(chapters_raw) if chapters_raw else 0} 条章节记录")

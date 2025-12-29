@@ -697,7 +697,14 @@ class LevelAnalyzer:
         if not toc_items:
             return []
 
-        self.logger.info(f"使用LLM分析 {len(toc_items)} 个目录项的层级，模型: {model_name}")
+        # 获取实际模型名用于日志显示
+        from common.config import get_config
+        config = get_config()
+        model_config = config.get_model_config(model_name)
+        actual_model = model_config.get('model_name', model_name)
+        display_name = model_config.get('display_name', model_name)
+
+        self.logger.info(f"使用LLM分析 {len(toc_items)} 个目录项的层级，模型: {display_name} ({actual_model})")
 
         # 构建目录列表文本
         toc_text_lines = []

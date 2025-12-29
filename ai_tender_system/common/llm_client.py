@@ -83,7 +83,11 @@ class LLMClient:
         # 模型特定配置
         self.actual_model_name = self.model_config.get('model_name', model_name)
 
-        self.logger.info(f"LLM客户端初始化完成，模型: {model_name}")
+        # 日志显示：配置键名 → 实际模型名
+        if model_name != self.actual_model_name:
+            self.logger.info(f"LLM客户端初始化完成，配置: {model_name} → 实际模型: {self.actual_model_name}")
+        else:
+            self.logger.info(f"LLM客户端初始化完成，模型: {model_name}")
 
     def call(self,
              prompt: str,
