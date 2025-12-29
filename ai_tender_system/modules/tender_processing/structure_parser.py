@@ -535,23 +535,6 @@ class DocumentStructureParser:
                 "chapters": chapters,
                 "statistics": {}
             }
-
-    def _flatten_chapters(self, chapters: List[Dict], result: List[Dict] = None) -> List[Dict]:
-        """将嵌套的章节树展平为列表"""
-        if result is None:
-            result = []
-
-        for chapter in chapters:
-            # 添加当前章节（不含children）
-            chapter_copy = {k: v for k, v in chapter.items() if k != 'children'}
-            result.append(chapter_copy)
-
-            # 递归处理子章节
-            if 'children' in chapter and chapter['children']:
-                self._flatten_chapters(chapter['children'], result)
-
-        return result
-
     def _find_paragraph_by_title_simple(self, doc: Document, title: str, start_idx: int) -> int:
         """
         简化版标题定位：在文档中查找与标题匹配的段落
@@ -2599,39 +2582,6 @@ class DocumentStructureParser:
         # 未找到任何匹配
         self.logger.warning(f"未找到标题匹配: '{title}'")
         return None
-    def _is_bold_subtitle(self, paragraph) -> bool:
-        """
-        判断段落是否为加粗的子标题
-
-        Args:
-            paragraph: Word段落对象
-
-        Returns:
-            是否为加粗子标题
-        """
-        text = paragraph.text.strip()
-
-        # 排除空段落
-        if not text:
-            return False
-
-        # 排除过长的段落(子标题通常较短)
-        if len(text) > 50:
-            return False
-
-        # 排除编号开头的段落(已通过编号模式识别)
-        if re.match(r'^\d+\.', text):
-            return False
-
-        # 检查是否有加粗的run
-        has_bold = False
-        if paragraph.runs:
-            # 至少有一个run是加粗的,且加粗内容占比较大
-            bold_chars = sum(len(r.text) for r in paragraph.runs if r.bold)
-            total_chars = len(text)
-            has_bold = bold_chars > total_chars * 0.5  # 加粗内容超过50%
-
-        return has_bold
     def _locate_chapters_by_toc(self, doc: Document, toc_items: List[Dict], toc_end_idx: int) -> List[ChapterNode]:
         """
         根据目录项定位章节在文档中的位置，并构建树形结构
@@ -2833,56 +2783,6 @@ class DocumentStructureParser:
 
         self.logger.info(f"✅ 成功构建章节树: {len(root_chapters)} 个根章节")
         return root_chapters
-
-    def _build_chapter_tree(self, chapters: List[ChapterNode]) -> List[ChapterNode]:
-        """
-        根据章节的level属性构建树形结构
-
-        Args:
-            chapters: 扁平的章节列表（按文档顺序排列）
-
-        Returns:
-            根章节列表（子章节在children属性中）
-        """
-        if not chapters:
-            return []
-
-        root_chapters = []
-        stack = []  # 用于追踪父节点的栈
-
-        for chapter in chapters:
-            # 弹出所有层级 >= 当前章节的节点（它们不是当前章节的祖先）
-            while stack and stack[-1].level >= chapter.level:
-                stack.pop()
-
-            # 如果栈为空，说明是根节点
-            if not stack:
-                root_chapters.append(chapter)
-            else:
-                # 否则，当前章节是栈顶节点的子节点
-                parent = stack[-1]
-                if parent.children is None:
-                    parent.children = []
-                parent.children.append(chapter)
-
-            # 将当前章节压入栈
-            stack.append(chapter)
-
-        # 统计树形结构
-        def count_by_level(nodes, level_counts=None):
-            if level_counts is None:
-                level_counts = {}
-            for node in nodes:
-                level_counts[node.level] = level_counts.get(node.level, 0) + 1
-                if node.children:
-                    count_by_level(node.children, level_counts)
-            return level_counts
-
-        level_dist = count_by_level(root_chapters)
-        self.logger.info(f"📊 章节层级分布: {dict(sorted(level_dist.items()))}")
-
-        return root_chapters
-
     def _locate_chapter_content(self, doc: Document, chapters: List[ChapterNode]) -> List[ChapterNode]:
         """
         定位每个章节的内容范围
@@ -3703,41 +3603,6 @@ class DocumentStructureParser:
             )
 
         return None
-
-    def _detect_content_tags(self, content_text: str) -> List[str]:
-        """
-        检测章节内容标签
-
-        基于内容关键词匹配，检测章节包含的信息类型
-
-        Args:
-            content_text: 章节内容文本
-
-        Returns:
-            标签列表（可能包含多个标签）
-        """
-        tags = []
-        content_lower = content_text.lower()
-
-        # 定义标签及其关键词
-        tag_rules = {
-            "评分办法": ["评分办法", "评分标准", "评审办法", "打分", "评分细则", "综合评分"],
-            "评分表": ["前附表", "评分表", "附表", "评审表"],
-            "供应商资质": ["供应商资质", "资质要求", "资格要求", "投标人资格", "供应商须知",
-                       "投标须知", "民事责任", "商业信誉", "技术能力"],
-            "文件格式": ["文件格式", "格式要求", "编制要求", "装订要求", "响应文件编制"],
-            "技术需求": ["技术规范", "技术说明", "技术需求", "技术要求", "技术参数",
-                       "性能指标", "功能要求", "需求说明"]
-        }
-
-        # 检测每个标签
-        for tag, keywords in tag_rules.items():
-            for keyword in keywords:
-                if keyword in content_lower:
-                    tags.append(tag)
-                    break  # 匹配到一个关键词即可，不需要继续检查该标签的其他关键词
-
-        return tags
 if __name__ == '__main__':
     # 测试代码
     import sys
