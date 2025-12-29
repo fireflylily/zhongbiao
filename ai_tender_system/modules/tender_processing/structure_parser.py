@@ -3145,7 +3145,7 @@ class DocumentStructureParser:
                 "error": str(e)
             }
 
-    def export_multiple_chapters_to_docx(self, doc_path: str, chapter_ids: List[str], output_path: str = None) -> Dict:
+    def export_multiple_chapters_to_docx(self, doc_path: str, chapter_ids: List[str], output_path: str = None, cached_chapters: List[Dict] = None) -> Dict:
         """
         将多个章节导出为单个Word文档
 
@@ -3153,6 +3153,7 @@ class DocumentStructureParser:
             doc_path: 源文档路径
             chapter_ids: 章节ID列表
             output_path: 输出路径（可选）
+            cached_chapters: 缓存的章节列表（可选），如果提供则跳过重新解析，提升性能
 
         Returns:
             {
@@ -3174,9 +3175,14 @@ class DocumentStructureParser:
 
             doc_path = str(resolved_path)  # 使用解析后的绝对路径
 
-            # 解析文档结构
-            result = self.parse_document_structure(doc_path)
-            chapters = self._flatten_chapters(result["chapters"])
+            # 优先使用缓存的章节数据，避免重复解析
+            if cached_chapters:
+                self.logger.info(f"使用缓存的章节数据，共 {len(cached_chapters)} 个章节")
+                chapters = self._flatten_chapters(cached_chapters)
+            else:
+                # 解析文档结构
+                result = self.parse_document_structure(doc_path)
+                chapters = self._flatten_chapters(result["chapters"])
 
             # ⭐ 关键修复：过滤掉父章节已被选中的子章节，避免重复导出
             filtered_chapter_ids = self._filter_redundant_chapters(chapter_ids)
