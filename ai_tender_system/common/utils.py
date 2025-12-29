@@ -260,9 +260,10 @@ def resolve_file_path(file_path: Union[str, Path], logger=None) -> Optional[Path
     1. 如果是绝对路径且存在，直接返回
     2. 如果是相对路径，尝试从项目根目录解析
     3. 支持多种相对路径格式（data/..., ai_tender_system/data/...）
+    4. 支持 /api/downloads/xxx 格式的URL路径，自动转换为 data/outputs/xxx
 
     Args:
-        file_path: 原始文件路径（可能是相对路径或绝对路径）
+        file_path: 原始文件路径（可能是相对路径或绝对路径或URL）
         logger: 可选的日志记录器，用于输出详细诊断信息
 
     Returns:
@@ -274,6 +275,9 @@ def resolve_file_path(file_path: Union[str, Path], logger=None) -> Optional[Path
 
         输入: /Users/.../xxx.jpg (绝对路径)
         输出: /Users/.../xxx.jpg
+
+        输入: /api/downloads/xxx.docx (URL格式)
+        输出: /Users/.../zhongbiao/ai_tender_system/data/outputs/xxx.docx
     """
     try:
         if not file_path:
@@ -281,11 +285,31 @@ def resolve_file_path(file_path: Union[str, Path], logger=None) -> Optional[Path
                 logger.warning("resolve_file_path: 输入路径为空")
             return None
 
-        path_obj = Path(file_path)
+        file_path_str = str(file_path)
         project_root = get_project_root()
 
         if logger:
             logger.info(f"resolve_file_path: 输入路径={file_path}, 项目根={project_root}")
+
+        # 情况0: 处理 /api/downloads/xxx 格式的URL路径
+        if file_path_str.startswith('/api/downloads/'):
+            filename = file_path_str[len('/api/downloads/'):]
+            # project_root 是 ai_tender_system 目录，所以直接用 data/outputs
+            resolved = project_root / 'data' / 'outputs' / filename
+            if logger:
+                logger.info(f"resolve_file_path: URL格式检测 - 转换为={resolved}, 存在={resolved.exists()}")
+            if resolved.exists():
+                return resolved
+            # 如果 outputs 目录不存在，也尝试 uploads/tech_proposal_files
+            alt_resolved = project_root / 'data' / 'uploads' / 'tech_proposal_files' / filename
+            if alt_resolved.exists():
+                if logger:
+                    logger.info(f"resolve_file_path: ✅ URL格式(备选路径)={alt_resolved}")
+                return alt_resolved
+            # 返回主路径（即使不存在，让调用方处理错误）
+            return resolved if resolved.parent.exists() else None
+
+        path_obj = Path(file_path)
 
         # 情况1: 已经是绝对路径且存在
         if path_obj.is_absolute():

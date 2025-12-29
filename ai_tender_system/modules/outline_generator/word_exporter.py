@@ -324,6 +324,12 @@ class WordExporter:
         chapter_num = chapter.get('chapter_number', '')
         title = chapter.get('title', '')
 
+        # 清理 title 中已有的编号前缀，避免重复（如 "第四章 系统架构" -> "系统架构"）
+        import re
+        title = re.sub(r'^第[一二三四五六七八九十百千]+章\s*', '', title)
+        title = re.sub(r'^\d+[\.\s]+', '', title)
+        title = title.strip()
+
         # 添加章节标题
         doc.add_heading(f"{chapter_num} {title}", level=level)
 
@@ -400,11 +406,38 @@ class WordExporter:
         """
         import re
 
-        # 处理字典类型输入（Quality-First 模式可能传入 {'content': '...'} 格式）
-        if isinstance(markdown_text, dict):
-            markdown_text = markdown_text.get('content', '') or str(markdown_text)
+        def extract_string_content(data, max_depth=5):
+            """递归提取字符串内容，防止无限循环"""
+            if max_depth <= 0:
+                return str(data) if data else ''
 
-        # 确保是字符串
+            if isinstance(data, str):
+                return data
+            elif isinstance(data, dict):
+                # 优先尝试 'content' 键
+                if 'content' in data:
+                    return extract_string_content(data['content'], max_depth - 1)
+                # 其次尝试 'text' 键
+                elif 'text' in data:
+                    return extract_string_content(data['text'], max_depth - 1)
+                # 尝试将所有字符串值连接起来
+                else:
+                    parts = []
+                    for v in data.values():
+                        if isinstance(v, str):
+                            parts.append(v)
+                    return '\n'.join(parts) if parts else str(data)
+            elif isinstance(data, list):
+                # 处理列表：连接所有字符串元素
+                parts = [extract_string_content(item, max_depth - 1) for item in data]
+                return '\n'.join(filter(None, parts))
+            else:
+                return str(data) if data else ''
+
+        # 递归提取字符串内容
+        markdown_text = extract_string_content(markdown_text)
+
+        # 最终确保是字符串
         if not isinstance(markdown_text, str):
             markdown_text = str(markdown_text) if markdown_text else ''
 

@@ -165,6 +165,27 @@ class Config:
                 'display_name': '元景-DeepSeek函数调用版',
                 'description': '结构化输出能力强，适合生成规范格式的标书内容和表格'
             },
+            # DeepSeek 官方 API 配置
+            'deepseek-v3': {
+                'api_key': clean_env_value(os.getenv('DEEPSEEK_API_KEY', '')),
+                'base_url': clean_env_value(os.getenv('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')),
+                'model_name': 'deepseek-chat',
+                'max_tokens': int(os.getenv('DEEPSEEK_MAX_TOKENS', '2000')),
+                'timeout': int(os.getenv('DEEPSEEK_TIMEOUT', '60')),
+                'provider': 'DeepSeek',
+                'display_name': 'DeepSeek V3',
+                'description': 'DeepSeek官方API，响应速度快，适合目录解析等任务'
+            },
+            'deepseek-r1': {
+                'api_key': clean_env_value(os.getenv('DEEPSEEK_API_KEY', '')),
+                'base_url': clean_env_value(os.getenv('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')),
+                'model_name': 'deepseek-reasoner',
+                'max_tokens': int(os.getenv('DEEPSEEK_MAX_TOKENS', '2000')),
+                'timeout': int(os.getenv('DEEPSEEK_TIMEOUT', '120')),
+                'provider': 'DeepSeek',
+                'display_name': 'DeepSeek R1',
+                'description': 'DeepSeek推理模型，适合复杂逻辑分析'
+            },
             # 始皇API配置 - 所有模型共享同一个API Key和Endpoint
             'shihuang-gpt5': {
                 'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),

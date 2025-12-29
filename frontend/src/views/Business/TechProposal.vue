@@ -362,54 +362,6 @@
       </div>
     </el-card>
 
-    <!-- 大纲展示 -->
-    <el-card v-if="outlineData" class="outline-section" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>技术方案大纲</span>
-          <el-button
-            size="small"
-            @click="outlineExpanded = !outlineExpanded"
-          >
-            {{ outlineExpanded ? '收起' : '展开' }}
-          </el-button>
-        </div>
-      </template>
-
-      <div v-show="outlineExpanded">
-        <!-- 大纲统计 -->
-        <StatsCard
-          title="大纲概览"
-          :stats="outlineData"
-          :stat-items="[
-            { key: 'total_chapters', label: '总章节数', suffix: '章' },
-            { key: 'estimated_pages', label: '预计页数', suffix: '页' }
-          ]"
-          :span="12"
-        />
-
-        <!-- 章节树 -->
-        <div class="章节结构">
-          <h4>章节结构</h4>
-          <el-tree
-            :data="chapterTreeData"
-            :props="{ label: 'title', children: 'subsections' }"
-            default-expand-all
-            node-key="chapter_number"
-          >
-            <template #default="{ node, data }">
-              <span class="tree-node">
-                <el-icon v-if="data.level === 1"><Folder /></el-icon>
-                <el-icon v-else><Document /></el-icon>
-                <span class="node-title">{{ data.chapter_number }} {{ data.title }}</span>
-                <span v-if="data.description" class="node-desc">{{ data.description }}</span>
-              </span>
-            </template>
-          </el-tree>
-        </div>
-      </div>
-    </el-card>
-
     <!-- 富文本编辑器（生成完成后显示） -->
     <el-card v-if="showEditor" class="editor-section" shadow="never">
       <RichTextEditor
@@ -603,6 +555,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
+import { marked } from 'marked'
 import {
   Download,
   RefreshRight,
@@ -1317,7 +1270,9 @@ const updateEditorContent = (chapterContents: Record<string, string>) => {
           htmlContent += `<div style="padding: 12px; background: #F0FFF4; border-left: 4px solid #52C41A; margin: 12px 0;">
             <strong style="color: #52C41A;">【AI生成内容】</strong>
           </div>\n`
-          htmlContent += `<div style="line-height: 1.8; margin: 12px 0;">${content.replace(/\n/g, '<br>')}</div>\n`
+          // 使用 marked 将 Markdown 转换为 HTML
+          const renderedContent = marked(content, { breaks: true }) as string
+          htmlContent += `<div style="line-height: 1.8; margin: 12px 0;">${renderedContent}</div>\n`
         } else if (chapterNum in chapterContents) {
           // 正在生成中但内容为空，显示占位符
           htmlContent += `<div style="padding: 12px; background: #F5F5F5; border: 1px dashed #D9D9D9; margin: 12px 0; color: #999;">
@@ -1350,7 +1305,9 @@ const updateEditorContent = (chapterContents: Record<string, string>) => {
     for (const [chapterNum, content] of sortedEntries) {
       htmlContent += `<h2>${chapterNum}</h2>\n`
       if (content) {
-        htmlContent += `<div style="line-height: 1.8;">${content.replace(/\n/g, '<br>')}</div>\n`
+        // 使用 marked 将 Markdown 转换为 HTML
+        const renderedContent = marked(content, { breaks: true }) as string
+        htmlContent += `<div style="line-height: 1.8;">${renderedContent}</div>\n`
       }
     }
 

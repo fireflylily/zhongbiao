@@ -59,6 +59,11 @@ class LLMClient:
             self.api_version = self.model_config.get('api_version', '2024-02-15-preview')
             # Azure使用特殊的base_url格式（用于某些场景）
             self.base_url = f"{self.azure_endpoint}/openai/deployments/{self.azure_deployment}"
+        elif model_name.startswith('deepseek'):
+            # DeepSeek 官方 API 配置 - 使用 OpenAI 兼容格式
+            self.api_key = api_key or self.model_config.get('api_key', '')
+            self.base_url = self.model_config.get('base_url', 'https://api.deepseek.com')
+            self.api_endpoint = f"{self.base_url}/chat/completions"
         elif model_name.startswith('shihuang'):
             # 始皇API配置 - OpenAI兼容格式
             self.api_key = api_key or self.model_config.get('api_key', '')
@@ -125,6 +130,11 @@ class LLMClient:
         elif self.model_name.startswith('azure'):
             # Azure OpenAI使用专用方法
             return self._call_azure_openai(
+                prompt, system_prompt, temperature, actual_max_tokens, max_retries, purpose
+            )
+        elif self.model_name.startswith('deepseek'):
+            # DeepSeek 官方 API 使用 OpenAI 兼容格式
+            return self._call_openai_compatible(
                 prompt, system_prompt, temperature, actual_max_tokens, max_retries, purpose
             )
         elif self.model_name.startswith('shihuang'):

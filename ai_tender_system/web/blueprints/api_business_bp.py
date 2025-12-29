@@ -52,13 +52,15 @@ except ImportError:
 # ===================
 
 
-def generate_output_filename(project_name: str, file_type: str, timestamp: str = None) -> str:
+def generate_output_filename(project_name: str, file_type: str,
+                            project_id: str = None, timestamp: str = None) -> str:
     """
-    生成统一格式的输出文件名: {项目名称}_{类型}_{时间戳}.docx
+    生成统一格式的输出文件名: P{项目ID}_{项目名称}_{类型}_{时间戳}.docx
 
     Args:
         project_name: 项目名称
         file_type: 文件类型（如：商务应答、点对点应答、技术方案）
+        project_id: 项目ID，用于唯一标识（可选）
         timestamp: 时间戳，如果未提供则自动生成
 
     Returns:
@@ -70,7 +72,11 @@ def generate_output_filename(project_name: str, file_type: str, timestamp: str =
     # 使用safe_filename确保项目名称安全，但不添加时间戳（避免重复）
     safe_project = safe_filename(project_name, timestamp=False) if project_name else "未命名项目"
 
-    return f"{safe_project}_{file_type}_{timestamp}.docx"
+    # 添加项目ID前缀（确保唯一性）
+    if project_id and str(project_id) != 'default':
+        return f"P{project_id}_{safe_project}_{file_type}_{timestamp}.docx"
+    else:
+        return f"{safe_project}_{file_type}_{timestamp}.docx"
 
 
 # ===================
@@ -111,6 +117,7 @@ def process_business_response():
         # 获取表单数据
         data = request.form.to_dict()
         company_id = data.get('company_id', '')
+        project_id = data.get('project_id', '')  # 项目ID，用于唯一标识
         project_name = data.get('project_name', '')
         tender_no = data.get('tender_no', '')
         date_text = data.get('date_text', '')
@@ -320,11 +327,12 @@ def process_business_response():
 
         # 公共的输出文件路径设置（移到外面，两个分支都需要）
         output_dir = ensure_dir(config.get_path('output'))
-        # 使用新的文件命名规则：{项目名称}_商务应答_{时间戳}.docx
-        output_filename = generate_output_filename(project_name, "商务应答")
+        # 使用新的文件命名规则：P{项目ID}_{项目名称}_商务应答_{时间戳}.docx
+        output_filename = generate_output_filename(project_name, "商务应答", project_id)
         output_path = output_dir / output_filename
 
         # 添加调试日志
+        logger.info(f"[文件命名调试] project_id参数: {project_id}")
         logger.info(f"[文件命名调试] project_name参数: {project_name}")
         logger.info(f"[文件命名调试] 生成的文件名: {output_filename}")
         logger.info(f"[文件命名调试] 输出目录: {output_dir}")
@@ -618,12 +626,27 @@ def list_business_files():
                         stat = file_path.stat()
                         modified_time = datetime.fromtimestamp(stat.st_mtime)
 
-                        # 提取项目名称(文件名格式: {项目名称}_商务应答_{时间戳}.docx)
-                        project_name_match = re.match(r'^(.+?)_商务应答_\d{8}_\d{6}\.', filename)
-                        project_name = project_name_match.group(1) if project_name_match else filename
+                        # 提取项目ID和项目名称
+                        # 新格式: P{项目ID}_{项目名称}_商务应答_{时间戳}.docx
+                        # 旧格式: {项目名称}_商务应答_{时间戳}.docx
+                        project_match = re.match(r'^(?:P(\d+)_)?(.+?)_商务应答_\d{8}_\d{6}\.', filename)
+                        if project_match:
+                            file_project_id = project_match.group(1)  # 可能为 None（旧格式）
+                            project_name = project_match.group(2)
+                        else:
+                            file_project_id = None
+                            project_name = filename
 
-                        # 如果指定了项目名称，过滤不匹配的文件
-                        if target_project_name:
+                        # 过滤逻辑：优先按项目ID过滤，其次按项目名称过滤
+                        if project_id and file_project_id:
+                            # 新格式文件：按项目ID过滤
+                            if str(file_project_id) != str(project_id):
+                                logger.info(f"⚠️  FILTERED: {filename} (project_id='{file_project_id}' ≠ target='{project_id}')")
+                                continue
+                            else:
+                                logger.info(f"✅ MATCHED: {filename} (project_id='{file_project_id}')")
+                        elif target_project_name:
+                            # 旧格式文件或无项目ID：按项目名称过滤
                             if project_name != target_project_name:
                                 logger.info(f"⚠️  FILTERED: {filename} (project='{project_name}' ≠ target='{target_project_name}')")
                                 continue
@@ -641,6 +664,7 @@ def list_business_files():
                             'process_time': modified_time.isoformat(),
                             'status': 'completed',
                             'company_name': '未知公司',  # 暂时使用默认值，后续会从数据库获取
+                            'project_id': file_project_id,  # 添加项目ID
                             'project_name': project_name  # 添加项目名称用于去重
                         })
                     except Exception as e:
@@ -924,15 +948,16 @@ def process_point_to_point():
         # 创建商务应答处理器（使用内联回复功能）
         processor = BusinessResponseProcessor(model_name=actual_model)
 
-        # 获取项目名称参数
+        # 获取项目名称和项目ID参数
         project_name = request.form.get('projectName')
+        project_id = request.form.get('projectId') or request.form.get('project_id')
 
         # 生成输出文件路径
         output_dir = ensure_dir(config.get_path('output'))
-        # 使用新的文件命名规则：{项目名称}_点对点应答_{时间戳}.docx
+        # 使用新的文件命名规则：P{项目ID}_{项目名称}_点对点应答_{时间戳}.docx
         # 如果有项目名称，使用项目名称；否则使用原文件名
         base_name = project_name if project_name else Path(filename).stem
-        output_filename = generate_output_filename(base_name, "点对点应答")
+        output_filename = generate_output_filename(base_name, "点对点应答", project_id)
         output_path = output_dir / output_filename
 
         # 判断是否使用AI（根据应答方式）
@@ -1111,13 +1136,27 @@ def list_point_to_point_files():
                     try:
                         stat = file_path.stat()
 
-                        # 提取项目名称(文件名格式: {项目名称}_点对点应答_{时间戳}.docx)
-                        # 使用正则提取项目名称部分(去掉后面的时间戳)
-                        project_name_match = re.match(r'^(.+?)_点对点应答_\d{8}_\d{6}\.', filename)
-                        project_name = project_name_match.group(1) if project_name_match else filename
+                        # 提取项目ID和项目名称
+                        # 新格式: P{项目ID}_{项目名称}_点对点应答_{时间戳}.docx
+                        # 旧格式: {项目名称}_点对点应答_{时间戳}.docx
+                        project_match = re.match(r'^(?:P(\d+)_)?(.+?)_点对点应答_\d{8}_\d{6}\.', filename)
+                        if project_match:
+                            file_project_id = project_match.group(1)  # 可能为 None（旧格式）
+                            project_name = project_match.group(2)
+                        else:
+                            file_project_id = None
+                            project_name = filename
 
-                        # 如果指定了项目名称，过滤不匹配的文件
-                        if target_project_name:
+                        # 过滤逻辑：优先按项目ID过滤，其次按项目名称过滤
+                        if project_id and file_project_id:
+                            # 新格式文件：按项目ID过滤
+                            if str(file_project_id) != str(project_id):
+                                logger.info(f"⚠️  FILTERED: {filename} (project_id='{file_project_id}' ≠ target='{project_id}')")
+                                continue
+                            else:
+                                logger.info(f"✅ MATCHED: {filename} (project_id='{file_project_id}')")
+                        elif target_project_name:
+                            # 旧格式文件或无项目ID：按项目名称过滤
                             if project_name != target_project_name:
                                 logger.info(f"⚠️  FILTERED: {filename} (project='{project_name}' ≠ target='{target_project_name}')")
                                 continue
@@ -1135,6 +1174,7 @@ def list_point_to_point_files():
                             'process_time': datetime.fromtimestamp(stat.st_mtime).isoformat(),
                             'status': 'completed',
                             'company_name': '未知公司',  # 暂时使用默认值，后续会从数据库获取
+                            'project_id': file_project_id,  # 添加项目ID
                             'project_name': project_name  # 添加项目名称用于去重
                         })
                     except Exception as e:

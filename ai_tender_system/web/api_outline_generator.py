@@ -463,17 +463,19 @@ def generate_proposal_stream():
             exporter = WordExporter()
             output_files = {}
 
-            # 文件命名
-            if project_name:
-                proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
-                analysis_filename = f"{project_name}_需求分析_{timestamp}.docx"
-                mapping_filename = f"{project_name}_需求匹配表_{timestamp}.xlsx"
-                summary_filename = f"{project_name}_生成报告_{timestamp}.txt"
+            # 文件命名：项目ID_项目名称_类型_时间戳（项目ID确保唯一性）
+            project_id_str = f"P{project_id}" if project_id and project_id != 'default' else ''
+            name_part = project_name if project_name else output_prefix
+            if project_id_str:
+                proposal_filename = f"{project_id_str}_{name_part}_技术方案_{timestamp}.docx"
+                analysis_filename = f"{project_id_str}_{name_part}_需求分析_{timestamp}.docx"
+                mapping_filename = f"{project_id_str}_{name_part}_需求匹配表_{timestamp}.xlsx"
+                summary_filename = f"{project_id_str}_{name_part}_生成报告_{timestamp}.txt"
             else:
-                proposal_filename = f"{output_prefix}_{timestamp}.docx"
-                analysis_filename = f"{output_prefix}_需求分析_{timestamp}.docx"
-                mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
-                summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
+                proposal_filename = f"{name_part}_技术方案_{timestamp}.docx"
+                analysis_filename = f"{name_part}_需求分析_{timestamp}.docx"
+                mapping_filename = f"{name_part}_需求匹配表_{timestamp}.xlsx"
+                summary_filename = f"{name_part}_生成报告_{timestamp}.txt"
 
             # 导出主方案（简洁模式，不显示大纲指导信息）
             proposal_path = output_dir / proposal_filename
@@ -791,17 +793,19 @@ def generate_proposal_stream_v2():
             exporter = WordExporter()
             output_files = {}
 
-            # 文件命名
-            if project_name:
-                proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
-                analysis_filename = f"{project_name}_需求分析_{timestamp}.docx"
-                mapping_filename = f"{project_name}_需求匹配表_{timestamp}.xlsx"
-                summary_filename = f"{project_name}_生成报告_{timestamp}.txt"
+            # 文件命名：项目ID_项目名称_类型_时间戳（项目ID确保唯一性）
+            project_id_str = f"P{project_id}" if project_id and project_id != 'default' else ''
+            name_part = project_name if project_name else output_prefix
+            if project_id_str:
+                proposal_filename = f"{project_id_str}_{name_part}_技术方案_{timestamp}.docx"
+                analysis_filename = f"{project_id_str}_{name_part}_需求分析_{timestamp}.docx"
+                mapping_filename = f"{project_id_str}_{name_part}_需求匹配表_{timestamp}.xlsx"
+                summary_filename = f"{project_id_str}_{name_part}_生成报告_{timestamp}.txt"
             else:
-                proposal_filename = f"{output_prefix}_{timestamp}.docx"
-                analysis_filename = f"{output_prefix}_需求分析_{timestamp}.docx"
-                mapping_filename = f"{output_prefix}_需求匹配表_{timestamp}.xlsx"
-                summary_filename = f"{output_prefix}_生成报告_{timestamp}.txt"
+                proposal_filename = f"{name_part}_技术方案_{timestamp}.docx"
+                analysis_filename = f"{name_part}_需求分析_{timestamp}.docx"
+                mapping_filename = f"{name_part}_需求匹配表_{timestamp}.xlsx"
+                summary_filename = f"{name_part}_生成报告_{timestamp}.txt"
 
             # 导出主方案（简洁模式，不显示大纲指导信息）
             proposal_path = output_dir / proposal_filename
@@ -1137,10 +1141,13 @@ def generate_with_agent():
             output_dir = config.get_path('output')
             output_dir.mkdir(parents=True, exist_ok=True)
 
-            if project_name:
-                proposal_filename = f"{project_name}_技术方案_{timestamp}.docx"
+            # 文件命名：项目ID_项目名称_类型_时间戳（项目ID确保唯一性）
+            project_id_str = f"P{project_id}" if project_id and project_id != 'default' else ''
+            name_part = project_name if project_name else output_prefix
+            if project_id_str:
+                proposal_filename = f"{project_id_str}_{name_part}_技术方案_{timestamp}.docx"
             else:
-                proposal_filename = f"{output_prefix}_{timestamp}.docx"
+                proposal_filename = f"{name_part}_技术方案_{timestamp}.docx"
 
             proposal_path = output_dir / proposal_filename
 
@@ -1421,6 +1428,7 @@ def generate_with_crew():
             company_id = req_data.get('companyId', 1)
             project_id = req_data.get('projectId', 'default')
             project_name = req_data.get('projectName', '')
+            customer_name = ''  # 客户名称（招标方）
             ai_model = req_data.get('aiModel', 'shibing624-gpt4o-mini')
             crew_config_raw = req_data.get('crew_config', {})
             content_style = req_data.get('content_style', {})
@@ -1431,6 +1439,7 @@ def generate_with_crew():
             company_id = request.form.get('companyId', 1)
             project_id = request.form.get('projectId') or request.form.get('project_id') or 'default'
             project_name = request.form.get('projectName', '')
+            customer_name = ''  # 客户名称（招标方）
             ai_model = request.form.get('aiModel', 'shibing624-gpt4o-mini')
 
             # crew_config 是 JSON 字符串
@@ -1513,6 +1522,27 @@ def generate_with_crew():
                     tender_doc = '\n'.join(content_parts)
                     logger.info(f"已解析上传文件: {tender_path}, 文本长度: {len(tender_doc)}")
 
+        # 从数据库查询项目信息（项目名称和客户名称）
+        if project_id and project_id != 'default':
+            try:
+                from ai_tender_system.common.database import get_db_connection
+                with get_db_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT project_name, tenderer FROM tender_projects WHERE project_id = ?",
+                        (project_id,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        # 使用数据库中的值作为后备（如果前端没传）
+                        if not project_name and row[0]:
+                            project_name = row[0]
+                        if row[1]:
+                            customer_name = row[1]
+                        logger.info(f"从数据库获取项目信息: project_name={project_name}, customer_name={customer_name}")
+            except Exception as e:
+                logger.warning(f"查询项目信息失败: {e}")
+
         # 参数验证
         param_error = None
         if not tender_doc:
@@ -1525,6 +1555,7 @@ def generate_with_crew():
         company_id = 1
         project_id = 'default'
         project_name = ''
+        customer_name = ''
         ai_model = 'shibing624-gpt4o-mini'
         crew_config_raw = {}
         content_style = {}
@@ -1532,7 +1563,7 @@ def generate_with_crew():
     def generate_events():
         """生成SSE事件流"""
         nonlocal param_error, tender_doc, page_count, company_id, project_id
-        nonlocal project_name, ai_model, crew_config_raw, content_style
+        nonlocal project_name, customer_name, ai_model, crew_config_raw, content_style
 
         try:
             # 检查参数错误
@@ -1555,7 +1586,9 @@ def generate_with_crew():
                 max_iterations=crew_config_raw.get('max_iterations', 2),
                 min_review_score=crew_config_raw.get('min_review_score', 85.0),
                 target_word_count=page_count * 700,
-                content_style=content_style
+                content_style=content_style,
+                project_name=project_name,      # 项目名称
+                customer_name=customer_name     # 客户名称（招标方）
             )
 
             crew = ProposalCrew(crew_config)
@@ -1656,7 +1689,10 @@ def generate_with_crew():
                 output_dir = config.get_path('output')
                 output_dir.mkdir(parents=True, exist_ok=True)
 
-                proposal_filename = f"{project_name}_技术方案_{timestamp}.docx" if project_name else f"技术方案_{timestamp}.docx"
+                # 文件命名：项目ID_项目名称_技术方案_时间戳.docx（项目ID确保唯一性）
+                project_id_str = f"P{project_id}" if project_id and project_id != 'default' else ''
+                name_part = project_name if project_name else '技术方案'
+                proposal_filename = f"{project_id_str}_{name_part}_技术方案_{timestamp}.docx" if project_id_str else f"{name_part}_{timestamp}.docx"
                 proposal_path = output_dir / proposal_filename
 
                 exporter = WordExporter()
@@ -1668,11 +1704,18 @@ def generate_with_crew():
                     # 生成章节编号
                     chapter_num = prefix or chapter.get('id', '') or ''
 
+                    # 安全提取 content，确保是字符串
+                    content = chapter.get('content', '')
+                    if isinstance(content, dict):
+                        content = content.get('content', '') or content.get('text', '') or str(content)
+                    if not isinstance(content, str):
+                        content = str(content) if content else ''
+
                     converted = {
                         'chapter_number': chapter_num,
                         'title': chapter.get('title', ''),
                         'level': chapter.get('level', 1),
-                        'ai_generated_content': chapter.get('content', ''),
+                        'ai_generated_content': content,
                         'subsections': []
                     }
 

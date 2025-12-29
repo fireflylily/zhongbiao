@@ -49,8 +49,11 @@
               <el-tag v-if="data.level" size="small" type="info">
                 {{ getLevelText(data.level) }}
               </el-tag>
-              <span v-if="data.word_count" class="word-count text-muted ms-2">
+              <span v-if="data.word_count && data.word_count > 0" class="word-count text-muted ms-2">
                 {{ formatWordCount(data.word_count) }}字
+              </span>
+              <span v-else-if="data.word_count === -1" class="word-count text-muted ms-2">
+                <i class="el-icon-loading"></i> ...
               </span>
             </span>
           </div>

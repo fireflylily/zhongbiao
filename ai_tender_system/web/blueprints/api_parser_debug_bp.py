@@ -1367,6 +1367,46 @@ def export_comparison_report(document_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@api_parser_debug_bp.route('/preview/<document_id>', methods=['GET'])
+def preview_document(document_id):
+    """
+    获取文档预览信息（文件路径）
+
+    Args:
+        document_id: 文档ID
+
+    Returns:
+        文档信息（包含文件路径，用于 DocumentPreview 组件）
+    """
+    try:
+        db = get_knowledge_base_db()
+
+        # 获取文件路径
+        row = db.execute_query(
+            "SELECT file_path, filename FROM parser_debug_tests WHERE document_id = ?",
+            (document_id,),
+            fetch_one=True
+        )
+
+        if not row:
+            return jsonify({'success': False, 'error': '文档不存在'}), 404
+
+        file_path = Path(row['file_path'])
+        if not file_path.exists():
+            return jsonify({'success': False, 'error': '文件不存在'}), 404
+
+        # 返回文件路径信息（供 DocumentPreview 组件使用）
+        return jsonify({
+            'success': True,
+            'file_path': str(file_path),
+            'filename': row['filename']
+        })
+
+    except Exception as e:
+        logger.error(f"获取文档预览信息失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # 注册蓝图到应用（需要在app.py中调用）
 def register_parser_debug_bp(app):
     """注册解析调试蓝图"""

@@ -40,6 +40,17 @@
         >
           🧠 智能识别
         </el-button>
+
+        <el-divider direction="vertical" />
+
+        <el-button
+          @click="previewDocument"
+          :disabled="!currentDocumentId"
+          type="info"
+          :icon="View"
+        >
+          预览文档
+        </el-button>
       </div>
 
       <!-- 智能识别结果展示 -->
@@ -368,14 +379,21 @@
         </div>
       </div>
     </Card>
+
+    <!-- 文档预览对话框 -->
+    <DocumentPreview
+      v-model="previewDialogVisible"
+      :file-url="previewFileUrl"
+      :file-name="previewFileName"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, UploadUserFile, ElIcon } from 'element-plus'
-import { Upload, WarningFilled } from '@element-plus/icons-vue'
-import { Card } from '@/components'
+import { Upload, WarningFilled, View } from '@element-plus/icons-vue'
+import { Card, DocumentPreview } from '@/components'
 import { parserDebugApi, type ParseTestResult, type ChapterNode, type HistoryTest } from '@/api/parser-debug'
 import MethodCard from './components/MethodCard.vue'
 import GroundTruthCard from './components/GroundTruthCard.vue'
@@ -385,6 +403,9 @@ const uploadRef = ref()
 const selectedFile = ref<File | null>(null)
 const parsing = ref(false)
 const smartParsing = ref(false)
+const previewDialogVisible = ref(false)
+const previewFileUrl = ref('')
+const previewFileName = ref('')
 
 const currentDocumentId = ref('')
 const documentInfo = ref<ParseTestResult['document_info'] | null>(null)
@@ -494,6 +515,32 @@ const startSmartParsing = async () => {
     ElMessage.error(error.response?.data?.error || error.message || '智能解析失败')
   } finally {
     smartParsing.value = false
+  }
+}
+
+// 预览文档
+const previewDocument = async () => {
+  if (!currentDocumentId.value) {
+    ElMessage.error('请先上传文件')
+    return
+  }
+
+  try {
+    // 获取文档的文件路径
+    const response = await parserDebugApi.getPreviewInfo(currentDocumentId.value)
+    const data = response.data || response
+
+    if (data.success) {
+      // 使用 DocumentPreview 组件预览
+      previewFileUrl.value = data.file_path
+      previewFileName.value = data.filename || documentInfo.value?.filename || '文档预览'
+      previewDialogVisible.value = true
+    } else {
+      ElMessage.error(data.error || '获取文档信息失败')
+    }
+  } catch (error: any) {
+    console.error('获取文档预览信息失败:', error)
+    ElMessage.error(error.response?.data?.error || error.message || '获取文档预览信息失败')
   }
 }
 

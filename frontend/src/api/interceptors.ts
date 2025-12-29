@@ -38,6 +38,11 @@ function calculateBackoffDelay(retryCount: number, baseDelay: number = 1000): nu
  * 判断是否应该重试
  */
 function shouldRetry(error: AxiosError): boolean {
+  // 超时错误不重试（避免长时间请求被多次重复发送）
+  if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+    return false
+  }
+
   // 仅对网络错误或5xx服务器错误重试
   if (!error.response) {
     return true // 网络错误

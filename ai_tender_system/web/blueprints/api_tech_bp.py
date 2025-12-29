@@ -44,13 +44,15 @@ except ImportError:
 # 辅助函数
 # ===================
 
-def generate_output_filename(project_name: str, file_type: str, timestamp: str = None) -> str:
+def generate_output_filename(project_name: str, file_type: str,
+                            project_id: str = None, timestamp: str = None) -> str:
     """
-    生成统一格式的输出文件名: {项目名称}_{类型}_{时间戳}.docx
+    生成统一格式的输出文件名: P{项目ID}_{项目名称}_{类型}_{时间戳}.docx
 
     Args:
         project_name: 项目名称
         file_type: 文件类型（如：商务应答、点对点应答、技术方案）
+        project_id: 项目ID，用于唯一标识（可选）
         timestamp: 时间戳，如果未提供则自动生成
 
     Returns:
@@ -62,7 +64,11 @@ def generate_output_filename(project_name: str, file_type: str, timestamp: str =
     # 使用safe_filename确保项目名称安全，但不添加时间戳（避免重复）
     safe_project = safe_filename(project_name, timestamp=False) if project_name else "未命名项目"
 
-    return f"{safe_project}_{file_type}_{timestamp}.docx"
+    # 添加项目ID前缀（确保唯一性）
+    if project_id and str(project_id) != 'default':
+        return f"P{project_id}_{safe_project}_{file_type}_{timestamp}.docx"
+    else:
+        return f"{safe_project}_{file_type}_{timestamp}.docx"
 
 
 # ===================

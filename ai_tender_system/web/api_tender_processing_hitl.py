@@ -257,6 +257,224 @@ def register_hitl_routes(app):
             logger.error(traceback.format_exc())
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    @app.route('/api/tender-processing/parse-structure-quick', methods=['POST'])
+    def parse_document_structure_quick():
+        """
+        快速解析文档结构（阶段1）- 只做LLM目录识别，不做定位和字数统计
+
+        请求参数（FormData）：
+        - file: Word文档文件（与 file_path 二选一）
+        - file_path: 历史文件路径（与 file 二选一）
+        - company_id: 公司ID（必填）
+        - project_id: 项目ID（可选，为空时自动创建新项目）
+
+        返回：
+        {
+            "success": True/False,
+            "project_id": xxx,
+            "chapters": [...],  # 章节树（无字数信息）
+            "file_path": "...",
+            "toc_end_idx": int,
+            "method": "llm_quick"
+        }
+        """
+        try:
+            # 获取参数
+            company_id = request.form.get('company_id')
+            project_id = request.form.get('project_id')
+            file_path_param = request.form.get('file_path')
+
+            if not company_id:
+                return jsonify({'success': False, 'error': '缺少company_id参数'}), 400
+
+            # 检查文件
+            file_path = None
+            original_filename = None
+
+            if file_path_param:
+                import os
+                if not os.path.exists(file_path_param):
+                    return jsonify({'success': False, 'error': f'文件不存在: {file_path_param}'}), 400
+                file_path = file_path_param
+                original_filename = os.path.basename(file_path_param)
+                logger.info(f"[快速解析] 使用历史文件: {file_path}")
+
+            elif 'file' in request.files:
+                file = request.files['file']
+                if not file.filename:
+                    return jsonify({'success': False, 'error': '文件名为空'}), 400
+
+                from core.storage_service import storage_service
+                file_metadata = storage_service.store_file(
+                    file_obj=file,
+                    original_name=file.filename,
+                    category='tender_processing',
+                    business_type='tender_hitl_document'
+                )
+                file_path = file_metadata.file_path
+                if not file_path.startswith('ai_tender_system/'):
+                    file_path = f"ai_tender_system/{file_path}"
+                original_filename = file.filename
+                logger.info(f"[快速解析] 新文件已保存: {file_path}")
+
+            else:
+                return jsonify({'success': False, 'error': '未提供文件或文件路径'}), 400
+
+            # 如果没有提供project_id，创建新项目
+            if not project_id:
+                logger.info(f"[快速解析] 自动创建新项目 (company_id: {company_id})")
+                db.execute_query("""
+                    INSERT INTO tender_projects (
+                        company_id, project_name,
+                        tender_document_path, original_filename,
+                        status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """, (
+                    company_id,
+                    f"标书项目_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    file_path,
+                    original_filename,
+                    'draft'
+                ))
+
+                result = db.execute_query("""
+                    SELECT project_id FROM tender_projects
+                    WHERE company_id = ?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (company_id,), fetch_one=True)
+
+                if result:
+                    project_id = result['project_id']
+                    logger.info(f"✅ 新项目已创建: {project_id}")
+                else:
+                    raise Exception("创建项目后无法获取project_id")
+
+            # 快速解析文档结构
+            parser = DocumentStructureParser()
+            result = parser.parse_structure_quick(file_path)
+
+            if not result["success"]:
+                return jsonify(result), 500
+
+            # 更新项目状态
+            db.execute_query("""
+                UPDATE tender_projects
+                SET step1_status = 'in_progress',
+                    step1_data = ?,
+                    tender_document_path = ?,
+                    original_filename = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE project_id = ?
+            """, (
+                json.dumps({
+                    'file_path': file_path,
+                    'file_name': original_filename,
+                    'chapters': result["chapters"],
+                    'toc_end_idx': result.get("toc_end_idx", 0)
+                }),
+                file_path,
+                original_filename,
+                project_id
+            ))
+
+            return jsonify({
+                'success': True,
+                'project_id': project_id,
+                'chapters': result["chapters"],
+                'file_path': file_path,
+                'toc_end_idx': result.get("toc_end_idx", 0),
+                'method': result.get("method", "llm_quick")
+            })
+
+        except Exception as e:
+            logger.error(f"快速解析失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/tender-processing/enrich-chapters', methods=['POST'])
+    def enrich_chapters():
+        """
+        补充章节信息（阶段2）- 执行定位和字数统计
+
+        请求参数（JSON）：
+        {
+            "project_id": xxx,
+            "file_path": "...",
+            "chapters": [...],
+            "toc_end_idx": int
+        }
+
+        返回：
+        {
+            "success": True/False,
+            "chapters": [...],  # 补充完整信息的章节树
+            "statistics": {...}
+        }
+        """
+        try:
+            data = request.get_json()
+            project_id = data.get('project_id')
+            file_path = data.get('file_path')
+            chapters = data.get('chapters', [])
+            toc_end_idx = data.get('toc_end_idx', 0)
+
+            if not project_id:
+                return jsonify({'success': False, 'error': '缺少project_id参数'}), 400
+            if not file_path:
+                return jsonify({'success': False, 'error': '缺少file_path参数'}), 400
+
+            logger.info(f"[补充信息] 开始处理项目 {project_id}")
+
+            # 补充章节信息
+            parser = DocumentStructureParser()
+            result = parser.enrich_chapters(file_path, chapters, toc_end_idx)
+
+            if not result["success"]:
+                return jsonify(result), 500
+
+            # 删除旧的章节数据
+            db.execute_query("""
+                DELETE FROM tender_document_chapters
+                WHERE project_id = ?
+            """, (project_id,))
+
+            # 保存章节到数据库
+            _save_chapters_to_db(db, result["chapters"], project_id)
+
+            # 更新项目统计信息
+            db.execute_query("""
+                UPDATE tender_projects
+                SET step1_data = ?,
+                    hitl_estimated_words = ?,
+                    hitl_estimated_cost = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE project_id = ?
+            """, (
+                json.dumps({
+                    'file_path': file_path,
+                    'chapters': result["chapters"]
+                }),
+                result["statistics"].get("total_words", 0),
+                result["statistics"].get("estimated_processing_cost", 0.0),
+                project_id
+            ))
+
+            logger.info(f"✅ [补充信息] 完成，总字数: {result['statistics'].get('total_words', 0)}")
+
+            return jsonify({
+                'success': True,
+                'chapters': result["chapters"],
+                'statistics': result["statistics"]
+            })
+
+        except Exception as e:
+            logger.error(f"补充信息失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return jsonify({'success': False, 'error': str(e)}), 500
+
     @app.route('/api/tender-processing/select-chapters', methods=['POST'])
     def submit_chapter_selection():
         """
@@ -604,10 +822,15 @@ def register_hitl_routes(app):
 
             step1_data = json.loads(task_data['step1_data'])
             doc_path = step1_data.get('file_path')
+            cached_chapters = step1_data.get('chapters')  # ⭐ 获取缓存的章节数据
 
-            # 调用parser批量导出
+            # 调用parser批量导出（传入缓存章节避免重新解析）
             parser = DocumentStructureParser()
-            result = parser.export_multiple_chapters_to_docx(doc_path, chapter_ids)
+            result = parser.export_multiple_chapters_to_docx(
+                doc_path,
+                chapter_ids,
+                cached_chapters=cached_chapters  # ⭐ 传入缓存章节，大幅提升性能
+            )
 
             if not result['success']:
                 return jsonify({"error": result.get('error', '导出失败')}), 500
@@ -657,11 +880,16 @@ def register_hitl_routes(app):
 
             step1_data = json.loads(task_data['step1_data'])
             doc_path = step1_data.get('file_path')
+            cached_chapters = step1_data.get('chapters')  # ⭐ 获取缓存的章节数据
             project_id = task_data['project_id']
 
-            # 调用parser导出文件
+            # 调用parser导出文件（传入缓存章节避免重新解析）
             parser = DocumentStructureParser()
-            result = parser.export_multiple_chapters_to_docx(doc_path, chapter_ids)
+            result = parser.export_multiple_chapters_to_docx(
+                doc_path,
+                chapter_ids,
+                cached_chapters=cached_chapters  # ⭐ 传入缓存章节，大幅提升性能
+            )
 
             if not result['success']:
                 return jsonify({"error": result.get('error', '导出失败')}), 500
@@ -855,16 +1083,21 @@ def register_hitl_routes(app):
 
             project_id = task_info['project_id']
 
-            # 获取原始文档路径
+            # 获取原始文档路径和缓存的章节数据
             step1_data = json.loads(task_info['step1_data'])
             doc_path = step1_data.get('file_path')  # 与应答文件API保持一致
+            cached_chapters = step1_data.get('chapters')  # ⭐ 获取缓存的章节数据
 
             if not doc_path or not os.path.exists(doc_path):
                 return jsonify({"success": False, "error": "原始文档不存在"}), 404
 
-            # 调用DocumentStructureParser导出章节
+            # 调用DocumentStructureParser导出章节（传入缓存章节避免重新解析）
             parser = DocumentStructureParser()
-            result = parser.export_multiple_chapters_to_docx(doc_path, chapter_ids)
+            result = parser.export_multiple_chapters_to_docx(
+                doc_path,
+                chapter_ids,
+                cached_chapters=cached_chapters  # ⭐ 传入缓存章节，大幅提升性能
+            )
 
             if not result.get('success'):
                 return jsonify({"success": False, "error": result.get('error', '导出失败')}), 500
@@ -1899,7 +2132,7 @@ def register_hitl_routes(app):
 
             # 获取请求参数（支持前端传递模型选择）
             request_data = request.get_json() if request.is_json else {}
-            model_name = request_data.get('model_name', 'yuanjing-deepseek-v3')  # 默认使用联通元景模型
+            model_name = request_data.get('model_name', 'deepseek-v3')  # 默认使用DeepSeek官方API，与目录解析LLM一致
 
             logger.info(f"基本信息提取 - 任务ID: {project_id}, 使用模型: {model_name}")
 
@@ -2406,35 +2639,43 @@ def register_hitl_routes(app):
 # 辅助函数
 # ============================================
 
-    def _save_chapters_to_db(db, chapters, project_id, parent_id=None):
+    def _save_chapters_to_db(db, chapters, project_id, parent_id=None, start_order_index=0):
         """递归保存章节树到数据库"""
         chapter_ids = []
+        current_order_index = start_order_index
 
         for chapter in chapters:
+            # 获取章节的 order_index，如果没有则使用当前计数
+            order_index = chapter.get('order_index', current_order_index)
+
             # 插入章节
             chapter_db_id = db.execute_query("""
                 INSERT INTO tender_document_chapters (
                     project_id, chapter_node_id, level, title,
                     para_start_idx, para_end_idx, word_count, preview_text,
-                    is_selected, auto_selected, skip_recommended, parent_chapter_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    is_selected, auto_selected, skip_recommended, parent_chapter_id,
+                    order_index
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 project_id, chapter['id'], chapter['level'], chapter['title'],
-                chapter['para_start_idx'], chapter.get('para_end_idx'),
+                chapter.get('para_start_idx', -1), chapter.get('para_end_idx', -1),
                 chapter.get('word_count', 0), chapter.get('preview_text', ''),
                 False, chapter.get('auto_selected', False),
-                chapter.get('skip_recommended', False), parent_id
+                chapter.get('skip_recommended', False), parent_id,
+                order_index
             ))
 
             # execute_query 已经返回 lastrowid
             chapter_ids.append(chapter_db_id)
+            current_order_index += 1
 
             # 递归保存子章节
             if chapter.get('children'):
                 child_ids = _save_chapters_to_db(
-                    db, chapter['children'], project_id, chapter_db_id
+                    db, chapter['children'], project_id, chapter_db_id, current_order_index
                 )
                 chapter_ids.extend(child_ids)
+                current_order_index += len(child_ids)
 
         return chapter_ids
 
@@ -2777,6 +3018,15 @@ def register_hitl_routes(app):
                     "success": False,
                     "error": f"不支持的文件类型: {file_type}。支持的类型: {', '.join(HITL_FILE_SYNC_CONFIG.keys())}"
                 }), 400
+
+            # 处理 /api/downloads/ 格式的URL路径，转换为实际文件路径
+            if source_file_path.startswith('/api/downloads/') or source_file_path.startswith('/downloads/'):
+                from urllib.parse import unquote
+                filename = source_file_path.replace('/api/downloads/', '').replace('/downloads/', '')
+                filename = unquote(filename)
+                project_root = Path(__file__).parent.parent
+                source_file_path = str(project_root / 'data' / 'outputs' / filename)
+                logger.info(f"从下载URL转换为文件路径: {source_file_path}")
 
             # 检查源文件是否存在
             if not os.path.exists(source_file_path):

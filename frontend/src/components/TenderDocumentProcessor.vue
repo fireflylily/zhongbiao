@@ -49,7 +49,9 @@
 
           <!-- 上传新文档 -->
           <div v-else>
+            <!-- 未选择文件时：显示上传框 -->
             <el-upload
+              v-if="!uploadedFile"
               ref="uploadRef"
               drag
               :auto-upload="false"
@@ -74,7 +76,8 @@
               </template>
             </el-upload>
 
-            <div v-if="uploadedFile" class="mt-3">
+            <!-- 已选择文件时：显示文件状态和解析进度（替换上传框位置） -->
+            <div v-else class="selected-file-status">
               <el-alert type="success" :closable="false">
                 <template #title>
                   <div class="d-flex align-items-center justify-content-between">
@@ -83,17 +86,23 @@
                       已选择文件: {{ uploadedFile.name }}
                     </span>
                     <el-button
-                      type="primary"
                       size="small"
-                      :loading="parsing"
-                      @click="handleParse"
+                      @click="handleClearFile"
                     >
-                      <i v-if="!parsing" class="bi bi-file-earmark-code me-1"></i>
-                      {{ parsing ? '解析中...' : '解析文档结构' }}
+                      <i class="bi bi-arrow-repeat me-1"></i>
+                      重新选择
                     </el-button>
                   </div>
                 </template>
               </el-alert>
+
+              <!-- 解析进度整合到这里 -->
+              <div v-if="parsing" class="parsing-status mt-2">
+                <div class="d-flex align-items-center text-info">
+                  <el-icon class="is-loading me-2"><Loading /></el-icon>
+                  <span>{{ parsingMessage }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -220,19 +229,6 @@
       </el-col>
     </el-row>
 
-    <!-- 解析进度提示 -->
-    <div v-if="parsing" class="parsing-progress mt-3">
-      <el-alert type="info" :closable="false">
-        <template #title>
-          <div class="d-flex align-items-center">
-            <el-icon class="is-loading me-2">
-              <Loading />
-            </el-icon>
-            <span>{{ parsingMessage }}</span>
-          </div>
-        </template>
-      </el-alert>
-    </div>
   </div>
 </template>
 
@@ -283,6 +279,9 @@ const fileList = ref<UploadFile[]>([])
 const uploadedFile = ref<File | null>(null)
 const parsing = ref(false)
 const parsingMessage = ref('正在解析文档结构...')
+const enriching = ref(false)  // 是否正在补充章节信息（字数、定位）
+const enrichingFilePath = ref('')  // 用于补充信息的文件路径
+const enrichingTocEndIdx = ref(0)  // 目录结束位置
 const chapters = ref<Chapter[]>([])
 const selectedChapterIds = ref<string[]>([])
 const selectedChapterNodes = ref<Chapter[]>([])
@@ -376,6 +375,12 @@ const handleFileRemove = () => {
   selectedChapterIds.value = []
 }
 
+// 重新选择文件（清除当前选择）
+const handleClearFile = () => {
+  uploadedFile.value = null
+  fileList.value = []
+}
+
 // 预览已上传的文档
 const handlePreviewExisting = () => {
   if (existingDocumentInfo.value) {
@@ -390,7 +395,7 @@ const handleClearExisting = () => {
   selectedChapterIds.value = []
 }
 
-// 解析文档
+// 解析文档（异步分阶段加载）
 const handleParse = async () => {
   if (!uploadedFile.value) {
     ElMessage.warning('请先上传文档')
@@ -398,33 +403,81 @@ const handleParse = async () => {
   }
 
   parsing.value = true
-  parsingMessage.value = '正在解析文档结构...'
+  parsingMessage.value = '正在识别文档目录（AI分析中）...'
 
   try {
-    // 调用API解析文档
+    // 阶段1：快速解析，获取目录树结构
     const formData = new FormData()
     formData.append('file', uploadedFile.value)
     formData.append('company_id', props.companyId.toString())
     formData.append('project_id', props.projectId.toString())
 
-    const response = await tenderApi.parseDocumentStructure(formData)
+    console.log('🚀 [阶段1] 开始快速解析...')
+    const quickResponse = await tenderApi.parseDocumentStructureQuick(formData)
 
-    if (response.success) {
-      // 后端直接返回chapters，不在data字段中
-      chapters.value = (response as any).chapters || []
+    if (quickResponse.success) {
+      // 立即显示目录树（此时字数显示为 -1 或加载中）
+      chapters.value = (quickResponse as any).chapters || []
+      enrichingFilePath.value = (quickResponse as any).file_path || ''
+      enrichingTocEndIdx.value = (quickResponse as any).toc_end_idx || 0
 
-      ElMessage.success('文档解析成功，请选择章节')
+      // 关闭解析状态，开启补充信息状态
+      parsing.value = false
+      enriching.value = true
 
-      // 🆕 emit parseComplete 事件，触发父组件执行自动AI提取
-      console.log('🎯 [TenderDocumentProcessor] 文档解析成功，emit parseComplete 事件')
+      ElMessage.success({
+        message: '目录识别完成（DeepSeek V3），正在分析字数...',
+        duration: 2000
+      })
+
+      console.log('✅ [阶段1] 目录识别完成，章节数:', chapters.value.length)
+
+      // 阶段2：补充字数和定位信息（必须等待完成后再触发AI提取）
+      console.log('📊 [阶段2] 开始补充章节信息...')
+      try {
+        const enrichResponse = await tenderApi.enrichChapters({
+          project_id: props.projectId,
+          file_path: enrichingFilePath.value,
+          chapters: chapters.value,
+          toc_end_idx: enrichingTocEndIdx.value
+        })
+
+        if (enrichResponse.success) {
+          // 更新章节数据（包含字数）
+          chapters.value = (enrichResponse as any).chapters || chapters.value
+
+          console.log('✅ [阶段2] 章节信息补充完成，总字数:',
+            (enrichResponse as any).statistics?.total_words || 0)
+
+          ElMessage.success({
+            message: '文档解析完成',
+            duration: 2000
+          })
+        } else {
+          console.warn('⚠️ [阶段2] 补充信息失败:', (enrichResponse as any).error)
+          // 补充信息失败不影响目录显示，只是字数无法显示
+          ElMessage.warning('字数统计失败，但目录结构已识别')
+        }
+      } catch (enrichError) {
+        console.error('⚠️ [阶段2] 补充信息异常:', enrichError)
+        ElMessage.warning('字数统计失败，但目录结构已识别')
+      } finally {
+        enriching.value = false
+      }
+
+      // 🔧 修复：在enrichChapters完成后再emit事件，确保AI提取时章节数据完整
+      console.log('🎯 [TenderDocumentProcessor] 章节信息补充完成，现在emit parseComplete 事件')
       emit('parseComplete')
       // 同时 emit refresh 事件，重新加载项目详情
       emit('refresh')
+
     } else {
-      throw new Error((response as any).message || (response as any).error || '解析失败')
+      throw new Error((quickResponse as any).message || (quickResponse as any).error || '解析失败')
     }
   } catch (error) {
     console.error('文档解析失败:', error)
+    parsing.value = false
+    enriching.value = false
 
     const errorMessage = error instanceof Error ? error.message : '未知错误'
 
@@ -773,11 +826,10 @@ watch(() => props.projectDetail, () => {
     }
   }
 
-  .parsing-progress {
-    :deep(.el-alert__title) {
-      display: flex;
-      align-items: center;
-    }
+  .parsing-status {
+    padding: 12px;
+    background: var(--el-color-info-light-9);
+    border-radius: 4px;
   }
 
   // 快捷操作区样式

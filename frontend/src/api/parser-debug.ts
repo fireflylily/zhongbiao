@@ -217,6 +217,15 @@ export function parseSmart(documentId: string, options?: { classify?: boolean })
   )
 }
 
+/**
+ * 获取文档预览信息（文件路径）
+ */
+export function getPreviewInfo(documentId: string) {
+  return apiClient.get<{ success: boolean; file_path: string; filename: string }>(
+    `/parser-debug/preview/${documentId}`
+  )
+}
+
 export const parserDebugApi = {
   uploadDocument,
   getTestResult,
@@ -225,5 +234,6 @@ export const parserDebugApi = {
   deleteTest,
   exportReport,
   parseSingleMethod,
-  parseSmart
+  parseSmart,
+  getPreviewInfo
 }

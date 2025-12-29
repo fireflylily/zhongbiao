@@ -42,6 +42,7 @@ class SimpleEmbeddingWrapper:
 
     def _get_loop(self):
         """获取或创建事件循环"""
+        import asyncio
         try:
             return asyncio.get_event_loop()
         except RuntimeError:

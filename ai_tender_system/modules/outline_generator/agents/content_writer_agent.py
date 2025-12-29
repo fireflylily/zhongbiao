@@ -76,7 +76,9 @@ class ContentWriterAgent(BaseAgent):
         materials: Dict[str, Any],
         tender_doc: str,
         company_profile: Dict = None,
-        content_style: Dict = None
+        content_style: Dict = None,
+        project_name: str = '',
+        customer_name: str = ''
     ) -> Dict[str, Any]:
         """
         撰写完整技术方案
@@ -87,6 +89,8 @@ class ContentWriterAgent(BaseAgent):
             tender_doc: 招标文件
             company_profile: 公司信息
             content_style: 内容风格
+            project_name: 项目名称（从数据库获取）
+            customer_name: 客户名称/招标方（从数据库获取）
 
         Returns:
             {
@@ -104,8 +108,12 @@ class ContentWriterAgent(BaseAgent):
         # 准备素材索引
         material_index = self._prepare_material_index(materials)
 
-        # 提取项目背景信息
-        project_context = self._extract_project_context(tender_doc[:5000])
+        # 提取项目背景信息（优先使用传入的参数）
+        project_context = self._extract_project_context(
+            tender_doc[:5000],
+            project_name=project_name,
+            customer_name=customer_name
+        )
 
         # 逐章节生成内容
         chapters = []
@@ -162,7 +170,9 @@ class ContentWriterAgent(BaseAgent):
         materials: Dict[str, Any],
         tender_doc: str,
         company_profile: Dict = None,
-        content_style: Dict = None
+        content_style: Dict = None,
+        project_name: str = '',
+        customer_name: str = ''
     ) -> Generator[Dict[str, Any], None, None]:
         """
         流式撰写技术方案
@@ -173,6 +183,8 @@ class ContentWriterAgent(BaseAgent):
             tender_doc: 招标文件
             company_profile: 公司信息
             content_style: 内容风格
+            project_name: 项目名称（从数据库获取）
+            customer_name: 客户名称/招标方（从数据库获取）
 
         Yields:
             章节内容（逐章节输出）
@@ -181,7 +193,11 @@ class ContentWriterAgent(BaseAgent):
         company_profile = company_profile or {}
 
         material_index = self._prepare_material_index(materials)
-        project_context = self._extract_project_context(tender_doc[:5000])
+        project_context = self._extract_project_context(
+            tender_doc[:5000],
+            project_name=project_name,
+            customer_name=customer_name
+        )
 
         outline_chapters = outline.get('outline', [])
         total_chapters = len(outline_chapters)
@@ -247,39 +263,50 @@ class ContentWriterAgent(BaseAgent):
 
         return index
 
-    def _extract_project_context(self, tender_doc: str) -> Dict[str, str]:
+    def _extract_project_context(
+        self,
+        tender_doc: str,
+        project_name: str = '',
+        customer_name: str = ''
+    ) -> Dict[str, str]:
         """
-        从招标文件提取项目背景信息
+        从招标文件提取项目背景信息，优先使用传入的参数
 
         Args:
             tender_doc: 招标文件内容
+            project_name: 项目名称（从数据库获取，优先使用）
+            customer_name: 客户名称（从数据库获取，优先使用）
 
         Returns:
             项目背景信息
         """
-        # 简单的关键信息提取
+        # 优先使用传入的参数
         context = {
-            'project_name': '',
-            'customer_name': '',
+            'project_name': project_name,
+            'customer_name': customer_name,
             'project_type': '',
             'key_requirements': []
         }
 
-        # 尝试提取项目名称
-        if '项目名称' in tender_doc:
+        # 如果没有传入项目名称，尝试从文档提取
+        if not context['project_name'] and '项目名称' in tender_doc:
             start = tender_doc.find('项目名称')
             end = tender_doc.find('\n', start)
             if end > start:
                 context['project_name'] = tender_doc[start:end].replace('项目名称', '').strip(': ：')
 
-        # 尝试提取采购人/客户
-        for keyword in ['采购人', '招标人', '甲方']:
-            if keyword in tender_doc:
-                start = tender_doc.find(keyword)
-                end = tender_doc.find('\n', start)
-                if end > start:
-                    context['customer_name'] = tender_doc[start:end].replace(keyword, '').strip(': ：')
-                    break
+        # 如果没有传入客户名称，尝试从文档提取
+        if not context['customer_name']:
+            for keyword in ['采购人', '招标人', '甲方']:
+                if keyword in tender_doc:
+                    start = tender_doc.find(keyword)
+                    end = tender_doc.find('\n', start)
+                    if end > start:
+                        context['customer_name'] = tender_doc[start:end].replace(keyword, '').strip(': ：')
+                        break
+
+        # 记录提取结果
+        self.logger.info(f"项目背景信息: project_name={context['project_name']}, customer_name={context['customer_name']}")
 
         return context
 
@@ -429,22 +456,28 @@ class ContentWriterAgent(BaseAgent):
 
 ## 撰写要求
 
-1. **内容质量**:
+1. **标题格式（重要）**:
+   - **禁止在内容开头重复章节标题**（系统会自动添加标题）
+   - 直接从正文内容开始撰写
+   - 子节标题使用纯文本格式，不要使用 Markdown 的 # 或 ## 格式
+   - 子节标题格式示例："4.1 系统架构"（不是 "#### 4.1 系统架构"）
+
+2. **内容质量**:
    - 必须基于提供的素材进行整合和改写
    - 禁止编造不存在的功能或承诺
    - 技术描述要专业、准确
    - 语言风格要正式、统一
 
-2. **结构要求**:
+3. **结构要求**:
    - 如果有子章节，只生成本级章节的引导内容（约200字）
    - 如果没有子章节，生成完整的章节内容
    - 内容要有逻辑性和层次感
 
-3. **字数控制**:
+4. **字数控制**:
    - 严格控制在目标字数的±10%范围内
    - 确保内容充实，避免空洞的套话
 
-4. **评分点覆盖**:
+5. **评分点覆盖**:
    - 确保关联的评分点在内容中得到充分响应
    - 突出产品优势和差异化价值
 

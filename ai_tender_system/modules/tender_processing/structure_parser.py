@@ -293,6 +293,387 @@ class DocumentStructureParser:
                 "method": "toc_exact"
             }
 
+    def parse_structure_quick(self, doc_path: str) -> Dict:
+        """
+        快速解析文档结构（阶段1）- 只提取目录项并使用LLM分析层级
+
+        不做正文定位和字数统计，这些在 enrich_chapters 阶段完成。
+
+        Args:
+            doc_path: Word文档路径
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],  # 章节树（无字数信息）
+                "toc_end_idx": int,
+                "method": "llm_quick"
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+
+            # 1. 检测目录位置
+            toc_idx = self._find_toc_section(doc)
+            if toc_idx is None:
+                # 无目录，尝试从文档开头识别章节标题
+                self.logger.info("未检测到目录，尝试从文档中识别章节标题")
+                toc_items = self._extract_chapter_titles_from_doc(doc)
+                toc_end_idx = 0
+            else:
+                # 有目录，提取目录项
+                toc_items, toc_end_idx = self._parse_toc_items(doc, toc_idx)
+
+            if not toc_items:
+                return {
+                    "success": False,
+                    "error": "未能提取到目录项",
+                    "chapters": [],
+                    "toc_end_idx": 0,
+                    "method": "llm_quick"
+                }
+
+            self.logger.info(f"提取到 {len(toc_items)} 个目录项，开始LLM层级分析")
+
+            # 2. 使用LLM分析层级
+            from modules.tender_processing.level_analyzer import LevelAnalyzer
+            analyzer = LevelAnalyzer()
+            levels = analyzer.analyze_toc_hierarchy_with_llm(toc_items)
+
+            # 3. 构建章节节点（不含正文定位信息）
+            chapters = []
+            for i, item in enumerate(toc_items):
+                level = levels[i] if i < len(levels) else 1
+                chapter = ChapterNode(
+                    id=f"ch_{i}",
+                    level=level,
+                    title=item.get('title', ''),
+                    para_start_idx=-1,  # 未定位
+                    para_end_idx=-1,    # 未定位
+                    word_count=0,       # 未统计
+                    preview_text=""     # 未提取
+                )
+                chapters.append(chapter)
+
+            # 4. 构建树形结构
+            chapter_tree = self._build_chapter_tree(chapters)
+
+            # 5. 章节分类
+            classified_chapters, _ = self._classify_chapters(
+                [ch.to_dict() for ch in chapter_tree]
+            )
+
+            return {
+                "success": True,
+                "chapters": classified_chapters,
+                "toc_end_idx": toc_end_idx,
+                "method": "llm_quick"
+            }
+
+        except Exception as e:
+            self.logger.error(f"快速解析失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": [],
+                "toc_end_idx": 0,
+                "method": "llm_quick"
+            }
+
+    def enrich_chapters(self, doc_path: str, chapters: List[Dict], toc_end_idx: int = 0) -> Dict:
+        """
+        补充章节信息（阶段2）- 执行正文定位和字数统计
+
+        根据阶段1识别的章节标题，在文档正文中定位每个章节的位置，
+        并统计字数、提取预览文本。
+
+        Args:
+            doc_path: Word文档路径
+            chapters: 阶段1返回的章节树（嵌套结构）
+            toc_end_idx: 目录结束的段落索引
+
+        Returns:
+            {
+                "success": True/False,
+                "chapters": [...],  # 补充完整信息的章节树
+                "statistics": {
+                    "total_words": int,
+                    "chapter_count": int,
+                    "estimated_processing_cost": float
+                }
+            }
+        """
+        try:
+            doc_path_abs = resolve_file_path(doc_path)
+            if not doc_path_abs:
+                raise FileNotFoundError(f"无法解析文件路径: {doc_path}")
+
+            doc = Document(str(doc_path_abs))
+            self.logger.info(f"[enrich_chapters] 开始补充章节信息，共 {len(chapters)} 个根章节")
+
+            # 1. 将嵌套的章节树展平为列表，方便处理
+            flat_chapters = self._flatten_chapters(chapters)
+            self.logger.info(f"[enrich_chapters] 展平后共 {len(flat_chapters)} 个章节")
+
+            # 2. 定位每个章节在文档中的位置
+            last_found_idx = toc_end_idx + 1
+            located_chapters = []
+
+            for order_idx, chapter in enumerate(flat_chapters):
+                title = chapter.get('title', '')
+                level = chapter.get('level', 1)
+                chapter_id = chapter.get('id', '')
+
+                # 在文档中查找标题位置
+                para_idx = self._find_paragraph_by_title_simple(doc, title, last_found_idx)
+
+                if para_idx is None:
+                    self.logger.warning(f"⚠️  未找到章节: [{level}级] {title}")
+                    # 仍然添加到列表，但标记为未定位
+                    located_chapters.append({
+                        'id': chapter_id,
+                        'title': title,
+                        'level': level,
+                        'para_idx': -1,
+                        'para_end_idx': -1,
+                        'located': False,
+                        'order_index': order_idx,  # 保持原始目录顺序
+                        'original': chapter
+                    })
+                    continue
+
+                located_chapters.append({
+                    'id': chapter_id,
+                    'title': title,
+                    'level': level,
+                    'para_idx': para_idx,
+                    'para_end_idx': None,  # 稍后计算
+                    'located': True,
+                    'order_index': order_idx,  # 保持原始目录顺序
+                    'original': chapter
+                })
+
+                last_found_idx = para_idx + 1
+                self.logger.debug(f"  ✓ 找到 [{level}级] {title} (段落 {para_idx})")
+
+            # 3. 计算每个章节的结束位置
+            for i, chapter_info in enumerate(located_chapters):
+                if not chapter_info['located']:
+                    continue
+
+                current_level = chapter_info['level']
+                next_start = len(doc.paragraphs)
+
+                # 找下一个同级或更高级的章节
+                for j in range(i + 1, len(located_chapters)):
+                    if located_chapters[j]['located'] and located_chapters[j]['level'] <= current_level:
+                        next_start = located_chapters[j]['para_idx']
+                        break
+
+                chapter_info['para_end_idx'] = next_start - 1
+
+            # 4. 计算字数和提取预览文本
+            total_words = 0
+            for chapter_info in located_chapters:
+                if not chapter_info['located']:
+                    chapter_info['word_count'] = 0
+                    chapter_info['preview_text'] = "(未定位)"
+                    chapter_info['has_table'] = False
+                    continue
+
+                para_idx = chapter_info['para_idx']
+                para_end_idx = chapter_info['para_end_idx']
+
+                # 提取章节内容
+                content_text, preview_text, has_table = self._extract_chapter_content_with_tables(
+                    doc, para_idx, para_end_idx
+                )
+
+                word_count = self._calculate_word_count(content_text)
+
+                chapter_info['word_count'] = word_count
+                chapter_info['preview_text'] = preview_text if preview_text else "(无内容)"
+                chapter_info['has_table'] = has_table
+
+                total_words += word_count
+
+            # 5. 更新原始章节树的信息
+            enriched_chapters = self._update_chapter_tree(chapters, located_chapters)
+
+            # 6. 统计信息
+            statistics = {
+                "total_words": total_words,
+                "chapter_count": len(flat_chapters),
+                "located_count": sum(1 for c in located_chapters if c['located']),
+                "estimated_processing_cost": round(total_words * 0.000002, 4)  # 假设每字0.000002元
+            }
+
+            self.logger.info(
+                f"✅ [enrich_chapters] 完成: 定位 {statistics['located_count']}/{statistics['chapter_count']} 个章节, "
+                f"总字数 {total_words}"
+            )
+
+            return {
+                "success": True,
+                "chapters": enriched_chapters,
+                "statistics": statistics
+            }
+
+        except Exception as e:
+            self.logger.error(f"补充章节信息失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return {
+                "success": False,
+                "error": str(e),
+                "chapters": chapters,
+                "statistics": {}
+            }
+
+    def _flatten_chapters(self, chapters: List[Dict], result: List[Dict] = None) -> List[Dict]:
+        """将嵌套的章节树展平为列表"""
+        if result is None:
+            result = []
+
+        for chapter in chapters:
+            # 添加当前章节（不含children）
+            chapter_copy = {k: v for k, v in chapter.items() if k != 'children'}
+            result.append(chapter_copy)
+
+            # 递归处理子章节
+            if 'children' in chapter and chapter['children']:
+                self._flatten_chapters(chapter['children'], result)
+
+        return result
+
+    def _find_paragraph_by_title_simple(self, doc: Document, title: str, start_idx: int) -> int:
+        """
+        简化版标题定位：在文档中查找与标题匹配的段落
+
+        Args:
+            doc: Word文档对象
+            title: 要查找的标题
+            start_idx: 开始搜索的段落索引
+
+        Returns:
+            段落索引，未找到返回None
+        """
+        import re
+        from difflib import SequenceMatcher
+
+        # 标准化标题：去除多余空格、制表符
+        def normalize(text: str) -> str:
+            text = text.strip()
+            text = re.sub(r'\s+', ' ', text)  # 多个空白字符合并为一个空格
+            text = re.sub(r'\t+', ' ', text)  # 制表符转空格
+            return text
+
+        title_clean = normalize(title)
+        if not title_clean:
+            return None
+
+        for i in range(start_idx, len(doc.paragraphs)):
+            para_text = normalize(doc.paragraphs[i].text)
+            if not para_text:
+                continue
+
+            # 完全匹配
+            if para_text == title_clean:
+                return i
+
+            # 模糊匹配（相似度 > 0.85）
+            ratio = SequenceMatcher(None, para_text, title_clean).ratio()
+            if ratio > 0.85:
+                return i
+
+            # 包含匹配（段落以标题开头或标题以段落开头）
+            if para_text.startswith(title_clean) or title_clean.startswith(para_text):
+                if len(para_text) < 150:  # 避免匹配到长段落
+                    return i
+
+            # 去除编号后匹配（处理"第三章  用户需求书" vs "第三章 用户需求书"）
+            title_no_space = title_clean.replace(' ', '')
+            para_no_space = para_text.replace(' ', '')
+            if para_no_space == title_no_space:
+                return i
+
+        return None
+
+    def _update_chapter_tree(self, chapters: List[Dict], located_chapters: List[Dict]) -> List[Dict]:
+        """
+        更新章节树，将定位信息合并回嵌套结构
+
+        Args:
+            chapters: 原始嵌套章节树
+            located_chapters: 展平后带定位信息的章节列表
+
+        Returns:
+            更新后的嵌套章节树
+        """
+        # 建立ID到定位信息的映射
+        location_map = {c['id']: c for c in located_chapters}
+
+        def update_recursive(chapter_list: List[Dict]) -> List[Dict]:
+            result = []
+            for chapter in chapter_list:
+                chapter_id = chapter.get('id', '')
+                updated = dict(chapter)
+
+                if chapter_id in location_map:
+                    loc_info = location_map[chapter_id]
+                    updated['para_start_idx'] = loc_info.get('para_idx', -1)
+                    updated['para_end_idx'] = loc_info.get('para_end_idx', -1)
+                    updated['word_count'] = loc_info.get('word_count', 0)
+                    updated['preview_text'] = loc_info.get('preview_text', '')
+                    updated['has_table'] = loc_info.get('has_table', False)
+                    updated['order_index'] = loc_info.get('order_index', 0)  # 保持原始目录顺序
+
+                # 递归处理子章节
+                if 'children' in updated and updated['children']:
+                    updated['children'] = update_recursive(updated['children'])
+
+                result.append(updated)
+            return result
+
+        return update_recursive(chapters)
+
+    def _extract_chapter_titles_from_doc(self, doc: Document) -> List[Dict]:
+        """
+        从文档中提取可能的章节标题（用于无目录的情况）
+
+        Args:
+            doc: Word文档对象
+
+        Returns:
+            目录项列表格式：[{'title': '...', 'page_num': 0}, ...]
+        """
+        from modules.tender_processing.level_analyzer import LevelAnalyzer
+        analyzer = LevelAnalyzer()
+
+        titles = []
+        for i, para in enumerate(doc.paragraphs[:500]):  # 只扫描前500段
+            text = para.text.strip()
+            if not text or len(text) > 100:
+                continue
+
+            # 检测是否有编号模式
+            pattern_info = analyzer.extract_numbering_pattern(text)
+            if pattern_info.get('type') != 'none':
+                titles.append({
+                    'title': text,
+                    'page_num': 0,
+                    'index': i
+                })
+
+        self.logger.info(f"从文档中提取到 {len(titles)} 个潜在章节标题")
+        return titles
+
     def parse_by_outline_level(self, doc_path: str) -> Dict:
         """
         方法5: Word大纲级别识别

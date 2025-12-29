@@ -74,6 +74,10 @@ class CrewConfig:
     company_id: int = 1
     company_profile: Dict = field(default_factory=dict)
 
+    # 项目信息
+    project_name: str = ''  # 项目名称
+    customer_name: str = ''  # 客户名称（招标方）
+
     # 内容风格
     content_style: Dict = field(default_factory=lambda: {
         "tables": "适量",
@@ -326,7 +330,9 @@ class ProposalCrew:
                 materials=self.state.materials,
                 tender_doc=tender_doc,
                 company_profile=self.config.company_profile,
-                content_style=self.config.content_style
+                content_style=self.config.content_style,
+                project_name=self.config.project_name,
+                customer_name=self.config.customer_name
             ):
                 if chunk.get('type') == 'progress':
                     yield {
@@ -338,11 +344,16 @@ class ProposalCrew:
                         "chapter_title": chunk.get('chapter_title', '')
                     }
                 elif chunk.get('type') == 'chapter':
+                    chapter_content = chunk.get('chapter_content', {})
+                    # 添加 chapter_number 以便前端正确索引
+                    chapter_index = chunk.get('chapter_index', 0)
+                    chapter_content['chapter_number'] = str(chapter_index + 1)
+
                     yield {
                         "phase": "content_writing",
                         "status": "running",
                         "event": "chapter_complete",
-                        "chapter": chunk.get('chapter_content')
+                        "chapter": chapter_content
                     }
 
             # 重新获取完整内容
@@ -485,7 +496,9 @@ class ProposalCrew:
             materials=self.state.materials,
             tender_doc=tender_doc,
             company_profile=self.config.company_profile,
-            content_style=self.config.content_style
+            content_style=self.config.content_style,
+            project_name=self.config.project_name,
+            customer_name=self.config.customer_name
         )
         words = self.state.proposal_content.get('total_words', 0)
         self.logger.info(f"撰写完成，共{words}字")

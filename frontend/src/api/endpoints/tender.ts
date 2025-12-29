@@ -223,7 +223,59 @@ export const tenderApi = {
     return apiClient.post('/tender-processing/parse-structure', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 180000 // 180秒超时（文档解析可能需要较长时间，包含LLM重试）
+    })
+  },
+
+  /**
+   * 快速解析文档结构（阶段1）
+   *
+   * 只做LLM目录识别，不做定位和字数统计，快速返回目录树
+   *
+   * FormData 参数:
+   * - file: Word文档文件（与 file_path 二选一）
+   * - file_path: 历史文件路径（与 file 二选一）
+   * - company_id: 公司ID（必填）
+   * - project_id: 项目ID（可选）
+   */
+  async parseDocumentStructureQuick(formData: FormData): Promise<ApiResponse<{
+    project_id: number
+    chapters: any[]
+    file_path: string
+    toc_end_idx: number
+    method?: string
+  }>> {
+    return apiClient.post('/tender-processing/parse-structure-quick', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 60000 // 60秒超时（快速解析应该更快）
+    })
+  },
+
+  /**
+   * 补充章节信息（阶段2）
+   *
+   * 执行定位和字数统计，补充完整的章节信息
+   *
+   * @param data - 包含 project_id, file_path, chapters, toc_end_idx
+   */
+  async enrichChapters(data: {
+    project_id: number
+    file_path: string
+    chapters: any[]
+    toc_end_idx: number
+  }): Promise<ApiResponse<{
+    chapters: any[]
+    statistics: {
+      total_chapters: number
+      total_words: number
+      estimated_processing_cost: number
+    }
+  }>> {
+    return apiClient.post('/tender-processing/enrich-chapters', data, {
+      timeout: 60000 // 60秒超时
     })
   },
 
