@@ -539,6 +539,8 @@ class DocumentStructureParser:
         """
         简化版标题定位：在文档中查找与标题匹配的段落
 
+        优先匹配 Heading 样式的段落，避免匹配到正文中的引用（如"第三章  用户需求书。"）
+
         Args:
             doc: Word文档对象
             title: 要查找的标题
@@ -557,34 +559,76 @@ class DocumentStructureParser:
             text = re.sub(r'\t+', ' ', text)  # 制表符转空格
             return text
 
+        # 检查是否是一级章节标题（第X章）
+        def is_chapter_title(text: str) -> bool:
+            return bool(re.match(r'^第[一二三四五六七八九十百\d]+章', text))
+
         title_clean = normalize(title)
         if not title_clean:
             return None
 
+        # 判断是否在搜索一级章节
+        searching_for_chapter = is_chapter_title(title_clean)
+
+        # 存储候选匹配结果：(段落索引, 优先级, 匹配类型)
+        # 优先级：0=Heading样式精确匹配, 1=普通精确匹配, 2=Heading样式模糊匹配, 3=普通模糊匹配
+        candidates = []
+
         for i in range(start_idx, len(doc.paragraphs)):
-            para_text = normalize(doc.paragraphs[i].text)
+            para = doc.paragraphs[i]
+            para_text = normalize(para.text)
             if not para_text:
                 continue
 
+            # 检查是否是 Heading 样式
+            is_heading = para.style and 'Heading' in para.style.name
+
             # 完全匹配
             if para_text == title_clean:
-                return i
+                if is_heading:
+                    return i  # Heading 样式的精确匹配，立即返回
+                candidates.append((i, 1, 'exact'))
+                continue
+
+            # 去除空格后完全匹配（处理"第三章  用户需求书" vs "第三章 用户需求书"）
+            title_no_space = title_clean.replace(' ', '')
+            para_no_space = para_text.replace(' ', '')
+            if para_no_space == title_no_space:
+                if is_heading:
+                    return i  # Heading 样式的精确匹配，立即返回
+                candidates.append((i, 1, 'exact_no_space'))
+                continue
 
             # 模糊匹配（相似度 > 0.85）
             ratio = SequenceMatcher(None, para_text, title_clean).ratio()
             if ratio > 0.85:
-                return i
+                if is_heading:
+                    candidates.append((i, 2, f'fuzzy_{ratio:.2f}'))
+                else:
+                    candidates.append((i, 3, f'fuzzy_{ratio:.2f}'))
+                continue
 
             # 包含匹配（段落以标题开头或标题以段落开头）
+            # 对于一级章节，需要更严格的匹配，避免匹配到"第三章  用户需求书。"这样的引用
             if para_text.startswith(title_clean) or title_clean.startswith(para_text):
                 if len(para_text) < 150:  # 避免匹配到长段落
-                    return i
+                    # 检查是否只是多了标点符号（如句号）
+                    extra_chars = para_text[len(title_clean):] if para_text.startswith(title_clean) else ""
+                    # 如果多出的只是标点符号，且不是Heading样式，则是引用，跳过
+                    if searching_for_chapter and extra_chars and re.match(r'^[。，、；：！？\.\,\;\:\!\?]+$', extra_chars):
+                        if not is_heading:
+                            # 这是正文中的引用（如"第三章  用户需求书。"），跳过
+                            continue
 
-            # 去除编号后匹配（处理"第三章  用户需求书" vs "第三章 用户需求书"）
-            title_no_space = title_clean.replace(' ', '')
-            para_no_space = para_text.replace(' ', '')
-            if para_no_space == title_no_space:
-                return i
+                    if is_heading:
+                        candidates.append((i, 2, 'contains'))
+                    else:
+                        candidates.append((i, 4, 'contains'))
+
+        # 返回优先级最高的候选
+        if candidates:
+            candidates.sort(key=lambda x: x[1])
+            return candidates[0][0]
 
         return None
 
