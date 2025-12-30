@@ -745,11 +745,13 @@ def list_tech_proposal_files():
                 stat = file_path.stat()
                 modified_time = datetime.fromtimestamp(stat.st_mtime)
 
-                # 提取项目名称(文件名格式: {项目名称}_技术方案_{时间戳}.docx 或 {项目名称}_Quality-First方案_{时间戳}.docx)
-                project_name_match = re.match(r'^(.+?)_(?:技术方案|Quality-First方案)_\d{8}_\d{6}\.', filename)
+                # 提取项目名称(文件名格式: {项目名称}_技术方案_{时间戳}.docx 或 P{ID}_{项目名称}_技术方案_{时间戳}.docx)
+                # 先去掉可能的 P{ID}_ 前缀
+                clean_filename = re.sub(r'^P\d+_', '', filename)
+                project_name_match = re.match(r'^(.+?)_(?:技术方案|Quality-First方案)_\d{8}_\d{6}\.', clean_filename)
                 if not project_name_match:
                     # 尝试其他格式: 技术方案_{项目名称}_{时间戳}.docx
-                    project_name_match = re.match(r'^技术方案_(.+?)_\d{8}_\d{6}\.', filename)
+                    project_name_match = re.match(r'^技术方案_(.+?)_\d{8}_\d{6}\.', clean_filename)
                 project_name = project_name_match.group(1) if project_name_match else filename
 
                 # 如果指定了项目名称，过滤不匹配的文件
