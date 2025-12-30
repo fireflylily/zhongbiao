@@ -84,8 +84,8 @@
             <el-select v-model="config.aiModel" class="row-select">
               <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
               <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
-              <el-option label="GPT4o Mini" value="shihuang-gpt4o-mini" />
-              <el-option label="通义千问-Max（推荐-默认）" value="qwen-max" />
+              <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
+              <el-option label="通义千问-Max" value="qwen-max" />
             </el-select>
           </div>
         </div>
@@ -700,7 +700,7 @@ const form = ref({
 
 const config = ref({
   outputPrefix: '技术方案',
-  aiModel: 'qwen-max',
+  aiModel: 'shihuang-gpt4o-mini',
   generationMode: 'Quality-First' as 'Quality-First' | '按评分点写' | '按招标书目录写' | '编写专项章节',  // 智能体生成模式
   templateName: '政府采购标准' as string,  // 模板名称
   pageCount: 200,  // 目标页数
@@ -1002,6 +1002,10 @@ const generateWithSSE = async (formData: FormData) => {
     throw new Error('无法读取响应流')
   }
 
+  // ✅ 立即打开编辑器，显示"正在生成中..."占位内容
+  showEditor.value = true
+  editorContent.value = '<div style="text-align:center; padding:40px; color:#909399;">🔄 技术方案生成中，请稍候...</div>'
+
   const decoder = new TextDecoder()
   let buffer = ''
 
@@ -1099,6 +1103,9 @@ const generateWithSSE = async (formData: FormData) => {
                   total_chapters: data.result.chapter_count,
                   total_words: data.result.total_words
                 }
+
+                // ✅ 立即在编辑器中显示大纲结构（章节标题+指导信息，内容待填充）
+                updateEditorContent(chapterContents)
               }
               streamContent.value += `✅ 大纲生成完成: ${data.result?.chapter_count || 0}章\n`
             }

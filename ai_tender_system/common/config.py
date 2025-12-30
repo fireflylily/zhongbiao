@@ -192,7 +192,7 @@ class Config:
                 'base_url': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
                 'model_name': 'qwen-max',
                 'max_tokens': int(os.getenv('DASHSCOPE_MAX_TOKENS', '2000')),
-                'timeout': int(os.getenv('DASHSCOPE_TIMEOUT', '60')),
+                'timeout': int(os.getenv('DASHSCOPE_TIMEOUT', '120')),
                 'provider': 'Alibaba',
                 'display_name': '通义千问-Max',
                 'description': '阿里云通义千问旗舰模型，中文理解能力强，适合技术方案生成'

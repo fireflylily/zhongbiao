@@ -37,48 +37,83 @@ class EmbeddingResult:
 
 
 class EmbeddingService:
-    """文本嵌入服务 - 使用OpenAI API"""
+    """文本嵌入服务 - 支持OpenAI和通义千问API"""
 
     # 支持的模型配置
     SUPPORTED_MODELS = {
         "text-embedding-3-small": {
             "model_name": "text-embedding-3-small",
             "dimensions": 1536,
-            "description": "OpenAI最新小型嵌入模型,性价比高"
+            "description": "OpenAI最新小型嵌入模型,性价比高",
+            "provider": "openai"
         },
         "text-embedding-3-large": {
             "model_name": "text-embedding-3-large",
             "dimensions": 3072,
-            "description": "OpenAI大型嵌入模型,精度更高"
+            "description": "OpenAI大型嵌入模型,精度更高",
+            "provider": "openai"
         },
         "text-embedding-ada-002": {
             "model_name": "text-embedding-ada-002",
             "dimensions": 1536,
-            "description": "OpenAI经典嵌入模型"
+            "description": "OpenAI经典嵌入模型",
+            "provider": "openai"
+        },
+        # 通义千问 Embedding 模型
+        "text-embedding-v3": {
+            "model_name": "text-embedding-v3",
+            "dimensions": 1024,
+            "description": "通义千问最新嵌入模型,中文效果优秀",
+            "provider": "dashscope"
+        },
+        "text-embedding-v2": {
+            "model_name": "text-embedding-v2",
+            "dimensions": 1536,
+            "description": "通义千问嵌入模型v2",
+            "provider": "dashscope"
         }
     }
 
-    def __init__(self, model_type: str = "text-embedding-3-small", api_key: Optional[str] = None,
-                 api_endpoint: Optional[str] = None):
+    def __init__(self, model_type: str = None, api_key: Optional[str] = None,
+                 api_endpoint: Optional[str] = None, **kwargs):
         self.logger = logger
-        self.model_type = model_type
-        self.model_config = self.SUPPORTED_MODELS.get(model_type)
+
+        # 从环境变量读取默认模型类型
+        default_model = os.getenv("EMBEDDING_MODEL", "text-embedding-v3")
+        self.model_type = model_type or default_model
+        self.model_config = self.SUPPORTED_MODELS.get(self.model_type)
 
         if not self.model_config:
-            # 兼容旧配置,默认使用text-embedding-3-small
-            self.logger.warning(f"模型类型 {model_type} 不支持,使用默认模型 text-embedding-3-small")
-            self.model_type = "text-embedding-3-small"
+            # 兼容旧配置,默认使用text-embedding-v3(通义千问)
+            self.logger.warning(f"模型类型 {self.model_type} 不支持,使用默认模型 text-embedding-v3")
+            self.model_type = "text-embedding-v3"
             self.model_config = self.SUPPORTED_MODELS[self.model_type]
 
-        # API配置 - 使用clean_env_value清理环境变量中的不可见字符
-        self.api_key = clean_env_value(api_key or os.getenv("EMBEDDING_API_KEY") or os.getenv("OPENAI_API_KEY") or "")
-        self.api_endpoint = clean_env_value(api_endpoint or os.getenv("EMBEDDING_API_ENDPOINT") or os.getenv("OPENAI_API_ENDPOINT") or "https://api.openai.com/v1")
+        # 根据模型提供商选择API配置
+        provider = self.model_config.get("provider", "openai")
 
-        # 确保endpoint正确格式
-        if not self.api_endpoint.endswith("/embeddings"):
-            self.api_endpoint = self.api_endpoint.rstrip("/") + "/embeddings"
+        if provider == "dashscope":
+            # 通义千问 DashScope API
+            self.api_key = clean_env_value(api_key or os.getenv("DASHSCOPE_API_KEY") or "")
+            base_url = clean_env_value(api_endpoint or os.getenv("DASHSCOPE_EMBEDDING_ENDPOINT") or "https://dashscope.aliyuncs.com/compatible-mode/v1")
+        else:
+            # OpenAI 兼容 API
+            self.api_key = clean_env_value(api_key or os.getenv("EMBEDDING_API_KEY") or os.getenv("OPENAI_API_KEY") or "")
+            base_url = clean_env_value(api_endpoint or os.getenv("EMBEDDING_API_ENDPOINT") or os.getenv("OPENAI_API_ENDPOINT") or "https://api.openai.com/v1")
+
+        # 确保endpoint正确格式 - 移除 /chat/completions 后缀（如果有）
+        base_url = base_url.rstrip("/")
+        if base_url.endswith("/chat/completions"):
+            base_url = base_url[:-len("/chat/completions")]
+
+        # 添加 /embeddings 后缀
+        if not base_url.endswith("/embeddings"):
+            self.api_endpoint = base_url + "/embeddings"
+        else:
+            self.api_endpoint = base_url
 
         self.timeout = int(os.getenv("EMBEDDING_API_TIMEOUT", "30"))
+        self.provider = provider
         self.initialized = False
 
         # 性能统计
@@ -282,6 +317,7 @@ class EmbeddingService:
             "model_name": self.model_config["model_name"],
             "dimensions": self.model_config["dimensions"],
             "description": self.model_config["description"],
+            "provider": self.provider,
             "api_endpoint": self.api_endpoint,
             "stats": self.stats.copy(),
             "is_initialized": self.initialized
