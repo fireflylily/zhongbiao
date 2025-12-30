@@ -811,13 +811,30 @@ const handleTenderUpload = async (options: UploadRequestOptions) => {
     formData.append('company_id', selectedProject.value.company_id.toString())
     formData.append('project_id', form.value.projectId.toString())
 
-    const response = await tenderApi.parseDocumentStructure(formData)
+    // 阶段1：快速解析，获取目录树结构
+    const quickResponse = await tenderApi.parseDocumentStructureQuick(formData)
 
-    if (response.success) {
-      onSuccess(response.data)
-      ElMessage.success('技术需求文档上传成功')
+    if (quickResponse.success) {
+      ElMessage.success('目录识别完成，正在分析字数...')
+
+      // 阶段2：补充字数和定位信息
+      const enrichResponse = await tenderApi.enrichChapters({
+        project_id: form.value.projectId,
+        file_path: (quickResponse as any).file_path,
+        chapters: (quickResponse as any).chapters,
+        toc_end_idx: (quickResponse as any).toc_end_idx
+      })
+
+      if (enrichResponse.success) {
+        onSuccess(enrichResponse.data)
+        ElMessage.success('技术需求文档上传成功')
+      } else {
+        // 补充信息失败，但目录已识别，仍然算成功
+        onSuccess((quickResponse as any))
+        ElMessage.warning('字数统计失败，但目录结构已识别')
+      }
     } else {
-      throw new Error(response.message || '上传失败')
+      throw new Error((quickResponse as any).message || (quickResponse as any).error || '解析失败')
     }
   } catch (error: any) {
     onError(error)
