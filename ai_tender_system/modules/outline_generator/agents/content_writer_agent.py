@@ -361,13 +361,30 @@ class ContentWriterAgent(BaseAgent):
         response = self._call_llm(prompt, response_format="json_object")
         result = self._parse_json_response(response)
 
+        # 安全提取 content，确保是字符串
         content = result.get('content', '')
+        if isinstance(content, list):
+            # 如果 content 是列表，合并为字符串
+            content = '\n'.join(str(item) for item in content if item)
+        elif isinstance(content, dict):
+            content = content.get('content', '') or content.get('text', '') or str(content)
+        if not isinstance(content, str):
+            content = str(content) if content else ''
+
         sections = result.get('sections', [])
+        if not isinstance(sections, list):
+            self.logger.warning(f"sections 不是列表类型: {type(sections)}")
+            sections = []
 
         # 如果有子章节，递归生成
         child_contents = []
-        if chapter.get('children'):
-            for child in chapter['children']:
+        children = chapter.get('children', [])
+        if isinstance(children, list) and children:
+            for child in children:
+                # 类型安全检查
+                if not isinstance(child, dict):
+                    self.logger.warning(f"子章节不是字典类型: {type(child)}")
+                    continue
                 child_content = self._write_chapter(
                     chapter=child,
                     material_index=material_index,

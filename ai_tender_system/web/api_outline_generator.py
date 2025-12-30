@@ -41,6 +41,62 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def get_hitl_technical_file_path(project_id: str) -> Path:
+    """
+    从数据库查询HITL项目的技术需求文件路径
+
+    Args:
+        project_id: 项目ID
+
+    Returns:
+        技术需求文件路径，如果未找到则返回 None
+    """
+    if not project_id or project_id == 'default':
+        return None
+
+    try:
+        from ai_tender_system.common.database import get_knowledge_base_db
+        db = get_knowledge_base_db()
+
+        # 查询项目的技术需求文件路径
+        db_row = db.execute_query(
+            "SELECT step1_data, technical_requirement_path FROM tender_projects WHERE project_id = ?",
+            (project_id,),
+            fetch_one=True
+        )
+
+        if db_row:
+            tender_path = None
+            # 优先使用 technical_requirement_path
+            if db_row[1] if isinstance(db_row, (list, tuple)) else db_row.get('technical_requirement_path'):
+                path_value = db_row[1] if isinstance(db_row, (list, tuple)) else db_row.get('technical_requirement_path')
+                tender_path = Path(path_value)
+                logger.info(f"从 technical_requirement_path 获取文件路径: {tender_path}")
+            # 备选：从 step1_data 中获取
+            else:
+                step1_data_str = db_row[0] if isinstance(db_row, (list, tuple)) else db_row.get('step1_data')
+                if step1_data_str:
+                    try:
+                        step1_data_json = json.loads(step1_data_str)
+                        if step1_data_json.get('technical_file_path'):
+                            tender_path = Path(step1_data_json['technical_file_path'])
+                            logger.info(f"从 step1_data.technical_file_path 获取文件路径: {tender_path}")
+                    except Exception as e:
+                        logger.warning(f"解析 step1_data 失败: {e}")
+
+            if tender_path and tender_path.exists():
+                logger.info(f"找到HITL技术需求文件: {tender_path}")
+                return tender_path
+            else:
+                logger.warning(f"技术需求文件不存在: {tender_path}")
+        else:
+            logger.warning(f"未找到项目记录: project_id={project_id}")
+    except Exception as e:
+        logger.warning(f"从数据库查询技术需求文件失败: {e}", exc_info=True)
+
+    return None
+
+
 def get_tech_proposal_output_dir(project_id=None) -> Path:
     """
     获取技术方案输出目录
@@ -100,30 +156,9 @@ def generate_proposal():
         project_id = request.form.get('hitl_task_id') or request.form.get('project_id')
 
         if use_hitl_file and project_id:
-            # 使用HITL传递的技术需求文件
+            # 使用HITL传递的技术需求文件 - 从数据库查询路径
             logger.info(f"使用HITL项目的技术需求文件: project_id={project_id}")
-
-            # 在technical_files目录下搜索项目目录（不依赖日期）
-            technical_files_base = config.get_path('data') / 'uploads' / 'technical_files'
-
-            # 递归查找项目目录
-            tender_path = None
-            for year_dir in technical_files_base.glob('*'):
-                if not year_dir.is_dir():
-                    continue
-                for month_dir in year_dir.glob('*'):
-                    if not month_dir.is_dir():
-                        continue
-                    project_dir = month_dir / str(project_id)
-                    if project_dir.exists():
-                        # 查找技术需求文件（第一个文件）
-                        technical_files = list(project_dir.glob('*.*'))
-                        if technical_files:
-                            tender_path = technical_files[0]
-                            logger.info(f"找到HITL技术需求文件: {tender_path.name}, 路径: {tender_path}")
-                            break
-                if tender_path:
-                    break
+            tender_path = get_hitl_technical_file_path(project_id)
 
             if not tender_path:
                 return jsonify({
@@ -353,50 +388,13 @@ def generate_proposal_stream():
 
             # 2. 获取技术需求文件路径
             if project_id:
-                # 从HITL项目加载
+                # 从HITL项目加载 - 使用数据库查询
                 yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': f'从投标项目加载技术需求文件 (project_id={project_id})...'}, ensure_ascii=False)}\n\n"
 
-                # 搜索HITL技术需求文件
-                technical_files_base = config.get_path('upload') / 'technical_files'
-                tender_path = None
-
-                logger.info(f"搜索HITL项目文件, project_id: {project_id}, 搜索路径: {technical_files_base}")
-
-                for year_dir in technical_files_base.glob('*'):
-                    if not year_dir.is_dir():
-                        continue
-                    logger.debug(f"检查年份目录: {year_dir}")
-                    for month_dir in year_dir.glob('*'):
-                        if not month_dir.is_dir():
-                            continue
-                        logger.debug(f"检查月份目录: {month_dir}")
-                        project_dir = month_dir / str(project_id)
-                        logger.debug(f"检查项目目录: {project_dir}, 是否存在: {project_dir.exists()}")
-                        if project_dir.exists():
-                            # 查找技术需求文件（第一个文件）
-                            technical_files = list(project_dir.glob('*.*'))
-                            logger.debug(f"找到的文件: {technical_files}")
-                            if technical_files:
-                                tender_path = technical_files[0]
-                                logger.info(f"找到HITL技术需求文件: {tender_path.name}, 路径: {tender_path}")
-                                break
-                    if tender_path:
-                        break
+                tender_path = get_hitl_technical_file_path(project_id)
 
                 if not tender_path:
-                    # 添加详细的错误信息
                     logger.error(f'未找到项目的技术需求文件: project_id={project_id}')
-                    logger.error(f'搜索路径: {technical_files_base}')
-                    # 列出所有可用的项目目录
-                    available_projects = []
-                    for year_dir in technical_files_base.glob('*'):
-                        if year_dir.is_dir():
-                            for month_dir in year_dir.glob('*'):
-                                if month_dir.is_dir():
-                                    for proj_dir in month_dir.glob('*'):
-                                        if proj_dir.is_dir():
-                                            available_projects.append(str(proj_dir))
-                    logger.error(f'可用的项目目录: {available_projects}')
                     raise ValueError(f'未找到项目的技术需求文件: project_id={project_id}')
             elif tender_file:
                 # 上传文件
@@ -673,24 +671,7 @@ def generate_proposal_stream_v2():
             if project_id:
                 yield f"data: {json.dumps({'stage': 'init', 'progress': 10, 'message': f'从投标项目加载技术需求文件...'}, ensure_ascii=False)}\n\n"
 
-                technical_files_base = config.get_path('upload') / 'technical_files'
-                tender_path = None
-
-                for year_dir in technical_files_base.glob('*'):
-                    if not year_dir.is_dir():
-                        continue
-                    for month_dir in year_dir.glob('*'):
-                        if not month_dir.is_dir():
-                            continue
-                        project_dir = month_dir / str(project_id)
-                        if project_dir.exists():
-                            technical_files = list(project_dir.glob('*.*'))
-                            if technical_files:
-                                tender_path = technical_files[0]
-                                logger.info(f"找到HITL技术需求文件: {tender_path}")
-                                break
-                    if tender_path:
-                        break
+                tender_path = get_hitl_technical_file_path(project_id)
 
                 if not tender_path:
                     raise ValueError(f'未找到项目的技术需求文件: project_id={project_id}')
@@ -1013,28 +994,12 @@ def generate_with_agent():
             use_hitl_file = request.form.get('use_hitl_technical_file', 'false').lower() == 'true'
 
             if use_hitl_file and project_id and project_id != 'default':
-                # 从HITL加载
-                logger.info(f"从HITL项目加载技术需求文件: project_id={project_id}")
-                technical_files_base = config.get_path('upload') / 'technical_files'
-                tender_path = None
-
-                for year_dir in technical_files_base.glob('*'):
-                    if not year_dir.is_dir():
-                        continue
-                    for month_dir in year_dir.glob('*'):
-                        if not month_dir.is_dir():
-                            continue
-                        project_dir = month_dir / str(project_id)
-                        if project_dir.exists():
-                            technical_files = list(project_dir.glob('*.*'))
-                            if technical_files:
-                                tender_path = technical_files[0]
-                                logger.info(f"找到HITL技术需求文件: {tender_path}")
-                                break
-                    if tender_path:
-                        break
+                # 使用辅助函数从数据库查询技术需求文件路径
+                logger.info(f"[智能体API] 从HITL项目加载技术需求文件: project_id={project_id}")
+                tender_path = get_hitl_technical_file_path(project_id)
 
                 if tender_path:
+                    logger.info(f"[智能体API] 找到HITL技术需求文件: {tender_path}")
                     from docx import Document
                     doc = Document(str(tender_path))
                     content_parts = []
@@ -1044,12 +1009,14 @@ def generate_with_agent():
                             content_parts.append(text)
                     for table in doc.tables:
                         content_parts.append('\n[表格内容]')
-                        for row in table.rows:
-                            row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
+                        for tbl_row in table.rows:
+                            row_text = ' | '.join([cell.text.strip() for cell in tbl_row.cells if cell.text.strip()])
                             if row_text:
                                 content_parts.append(row_text)
                         content_parts.append('[表格结束]\n')
                     tender_doc = '\n'.join(content_parts)
+                else:
+                    logger.warning(f"[智能体API] 未找到HITL技术需求文件: project_id={project_id}")
 
             elif 'tender_file' in request.files:
                 tender_file = request.files['tender_file']
@@ -1188,13 +1155,27 @@ def generate_with_agent():
             }
 
             for chapter in chapters:
+                # 类型安全检查
+                if not isinstance(chapter, dict):
+                    logger.warning(f"【智能体API】章节不是字典类型: {type(chapter)}")
+                    if isinstance(chapter, list) and len(chapter) > 0:
+                        chapter = chapter[0] if isinstance(chapter[0], dict) else {}
+                    else:
+                        chapter = {}
+
                 # 智能体返回的字段是 'title' 和 'content'
+                content = chapter.get('content', '')
+                if isinstance(content, list):
+                    content = '\n'.join(str(item) for item in content if item)
+                elif not isinstance(content, str):
+                    content = str(content) if content else ''
+
                 chapter_data = {
                     'level': chapter.get('level', 1),
                     'chapter_number': chapter.get('chapter_number', ''),
                     'title': chapter.get('title', ''),  # 智能体返回 'title' 而非 'chapter_title'
-                    'ai_generated_content': chapter.get('content', ''),
-                    'subsections': chapter.get('subsections', [])
+                    'ai_generated_content': content,
+                    'subsections': chapter.get('subsections', []) if isinstance(chapter.get('subsections'), list) else []
                 }
                 proposal_data['chapters'].append(chapter_data)
 
@@ -1483,40 +1464,29 @@ def generate_with_crew():
             use_hitl_file = request.form.get('use_hitl_technical_file', 'false').lower() == 'true'
 
             if use_hitl_file and project_id and project_id != 'default':
-                # 从HITL加载
-                logger.info(f"从HITL项目加载技术需求文件: project_id={project_id}")
-                technical_files_base = config.get_path('upload') / 'technical_files'
+                # 使用辅助函数从数据库查询技术需求文件路径
+                logger.info(f"[Quality-First API] 从HITL项目加载技术需求文件: project_id={project_id}")
+                tender_path = get_hitl_technical_file_path(project_id)
 
-                for year_dir in technical_files_base.glob('*'):
-                    if not year_dir.is_dir():
-                        continue
-                    for month_dir in year_dir.glob('*'):
-                        if not month_dir.is_dir():
-                            continue
-                        project_dir = month_dir / str(project_id)
-                        if project_dir.exists():
-                            technical_files = list(project_dir.glob('*.*'))
-                            if technical_files:
-                                tender_path = technical_files[0]
-                                logger.info(f"找到HITL技术需求文件: {tender_path}")
-                                from docx import Document
-                                doc = Document(str(tender_path))
-                                content_parts = []
-                                for para in doc.paragraphs:
-                                    text = para.text.strip()
-                                    if text:
-                                        content_parts.append(text)
-                                for table in doc.tables:
-                                    content_parts.append('\n[表格内容]')
-                                    for row in table.rows:
-                                        row_text = ' | '.join([cell.text.strip() for cell in row.cells if cell.text.strip()])
-                                        if row_text:
-                                            content_parts.append(row_text)
-                                    content_parts.append('[表格结束]\n')
-                                tender_doc = '\n'.join(content_parts)
-                                break
-                    if tender_doc:
-                        break
+                if tender_path:
+                    logger.info(f"[Quality-First API] 找到HITL技术需求文件: {tender_path}")
+                    from docx import Document
+                    doc = Document(str(tender_path))
+                    content_parts = []
+                    for para in doc.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            content_parts.append(text)
+                    for table in doc.tables:
+                        content_parts.append('\n[表格内容]')
+                        for tbl_row in table.rows:
+                            row_text = ' | '.join([cell.text.strip() for cell in tbl_row.cells if cell.text.strip()])
+                            if row_text:
+                                content_parts.append(row_text)
+                        content_parts.append('[表格结束]\n')
+                    tender_doc = '\n'.join(content_parts)
+                else:
+                    logger.warning(f"[Quality-First API] 未找到HITL技术需求文件: project_id={project_id}")
 
             elif 'tender_file' in request.files:
                 tender_file = request.files['tender_file']
@@ -1722,8 +1692,17 @@ def generate_with_crew():
                 proposal_content = final_result.get('proposal_content', {})
 
                 # 转换章节格式以匹配 WordExporter 的期望
-                def convert_chapter(chapter: dict, prefix: str = '') -> dict:
+                def convert_chapter(chapter, prefix: str = '') -> dict:
                     """将 ContentWriterAgent 输出转换为 WordExporter 期望的格式"""
+                    # 类型安全检查：确保 chapter 是字典
+                    if not isinstance(chapter, dict):
+                        logger.warning(f"convert_chapter: 收到非字典类型的chapter: {type(chapter)}")
+                        # 如果是列表，尝试取第一个元素
+                        if isinstance(chapter, list) and len(chapter) > 0:
+                            chapter = chapter[0] if isinstance(chapter[0], dict) else {}
+                        else:
+                            chapter = {}
+
                     # 生成章节编号
                     chapter_num = prefix or chapter.get('id', '') or ''
 
@@ -1731,6 +1710,9 @@ def generate_with_crew():
                     content = chapter.get('content', '')
                     if isinstance(content, dict):
                         content = content.get('content', '') or content.get('text', '') or str(content)
+                    elif isinstance(content, list):
+                        # 如果 content 是列表，合并为字符串
+                        content = '\n'.join(str(item) for item in content if item)
                     if not isinstance(content, str):
                         content = str(content) if content else ''
 
@@ -1743,16 +1725,22 @@ def generate_with_crew():
                     }
 
                     # 递归转换子章节
-                    for i, child in enumerate(chapter.get('children', []), 1):
-                        child_prefix = f"{chapter_num}.{i}" if chapter_num else str(i)
-                        converted['subsections'].append(convert_chapter(child, child_prefix))
+                    children = chapter.get('children', [])
+                    if isinstance(children, list):
+                        for i, child in enumerate(children, 1):
+                            child_prefix = f"{chapter_num}.{i}" if chapter_num else str(i)
+                            converted['subsections'].append(convert_chapter(child, child_prefix))
 
                     return converted
 
                 # 转换所有章节
                 converted_chapters = []
-                for i, chapter in enumerate(proposal_content.get('chapters', []), 1):
-                    converted_chapters.append(convert_chapter(chapter, str(i)))
+                chapters_data = proposal_content.get('chapters', [])
+                if isinstance(chapters_data, list):
+                    for i, chapter in enumerate(chapters_data, 1):
+                        converted_chapters.append(convert_chapter(chapter, str(i)))
+                else:
+                    logger.warning(f"proposal_content['chapters'] 不是列表: {type(chapters_data)}")
 
                 # 构建 WordExporter 期望的数据结构（添加 metadata）
                 proposal_for_export = {
@@ -1775,9 +1763,9 @@ def generate_with_crew():
                     'progress': 100,
                     'success': True,
                     'message': '✅ Quality-First 技术方案生成完成！',
-                    'output_file': f'/api/downloads/{proposal_filename}',
+                    'output_file': str(proposal_path),  # 实际文件系统路径，用于同步到HITL
                     'output_files': {
-                        'proposal': f'/api/downloads/{proposal_filename}'
+                        'proposal': f'/api/downloads/{proposal_filename}'  # 下载URL
                     },
                     'final_result': {
                         'total_words': final_result.get('metadata', {}).get('total_words', 0),

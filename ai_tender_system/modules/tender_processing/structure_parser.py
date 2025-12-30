@@ -567,6 +567,13 @@ class DocumentStructureParser:
         if not title_clean:
             return None
 
+        # 提取去掉"第X部分"前缀后的标题，用于回退匹配
+        # 解决目录中"第一部分 竞争性采购公告"与正文中"竞争性采购公告"不匹配的问题
+        title_without_prefix = None
+        prefix_match = re.match(r'^第[一二三四五六七八九十百\d]+部分\s*(.+)$', title_clean)
+        if prefix_match:
+            title_without_prefix = prefix_match.group(1).strip()
+
         # 判断是否在搜索一级章节
         searching_for_chapter = is_chapter_title(title_clean)
 
@@ -624,6 +631,34 @@ class DocumentStructureParser:
                         candidates.append((i, 2, 'contains'))
                     else:
                         candidates.append((i, 4, 'contains'))
+
+            # 如果目录标题有"第X部分"前缀，尝试匹配去掉前缀后的标题
+            # 例如：目录"第一部分 竞争性采购公告" → 正文"竞争性采购公告"
+            if title_without_prefix:
+                # 精确匹配（去前缀后）
+                if para_text == title_without_prefix:
+                    if is_heading:
+                        candidates.append((i, 1, 'prefix_removed_exact'))
+                    else:
+                        candidates.append((i, 2, 'prefix_removed_exact'))
+                    continue
+
+                # 去空格后匹配（去前缀后）
+                title_no_prefix_no_space = title_without_prefix.replace(' ', '')
+                if para_no_space == title_no_prefix_no_space:
+                    if is_heading:
+                        candidates.append((i, 1, 'prefix_removed_exact_no_space'))
+                    else:
+                        candidates.append((i, 2, 'prefix_removed_exact_no_space'))
+                    continue
+
+                # 模糊匹配（去前缀后）
+                ratio_no_prefix = SequenceMatcher(None, para_text, title_without_prefix).ratio()
+                if ratio_no_prefix > 0.85:
+                    if is_heading:
+                        candidates.append((i, 2, f'prefix_removed_fuzzy_{ratio_no_prefix:.2f}'))
+                    else:
+                        candidates.append((i, 3, f'prefix_removed_fuzzy_{ratio_no_prefix:.2f}'))
 
         # 返回优先级最高的候选
         if candidates:

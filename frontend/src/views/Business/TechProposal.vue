@@ -908,7 +908,8 @@ const generateProposal = async () => {
     const formData = new FormData()
 
     // 判断使用HITL文件还是上传文件
-    if (useHitlFile.value && hitlFileInfo.value) {
+    // 只需检查 useHitlFile.value，后端会从文件系统中查找技术需求文件
+    if (useHitlFile.value) {
       formData.append('use_hitl_technical_file', 'true')
       formData.append('project_id', form.value.projectId!.toString())
     } else if (form.value.tenderFiles[0]?.raw) {
@@ -1247,12 +1248,13 @@ const updateEditorContent = (chapterContents: Record<string, string>) => {
     // 递归生成章节HTML（包含大纲指导信息）
     const generateChapterHtml = (chapters: any[]) => {
       for (const chapter of chapters) {
-        const chapterNum = chapter.chapter_number
+        // 兼容后端大纲使用 id 字段，前端章节内容使用 chapter_number 字段
+        const chapterNum = chapter.chapter_number || chapter.id || ''
         const content = chapterContents[chapterNum] || ''
 
         // 根据level使用不同的标题级别
         const headingLevel = chapter.level || 1
-        const chapterId = `ch-${chapterNum.replace(/\./g, '-')}`
+        const chapterId = `ch-${(chapterNum || '').replace(/\./g, '-')}`
         // ✅ 添加id属性，完整显示章节号和标题
         htmlContent += `<h${headingLevel} id="${chapterId}">${chapterNum} ${chapter.title}</h${headingLevel}>\n`
 

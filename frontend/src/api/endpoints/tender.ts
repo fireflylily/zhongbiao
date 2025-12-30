@@ -247,7 +247,7 @@ export const tenderApi = {
     }
   }>> {
     return apiClient.post('/tender-processing/enrich-chapters', data, {
-      timeout: 60000 // 60秒超时
+      timeout: 180000 // 180秒超时（与解析接口保持一致，大文档需要更长时间）
     })
   },
 
