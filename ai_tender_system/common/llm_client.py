@@ -64,6 +64,11 @@ class LLMClient:
             self.api_key = api_key or self.model_config.get('api_key', '')
             self.base_url = self.model_config.get('base_url', 'https://api.deepseek.com')
             self.api_endpoint = f"{self.base_url}/chat/completions"
+        elif model_name.startswith('qwen'):
+            # 阿里云通义千问 DashScope API - OpenAI兼容格式
+            self.api_key = api_key or self.model_config.get('api_key', '')
+            self.base_url = self.model_config.get('base_url', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
+            self.api_endpoint = f"{self.base_url}/chat/completions"
         elif model_name.startswith('shihuang'):
             # 始皇API配置 - OpenAI兼容格式
             self.api_key = api_key or self.model_config.get('api_key', '')

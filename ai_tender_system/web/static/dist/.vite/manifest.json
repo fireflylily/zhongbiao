@@ -1222,7 +1222,7 @@
     ]
   },
   "src/layouts/MainLayout.vue": {
-    "file": "js/MainLayout-NnssFqVb.js",
+    "file": "js/MainLayout-CHOpf201.js",
     "name": "MainLayout",
     "src": "src/layouts/MainLayout.vue",
     "isDynamicEntry": true,
@@ -1244,7 +1244,7 @@
       "_tender-DnxfeLI4.js"
     ],
     "css": [
-      "css/MainLayout-BSY6OyP0.css",
+      "css/MainLayout-D3ozMXMo.css",
       "css/DocumentPreview-BTIGx2Tg.css",
       "css/el-scrollbar-BWxh-h6K.css",
       "css/el-tag-DljBBxJR.css",
@@ -1293,7 +1293,7 @@
     ]
   },
   "src/views/ABTest/OutlineComparison.vue": {
-    "file": "js/OutlineComparison-CFp0Y_dx.js",
+    "file": "js/OutlineComparison-ClmsoizY.js",
     "name": "OutlineComparison",
     "src": "src/views/ABTest/OutlineComparison.vue",
     "isDynamicEntry": true,
@@ -1317,7 +1317,7 @@
       "_project-DkmUVYhm.js"
     ],
     "css": [
-      "css/OutlineComparison-DW1eMxn2.css",
+      "css/OutlineComparison-C3cHzlSD.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/el-scrollbar-BWxh-h6K.css",
       "css/DocumentPreview-BTIGx2Tg.css",
@@ -1386,7 +1386,7 @@
     ]
   },
   "src/views/Business/PointToPoint.vue": {
-    "file": "js/PointToPoint-TfIsc62t.js",
+    "file": "js/PointToPoint-BRXkuVb_.js",
     "name": "PointToPoint",
     "src": "src/views/Business/PointToPoint.vue",
     "isDynamicEntry": true,
@@ -1427,7 +1427,7 @@
       "_raf-BZHcGSIv.js"
     ],
     "css": [
-      "css/PointToPoint-ClXAkUg1.css",
+      "css/PointToPoint-B7m2dk7W.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/DocumentPreview-BTIGx2Tg.css",
       "css/el-descriptions-item-DPqPz_nA.css",
@@ -1497,7 +1497,7 @@
     ]
   },
   "src/views/Business/TechProposal.vue": {
-    "file": "js/TechProposal-2Y0F3aeK.js",
+    "file": "js/TechProposal-D2NkMm2q.js",
     "name": "TechProposal",
     "src": "src/views/Business/TechProposal.vue",
     "isDynamicEntry": true,
@@ -1539,7 +1539,7 @@
       "_raf-BZHcGSIv.js"
     ],
     "css": [
-      "css/TechProposal-ByLn4AQE.css",
+      "css/TechProposal-Z8VwjCtV.css",
       "css/el-loading-C5IeuJ3V.css",
       "css/DocumentPreview-BTIGx2Tg.css",
       "css/el-descriptions-item-DPqPz_nA.css",

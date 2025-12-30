@@ -84,7 +84,8 @@
             <el-select v-model="config.aiModel" class="row-select">
               <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
               <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
-              <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
+              <el-option label="GPT4o Mini" value="shihuang-gpt4o-mini" />
+              <el-option label="通义千问-Max（推荐-默认）" value="qwen-max" />
             </el-select>
           </div>
         </div>
@@ -699,7 +700,7 @@ const form = ref({
 
 const config = ref({
   outputPrefix: '技术方案',
-  aiModel: 'shihuang-gpt4o-mini',
+  aiModel: 'qwen-max',
   generationMode: 'Quality-First' as 'Quality-First' | '按评分点写' | '按招标书目录写' | '编写专项章节',  // 智能体生成模式
   templateName: '政府采购标准' as string,  // 模板名称
   pageCount: 200,  // 目标页数

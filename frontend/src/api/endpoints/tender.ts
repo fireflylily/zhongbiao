@@ -250,7 +250,7 @@ export const tenderApi = {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      timeout: 60000 // 60秒超时（快速解析应该更快）
+      timeout: 180000 // 180秒超时（与 parseDocumentStructure 保持一致）
     })
   },
 

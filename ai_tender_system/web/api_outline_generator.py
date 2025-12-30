@@ -41,6 +41,29 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def get_tech_proposal_output_dir(project_id=None) -> Path:
+    """
+    获取技术方案输出目录
+
+    如果有 project_id，保存到 tech_proposal_files/{年}/{月}/{项目ID}/
+    否则保存到默认的 outputs/ 目录
+
+    Args:
+        project_id: 项目ID（可选）
+
+    Returns:
+        输出目录路径
+    """
+    if project_id and project_id != 'default':
+        now = datetime.now()
+        output_dir = config.get_path('upload') / 'tech_proposal_files' / str(now.year) / str(now.month).zfill(2) / str(project_id)
+    else:
+        output_dir = config.get_path('output')
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
 @api_outline_bp.route('/generate-proposal', methods=['POST'])
 def generate_proposal():
     """
@@ -457,8 +480,8 @@ def generate_proposal_stream():
             yield f"data: {json.dumps({'stage': 'export', 'progress': 90, 'message': '💾 正在导出文件...'}, ensure_ascii=False)}\n\n"
 
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_dir = config.get_path('output')
-            output_dir.mkdir(parents=True, exist_ok=True)
+            # 使用统一的输出目录函数，直接保存到 tech_proposal_files/{年}/{月}/{项目ID}/
+            output_dir = get_tech_proposal_output_dir(project_id)
 
             exporter = WordExporter()
             output_files = {}
@@ -787,8 +810,8 @@ def generate_proposal_stream_v2():
             yield f"data: {json.dumps({'stage': 'export', 'progress': 90, 'message': '💾 正在导出文件...'}, ensure_ascii=False)}\n\n"
 
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_dir = config.get_path('output')
-            output_dir.mkdir(parents=True, exist_ok=True)
+            # 使用统一的输出目录函数，直接保存到 tech_proposal_files/{年}/{月}/{项目ID}/
+            output_dir = get_tech_proposal_output_dir(project_id)
 
             exporter = WordExporter()
             output_files = {}
@@ -1138,8 +1161,8 @@ def generate_with_agent():
             from ai_tender_system.modules.outline_generator import WordExporter
 
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_dir = config.get_path('output')
-            output_dir.mkdir(parents=True, exist_ok=True)
+            # 使用统一的输出目录函数，直接保存到 tech_proposal_files/{年}/{月}/{项目ID}/
+            output_dir = get_tech_proposal_output_dir(project_id)
 
             # 文件命名：项目ID_项目名称_类型_时间戳（项目ID确保唯一性）
             project_id_str = f"P{project_id}" if project_id and project_id != 'default' else ''
@@ -1686,8 +1709,8 @@ def generate_with_crew():
                 from ai_tender_system.modules.outline_generator import WordExporter
 
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                output_dir = config.get_path('output')
-                output_dir.mkdir(parents=True, exist_ok=True)
+                # 使用统一的输出目录函数，直接保存到 tech_proposal_files/{年}/{月}/{项目ID}/
+                output_dir = get_tech_proposal_output_dir(project_id)
 
                 # 文件命名：项目ID_项目名称_技术方案_时间戳.docx（项目ID确保唯一性）
                 project_id_str = f"P{project_id}" if project_id and project_id != 'default' else ''

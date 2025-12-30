@@ -122,7 +122,8 @@
             <el-select v-model="config.aiModel" class="row-select">
               <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
               <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
-              <el-option label="GPT4o Mini（推荐-默认）" value="shihuang-gpt4o-mini" />
+              <el-option label="GPT4o Mini" value="shihuang-gpt4o-mini" />
+              <el-option label="通义千问-Max（推荐-默认）" value="qwen-max" />
             </el-select>
           </div>
           <div class="row-item"></div>
@@ -602,7 +603,7 @@ const form = ref({
 const config = ref({
   responseFrequency: 'every_paragraph' as 'every_paragraph' | 'every_page' | 'every_section' | 'end_of_document',
   responseMode: 'simple' as 'ai' | 'simple',
-  aiModel: 'shihuang-gpt4o-mini',
+  aiModel: 'qwen-max',
   // 新增字段
   responseContent: '应答：满足。',
   responseTextFormat: 'gray_background' as 'gray_background' | 'red_bold'

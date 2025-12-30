@@ -187,10 +187,18 @@ const availableModels = computed((): AIModelOption[] => {
     },
     {
       value: 'shihuang-gpt4o-mini',
-      label: 'GPT4o Mini（推荐-默认）',
+      label: 'GPT4o Mini',
       icon: 'bi-robot',
-      recommended: true,
+      recommended: false,
       provider: 'shihuang'
+    },
+    // 阿里云通义千问
+    {
+      value: 'qwen-max',
+      label: '通义千问-Max（推荐-默认）',
+      icon: 'bi-translate',
+      recommended: true,
+      provider: 'alibaba'
     },
     // 联通元景模型（保留）
     {
@@ -223,7 +231,7 @@ const availableModels = computed((): AIModelOption[] => {
 const selectedModel = computed({
   get: () => {
     // 从localStorage或Store获取
-    return localStorage.getItem('selectedModel') || 'shihuang-gpt4o-mini'
+    return localStorage.getItem('selectedModel') || 'qwen-max'
   },
   set: (value: string) => {
     localStorage.setItem('selectedModel', value)

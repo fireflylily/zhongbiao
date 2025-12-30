@@ -186,6 +186,7 @@
                   <el-option label="GPT5（最强推理）" value="shihuang-gpt5" />
                   <el-option label="Claude Sonnet 4.5（标书专用）" value="shihuang-claude-sonnet-45" />
                   <el-option label="GPT4o Mini（推荐）" value="shihuang-gpt4o-mini" />
+                  <el-option label="通义千问-Max（中文优化）" value="qwen-max" />
                 </el-select>
               </el-form-item>
 

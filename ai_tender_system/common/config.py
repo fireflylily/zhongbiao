@@ -186,6 +186,17 @@ class Config:
                 'display_name': 'DeepSeek R1',
                 'description': 'DeepSeek推理模型，适合复杂逻辑分析'
             },
+            # 阿里云通义千问 DashScope API
+            'qwen-max': {
+                'api_key': clean_env_value(os.getenv('DASHSCOPE_API_KEY', 'sk-a56b136802184c9abcd8ebcf8bae29b7')),
+                'base_url': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+                'model_name': 'qwen-max',
+                'max_tokens': int(os.getenv('DASHSCOPE_MAX_TOKENS', '2000')),
+                'timeout': int(os.getenv('DASHSCOPE_TIMEOUT', '60')),
+                'provider': 'Alibaba',
+                'display_name': '通义千问-Max',
+                'description': '阿里云通义千问旗舰模型，中文理解能力强，适合技术方案生成'
+            },
             # 始皇API配置 - 所有模型共享同一个API Key和Endpoint
             'shihuang-gpt5': {
                 'api_key': clean_env_value(os.getenv('SHIHUANG_API_KEY', '')),
