@@ -25,9 +25,14 @@
 import json
 import logging
 import time
+from datetime import datetime
 from typing import Dict, List, Any, Optional, Generator, Callable
 from dataclasses import dataclass, field
 from enum import Enum
+
+# 导入重试策略和任务管理器
+from ..retry_policy import RetryPolicy, RetryConfig
+from ..task_manager import TechProposalTaskManager, PHASE_ORDER, get_task_manager
 
 # 导入所有智能体
 from .scoring_point_agent import ScoringPointAgent
@@ -85,6 +90,11 @@ class CrewConfig:
         "images": "少量"
     })
 
+    # 重试配置
+    max_retries: int = 3  # 单个阶段最大重试次数
+    retry_base_delay: float = 2.0  # 重试基础延迟(秒)
+    retry_backoff_factor: float = 2.0  # 重试退避因子
+
 
 @dataclass
 class CrewState:
@@ -109,7 +119,7 @@ class CrewState:
     error: str = ""
 
     def to_dict(self) -> Dict:
-        """转换为字典"""
+        """转换为字典(摘要，用于进度展示)"""
         return {
             "phase": self.phase.value,
             "iteration_count": self.iteration_count,
@@ -123,6 +133,23 @@ class CrewState:
             "error": self.error
         }
 
+    def to_full_dict(self) -> Dict:
+        """转换为完整字典(用于断点恢复)"""
+        return {
+            "phase": self.phase.value,
+            "start_time": self.start_time,
+            "scoring_points": self.scoring_points,
+            "product_match_result": self.product_match_result,
+            "scoring_strategy": self.scoring_strategy,
+            "materials": self.materials,
+            "outline": self.outline,
+            "proposal_content": self.proposal_content,
+            "review_result": self.review_result,
+            "iteration_count": self.iteration_count,
+            "iteration_history": self.iteration_history,
+            "error": self.error
+        }
+
 
 class ProposalCrew:
     """
@@ -131,16 +158,30 @@ class ProposalCrew:
     协调多个智能体完成端到端的技术方案生成任务。
     """
 
-    def __init__(self, config: CrewConfig = None):
+    def __init__(self, config: CrewConfig = None, task_manager: TechProposalTaskManager = None):
         """
         初始化协调器
 
         Args:
             config: 协作器配置
+            task_manager: 任务管理器(可选，用于断点续传)
         """
         self.config = config or CrewConfig()
         self.state = CrewState()
         self.logger = logging.getLogger(__name__)
+
+        # 任务管理器(可选)
+        self.task_manager = task_manager
+
+        # 当前任务ID(用于断点续传)
+        self.current_task_id: Optional[str] = None
+
+        # 初始化重试策略
+        self.retry_policy = RetryPolicy(RetryConfig(
+            max_attempts=self.config.max_retries,
+            base_delay=self.config.retry_base_delay,
+            backoff_factor=self.config.retry_backoff_factor
+        ))
 
         # 初始化所有智能体
         self._init_agents()
@@ -245,8 +286,23 @@ class ProposalCrew:
         self.state.start_time = time.time()
 
         try:
-            # 阶段1: 提取评分点
+            # 阶段1: 提取评分点（带细粒度进度）
             yield {"phase": "scoring_extraction", "status": "running", "message": "提取评分点..."}
+            # 模拟分步骤进度：分析不同评分维度
+            scoring_steps = ["技术架构", "项目管理", "服务保障", "人员配置", "实施方案"]
+            completed_steps = []
+            for i, step in enumerate(scoring_steps):
+                yield {
+                    "phase": "scoring_extraction",
+                    "status": "running",
+                    "detail": {
+                        "step": i + 1,
+                        "totalSteps": len(scoring_steps),
+                        "stepName": f"分析{step}评分维度",
+                        "subItems": completed_steps.copy()
+                    }
+                }
+                completed_steps.append(step)
             self._run_scoring_extraction(tender_doc)
             yield {
                 "phase": "scoring_extraction",
@@ -258,9 +314,24 @@ class ProposalCrew:
                 }
             }
 
-            # 阶段2: 产品能力匹配
+            # 阶段2: 产品能力匹配（带细粒度进度）
             if not self.config.skip_product_matching:
                 yield {"phase": "product_matching", "status": "running", "message": "产品能力匹配..."}
+                # 获取评分点作为匹配步骤
+                match_steps = [p.get('name', f'评分点{i+1}') for i, p in enumerate(self.state.scoring_points[:8])]
+                completed_matches = []
+                for i, step in enumerate(match_steps):
+                    yield {
+                        "phase": "product_matching",
+                        "status": "running",
+                        "detail": {
+                            "step": i + 1,
+                            "totalSteps": len(match_steps),
+                            "stepName": f"匹配: {step[:15]}...",
+                            "subItems": completed_matches.copy()
+                        }
+                    }
+                    completed_matches.append(step[:10])
                 self._run_product_matching(tender_doc)
                 yield {
                     "phase": "product_matching",
@@ -275,8 +346,22 @@ class ProposalCrew:
             else:
                 yield {"phase": "product_matching", "status": "skipped", "message": "跳过产品匹配"}
 
-            # 阶段3: 制定评分策略
+            # 阶段3: 制定评分策略（带细粒度进度）
             yield {"phase": "strategy_planning", "status": "running", "message": "制定评分策略..."}
+            strategy_steps = ["分析竞争优势", "识别风险点", "制定得分策略", "生成建议"]
+            completed_strategy = []
+            for i, step in enumerate(strategy_steps):
+                yield {
+                    "phase": "strategy_planning",
+                    "status": "running",
+                    "detail": {
+                        "step": i + 1,
+                        "totalSteps": len(strategy_steps),
+                        "stepName": step,
+                        "subItems": completed_strategy.copy()
+                    }
+                }
+                completed_strategy.append(step)
             self._run_strategy_planning()
             yield {
                 "phase": "strategy_planning",
@@ -290,9 +375,23 @@ class ProposalCrew:
                 }
             }
 
-            # 阶段4: 检索历史素材
+            # 阶段4: 检索历史素材（带细粒度进度）
             if not self.config.skip_material_retrieval:
                 yield {"phase": "material_retrieval", "status": "running", "message": "检索历史素材..."}
+                retrieval_steps = ["技术方案素材", "案例素材", "资质证书", "团队介绍", "服务承诺"]
+                completed_retrieval = []
+                for i, step in enumerate(retrieval_steps):
+                    yield {
+                        "phase": "material_retrieval",
+                        "status": "running",
+                        "detail": {
+                            "step": i + 1,
+                            "totalSteps": len(retrieval_steps),
+                            "stepName": f"检索{step}",
+                            "subItems": completed_retrieval.copy()
+                        }
+                    }
+                    completed_retrieval.append(step)
                 self._run_material_retrieval()
                 yield {
                     "phase": "material_retrieval",
@@ -306,8 +405,22 @@ class ProposalCrew:
             else:
                 yield {"phase": "material_retrieval", "status": "skipped", "message": "跳过素材检索"}
 
-            # 阶段5: 生成大纲
+            # 阶段5: 生成大纲（带细粒度进度）
             yield {"phase": "outline_generation", "status": "running", "message": "生成大纲..."}
+            outline_steps = ["分析文档结构", "规划章节框架", "分配页面预算", "生成详细大纲"]
+            completed_outline = []
+            for i, step in enumerate(outline_steps):
+                yield {
+                    "phase": "outline_generation",
+                    "status": "running",
+                    "detail": {
+                        "step": i + 1,
+                        "totalSteps": len(outline_steps),
+                        "stepName": step,
+                        "subItems": completed_outline.copy()
+                    }
+                }
+                completed_outline.append(step)
             self._run_outline_generation(tender_doc, page_count)
             yield {
                 "phase": "outline_generation",
@@ -321,8 +434,12 @@ class ProposalCrew:
                 }
             }
 
-            # 阶段6: 撰写内容（逐章节输出）
+            # 阶段6: 撰写内容（逐章节输出，带流式预览）
             yield {"phase": "content_writing", "status": "running", "message": "撰写内容..."}
+
+            # 获取章节总数用于进度显示
+            outline_chapters = self.state.outline.get('outline', [])
+            total_chapters = len(outline_chapters)
 
             # 使用流式撰写
             for chunk in self.content_writer_agent.write_proposal_stream(
@@ -335,13 +452,39 @@ class ProposalCrew:
                 customer_name=self.config.customer_name
             ):
                 if chunk.get('type') == 'progress':
+                    chapter_index = chunk.get('chapter_index', 0)
+                    chapter_title = chunk.get('chapter_title', '')
+                    # 发送章节进度和detail
                     yield {
                         "phase": "content_writing",
                         "status": "running",
                         "event": "chapter_progress",
-                        "chapter_index": chunk.get('chapter_index', 0),
-                        "total_chapters": chunk.get('total_chapters', 1),
-                        "chapter_title": chunk.get('chapter_title', '')
+                        "chapter_index": chapter_index,
+                        "total_chapters": chunk.get('total_chapters', total_chapters),
+                        "chapter_title": chapter_title,
+                        "detail": {
+                            "step": chapter_index + 1,
+                            "totalSteps": total_chapters,
+                            "stepName": f"撰写: {chapter_title[:20]}",
+                            "subItems": []
+                        },
+                        # 发送章节开始信息用于预览
+                        "content": {
+                            "chapterNumber": str(chapter_index + 1),
+                            "chapterTitle": chapter_title
+                        }
+                    }
+                elif chunk.get('type') == 'content_chunk':
+                    # 流式内容片段（用于实时预览）
+                    yield {
+                        "phase": "content_writing",
+                        "status": "running",
+                        "content": {
+                            "chapterNumber": str(chunk.get('chapter_index', 0) + 1),
+                            "chapterTitle": chunk.get('chapter_title', ''),
+                            "contentChunk": chunk.get('content', ''),
+                            "wordCount": chunk.get('word_count', 0)
+                        }
                     }
                 elif chunk.get('type') == 'chapter':
                     chapter_content = chunk.get('chapter_content', {})
@@ -349,11 +492,16 @@ class ProposalCrew:
                     chapter_index = chunk.get('chapter_index', 0)
                     chapter_content['chapter_number'] = str(chapter_index + 1)
 
+                    # 章节完成，通知前端清空预览
                     yield {
                         "phase": "content_writing",
                         "status": "running",
                         "event": "chapter_complete",
-                        "chapter": chapter_content
+                        "chapter": chapter_content,
+                        "content": {
+                            "chapterNumber": str(chapter_index + 1),
+                            "isComplete": True
+                        }
                     }
 
             # 重新获取完整内容
@@ -368,9 +516,23 @@ class ProposalCrew:
                 }
             }
 
-            # 阶段7: 专家评审
+            # 阶段7: 专家评审（带细粒度进度）
             if self.config.enable_expert_review:
                 yield {"phase": "expert_review", "status": "running", "message": "专家评审..."}
+                review_steps = ["技术方案评审", "完整性检查", "合规性验证", "评分计算"]
+                completed_review = []
+                for i, step in enumerate(review_steps):
+                    yield {
+                        "phase": "expert_review",
+                        "status": "running",
+                        "detail": {
+                            "step": i + 1,
+                            "totalSteps": len(review_steps),
+                            "stepName": step,
+                            "subItems": completed_review.copy()
+                        }
+                    }
+                    completed_review.append(step)
                 self._run_expert_review(tender_doc)
                 yield {
                     "phase": "expert_review",
@@ -672,6 +834,315 @@ class ProposalCrew:
         except Exception as e:
             self.logger.error(f"恢复状态失败: {e}")
             return False
+
+    # =========================
+    # 断点续传支持方法
+    # =========================
+
+    def _get_phase_method(self, phase: str, tender_doc: str, page_count: int) -> Callable:
+        """获取阶段执行方法"""
+        phase_methods = {
+            "scoring_extraction": lambda: self._run_scoring_extraction(tender_doc),
+            "product_matching": lambda: self._run_product_matching(tender_doc),
+            "strategy_planning": lambda: self._run_strategy_planning(),
+            "material_retrieval": lambda: self._run_material_retrieval(),
+            "outline_generation": lambda: self._run_outline_generation(tender_doc, page_count),
+            "content_writing": lambda: self._run_content_writing(tender_doc),
+            "expert_review": lambda: self._run_expert_review(tender_doc),
+        }
+        return phase_methods.get(phase)
+
+    def _should_skip_phase(self, phase: str) -> bool:
+        """判断是否应该跳过某阶段"""
+        if phase == "product_matching" and self.config.skip_product_matching:
+            return True
+        if phase == "material_retrieval" and self.config.skip_material_retrieval:
+            return True
+        if phase == "expert_review" and not self.config.enable_expert_review:
+            return True
+        return False
+
+    def _execute_phase_with_retry(
+        self,
+        phase: str,
+        tender_doc: str,
+        page_count: int,
+        on_retry: Callable = None
+    ) -> bool:
+        """
+        带重试的阶段执行
+
+        Args:
+            phase: 阶段名称
+            tender_doc: 招标文件
+            page_count: 目标页数
+            on_retry: 重试回调
+
+        Returns:
+            是否成功
+        """
+        phase_method = self._get_phase_method(phase, tender_doc, page_count)
+        if not phase_method:
+            self.logger.error(f"未知阶段: {phase}")
+            return False
+
+        start_time = datetime.now()
+        agent_name = self._get_agent_name_for_phase(phase)
+
+        try:
+            # 使用重试策略执行
+            self.retry_policy.execute_with_retry(
+                phase_method,
+                on_retry=on_retry
+            )
+
+            # 记录执行日志
+            if self.task_manager and self.current_task_id:
+                end_time = datetime.now()
+                duration_ms = int((end_time - start_time).total_seconds() * 1000)
+                self.task_manager.log_agent_execution(
+                    task_id=self.current_task_id,
+                    agent_name=agent_name,
+                    phase_name=phase,
+                    status="success",
+                    start_time=start_time,
+                    end_time=end_time,
+                    duration_ms=duration_ms
+                )
+
+            return True
+
+        except Exception as e:
+            # 记录失败日志
+            if self.task_manager and self.current_task_id:
+                end_time = datetime.now()
+                duration_ms = int((end_time - start_time).total_seconds() * 1000)
+                self.task_manager.log_agent_execution(
+                    task_id=self.current_task_id,
+                    agent_name=agent_name,
+                    phase_name=phase,
+                    status="failed",
+                    start_time=start_time,
+                    end_time=end_time,
+                    duration_ms=duration_ms,
+                    error_message=str(e)
+                )
+
+            raise
+
+    def _get_agent_name_for_phase(self, phase: str) -> str:
+        """获取阶段对应的智能体名称"""
+        mapping = {
+            "scoring_extraction": "ScoringPointAgent",
+            "product_matching": "ProductMatchAgent",
+            "strategy_planning": "ScoringStrategyAgent",
+            "material_retrieval": "MaterialRetrieverAgent",
+            "outline_generation": "OutlineArchitectAgent",
+            "content_writing": "ContentWriterAgent",
+            "expert_review": "ExpertReviewAgent",
+            "iteration": "ContentWriterAgent"
+        }
+        return mapping.get(phase, "UnknownAgent")
+
+    def run_stream_with_recovery(
+        self,
+        task_id: str,
+        tender_doc: str,
+        page_count: int = 100
+    ) -> Generator[Dict[str, Any], None, None]:
+        """
+        支持断点恢复的流式运行
+
+        Args:
+            task_id: 任务ID
+            tender_doc: 招标文件内容
+            page_count: 目标页数
+
+        Yields:
+            各阶段进度和结果
+        """
+        self.current_task_id = task_id
+
+        if not self.task_manager:
+            self.task_manager = get_task_manager()
+
+        # 加载任务信息
+        task = self.task_manager.get_task(task_id)
+        if not task:
+            yield {"phase": "error", "status": "error", "error": f"任务 {task_id} 不存在"}
+            return
+
+        # 获取已完成的阶段
+        completed_phases = set(self.task_manager.get_completed_phases(task_id))
+
+        # 恢复已保存的状态
+        saved_state = self.task_manager.load_state(task_id)
+        if saved_state:
+            self.resume_from_state(saved_state)
+            yield {
+                "phase": "init",
+                "status": "resumed",
+                "message": f"从 {len(completed_phases)} 个已完成阶段恢复",
+                "task_id": task_id,
+                "completed_phases": list(completed_phases)
+            }
+        else:
+            self.state = CrewState()
+            self.state.start_time = time.time()
+
+        # 启动任务
+        self.task_manager.start_task(task_id)
+
+        # 定义阶段执行顺序
+        phases_to_run = [
+            "scoring_extraction",
+            "product_matching",
+            "strategy_planning",
+            "material_retrieval",
+            "outline_generation",
+            "content_writing",
+            "expert_review"
+        ]
+
+        try:
+            for phase in phases_to_run:
+                # 检查是否应该跳过
+                if self._should_skip_phase(phase):
+                    yield {"phase": phase, "status": "skipped", "message": f"跳过 {phase}"}
+                    continue
+
+                # 检查是否已完成
+                if phase in completed_phases:
+                    yield {
+                        "phase": phase,
+                        "status": "skipped",
+                        "message": f"{phase} 已完成，跳过",
+                        "recovered": True
+                    }
+                    continue
+
+                # 发送开始事件
+                yield {"phase": phase, "status": "running", "message": f"开始执行 {phase}..."}
+
+                # 重试回调
+                def on_retry(attempt, error, delay):
+                    # 这里可以yield重试事件，但Generator不支持嵌套yield
+                    self.logger.warning(f"阶段 {phase} 第{attempt}次失败，{delay}秒后重试: {error}")
+
+                # 执行阶段
+                try:
+                    self._execute_phase_with_retry(phase, tender_doc, page_count, on_retry)
+
+                    # 更新任务状态
+                    self.task_manager.update_phase(task_id, phase, "success")
+
+                    # 保存中间状态
+                    self.task_manager.save_state(task_id, self.state.to_full_dict())
+
+                    # 发送完成事件
+                    yield {
+                        "phase": phase,
+                        "status": "complete",
+                        "result": self._get_phase_result(phase)
+                    }
+
+                except Exception as e:
+                    # 更新任务状态为失败
+                    self.task_manager.update_phase(task_id, phase, "failed", error=str(e))
+                    self.task_manager.save_state(task_id, self.state.to_full_dict())
+
+                    yield {
+                        "phase": phase,
+                        "status": "error",
+                        "error": str(e),
+                        "can_resume": True,
+                        "task_id": task_id
+                    }
+                    return
+
+            # 迭代优化(如果需要)
+            if self.config.enable_expert_review:
+                iteration_count = 0
+                while (self.state.review_result.get('overall_score', 0) < self.config.min_review_score
+                       and iteration_count < self.config.max_iterations):
+                    iteration_count += 1
+                    yield {
+                        "phase": "iteration",
+                        "status": "running",
+                        "message": f"第{iteration_count}轮优化...",
+                        "iteration": iteration_count
+                    }
+                    self._run_iteration()
+                    self._run_expert_review(tender_doc)
+                    yield {
+                        "phase": "iteration",
+                        "status": "complete",
+                        "iteration": iteration_count,
+                        "result": {"new_score": self.state.review_result.get('overall_score', 0)}
+                    }
+
+            # 完成任务
+            self.state.phase = CrewPhase.COMPLETE
+            self.task_manager.complete_task(
+                task_id,
+                final_score=self.state.review_result.get('overall_score')
+            )
+
+            yield {
+                "phase": "complete",
+                "status": "complete",
+                "task_id": task_id,
+                "result": self._build_final_result()
+            }
+
+        except Exception as e:
+            import traceback
+            self.state.phase = CrewPhase.ERROR
+            self.state.error = str(e)
+            self.task_manager.fail_task(task_id, str(e))
+
+            yield {
+                "phase": "error",
+                "status": "error",
+                "error": str(e),
+                "traceback": traceback.format_exc()[:500],
+                "can_resume": True,
+                "task_id": task_id
+            }
+
+    def _get_phase_result(self, phase: str) -> Dict:
+        """获取阶段执行结果摘要"""
+        results = {
+            "scoring_extraction": {
+                "count": len(self.state.scoring_points),
+                "dimensions": self._summarize_scoring_dimensions()
+            },
+            "product_matching": {
+                "coverage_rate": self.state.product_match_result.get('summary', {}).get('coverage_rate', 0),
+                "matched_count": self.state.product_match_result.get('summary', {}).get('matched_count', 0)
+            },
+            "strategy_planning": {
+                "estimated_score": self.state.scoring_strategy.get('estimated_score', 0),
+                "highlights": len(self.state.scoring_strategy.get('highlights', []))
+            },
+            "material_retrieval": {
+                "package_count": len(self.state.materials.get('material_packages', [])),
+                "total_materials": self.state.materials.get('total_materials', 0)
+            },
+            "outline_generation": {
+                "chapter_count": self.state.outline.get('chapter_count', 0),
+                "total_words": self.state.outline.get('total_words', 0)
+            },
+            "content_writing": {
+                "chapter_count": len(self.state.proposal_content.get('chapters', [])),
+                "total_words": self.state.proposal_content.get('total_words', 0)
+            },
+            "expert_review": {
+                "overall_score": self.state.review_result.get('overall_score', 0),
+                "pass_recommendation": self.state.review_result.get('pass_recommendation', False)
+            }
+        }
+        return results.get(phase, {})
 
 
 def create_proposal_crew(

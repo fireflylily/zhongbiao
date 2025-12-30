@@ -247,8 +247,24 @@
           <el-icon><Promotion /></el-icon>
           生成技术方案
         </el-button>
+        <el-button
+          type="info"
+          size="large"
+          plain
+          @click="showTaskHistory = true"
+        >
+          <el-icon><Clock /></el-icon>
+          任务历史
+        </el-button>
       </div>
     </el-card>
+
+    <!-- 任务历史抽屉 -->
+    <TaskHistoryDrawer
+      v-model="showTaskHistory"
+      :project-id="form.projectId || undefined"
+      @resume="handleResumeTask"
+    />
 
     <!-- AI生成流式输出 -->
     <el-card v-if="generating" class="generation-output" shadow="never">
@@ -268,6 +284,8 @@
         v-if="config.generationMode === 'Quality-First'"
         :current-phase="crewResults.currentPhase"
         :phase-progress="crewResults.phaseProgress"
+        :phase-details="crewResults.phaseDetails"
+        :chapter-preview="crewResults.chapterPreview"
         :scoring-points="crewResults.scoringPoints"
         :product-match="crewResults.productMatch"
         :scoring-strategy="crewResults.scoringStrategy"
@@ -278,6 +296,7 @@
       />
 
       <SSEStreamViewer
+        v-if="config.generationMode !== 'Quality-First'"
         :content="streamContent"
         :is-streaming="generating"
         @stop="stopGeneration"
@@ -566,7 +585,8 @@ import {
   Folder,
   Document,
   QuestionFilled,
-  Setting
+  Setting,
+  Clock
 } from '@element-plus/icons-vue'
 import {
   DocumentUploader,
@@ -576,7 +596,8 @@ import {
   HitlFileAlert,
   HistoryFilesPanel,
   RichTextEditor,
-  CrewProgressTracker
+  CrewProgressTracker,
+  TaskHistoryDrawer
 } from '@/components'
 import { tenderApi } from '@/api/endpoints/tender'
 import {
@@ -719,6 +740,22 @@ const crewConfig = ref({
   maxIterations: 2
 })
 
+// 细粒度进度详情接口
+interface PhaseDetail {
+  currentStep: number
+  totalSteps: number
+  stepName: string
+  subItems: string[]
+}
+
+// 章节预览接口
+interface ChapterPreview {
+  currentChapter: string
+  currentTitle: string
+  content: string
+  wordCount: number
+}
+
 // Quality-First 模式结果
 const crewResults = ref({
   scoringPoints: null as any,
@@ -727,7 +764,16 @@ const crewResults = ref({
   materials: null as any,
   reviewResult: null as any,
   currentPhase: '' as string,
-  phaseProgress: {} as Record<string, any>
+  phaseProgress: {} as Record<string, any>,
+  // 新增：细粒度进度详情
+  phaseDetails: {} as Record<string, PhaseDetail>,
+  // 新增：章节预览
+  chapterPreview: {
+    currentChapter: '',
+    currentTitle: '',
+    content: '',
+    wordCount: 0
+  } as ChapterPreview
 })
 
 // 生成状态
@@ -760,6 +806,10 @@ const editorRef = ref(null)
 const editorContent = ref('')
 const editorLoading = ref(false)
 const editorSaving = ref(false)
+
+// 任务历史状态
+const showTaskHistory = ref(false)
+const currentTaskId = ref<string | null>(null)
 
 // 章节树数据
 const chapterTreeData = computed(() => {
@@ -981,7 +1031,14 @@ const generateWithSSE = async (formData: FormData) => {
       materials: null,
       reviewResult: null,
       currentPhase: '',
-      phaseProgress: {}
+      phaseProgress: {},
+      phaseDetails: {},
+      chapterPreview: {
+        currentChapter: '',
+        currentTitle: '',
+        content: '',
+        wordCount: 0
+      }
     }
   } else if (config.value.generationMode) {
     apiEndpoint = '/api/agent/generate'  // 其他智能体模式
@@ -1068,6 +1125,50 @@ const generateWithSSE = async (formData: FormData) => {
                 message: data.message,
                 result: data.result
               }
+            }
+
+            // ========================================
+            // 处理细粒度进度详情 (新增)
+            // ========================================
+            if (data.detail && data.phase) {
+              crewResults.value.phaseDetails[data.phase] = {
+                currentStep: data.detail.step || 0,
+                totalSteps: data.detail.totalSteps || 0,
+                stepName: data.detail.stepName || '',
+                subItems: data.detail.subItems || []
+              }
+            }
+
+            // ========================================
+            // 处理章节流式内容预览 (新增)
+            // ========================================
+            if (data.content) {
+              if (data.content.contentChunk) {
+                // 累积内容片段
+                crewResults.value.chapterPreview.content += data.content.contentChunk
+                crewResults.value.chapterPreview.wordCount = data.content.wordCount || 0
+              } else if (data.content.isComplete) {
+                // 章节完成，清空预览准备下一章
+                crewResults.value.chapterPreview = {
+                  currentChapter: '',
+                  currentTitle: '',
+                  content: '',
+                  wordCount: 0
+                }
+              } else if (data.content.chapterNumber) {
+                // 新章节开始
+                crewResults.value.chapterPreview = {
+                  currentChapter: data.content.chapterNumber,
+                  currentTitle: data.content.chapterTitle || '',
+                  content: '',
+                  wordCount: 0
+                }
+              }
+            }
+
+            // 阶段完成时清理该阶段的详细进度
+            if (data.status === 'complete' && data.phase) {
+              delete crewResults.value.phaseDetails[data.phase]
             }
 
             // 评分点提取完成
@@ -1411,6 +1512,140 @@ const handleRegenerate = () => {
   showEditor.value = false
   editorContent.value = ''
   ElMessage.info('请配置参数后重新生成')
+}
+
+// 恢复任务处理
+const handleResumeTask = async (task: any) => {
+  if (!task?.task_id) {
+    ElMessage.error('任务ID无效')
+    return
+  }
+
+  currentTaskId.value = task.task_id
+
+  // 重置状态
+  generating.value = true
+  generationProgress.value = task.progress_percentage || 0
+  streamContent.value = `正在恢复任务 ${task.task_id}...\n`
+
+  // 重置 crewResults
+  crewResults.value = {
+    scoringPoints: null,
+    productMatch: null,
+    scoringStrategy: null,
+    materials: null,
+    reviewResult: null,
+    currentPhase: task.current_phase || '',
+    phaseProgress: {},
+    phaseDetails: {},
+    chapterPreview: {
+      currentChapter: '',
+      currentTitle: '',
+      content: '',
+      wordCount: 0
+    }
+  }
+
+  try {
+    // 构建恢复请求
+    const formData = new FormData()
+    formData.append('task_id', task.task_id)
+
+    // 发送恢复请求，连接SSE流
+    const response = await fetch('/api/agent/generate-with-recovery', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error('恢复任务请求失败')
+    }
+
+    if (!response.body) {
+      throw new Error('响应体为空')
+    }
+
+    // 处理SSE流
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value, { stream: true })
+      const lines = chunk.split('\n')
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6))
+            handleSSEEvent(data)
+          } catch (e) {
+            // 忽略解析错误
+          }
+        }
+      }
+    }
+
+  } catch (error: any) {
+    console.error('恢复任务失败:', error)
+    ElMessage.error(error.message || '恢复任务失败')
+  } finally {
+    generating.value = false
+  }
+}
+
+// 处理SSE事件（与现有生成逻辑复用）
+const handleSSEEvent = (data: any) => {
+  const stage = data.stage || data.phase
+  const status = data.status
+  const message = data.message
+
+  if (message) {
+    streamContent.value += message + '\n'
+  }
+
+  // 更新进度
+  if (stage === 'complete') {
+    generationProgress.value = 100
+    if (data.result) {
+      generationResult.value = data.result
+    }
+    ElMessage.success('技术方案生成完成')
+  } else if (status === 'error') {
+    ElMessage.error(data.error || '生成失败')
+    if (data.can_resume) {
+      ElMessage.info('任务已保存，可稍后恢复')
+    }
+  } else {
+    // 更新阶段进度
+    crewResults.value.currentPhase = stage
+    if (data.result) {
+      updateCrewResults(stage, data.result)
+    }
+  }
+}
+
+// 更新 crew 结果
+const updateCrewResults = (phase: string, result: any) => {
+  switch (phase) {
+    case 'scoring_extraction':
+      crewResults.value.scoringPoints = result.scoring_points || result
+      break
+    case 'product_matching':
+      crewResults.value.productMatch = result
+      break
+    case 'strategy_planning':
+      crewResults.value.scoringStrategy = result
+      break
+    case 'material_retrieval':
+      crewResults.value.materials = result
+      break
+    case 'expert_review':
+      crewResults.value.reviewResult = result
+      break
+  }
 }
 
 // 编辑器保存处理

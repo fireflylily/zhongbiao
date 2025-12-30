@@ -17,59 +17,103 @@
           'phase-item--complete': phaseProgress[phase.key]?.status === 'complete',
           'phase-item--running': phaseProgress[phase.key]?.status === 'running',
           'phase-item--skipped': phaseProgress[phase.key]?.status === 'skipped',
-          'phase-item--pending': !phaseProgress[phase.key]
+          'phase-item--pending': !phaseProgress[phase.key],
+          'phase-item--has-detail': isPhaseRunning(phase.key) && hasPhaseDetail(phase.key)
         }"
       >
-        <div class="phase-icon">
-          <el-icon v-if="phaseProgress[phase.key]?.status === 'complete'" class="icon-success">
-            <CircleCheckFilled />
-          </el-icon>
-          <el-icon v-else-if="phaseProgress[phase.key]?.status === 'running'" class="icon-running">
-            <Loading />
-          </el-icon>
-          <el-icon v-else-if="phaseProgress[phase.key]?.status === 'skipped'" class="icon-skipped">
-            <RemoveFilled />
-          </el-icon>
-          <el-icon v-else class="icon-pending">
-            <Clock />
-          </el-icon>
+        <div class="phase-main">
+          <div class="phase-icon">
+            <el-icon v-if="phaseProgress[phase.key]?.status === 'complete'" class="icon-success">
+              <CircleCheckFilled />
+            </el-icon>
+            <el-icon v-else-if="phaseProgress[phase.key]?.status === 'running'" class="icon-running">
+              <Loading />
+            </el-icon>
+            <el-icon v-else-if="phaseProgress[phase.key]?.status === 'skipped'" class="icon-skipped">
+              <RemoveFilled />
+            </el-icon>
+            <el-icon v-else class="icon-pending">
+              <Clock />
+            </el-icon>
+          </div>
+
+          <div class="phase-content">
+            <div class="phase-name">{{ phase.label }}</div>
+            <div v-if="phaseProgress[phase.key]?.result" class="phase-result">
+              <template v-if="phase.key === 'scoring_extraction'">
+                {{ phaseProgress[phase.key].result.count || 0 }}个评分维度
+              </template>
+              <template v-else-if="phase.key === 'product_matching'">
+                覆盖率 {{ ((phaseProgress[phase.key].result.coverage_rate || 0) * 100).toFixed(1) }}%
+              </template>
+              <template v-else-if="phase.key === 'strategy_planning'">
+                预估得分 {{ phaseProgress[phase.key].result.estimated_score || 0 }}分
+              </template>
+              <template v-else-if="phase.key === 'material_retrieval'">
+                {{ phaseProgress[phase.key].result.package_count || 0 }}个素材包
+              </template>
+              <template v-else-if="phase.key === 'outline_generation'">
+                {{ phaseProgress[phase.key].result.chapter_count || 0 }}章节
+              </template>
+              <template v-else-if="phase.key === 'content_writing'">
+                {{ phaseProgress[phase.key].result.chapter_count || 0 }}章，{{ phaseProgress[phase.key].result.total_words || 0 }}字
+              </template>
+              <template v-else-if="phase.key === 'expert_review'">
+                {{ phaseProgress[phase.key].result.overall_score || 0 }}分
+                <el-tag
+                  :type="phaseProgress[phase.key].result.pass_recommendation ? 'success' : 'warning'"
+                  size="small"
+                >
+                  {{ phaseProgress[phase.key].result.pass_recommendation ? '通过' : '需改进' }}
+                </el-tag>
+              </template>
+            </div>
+            <div v-else-if="phaseProgress[phase.key]?.message" class="phase-message">
+              {{ phaseProgress[phase.key].message }}
+            </div>
+          </div>
         </div>
 
-        <div class="phase-content">
-          <div class="phase-name">{{ phase.label }}</div>
-          <div v-if="phaseProgress[phase.key]?.result" class="phase-result">
-            <template v-if="phase.key === 'scoring_extraction'">
-              {{ phaseProgress[phase.key].result.count || 0 }}个评分维度
-            </template>
-            <template v-else-if="phase.key === 'product_matching'">
-              覆盖率 {{ ((phaseProgress[phase.key].result.coverage_rate || 0) * 100).toFixed(1) }}%
-            </template>
-            <template v-else-if="phase.key === 'strategy_planning'">
-              预估得分 {{ phaseProgress[phase.key].result.estimated_score || 0 }}分
-            </template>
-            <template v-else-if="phase.key === 'material_retrieval'">
-              {{ phaseProgress[phase.key].result.package_count || 0 }}个素材包
-            </template>
-            <template v-else-if="phase.key === 'outline_generation'">
-              {{ phaseProgress[phase.key].result.chapter_count || 0 }}章节
-            </template>
-            <template v-else-if="phase.key === 'content_writing'">
-              {{ phaseProgress[phase.key].result.chapter_count || 0 }}章，{{ phaseProgress[phase.key].result.total_words || 0 }}字
-            </template>
-            <template v-else-if="phase.key === 'expert_review'">
-              {{ phaseProgress[phase.key].result.overall_score || 0 }}分
-              <el-tag
-                :type="phaseProgress[phase.key].result.pass_recommendation ? 'success' : 'warning'"
-                size="small"
-              >
-                {{ phaseProgress[phase.key].result.pass_recommendation ? '通过' : '需改进' }}
-              </el-tag>
-            </template>
+        <!-- 嵌入式详细进度 -->
+        <transition name="slide-fade">
+          <div v-if="isPhaseRunning(phase.key) && hasPhaseDetail(phase.key)" class="phase-detail">
+            <!-- 步骤进度条 -->
+            <div class="step-progress">
+              <el-progress
+                :percentage="getStepPercentage(phase.key)"
+                :stroke-width="6"
+                :show-text="false"
+                color="#409eff"
+              />
+              <span class="step-text">
+                {{ getStepText(phase.key) }}
+              </span>
+            </div>
+
+            <!-- 已完成子项列表 -->
+            <div v-if="getSubItems(phase.key).length > 0" class="sub-items">
+              <transition-group name="list" tag="ul">
+                <li v-for="(item, idx) in getSubItems(phase.key)" :key="idx" class="sub-item">
+                  <el-icon class="item-icon"><Check /></el-icon>
+                  <span>{{ item }}</span>
+                </li>
+              </transition-group>
+            </div>
+
+            <!-- 章节预览 (仅 content_writing 阶段) -->
+            <div v-if="phase.key === 'content_writing' && chapterPreview?.content" class="chapter-preview">
+              <div class="preview-header">
+                <span class="chapter-number">{{ chapterPreview.currentChapter }}</span>
+                <span class="chapter-title">{{ chapterPreview.currentTitle }}</span>
+                <span class="word-count">{{ chapterPreview.wordCount }} 字</span>
+              </div>
+              <div class="preview-content" ref="previewRef">
+                <div v-html="renderedPreview" class="markdown-body"></div>
+                <span class="typing-cursor">|</span>
+              </div>
+            </div>
           </div>
-          <div v-else-if="phaseProgress[phase.key]?.message" class="phase-message">
-            {{ phaseProgress[phase.key].message }}
-          </div>
-        </div>
+        </transition>
 
         <div class="phase-connector" v-if="phase.key !== 'complete'">
           <div class="connector-line"></div>
@@ -110,18 +154,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import {
   DataAnalysis,
   CircleCheckFilled,
   Loading,
   RemoveFilled,
-  Clock
+  Clock,
+  Check
 } from '@element-plus/icons-vue'
+import { marked } from 'marked'
+
+// 细粒度进度详情接口
+interface PhaseDetail {
+  currentStep: number
+  totalSteps: number
+  stepName: string
+  subItems: string[]
+}
+
+// 章节预览接口
+interface ChapterPreview {
+  currentChapter: string
+  currentTitle: string
+  content: string
+  wordCount: number
+}
 
 interface Props {
   currentPhase?: string
   phaseProgress?: Record<string, any>
+  phaseDetails?: Record<string, PhaseDetail>  // 新增：细粒度进度详情
+  chapterPreview?: ChapterPreview | null      // 新增：章节预览
   scoringPoints?: any
   productMatch?: any
   scoringStrategy?: any
@@ -133,10 +197,63 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   currentPhase: '',
   phaseProgress: () => ({}),
+  phaseDetails: () => ({}),
+  chapterPreview: null,
   showDetails: false
 })
 
 const activeDetails = ref<string[]>([])
+const previewRef = ref<HTMLElement | null>(null)
+
+// 判断阶段是否正在运行
+const isPhaseRunning = (phaseKey: string): boolean => {
+  return props.phaseProgress[phaseKey]?.status === 'running'
+}
+
+// 判断阶段是否有详细进度
+const hasPhaseDetail = (phaseKey: string): boolean => {
+  const detail = props.phaseDetails?.[phaseKey]
+  return !!(detail && detail.totalSteps > 0)
+}
+
+// 获取步骤百分比
+const getStepPercentage = (phaseKey: string): number => {
+  const detail = props.phaseDetails?.[phaseKey]
+  if (!detail || detail.totalSteps === 0) return 0
+  return Math.round((detail.currentStep / detail.totalSteps) * 100)
+}
+
+// 获取步骤文本
+const getStepText = (phaseKey: string): string => {
+  const detail = props.phaseDetails?.[phaseKey]
+  if (!detail) return ''
+  return `${detail.stepName} (${detail.currentStep}/${detail.totalSteps})`
+}
+
+// 获取已完成子项
+const getSubItems = (phaseKey: string): string[] => {
+  const detail = props.phaseDetails?.[phaseKey]
+  return detail?.subItems || []
+}
+
+// 渲染 Markdown 预览内容
+const renderedPreview = computed(() => {
+  if (!props.chapterPreview?.content) return ''
+  try {
+    return marked(props.chapterPreview.content, { breaks: true })
+  } catch {
+    return props.chapterPreview.content
+  }
+})
+
+// 自动滚动预览区域到底部
+watch(() => props.chapterPreview?.content, () => {
+  nextTick(() => {
+    if (previewRef.value) {
+      previewRef.value.scrollTop = previewRef.value.scrollHeight
+    }
+  })
+})
 
 // 阶段定义
 const phases = [
@@ -214,7 +331,7 @@ const hasResults = computed(() => {
 
   .phase-item {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
     position: relative;
     padding: 12px 0;
 
@@ -243,6 +360,15 @@ const hasResults = computed(() => {
         color: var(--el-text-color-secondary);
       }
     }
+
+    &--has-detail {
+      padding-bottom: 16px;
+    }
+  }
+
+  .phase-main {
+    display: flex;
+    align-items: flex-start;
   }
 
   .phase-icon {
@@ -396,5 +522,161 @@ const hasResults = computed(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+// 嵌入式详细进度样式
+.phase-detail {
+  margin-top: 12px;
+  margin-left: 40px;
+  padding: 16px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+  border-left: 3px solid var(--el-color-primary);
+
+  .step-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .el-progress {
+      flex: 1;
+      max-width: 200px;
+    }
+
+    .step-text {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+      white-space: nowrap;
+    }
+  }
+
+  .sub-items {
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sub-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--el-color-success);
+      background: var(--el-color-success-light-9);
+      border-radius: 4px;
+
+      .item-icon {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .chapter-preview {
+    margin-top: 16px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    padding-top: 16px;
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+
+      .chapter-number {
+        font-weight: 600;
+        color: var(--el-color-primary);
+        font-size: 14px;
+      }
+
+      .chapter-title {
+        font-weight: 500;
+        font-size: 14px;
+        color: var(--el-text-color-primary);
+      }
+
+      .word-count {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        background: var(--el-fill-color);
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+    }
+
+    .preview-content {
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 12px;
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid var(--el-border-color);
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--el-text-color-regular);
+
+      .markdown-body {
+        font-size: 13px;
+
+        p {
+          margin: 0 0 8px 0;
+        }
+
+        ul, ol {
+          margin: 0 0 8px 0;
+          padding-left: 20px;
+        }
+      }
+
+      .typing-cursor {
+        display: inline-block;
+        animation: blink 1s infinite;
+        color: var(--el-color-primary);
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+// 过渡动画
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+// 列表动画
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 </style>

@@ -762,12 +762,23 @@ def list_tech_proposal_files():
                     else:
                         logger.info(f"✅ MATCHED: {filename} (project='{project_name}')")
 
+                # 根据文件路径构造下载URL
+                file_path_str = str(file_path)
+                if 'tech_proposal_files' in file_path_str:
+                    # 文件在 uploads/tech_proposal_files/ 目录下
+                    relative_path = file_path_str.split('uploads/')[-1] if 'uploads/' in file_path_str else filename
+                    download_url = f"/api/files/serve/{relative_path}?download=true"
+                else:
+                    # 文件在 outputs 目录下
+                    download_url = f"/api/files/download/{filename}"
+
                 return {
                     'id': hashlib.md5(str(file_path).encode()).hexdigest()[:8],
                     'filename': filename,
                     'original_filename': filename,
                     'file_path': str(file_path),
                     'output_path': str(file_path),
+                    'download_url': download_url,
                     'size': stat.st_size,
                     'created_at': datetime.fromtimestamp(stat.st_ctime).isoformat(),
                     'process_time': modified_time.isoformat(),

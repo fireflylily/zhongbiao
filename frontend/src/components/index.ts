@@ -27,6 +27,7 @@ import FormTabLayout from './layouts/FormTabLayout.vue'
 import StatsCard from './business/StatsCard.vue'
 import HitlFileAlert from './business/HitlFileAlert.vue'
 import HistoryFilesPanel from './business/HistoryFilesPanel.vue'
+import TaskHistoryDrawer from './business/TaskHistoryDrawer.vue'
 
 // Crew 智能体组件
 import CrewProgressTracker from './crew/CrewProgressTracker.vue'
@@ -55,6 +56,7 @@ export {
   StatsCard,
   HitlFileAlert,
   HistoryFilesPanel,
+  TaskHistoryDrawer,
   // Crew 智能体组件
   CrewProgressTracker,
   // 全局组件
@@ -88,6 +90,7 @@ export default {
   StatsCard,
   HitlFileAlert,
   HistoryFilesPanel,
+  TaskHistoryDrawer,
   // Crew 智能体组件
   CrewProgressTracker,
   // 全局组件

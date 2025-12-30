@@ -1634,14 +1634,28 @@ def generate_with_crew():
                 # 转换为前端期望的格式
                 sse_data = {
                     'stage': phase,
+                    'phase': phase,  # 同时传递 phase 字段供前端使用
                     'status': status,
                     'progress': phase_progress.get(phase, 0),
                     'message': event.get('message') or phase_messages.get(phase, '')
                 }
 
+                # ========================================
+                # 传递细粒度进度详情 (新增)
+                # ========================================
+                if 'detail' in event:
+                    sse_data['detail'] = event['detail']
+
+                # ========================================
+                # 传递章节流式内容预览 (新增)
+                # ========================================
+                if 'content' in event:
+                    sse_data['content'] = event['content']
+
                 # 附加阶段特定数据
                 if status == 'complete' and 'result' in event:
                     result = event['result']
+                    sse_data['result'] = result  # 同时传递原始 result
                     if phase == 'scoring_extraction':
                         sse_data['scoring_points'] = result
                     elif phase == 'product_matching':
@@ -1663,6 +1677,7 @@ def generate_with_crew():
                     total_chapters = event.get('total_chapters', 1)
                     sse_data['progress'] = 55 + int(chapter_idx / total_chapters * 20)
                     sse_data['chapter_title'] = event.get('chapter_title', '')
+                    sse_data['event'] = 'chapter_progress'
 
                 # 章节完成事件
                 if phase == 'content_writing' and event.get('event') == 'chapter_complete':
@@ -1899,6 +1914,332 @@ def list_tech_proposal_files():
     except Exception as e:
         logger.error(f"获取技术方案文件列表失败: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# =========================
+# 任务管理API（断点续传支持）
+# =========================
+
+@api_outline_bp.route('/tasks', methods=['GET'])
+def list_tasks():
+    """
+    获取任务列表
+
+    查询参数:
+    - project_id: 项目ID（可选）
+    - status: 任务状态过滤（可选: pending/running/completed/failed）
+    - limit: 返回数量限制（默认20）
+
+    返回:
+    {
+        "success": true,
+        "tasks": [...],
+        "total": 10
+    }
+    """
+    try:
+        from modules.outline_generator.task_manager import get_task_manager
+
+        task_manager = get_task_manager()
+        project_id = request.args.get('project_id', type=int)
+        limit = request.args.get('limit', 20, type=int)
+
+        if project_id:
+            tasks = task_manager.get_tasks_by_project(project_id, limit=limit)
+        else:
+            # 获取所有可恢复的任务
+            tasks = task_manager.get_resumable_tasks()
+
+        return jsonify({
+            'success': True,
+            'tasks': tasks,
+            'total': len(tasks)
+        })
+
+    except Exception as e:
+        logger.error(f"获取任务列表失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_outline_bp.route('/tasks/<task_id>', methods=['GET'])
+def get_task_detail(task_id):
+    """
+    获取任务详情
+
+    返回:
+    {
+        "success": true,
+        "task": {...},
+        "logs": [...],
+        "stats": {...}
+    }
+    """
+    try:
+        from modules.outline_generator.task_manager import get_task_manager
+
+        task_manager = get_task_manager()
+
+        task = task_manager.get_task(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+        logs = task_manager.get_execution_logs(task_id)
+        stats = task_manager.get_task_stats(task_id)
+
+        return jsonify({
+            'success': True,
+            'task': task,
+            'logs': logs,
+            'stats': stats
+        })
+
+    except Exception as e:
+        logger.error(f"获取任务详情失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_outline_bp.route('/tasks/<task_id>/resume', methods=['POST'])
+def resume_task(task_id):
+    """
+    恢复任务执行
+
+    返回:
+    {
+        "success": true,
+        "task_id": "xxx",
+        "message": "任务已恢复，请连接流式接口获取进度"
+    }
+    """
+    try:
+        from modules.outline_generator.task_manager import get_task_manager
+
+        task_manager = get_task_manager()
+
+        # 检查任务是否可恢复
+        if not task_manager.can_resume(task_id):
+            task = task_manager.get_task(task_id)
+            if not task:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+            return jsonify({
+                'success': False,
+                'error': f'任务状态为 {task.get("overall_status")}，无法恢复'
+            }), 400
+
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'message': '任务已准备恢复，请调用 /api/agent/generate-with-recovery 接口'
+        })
+
+    except Exception as e:
+        logger.error(f"恢复任务失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_outline_bp.route('/tasks/<task_id>/cancel', methods=['POST'])
+def cancel_task(task_id):
+    """取消任务"""
+    try:
+        from modules.outline_generator.task_manager import get_task_manager
+
+        task_manager = get_task_manager()
+
+        if task_manager.cancel_task(task_id):
+            return jsonify({'success': True, 'message': '任务已取消'})
+        else:
+            return jsonify({'success': False, 'error': '取消失败'}), 400
+
+    except Exception as e:
+        logger.error(f"取消任务失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@api_outline_bp.route('/agent/generate-with-recovery', methods=['POST'])
+def generate_with_recovery():
+    """
+    支持断点恢复的技术方案生成API
+
+    请求参数:
+    - task_id: 任务ID（可选，用于恢复已有任务）
+    - tender_file: 招标文件（新任务必需）
+    - project_id: 项目ID
+    - company_id: 公司ID
+    - page_count: 目标页数
+    - ai_model: AI模型
+    - crew_config: Crew配置（JSON字符串）
+
+    返回:
+    SSE流式响应
+    """
+    try:
+        from modules.outline_generator.task_manager import get_task_manager
+        from modules.outline_generator.agents.proposal_crew import ProposalCrew, CrewConfig
+
+        task_manager = get_task_manager()
+
+        # 获取参数
+        task_id = request.form.get('task_id')
+        project_id = request.form.get('projectId', type=int)
+        company_id = request.form.get('companyId', 1, type=int)
+        page_count = request.form.get('page_count', 200, type=int)
+        ai_model = request.form.get('aiModel', 'deepseek-v3')
+
+        # Crew配置
+        crew_config_str = request.form.get('crew_config', '{}')
+        try:
+            crew_config_dict = json.loads(crew_config_str)
+        except:
+            crew_config_dict = {}
+
+        # 处理招标文件
+        tender_doc = None
+        tender_file_path = None
+
+        if task_id:
+            # 恢复模式：从任务中获取文件路径
+            task = task_manager.get_task(task_id)
+            if not task:
+                return jsonify({'success': False, 'error': '任务不存在'}), 404
+
+            tender_file_path = task.get('tender_file_path')
+            if tender_file_path and Path(tender_file_path).exists():
+                # 读取文件内容
+                tender_doc = read_document_content(tender_file_path)
+            else:
+                return jsonify({'success': False, 'error': '招标文件不存在'}), 400
+
+            project_id = task.get('project_id')
+            company_id = task.get('company_id', 1)
+
+        else:
+            # 新任务模式
+            if 'tender_file' not in request.files:
+                return jsonify({'success': False, 'error': '缺少招标文件'}), 400
+
+            tender_file = request.files['tender_file']
+
+            # 保存文件
+            upload_dir = config.get_path('upload') / 'tech_proposal_uploads'
+            upload_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            safe_name = secure_filename(tender_file.filename)
+            saved_filename = f"{timestamp}_{safe_name}"
+            tender_file_path = str(upload_dir / saved_filename)
+            tender_file.save(tender_file_path)
+
+            # 读取文件内容
+            tender_doc = read_document_content(tender_file_path)
+
+            # 创建新任务
+            task_id = task_manager.create_task(
+                project_id=project_id or 0,
+                company_id=company_id,
+                generation_mode="quality_first",
+                ai_model=ai_model,
+                crew_config=crew_config_dict,
+                tender_file_path=tender_file_path,
+                page_count=page_count
+            )
+
+        if not tender_doc:
+            return jsonify({'success': False, 'error': '无法读取招标文件内容'}), 400
+
+        # 创建Crew配置
+        crew_config = CrewConfig(
+            model_name=ai_model,
+            company_id=company_id,
+            skip_product_matching=crew_config_dict.get('skip_product_matching', False),
+            skip_material_retrieval=crew_config_dict.get('skip_material_retrieval', False),
+            enable_expert_review=crew_config_dict.get('enable_expert_review', True),
+            max_iterations=crew_config_dict.get('max_iterations', 2),
+            min_review_score=crew_config_dict.get('min_review_score', 70.0)
+        )
+
+        # 创建Crew
+        crew = ProposalCrew(config=crew_config, task_manager=task_manager)
+
+        def generate_events():
+            try:
+                # 发送任务ID
+                yield f"data: {json.dumps({'stage': 'init', 'task_id': task_id, 'message': '任务已创建'}, ensure_ascii=False)}\n\n"
+
+                # 使用支持恢复的流式运行
+                for event in crew.run_stream_with_recovery(task_id, tender_doc, page_count):
+                    phase = event.get('phase', 'unknown')
+                    status = event.get('status', 'running')
+
+                    # 转换为前端期望的格式
+                    sse_data = {
+                        'stage': phase,
+                        'phase': phase,  # 同时传递 phase 字段供前端使用
+                        'status': status,
+                        'task_id': task_id,
+                        'message': event.get('message', ''),
+                        'can_resume': event.get('can_resume', False)
+                    }
+
+                    # 传递细粒度进度详情 (新增)
+                    if 'detail' in event:
+                        sse_data['detail'] = event['detail']
+
+                    # 传递章节流式内容预览 (新增)
+                    if 'content' in event:
+                        sse_data['content'] = event['content']
+
+                    # 添加结果数据
+                    if 'result' in event:
+                        sse_data['result'] = event['result']
+                    if 'error' in event:
+                        sse_data['error'] = event['error']
+
+                    yield f"data: {json.dumps(sse_data, ensure_ascii=False)}\n\n"
+
+            except Exception as e:
+                import traceback
+                error_msg = str(e) if str(e) else '未知错误'
+                error_trace = traceback.format_exc()
+                logger.error(f"生成失败: {error_msg}\n{error_trace}")
+
+                yield f"data: {json.dumps({'stage': 'error', 'status': 'error', 'error': error_msg, 'task_id': task_id, 'can_resume': True}, ensure_ascii=False)}\n\n"
+
+        return Response(
+            stream_with_context(generate_events()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no'
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"生成任务失败: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def read_document_content(file_path: str) -> str:
+    """读取文档内容"""
+    try:
+        from modules.outline_generator import RequirementAnalyzer
+
+        # 使用RequirementAnalyzer的文档读取功能
+        analyzer = RequirementAnalyzer()
+
+        # 解析文档
+        file_ext = Path(file_path).suffix.lower()
+        if file_ext in ['.docx', '.doc']:
+            return analyzer._read_docx(file_path)
+        elif file_ext == '.pdf':
+            return analyzer._read_pdf(file_path)
+        elif file_ext in ['.xlsx', '.xls']:
+            return analyzer._read_excel(file_path)
+        else:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+
+    except Exception as e:
+        logger.error(f"读取文档失败: {e}")
+        return None
 
 
 # 导出蓝图

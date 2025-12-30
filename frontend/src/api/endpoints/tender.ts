@@ -407,7 +407,108 @@ export const tenderApi = {
     recommend_product_docs: string
   }>> {
     return apiClient.get('/prompts/outline-generation')
+  },
+
+  // ==================== 任务管理（断点续传） ====================
+
+  /**
+   * 获取技术方案生成任务列表
+   * @param projectId 可选，按项目过滤
+   */
+  async getTechProposalTasks(projectId?: number): Promise<ApiResponse<{
+    tasks: TechProposalTask[]
+    total: number
+  }>> {
+    const params = projectId ? { project_id: projectId } : {}
+    return apiClient.get('/tasks', params)
+  },
+
+  /**
+   * 获取任务详情
+   */
+  async getTechProposalTaskDetail(taskId: string): Promise<ApiResponse<{
+    task: TechProposalTask
+    logs: TaskExecutionLog[]
+    stats: TaskStats
+  }>> {
+    return apiClient.get(`/tasks/${taskId}`)
+  },
+
+  /**
+   * 恢复任务执行
+   */
+  async resumeTechProposalTask(taskId: string): Promise<ApiResponse<{
+    task_id: string
+    message: string
+  }>> {
+    return apiClient.post(`/tasks/${taskId}/resume`)
+  },
+
+  /**
+   * 取消技术方案任务
+   */
+  async cancelTechProposalTask(taskId: string): Promise<ApiResponse<{
+    message: string
+  }>> {
+    return apiClient.post(`/tasks/${taskId}/cancel`)
   }
+}
+
+/**
+ * 技术方案任务类型
+ */
+export interface TechProposalTask {
+  task_id: string
+  project_id: number
+  company_id: number
+  generation_mode: string
+  ai_model: string
+  overall_status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  current_phase: string | null
+  progress_percentage: number
+  phases_completed: string
+  phase_results: string
+  retry_count: number
+  last_error: string | null
+  can_resume: boolean
+  created_at: string
+  started_at: string | null
+  completed_at: string | null
+  expires_at: string
+  // 前端计算属性
+  seconds_until_expire?: number
+}
+
+/**
+ * 任务执行日志
+ */
+export interface TaskExecutionLog {
+  log_id: number
+  task_id: string
+  agent_name: string
+  phase_name: string
+  status: string
+  attempt_number: number
+  start_time: string | null
+  end_time: string | null
+  duration_ms: number | null
+  error_message: string | null
+  created_at: string
+}
+
+/**
+ * 任务统计
+ */
+export interface TaskStats {
+  task_id: string
+  project_id: number
+  overall_status: string
+  progress_percentage: number
+  successful_phases: number
+  failed_phases: number
+  skipped_phases: number
+  total_retries: number
+  total_duration_ms: number
 }
 
 /**
