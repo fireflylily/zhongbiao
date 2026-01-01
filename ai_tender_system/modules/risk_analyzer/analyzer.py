@@ -183,7 +183,7 @@ class RiskAnalyzer:
             # 相对路径，尝试从 data 目录查找
             from common.config import get_config
             config = get_config()
-            data_dir = config.get_data_dir()
+            data_dir = config.get_path('data')
             path = Path(data_dir) / file_path
 
         if not path.exists():
