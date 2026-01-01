@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS tech_proposal_tasks (
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
     expires_at TIMESTAMP,  -- 恢复过期时间 (created_at + 24小时)
+    last_heartbeat TIMESTAMP,  -- 心跳时间，用于检测任务异常
 
     FOREIGN KEY (project_id) REFERENCES tender_projects(project_id) ON DELETE CASCADE
 );

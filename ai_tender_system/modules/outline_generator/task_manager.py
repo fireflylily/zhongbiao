@@ -238,14 +238,145 @@ class TechProposalTaskManager:
                 cursor.execute("""
                     UPDATE tech_proposal_tasks
                     SET overall_status = 'running',
-                        started_at = ?
+                        started_at = ?,
+                        last_heartbeat = ?
                     WHERE task_id = ? AND overall_status IN ('pending', 'failed')
-                """, (datetime.now().isoformat(), task_id))
+                """, (datetime.now().isoformat(), datetime.now().isoformat(), task_id))
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception as e:
             self.logger.error(f"启动任务失败: {e}")
             return False
+
+    def try_acquire_task_lock(self, task_id: str) -> bool:
+        """
+        尝试获取任务锁（用于防止并发恢复）
+
+        使用数据库原子操作实现抢占式锁定:
+        只有当任务状态不是 'running' 时才能抢占
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            True 表示成功获取锁，False 表示任务正在执行中
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                # 原子操作：只有非 running 状态才能抢占
+                cursor.execute("""
+                    UPDATE tech_proposal_tasks
+                    SET overall_status = 'running',
+                        started_at = ?,
+                        last_heartbeat = ?
+                    WHERE task_id = ? AND overall_status != 'running'
+                """, (datetime.now().isoformat(), datetime.now().isoformat(), task_id))
+                conn.commit()
+
+                if cursor.rowcount > 0:
+                    self.logger.info(f"任务 {task_id} 获取锁成功")
+                    return True
+                else:
+                    self.logger.warning(f"任务 {task_id} 获取锁失败，可能正在执行中")
+                    return False
+        except Exception as e:
+            self.logger.error(f"获取任务锁失败: {e}")
+            return False
+
+    def release_task_lock(self, task_id: str, new_status: str = 'failed') -> bool:
+        """
+        释放任务锁（用于异常情况下的恢复）
+
+        Args:
+            task_id: 任务ID
+            new_status: 释放后的状态（默认为 failed，允许重新恢复）
+
+        Returns:
+            是否释放成功
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE tech_proposal_tasks
+                    SET overall_status = ?
+                    WHERE task_id = ? AND overall_status = 'running'
+                """, (new_status, task_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            self.logger.error(f"释放任务锁失败: {e}")
+            return False
+
+    def update_heartbeat(self, task_id: str) -> bool:
+        """
+        更新任务心跳时间
+
+        用于检测任务是否异常（如进程OOM崩溃）
+        建议在任务执行期间每30秒调用一次
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            是否更新成功
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE tech_proposal_tasks
+                    SET last_heartbeat = ?
+                    WHERE task_id = ?
+                """, (datetime.now().isoformat(), task_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            self.logger.error(f"更新心跳失败: {e}")
+            return False
+
+    def is_task_abnormal(self, task_id: str, timeout_minutes: int = 5) -> bool:
+        """
+        检查任务是否异常（心跳超时）
+
+        Args:
+            task_id: 任务ID
+            timeout_minutes: 心跳超时时间（分钟）
+
+        Returns:
+            True 表示任务可能已异常
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        # 只检查 running 状态的任务
+        if task['overall_status'] != 'running':
+            return False
+
+        # 检查心跳时间
+        last_heartbeat = task.get('last_heartbeat')
+        if not last_heartbeat:
+            # 如果没有心跳记录，检查开始时间
+            started_at = task.get('started_at')
+            if started_at:
+                try:
+                    start_time = datetime.fromisoformat(started_at)
+                    if datetime.now() - start_time > timedelta(minutes=timeout_minutes):
+                        return True
+                except ValueError:
+                    pass
+            return False
+
+        try:
+            heartbeat_time = datetime.fromisoformat(last_heartbeat)
+            if datetime.now() - heartbeat_time > timedelta(minutes=timeout_minutes):
+                return True
+        except ValueError:
+            pass
+
+        return False
 
     def update_phase(
         self,
@@ -253,7 +384,8 @@ class TechProposalTaskManager:
         phase_name: str,
         status: str,
         result: Dict = None,
-        error: str = None
+        error: str = None,
+        generated_files: List[str] = None
     ) -> bool:
         """
         更新阶段执行状态
@@ -264,6 +396,7 @@ class TechProposalTaskManager:
             status: 状态 (success/failed/skipped)
             result: 阶段结果摘要
             error: 错误信息
+            generated_files: 该阶段生成的文件路径列表（用于幂等性检查）
         """
         try:
             with self._get_connection() as conn:
@@ -281,11 +414,12 @@ class TechProposalTaskManager:
                 phases_completed = json.loads(row['phases_completed'] or '[]')
                 phase_results = json.loads(row['phase_results'] or '{}')
 
-                # 更新阶段结果
+                # 更新阶段结果（包含生成的文件列表）
                 phase_results[phase_name] = {
                     "status": status,
                     "end_time": datetime.now().isoformat(),
-                    "error": error
+                    "error": error,
+                    "generated_files": generated_files or []
                 }
 
                 # 如果成功，添加到已完成列表
@@ -390,6 +524,54 @@ class TechProposalTaskManager:
             if phase not in completed:
                 return phase
         return None
+
+    def get_phase_generated_files(self, task_id: str, phase_name: str) -> List[str]:
+        """
+        获取指定阶段生成的文件列表
+
+        用于恢复执行时的幂等性检查，避免重复生成文件
+
+        Args:
+            task_id: 任务ID
+            phase_name: 阶段名称
+
+        Returns:
+            文件路径列表
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return []
+
+        try:
+            phase_results = json.loads(task.get('phase_results', '{}'))
+            phase_result = phase_results.get(phase_name, {})
+            return phase_result.get('generated_files', [])
+        except json.JSONDecodeError:
+            return []
+
+    def get_all_generated_files(self, task_id: str) -> Dict[str, List[str]]:
+        """
+        获取任务所有阶段生成的文件
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            {phase_name: [file_paths]}
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return {}
+
+        try:
+            phase_results = json.loads(task.get('phase_results', '{}'))
+            return {
+                phase: result.get('generated_files', [])
+                for phase, result in phase_results.items()
+                if result.get('generated_files')
+            }
+        except json.JSONDecodeError:
+            return {}
 
     def can_resume(self, task_id: str) -> bool:
         """检查任务是否可恢复"""

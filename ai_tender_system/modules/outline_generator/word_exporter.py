@@ -5,13 +5,16 @@ Word文档导出器
 将方案数据导出为Word文档格式
 """
 
-from typing import Dict, List, Any, Optional
+import os
+import re
+from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 from docx import Document
-from docx.shared import Pt, RGBColor, Inches
+from docx.shared import Pt, RGBColor, Inches, Cm
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement  # ✅ 添加TOC域所需的导入
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml.ns import qn, nsdecls
+from docx.oxml import OxmlElement, parse_xml
 import openpyxl
 
 # 导入公共模块
@@ -26,7 +29,17 @@ class WordExporter:
     def __init__(self):
         """初始化Word导出器"""
         self.logger = get_module_logger("word_exporter")
+        # 延迟导入 MermaidRenderer，避免循环依赖
+        self._mermaid_renderer = None
         self.logger.info("Word导出器初始化完成")
+
+    @property
+    def mermaid_renderer(self):
+        """延迟初始化 Mermaid 渲染器"""
+        if self._mermaid_renderer is None:
+            from .mermaid_renderer import MermaidRenderer
+            self._mermaid_renderer = MermaidRenderer()
+        return self._mermaid_renderer
 
     def export_proposal(
         self,
@@ -389,6 +402,14 @@ class WordExporter:
             ai_content = chapter['ai_generated_content']
             self._add_markdown_content(doc, ai_content)
 
+        # 添加表格（新增）
+        for table_data in chapter.get('tables', []):
+            self._add_markdown_table(doc, table_data)
+
+        # 添加流程图（新增）
+        for flowchart_data in chapter.get('flowcharts', []):
+            self._add_mermaid_flowchart(doc, flowchart_data)
+
         # 添加子章节
         for subsection in chapter.get('subsections', []):
             self._add_chapter(doc, subsection, show_guidance=show_guidance)
@@ -510,3 +531,177 @@ class WordExporter:
         # 添加剩余文本
         if last_end < len(text):
             paragraph.add_run(text[last_end:])
+
+    def _add_markdown_table(self, doc: Document, table_data: Dict):
+        """
+        将 Markdown 表格转换为 Word 表格
+
+        Args:
+            doc: Word 文档对象
+            table_data: 表格数据
+                - markdown: Markdown 格式的表格
+                - caption: 表格标题
+                - type: 表格类型
+        """
+        markdown = table_data.get('markdown', '')
+        caption = table_data.get('caption', '')
+
+        if not markdown or '|' not in markdown:
+            self.logger.warning("无效的 Markdown 表格数据")
+            return
+
+        try:
+            # 解析 Markdown 表格
+            headers, rows = self._parse_markdown_table(markdown)
+
+            if not headers or not rows:
+                self.logger.warning("表格解析失败: 无表头或数据行")
+                return
+
+            # 添加表格标题（在表格上方）
+            if caption:
+                caption_para = doc.add_paragraph()
+                run = caption_para.add_run(f"表：{caption}")
+                run.bold = True
+                caption_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+            # 创建 Word 表格
+            table = doc.add_table(rows=len(rows) + 1, cols=len(headers))
+            table.style = 'Table Grid'
+            table.autofit = True
+
+            # 填充表头
+            header_row = table.rows[0]
+            for i, header in enumerate(headers):
+                cell = header_row.cells[i]
+                cell.text = header.strip()
+                # 设置表头样式（加粗 + 浅灰色背景）
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.bold = True
+                # 添加背景色 (浅灰色 D9D9D9)
+                self._set_cell_shading(cell, "D9D9D9")
+
+            # 填充数据行
+            for row_idx, row_data in enumerate(rows):
+                table_row = table.rows[row_idx + 1]
+                for col_idx, cell_text in enumerate(row_data):
+                    if col_idx < len(table_row.cells):
+                        table_row.cells[col_idx].text = cell_text.strip()
+
+            # 添加空行
+            doc.add_paragraph()
+
+            self.logger.info(f"添加表格成功: {caption or '无标题'}")
+
+        except Exception as e:
+            self.logger.error(f"添加表格失败: {e}")
+
+    def _parse_markdown_table(self, markdown: str) -> Tuple[List[str], List[List[str]]]:
+        """
+        解析 Markdown 表格为表头和数据行
+
+        Args:
+            markdown: Markdown 格式的表格
+
+        Returns:
+            (headers, rows): 表头列表和数据行列表
+        """
+        lines = [l.strip() for l in markdown.strip().split('\n') if l.strip()]
+
+        if len(lines) < 2:
+            return [], []
+
+        # 第一行是表头
+        headers = [cell.strip() for cell in lines[0].split('|') if cell.strip()]
+
+        # 跳过分隔行（第二行，通常是 |---|---|---|）
+        # 检测分隔行
+        separator_idx = 1
+        if len(lines) > 1 and all(c in '-| ' for c in lines[1]):
+            separator_idx = 2
+
+        # 其余是数据行
+        rows = []
+        for line in lines[separator_idx:]:
+            row = [cell.strip() for cell in line.split('|') if cell.strip()]
+            if row:
+                rows.append(row)
+
+        return headers, rows
+
+    def _set_cell_shading(self, cell, color_hex: str):
+        """
+        设置单元格背景色
+
+        Args:
+            cell: Word 表格单元格
+            color_hex: 16进制颜色值（不含#）
+        """
+        try:
+            shading_elm = parse_xml(
+                f'<w:shd {nsdecls("w")} w:fill="{color_hex}"/>'
+            )
+            cell._tc.get_or_add_tcPr().append(shading_elm)
+        except Exception as e:
+            self.logger.warning(f"设置单元格背景色失败: {e}")
+
+    def _add_mermaid_flowchart(self, doc: Document, flowchart_data: Dict):
+        """
+        渲染 Mermaid 流程图并嵌入 Word
+
+        Args:
+            doc: Word 文档对象
+            flowchart_data: 流程图数据
+                - mermaid_code: Mermaid 语法代码
+                - caption: 图片标题
+                - type: 流程图类型
+        """
+        mermaid_code = flowchart_data.get('mermaid_code', '')
+        caption = flowchart_data.get('caption', '')
+
+        if not mermaid_code:
+            self.logger.warning("无 Mermaid 代码")
+            return
+
+        try:
+            # 渲染为 PNG
+            png_path = self.mermaid_renderer.render_to_png(mermaid_code)
+
+            if png_path and os.path.exists(png_path):
+                # 添加图片
+                doc.add_picture(png_path, width=Inches(5.5))
+
+                # 设置图片居中
+                last_paragraph = doc.paragraphs[-1]
+                last_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+                # 添加图片标题
+                if caption:
+                    caption_para = doc.add_paragraph()
+                    run = caption_para.add_run(f"图：{caption}")
+                    run.italic = True
+                    caption_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+                # 添加空行
+                doc.add_paragraph()
+
+                self.logger.info(f"添加流程图成功: {caption or '无标题'}")
+
+            else:
+                # 渲染失败时，添加占位文本
+                p = doc.add_paragraph()
+                run = p.add_run(f"[流程图: {caption or '未命名'}]")
+                run.italic = True
+                run.font.color.rgb = RGBColor(128, 128, 128)
+                p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+                self.logger.warning(f"流程图渲染失败，添加占位符: {caption}")
+
+        except Exception as e:
+            self.logger.error(f"添加流程图失败: {e}")
+            # 添加错误占位
+            p = doc.add_paragraph()
+            run = p.add_run(f"[流程图加载失败: {caption or '未命名'}]")
+            run.font.color.rgb = RGBColor(255, 0, 0)
+            p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER

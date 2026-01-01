@@ -2101,11 +2101,22 @@ def generate_with_recovery():
             if not task:
                 return jsonify({'success': False, 'error': '任务不存在'}), 404
 
+            # 并发锁：使用原子操作抢占任务，防止重复恢复
+            # 只有非 running 状态才能抢占
+            lock_acquired = task_manager.try_acquire_task_lock(task_id)
+            if not lock_acquired:
+                return jsonify({
+                    'success': False,
+                    'error': '任务正在执行中，请勿重复操作'
+                }), 409  # 409 Conflict
+
             tender_file_path = task.get('tender_file_path')
             if tender_file_path and Path(tender_file_path).exists():
                 # 读取文件内容
                 tender_doc = read_document_content(tender_file_path)
             else:
+                # 释放锁
+                task_manager.fail_task(task_id, '招标文件不存在')
                 return jsonify({'success': False, 'error': '招标文件不存在'}), 400
 
             project_id = task.get('project_id')

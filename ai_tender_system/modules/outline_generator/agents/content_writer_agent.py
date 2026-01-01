@@ -21,6 +21,7 @@ import logging
 from typing import Dict, List, Any, Optional, Generator
 
 from .base_agent import BaseAgent
+from ..visual_generator import VisualGenerator
 
 
 class ContentWriterAgent(BaseAgent):
@@ -39,6 +40,8 @@ class ContentWriterAgent(BaseAgent):
         """
         super().__init__(model_name)
         self.prompt_module = 'content_writer_agent'
+        # 初始化可视化生成器
+        self.visual_generator = VisualGenerator(model_name)
 
     def generate(
         self,
@@ -400,6 +403,13 @@ class ContentWriterAgent(BaseAgent):
         for child in child_contents:
             actual_words += child.get('actual_words', 0)
 
+        # 生成可视化元素（表格和流程图）
+        visuals = self._generate_chapter_visuals(
+            title=title,
+            content=content,
+            content_style=content_style
+        )
+
         return {
             "id": chapter.get('id', ''),
             "title": title,
@@ -411,7 +421,10 @@ class ContentWriterAgent(BaseAgent):
             "actual_words": actual_words,
             "scoring_points": scoring_points,
             "used_materials": [m.get('id') for m in available_materials],
-            "quality_indicators": result.get('quality_indicators', {})
+            "quality_indicators": result.get('quality_indicators', {}),
+            # 新增: 可视化元素
+            "tables": visuals.get('tables', []),
+            "flowcharts": visuals.get('flowcharts', [])
         }
 
     def _build_chapter_prompt(
@@ -653,3 +666,60 @@ class ContentWriterAgent(BaseAgent):
             }]
 
         return chapter
+
+    def _generate_chapter_visuals(
+        self,
+        title: str,
+        content: str,
+        content_style: Dict
+    ) -> Dict[str, List]:
+        """
+        为章节生成可视化元素（表格和流程图）
+
+        使用 VisualGenerator 分析内容并生成合适的可视化元素
+
+        Args:
+            title: 章节标题
+            content: 章节内容
+            content_style: 内容风格配置
+                - tables: '无'/'少量'/'适量'/'大量'
+                - flowcharts: '无'/'少量'/'适量'
+
+        Returns:
+            {
+                'tables': [{'markdown': '...', 'caption': '...', 'type': '...'}],
+                'flowcharts': [{'mermaid_code': '...', 'caption': '...', 'type': '...'}]
+            }
+        """
+        # 如果没有内容或内容太短，跳过可视化生成
+        if not content or len(content) < 200:
+            self.logger.debug(f"章节 '{title[:20]}...' 内容太短，跳过可视化生成")
+            return {'tables': [], 'flowcharts': []}
+
+        # 检查是否需要生成可视化元素
+        tables_config = content_style.get('tables', '适量')
+        flowcharts_config = content_style.get('flowcharts', '适量')
+
+        if tables_config == '无' and flowcharts_config == '无':
+            self.logger.debug(f"章节 '{title[:20]}...' 配置不需要可视化元素")
+            return {'tables': [], 'flowcharts': []}
+
+        try:
+            # 调用可视化生成器
+            visuals = self.visual_generator.generate_chapter_visuals(
+                title=title,
+                content=content,
+                content_style=content_style
+            )
+
+            self.logger.info(
+                f"章节 '{title[:20]}...' 生成可视化: "
+                f"表格 {len(visuals.get('tables', []))} 个, "
+                f"流程图 {len(visuals.get('flowcharts', []))} 个"
+            )
+
+            return visuals
+
+        except Exception as e:
+            self.logger.error(f"生成可视化元素失败: {e}")
+            return {'tables': [], 'flowcharts': []}

@@ -33,9 +33,21 @@
               <el-icon><Document /></el-icon>
               <span>{{ task.task_id }}</span>
             </div>
-            <el-tag :type="getStatusType(task.overall_status)" size="small">
-              {{ getStatusLabel(task.overall_status) }}
-            </el-tag>
+            <div class="status-tags">
+              <el-tag :type="getStatusType(task.overall_status)" size="small">
+                {{ getStatusLabel(task.overall_status) }}
+              </el-tag>
+              <!-- 心跳超时检测：运行中但心跳超过5分钟未更新 -->
+              <el-tag
+                v-if="isTaskAbnormal(task)"
+                type="danger"
+                size="small"
+                effect="dark"
+              >
+                <el-icon class="abnormal-icon"><WarningFilled /></el-icon>
+                任务异常
+              </el-tag>
+            </div>
           </div>
 
           <!-- 进度条 -->
@@ -68,18 +80,19 @@
 
           <!-- 操作按钮 -->
           <div class="task-actions">
+            <!-- 失败任务或异常任务都可以恢复 -->
             <el-button
-              v-if="task.can_resume && task.overall_status === 'failed'"
+              v-if="(task.can_resume && task.overall_status === 'failed') || isTaskAbnormal(task)"
               type="primary"
               size="small"
-              @click="handleResume(task)"
+              @click="handleResume(task, isTaskAbnormal(task))"
               :loading="resumingTaskId === task.task_id"
             >
               <el-icon><VideoPlay /></el-icon>
-              恢复执行
+              {{ isTaskAbnormal(task) ? '强制恢复' : '恢复执行' }}
             </el-button>
             <el-button
-              v-if="task.overall_status === 'running'"
+              v-if="task.overall_status === 'running' && !isTaskAbnormal(task)"
               type="danger"
               size="small"
               plain
@@ -186,7 +199,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, Refresh, VideoPlay } from '@element-plus/icons-vue'
+import { Document, Refresh, VideoPlay, WarningFilled } from '@element-plus/icons-vue'
 import { tenderApi, type TechProposalTask, type TaskExecutionLog, type TaskStats } from '@/api/endpoints/tender'
 
 // Props
@@ -240,16 +253,65 @@ async function loadTasks() {
   }
 }
 
+// 心跳超时阈值（毫秒）- 5分钟
+const HEARTBEAT_TIMEOUT_MS = 5 * 60 * 1000
+
+/**
+ * 检测任务是否异常（心跳超时）
+ * 如果任务状态为 running 但心跳超过5分钟未更新，视为异常
+ */
+function isTaskAbnormal(task: TechProposalTask): boolean {
+  if (task.overall_status !== 'running') {
+    return false
+  }
+
+  // 检查心跳时间
+  const lastHeartbeat = task.last_heartbeat
+  if (lastHeartbeat) {
+    const heartbeatTime = new Date(lastHeartbeat).getTime()
+    const now = Date.now()
+    if (now - heartbeatTime > HEARTBEAT_TIMEOUT_MS) {
+      return true
+    }
+  } else {
+    // 没有心跳记录，检查开始时间
+    const startedAt = task.started_at
+    if (startedAt) {
+      const startTime = new Date(startedAt).getTime()
+      const now = Date.now()
+      if (now - startTime > HEARTBEAT_TIMEOUT_MS) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 // 恢复任务
-async function handleResume(task: TechProposalTask) {
+async function handleResume(task: TechProposalTask, isAbnormal = false) {
   try {
+    const message = isAbnormal
+      ? `任务 ${task.task_id} 疑似异常（心跳超时），确定要强制恢复吗？\n这将终止可能正在运行的进程并从上次保存点继续。`
+      : `确定要恢复任务 ${task.task_id} 吗？将从上次失败的阶段继续执行。`
+
     await ElMessageBox.confirm(
-      `确定要恢复任务 ${task.task_id} 吗？将从上次失败的阶段继续执行。`,
-      '恢复任务',
-      { type: 'info' }
+      message,
+      isAbnormal ? '强制恢复任务' : '恢复任务',
+      { type: isAbnormal ? 'warning' : 'info' }
     )
 
     resumingTaskId.value = task.task_id
+
+    // 如果是异常任务，先尝试将状态重置为 failed
+    if (isAbnormal) {
+      try {
+        await tenderApi.cancelTechProposalTask(task.task_id)
+      } catch {
+        // 忽略取消失败，继续尝试恢复
+      }
+    }
+
     const response = await tenderApi.resumeTechProposalTask(task.task_id)
 
     if (response.success) {
@@ -446,6 +508,22 @@ function formatDuration(ms: number | null): string {
     font-size: 14px;
     color: var(--el-text-color-primary);
   }
+
+  .status-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .abnormal-icon {
+      margin-right: 2px;
+      animation: pulse 1.5s infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .task-progress {

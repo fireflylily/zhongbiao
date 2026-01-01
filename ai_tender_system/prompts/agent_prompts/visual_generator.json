@@ -1,0 +1,33 @@
+{
+  "prompts": {
+    "analyze_for_visuals": "你是一位技术文档可视化专家。请分析以下章节内容，确定需要什么可视化元素（表格和流程图）。\n\n## 章节标题\n{title}\n\n## 章节内容\n{content}\n\n## 配置要求\n- 表格配置: {tables_config}\n- 流程图配置: {flowcharts_config}\n\n请返回JSON格式的分析结果，包含:\n- tables: [{type: 'comparison|features|timeline', topic: '具体主题'}]\n- flowcharts: [{type: 'workflow|architecture', topic: '具体主题'}]",
+
+    "generate_comparison_table": "你是一位专业的技术文档编写专家。请根据以下内容生成一个对比表，展示不同方案/产品的特点对比。\n\n## 主题\n{topic}\n\n## 参考内容\n{content}\n\n## 要求\n1. 表格使用标准 Markdown 格式\n2. 表头清晰明确\n3. 内容专业、具体\n4. 行数控制在 3-8 行\n5. 列数控制在 3-5 列\n\n请严格按照以下 JSON 格式返回:\n{\n    \"table\": \"| 列1 | 列2 | 列3 |\\n|---|---|---|\\n| 数据1 | 数据2 | 数据3 |\",\n    \"caption\": \"表格标题\"\n}",
+
+    "generate_features_table": "你是一位专业的技术文档编写专家。请根据以下内容生成一个功能清单表，列出系统/产品的功能特性。\n\n## 主题\n{topic}\n\n## 参考内容\n{content}\n\n## 要求\n1. 表格使用标准 Markdown 格式\n2. 列可以包括: 功能名称、功能描述、技术实现、优势说明等\n3. 内容专业、具体\n4. 行数控制在 5-10 行\n\n请严格按照以下 JSON 格式返回:\n{\n    \"table\": \"| 功能 | 描述 | 技术实现 |\\n|---|---|---|\\n| 功能1 | 描述1 | 实现方式1 |\",\n    \"caption\": \"表格标题\"\n}",
+
+    "generate_timeline_table": "你是一位专业的技术文档编写专家。请根据以下内容生成一个时间表/计划表，展示项目阶段和里程碑。\n\n## 主题\n{topic}\n\n## 参考内容\n{content}\n\n## 要求\n1. 表格使用标准 Markdown 格式\n2. 列可以包括: 阶段、时间周期、主要任务、交付物、负责人等\n3. 时间安排合理、可执行\n4. 行数控制在 4-8 行\n\n请严格按照以下 JSON 格式返回:\n{\n    \"table\": \"| 阶段 | 周期 | 任务 | 交付物 |\\n|---|---|---|---|\\n| 阶段1 | 第1-2周 | 需求调研 | 需求文档 |\",\n    \"caption\": \"表格标题\"\n}",
+
+    "generate_workflow_flowchart": "你是一位专业的技术文档编写专家。请根据以下内容生成一个工作流程图的 Mermaid 代码。\n\n## 主题\n{topic}\n\n## 参考内容\n{content}\n\n## Mermaid 语法示例\n```mermaid\nflowchart TD\n    A[开始] --> B{判断条件}\n    B -->|是| C[处理步骤1]\n    B -->|否| D[处理步骤2]\n    C --> E[结束]\n    D --> E\n```\n\n## 要求\n1. 使用 Mermaid flowchart TD 语法（从上到下）\n2. 节点数量控制在 5-10 个\n3. 节点标签使用中文，简洁明了\n4. 使用合适的形状: [] 普通节点, {{}} 判断节点, () 圆角节点\n5. 确保语法正确\n\n请严格按照以下 JSON 格式返回:\n{\n    \"mermaid_code\": \"flowchart TD\\n    A[开始] --> B[步骤1]\\n    B --> C[结束]\",\n    \"caption\": \"流程图标题\"\n}",
+
+    "generate_architecture_flowchart": "你是一位专业的技术文档编写专家。请根据以下内容生成一个架构图的 Mermaid 代码。\n\n## 主题\n{topic}\n\n## 参考内容\n{content}\n\n## Mermaid 语法示例\n```mermaid\nflowchart LR\n    subgraph 展示层\n        A[Web前端]\n        B[移动端]\n    end\n    subgraph 业务层\n        C[API网关]\n        D[业务服务]\n    end\n    subgraph 数据层\n        E[(数据库)]\n    end\n    A --> C\n    B --> C\n    C --> D\n    D --> E\n```\n\n## 要求\n1. 使用 Mermaid flowchart LR 语法（从左到右）\n2. 使用 subgraph 分组相关组件\n3. 节点数量控制在 6-12 个\n4. 节点标签使用中文\n5. 使用合适的形状表示不同类型组件\n\n请严格按照以下 JSON 格式返回:\n{\n    \"mermaid_code\": \"flowchart LR\\n    A[前端] --> B[后端]\\n    B --> C[(数据库)]\",\n    \"caption\": \"架构图标题\"\n}"
+  },
+
+  "table_types": {
+    "comparison": "对比表 - 用于功能对比、方案比较",
+    "features": "功能表 - 用于功能清单、需求列表",
+    "timeline": "时间表 - 用于项目计划、实施阶段"
+  },
+
+  "flowchart_types": {
+    "workflow": "工作流程 - 业务流程、操作步骤",
+    "architecture": "架构图 - 系统架构、组件关系"
+  },
+
+  "quantity_map": {
+    "无": 0,
+    "少量": 2,
+    "适量": 4,
+    "大量": 8
+  }
+}

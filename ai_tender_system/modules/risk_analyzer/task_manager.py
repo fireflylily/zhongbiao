@@ -78,10 +78,10 @@ class RiskTaskManager:
         """
 
         try:
-            self.db.execute_update(create_table_sql)
+            self.db.execute_query(create_table_sql)
             for sql in create_index_sql.strip().split(';'):
                 if sql.strip():
-                    self.db.execute_update(sql)
+                    self.db.execute_query(sql)
             logger.debug("数据库表检查完成")
         except Exception as e:
             logger.error(f"创建数据库表失败: {e}")
@@ -110,7 +110,7 @@ class RiskTaskManager:
         """
 
         try:
-            self.db.execute_update(insert_sql, (
+            self.db.execute_query(insert_sql, (
                 task_id, openid, user_id, file_id, file_path,
                 original_filename, file_size, model_name,
                 datetime.now().isoformat()
@@ -165,7 +165,7 @@ class RiskTaskManager:
             model_name = task.get('model_name', 'deepseek-v3')
 
             # 更新开始时间
-            self.db.execute_update(
+            self.db.execute_query(
                 "UPDATE risk_analysis_tasks SET started_at = ? WHERE task_id = ?",
                 (datetime.now().isoformat(), task_id)
             )
@@ -218,7 +218,7 @@ class RiskTaskManager:
         WHERE task_id = ?
         """
 
-        self.db.execute_update(update_sql, (
+        self.db.execute_query(update_sql, (
             risk_items_json,
             result.summary,
             result.risk_score,
@@ -275,7 +275,7 @@ class RiskTaskManager:
         update_sql = f"UPDATE risk_analysis_tasks SET {', '.join(set_clauses)} WHERE task_id = ?"
 
         try:
-            self.db.execute_update(update_sql, tuple(values))
+            self.db.execute_query(update_sql, tuple(values))
         except Exception as e:
             logger.error(f"更新任务失败: {e}")
 
@@ -361,7 +361,7 @@ class RiskTaskManager:
 
         delete_sql = "DELETE FROM risk_analysis_tasks WHERE task_id = ?"
         try:
-            self.db.execute_update(delete_sql, (task_id,))
+            self.db.execute_query(delete_sql, (task_id,))
             logger.info(f"删除任务成功: {task_id}")
             return True
         except Exception as e:

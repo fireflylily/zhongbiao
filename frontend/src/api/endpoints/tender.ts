@@ -475,6 +475,8 @@ export interface TechProposalTask {
   started_at: string | null
   completed_at: string | null
   expires_at: string
+  // 心跳时间（用于检测任务异常）
+  last_heartbeat: string | null
   // 前端计算属性
   seconds_until_expire?: number
 }

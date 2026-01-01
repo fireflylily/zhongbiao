@@ -54,19 +54,39 @@
             <span class="file-chip-tag">已上传</span>
             <el-button class="file-chip-close" type="danger" text size="small" @click="form.tenderFiles = []">×</el-button>
           </div>
+          <!-- 从招标文件生成的模板 -->
+          <div v-else-if="generatedTemplateInfo" class="file-chip file-chip--primary">
+            <el-icon class="file-chip-icon"><FolderOpened /></el-icon>
+            <span class="file-chip-name" :title="generatedTemplateInfo.filename">
+              {{ generatedTemplateInfo.filename }}
+            </span>
+            <span class="file-chip-tag">从招标文件生成</span>
+            <el-button class="file-chip-close" type="danger" text size="small" @click="generatedTemplateInfo = null">×</el-button>
+          </div>
           <!-- 未上传：显示为类似输入框的占位区域 -->
           <div v-else class="file-placeholder">
             <span class="placeholder-text">请上传技术需求文档</span>
-            <DocumentUploader
-              v-model="form.tenderFiles"
-              :http-request="handleTenderUpload"
-              accept=".pdf,.doc,.docx"
-              :limit="1"
-              :max-size="50"
-              :show-file-list="false"
-              trigger-text="选择文件"
-              @success="handleUploadSuccess"
-            />
+            <div class="file-actions">
+              <DocumentUploader
+                v-model="form.tenderFiles"
+                :http-request="handleTenderUpload"
+                accept=".pdf,.doc,.docx"
+                :limit="1"
+                :max-size="50"
+                :show-file-list="false"
+                trigger-text="选择文件"
+                @success="handleUploadSuccess"
+              />
+              <el-button
+                type="primary"
+                plain
+                :disabled="!form.projectId"
+                @click="showChapterSelector = true"
+              >
+                <el-icon><FolderOpened /></el-icon>
+                从招标文件选择
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -568,6 +588,13 @@
       :file-url="previewFileUrl"
       :file-name="previewFileName"
     />
+
+    <!-- 章节选择对话框 -->
+    <TenderChapterSelectorDialog
+      v-model="showChapterSelector"
+      :project-id="form.projectId"
+      @success="handleChapterSelectorSuccess"
+    />
   </div>
 </template>
 
@@ -586,7 +613,8 @@ import {
   Document,
   QuestionFilled,
   Setting,
-  Clock
+  Clock,
+  FolderOpened
 } from '@element-plus/icons-vue'
 import {
   DocumentUploader,
@@ -599,6 +627,7 @@ import {
   CrewProgressTracker,
   TaskHistoryDrawer
 } from '@/components'
+import TenderChapterSelectorDialog from '@/components/business/TenderChapterSelectorDialog.vue'
 import { tenderApi } from '@/api/endpoints/tender'
 import {
   useProjectDocuments,
@@ -811,6 +840,15 @@ const editorSaving = ref(false)
 const showTaskHistory = ref(false)
 const currentTaskId = ref<string | null>(null)
 
+// 章节选择对话框状态
+const showChapterSelector = ref(false)
+
+// 从招标文件生成的模板信息
+const generatedTemplateInfo = ref<{
+  filePath: string
+  filename: string
+} | null>(null)
+
 // 章节树数据
 const chapterTreeData = computed(() => {
   if (!outlineData.value?.chapters) return []
@@ -819,7 +857,7 @@ const chapterTreeData = computed(() => {
 
 // 能否生成
 const canGenerate = computed(() =>
-  form.value.projectId && (useHitlFile.value || form.value.tenderFiles.length > 0)
+  form.value.projectId && (useHitlFile.value || form.value.tenderFiles.length > 0 || generatedTemplateInfo.value !== null)
 )
 
 // 优先级类型映射
@@ -896,6 +934,19 @@ const handleUploadSuccess = () => {
   ElMessage.success('文档上传成功')
 }
 
+// 处理从招标文件选择成功
+const handleChapterSelectorSuccess = (fileInfo: { filePath: string; filename: string }) => {
+  // 清空手动上传的文件（互斥）
+  form.value.tenderFiles = []
+  // 取消HITL文件（互斥）
+  if (useHitlFile.value) {
+    cancelHitlFile()
+  }
+  // 保存生成的模板信息
+  generatedTemplateInfo.value = fileInfo
+  ElMessage.success(`已生成模板: ${fileInfo.filename}`)
+}
+
 // ============================================
 // 项目切换
 // ============================================
@@ -912,6 +963,8 @@ const handleProjectChange = async () => {
       editorContent.value = ''
       // 清空历史文件列表
       historyFiles.value = []
+      // 清空从招标文件生成的模板
+      generatedTemplateInfo.value = null
       if (useHitlFile.value) {
         cancelHitlFile()
       }
@@ -1942,6 +1995,12 @@ onMounted(async () => {
       color: var(--el-text-color-placeholder);
     }
 
+    .file-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
     :deep(.document-uploader) {
       .el-upload {
         display: flex;
@@ -1973,6 +2032,20 @@ onMounted(async () => {
     &--info {
       background: #ecf5ff;
       border-color: #a0cfff;
+    }
+
+    &--primary {
+      background: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary-light-5);
+
+      .file-chip-icon {
+        color: var(--el-color-primary);
+      }
+
+      .file-chip-tag {
+        color: var(--el-color-primary);
+        background: rgba(64, 158, 255, 0.1);
+      }
     }
 
     .file-chip-icon {
