@@ -180,11 +180,16 @@ class RiskTaskManager:
                     status = 'parsing'
                 self.update_task(task_id, status=status, progress=progress, current_step=message)
 
-            # 执行分析
-            result = analyzer.analyze(file_path, progress_callback)
+            # 定义增量结果回调 - 每分析完一个 chunk 就保存
+            def item_callback(items: List[RiskItem]):
+                if items:
+                    self.append_risk_items(task_id, items)
 
-            # 保存结果
-            self._save_result(task_id, result)
+            # 执行分析（支持增量回调）
+            result = analyzer.analyze(file_path, progress_callback, item_callback)
+
+            # 保存最终结果（summary、risk_score 等）
+            self._save_final_result(task_id, result)
 
             logger.info(f"任务完成: {task_id}, 发现 {len(result.risk_items)} 个风险项")
 
@@ -195,6 +200,66 @@ class RiskTaskManager:
                 status='failed',
                 error_message=str(e)
             )
+
+    def append_risk_items(self, task_id: str, new_items: List[RiskItem]):
+        """增量追加风险项到数据库"""
+        if not new_items:
+            return
+
+        try:
+            # 获取现有的 risk_items
+            task = self.get_task(task_id)
+            if not task:
+                return
+
+            existing_items = []
+            if task.get('risk_items'):
+                try:
+                    existing_items = json.loads(task['risk_items'])
+                except json.JSONDecodeError:
+                    existing_items = []
+
+            # 追加新项
+            for item in new_items:
+                existing_items.append(item.to_dict())
+
+            # 更新数据库
+            risk_items_json = json.dumps(existing_items, ensure_ascii=False)
+            self.db.execute_query(
+                "UPDATE risk_analysis_tasks SET risk_items = ? WHERE task_id = ?",
+                (risk_items_json, task_id)
+            )
+
+            logger.debug(f"任务 {task_id} 追加 {len(new_items)} 个风险项，当前共 {len(existing_items)} 个")
+
+        except Exception as e:
+            logger.error(f"追加风险项失败: {e}")
+
+    def _save_final_result(self, task_id: str, result: RiskAnalysisResult):
+        """保存最终分析结果（summary、score等，不覆盖已有的 risk_items）"""
+        update_sql = """
+        UPDATE risk_analysis_tasks SET
+            status = 'completed',
+            progress = 100,
+            current_step = '分析完成',
+            summary = ?,
+            risk_score = ?,
+            chunk_count = ?,
+            total_tokens = ?,
+            analysis_time = ?,
+            completed_at = ?
+        WHERE task_id = ?
+        """
+
+        self.db.execute_query(update_sql, (
+            result.summary,
+            result.risk_score,
+            result.total_chunks,
+            result.total_tokens,
+            result.analysis_time,
+            datetime.now().isoformat(),
+            task_id
+        ))
 
     def _save_result(self, task_id: str, result: RiskAnalysisResult):
         """保存分析结果到数据库"""

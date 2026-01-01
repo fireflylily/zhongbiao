@@ -339,7 +339,7 @@ def upload_and_analyze():
 @require_mp_auth
 def get_task_status(task_id: str):
     """
-    查询任务状态
+    查询任务状态（支持边分析边显示）
 
     Returns:
         {
@@ -348,17 +348,29 @@ def get_task_status(task_id: str):
                 "task_id": "xxx",
                 "status": "analyzing",
                 "progress": 45,
-                "current_step": "正在分析第3/5块..."
+                "current_step": "正在分析第3/5块...",
+                "risk_items": [...],  // 分析中也返回已发现的风险项
+                "found_count": 5      // 已发现的风险项数量
             }
         }
     """
     try:
         from modules.risk_analyzer import RiskTaskManager
+        import json
+
         task_manager = RiskTaskManager()
 
         task = task_manager.get_task_by_openid(task_id, g.openid)
         if not task:
             return jsonify({'success': False, 'message': '任务不存在或无权访问'}), 404
+
+        # 解析已发现的风险项（即使还在分析中）
+        risk_items = []
+        if task.get('risk_items'):
+            try:
+                risk_items = json.loads(task['risk_items'])
+            except json.JSONDecodeError:
+                risk_items = []
 
         return jsonify({
             'success': True,
@@ -367,7 +379,9 @@ def get_task_status(task_id: str):
                 'status': task['status'],
                 'progress': task['progress'],
                 'current_step': task.get('current_step', ''),
-                'error_message': task.get('error_message', '')
+                'error_message': task.get('error_message', ''),
+                'risk_items': risk_items,
+                'found_count': len(risk_items)
             }
         })
 

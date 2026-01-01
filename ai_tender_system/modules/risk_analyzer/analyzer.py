@@ -88,7 +88,8 @@ class RiskAnalyzer:
 
     def analyze(self,
                 file_path: str,
-                progress_callback: Optional[Callable[[int, str], None]] = None
+                progress_callback: Optional[Callable[[int, str], None]] = None,
+                item_callback: Optional[Callable[[List['RiskItem']], None]] = None
                 ) -> RiskAnalysisResult:
         """
         分析招标文件风险
@@ -96,6 +97,7 @@ class RiskAnalyzer:
         Args:
             file_path: 文件路径（绝对路径或相对于 data 目录的路径）
             progress_callback: 进度回调函数 (progress: int, message: str)
+            item_callback: 增量结果回调函数，每分析完一个 chunk 调用一次
 
         Returns:
             RiskAnalysisResult: 分析结果
@@ -136,6 +138,11 @@ class RiskAnalyzer:
                     items = self._analyze_chunk(chunk_content, chunk_index=i)
                     all_risk_items.extend(items)
                     logger.debug(f"第 {i+1} 块分析完成，发现 {len(items)} 个风险项")
+
+                    # 增量回调：每分析完一个 chunk 就通知调用方
+                    if item_callback and items:
+                        item_callback(items)
+
                 except Exception as e:
                     logger.warning(f"分析第 {i+1} 块时出错: {e}")
                     continue
