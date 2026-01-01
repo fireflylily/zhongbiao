@@ -193,6 +193,14 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"简历库API蓝图加载失败: {e}")
 
+    # 小程序专用API蓝图 (/api/mp/xxx)
+    try:
+        from .api_miniprogram_bp import api_miniprogram_bp
+        app.register_blueprint(api_miniprogram_bp)
+        logger.info("小程序API蓝图注册成功 (路径前缀: /api/mp)")
+    except ImportError as e:
+        logger.warning(f"小程序API蓝图加载失败: {e}")
+
     # 阶段5: HITL任务处理蓝图
     # (待实现)
 
