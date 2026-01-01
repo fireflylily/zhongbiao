@@ -331,6 +331,13 @@ class Config:
             'max_bytes': 10 * 1024 * 1024,  # 10MB
             'backup_count': 5
         }
+
+        # 微信小程序配置
+        self.wechat_config = {
+            'appid': clean_env_value(os.getenv('WECHAT_APPID', '')),
+            'secret': clean_env_value(os.getenv('WECHAT_SECRET', '')),
+            'template_risk_complete': clean_env_value(os.getenv('WECHAT_TEMPLATE_RISK_COMPLETE', '')),
+        }
     
     def get_api_config(self) -> Dict[str, Any]:
         """获取API配置"""
@@ -363,6 +370,10 @@ class Config:
     def get_enterprise_credit_config(self) -> Dict[str, Any]:
         """获取企业征信API配置"""
         return self.enterprise_credit_config.copy()
+
+    def get_wechat_config(self) -> Dict[str, Any]:
+        """获取微信小程序配置"""
+        return self.wechat_config.copy()
 
     def get(self, key: str, default: Any = None) -> Any:
         """获取配置项（支持字典式访问）"""
