@@ -180,11 +180,11 @@ class RiskAnalyzer:
         # 处理路径
         path = Path(file_path)
         if not path.is_absolute():
-            # 相对路径，尝试从 data 目录查找
+            # 相对路径，尝试从项目根目录查找
             from common.config import get_config
             config = get_config()
-            data_dir = config.get_path('data')
-            path = Path(data_dir) / file_path
+            base_dir = config.get_path('base')
+            path = Path(base_dir) / file_path
 
         if not path.exists():
             raise FileNotFoundError(f"文件不存在: {path}")
