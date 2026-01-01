@@ -270,12 +270,16 @@ def upload_and_analyze():
             return jsonify({'success': False, 'message': '未上传文件'}), 400
 
         file = request.files['file']
-        if not file.filename:
+
+        # 获取原始文件名：优先从 formData 获取，否则用 file.filename
+        # 微信小程序 wx.uploadFile 的 filePath 是临时路径，file.filename 可能是 UUID
+        original_filename = request.form.get('filename') or file.filename
+        if not original_filename:
             return jsonify({'success': False, 'message': '文件名为空'}), 400
 
         # 检查文件类型
         allowed_extensions = {'pdf', 'doc', 'docx'}
-        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        ext = original_filename.rsplit('.', 1)[-1].lower() if '.' in original_filename else ''
         if ext not in allowed_extensions:
             return jsonify({'success': False, 'message': f'不支持的文件格式: {ext}'}), 400
 
@@ -290,7 +294,7 @@ def upload_and_analyze():
         # 存储文件
         file_metadata = storage_service.store_file(
             file_obj=file,
-            original_name=file.filename,
+            original_name=original_filename,
             category='risk_analysis',
             business_type='bid_risk_check'
         )
@@ -315,7 +319,7 @@ def upload_and_analyze():
         # 异步启动分析
         task_manager.start_analysis(task_id)
 
-        logger.info(f"风险分析任务已创建: {task_id}, 文件: {file.filename}")
+        logger.info(f"风险分析任务已创建: {task_id}, 文件: {original_filename}")
 
         return jsonify({
             'success': True,
