@@ -5,13 +5,18 @@
 提供微信小程序的所有接口，使用 /api/mp 前缀与 Web 端接口区分
 
 接口列表：
-- /api/mp/auth/login        微信登录
-- /api/mp/auth/profile      更新用户资料
-- /api/mp/risk/upload       上传文件并分析
-- /api/mp/risk/status/<id>  查询任务状态
-- /api/mp/risk/result/<id>  获取分析结果
-- /api/mp/risk/history      历史任务列表
-- /api/mp/risk/delete/<id>  删除任务
+- /api/mp/auth/login                    微信登录
+- /api/mp/auth/profile                  更新用户资料
+- /api/mp/risk/upload                   上传文件并分析
+- /api/mp/risk/status/<id>              查询任务状态
+- /api/mp/risk/result/<id>              获取分析结果
+- /api/mp/risk/history                  历史任务列表
+- /api/mp/risk/delete/<id>              删除任务
+
+V5.0 新增接口：
+- /api/mp/risk/upload-response/<id>     上传应答文件 (POST)
+- /api/mp/risk/reconcile/<id>           启动双向对账 (POST) / 获取对账结果 (GET)
+- /api/mp/risk/export/<id>              导出 Excel 报告 (GET)
 """
 
 import sys
@@ -510,6 +515,325 @@ def delete_task(task_id: str):
 
     except Exception as e:
         logger.error(f"删除任务失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ============================================================
+# 应答文件上传与双向对账接口 (5.0 新增)
+# ============================================================
+
+@api_miniprogram_bp.route('/risk/upload-response/<task_id>', methods=['POST'])
+@require_mp_auth
+def upload_response_file(task_id: str):
+    """
+    上传应答文件（用于双向对账）
+
+    POST: multipart/form-data
+    - file: 应答文档文件 (PDF/Word)
+
+    Returns:
+        {
+            "success": true,
+            "data": {
+                "task_id": "uuid-xxx",
+                "response_file_path": "...",
+                "message": "应答文件上传成功，可启动对账"
+            }
+        }
+    """
+    try:
+        from modules.risk_analyzer import RiskTaskManager
+        task_manager = RiskTaskManager()
+
+        # 验证任务存在且属于当前用户
+        task = task_manager.get_task_by_openid(task_id, g.openid)
+        if not task:
+            return jsonify({'success': False, 'message': '任务不存在或无权访问'}), 404
+
+        # 验证任务已完成分析
+        if task['status'] != 'completed':
+            return jsonify({
+                'success': False,
+                'message': f'请先完成招标文件分析，当前状态: {task["status"]}'
+            }), 400
+
+        # 验证文件
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': '未上传文件'}), 400
+
+        file = request.files['file']
+        original_filename = request.form.get('filename') or file.filename
+
+        if not original_filename:
+            return jsonify({'success': False, 'message': '文件名为空'}), 400
+
+        # 检查文件类型
+        allowed_extensions = {'pdf', 'doc', 'docx'}
+        ext = original_filename.rsplit('.', 1)[-1].lower() if '.' in original_filename else ''
+        if ext not in allowed_extensions:
+            return jsonify({'success': False, 'message': f'不支持的文件格式: {ext}'}), 400
+
+        # 检查文件大小（限制 20MB）
+        file.seek(0, 2)
+        file_size = file.tell()
+        file.seek(0)
+
+        if file_size > 20 * 1024 * 1024:
+            return jsonify({'success': False, 'message': '文件大小不能超过 20MB'}), 400
+
+        # 存储文件
+        file_metadata = storage_service.store_file(
+            file_obj=file,
+            original_name=original_filename,
+            category='risk_analysis',
+            business_type='response_file'
+        )
+
+        # 更新任务，保存应答文件信息
+        task_manager.update_task(
+            task_id,
+            response_file_path=file_metadata.file_path,
+            response_file_name=file_metadata.original_name,
+            analysis_mode='bid_response_reconcile'
+        )
+
+        logger.info(f"应答文件上传成功: task_id={task_id}, 文件: {original_filename}")
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'task_id': task_id,
+                'response_file_path': file_metadata.file_path,
+                'response_file_name': original_filename,
+                'message': '应答文件上传成功，可启动对账'
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"上传应答文件失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@api_miniprogram_bp.route('/risk/reconcile/<task_id>', methods=['POST'])
+@require_mp_auth
+def start_reconcile(task_id: str):
+    """
+    启动双向对账
+
+    POST: {}  （无需参数，使用已上传的应答文件）
+
+    Returns:
+        {
+            "success": true,
+            "data": {
+                "task_id": "xxx",
+                "status": "reconciling",
+                "message": "对账任务已启动"
+            }
+        }
+    """
+    try:
+        from modules.risk_analyzer import RiskTaskManager
+        task_manager = RiskTaskManager()
+
+        # 验证任务
+        task = task_manager.get_task_by_openid(task_id, g.openid)
+        if not task:
+            return jsonify({'success': False, 'message': '任务不存在或无权访问'}), 404
+
+        # 验证分析已完成
+        if task['status'] not in ['completed', 'reconcile_completed']:
+            return jsonify({
+                'success': False,
+                'message': f'请先完成招标文件分析，当前状态: {task["status"]}'
+            }), 400
+
+        # 验证应答文件已上传
+        if not task.get('response_file_path'):
+            return jsonify({
+                'success': False,
+                'message': '请先上传应答文件'
+            }), 400
+
+        # 启动对账任务
+        success = task_manager.start_reconcile(task_id)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': {
+                    'task_id': task_id,
+                    'status': 'reconciling',
+                    'message': '对账任务已启动'
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '启动对账失败'
+            }), 500
+
+    except Exception as e:
+        logger.error(f"启动对账失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@api_miniprogram_bp.route('/risk/reconcile/<task_id>', methods=['GET'])
+@require_mp_auth
+def get_reconcile_result(task_id: str):
+    """
+    获取对账结果
+
+    Returns:
+        {
+            "success": true,
+            "data": {
+                "task_id": "xxx",
+                "status": "reconcile_completed",
+                "reconcile_summary": {
+                    "total": 10,
+                    "compliant": 6,
+                    "non_compliant": 2,
+                    "partial": 2
+                },
+                "risk_items": [...],  // 包含合规状态的风险项
+                "reconcile_results": [...] // 详细对账结果
+            }
+        }
+    """
+    try:
+        from modules.risk_analyzer import RiskTaskManager
+        import json
+
+        task_manager = RiskTaskManager()
+
+        task = task_manager.get_task_by_openid(task_id, g.openid)
+        if not task:
+            return jsonify({'success': False, 'message': '任务不存在或无权访问'}), 404
+
+        # 获取完整结果
+        result = task_manager.get_task_result(task_id)
+
+        # 解析对账结果
+        reconcile_results = []
+        if result.get('reconcile_results'):
+            try:
+                reconcile_results = json.loads(result['reconcile_results'])
+            except json.JSONDecodeError:
+                reconcile_results = []
+
+        # 计算对账汇总
+        reconcile_summary = {
+            'total': len(reconcile_results),
+            'compliant': sum(1 for r in reconcile_results if r.get('compliance_status') == 'compliant'),
+            'non_compliant': sum(1 for r in reconcile_results if r.get('compliance_status') == 'non_compliant'),
+            'partial': sum(1 for r in reconcile_results if r.get('compliance_status') == 'partial'),
+            'unknown': sum(1 for r in reconcile_results if r.get('compliance_status') == 'unknown')
+        }
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'task_id': task_id,
+                'status': result.get('status', 'unknown'),
+                'reconcile_progress': result.get('reconcile_progress', 0),
+                'reconcile_step': result.get('reconcile_step', ''),
+                'reconcile_summary': reconcile_summary,
+                'risk_items': result.get('risk_items', []),
+                'reconcile_results': reconcile_results,
+                'response_file_name': result.get('response_file_name', '')
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"获取对账结果失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@api_miniprogram_bp.route('/risk/export/<task_id>', methods=['GET'])
+@require_mp_auth
+def export_excel(task_id: str):
+    """
+    导出分析结果为 Excel 文件
+
+    Query params:
+    - include_reconcile: 是否包含对账结果 (默认 true)
+
+    Returns:
+        Excel 文件下载
+    """
+    try:
+        from flask import send_file
+        from modules.risk_analyzer import RiskTaskManager
+        from modules.risk_analyzer.excel_exporter import ExcelExporterV5
+        import json
+        import tempfile
+        import os
+
+        task_manager = RiskTaskManager()
+
+        # 验证任务
+        task = task_manager.get_task_by_openid(task_id, g.openid)
+        if not task:
+            return jsonify({'success': False, 'message': '任务不存在或无权访问'}), 404
+
+        if task['status'] not in ['completed', 'reconcile_completed']:
+            return jsonify({
+                'success': False,
+                'message': f'任务尚未完成，当前状态: {task["status"]}'
+            }), 400
+
+        # 获取完整结果
+        result = task_manager.get_task_result(task_id)
+
+        # 解析风险项
+        risk_items = result.get('risk_items', [])
+
+        # 解析对账结果
+        reconcile_results = []
+        if result.get('reconcile_results'):
+            try:
+                reconcile_results = json.loads(result['reconcile_results'])
+            except json.JSONDecodeError:
+                pass
+
+        include_reconcile = request.args.get('include_reconcile', 'true').lower() == 'true'
+
+        # 生成 Excel
+        exporter = ExcelExporterV5()
+
+        # 创建临时文件
+        fd, temp_path = tempfile.mkstemp(suffix='.xlsx')
+        os.close(fd)
+
+        try:
+            exporter.export(
+                risk_items=risk_items,
+                output_path=temp_path,
+                project_name=result.get('original_filename', '招标分析报告'),
+                summary=result.get('summary', ''),
+                reconcile_results=reconcile_results if include_reconcile else None
+            )
+
+            # 设置下载文件名
+            safe_filename = result.get('original_filename', '分析报告')
+            safe_filename = safe_filename.rsplit('.', 1)[0] if '.' in safe_filename else safe_filename
+            download_name = f"{safe_filename}_风险分析报告.xlsx"
+
+            return send_file(
+                temp_path,
+                as_attachment=True,
+                download_name=download_name,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+
+        finally:
+            # 延迟删除临时文件（send_file 完成后）
+            # 注意：Flask send_file 在发送后会自动处理
+            pass
+
+    except Exception as e:
+        logger.error(f"导出 Excel 失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
