@@ -377,6 +377,30 @@ def get_task_status(task_id: str):
             except json.JSONDecodeError:
                 risk_items = []
 
+        # 解析对账结果（如有）
+        reconcile_summary = None
+        if task.get('reconcile_results'):
+            try:
+                reconcile_results = json.loads(task['reconcile_results'])
+                # 生成对账汇总
+                if reconcile_results:
+                    pass_count = sum(1 for r in reconcile_results if r.get('compliance_status') == 'compliant')
+                    fail_count = sum(1 for r in reconcile_results if r.get('compliance_status') == 'non_compliant')
+                    partial_count = sum(1 for r in reconcile_results if r.get('compliance_status') == 'partial')
+                    total_score = sum(r.get('match_score', 0) for r in reconcile_results)
+                    avg_score = int(total_score / len(reconcile_results) * 100) if reconcile_results else 0
+
+                    reconcile_summary = {
+                        'total': len(reconcile_results),
+                        'passCount': pass_count,
+                        'failCount': fail_count,
+                        'partialCount': partial_count,
+                        'matchScore': avg_score,
+                        'scoreClass': 'good' if avg_score >= 85 else ('warning' if avg_score >= 70 else 'danger')
+                    }
+            except (json.JSONDecodeError, Exception) as e:
+                logger.warning(f"解析对账结果失败: {e}")
+
         return jsonify({
             'success': True,
             'data': {
@@ -386,7 +410,12 @@ def get_task_status(task_id: str):
                 'current_step': task.get('current_step', ''),
                 'error_message': task.get('error_message', ''),
                 'risk_items': risk_items,
-                'found_count': len(risk_items)
+                'found_count': len(risk_items),
+                # V5 新增：对账相关字段
+                'reconcile_progress': task.get('reconcile_progress', 0),
+                'reconcile_step': task.get('reconcile_step', ''),
+                'reconcile_summary': reconcile_summary,
+                'response_file_name': task.get('response_file_name', '')
             }
         })
 
