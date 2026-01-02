@@ -46,8 +46,17 @@ git log -1 --oneline
 ```
 
 ### Step 2: 初始化数据库
+
+**重要提示**：如果服务器 Python 版本 < 3.7，使用简化版脚本：
+
 ```bash
-# 执行数据库初始化脚本
+# 检查 Python 版本
+python3 --version
+
+# 如果 Python < 3.7，使用简化版脚本（推荐）
+python3 scripts/init_db_simple.py
+
+# 如果 Python >= 3.7，可使用标准脚本
 python3 scripts/init_production_db.py
 ```
 
