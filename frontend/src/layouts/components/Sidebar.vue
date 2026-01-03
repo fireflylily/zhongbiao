@@ -221,6 +221,7 @@ const sidebarClasses = computed(() => ({
 const menuCategories = computed(() => {
   const categories = [
     { key: 'bidding-center', label: '投标中心', icon: 'bi-folder-fill' },
+    { key: 'tender-check', label: '标书检查', icon: 'bi-clipboard-check' },
     { key: 'knowledge', label: '知识中心', icon: 'bi-book-fill' }
   ]
 

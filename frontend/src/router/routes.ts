@@ -145,6 +145,36 @@ export const routes: RouteRecordRaw[] = [
         }
       },
 
+      // ========== 标书检查 ==========
+      {
+        path: 'tender-check',
+        name: 'TenderCheck',
+        redirect: { name: 'ResponseCheck' },
+        meta: {
+          title: '标书检查',
+          icon: 'bi-clipboard-check',
+          category: 'tender-check',
+          order: 2,
+          description: '标书文件智能检查'
+        },
+        children: [
+          // 应答文件自检
+          {
+            path: 'response-check',
+            name: 'ResponseCheck',
+            component: () => import('@/views/TenderCheck/ResponseCheck.vue'),
+            meta: {
+              title: '应答文件自检',
+              icon: 'bi-file-earmark-check',
+              order: 1,
+              parent: 'TenderCheck',
+              keepAlive: true,
+              description: '检查应答文件完整性、签章、报价等28项'
+            }
+          }
+        ]
+      },
+
       // ========== 知识中心 ==========
       {
         path: 'knowledge',
@@ -154,7 +184,7 @@ export const routes: RouteRecordRaw[] = [
           title: '知识中心',
           icon: 'bi-book',
           category: 'knowledge',
-          order: 2,
+          order: 3,
           description: 'AI系统的大脑和资料库'
         },
         children: [

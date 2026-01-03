@@ -57,10 +57,11 @@ class OCRParser:
 
             self.logger.info(f"初始化PaddleOCR引擎 (GPU={self.use_gpu}, 语言={self.lang})")
 
+            # PaddleOCR 3.x 版本移除了 use_gpu 参数
+            # GPU 会自动检测，无需手动配置
             self._ocr_engine = PaddleOCR(
                 use_angle_cls=True,  # 使用方向分类器
-                lang=self.lang,      # 语言
-                use_gpu=self.use_gpu  # GPU加速
+                lang=self.lang       # 语言
             )
 
             self.logger.info("PaddleOCR引擎初始化完成")
@@ -127,7 +128,8 @@ class OCRParser:
             img_array = np.array(image)
 
             # 进行OCR识别
-            result = self._ocr_engine.ocr(img_array, cls=True)
+            # PaddleOCR 3.x 移除了 cls 参数，方向分类在初始化时通过 use_angle_cls 配置
+            result = self._ocr_engine.ocr(img_array)
 
             # 提取文本
             text_lines = []
@@ -148,9 +150,13 @@ class OCRParser:
             self.logger.error(f"OCR图片识别失败: {e}")
             return ""
 
+    # OCR 分批处理配置（防止内存溢出）
+    # 每批处理页数，8GB 内存建议 10 页/批
+    OCR_BATCH_SIZE = int(os.getenv('OCR_BATCH_SIZE', '10'))
+
     async def ocr_pdf(self, pdf_path: str, page_numbers: Optional[List[int]] = None) -> Dict[int, str]:
         """
-        对PDF的多个页面进行OCR识别
+        对PDF的多个页面进行OCR识别（分批处理，支持大文件）
 
         Args:
             pdf_path: PDF文件路径
@@ -159,6 +165,8 @@ class OCRParser:
         Returns:
             Dict[int, str]: {页码: 识别文本}
         """
+        import gc  # 垃圾回收
+
         if not self.enable_ocr or not self._ocr_engine:
             self.logger.warning("OCR未启用")
             return {}
@@ -173,24 +181,31 @@ class OCRParser:
             if page_numbers is None:
                 page_numbers = list(range(total_pages))
 
-            self.logger.info(f"开始OCR识别 {len(page_numbers)} 个页面")
+            total_to_process = len(page_numbers)
+            self.logger.info(f"开始OCR识别 {total_to_process} 个页面（分批处理，每批 {self.OCR_BATCH_SIZE} 页）")
 
-            # 并发识别多个页面
-            tasks = []
-            for page_num in page_numbers:
-                if 0 <= page_num < total_pages:
-                    task = self.ocr_pdf_page(pdf_path, page_num)
-                    tasks.append((page_num, task))
-
-            # 等待所有任务完成
+            # 分批处理，避免内存溢出
             results = {}
-            for page_num, task in tasks:
-                text = await task
-                results[page_num] = text
-                self.logger.debug(f"页面 {page_num + 1} OCR完成，提取 {len(text)} 字符")
+            for batch_start in range(0, total_to_process, self.OCR_BATCH_SIZE):
+                batch_end = min(batch_start + self.OCR_BATCH_SIZE, total_to_process)
+                batch_pages = page_numbers[batch_start:batch_end]
+                batch_num = batch_start // self.OCR_BATCH_SIZE + 1
+                total_batches = (total_to_process + self.OCR_BATCH_SIZE - 1) // self.OCR_BATCH_SIZE
+
+                self.logger.info(f"📄 处理第 {batch_num}/{total_batches} 批（页面 {batch_start+1}-{batch_end}）")
+
+                # 处理当前批次
+                for page_num in batch_pages:
+                    if 0 <= page_num < total_pages:
+                        text = await self.ocr_pdf_page(pdf_path, page_num)
+                        results[page_num] = text
+                        self.logger.debug(f"页面 {page_num + 1} OCR完成，提取 {len(text)} 字符")
+
+                # 每批处理完后强制垃圾回收，释放内存
+                gc.collect()
 
             total_chars = sum(len(text) for text in results.values())
-            self.logger.info(f"OCR识别完成，共提取 {total_chars} 字符")
+            self.logger.info(f"✅ OCR识别完成，共处理 {total_to_process} 页，提取 {total_chars} 字符")
 
             return results
 

@@ -201,6 +201,15 @@ def register_all_blueprints(app: Flask, config, logger):
     except ImportError as e:
         logger.warning(f"小程序API蓝图加载失败: {e}")
 
+    # 应答文件自检API蓝图 (Web + 小程序)
+    try:
+        from .api_response_check_bp import api_response_check_bp, api_mp_response_check_bp
+        app.register_blueprint(api_response_check_bp)
+        app.register_blueprint(api_mp_response_check_bp)
+        logger.info("应答文件自检API蓝图注册成功 (Web: /api/response-check, 小程序: /api/mp/response-check)")
+    except ImportError as e:
+        logger.warning(f"应答文件自检API蓝图加载失败: {e}")
+
     # 阶段5: HITL任务处理蓝图
     # (待实现)
 
