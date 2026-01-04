@@ -76,8 +76,7 @@ RUN pip install --no-cache-dir \
     openpyxl==3.1.2 \
     python-dotenv==1.0.0 \
     requests==2.31.0 \
-    paddleocr==2.7.0 \
-    paddlepaddle==2.5.1
+    azure-ai-formrecognizer>=3.3.0
 
 # 暴露端口
 EXPOSE 8110
@@ -176,7 +175,7 @@ pip3 install -r requirements.txt
 pip3 install flask==2.3.3 flask-cors==4.0.0 flask-compress==1.14
 pip3 install python-docx==0.8.11 openpyxl==3.1.2
 pip3 install python-dotenv==1.0.0 requests==2.31.0
-pip3 install paddleocr==2.7.0 paddlepaddle==2.5.1
+pip3 install azure-ai-formrecognizer>=3.3.0
 ```
 
 ### 3. 配置环境变量
@@ -425,7 +424,7 @@ pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # 或手动安装问题包
 pip3 install --upgrade pip setuptools wheel
-pip3 install paddlepaddle==2.5.1 -i https://mirror.baidu.com/pypi/simple
+pip3 install azure-ai-formrecognizer>=3.3.0
 ```
 
 ### 3. 数据库初始化
