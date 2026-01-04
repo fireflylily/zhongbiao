@@ -57,14 +57,31 @@ class PDFParser:
     def _get_ocr_parser(self):
         """延迟初始化OCR解析器（仅在需要时加载）"""
         if self._ocr_parser is None and self.enable_ocr:
+            # 根据环境变量选择OCR提供商
+            ocr_provider = os.getenv('OCR_PROVIDER', 'paddleocr').lower()
+
             try:
+                if ocr_provider == 'azure':
+                    # 使用 Azure Form Recognizer（云端OCR，速度快）
+                    from ..tender_processing.azure_parser import AzureDocumentParser, is_azure_available
+
+                    if not is_azure_available():
+                        self.logger.warning("Azure OCR 未配置，回退到 PaddleOCR")
+                        ocr_provider = 'paddleocr'
+                    else:
+                        self._ocr_parser = AzureDocumentParser()
+                        self.logger.info("✅ 使用 Azure Form Recognizer 进行OCR")
+                        return self._ocr_parser
+
+                # 默认使用 PaddleOCR（本地OCR）
                 from .ocr_parser import OCRParser
 
                 use_gpu = os.getenv('OCR_USE_GPU', 'false').lower() == 'true'
                 lang = os.getenv('OCR_LANG', 'ch')
 
                 self._ocr_parser = OCRParser(use_gpu=use_gpu, lang=lang)
-                self.logger.info("OCR解析器初始化完成")
+                self.logger.info("使用 PaddleOCR 进行OCR")
+
             except Exception as e:
                 self.logger.warning(f"OCR解析器初始化失败，将禁用OCR: {e}")
                 self.enable_ocr = False

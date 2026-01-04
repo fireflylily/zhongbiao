@@ -64,6 +64,83 @@ class AzureDocumentParser:
 
         self.logger.info(f"Azure Form Recognizer 初始化完成: {self.endpoint}")
 
+    def extract_text_only(self, pdf_path: str) -> Dict[int, str]:
+        """
+        使用 Azure Form Recognizer 提取 PDF 全文（OCR功能）
+
+        替代本地 PaddleOCR，速度更快且无需本地计算资源。
+        使用 prebuilt-read 模型专门进行文字识别。
+
+        Args:
+            pdf_path: PDF文件路径
+
+        Returns:
+            Dict[int, str]: {页码(从0开始): 该页识别的文本}
+        """
+        try:
+            self.logger.info(f"Azure OCR 开始处理: {pdf_path}")
+            start_time = time.time()
+
+            # 读取PDF文件
+            with open(pdf_path, 'rb') as f:
+                document_bytes = f.read()
+
+            # 调用 Azure API - 使用 prebuilt-read 模型（专门用于文字识别）
+            poller = self.client.begin_analyze_document(
+                "prebuilt-read",  # 使用文字识别模型，比layout更快
+                document_bytes
+            )
+
+            result = poller.result()
+            elapsed = time.time() - start_time
+
+            # 按页面提取文本
+            page_texts = {}
+            if result.pages:
+                for page in result.pages:
+                    page_num = page.page_number - 1  # 转换为从0开始的索引
+                    # 提取该页面的所有行文本
+                    lines = []
+                    for line in page.lines or []:
+                        lines.append(line.content)
+                    page_texts[page_num] = '\n'.join(lines)
+
+            total_chars = sum(len(text) for text in page_texts.values())
+            self.logger.info(f"Azure OCR 完成: {len(page_texts)} 页, {total_chars} 字符, 耗时 {elapsed:.2f}s")
+
+            return page_texts
+
+        except Exception as e:
+            self.logger.error(f"Azure OCR 失败: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return {}
+
+    async def ocr_pdf(self, pdf_path: str, page_numbers: Optional[List[int]] = None) -> Dict[int, str]:
+        """
+        异步接口：使用 Azure Form Recognizer 进行 OCR
+
+        与 OCRParser.ocr_pdf 接口兼容，可作为直接替代。
+
+        Args:
+            pdf_path: PDF文件路径
+            page_numbers: 要识别的页码列表（从0开始），None表示全部页面
+
+        Returns:
+            Dict[int, str]: {页码: 识别文本}
+        """
+        import asyncio
+
+        # Azure API 是同步的，在线程池中运行
+        loop = asyncio.get_event_loop()
+        all_results = await loop.run_in_executor(None, self.extract_text_only, pdf_path)
+
+        # 如果指定了页码，只返回指定页面
+        if page_numbers is not None:
+            return {p: all_results.get(p, '') for p in page_numbers if p in all_results}
+
+        return all_results
+
     def _convert_docx_to_pdf(self, docx_path: str) -> Optional[str]:
         """
         将 Word 文档转换为 PDF
