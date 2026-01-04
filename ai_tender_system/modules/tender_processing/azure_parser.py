@@ -64,12 +64,19 @@ class AzureDocumentParser:
 
         self.logger.info(f"Azure Form Recognizer 初始化完成: {self.endpoint}")
 
+    # 大文件分批处理配置
+    # Azure prebuilt-read 模型限制：单次最大 4MB
+    # 扫描PDF每页约 200-500KB，安全起见每批最多 10 页
+    MAX_PAGES_PER_BATCH = int(os.getenv('AZURE_OCR_BATCH_SIZE', '10'))  # 每批最多10页
+    MAX_FILE_SIZE_MB = 4  # 单次上传最大4MB（Azure限制）
+
     def extract_text_only(self, pdf_path: str) -> Dict[int, str]:
         """
         使用 Azure Form Recognizer 提取 PDF 全文（OCR功能）
 
         替代本地 PaddleOCR，速度更快且无需本地计算资源。
         使用 prebuilt-read 模型专门进行文字识别。
+        大文件自动分批处理，避免超时。
 
         Args:
             pdf_path: PDF文件路径
@@ -77,44 +84,133 @@ class AzureDocumentParser:
         Returns:
             Dict[int, str]: {页码(从0开始): 该页识别的文本}
         """
+        import fitz  # PyMuPDF
+
         try:
             self.logger.info(f"Azure OCR 开始处理: {pdf_path}")
             start_time = time.time()
 
-            # 读取PDF文件
-            with open(pdf_path, 'rb') as f:
-                document_bytes = f.read()
+            # 检查文件大小和页数
+            file_size_mb = os.path.getsize(pdf_path) / (1024 * 1024)
+            doc = fitz.open(pdf_path)
+            total_pages = len(doc)
+            doc.close()
 
-            # 调用 Azure API - 使用 prebuilt-read 模型（专门用于文字识别）
-            poller = self.client.begin_analyze_document(
-                "prebuilt-read",  # 使用文字识别模型，比layout更快
-                document_bytes
-            )
+            # 判断是否需要分批处理
+            need_batch = file_size_mb > self.MAX_FILE_SIZE_MB or total_pages > self.MAX_PAGES_PER_BATCH
 
-            result = poller.result()
-            elapsed = time.time() - start_time
-
-            # 按页面提取文本
-            page_texts = {}
-            if result.pages:
-                for page in result.pages:
-                    page_num = page.page_number - 1  # 转换为从0开始的索引
-                    # 提取该页面的所有行文本
-                    lines = []
-                    for line in page.lines or []:
-                        lines.append(line.content)
-                    page_texts[page_num] = '\n'.join(lines)
-
-            total_chars = sum(len(text) for text in page_texts.values())
-            self.logger.info(f"Azure OCR 完成: {len(page_texts)} 页, {total_chars} 字符, 耗时 {elapsed:.2f}s")
-
-            return page_texts
+            if need_batch:
+                self.logger.info(f"📦 大文件检测: {file_size_mb:.1f}MB, {total_pages}页 → 启用分批处理")
+                return self._extract_text_batched(pdf_path, total_pages)
+            else:
+                return self._extract_text_single(pdf_path)
 
         except Exception as e:
             self.logger.error(f"Azure OCR 失败: {e}")
             import traceback
             self.logger.error(traceback.format_exc())
             return {}
+
+    def _extract_text_single(self, pdf_path: str) -> Dict[int, str]:
+        """单次处理整个PDF（小文件）"""
+        start_time = time.time()
+
+        with open(pdf_path, 'rb') as f:
+            document_bytes = f.read()
+
+        poller = self.client.begin_analyze_document(
+            "prebuilt-read",
+            document_bytes
+        )
+
+        result = poller.result()
+        elapsed = time.time() - start_time
+
+        page_texts = {}
+        if result.pages:
+            for page in result.pages:
+                page_num = page.page_number - 1
+                lines = []
+                for line in page.lines or []:
+                    lines.append(line.content)
+                page_texts[page_num] = '\n'.join(lines)
+
+        total_chars = sum(len(text) for text in page_texts.values())
+        self.logger.info(f"Azure OCR 完成: {len(page_texts)} 页, {total_chars} 字符, 耗时 {elapsed:.2f}s")
+
+        return page_texts
+
+    def _extract_text_batched(self, pdf_path: str, total_pages: int) -> Dict[int, str]:
+        """分批处理大PDF文件"""
+        import fitz
+        import tempfile
+        import gc
+
+        all_results = {}
+        batch_size = self.MAX_PAGES_PER_BATCH
+        total_batches = (total_pages + batch_size - 1) // batch_size
+
+        start_time = time.time()
+
+        for batch_idx in range(total_batches):
+            start_page = batch_idx * batch_size
+            end_page = min(start_page + batch_size, total_pages)
+            batch_num = batch_idx + 1
+
+            self.logger.info(f"📄 处理第 {batch_num}/{total_batches} 批（页面 {start_page+1}-{end_page}）")
+
+            try:
+                # 提取当前批次的页面到临时PDF
+                doc = fitz.open(pdf_path)
+                temp_doc = fitz.open()  # 创建空PDF
+
+                for page_num in range(start_page, end_page):
+                    temp_doc.insert_pdf(doc, from_page=page_num, to_page=page_num)
+
+                # 保存临时PDF
+                with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+                    temp_path = tmp_file.name
+                    temp_doc.save(temp_path)
+
+                temp_doc.close()
+                doc.close()
+
+                # 调用Azure API处理临时PDF
+                with open(temp_path, 'rb') as f:
+                    document_bytes = f.read()
+
+                poller = self.client.begin_analyze_document(
+                    "prebuilt-read",
+                    document_bytes
+                )
+                result = poller.result()
+
+                # 提取文本，注意页码偏移
+                if result.pages:
+                    for page in result.pages:
+                        # 临时PDF中的页码从1开始，需要转换为原始页码
+                        original_page_num = start_page + page.page_number - 1
+                        lines = []
+                        for line in page.lines or []:
+                            lines.append(line.content)
+                        all_results[original_page_num] = '\n'.join(lines)
+
+                # 清理临时文件
+                os.unlink(temp_path)
+
+                # 强制垃圾回收
+                gc.collect()
+
+            except Exception as e:
+                self.logger.error(f"批次 {batch_num} 处理失败: {e}")
+                # 继续处理下一批，不中断整个流程
+
+        elapsed = time.time() - start_time
+        total_chars = sum(len(text) for text in all_results.values())
+        self.logger.info(f"✅ Azure OCR 分批处理完成: {len(all_results)}/{total_pages} 页, "
+                        f"{total_chars} 字符, 耗时 {elapsed:.2f}s")
+
+        return all_results
 
     async def ocr_pdf(self, pdf_path: str, page_numbers: Optional[List[int]] = None) -> Dict[int, str]:
         """
