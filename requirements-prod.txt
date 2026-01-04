@@ -25,6 +25,13 @@ python-docx>=0.8.11
 mammoth>=1.0.0  # Word转HTML (保留格式)
 pdfplumber>=0.9.0
 openpyxl>=3.1.0
+Pillow>=10.0.0  # 图片处理
+
+# ===================
+# OCR识别（扫描PDF必须）
+# ===================
+paddlepaddle>=2.5.0  # PaddlePaddle深度学习框架（CPU版本，约200MB）
+paddleocr>=2.7.0     # PaddleOCR文字识别
 
 # ===================
 # 文本处理和分块

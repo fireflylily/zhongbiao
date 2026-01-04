@@ -133,21 +133,58 @@ class OCRParser:
 
             # 提取文本
             text_lines = []
-            if result and result[0]:
-                for line in result[0]:
-                    if line and len(line) >= 2:
-                        # line格式: [[[x1,y1],[x2,y2],[x3,y3],[x4,y4]], (text, confidence)]
-                        text = line[1][0]
-                        confidence = line[1][1]
+            if result:
+                # 处理不同版本的返回格式
+                # PaddleOCR 2.x: result[0] 是识别结果列表
+                # PaddleOCR 3.x: result 可能直接是结果列表，或 result[0] 是结果
+                ocr_results = result[0] if result and isinstance(result, list) and len(result) > 0 else result
 
-                        # 只保留置信度高于0.5的结果
-                        if confidence > 0.5:
-                            text_lines.append(text)
+                if ocr_results:
+                    for line in ocr_results:
+                        if not line:
+                            continue
+
+                        try:
+                            # 尝试解析不同格式的结果
+                            # 格式1: [[[x1,y1],...], (text, confidence)]
+                            # 格式2: [[[x1,y1],...], [text, confidence]]
+                            # 格式3: {'text': text, 'confidence': confidence, ...}
+
+                            if isinstance(line, dict):
+                                # 字典格式 (PaddleOCR 3.x 某些版本)
+                                text = line.get('text', '') or line.get('rec_text', '')
+                                confidence = line.get('confidence', 1.0) or line.get('rec_score', 1.0)
+                            elif isinstance(line, (list, tuple)) and len(line) >= 2:
+                                # 列表/元组格式
+                                text_info = line[1]
+                                if isinstance(text_info, dict):
+                                    text = text_info.get('text', '') or text_info.get('rec_text', '')
+                                    confidence = text_info.get('confidence', 1.0) or text_info.get('rec_score', 1.0)
+                                elif isinstance(text_info, (list, tuple)) and len(text_info) >= 2:
+                                    text = text_info[0]
+                                    confidence = text_info[1]
+                                elif isinstance(text_info, str):
+                                    text = text_info
+                                    confidence = 1.0
+                                else:
+                                    continue
+                            else:
+                                continue
+
+                            # 只保留置信度高于0.5的结果
+                            if confidence > 0.5 and text:
+                                text_lines.append(str(text))
+
+                        except (IndexError, KeyError, TypeError) as e:
+                            self.logger.debug(f"解析OCR结果行失败: {e}, line={line}")
+                            continue
 
             return '\n'.join(text_lines)
 
         except Exception as e:
             self.logger.error(f"OCR图片识别失败: {e}")
+            import traceback
+            self.logger.debug(f"OCR错误详情: {traceback.format_exc()}")
             return ""
 
     # OCR 分批处理配置（防止内存溢出）
