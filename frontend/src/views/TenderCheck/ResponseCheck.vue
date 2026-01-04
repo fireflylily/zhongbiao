@@ -487,10 +487,6 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .response-check {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-
   .el-card {
     margin-bottom: 20px;
   }
